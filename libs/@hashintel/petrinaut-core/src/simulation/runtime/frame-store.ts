@@ -14,7 +14,7 @@ export interface SimulationFrameStore {
 }
 
 /**
- * Compatibility store for the v1 worker protocol. It keeps all full frame
+ * Default in-memory store for the worker protocol. It keeps all full frame
  * payloads in memory, while hiding that retention policy from `Simulation`.
  */
 export function createInMemorySimulationFrameStore(

@@ -4,9 +4,10 @@ import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-we
 import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
 import {
-  decodeTokenRecord,
-  encodeTokenAttributeValue,
-} from "../engine/token-values";
+  encodeTokenValuesToBytes,
+  readTokenRecord,
+} from "../engine/token-layout";
+import { encodeTokenAttributeValue } from "../engine/token-values";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
 
 import type {
@@ -43,8 +44,8 @@ export function computeTransitionEffect(
       ...inputPlace,
       placeIndex,
       count: frame.placeCounts[placeIndex] ?? 0,
-      offset: frame.placeOffsets[placeIndex] ?? 0,
-      dimensions: frameLayout.placeDimensions[placeIndex] ?? 0,
+      byteOffset: frame.placeOffsets[placeIndex] ?? 0,
+      strideBytes: frameLayout.placeStrideBytes[placeIndex] ?? 0,
     };
   });
 
@@ -61,10 +62,10 @@ export function computeTransitionEffect(
   const timeSinceLastFiring =
     (frame.transitionElapsedFrames[transitionIndex] ?? 0) * run.simulation.dt;
   const inputPlacesWithValues = inputPlaces.filter(
-    (place) => place.dimensions > 0 && place.arcType !== "inhibitor",
+    (place) => place.strideBytes > 0 && place.arcType !== "inhibitor",
   );
   const standardInputPlacesWithoutValues = inputPlaces.filter(
-    (place) => place.dimensions === 0 && place.arcType === "standard",
+    (place) => place.strideBytes === 0 && place.arcType === "standard",
   );
 
   const tokenCombinations = enumerateWeightedMarkingIndicesGenerator(
@@ -79,28 +80,23 @@ export function computeTransitionEffect(
       tokenIndices,
     ] of tokenCombinationIndices.entries()) {
       const inputPlace = inputPlacesWithValues[placeIndex]!;
-      const { dimensions, offset } = inputPlace;
-      if (!inputPlace.elementNames) {
-        throw new SDCPNItemError(
-          `Place \`${inputPlace.placeName}\` has no type defined`,
-          inputPlace.placeId,
-        );
-      }
-      const elements = inputPlace.elements;
-      if (!elements) {
+      const { strideBytes, byteOffset } = inputPlace;
+      const tokenLayout = inputPlace.tokenLayout;
+      if (!tokenLayout) {
         throw new SDCPNItemError(
           `Place \`${inputPlace.placeName}\` has no type defined`,
           inputPlace.placeId,
         );
       }
 
-      tokenValues[inputPlace.placeName] = tokenIndices.map((tokenIndex) => {
-        const tokenOffset = offset + tokenIndex * dimensions;
-        return decodeTokenRecord(
-          elements,
-          frame.tokenValues.subarray(tokenOffset, tokenOffset + dimensions),
-        );
-      });
+      tokenValues[inputPlace.placeName] = tokenIndices.map((tokenIndex) =>
+        readTokenRecord(
+          tokenLayout,
+          frame.tokenF64,
+          frame.tokenBytes,
+          byteOffset + tokenIndex * strideBytes,
+        ),
+      );
     }
 
     let lambdaResult: ReturnType<typeof transition.lambdaFn>;
@@ -138,16 +134,16 @@ export function computeTransitionEffect(
       );
     }
 
-    const add: Record<PlaceID, number[][]> = {};
+    const add: Record<PlaceID, Uint8Array[]> = {};
     let currentRngState = candidateRngState;
     for (const outputPlace of transition.outputPlaces) {
       const outputPlaceIndex = getPlaceIndex(frameLayout, outputPlace.placeId);
-      const dimensions = frameLayout.placeDimensions[outputPlaceIndex] ?? 0;
+      const strideBytes = frameLayout.placeStrideBytes[outputPlaceIndex] ?? 0;
 
-      if (!outputPlace.elementNames) {
+      if (!outputPlace.tokenLayout) {
         add[outputPlace.placeId] = Array.from(
           { length: outputPlace.weight },
-          () => [],
+          () => new Uint8Array(0),
         );
         continue;
       }
@@ -160,9 +156,9 @@ export function computeTransitionEffect(
         );
       }
 
-      const tokenArrays: number[][] = [];
+      const tokenBlocks: Uint8Array[] = [];
       for (const token of outputTokens) {
-        const values: number[] = [];
+        const encodedByName: Record<string, number> = {};
         for (const element of outputPlace.elements ?? []) {
           let rawValue = token[element.name];
           if (isDistribution(rawValue)) {
@@ -178,23 +174,25 @@ export function computeTransitionEffect(
             currentRngState = nextRngState;
             rawValue = sampled;
           }
-          values.push(
-            encodeTokenAttributeValue(
-              element,
-              rawValue,
-              `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
-            ),
+          encodedByName[element.name] = encodeTokenAttributeValue(
+            element,
+            rawValue,
+            `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
           );
         }
 
-        if (values.length !== dimensions) {
+        const block = encodeTokenValuesToBytes(
+          outputPlace.tokenLayout,
+          encodedByName,
+        );
+        if (block.byteLength !== strideBytes) {
           throw new Error(
-            `Transition ${transition.id} produced ${values.length} values for place ${outputPlace.placeId}, expected ${dimensions}`,
+            `Transition ${transition.id} produced a ${block.byteLength}-byte token for place ${outputPlace.placeId}, expected ${strideBytes}`,
           );
         }
-        tokenArrays.push(values);
+        tokenBlocks.push(block);
       }
-      add[outputPlace.placeId] = tokenArrays;
+      add[outputPlace.placeId] = tokenBlocks;
     }
 
     const remove: TransitionEffect["remove"] = {};

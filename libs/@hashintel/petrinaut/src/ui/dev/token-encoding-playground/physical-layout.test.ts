@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  computeTokenLayout,
+  computePlaygroundTokenLayout,
   decodeToken,
   encodeToken,
   getFieldBits,
@@ -16,28 +16,18 @@ const DIMENSIONS: PlaygroundDimension[] = [
   { name: "count", type: "integer" },
 ];
 
-describe("computeTokenLayout", () => {
-  it("v1 keeps declaration order with one f64 slot per dimension", () => {
-    const layout = computeTokenLayout(DIMENSIONS, "v1");
-
-    expect(layout.strideBytes).toBe(24);
-    expect(layout.paddingRanges).toEqual([]);
-    expect(
-      layout.fields.map((f) => [f.name, f.physical.kind, f.byteOffset]),
-    ).toEqual([
-      ["active", "f64", 0],
-      ["amount", "f64", 8],
-      ["count", "f64", 16],
-    ]);
-  });
-
-  it("v2 orders by decreasing alignment and pads the stride to 8", () => {
-    const layout = computeTokenLayout(DIMENSIONS, "v2");
+describe("computePlaygroundTokenLayout", () => {
+  it("orders by decreasing alignment and pads the stride to 8", () => {
+    const layout = computePlaygroundTokenLayout(DIMENSIONS);
 
     // amount and count (f64, align 8) first — stable relative order — then
     // the u8 boolean, then 7 bytes of tail padding.
     expect(
-      layout.fields.map((f) => [f.name, f.physical.kind, f.byteOffset]),
+      layout.fields.map((field) => [
+        field.element.name,
+        field.kind,
+        field.byteOffset,
+      ]),
     ).toEqual([
       ["amount", "f64", 0],
       ["count", "f64", 8],
@@ -48,39 +38,35 @@ describe("computeTokenLayout", () => {
   });
 
   it("returns an empty layout for no dimensions", () => {
-    const layout = computeTokenLayout([], "v2");
+    const layout = computePlaygroundTokenLayout([]);
     expect(layout.strideBytes).toBe(0);
     expect(layout.fields).toEqual([]);
   });
 });
 
 describe("encodeToken / decodeToken", () => {
-  it.each(["v1", "v2"] as const)(
-    "round-trips with product coercion in %s mode",
-    (mode) => {
-      const layout = computeTokenLayout(DIMENSIONS, mode);
-      const { stored, decoded } = encodeToken(layout, {
-        active: true,
-        amount: 1.25,
-        count: 2.7,
-      });
+  it("round-trips with product coercion", () => {
+    const layout = computePlaygroundTokenLayout(DIMENSIONS);
+    const { stored, decoded } = encodeToken(layout, {
+      active: true,
+      amount: 1.25,
+      count: 2.7,
+    });
 
-      expect(stored).toEqual({ active: true, amount: 1.25, count: 3 });
-      expect(decoded).toEqual({ active: true, amount: 1.25, count: 3 });
-    },
-  );
+    expect(stored).toEqual({ active: true, amount: 1.25, count: 3 });
+    expect(decoded).toEqual({ active: true, amount: 1.25, count: 3 });
+  });
 
   it("applies typed defaults for missing values", () => {
-    const layout = computeTokenLayout(DIMENSIONS, "v2");
+    const layout = computePlaygroundTokenLayout(DIMENSIONS);
     const { decoded } = encodeToken(layout, {});
     expect(decoded).toEqual({ active: false, amount: 0, count: 0 });
   });
 
-  it("stores booleans as a single byte in v2", () => {
-    const layout = computeTokenLayout(
-      [{ name: "flag", type: "boolean" }],
-      "v2",
-    );
+  it("stores booleans as a single byte", () => {
+    const layout = computePlaygroundTokenLayout([
+      { name: "flag", type: "boolean" },
+    ]);
     const { buffer } = encodeToken(layout, { flag: true });
     expect(layout.strideBytes).toBe(8);
     expect(new Uint8Array(buffer)[0]).toBe(1);
@@ -90,7 +76,7 @@ describe("encodeToken / decodeToken", () => {
 
 describe("bit inspection", () => {
   it("exposes IEEE-754 bits MSB-first for f64 fields", () => {
-    const layout = computeTokenLayout([{ name: "x", type: "real" }], "v1");
+    const layout = computePlaygroundTokenLayout([{ name: "x", type: "real" }]);
     const { buffer } = encodeToken(layout, { x: -2 });
     const bits = getFieldBits(buffer, layout.fields[0]!);
 

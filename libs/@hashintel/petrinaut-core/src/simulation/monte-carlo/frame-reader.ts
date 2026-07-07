@@ -1,9 +1,7 @@
-import type { Color, Place } from "../../types/sdcpn";
-import type {
-  SimulationFrameReader,
-  SimulationFrameState,
-  SimulationPlaceTokenValues,
-} from "../api";
+import { readTokenRecord } from "../engine/token-layout";
+
+import type { Place, TokenRecord } from "../../types/sdcpn";
+import type { SimulationFrameReader, SimulationFrameState } from "../api";
 import type { MonteCarloRunState } from "./internal-types";
 
 export function createMonteCarloFrameReader(
@@ -19,57 +17,33 @@ export function createMonteCarloFrameReader(
       : (currentFrame.placeCounts[placeIndex] ?? 0);
   };
 
-  const getPlaceTokenValues = (
-    placeId: string,
-  ): SimulationPlaceTokenValues | null => {
-    const placeIndex = frameLayout.placeIndexById.get(placeId);
-    if (placeIndex === undefined) {
-      return null;
-    }
-
-    const count = currentFrame.placeCounts[placeIndex] ?? 0;
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
-    const offset = currentFrame.placeOffsets[placeIndex] ?? 0;
-    const size = count * dimensions;
-
-    return {
-      values: currentFrame.tokenValues.slice(offset, offset + size),
-      count,
-    };
-  };
-
   return {
     number: run.frameNumber,
     time: run.frameNumber * simulation.dt,
     getPlaceTokenCount,
-    getPlaceTokenValues,
-    getPlaceTokens(place: Place, color: Color | null | undefined) {
+    getPlaceTokens(place: Place) {
       const placeIndex = frameLayout.placeIndexById.get(place.id);
       if (placeIndex === undefined) {
         return [];
       }
 
       const count = currentFrame.placeCounts[placeIndex] ?? 0;
-      const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
-      const offset = currentFrame.placeOffsets[placeIndex] ?? 0;
-      const elements = color?.elements ?? [];
-      if (count === 0 || dimensions === 0 || elements.length === 0) {
+      const tokenLayout = frameLayout.placeTokenLayouts[placeIndex];
+      const byteOffset = currentFrame.placeOffsets[placeIndex] ?? 0;
+      if (count === 0 || !tokenLayout || tokenLayout.strideBytes === 0) {
         return [];
       }
 
-      const tokens: Record<string, number>[] = [];
+      const tokens: TokenRecord[] = [];
       for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
-        const token: Record<string, number> = {};
-        const base = offset + tokenIndex * dimensions;
-        for (
-          let dimensionIndex = 0;
-          dimensionIndex < elements.length && dimensionIndex < dimensions;
-          dimensionIndex++
-        ) {
-          token[elements[dimensionIndex]!.name] =
-            currentFrame.tokenValues[base + dimensionIndex] ?? 0;
-        }
-        tokens.push(token);
+        tokens.push(
+          readTokenRecord(
+            tokenLayout,
+            currentFrame.tokenF64,
+            currentFrame.tokenBytes,
+            byteOffset + tokenIndex * tokenLayout.strideBytes,
+          ),
+        );
       }
 
       return tokens;

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
+import { decodePlaceTokens } from "./token-layout.test-helpers";
 
 import type { SDCPN } from "../../types/sdcpn";
 
@@ -81,17 +81,19 @@ describe("computeNextFrame", () => {
     expect(result.transitionFired).toBe(false);
 
     // The run controller should advance time by dt.
-    const nextFrame = materializeEngineFrame(
-      result.simulation.frameLayout,
-      result.simulation.frames[1]!,
-    );
     expect(result.simulation.currentTime).toBe(0.1);
 
-    // The buffer should reflect dynamics (values should have increased by derivative * dt)
-    // Initial: [10, 20], derivative: [1, 1], dt: 0.1
-    // Expected after dynamics: [10.1, 20.1]
-    expect(nextFrame.buffer[0]).toBeCloseTo(10.1);
-    expect(nextFrame.buffer[1]).toBeCloseTo(20.1);
+    // The tokens should reflect dynamics (values should have increased by derivative * dt)
+    // Initial: { x: 10, y: 20 }, derivative: { x: 1, y: 1 }, dt: 0.1
+    // Expected after dynamics: { x: 10.1, y: 20.1 }
+    const tokens = decodePlaceTokens(
+      result.simulation.frameLayout,
+      result.simulation.frames[1]!,
+      "p1",
+    );
+    expect(tokens).toEqual([
+      { x: expect.closeTo(10.1) as number, y: expect.closeTo(20.1) as number },
+    ]);
   });
 
   it("should skip dynamics for places without type", () => {
@@ -182,12 +184,13 @@ describe("computeNextFrame", () => {
     // WHEN computing the next frame
     const result = computeNextFrame(simulation);
 
-    // THEN the buffer should be unchanged (no dynamics applied)
-    const nextFrame = materializeEngineFrame(
+    // THEN the tokens should be unchanged (no dynamics applied)
+    const tokens = decodePlaceTokens(
       result.simulation.frameLayout,
       result.simulation.frames[1]!,
+      "p1",
     );
-    expect(nextFrame.buffer[0]).toBe(10.0);
+    expect(tokens).toEqual([{ x: 10.0 }]);
     expect(result.transitionFired).toBe(false);
   });
 });

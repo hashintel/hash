@@ -163,7 +163,7 @@ describe("MonteCarloSimulator", () => {
       ],
       dt: 1,
       maxTime: 20,
-      initialTokenValueCapacity: 0,
+      initialTokenByteCapacity: 0,
     });
 
     const result = simulator.runUntilComplete({ maxBatches: 20 });
@@ -182,10 +182,9 @@ describe("MonteCarloSimulator", () => {
       source: 0,
       product: 1,
     });
-    expect(firstRun.tokenValueCount).toBe(1);
-    expect(firstRun.tokenValueCapacity).toBeGreaterThan(
-      firstRun.tokenValueCount,
-    );
+    // "product" tokens carry one real element → 8-byte stride per token.
+    expect(firstRun.tokenByteCount).toBe(8);
+    expect(firstRun.tokenByteCapacity).toBeGreaterThan(firstRun.tokenByteCount);
     expect(firstRun.reallocations).toBeGreaterThan(0);
 
     expect(secondRun.status).toBe("complete");
@@ -195,7 +194,7 @@ describe("MonteCarloSimulator", () => {
       source: 0,
       product: 2,
     });
-    expect(secondRun.tokenValueCount).toBe(2);
+    expect(secondRun.tokenByteCount).toBe(16);
   });
 
   it("does not consume tokens read by read arcs", () => {
@@ -205,7 +204,14 @@ describe("MonteCarloSimulator", () => {
       sampleRuns: "all",
       aggregateRuns: "last",
       aggregateTime: "none",
-      measure: ({ frame }) => frame.getPlaceTokenValues("product")?.values[0],
+      measure: ({ frame }) => {
+        const token = frame.getPlaceTokens(
+          readArcSdcpn.places.find(
+            (sdcpnPlace) => sdcpnPlace.id === "product",
+          )!,
+        )[0];
+        return token ? Number(token.quality) : undefined;
+      },
     });
     const simulator = createMonteCarloSimulator({
       sdcpn: readArcSdcpn,

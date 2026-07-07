@@ -11,7 +11,6 @@ export type {
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameSummary,
-  SimulationPlaceTokenValues,
   SimulationTransport,
   SimulationState,
   WorkerFactory,

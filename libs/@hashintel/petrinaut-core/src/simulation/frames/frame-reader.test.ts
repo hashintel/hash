@@ -49,9 +49,12 @@ const sdcpn: Pick<SDCPN, "places" | "transitions" | "types"> = {
 };
 
 function makeFrame(): EngineFrame {
+  // Two 16-byte tokens ({x, y} as two f64 fields) preceded by 16 junk bytes.
+  const buffer = new Uint8Array(new Float64Array([99, 99, 1, 2, 3, 4]).buffer);
+
   return createEngineFrame(createEngineFrameLayout(sdcpn), {
     places: {
-      [place.id]: { offset: 2, count: 2, dimensions: 2 },
+      [place.id]: { byteOffset: 16, count: 2, strideBytes: 16 },
     },
     transitions: {
       "transition-1": {
@@ -60,7 +63,7 @@ function makeFrame(): EngineFrame {
         firingCount: 3,
       },
     },
-    buffer: new Float64Array([99, 99, 1, 2, 3, 4]),
+    buffer,
   });
 }
 
@@ -73,11 +76,7 @@ describe("SimulationFrameReader", () => {
     expect(reader.getPlaceTokenCount(place.id)).toBe(2);
     expect(reader.getPlaceTokenCount("missing")).toBe(0);
 
-    expect(reader.getPlaceTokenValues(place.id)).toEqual({
-      values: new Float64Array([1, 2, 3, 4]),
-      count: 2,
-    });
-    expect(reader.getPlaceTokens(place, color)).toEqual([
+    expect(reader.getPlaceTokens(place)).toEqual([
       { x: 1, y: 2 },
       { x: 3, y: 4 },
     ]);
@@ -98,15 +97,16 @@ describe("SimulationFrameReader", () => {
     });
   });
 
-  it("returns a copied token value buffer", () => {
+  it("returns copied token records", () => {
     const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7, 1.25);
-    const values = reader.getPlaceTokenValues(place.id);
+    const tokens = reader.getPlaceTokens(place);
 
-    expect(values).not.toBeNull();
-    values!.values[0] = 42;
+    expect(tokens).toHaveLength(2);
+    tokens[0]!.x = 42;
 
-    expect(reader.getPlaceTokenValues(place.id)?.values).toEqual(
-      new Float64Array([1, 2, 3, 4]),
-    );
+    expect(reader.getPlaceTokens(place)).toEqual([
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]);
   });
 });

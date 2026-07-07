@@ -2,7 +2,7 @@ import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
-import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
+import type { Place, SDCPN, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =
   | "Initializing"
@@ -92,11 +92,6 @@ export type SimulationFrameState = {
   };
 };
 
-export type SimulationPlaceTokenValues = {
-  values: Float64Array;
-  count: number;
-};
-
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
@@ -104,8 +99,8 @@ export interface SimulationFrameReader {
   readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
-  getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;
-  getPlaceTokens(place: Place, color: Color | null | undefined): TokenRecord[];
+  /** Typed token records for a coloured place; `[]` for uncoloured places. */
+  getPlaceTokens(place: Place): TokenRecord[];
   getTransitionState(transitionId: string): {
     /**
      * Time elapsed since this transition last fired, in milliseconds.

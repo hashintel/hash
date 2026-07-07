@@ -69,7 +69,7 @@ export const PlaceStateVisualization: React.FC<
   let parameters: Record<string, number | boolean> = {};
 
   if (totalFrames > 0 && currentFrameReader) {
-    tokens.push(...currentFrameReader.getPlaceTokens(place, placeType));
+    tokens.push(...currentFrameReader.getPlaceTokens(place));
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   } else {
     const marking = initialMarking[place.id];

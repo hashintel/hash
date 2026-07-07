@@ -23,10 +23,13 @@ import {
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
 import {
-  coerceTokenRecord,
-  decodeTokenRecord,
-  encodeTokenAttributeValue,
-} from "./token-values";
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  readTokenRecord,
+  type TokenSlotLayout,
+} from "./token-layout";
+import { coerceTokenRecord } from "./token-values";
 
 import type { TokenRecord } from "../../types/sdcpn";
 import type {
@@ -45,7 +48,7 @@ type ColorElement =
   SimulationInput["sdcpn"]["types"][number]["elements"][number];
 
 type PackedInitialPlaceMarking = {
-  values: number[];
+  bytes: Uint8Array;
   count: number;
 };
 
@@ -74,15 +77,15 @@ function getInitialMarkingValue(
 }
 
 /**
- * Get the dimensions (number of elements) for a place based on its type.
- * If the place has no type, returns 0.
+ * Get the packed token layout for a place based on its type.
+ * If the place has no type, returns null.
  */
-function getPlaceDimensions(
+function getPlaceTokenLayout(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
-): number {
+): TokenSlotLayout | null {
   if (!place.colorId) {
-    return 0;
+    return null;
   }
   const type = sdcpn.types.find((tp) => tp.id === place.colorId);
   if (!type) {
@@ -90,27 +93,29 @@ function getPlaceDimensions(
       `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
     );
   }
-  return type.elements.length;
+  return computeTokenSlotLayout(type.elements);
 }
+
+const EMPTY_BYTES = new Uint8Array(0);
 
 function packInitialPlaceMarking(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
   value: SimulationInput["initialMarking"][string] | undefined,
 ): PackedInitialPlaceMarking {
-  const dimensions = getPlaceDimensions(place, sdcpn);
+  const tokenLayout = getPlaceTokenLayout(place, sdcpn);
 
   if (value === undefined) {
-    return { values: [], count: 0 };
+    return { bytes: EMPTY_BYTES, count: 0 };
   }
 
-  if (dimensions === 0) {
+  if (tokenLayout === null || tokenLayout.strideBytes === 0) {
     if (typeof value !== "number") {
       throw new Error(
         `Initial marking for uncolored place ${place.id} must be a token count number`,
       );
     }
-    return { values: [], count: Math.max(0, Math.round(value)) };
+    return { bytes: EMPTY_BYTES, count: Math.max(0, Math.round(value)) };
   }
 
   if (!Array.isArray(value)) {
@@ -127,8 +132,8 @@ function packInitialPlaceMarking(
   }
 
   const tokenRecords: unknown[] = value;
-  const values: number[] = [];
-  for (const token of tokenRecords) {
+  const bytes = new Uint8Array(tokenRecords.length * tokenLayout.strideBytes);
+  for (const [tokenIndex, token] of tokenRecords.entries()) {
     if (typeof token !== "object" || token === null || Array.isArray(token)) {
       throw new Error(
         `Initial marking token for place ${place.id} must be a record`,
@@ -139,99 +144,74 @@ function packInitialPlaceMarking(
       type.elements,
       `Initial marking token for place ${place.id}`,
     );
-    for (const element of type.elements) {
-      values.push(
-        encodeTokenAttributeValue(
-          element,
-          tokenRecord[element.name],
-          `Initial marking token for place ${place.id}.${element.name}`,
-        ),
-      );
-    }
+    bytes.set(
+      encodeTokenToBytes(
+        tokenLayout,
+        tokenRecord,
+        `Initial marking token for place ${place.id}`,
+      ),
+      tokenIndex * tokenLayout.strideBytes,
+    );
   }
 
-  return { values, count: value.length };
+  return { bytes, count: value.length };
 }
 
 function createDifferentialEquationFn({
   placeId,
-  elementNames,
-  elements,
+  tokenLayout,
   parameterValues,
   userFn,
 }: {
   placeId: string;
-  elementNames: string[];
-  elements: SimulationInput["sdcpn"]["types"][number]["elements"];
+  tokenLayout: TokenSlotLayout;
   parameterValues: ParameterValues;
   userFn: UserDifferentialEquationFn;
 }): DifferentialEquationFn {
-  const expectedDimensions = elementNames.length;
+  const { strideBytes } = tokenLayout;
+  const realFields = tokenLayout.fields.filter(
+    (field) => field.element.type === "real",
+  );
+  const realFieldCount = realFields.length;
 
-  return (currentState, dimensions, numberOfTokens) => {
-    if (dimensions !== expectedDimensions) {
+  return (placeBytes, numberOfTokens) => {
+    if (placeBytes.byteLength !== numberOfTokens * strideBytes) {
       throw new Error(
-        `Place ${placeId} has ${dimensions} dimensions in frame, expected ${expectedDimensions}`,
+        `Place ${placeId} has ${placeBytes.byteLength} token bytes in frame, expected ${
+          numberOfTokens * strideBytes
+        }`,
       );
     }
 
+    const { f64, u8 } = createTokenRegionViews(
+      placeBytes.buffer,
+      placeBytes.byteOffset,
+      placeBytes.byteLength,
+    );
+
     const inputTokens: TokenRecord[] = [];
     for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
-      const tokenStart = tokenIndex * dimensions;
       inputTokens.push(
-        decodeTokenRecord(
-          elements,
-          currentState.subarray(tokenStart, tokenStart + dimensions),
-        ),
+        readTokenRecord(tokenLayout, f64, u8, tokenIndex * strideBytes),
       );
     }
 
     const resultTokens = userFn(inputTokens, parameterValues);
-    const result = new Float64Array(numberOfTokens * dimensions);
+    const result = new Float64Array(numberOfTokens * realFieldCount);
     const tokenCount = Math.min(resultTokens.length, numberOfTokens);
 
     for (let tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
       const token = resultTokens[tokenIndex]!;
-      for (
-        let dimensionIndex = 0;
-        dimensionIndex < dimensions;
-        dimensionIndex++
-      ) {
-        const dimensionName = elementNames[dimensionIndex]!;
-        const element = elements[dimensionIndex]!;
-        result[tokenIndex * dimensions + dimensionIndex] =
-          element.type === "real" ? Number(token[dimensionName] ?? 0) : 0;
+      for (let fieldIndex = 0; fieldIndex < realFieldCount; fieldIndex++) {
+        const field = realFields[fieldIndex]!;
+        result[tokenIndex * realFieldCount + fieldIndex] = Number(
+          token[field.element.name] ?? 0,
+        );
       }
     }
 
     return result;
   };
-}
-
-function getPlaceElementNames(
-  placeId: string,
-  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
-  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>,
-): readonly string[] | null {
-  const place = placesMap.get(placeId);
-  if (!place) {
-    throw new Error(
-      `Place with ID ${placeId} referenced by transition does not exist in SDCPN`,
-    );
-  }
-
-  if (!place.colorId) {
-    return null;
-  }
-
-  const type = typesMap.get(place.colorId);
-  if (!type) {
-    throw new Error(
-      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
-    );
-  }
-
-  return type.elements.map((element) => element.name);
 }
 
 function getPlaceElements(
@@ -387,6 +367,7 @@ function createCompiledTransition({
         );
       }
 
+      const elements = getPlaceElements(placeId, placesMap, typesMap);
       return {
         placeId,
         placeName:
@@ -398,8 +379,8 @@ function createCompiledTransition({
           ) ?? place.name,
         weight: arc.weight,
         arcType: arc.type,
-        elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
-        elements: getPlaceElements(placeId, placesMap, typesMap),
+        elements,
+        tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
       };
     }),
     outputPlaces: transition.outputArcs.map((arc) => {
@@ -416,6 +397,7 @@ function createCompiledTransition({
         );
       }
 
+      const elements = getPlaceElements(placeId, placesMap, typesMap);
       return {
         placeId,
         placeName:
@@ -426,8 +408,8 @@ function createCompiledTransition({
             }),
           ) ?? place.name,
         weight: arc.weight,
-        elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
-        elements: getPlaceElements(placeId, placesMap, typesMap),
+        elements,
+        tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
       };
     }),
     lambdaFn,
@@ -555,8 +537,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         place.id,
         createDifferentialEquationFn({
           placeId: place.id,
-          elementNames: type.elements.map((element) => element.name),
-          elements: type.elements,
+          tokenLayout: computeTokenSlotLayout(type.elements),
           parameterValues:
             flattened.placeParameterValues.get(place.id) ?? parameterValues,
           userFn,
@@ -603,35 +584,33 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Calculate buffer size and build place states
-  let bufferSize = 0;
+  let bufferByteSize = 0;
   const frameLayout = createEngineFrameLayout(sdcpn);
   const placeStates: EngineFrameSnapshot["places"] = {};
 
-  for (const placeId of frameLayout.placeIds) {
-    const place = placesMap.get(placeId)!;
+  for (const [placeIndex, placeId] of frameLayout.placeIds.entries()) {
     const marking = packedInitialMarking.get(placeId);
     const count = marking?.count ?? 0;
-    const dimensions = getPlaceDimensions(place, sdcpn);
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
 
     placeStates[placeId] = {
-      offset: bufferSize,
+      byteOffset: bufferByteSize,
       count,
-      dimensions,
+      strideBytes,
     };
 
-    bufferSize += dimensions * count;
+    bufferByteSize += strideBytes * count;
   }
 
-  // Build the initial buffer with token values
-  const buffer = new Float64Array(bufferSize);
-  let bufferIndex = 0;
+  // Build the initial buffer with token bytes
+  const buffer = new Uint8Array(bufferByteSize);
+  let bufferByteOffset = 0;
 
   for (const placeId of frameLayout.placeIds) {
     const marking = packedInitialMarking.get(placeId);
-    if (marking && marking.count > 0) {
-      for (let i = 0; i < marking.values.length; i++) {
-        buffer[bufferIndex++] = marking.values[i]!;
-      }
+    if (marking && marking.bytes.byteLength > 0) {
+      buffer.set(marking.bytes, bufferByteOffset);
+      bufferByteOffset += marking.bytes.byteLength;
     }
   }
 

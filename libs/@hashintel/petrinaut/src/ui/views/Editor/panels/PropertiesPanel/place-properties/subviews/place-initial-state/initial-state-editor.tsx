@@ -51,7 +51,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const data: SpreadsheetCellValue[][] = useMemo(() => {
     if (hasSimulation && currentFrameReader) {
       return currentFrameReader
-        .getPlaceTokens(place, placeType)
+        .getPlaceTokens(place)
         .map((token) =>
           columns.map(
             (column) => token[column.name] ?? getDefaultValue(column),
@@ -67,14 +67,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     return marking.map((token) =>
       columns.map((column) => token[column.name] ?? getDefaultValue(column)),
     );
-  }, [
-    hasSimulation,
-    currentFrameReader,
-    place,
-    placeType,
-    columns,
-    initialMarking,
-  ]);
+  }, [hasSimulation, currentFrameReader, place, columns, initialMarking]);
 
   // Convert spreadsheet rows back to serializable token records.
   const handleChange = useMemo(() => {

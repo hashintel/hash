@@ -169,7 +169,6 @@ export type {
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameSummary,
-  SimulationPlaceTokenValues,
   SimulationState,
   SimulationTransport,
   WorkerFactory,
@@ -334,11 +333,18 @@ export { buildMetricState } from "./simulation/frames/metric-state";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,
-  decodeTokenAttributeValue,
-  decodeTokenRecord,
   defaultTokenAttributeValue,
   encodeTokenAttributeValue,
 } from "./simulation/engine/token-values";
+export {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  readTokenRecord,
+  type PhysicalKind,
+  type TokenLayoutField,
+  type TokenSlotLayout,
+} from "./simulation/engine/token-layout";
 export { compileUserCode } from "./simulation/authoring/user-code/compile-user-code";
 export {
   displayNameSchema,

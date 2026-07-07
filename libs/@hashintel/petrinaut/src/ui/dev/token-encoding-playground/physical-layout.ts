@@ -1,128 +1,42 @@
 import {
   coerceTokenAttributeValue,
-  decodeTokenAttributeValue,
-  encodeTokenAttributeValue,
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  readTokenRecord,
 } from "@hashintel/petrinaut-core";
 
-import type { ColorElementType, TokenRecord } from "@hashintel/petrinaut-core";
+import type {
+  ColorElementType,
+  TokenLayoutField,
+  TokenRecord,
+  TokenSlotLayout,
+} from "@hashintel/petrinaut-core";
 
 /**
- * Physical (buffer-level) representation of one token attribute.
- *
- * This mirrors the planned "format v2" abstraction for engine frames: the
- * logical schema type (`ColorElementType`) maps to a physical type with a
- * byte size and alignment, and a per-colour struct layout is computed from
- * that mapping. `u64x2` exists for future 128-bit types (FE-1121) — the
- * memory view renders it, but no logical type maps to it yet.
+ * Thin playground wrapper over the engine's token layout module
+ * (`computeTokenSlotLayout` and friends from `@hashintel/petrinaut-core`).
+ * The layout math lives in the core package — this file only adapts
+ * playground dimension fixtures to colour elements and adds bit-level
+ * rendering helpers for the memory view.
  */
-export type PhysicalKind = "f64" | "u8" | "u64x2";
-
-export type PhysicalType = {
-  kind: PhysicalKind;
-  byteSize: number;
-  align: number;
-};
-
-/**
- * - `v1`: the shipped engine encoding — every dimension is one Float64 slot,
- *   in declaration order.
- * - `v2`: the planned packed-struct encoding — booleans become `u8`, fields
- *   are ordered by decreasing alignment, stride is rounded up to 8 bytes.
- */
-export type LayoutMode = "v1" | "v2";
-
 export type PlaygroundDimension = {
   name: string;
   type: ColorElementType;
 };
 
-export type LayoutField = {
-  name: string;
-  elementType: ColorElementType;
-  physical: PhysicalType;
-  byteOffset: number;
-};
-
-/** Half-open byte range `[start, end)` within one token's stride. */
-export type ByteRange = { start: number; end: number };
-
-export type TokenLayout = {
-  mode: LayoutMode;
-  /** sizeof(token) — total bytes per token, including padding. */
-  strideBytes: number;
-  fields: LayoutField[];
-  /** Alignment gaps and tail padding. */
-  paddingRanges: ByteRange[];
-};
-
-const PHYSICAL_TYPES: Record<PhysicalKind, PhysicalType> = {
-  f64: { kind: "f64", byteSize: 8, align: 8 },
-  u8: { kind: "u8", byteSize: 1, align: 1 },
-  u64x2: { kind: "u64x2", byteSize: 16, align: 8 },
-};
-
-export function physicalTypeFor(
-  elementType: ColorElementType,
-  mode: LayoutMode,
-): PhysicalType {
-  if (mode === "v1") {
-    return PHYSICAL_TYPES.f64;
-  }
-  switch (elementType) {
-    case "boolean":
-      return PHYSICAL_TYPES.u8;
-    case "integer":
-    case "real":
-      return PHYSICAL_TYPES.f64;
-  }
-}
-
-const alignTo = (value: number, alignment: number): number =>
-  Math.ceil(value / alignment) * alignment;
-
-/**
- * Computes the packed struct layout for one token (the C `sizeof` and
- * `offsetof`). In `v2` mode, fields are ordered by decreasing alignment
- * (stable within equal alignment) so no interior padding is wasted, and the
- * stride is rounded up to 8 bytes so consecutive tokens keep f64 fields
- * 8-aligned.
- */
-export function computeTokenLayout(
-  dimensions: readonly PlaygroundDimension[],
-  mode: LayoutMode,
-): TokenLayout {
-  const withPhysical = dimensions.map((dimension) => ({
-    dimension,
-    physical: physicalTypeFor(dimension.type, mode),
+const toColorElements = (dimensions: readonly PlaygroundDimension[]) =>
+  dimensions.map((dimension) => ({
+    elementId: dimension.name,
+    name: dimension.name,
+    type: dimension.type,
   }));
-  const ordered =
-    mode === "v2"
-      ? [...withPhysical].sort((a, b) => b.physical.align - a.physical.align)
-      : withPhysical;
 
-  const fields: LayoutField[] = [];
-  const paddingRanges: ByteRange[] = [];
-  let cursor = 0;
-  for (const { dimension, physical } of ordered) {
-    const byteOffset = alignTo(cursor, physical.align);
-    if (byteOffset > cursor) {
-      paddingRanges.push({ start: cursor, end: byteOffset });
-    }
-    fields.push({
-      name: dimension.name,
-      elementType: dimension.type,
-      physical,
-      byteOffset,
-    });
-    cursor = byteOffset + physical.byteSize;
-  }
-
-  const strideBytes = fields.length === 0 ? 0 : alignTo(cursor, 8);
-  if (strideBytes > cursor) {
-    paddingRanges.push({ start: cursor, end: strideBytes });
-  }
-
-  return { mode, strideBytes, fields, paddingRanges };
+/** Computes the packed struct layout for the playground's dimensions. */
+export function computePlaygroundTokenLayout(
+  dimensions: readonly PlaygroundDimension[],
+): TokenSlotLayout {
+  return computeTokenSlotLayout(toColorElements(dimensions));
 }
 
 export type EncodedToken = {
@@ -133,80 +47,36 @@ export type EncodedToken = {
   decoded: TokenRecord;
 };
 
-const toColorElement = (field: LayoutField) => ({
-  elementId: field.name,
-  name: field.name,
-  type: field.elementType,
-});
-
 export function decodeToken(
-  layout: TokenLayout,
+  layout: TokenSlotLayout,
   buffer: ArrayBuffer,
 ): TokenRecord {
-  const view = new DataView(buffer);
-  const token: TokenRecord = {};
-  for (const field of layout.fields) {
-    const element = toColorElement(field);
-    switch (field.physical.kind) {
-      case "f64":
-        token[field.name] = decodeTokenAttributeValue(
-          element,
-          view.getFloat64(field.byteOffset, true),
-        );
-        break;
-      case "u8":
-        token[field.name] = decodeTokenAttributeValue(
-          element,
-          view.getUint8(field.byteOffset),
-        );
-        break;
-      case "u64x2":
-        throw new Error(
-          `Token.${field.name}: 128-bit decoding is not implemented yet (FE-1121)`,
-        );
-    }
+  if (layout.strideBytes === 0) {
+    return {};
   }
-  return token;
+  const { f64, u8 } = createTokenRegionViews(buffer, 0, layout.strideBytes);
+  return readTokenRecord(layout, f64, u8, 0);
 }
 
 /**
  * Encodes one token record into a fresh buffer using the real product codec
- * (`encodeTokenAttributeValue`) for value coercion, then decodes it back so
- * callers can show the round-trip. All multi-byte values are little-endian,
- * matching the platform layout of the engine's typed-array views.
+ * (`encodeTokenToBytes`) for value coercion, then decodes it back so callers
+ * can show the round-trip. All multi-byte values are little-endian, matching
+ * the platform layout of the engine's typed-array views.
  */
 export function encodeToken(
-  layout: TokenLayout,
+  layout: TokenSlotLayout,
   record: Record<string, unknown>,
 ): EncodedToken {
-  const buffer = new ArrayBuffer(layout.strideBytes);
-  const view = new DataView(buffer);
-  const stored: TokenRecord = {};
+  const bytes = encodeTokenToBytes(layout, record, "Token");
+  const buffer = bytes.buffer as ArrayBuffer;
 
+  const stored: TokenRecord = {};
   for (const field of layout.fields) {
-    const element = toColorElement(field);
-    const context = `Token.${field.name}`;
-    const slotValue = encodeTokenAttributeValue(
-      element,
-      record[field.name],
-      context,
-    );
-    switch (field.physical.kind) {
-      case "f64":
-        view.setFloat64(field.byteOffset, slotValue, true);
-        break;
-      case "u8":
-        view.setUint8(field.byteOffset, slotValue);
-        break;
-      case "u64x2":
-        throw new Error(
-          `Token.${field.name}: 128-bit encoding is not implemented yet (FE-1121)`,
-        );
-    }
-    stored[field.name] = coerceTokenAttributeValue(
-      element,
-      record[field.name],
-      context,
+    stored[field.element.name] = coerceTokenAttributeValue(
+      field.element,
+      record[field.element.name],
+      `Token.${field.element.name}`,
     );
   }
 
@@ -220,13 +90,9 @@ export function encodeToken(
  */
 export function getFieldBits(
   buffer: ArrayBuffer,
-  field: LayoutField,
+  field: TokenLayoutField,
 ): number[] {
-  const bytes = new Uint8Array(
-    buffer,
-    field.byteOffset,
-    field.physical.byteSize,
-  );
+  const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
   const bits: number[] = [];
   for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
     for (let bit = 7; bit >= 0; bit--) {
@@ -238,12 +104,11 @@ export function getFieldBits(
 }
 
 /** Hex form of the field's stored bytes, most-significant byte first. */
-export function getFieldHex(buffer: ArrayBuffer, field: LayoutField): string {
-  const bytes = new Uint8Array(
-    buffer,
-    field.byteOffset,
-    field.physical.byteSize,
-  );
+export function getFieldHex(
+  buffer: ArrayBuffer,
+  field: TokenLayoutField,
+): string {
+  const bytes = new Uint8Array(buffer, field.byteOffset, field.byteSize);
   let hex = "";
   for (let byteIndex = bytes.length - 1; byteIndex >= 0; byteIndex--) {
     hex += bytes[byteIndex]!.toString(16).padStart(2, "0");

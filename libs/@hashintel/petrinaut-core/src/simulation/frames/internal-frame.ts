@@ -1,25 +1,38 @@
+import {
+  computeTokenSlotLayout,
+  type TokenSlotLayout,
+} from "../engine/token-layout";
+
 import type { ID, SDCPN } from "../../types/sdcpn";
 import type { SimulationTransitionState } from "./transition-state";
 
 /**
  * Internal place layout within an engine frame.
+ *
+ * `byteOffset` is the place's offset within the frame's token byte region and
+ * `strideBytes` is the packed-struct size of one token of the place's colour
+ * (0 for uncoloured places).
  */
 export type EngineFramePlaceState = {
-  offset: number;
+  byteOffset: number;
   count: number;
-  dimensions: number;
+  strideBytes: number;
 };
 
 export type EngineFrameSnapshot = {
   places: Record<ID, EngineFramePlaceState>;
   transitions: Record<ID, SimulationTransitionState>;
-  buffer: Float64Array;
+  /** Token region bytes (packed-struct token layout). */
+  buffer: Uint8Array;
 };
 
 export type EngineFrameLayout = {
   placeIds: readonly ID[];
   placeIndexById: ReadonlyMap<ID, number>;
-  placeDimensions: Uint32Array;
+  /** Per-place token stride in bytes (0 for uncoloured places). */
+  placeStrideBytes: Uint32Array;
+  /** Per-place packed token layout (null for uncoloured places). */
+  placeTokenLayouts: (TokenSlotLayout | null)[];
   transitionIds: readonly ID[];
   transitionIndexById: ReadonlyMap<ID, number>;
 };
@@ -36,7 +49,7 @@ export type EngineFrame = ArrayBuffer;
 type EngineFrameHeader = {
   placeCount: number;
   transitionCount: number;
-  tokenValueCount: number;
+  tokenByteLength: number;
   placeCountsOffset: number;
   placeValueOffsetsOffset: number;
   transitionElapsedOffset: number;
@@ -47,17 +60,19 @@ type EngineFrameHeader = {
 };
 
 export type EngineFrameView = {
-  tokenValues: Float64Array;
+  /** The whole token byte region. */
+  tokenBytes: Uint8Array;
+  /** f64 view over the whole token region (region offset/length are 8-aligned). */
+  tokenF64: Float64Array;
   getPlaceState(placeId: ID): EngineFramePlaceState | null;
   getPlaceEntries(): [ID, EngineFramePlaceState][];
-  getPlaceTokenValues(placeId: ID): Float64Array | null;
   getTransitionState(transitionId: ID): SimulationTransitionState | null;
   getTransitionEntries(): [ID, SimulationTransitionState][];
   toSnapshot(): EngineFrameSnapshot;
 };
 
 const FRAME_MAGIC = 0x5046524d; // "PFRM"
-const FRAME_VERSION = 1;
+const FRAME_VERSION = 2;
 const HEADER_BYTES = 64;
 
 const enum HeaderOffset {
@@ -66,7 +81,7 @@ const enum HeaderOffset {
   HeaderBytes = 6,
   PlaceCount = 8,
   TransitionCount = 12,
-  TokenValueCount = 16,
+  TokenByteLength = 16,
   PlaceCountsOffset = 20,
   PlaceValueOffsetsOffset = 24,
   TransitionElapsedOffset = 28,
@@ -79,12 +94,12 @@ const enum HeaderOffset {
 const alignTo = (value: number, alignment: number): number =>
   Math.ceil(value / alignment) * alignment;
 
-function getPlaceDimensions(
+function getPlaceTokenLayout(
   sdcpn: Pick<SDCPN, "types">,
   place: Pick<SDCPN["places"][number], "id" | "colorId">,
-): number {
+): TokenSlotLayout | null {
   if (!place.colorId) {
-    return 0;
+    return null;
   }
 
   const color = sdcpn.types.find((type) => type.id === place.colorId);
@@ -94,7 +109,7 @@ function getPlaceDimensions(
     );
   }
 
-  return color.elements.length;
+  return computeTokenSlotLayout(color.elements);
 }
 
 export function createEngineFrameLayout(
@@ -102,7 +117,8 @@ export function createEngineFrameLayout(
 ): EngineFrameLayout {
   const placeIds = sdcpn.places.map((place) => place.id);
   const placeIndexById = new Map<ID, number>();
-  const placeDimensions = new Uint32Array(placeIds.length);
+  const placeStrideBytes = new Uint32Array(placeIds.length);
+  const placeTokenLayouts: (TokenSlotLayout | null)[] = [];
 
   for (let index = 0; index < sdcpn.places.length; index++) {
     const place = sdcpn.places[index]!;
@@ -113,7 +129,9 @@ export function createEngineFrameLayout(
       throw new Error(`Duplicate place id in SDCPN: ${place.id}`);
     }
     placeIndexById.set(place.id, index);
-    placeDimensions[index] = getPlaceDimensions(sdcpn, place);
+    const tokenLayout = getPlaceTokenLayout(sdcpn, place);
+    placeTokenLayouts.push(tokenLayout);
+    placeStrideBytes[index] = tokenLayout?.strideBytes ?? 0;
   }
 
   const transitionIds = sdcpn.transitions.map((transition) => transition.id);
@@ -132,7 +150,8 @@ export function createEngineFrameLayout(
   return {
     placeIds,
     placeIndexById,
-    placeDimensions,
+    placeStrideBytes,
+    placeTokenLayouts,
     transitionIds,
     transitionIndexById,
   };
@@ -167,7 +186,7 @@ function readHeader(frame: EngineFrame): EngineFrameHeader {
   return {
     placeCount: view.getUint32(HeaderOffset.PlaceCount, true),
     transitionCount: view.getUint32(HeaderOffset.TransitionCount, true),
-    tokenValueCount: view.getUint32(HeaderOffset.TokenValueCount, true),
+    tokenByteLength: view.getUint32(HeaderOffset.TokenByteLength, true),
     placeCountsOffset: view.getUint32(HeaderOffset.PlaceCountsOffset, true),
     placeValueOffsetsOffset: view.getUint32(
       HeaderOffset.PlaceValueOffsetsOffset,
@@ -213,7 +232,7 @@ function writeHeader(buffer: ArrayBuffer, header: EngineFrameHeader): void {
   view.setUint16(HeaderOffset.HeaderBytes, HEADER_BYTES, true);
   view.setUint32(HeaderOffset.PlaceCount, header.placeCount, true);
   view.setUint32(HeaderOffset.TransitionCount, header.transitionCount, true);
-  view.setUint32(HeaderOffset.TokenValueCount, header.tokenValueCount, true);
+  view.setUint32(HeaderOffset.TokenByteLength, header.tokenByteLength, true);
   view.setUint32(
     HeaderOffset.PlaceCountsOffset,
     header.placeCountsOffset,
@@ -254,34 +273,34 @@ export function createEngineFrame(
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
   const packedPlaceCounts = new Uint32Array(placeCount);
-  const packedPlaceOffsets = new Uint32Array(placeCount);
+  const packedPlaceByteOffsets = new Uint32Array(placeCount);
 
-  let tokenValueCount = 0;
+  let tokenByteLength = 0;
   for (let index = 0; index < placeCount; index++) {
     const placeId = layout.placeIds[index]!;
-    const dimensions = layout.placeDimensions[index] ?? 0;
+    const strideBytes = layout.placeStrideBytes[index] ?? 0;
     const placeState = snapshot.places[placeId] ?? {
-      offset: tokenValueCount,
+      byteOffset: tokenByteLength,
       count: 0,
-      dimensions,
+      strideBytes,
     };
 
-    if (placeState.dimensions !== dimensions) {
+    if (placeState.strideBytes !== strideBytes) {
       throw new Error(
-        `Place ${placeId} has ${placeState.dimensions} dimensions in snapshot, expected ${dimensions}`,
+        `Place ${placeId} has a token stride of ${placeState.strideBytes} bytes in snapshot, expected ${strideBytes}`,
       );
     }
 
     packedPlaceCounts[index] = placeState.count;
-    packedPlaceOffsets[index] = tokenValueCount;
-    tokenValueCount += placeState.count * dimensions;
+    packedPlaceByteOffsets[index] = tokenByteLength;
+    tokenByteLength += placeState.count * strideBytes;
   }
 
   const placeCountsOffset = HEADER_BYTES;
   const placeValueOffsetsOffset =
     placeCountsOffset + packedPlaceCounts.byteLength;
   const transitionElapsedOffset = alignTo(
-    placeValueOffsetsOffset + packedPlaceOffsets.byteLength,
+    placeValueOffsetsOffset + packedPlaceByteOffsets.byteLength,
     8,
   );
   const transitionFiringCountsOffset =
@@ -293,14 +312,13 @@ export function createEngineFrame(
     transitionFiredFlagsOffset + transitionCount * Uint8Array.BYTES_PER_ELEMENT,
     8,
   );
-  const byteLength =
-    tokenValuesOffset + tokenValueCount * Float64Array.BYTES_PER_ELEMENT;
+  const byteLength = tokenValuesOffset + tokenByteLength;
 
   const frame = new ArrayBuffer(byteLength);
   writeHeader(frame, {
     placeCount,
     transitionCount,
-    tokenValueCount,
+    tokenByteLength,
     placeCountsOffset,
     placeValueOffsetsOffset,
     transitionElapsedOffset,
@@ -312,7 +330,7 @@ export function createEngineFrame(
 
   new Uint32Array(frame, placeCountsOffset, placeCount).set(packedPlaceCounts);
   new Uint32Array(frame, placeValueOffsetsOffset, placeCount).set(
-    packedPlaceOffsets,
+    packedPlaceByteOffsets,
   );
 
   const transitionElapsed = new Float64Array(
@@ -343,25 +361,24 @@ export function createEngineFrame(
     transitionFiredFlags[index] = transitionState.firedInThisFrame ? 1 : 0;
   }
 
-  const tokenValues = new Float64Array(
-    frame,
-    tokenValuesOffset,
-    tokenValueCount,
-  );
+  const tokenBytes = new Uint8Array(frame, tokenValuesOffset, tokenByteLength);
   for (let index = 0; index < placeCount; index++) {
     const placeId = layout.placeIds[index]!;
-    const dimensions = layout.placeDimensions[index] ?? 0;
+    const strideBytes = layout.placeStrideBytes[index] ?? 0;
     const count = packedPlaceCounts[index] ?? 0;
-    const targetOffset = packedPlaceOffsets[index] ?? 0;
-    const size = count * dimensions;
-    if (size === 0) {
+    const targetByteOffset = packedPlaceByteOffsets[index] ?? 0;
+    const byteSize = count * strideBytes;
+    if (byteSize === 0) {
       continue;
     }
 
     const sourceState = snapshot.places[placeId]!;
-    tokenValues.set(
-      snapshot.buffer.subarray(sourceState.offset, sourceState.offset + size),
-      targetOffset,
+    tokenBytes.set(
+      snapshot.buffer.subarray(
+        sourceState.byteOffset,
+        sourceState.byteOffset + byteSize,
+      ),
+      targetByteOffset,
     );
   }
 
@@ -400,10 +417,15 @@ export function readEngineFrame(
     header.transitionFiredFlagsOffset,
     header.transitionCount,
   );
-  const tokenValues = new Float64Array(
+  const tokenBytes = new Uint8Array(
     frame,
     header.tokenValuesOffset,
-    header.tokenValueCount,
+    header.tokenByteLength,
+  );
+  const tokenF64 = new Float64Array(
+    frame,
+    header.tokenValuesOffset,
+    header.tokenByteLength / 8,
   );
 
   const getPlaceState = (placeId: ID): EngineFramePlaceState | null => {
@@ -413,9 +435,9 @@ export function readEngineFrame(
     }
 
     return {
-      offset: placeValueOffsets[index] ?? 0,
+      byteOffset: placeValueOffsets[index] ?? 0,
       count: placeCounts[index] ?? 0,
-      dimensions: layout.placeDimensions[index] ?? 0,
+      strideBytes: layout.placeStrideBytes[index] ?? 0,
     };
   };
 
@@ -444,17 +466,10 @@ export function readEngineFrame(
     ]);
 
   return {
-    tokenValues,
+    tokenBytes,
+    tokenF64,
     getPlaceState,
     getPlaceEntries,
-    getPlaceTokenValues(placeId) {
-      const placeState = getPlaceState(placeId);
-      if (!placeState) {
-        return null;
-      }
-      const size = placeState.count * placeState.dimensions;
-      return tokenValues.subarray(placeState.offset, placeState.offset + size);
-    },
     getTransitionState,
     getTransitionEntries,
     toSnapshot() {
@@ -471,7 +486,7 @@ export function readEngineFrame(
       return {
         places,
         transitions,
-        buffer: tokenValues.slice(),
+        buffer: tokenBytes.slice(),
       };
     },
   };

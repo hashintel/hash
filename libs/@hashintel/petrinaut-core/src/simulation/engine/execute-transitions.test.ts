@@ -2,18 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import {
-  createEngineFrame,
   createEngineFrameLayout,
   materializeEngineFrame,
-  type EngineFrameLayout,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
+import { computeTokenSlotLayout } from "./token-layout";
+import {
+  decodePlaceTokens,
+  makeTestFrame,
+  type TestFrame,
+} from "./token-layout.test-helpers";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
   CompiledTransition,
-  EngineFrame,
   LambdaFn,
   SimulationInstance,
   TransitionKernelFn,
@@ -44,8 +47,6 @@ const transitionState = (timeSinceLastFiringMs = 1.0) => ({
   firingCount: 0,
 });
 
-type TestFrame = EngineFrame & { layout: EngineFrameLayout };
-
 function makePlace(id: string, name: string, colorId: string | null): Place {
   return {
     id,
@@ -55,20 +56,6 @@ function makePlace(id: string, name: string, colorId: string | null): Place {
     differentialEquationId: null,
     x: 0,
     y: 0,
-  };
-}
-
-function makeColor(dimensions: number): Color {
-  return {
-    id: `frame-type-${dimensions}`,
-    name: `Frame Type ${dimensions}`,
-    iconSlug: "circle",
-    displayColor: "#000000",
-    elements: Array.from({ length: dimensions }, (_, index) => ({
-      elementId: `d${index}`,
-      name: `d${index}`,
-      type: "real",
-    })),
   };
 }
 
@@ -102,17 +89,6 @@ function makeCompiledTransitions({
 }): Map<string, CompiledTransition> {
   const placesMap = new Map(places.map((place) => [place.id, place]));
   const typesMap = new Map(types.map((type) => [type.id, type]));
-  const getElementNames = (placeId: string) => {
-    const place = placesMap.get(placeId);
-    if (!place?.colorId) {
-      return null;
-    }
-
-    return (
-      typesMap.get(place.colorId)?.elements.map((element) => element.name) ??
-      null
-    );
-  };
   const getElements = (placeId: string) => {
     const place = placesMap.get(placeId);
     if (!place?.colorId) {
@@ -137,23 +113,25 @@ function makeCompiledTransitions({
           name: transition.name,
           inputPlaces: transition.inputArcs.map((arc) => {
             const placeId = getArcEndpointPlaceId(arc)!;
+            const elements = getElements(placeId);
             return {
               placeId,
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
               arcType: arc.type,
-              elementNames: getElementNames(placeId),
-              elements: getElements(placeId),
+              elements,
+              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
             };
           }),
           outputPlaces: transition.outputArcs.map((arc) => {
             const placeId = getArcEndpointPlaceId(arc)!;
+            const elements = getElements(placeId);
             return {
               placeId,
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
-              elementNames: getElementNames(placeId),
-              elements: getElements(placeId),
+              elements,
+              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
             };
           }),
           lambdaFn,
@@ -208,30 +186,6 @@ function makeSimulation({
   };
 }
 
-function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
-  const dimensions = new Set(
-    Object.values(snapshot.places).map((place) => place.dimensions),
-  );
-  const layout = createEngineFrameLayout({
-    places: Object.entries(snapshot.places).map(([id, place]) =>
-      makePlace(
-        id,
-        id,
-        place.dimensions === 0 ? null : `frame-type-${place.dimensions}`,
-      ),
-    ),
-    transitions: Object.keys(snapshot.transitions).map((id) =>
-      makeTransition({ id, inputArcs: [], outputArcs: [] }),
-    ),
-    types: [...dimensions]
-      .filter((dimension) => dimension > 0)
-      .map((dimension) => makeColor(dimension)),
-  });
-  const frame = createEngineFrame(layout, snapshot) as TestFrame;
-  Object.defineProperty(frame, "layout", { value: layout });
-  return frame;
-}
-
 function executeTransitions(
   frame: TestFrame,
   simulation: SimulationInstance,
@@ -247,6 +201,7 @@ function executeTransitions(
 
   return {
     ...result,
+    rawFrame: result.frame,
     frame:
       result.frame === frame
         ? (frame as unknown as EngineFrameSnapshot)
@@ -268,14 +223,13 @@ describe("executeTransitions", () => {
         ["t1", () => ({ p2: [{ x: 1.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([]),
     });
 
     const result = executeTransitions(
@@ -309,15 +263,14 @@ describe("executeTransitions", () => {
         ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 1 },
-        p2: { offset: 2, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 1.0 }, { x: 1.5 }] },
+        p2: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.0, 1.5]),
     });
 
     const result = executeTransitions(
@@ -328,9 +281,13 @@ describe("executeTransitions", () => {
     );
 
     expect(result.frame.places.p1?.count).toBe(1);
-    expect(result.frame.buffer[0]).toBe(1.5);
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p1")).toEqual([
+      { x: 1.5 },
+    ]);
     expect(result.frame.places.p2?.count).toBe(1);
-    expect(result.frame.buffer[1]).toBe(2.0);
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p2")).toEqual([
+      { x: 2.0 },
+    ]);
     expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
     expect(result.transitionFired).toBe(true);
   });
@@ -369,16 +326,15 @@ describe("executeTransitions", () => {
         ],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 1 },
-        p2: { offset: 1, count: 1, dimensions: 1 },
-        p3: { offset: 2, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 3.0 }] },
+        p2: { elements: type1.elements, tokens: [{ x: 7.0 }] },
+        p3: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([3.0, 7.0]),
     });
 
     const result = executeTransitions(
@@ -392,7 +348,13 @@ describe("executeTransitions", () => {
     expect(result.frame.places.p1?.count).toBe(0);
     expect(result.frame.places.p2?.count).toBe(1);
     expect(result.frame.places.p3?.count).toBe(1);
-    expect(result.frame.buffer).toEqual(new Float64Array([7.0, 7.0]));
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p1")).toEqual([]);
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p2")).toEqual([
+      { x: 7.0 },
+    ]);
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p3")).toEqual([
+      { x: 7.0 },
+    ]);
   });
 
   it("executes multiple transitions sequentially with proper token removal between each", () => {
@@ -429,17 +391,19 @@ describe("executeTransitions", () => {
         ["t2", () => ({ "Place 3": [{ x: 10.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 3, dimensions: 1 },
-        p2: { offset: 3, count: 0, dimensions: 1 },
-        p3: { offset: 3, count: 0, dimensions: 1 },
+        p1: {
+          elements: type1.elements,
+          tokens: [{ x: 1.0 }, { x: 2.0 }, { x: 3.0 }],
+        },
+        p2: { elements: type1.elements, tokens: [] },
+        p3: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
         t2: transitionState(),
       },
-      buffer: new Float64Array([1.0, 2.0, 3.0]),
     });
 
     const result = executeTransitions(
@@ -476,15 +440,14 @@ describe("executeTransitions", () => {
         ["t1", () => ({ "Place 2": [{ x: 3.0, y: 4.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 2 },
-        p2: { offset: 2, count: 0, dimensions: 2 },
+        p1: { elements: type2.elements, tokens: [{ x: 1.0, y: 2.0 }] },
+        p2: { elements: type2.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(),
       },
-      buffer: new Float64Array([1.0, 2.0]),
     });
 
     const result = executeTransitions(
@@ -496,8 +459,9 @@ describe("executeTransitions", () => {
 
     expect(result.frame.places.p1?.count).toBe(0);
     expect(result.frame.places.p2?.count).toBe(1);
-    expect(result.frame.buffer[0]).toBe(3.0);
-    expect(result.frame.buffer[1]).toBe(4.0);
+    expect(decodePlaceTokens(frame.layout, result.rawFrame, "p2")).toEqual([
+      { x: 3.0, y: 4.0 },
+    ]);
   });
 
   it("updates timeSinceLastFiringMs for transitions that did not fire", () => {
@@ -533,16 +497,15 @@ describe("executeTransitions", () => {
         ["t2", () => ({ "Place 2": [{ x: 3.0 }] })],
       ]),
     });
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 1 },
-        p2: { offset: 2, count: 0, dimensions: 1 },
+        p1: { elements: type1.elements, tokens: [{ x: 1.0 }, { x: 1.5 }] },
+        p2: { elements: type1.elements, tokens: [] },
       },
       transitions: {
         t1: transitionState(0.5),
         t2: transitionState(0.3),
       },
-      buffer: new Float64Array([1.0, 1.5]),
     });
 
     const result = executeTransitions(
