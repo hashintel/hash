@@ -54,6 +54,7 @@ export const styles = sva({
       backgroundColor: "neutral.s10",
       padding: "1",
 
+      // The first (bottom-most) dialog scales in/out like a popover.
       _open: {
         animationName: "popoverIn",
         animationDuration: "fast",
@@ -62,6 +63,16 @@ export const styles = sva({
         animationName: "popoverOut",
         animationDuration: "faster",
       },
+      // Turn off animating a nested dialog in, as its too noisy on top of animating the lower dialogs into a stack
+      '[data-overlay-stack-root]:has([data-part="backdrop"][data-state="open"]) ~ [data-overlay-stack-root] &':
+        {
+          _open: {
+            animationName: "[none]",
+          },
+          _closed: {
+            animationName: "[none]",
+          },
+        },
       // When another dialog is opened on top, shift this one up-and-left by
       // 30px per layer above it so the stack reads visually.
       "&[data-has-nested]": {

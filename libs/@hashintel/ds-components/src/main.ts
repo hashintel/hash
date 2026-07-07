@@ -34,8 +34,8 @@ export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { Tooltip } from "./components/Tooltip/tooltip";
-export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export {
   PortalContainerContext,
   usePortalContainerRef,
 } from "./util/portal-container-context";
+export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
