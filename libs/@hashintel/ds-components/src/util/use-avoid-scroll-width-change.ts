@@ -1,14 +1,29 @@
 import { type RefObject, useLayoutEffect } from "react";
 
-let cachedScrollbarSize: number | null = null;
+/**
+ * Probed scrollbar thickness, cached per `scrollbar-width` mode
+ * (`"auto"`/`"thin"`/`"none"`) since each mode renders a different thickness.
+ */
+const cachedScrollbarSize = new Map<string, number>();
 
 /**
  * Measure the browser's classic scrollbar thickness using a throwaway element.
- * Returns `0` for overlay scrollbars. The result is cached after first use.
+ * Returns `0` for overlay scrollbars.
+ *
+ * The probe mirrors the target element's `scrollbar-width` so that a `thin`
+ * scrollbar is measured as thin — otherwise the reserved gutter would be sized
+ * for the default (wider) bar and wouldn't match the one that actually appears,
+ * which would make the content box a different size in the two states and defeat
+ * the whole point of the hook. The result is cached per mode after first use.
+ *
+ * @param scrollbarWidthMode - the target's computed `scrollbar-width` value.
  */
-const measureScrollbarSize = (): number => {
-  if (cachedScrollbarSize !== null) {
-    return cachedScrollbarSize;
+const measureScrollbarSize = (scrollbarWidthMode: string): number => {
+  const mode = scrollbarWidthMode || "auto";
+
+  const cached = cachedScrollbarSize.get(mode);
+  if (cached !== undefined) {
+    return cached;
   }
 
   if (typeof document === "undefined") {
@@ -21,12 +36,16 @@ const measureScrollbarSize = (): number => {
   probe.style.width = "100px";
   probe.style.height = "100px";
   probe.style.overflow = "scroll";
+  if (mode !== "auto") {
+    probe.style.setProperty("scrollbar-width", mode);
+  }
 
   document.body.appendChild(probe);
-  cachedScrollbarSize = probe.offsetWidth - probe.clientWidth;
+  const size = probe.offsetWidth - probe.clientWidth;
   document.body.removeChild(probe);
 
-  return cachedScrollbarSize;
+  cachedScrollbarSize.set(mode, size);
+  return size;
 };
 
 /**
@@ -59,6 +78,13 @@ const measureScrollbarSize = (): number => {
  * over. Only when the existing padding is smaller than the scrollbar does the
  * hook reserve the extra space, so the content still does not jump.
  *
+ * Because the reserved inset is identical whether or not the scrollbar is
+ * present, toggling the scrollbar does not change the content-box size, and so
+ * cannot itself flip the scrollbar back — which is what keeps the observers from
+ * oscillating. The measurement/write cycle is additionally coalesced into a
+ * single animation frame and guarded by a small write threshold so sub-pixel
+ * measurement noise can't thrash it.
+ *
  * Both axes are handled independently and detected automatically, so the hook
  * works whether the element scrolls vertically, horizontally, or both.
  *
@@ -79,15 +105,6 @@ export const useAvoidScrollWidthChange = (
     if (!enabled || !element || typeof ResizeObserver === "undefined") {
       return;
     }
-
-    /**
-     * The side on which the vertical scrollbar is rendered (and therefore the
-     * inline side we manage the gutter on) depends on the writing direction.
-     */
-    const inlineGutterSide = (): "paddingLeft" | "paddingRight" =>
-      getComputedStyle(element).direction === "rtl"
-        ? "paddingLeft"
-        : "paddingRight";
 
     // The element's own padding, captured before we touch it. A scrollbar that
     // appears should consume this padding rather than be reserved on top of it,
@@ -122,33 +139,104 @@ export const useAvoidScrollWidthChange = (
 
     // Track the values we last wrote, per axis, so repeated observer callbacks
     // that don't change anything are skipped — this lets the layout converge
-    // and stops the ResizeObserver from looping.
+    // and stops the observers from looping.
     let appliedInlineGutter: number | null = null;
     let appliedBlockGutter: number | null = null;
 
-    const sync = (): void => {
-      const hasVerticalScrollbar = element.scrollHeight >= element.clientHeight;
-      const hasHorizontalScrollbar = element.scrollWidth >= element.clientWidth;
+    // The last scrollbar thickness we saw *live* on the element, per axis. When
+    // the scrollbar is absent we can't measure it, so we reserve this remembered
+    // width instead — guaranteeing the reserved inset equals the width the bar
+    // will occupy when it returns, which is what makes the inset constant across
+    // both states (and therefore non-oscillating). Falls back to a probe until
+    // we've seen a real bar at least once.
+    let liveScrollbarWidth: number | null = null;
+    let liveScrollbarHeight: number | null = null;
 
+    // A live reading below this is treated as no bar rather than a real one.
+    // `offsetWidth`/`clientWidth` are integer-rounded, so their difference can
+    // carry up to ~1px of noise when no scrollbar is present; the thinnest real
+    // scrollbar is several px, so this floor cleanly separates the two.
+    const SCROLLBAR_MIN_PX = 2;
+
+    // Only rewrite a gutter when it moves by at least this much. A real toggle
+    // moves it by a whole scrollbar width; this threshold just absorbs
+    // sub-pixel measurement noise so it can't rewrite frame after frame.
+    const WRITE_THRESHOLD_PX = 1;
+
+    const applyGutter = (
+      side: "paddingLeft" | "paddingRight" | "paddingBottom",
+      desired: number,
+      applied: number | null,
+      authorValue: number,
+    ): number => {
+      if (
+        applied !== null &&
+        Math.abs(desired - applied) < WRITE_THRESHOLD_PX
+      ) {
+        return applied;
+      }
+      setManagedPadding(side, desired, authorValue);
+      return desired;
+    };
+
+    const sync = (): void => {
+      // Single computed-style read per pass; everything below derives from it.
       const style = getComputedStyle(element);
+
+      // The side on which the vertical scrollbar is rendered (and therefore the
+      // inline side we manage the gutter on) depends on the writing direction.
+      const gutterSide: "paddingLeft" | "paddingRight" =
+        style.direction === "rtl" ? "paddingLeft" : "paddingRight";
+      const scrollbarWidthMode = style.getPropertyValue("scrollbar-width");
 
       // The real scrollbar thickness is the difference between the element's
       // border box and its (padding-inclusive) client box on the relevant axis,
-      // minus the borders, read live while the scrollbar is present. When it is
-      // absent that difference is zero, so we fall back to a probe measurement.
+      // minus the borders — i.e. the space the bar is consuming right now. When
+      // no bar is present that difference is zero.
       const borderX =
         parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
       const borderY =
         parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
 
       const liveWidth = element.offsetWidth - element.clientWidth - borderX;
-      const scrollbarWidth = liveWidth > 0 ? liveWidth : measureScrollbarSize();
-
       const liveHeight = element.offsetHeight - element.clientHeight - borderY;
-      const scrollbarHeight =
-        liveHeight > 0 ? liveHeight : measureScrollbarSize();
 
-      const gutterSide = inlineGutterSide();
+      // Remember the last real bar thickness we saw, per axis, so we can reserve
+      // exactly that width while the bar is absent (we can't measure it then).
+      if (liveWidth > SCROLLBAR_MIN_PX) {
+        liveScrollbarWidth = liveWidth;
+      }
+      if (liveHeight > SCROLLBAR_MIN_PX) {
+        liveScrollbarHeight = liveHeight;
+      }
+
+      // Detect presence primarily from the space the bar is consuming, not from
+      // `scrollHeight > clientHeight`. Those are integer-rounded, so a bar can
+      // already be painted (and eating space) while a <1px overflow still rounds
+      // to `scrollHeight === clientHeight`; keying off consumed space avoids that
+      // blind spot and also catches always-on (`overflow: scroll`) bars. The
+      // overflow comparison remains as a fallback for overlay scrollbars, which
+      // overflow without consuming any space.
+      const hasVerticalScrollbar =
+        liveWidth > SCROLLBAR_MIN_PX ||
+        element.scrollHeight > element.clientHeight;
+      const hasHorizontalScrollbar =
+        liveHeight > SCROLLBAR_MIN_PX ||
+        element.scrollWidth > element.clientWidth;
+
+      // Use the live width when a bar is actually consuming space; otherwise
+      // fall back to the last one we saw (or a matching probe before we've ever
+      // seen one). Keeping this in step with the presence check above is what
+      // makes the reserved inset identical in both states.
+      const scrollbarWidth =
+        liveWidth > SCROLLBAR_MIN_PX
+          ? liveWidth
+          : (liveScrollbarWidth ?? measureScrollbarSize(scrollbarWidthMode));
+      const scrollbarHeight =
+        liveHeight > SCROLLBAR_MIN_PX
+          ? liveHeight
+          : (liveScrollbarHeight ?? measureScrollbarSize(scrollbarWidthMode));
+
       const authorInline = authorPadding[gutterSide];
       const authorBlock = authorPadding.paddingBottom;
 
@@ -166,32 +254,63 @@ export const useAvoidScrollWidthChange = (
         ? Math.max(authorBlock - scrollbarHeight, 0)
         : Math.max(authorBlock, scrollbarHeight);
 
-      if (desiredInlineGutter !== appliedInlineGutter) {
-        appliedInlineGutter = desiredInlineGutter;
-        setManagedPadding(gutterSide, desiredInlineGutter, authorInline);
-      }
-
-      if (desiredBlockGutter !== appliedBlockGutter) {
-        appliedBlockGutter = desiredBlockGutter;
-        setManagedPadding("paddingBottom", desiredBlockGutter, authorBlock);
-      }
+      appliedInlineGutter = applyGutter(
+        gutterSide,
+        desiredInlineGutter,
+        appliedInlineGutter,
+        authorInline,
+      );
+      appliedBlockGutter = applyGutter(
+        "paddingBottom",
+        desiredBlockGutter,
+        appliedBlockGutter,
+        authorBlock,
+      );
     };
 
-    const resizeObserver = new ResizeObserver(sync);
+    // Coalesce bursts of observer callbacks (e.g. many mutations in one tick)
+    // into a single measurement + write on the next frame. Deferring the write
+    // out of the observer's own delivery also avoids the "ResizeObserver loop
+    // completed with undelivered notifications" warning.
+    let frameId = 0;
+    const scheduleSync = (): void => {
+      if (frameId !== 0) {
+        return;
+      }
+      if (typeof requestAnimationFrame === "undefined") {
+        sync();
+        return;
+      }
+      frameId = requestAnimationFrame(() => {
+        frameId = 0;
+        sync();
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(scheduleSync);
     resizeObserver.observe(element);
 
-    // Content changes (children added/removed/resized) can toggle a scrollbar
-    // without changing the element's own box, so watch the subtree too.
-    const mutationObserver = new MutationObserver(sync);
+    // Content changes (children added/removed/resized, text edited) can toggle a
+    // scrollbar without changing the element's own box — and because the element
+    // is a fixed-size scroll container, the ResizeObserver won't fire for those.
+    // So we must watch the whole subtree. We deliberately do NOT observe
+    // `attributes`: that would make our own padding writes re-trigger the
+    // observer. The cost of the broad subtree watch is bounded by the frame
+    // coalescing above (a burst of mutations still results in a single sync).
+    const mutationObserver = new MutationObserver(scheduleSync);
     mutationObserver.observe(element, {
       childList: true,
       subtree: true,
       characterData: true,
     });
 
+    // Run once synchronously so the gutter is correct before the first paint.
     sync();
 
     return () => {
+      if (frameId !== 0 && typeof cancelAnimationFrame !== "undefined") {
+        cancelAnimationFrame(frameId);
+      }
       resizeObserver.disconnect();
       mutationObserver.disconnect();
       // Restore whatever inline padding the author had (usually none), handing
