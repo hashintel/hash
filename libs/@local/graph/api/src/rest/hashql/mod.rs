@@ -115,7 +115,6 @@ where
         value: mut compilation,
         advisories,
     } = Compilation::compile(&heap, &mut scratch, spans, query)?;
-    drop(scratch);
 
     let Success {
         value: store,
@@ -154,6 +153,7 @@ where
 
         scratch.reset();
     }
+    drop(scratch);
 
     let context = compilation.context();
     let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
