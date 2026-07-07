@@ -41,6 +41,7 @@ const SitePage: NextPageWithLayout = () => {
     <>
       <NextSeo title={siteName ?? "Site"} />
       <SiteOverview
+        key={siteId}
         products={products}
         siteId={siteId}
         opportunityStatusHistory={opportunityStatusStore.statusHistory}
