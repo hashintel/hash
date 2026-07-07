@@ -7,6 +7,7 @@ import {
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
+  type MonteCarloMetricSpec,
   type WorkerFactory,
   type Scenario,
   type ScenarioParameter,
@@ -142,19 +143,20 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 
   const metricIds = new Set<string>();
   for (const metricSpec of input.metricSpecs) {
+    const itemType = metricSpec.type === "Predicate" ? "Predicate" : "Metric";
     const metricId = metricSpec.id.trim();
     if (metricId === "") {
-      throw new Error("Metric id is required");
+      throw new Error(`${itemType} id is required`);
     }
     if (metricIds.has(metricId)) {
-      throw new Error(`Metric id "${metricId}" is duplicated`);
+      throw new Error(`${itemType} id "${metricId}" is duplicated`);
     }
     metricIds.add(metricId);
     if (metricSpec.label.trim() === "") {
-      throw new Error("Metric label is required");
+      throw new Error(`${itemType} label is required`);
     }
     if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
-      throw new Error(`Metric "${metricSpec.label}" code is required`);
+      throw new Error(`${itemType} "${metricSpec.label}" code is required`);
     }
   }
 }
@@ -237,6 +239,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const sync = () => {
       patchExperiment(experimentId, {
         latestMetricFramesById: handle.metrics.get().latestByMetricId,
+        latestPredicateSnapshotsById:
+          handle.predicates.get().latestByPredicateId,
         metricFrames: handle.metrics.get().frames,
         progress: handle.progress.get(),
         status: mapExperimentStatus(handle.status.get()),
@@ -246,6 +250,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const unsubscribeStatus = handle.status.subscribe(sync);
     const unsubscribeProgress = handle.progress.subscribe(sync);
     const unsubscribeMetrics = handle.metrics.subscribe(sync);
+    const unsubscribePredicates = handle.predicates.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
         patchExperiment(experimentId, {
@@ -278,6 +283,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         unsubscribeStatus();
         unsubscribeProgress();
         unsubscribeMetrics();
+        unsubscribePredicates();
         unsubscribeEvents();
       },
     });
@@ -352,6 +358,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       metricSpecs: input.metricSpecs,
       progress: null,
       latestMetricFramesById: {},
+      latestPredicateSnapshotsById: {},
       metricFrames: [],
     };
 
@@ -368,43 +375,58 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // worker — the simulation engine has no compiler of its own. The
         // experiment's expression metrics are compiled alongside by
         // substituting them for the model's metrics.
-        const expressionSpecs = input.metricSpecs.filter(
+        const expressionMetricSpecs = input.metricSpecs.filter(
           (spec) => spec.kind === "expression",
+        );
+        const expressionPredicateSpecs = expressionMetricSpecs.filter(
+          (spec) => spec.type === "Predicate",
         );
         const { artifacts, failures } = await requestHirArtifacts(
           {
             ...experimentSdcpn,
-            metrics: expressionSpecs.map((spec) => ({
+            metrics: expressionMetricSpecs.map((spec) => ({
               id: spec.id,
               name: spec.label,
               code: spec.code,
             })),
           },
           experimentExtensions,
+          {
+            metricReturnTypes: Object.fromEntries(
+              expressionPredicateSpecs.map((spec) => [
+                spec.id,
+                "boolean" as const,
+              ]),
+            ),
+          },
         );
 
-        const metricSpecs = input.metricSpecs.map((spec) => {
-          if (spec.kind !== "expression") {
-            return spec;
-          }
-          const artifact = artifacts.metrics[spec.id];
-          if (!artifact) {
-            const diagnostics = failures
-              .filter(
-                (failure) =>
-                  failure.itemType === "metric" && failure.itemId === spec.id,
-              )
-              .flatMap((failure) =>
-                failure.diagnostics.map((diagnostic) => diagnostic.message),
+        const metricSpecs = input.metricSpecs.map(
+          (spec): MonteCarloMetricSpec => {
+            if (spec.kind !== "expression") {
+              return spec;
+            }
+            const artifact = artifacts.metrics[spec.id];
+            if (!artifact) {
+              const diagnostics = failures
+                .filter(
+                  (failure) =>
+                    failure.itemType === "metric" && failure.itemId === spec.id,
+                )
+                .flatMap((failure) =>
+                  failure.diagnostics.map((diagnostic) => diagnostic.message),
+                );
+              const itemType =
+                spec.type === "Predicate" ? "Predicate" : "Metric";
+              throw new Error(
+                `${itemType} "${spec.label}" did not compile${
+                  diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
+                }`,
               );
-            throw new Error(
-              `Metric "${spec.label}" did not compile${
-                diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
-              }`,
-            );
-          }
-          return { ...spec, artifact };
-        });
+            }
+            return { ...spec, artifact };
+          },
+        );
 
         const experimentConfigBase = {
           sdcpn: experimentSdcpn,

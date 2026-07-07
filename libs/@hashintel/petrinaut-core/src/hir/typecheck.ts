@@ -747,6 +747,17 @@ class Typechecker {
         return;
       }
       case "metric": {
+        if (context.returnType === "boolean") {
+          if (!isBoolish(returnType)) {
+            this.report(
+              bodySpan,
+              "hir:metric-return",
+              `Predicates must return a boolean, got ${formatHirType(returnType)}.`,
+            );
+          }
+          return;
+        }
+
         if (!isNumeric(returnType)) {
           this.report(
             bodySpan,

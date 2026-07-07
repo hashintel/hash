@@ -21,8 +21,10 @@ export {
 } from "./hir/analyze";
 export {
   compileHirArtifacts,
+  type HirCompileOptions,
   type HirCompileFailure,
   type HirCompileResult,
+  type HirMetricReturnType,
 } from "./hir/compile";
 export {
   hirDistributionRuntime,

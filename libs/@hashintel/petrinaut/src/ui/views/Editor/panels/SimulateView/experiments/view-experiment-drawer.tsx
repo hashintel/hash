@@ -83,6 +83,33 @@ const metricItemLargeStyle = css({
   gridColumn: "[1 / -1]",
 });
 
+const predicateHeaderStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+});
+
+const predicateTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const predicatePercentageStyle = css({
+  fontSize: "[36px]",
+  fontWeight: "semibold",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s120",
+  lineHeight: "[1]",
+});
+
+const predicateDetailStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  fontVariantNumeric: "tabular-nums",
+});
 type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
@@ -102,6 +129,30 @@ function formatStatus(experiment: ExperimentRecord): string {
     case "cancelled":
       return "Cancelled";
   }
+}
+
+function median(values: readonly number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1]! + sorted[middle]!) / 2
+    : sorted[middle]!;
+}
+
+/** Latest predicate snapshots, in the order the experiment defined them. */
+function getOrderedPredicateSnapshots(experiment: ExperimentRecord) {
+  return experiment.metricSpecs.flatMap((spec) => {
+    if (spec.type !== "Predicate") {
+      return [];
+    }
+    const snapshot = experiment.latestPredicateSnapshotsById[spec.id];
+    return snapshot ? [snapshot] : [];
+  });
 }
 
 function groupMetricFramesByMetric(
@@ -186,8 +237,9 @@ const ExperimentMetrics = ({
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
   const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
+  const predicateSnapshots = getOrderedPredicateSnapshots(experiment);
 
-  if (metricFrameGroups.length === 0) {
+  if (metricFrameGroups.length === 0 && predicateSnapshots.length === 0) {
     return null;
   }
 
@@ -215,6 +267,33 @@ const ExperimentMetrics = ({
                 }))
               }
             />
+          </div>
+        );
+      })}
+      {predicateSnapshots.map((snapshot) => {
+        // Floored so 100% only ever means every single run reached true.
+        const percentage =
+          snapshot.runCount === 0
+            ? 0
+            : Math.floor((snapshot.trueRunCount / snapshot.runCount) * 100);
+        const medianTrueAt = median(
+          snapshot.runResults.flatMap((result) =>
+            result.trueAt === null ? [] : [result.trueAt],
+          ),
+        );
+
+        return (
+          <div key={snapshot.predicateId} className={metricItemStyle}>
+            <div className={predicateHeaderStyle}>
+              <span className={predicateTitleStyle}>{snapshot.label}</span>
+            </div>
+            <span className={predicatePercentageStyle}>{percentage}%</span>
+            <span className={predicateDetailStyle}>
+              {snapshot.trueRunCount} of {snapshot.runCount} runs
+              {medianTrueAt !== null
+                ? ` · median t = ${formatNumber(medianTrueAt)}`
+                : ""}
+            </span>
           </div>
         );
       })}
@@ -256,7 +335,8 @@ export const ViewExperimentDrawer = ({
           <Section title="Summary" collapsible defaultOpen>
             <ExperimentSummary experiment={experiment} />
           </Section>
-          {experiment.metricFrames.length > 0 ? (
+          {experiment.metricFrames.length > 0 ||
+          Object.keys(experiment.latestPredicateSnapshotsById).length > 0 ? (
             <Section title="Metrics" collapsible defaultOpen>
               <ExperimentMetrics experiment={experiment} />
             </Section>

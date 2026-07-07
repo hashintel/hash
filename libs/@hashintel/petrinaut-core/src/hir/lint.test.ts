@@ -369,6 +369,14 @@ return all.reduce((sum, t) => sum + t.x, 0) / all.length;`,
         "error",
       ]);
 
+      // Predicate sessions reuse the metric state surface but return booleans.
+      expect(
+        codes(`return true;`, { ...metricContext, returnType: "boolean" }),
+      ).toEqual([]);
+      expect(
+        codes(`return 1;`, { ...metricContext, returnType: "boolean" }),
+      ).toContainEqual(["hir:metric-return", "error"]);
+
       // Unknown place.
       expect(
         codes(`return state.places.Missing.count;`, metricContext),

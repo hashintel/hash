@@ -1,5 +1,12 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   Button,
@@ -9,6 +16,7 @@ import {
   NumberInput,
   Select,
   TextInput,
+  Toggle,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -197,6 +205,19 @@ const metricSpecificFieldsStyle = css({
   gap: "2",
 });
 
+const codeHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+});
+
+const predicateToggleInlineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
 const codeDiagnosticStyle = css({
   fontSize: "xs",
   color: "red.s100",
@@ -243,6 +264,22 @@ const DEFAULT_METRIC_CODE = `/**
 */
 
 return 0;`;
+const DEFAULT_PREDICATE_CODE = `/**
+* Predicate code that will be checked on each frame until it returns true for a run.
+* It must \`return\` a boolean.
+*
+* The only thing in scope is \`state\`, a snapshot of the current frame:
+*   state.places["Place Name"].count   -> number of tokens in a place
+*   state.places["Place Name"].tokens  -> array of token objects (for colored places)
+*
+* Reference places by their exact name. Use bracket access for names
+* with spaces, e.g. state.places["Work In Progress"].
+*
+* --- Example: true once all work has completed ---
+* return state.places["Work In Progress"].count === 0;
+*/
+
+return false;`;
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
 
 function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
@@ -284,6 +321,7 @@ type TransitionFiringMode = NonNullable<
 
 type ExperimentMetricDraft = {
   id: string;
+  type: "Metric" | "Predicate";
   kind: ExperimentMetricKind;
   label: string;
   expanded: boolean;
@@ -319,6 +357,10 @@ function getMetricSummaryLabel(
   metric: ExperimentMetricDraft,
   sdcpn: SDCPN,
 ): string {
+  if (metric.type === "Predicate") {
+    return "Predicate";
+  }
+
   if (metric.sourceMetricId) {
     const modelMetric = sdcpn.metrics?.find(
       (candidate) => candidate.id === metric.sourceMetricId,
@@ -356,6 +398,7 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   return new Set([
     "",
     "Custom metric",
+    "Predicate",
     "Place tokens",
     "Transition firing",
     getDefaultMetricLabel("placeTokenCountMean", sdcpn),
@@ -419,6 +462,21 @@ function getMetricKindIcon(
   return METRIC_KIND_ICONS[value];
 }
 
+function getCodeForMetricTypeChange(
+  code: string,
+  nextType: ExperimentMetricDraft["type"],
+): string {
+  if (nextType === "Predicate" && code.trim() === DEFAULT_METRIC_CODE.trim()) {
+    return DEFAULT_PREDICATE_CODE;
+  }
+
+  if (nextType === "Metric" && code.trim() === DEFAULT_PREDICATE_CODE.trim()) {
+    return DEFAULT_METRIC_CODE;
+  }
+
+  return code;
+}
+
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
   const place = sdcpn.places[0];
   const transition = sdcpn.transitions[0];
@@ -430,6 +488,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
 
   return {
     id: crypto.randomUUID(),
+    type: "Metric",
     kind,
     label: getDefaultMetricLabel(kind, sdcpn),
     expanded: true,
@@ -448,7 +507,7 @@ function buildMetricSpecs(
   sdcpn: SDCPN,
 ): ExperimentMetricSpecInput[] {
   if (drafts.length === 0) {
-    throw new Error("Define at least one metric");
+    return [];
   }
 
   return drafts.map((draft, index) => {
@@ -458,9 +517,11 @@ function buildMetricSpecs(
       throw new Error(`Metric ${index + 1} needs a label`);
     }
 
+    const itemType = draft.type === "Predicate" ? "Predicate" : "Metric";
     const sampledMetricBase = {
       id: draft.id,
       label,
+      type: "Metric" as const,
       sampleRuns: "all" as const,
       runOutput: { type: "distribution" as const },
     };
@@ -495,12 +556,22 @@ function buildMetricSpecs(
       }
       case "expression": {
         if (draft.code.trim() === "") {
-          throw new Error(`Metric "${label}" code is required`);
+          throw new Error(`${itemType} "${label}" code is required`);
         }
 
         // Compilation happens through the HIR when the experiment starts
         // (the provider attaches the compiled artifact); live validation is
         // covered by the metric LSP session diagnostics.
+        if (draft.type === "Predicate") {
+          return {
+            id: draft.id,
+            label,
+            type: "Predicate",
+            kind: "expression",
+            code: draft.code,
+          };
+        }
+
         return {
           ...sampledMetricBase,
           kind: "expression",
@@ -542,13 +613,15 @@ const ScenarioParameterRow = ({
 const ExperimentMetricLspSession = ({
   code,
   metricSessionId,
+  returnType,
   onChange,
 }: {
   code: string;
   metricSessionId: string;
+  returnType: "number" | "boolean";
   onChange: (diagnostics: MetricLspDiagnosticSummary) => void;
 }) => {
-  useMetricLspSession(code, metricSessionId);
+  useMetricLspSession(code, metricSessionId, returnType);
   const { diagnosticsByUri } = use(LanguageClientContext);
   const { count, firstMessage } = summarizeMetricLspErrors(
     diagnosticsByUri,
@@ -567,12 +640,14 @@ const ExperimentExpressionMetricEditor = ({
   code,
   metricSessionId,
   lspDiagnostics,
+  headerEnd,
   readOnly = false,
   onChange,
 }: {
   code: string;
   metricSessionId: string;
   lspDiagnostics: MetricLspDiagnosticSummary;
+  headerEnd?: ReactNode;
   readOnly?: boolean;
   onChange: (code: string) => void;
 }) => {
@@ -580,7 +655,10 @@ const ExperimentExpressionMetricEditor = ({
 
   return (
     <div className={fieldStyle}>
-      <span className={labelStyle}>Code</span>
+      <div className={codeHeaderStyle}>
+        <span className={labelStyle}>Code</span>
+        {headerEnd}
+      </div>
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -645,6 +723,7 @@ const ExperimentMetricRow = ({
       }
 
       updateMetric({
+        type: "Metric",
         kind: "expression",
         code: modelMetric.code,
         sourceMetricId: modelMetric.id,
@@ -662,6 +741,7 @@ const ExperimentMetricRow = ({
       ? getDefaultMetricLabel(nextKind, sdcpn)
       : metric.label;
     const nextPatch: Partial<ExperimentMetricDraft> = {
+      type: nextKind === "expression" ? metric.type : "Metric",
       kind: nextKind,
       label: nextLabel,
       sourceMetricId: null,
@@ -707,6 +787,7 @@ const ExperimentMetricRow = ({
         <ExperimentMetricLspSession
           code={metric.code}
           metricSessionId={metric.metricSessionId}
+          returnType={metric.type === "Predicate" ? "boolean" : "number"}
           onChange={onLspDiagnosticsChange}
         />
       ) : null}
@@ -834,6 +915,34 @@ const ExperimentMetricRow = ({
               code={metric.code}
               metricSessionId={metric.metricSessionId}
               lspDiagnostics={metric.lspDiagnostics}
+              headerEnd={
+                metric.sourceMetricId === null ? (
+                  <div className={predicateToggleInlineStyle}>
+                    <span className={labelStyle}>Predicate</span>
+                    <Toggle
+                      aria-label="Predicate metric"
+                      size="sm"
+                      value={metric.type === "Predicate"}
+                      onChange={(checked) => {
+                        const nextType = checked ? "Predicate" : "Metric";
+                        updateMetric({
+                          type: nextType,
+                          code: getCodeForMetricTypeChange(
+                            metric.code,
+                            nextType,
+                          ),
+                          label: canReplaceMetricLabel(metric.label, sdcpn)
+                            ? nextType === "Predicate"
+                              ? "Predicate"
+                              : getDefaultMetricLabel("expression", sdcpn)
+                            : metric.label,
+                          lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
+                        });
+                      }}
+                    />
+                  </div>
+                ) : undefined
+              }
               readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
             />
@@ -890,12 +999,12 @@ export const CreateExperimentDrawer = ({
   const metricKindGroups = createMetricKindGroups(petriNetDefinition);
   const metricDiagnosticError =
     getExperimentMetricDiagnosticError(metricDrafts);
-  const metricFormError =
+  const itemFormError =
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
-  const footerError = error ?? metricFormError;
-  const canRun = !isSubmitting && metricFormError === null;
+  const footerError = error ?? itemFormError;
+  const canRun = !isSubmitting && itemFormError === null;
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -984,7 +1093,7 @@ export const CreateExperimentDrawer = ({
 
     setError(null);
 
-    if (metricDiagnosticError) {
+    if (itemFormError) {
       return;
     }
 
@@ -1195,7 +1304,7 @@ export const CreateExperimentDrawer = ({
               tone="neutral"
               size="sm"
               disabled={!canRun}
-              tooltip={metricFormError ?? undefined}
+              tooltip={itemFormError ?? undefined}
               prefix={
                 isSubmitting ? (
                   <LoadingSpinner size="sm" variant="bars" />

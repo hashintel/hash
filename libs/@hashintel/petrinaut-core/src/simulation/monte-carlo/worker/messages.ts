@@ -5,6 +5,7 @@ import type { InitialMarking } from "../../api";
 import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedPredicateSnapshot,
 } from "../metrics";
 import type { MonteCarloAdvanceResult } from "../types";
 
@@ -22,6 +23,7 @@ export type MonteCarloInitMessage = {
   hirArtifacts?: HirArtifacts;
   runCount: number;
   batchSize?: number;
+  /** Numeric metric and predicate specs; the worker splits them by `type`. */
   metricSpecs?: readonly MonteCarloMetricSpec[];
 };
 
@@ -46,6 +48,11 @@ export type MonteCarloProgressMessage = {
 export type MonteCarloMetricFramesMessage = {
   type: "metricFrames";
   frames: MonteCarloUserDefinedMetricFrame[];
+};
+
+export type MonteCarloPredicateSnapshotsMessage = {
+  type: "predicateSnapshots";
+  snapshots: MonteCarloUserDefinedPredicateSnapshot[];
 };
 
 export type MonteCarloReadyMessage = {
@@ -78,6 +85,7 @@ export type MonteCarloToMainMessage =
   | MonteCarloReadyMessage
   | MonteCarloProgressMessage
   | MonteCarloMetricFramesMessage
+  | MonteCarloPredicateSnapshotsMessage
   | MonteCarloCompleteMessage
   | MonteCarloCancelledMessage
   | MonteCarloErrorMessage;

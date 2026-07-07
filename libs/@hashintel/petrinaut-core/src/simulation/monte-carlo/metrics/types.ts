@@ -71,6 +71,8 @@ export type MonteCarloUserDefinedMetricSampleRuns =
 
 export type MonteCarloMetricDistributionBinning = "exact" | { width: number };
 
+export type MonteCarloMetricType = "Metric" | "Predicate";
+
 export type MonteCarloMetricRunOutput =
   | {
       type: "scalar";
@@ -127,6 +129,11 @@ export type MonteCarloUserDefinedMetricConfig = {
 export type MonteCarloMetricSpecBase = {
   id: string;
   label: string;
+  /**
+   * Discriminates numeric metric specs from predicate specs when both travel
+   * in one experiment `metricSpecs` list. Absent means `"Metric"`.
+   */
+  type?: "Metric";
   sampleRuns?: MonteCarloUserDefinedMetricSampleRuns;
   runOutput?: MonteCarloMetricRunOutput;
   aggregateRuns?: MonteCarloUserDefinedMetricAggregation;
@@ -161,10 +168,46 @@ export type MonteCarloExpressionMetricSpec = MonteCarloMetricSpecBase & {
   artifact: HirMetricArtifact;
 };
 
-export type MonteCarloMetricSpec =
+/** Numeric (non-predicate) experiment metric specs. */
+export type MonteCarloNumericMetricSpec =
   | MonteCarloExpressionMetricSpec
   | MonteCarloPlaceTokenCountMeanMetricSpec
   | MonteCarloTransitionFiringCountMetricSpec;
+
+/**
+ * A boolean condition evaluated per run: each run is tested on every frame
+ * until the predicate first returns true, then the time is recorded and the
+ * run is not tested again. Predicates deliberately do not carry the numeric
+ * sampling/aggregation options of metric specs.
+ */
+export type MonteCarloPredicateSpec = {
+  id: string;
+  label: string;
+  type: "Predicate";
+  /** Predicates are always custom expression code. */
+  kind: "expression";
+  /**
+   * Function body over the same `state` object as expression metrics. It must
+   * `return` a boolean. Kept for display/persistence; execution uses only
+   * `artifact`.
+   */
+  code: string;
+  /**
+   * HIR buffer program for `code`, compiled with a boolean return type
+   * (`compileHirArtifacts` + `metricReturnTypes`). This is the only execution
+   * path — specs without an artifact cannot run.
+   */
+  artifact: HirMetricArtifact;
+};
+
+/**
+ * Everything an experiment can evaluate per frame. Numeric metrics and
+ * boolean predicates travel through the same `metricSpecs` channel; runtimes
+ * split them with `splitMonteCarloMetricSpecs` when building executables.
+ */
+export type MonteCarloMetricSpec =
+  | MonteCarloNumericMetricSpec
+  | MonteCarloPredicateSpec;
 
 type MonteCarloUserDefinedMetricFrameBase = {
   metricId: string;
@@ -219,5 +262,49 @@ export type MonteCarloUserDefinedMetric = MonteCarloFrameMetric & {
   readonly label: string;
   readonly frames: readonly MonteCarloUserDefinedMetricFrame[];
   getLatestFrame: () => MonteCarloUserDefinedMetricFrame | null;
+  clear: () => void;
+};
+
+export type MonteCarloUserDefinedPredicateMeasureInput = {
+  runIndex: number;
+  status: MonteCarloMetricRunStatus;
+  frame: SimulationFrameReader;
+};
+
+export type MonteCarloUserDefinedPredicateRunResult = {
+  runIndex: number;
+  value: boolean;
+  trueAt: number | null;
+};
+
+export type MonteCarloUserDefinedPredicateSnapshot = {
+  predicateId: string;
+  label: string;
+  frameNumber: number;
+  time: number;
+  /** Total runs, including errored runs (which can never become true). */
+  runCount: number;
+  trueRunCount: number;
+  runResults: readonly MonteCarloUserDefinedPredicateRunResult[];
+};
+
+export type MonteCarloUserDefinedPredicateConfig = {
+  id: string;
+  label?: string;
+  /**
+   * Tests whether one run satisfies the predicate at the current frame.
+   *
+   * A run is tested while the predicate is false for that run. Once it returns
+   * true, the true timestamp is recorded and the run is not tested again.
+   */
+  test: (input: MonteCarloUserDefinedPredicateMeasureInput) => boolean;
+};
+
+export type MonteCarloUserDefinedPredicate = MonteCarloFrameMetric & {
+  readonly id: string;
+  readonly label: string;
+  readonly version: number;
+  readonly results: readonly MonteCarloUserDefinedPredicateRunResult[];
+  getLatestSnapshot: () => MonteCarloUserDefinedPredicateSnapshot | null;
   clear: () => void;
 };

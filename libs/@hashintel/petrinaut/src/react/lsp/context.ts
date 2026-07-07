@@ -5,6 +5,7 @@ import type {
   Diagnostic,
   DocumentUri,
   HirCompileResult,
+  HirCompileOptions,
   Hover,
   PetrinautExtensionSettings,
   Position,
@@ -49,6 +50,7 @@ export interface LanguageClientContextValue {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: HirCompileOptions,
   ) => Promise<HirCompileResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;

@@ -147,7 +147,10 @@ function publishAllDiagnostics(
       );
       if (!hasTsError) {
         allDiags.push(
-          ...getHirDiagnosticsForItem(userContent, metricHirContext),
+          ...getHirDiagnosticsForItem(userContent, {
+            ...metricHirContext,
+            returnType: session.returnType ?? "number",
+          }),
         );
       }
       params.push({
@@ -197,6 +200,7 @@ function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
   return {
     sessionId: params.sessionId,
     code: params.code,
+    returnType: params.returnType,
   };
 }
 
@@ -384,7 +388,11 @@ workerRuntime.onMessage((data) => {
         const { id } = data;
         respond(
           id,
-          compileHirArtifacts(data.params.sdcpn, data.params.extensions),
+          compileHirArtifacts(
+            data.params.sdcpn,
+            data.params.extensions,
+            data.params.options,
+          ),
         );
         break;
       }

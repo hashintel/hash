@@ -7,7 +7,7 @@
  *
  *   lambda: (f64, u64, u8, placeBases, indices) => number | boolean
  *   kernel: (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
- *   metric: (f64, u64, u8, placeCounts, placeOffsets) => number
+ *   metric-shaped frame reader: (f64, u64, u8, placeCounts, placeOffsets) => number | boolean
  *
  * The full ABI is documented in `BUFFER_ABI.md`.
  *
@@ -937,9 +937,9 @@ export function emitBufferKernelJs(
 }
 
 /**
- * Emits a buffer-ABI metric program (token format v2):
+ * Emits a buffer-ABI metric-shaped frame-reader program (token format v2):
  *
- *   (f64, u64, u8, placeCounts, placeOffsets) => number
+ *   (f64, u64, u8, placeCounts, placeOffsets) => number | boolean
  *
  * - `f64`/`u64`/`u8` — shared views over the frame's token byte region.
  * - `placeCounts`/`placeOffsets` — the frame's dense per-place token counts

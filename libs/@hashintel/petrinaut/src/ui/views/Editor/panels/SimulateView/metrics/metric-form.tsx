@@ -129,6 +129,7 @@ export type MetricFormInstance = ReturnType<typeof useMetricForm>;
 export function useMetricLspSession(
   code: string,
   providedSessionId?: string,
+  returnType: "number" | "boolean" = "number",
 ): string {
   const { initializeMetricSession, updateMetricSession, killMetricSession } =
     use(LanguageClientContext);
@@ -138,7 +139,7 @@ export function useMetricLspSession(
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    const sessionData = { sessionId, code };
+    const sessionData = { sessionId, code, returnType };
 
     if (!initializedRef.current) {
       initializeMetricSession(sessionData);
@@ -146,7 +147,13 @@ export function useMetricLspSession(
     } else {
       updateMetricSession(sessionData);
     }
-  }, [code, initializeMetricSession, sessionId, updateMetricSession]);
+  }, [
+    code,
+    initializeMetricSession,
+    returnType,
+    sessionId,
+    updateMetricSession,
+  ]);
 
   useEffect(() => {
     return () => {

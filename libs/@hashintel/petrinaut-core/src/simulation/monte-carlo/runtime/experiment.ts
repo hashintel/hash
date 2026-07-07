@@ -2,6 +2,9 @@ import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
+  createMonteCarloUserDefinedPredicate,
+  createMonteCarloUserDefinedPredicateConfigsFromSpecs,
+  splitMonteCarloMetricSpecs,
 } from "../metrics";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
@@ -21,6 +24,9 @@ import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedPredicate,
+  MonteCarloUserDefinedPredicateConfig,
+  MonteCarloUserDefinedPredicateSnapshot,
 } from "../metrics";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
@@ -39,6 +45,12 @@ export type MonteCarloExperimentState =
 export type MonteCarloExperimentMetrics = {
   frames: readonly MonteCarloUserDefinedMetricFrame[];
   latestByMetricId: Readonly<Record<string, MonteCarloUserDefinedMetricFrame>>;
+};
+
+export type MonteCarloExperimentPredicates = {
+  latestByPredicateId: Readonly<
+    Record<string, MonteCarloUserDefinedPredicateSnapshot>
+  >;
 };
 
 export type MonteCarloExperimentEvent =
@@ -69,16 +81,19 @@ export type CreateMonteCarloExperimentConfig =
           createWorker: WorkerFactory;
           transport?: never;
           metrics?: never;
+          predicates?: never;
           metricSpecs?: readonly MonteCarloMetricSpec[];
         }
       | {
           transport: SimulationTransport;
           createWorker?: never;
           metrics?: never;
+          predicates?: never;
           metricSpecs?: readonly MonteCarloMetricSpec[];
         }
       | {
           metrics: readonly MonteCarloUserDefinedMetricConfig[];
+          predicates?: readonly MonteCarloUserDefinedPredicateConfig[];
           createWorker?: never;
           transport?: never;
           metricSpecs?: never;
@@ -88,6 +103,7 @@ export type CreateMonteCarloExperimentConfig =
           createWorker?: never;
           transport?: never;
           metrics?: never;
+          predicates?: never;
         }
     );
 
@@ -95,6 +111,7 @@ export interface MonteCarloExperiment {
   readonly status: ReadableStore<MonteCarloExperimentState>;
   readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
   readonly metrics: ReadableStore<MonteCarloExperimentMetrics>;
+  readonly predicates: ReadableStore<MonteCarloExperimentPredicates>;
   readonly events: EventStream<MonteCarloExperimentEvent>;
 
   start(this: void): void;
@@ -161,6 +178,12 @@ function createEmptyMetricsState(): MonteCarloExperimentMetrics {
   };
 }
 
+function createEmptyPredicatesState(): MonteCarloExperimentPredicates {
+  return {
+    latestByPredicateId: {},
+  };
+}
+
 function appendMetricFrames(
   state: MonteCarloExperimentMetrics,
   nextFrames: readonly MonteCarloUserDefinedMetricFrame[],
@@ -177,6 +200,21 @@ function appendMetricFrames(
   };
 }
 
+function appendPredicateSnapshots(
+  state: MonteCarloExperimentPredicates,
+  snapshots: readonly MonteCarloUserDefinedPredicateSnapshot[],
+): MonteCarloExperimentPredicates {
+  const latestByPredicateId = { ...state.latestByPredicateId };
+
+  for (const snapshot of snapshots) {
+    latestByPredicateId[snapshot.predicateId] = snapshot;
+  }
+
+  return {
+    latestByPredicateId,
+  };
+}
+
 function takePendingMetricFrames(
   metrics: readonly MonteCarloUserDefinedMetric[],
   lastFrameCounts: Map<string, number>,
@@ -186,6 +224,23 @@ function takePendingMetricFrames(
     lastFrameCounts.set(metric.id, metric.frames.length);
 
     return metric.frames.slice(lastFrameCount);
+  });
+}
+
+function takePendingPredicateSnapshots(
+  predicates: readonly MonteCarloUserDefinedPredicate[],
+  lastVersions: Map<string, number>,
+): MonteCarloUserDefinedPredicateSnapshot[] {
+  return predicates.flatMap((predicate) => {
+    const lastVersion = lastVersions.get(predicate.id) ?? 0;
+    if (predicate.version === lastVersion) {
+      return [];
+    }
+
+    lastVersions.set(predicate.id, predicate.version);
+    const snapshot = predicate.getLatestSnapshot();
+
+    return snapshot ? [snapshot] : [];
   });
 }
 
@@ -286,12 +341,16 @@ function getInitialProgress(
 function createLocalMonteCarloExperiment(
   config: CreateMonteCarloExperimentBaseConfig & {
     metrics: readonly MonteCarloUserDefinedMetricConfig[];
+    predicates?: readonly MonteCarloUserDefinedPredicateConfig[];
   },
 ): Promise<MonteCarloExperiment> {
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
+  );
+  const predicates = createReadableStore<MonteCarloExperimentPredicates>(
+    createEmptyPredicatesState(),
   );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
@@ -302,7 +361,11 @@ function createLocalMonteCarloExperiment(
     const userMetrics = config.metrics.map((metricConfig) =>
       createMonteCarloUserDefinedMetric(metricConfig),
     );
+    const userPredicates = (config.predicates ?? []).map((predicateConfig) =>
+      createMonteCarloUserDefinedPredicate(predicateConfig),
+    );
     const lastMetricFrameCounts = new Map<string, number>();
+    const lastPredicateVersions = new Map<string, number>();
     const simulator = createMonteCarloSimulator({
       sdcpn: config.sdcpn,
       extensions: config.extensions,
@@ -313,7 +376,7 @@ function createLocalMonteCarloExperiment(
       maxTime: config.maxTime,
       hirArtifacts: config.hirArtifacts,
       runCount: config.runCount,
-      metrics: userMetrics,
+      metrics: [...userMetrics, ...userPredicates],
     });
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
@@ -323,6 +386,15 @@ function createLocalMonteCarloExperiment(
       );
       if (nextMetricFrames.length > 0) {
         metrics.set(appendMetricFrames(metrics.get(), nextMetricFrames));
+      }
+      const nextPredicateSnapshots = takePendingPredicateSnapshots(
+        userPredicates,
+        lastPredicateVersions,
+      );
+      if (nextPredicateSnapshots.length > 0) {
+        predicates.set(
+          appendPredicateSnapshots(predicates.get(), nextPredicateSnapshots),
+        );
       }
       if (nextProgress) {
         progress.set(nextProgress);
@@ -392,6 +464,7 @@ function createLocalMonteCarloExperiment(
       status,
       progress,
       metrics,
+      predicates,
       events,
       start() {
         if (disposed || running) {
@@ -468,11 +541,16 @@ export function createMonteCarloExperiment(
     !("transport" in config)
   ) {
     const { metricSpecs, ...baseConfig } = config;
+    const specs = splitMonteCarloMetricSpecs(metricSpecs);
 
     return createLocalMonteCarloExperiment({
       ...baseConfig,
       metrics: createMonteCarloUserDefinedMetricConfigsFromSpecs(
-        metricSpecs,
+        specs.metricSpecs,
+        config.sdcpn,
+      ),
+      predicates: createMonteCarloUserDefinedPredicateConfigsFromSpecs(
+        specs.predicateSpecs,
         config.sdcpn,
       ),
     });
@@ -494,6 +572,9 @@ export function createMonteCarloExperiment(
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
+  );
+  const predicates = createReadableStore<MonteCarloExperimentPredicates>(
+    createEmptyPredicatesState(),
   );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
@@ -553,6 +634,7 @@ export function createMonteCarloExperiment(
       status,
       progress,
       metrics,
+      predicates,
       events,
       start() {
         if (disposed) {
@@ -586,6 +668,12 @@ export function createMonteCarloExperiment(
         }
         case "metricFrames": {
           metrics.set(appendMetricFrames(metrics.get(), message.frames));
+          break;
+        }
+        case "predicateSnapshots": {
+          predicates.set(
+            appendPredicateSnapshots(predicates.get(), message.snapshots),
+          );
           break;
         }
         case "progress":
@@ -636,6 +724,7 @@ export function createMonteCarloExperiment(
         hirArtifacts: config.hirArtifacts,
         runCount: config.runCount,
         batchSize: config.batchSize,
+        // Predicate specs travel in-band; the worker splits them by `type`.
         metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
       });
     } catch (error) {
