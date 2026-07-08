@@ -78,7 +78,7 @@ export const styles = sva({
         positioner: {
           justifyContent: "flex-end",
           alignItems: "stretch",
-          paddingLeft: "[10%]",
+          paddingLeft: "[10svw]",
         },
         content: {
           height: "[100dvh]",
@@ -97,7 +97,7 @@ export const styles = sva({
         positioner: {
           justifyContent: "flex-start",
           alignItems: "stretch",
-          paddingRight: "[10%]",
+          paddingRight: "[10svw]",
         },
         content: {
           height: "[100dvh]",
@@ -117,7 +117,7 @@ export const styles = sva({
           flexDirection: "column",
           justifyContent: "flex-start",
           alignItems: "stretch",
-          paddingBottom: "[10%]",
+          paddingBottom: "[20svh]",
         },
         content: {
           height: "[100%]",
@@ -137,7 +137,7 @@ export const styles = sva({
           flexDirection: "column",
           justifyContent: "flex-end",
           alignItems: "stretch",
-          paddingTop: "[10%]",
+          paddingTop: "[10svh]",
         },
         content: {
           height: "[100%]",

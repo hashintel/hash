@@ -282,7 +282,7 @@ const DrawerRoot = ({
       // Without a backdrop the drawer is non-modal, so the page behind stays interactive
       // But we still want to keep focus trapped even when modal={false}
       modal={showBackdrop}
-      trapFocus
+      trapFocus={showBackdrop}
       closeOnEscape={closeOnEscape}
       closeOnInteractOutside={closeOnInteractOutside}
       onOpenChange={(event) => {

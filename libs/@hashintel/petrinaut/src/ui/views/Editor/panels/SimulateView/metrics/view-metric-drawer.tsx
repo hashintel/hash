@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
 import {
   metricSchema,
   compileMetric,
@@ -11,7 +11,6 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   MetricFormBody,
@@ -68,33 +67,39 @@ const ViewMetricFooter = ({
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
-    <Drawer.Footer>
-      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button variant="subtle" tone="error" size="sm" onClick={onDelete}>
-        Delete
-      </Button>
-      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Close
-      </Button>
-      <Button
-        variant="solid"
-        tone="neutral"
-        size="sm"
-        disabled={!canSave}
-        tooltip={
-          formError ??
-          (hasLspErrors
-            ? "Fix the errors in the metric code before saving."
-            : (compileError ??
-              (isDefaultValue ? "No changes to save." : undefined)))
-        }
-        onClick={() => {
-          void form.handleSubmit();
-        }}
-      >
-        Save
-      </Button>
-    </Drawer.Footer>
+    <Drawer.Footer
+      secondaryActions={
+        <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      }
+      actions={
+        <>
+          <Button variant="subtle" tone="error" size="sm" onClick={onDelete}>
+            Delete
+          </Button>
+          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            disabled={!canSave}
+            tooltip={
+              formError ??
+              (hasLspErrors
+                ? "Fix the errors in the metric code before saving."
+                : (compileError ??
+                  (isDefaultValue ? "No changes to save." : undefined)))
+            }
+            onClick={() => {
+              void form.handleSubmit();
+            }}
+          >
+            Save
+          </Button>
+        </>
+      }
+    />
   );
 };
 
@@ -162,17 +167,15 @@ const ViewMetricContent = ({
   };
 
   return (
-    <>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header>{metric.name}</Drawer.Header>
-        <Drawer.Body>
-          <MetricFormBody
-            form={form}
-            idPrefix="view-"
-            metricSessionId={metricSessionId}
-          />
-        </Drawer.Body>
-      </Drawer.Card>
+    <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
+      <Drawer.Header title={metric.name} />
+      <Drawer.Body>
+        <MetricFormBody
+          form={form}
+          idPrefix="view-"
+          metricSessionId={metricSessionId}
+        />
+      </Drawer.Body>
       <ViewMetricFooter
         form={form}
         compileError={compileError}
@@ -180,7 +183,7 @@ const ViewMetricContent = ({
         onDelete={handleDelete}
         onClose={onClose}
       />
-    </>
+    </Drawer>
   );
 };
 
@@ -196,10 +199,12 @@ export const ViewMetricDrawer = ({
   open,
   onClose,
   metric,
-}: ViewMetricDrawerProps) => (
-  <Drawer.Root open={open} onClose={onClose}>
-    {metric ? (
-      <ViewMetricContent key={metric.id} metric={metric} onClose={onClose} />
-    ) : null}
-  </Drawer.Root>
-);
+}: ViewMetricDrawerProps) => {
+  if (!open || !metric) {
+    return null;
+  }
+
+  return (
+    <ViewMetricContent key={metric.id} metric={metric} onClose={onClose} />
+  );
+};

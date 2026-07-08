@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
 import {
   scenarioSchema,
   type Color,
@@ -11,7 +11,6 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   ScenarioFormBody,
@@ -91,31 +90,37 @@ const ViewScenarioFooter = ({
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
-    <Drawer.Footer>
-      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Close
-      </Button>
-      <Button
-        variant="solid"
-        tone="neutral"
-        size="sm"
-        disabled={!canSave}
-        tooltip={
-          formError ??
-          (hasLspErrors
-            ? "Fix the errors in the scenario expressions before saving."
-            : isDefaultValue
-              ? "No changes to save."
-              : undefined)
-        }
-        onClick={() => {
-          void form.handleSubmit();
-        }}
-      >
-        Save
-      </Button>
-    </Drawer.Footer>
+    <Drawer.Footer
+      secondaryActions={
+        <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      }
+      actions={
+        <>
+          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            disabled={!canSave}
+            tooltip={
+              formError ??
+              (hasLspErrors
+                ? "Fix the errors in the scenario expressions before saving."
+                : isDefaultValue
+                  ? "No changes to save."
+                  : undefined)
+            }
+            onClick={() => {
+              void form.handleSubmit();
+            }}
+          >
+            Save
+          </Button>
+        </>
+      }
+    />
   );
 };
 
@@ -181,23 +186,21 @@ const ViewScenarioContent = ({
   );
 
   return (
-    <>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header>{scenario.name}</Drawer.Header>
-        <Drawer.Body>
-          <ScenarioFormBody
-            form={form}
-            parameters={
-              extensions.parameters ? petriNetDefinition.parameters : []
-            }
-            places={petriNetDefinition.places}
-            typesById={typesById}
-            idPrefix="view-"
-          />
-        </Drawer.Body>
-      </Drawer.Card>
+    <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
+      <Drawer.Header title={scenario.name} />
+      <Drawer.Body>
+        <ScenarioFormBody
+          form={form}
+          parameters={
+            extensions.parameters ? petriNetDefinition.parameters : []
+          }
+          places={petriNetDefinition.places}
+          typesById={typesById}
+          idPrefix="view-"
+        />
+      </Drawer.Body>
       <ViewScenarioFooter form={form} onClose={onClose} />
-    </>
+    </Drawer>
   );
 };
 
@@ -213,14 +216,16 @@ export const ViewScenarioDrawer = ({
   open,
   onClose,
   scenario,
-}: ViewScenarioDrawerProps) => (
-  <Drawer.Root open={open} onClose={onClose}>
-    {scenario ? (
-      <ViewScenarioContent
-        key={scenario.id}
-        scenario={scenario}
-        onClose={onClose}
-      />
-    ) : null}
-  </Drawer.Root>
-);
+}: ViewScenarioDrawerProps) => {
+  if (!open || !scenario) {
+    return null;
+  }
+
+  return (
+    <ViewScenarioContent
+      key={scenario.id}
+      scenario={scenario}
+      onClose={onClose}
+    />
+  );
+};
