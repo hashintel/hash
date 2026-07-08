@@ -1,4 +1,5 @@
 ---
+description: "Review guidance for TypeScript/JavaScript changes"
 applyTo: "**/*.{ts,tsx,js,jsx}"
 excludeAgent: "coding-agent"
 ---

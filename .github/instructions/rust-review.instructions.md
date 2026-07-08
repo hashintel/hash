@@ -1,4 +1,5 @@
 ---
+description: "Review guidance for Rust changes"
 applyTo: "**/*.rs"
 excludeAgent: "coding-agent"
 ---

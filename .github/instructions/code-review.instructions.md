@@ -1,4 +1,5 @@
 ---
+description: "General Copilot code review conduct rules"
 applyTo: "**"
 excludeAgent: "coding-agent"
 ---
