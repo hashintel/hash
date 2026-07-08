@@ -34,9 +34,9 @@ thunk {thunk#4}() -> Boolean {
     let %2: Integer
 
     bb0(): {
-        %2 = input LOAD x
-        %1 = input LOAD y
-        %0 = %2 > %1
+        %1 = input LOAD x
+        %2 = input LOAD y
+        %0 = %1 > %2
 
         return %0
     }
@@ -48,9 +48,9 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     let %4: Integer
 
     bb0(): {                                                                    // postgres
-        %4 = input LOAD x
-        %3 = input LOAD y
-        %2 = %4 > %3
+        %3 = input LOAD x
+        %4 = input LOAD y
+        %2 = %3 > %4
 
         return %2
     }

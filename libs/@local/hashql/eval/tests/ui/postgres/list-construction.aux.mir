@@ -36,10 +36,10 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     let %6: ::graph::types::knowledge::entity::EntityUuid
 
     bb0(): {                                                                    // postgres
-        %6 = input LOAD u
-        %2 = list(%1.metadata.record_id.entity_id.entity_uuid, %6)
-        %5 = input LOAD v
-        %3 = list(%5, %1.metadata.record_id.entity_id.entity_uuid)
+        %5 = input LOAD u
+        %2 = list(%1.metadata.record_id.entity_id.entity_uuid, %5)
+        %6 = input LOAD v
+        %3 = list(%6, %1.metadata.record_id.entity_id.entity_uuid)
         %4 = %2 == %3
 
         return %4

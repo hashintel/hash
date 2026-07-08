@@ -45,6 +45,7 @@ pub mod def;
 pub mod error;
 pub mod intern;
 pub mod interpret;
+pub mod intrinsic;
 mod macros;
 pub mod pass;
 pub mod pretty;

@@ -6,6 +6,7 @@ use hashql_core::{
     span::SpanId,
     r#type::{TypeId, builder::IntoSymbol},
 };
+use hashql_hir::node::HirId;
 
 use super::{base::BaseBuilder, basic_block::BasicBlockBuilder};
 use crate::{
@@ -126,7 +127,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
             id: DefId::MAX,
             span: SpanId::SYNTHETIC,
             return_type: return_ty,
-            source: Source::Intrinsic(DefId::MAX),
+            source: Source::Closure(HirId::PLACEHOLDER, None),
             local_decls: self.local_decls,
             basic_blocks: BasicBlocks::new(self.blocks),
             args,
@@ -162,7 +163,8 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 ///
 /// ## Header
 ///
-/// - `<source>`: `fn` (closure), `thunk`, `[ctor sym::path]`, or `intrinsic`
+/// - `<source>`: `fn` (closure), `thunk`, `[ctor sym::path]`, `[synthetic sym::path]`, or
+///   `intrinsic`
 /// - `<id>`: Numeric literal for `DefId`
 /// - `<arity>`: Number of function arguments
 /// - `<return_type>`: Return type (`Int`, `Bool`, tuple `(Int, Bool)`, or custom `|t| t.foo()`)
@@ -198,7 +200,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `x = struct a: <v1>, b: <v2>;` | Create struct aggregate |
 /// | `x = closure <def> <env>;` | Create closure aggregate |
 /// | `x = bin.<op> <lhs> <rhs>;` | Binary operation (e.g., `bin.== x y`) |
-/// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.! cond`) |
+/// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.neg x`) |
 /// | `x = input.load! "name";` | Load required input |
 /// | `x = input.load "name";` | Load optional input |
 /// | `x = input.exists "name";` | Check if input exists |
@@ -255,7 +257,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 ///
 /// Binary (`bin.<op>`): `==`, `!=`, `<`, `<=`, `>`, `>=`, `&`, `|`, `+`, `-`, `*`, `/`.
 ///
-/// Unary (`un.<op>`): `!`, `neg`, `~`.
+/// Unary (`un.<op>`): `neg`, `~`.
 #[macro_export]
 macro_rules! body {
     (
@@ -380,7 +382,10 @@ macro_rules! body {
         $crate::body::Source::Ctor($name)
     };
     (@source intrinsic) => {
-        $crate::body::Source::Intrinsic($crate::def::DefId::PLACEHOLDER)
+        $crate::body::Source::Intrinsic($crate::intrinsic::Intrinsic { id: $crate::intrinsic::IntrinsicId::EntityPropertyAccess, optimize: true })
+    };
+    (@source [synthetic $name:expr]) => {
+        $crate::body::Source::Synthetic($name)
     };
 }
 
