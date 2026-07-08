@@ -27,6 +27,7 @@ use super::{dimension::Dimension, kernel};
 ///
 /// Use [`Config::for_k_with_seed`] to construct with reasonable defaults, then override individual
 /// fields as needed.
+#[derive(Debug, Copy, Clone)]
 pub struct Config {
     /// Number of clusters.
     pub k: u16,

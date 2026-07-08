@@ -3,7 +3,7 @@ mod query;
 mod read;
 mod summary;
 
-use alloc::{borrow::Cow, collections::BTreeMap};
+use alloc::borrow::Cow;
 use core::{any::Any, borrow::Borrow as _, fmt, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -17,7 +17,7 @@ use hash_graph_authorization::policies::{
     resource::{EntityResourceConstraint, ResourceConstraint},
     store::{PolicyCreationParams, PrincipalStore as _},
 };
-use hash_graph_embeddings::Dimension;
+use hash_graph_embeddings::{Dimension, clustering::Clustering};
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
@@ -2673,9 +2673,9 @@ where
         actor_id: ActorEntityUuid,
         params: ClusterEntitiesParams,
     ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
-        const { assert!(Embedding::DIM <= u16::MAX as usize) };
         const MAX_ALLOWED_DIM: u16 = 512;
         const MAX_ALLOWED_K: u16 = 64;
+        const { assert!(Embedding::DIM <= u16::MAX as usize) };
 
         let dimension = Dimension::new(params.dimension.get()).ok_or_else(|| {
             Report::new(ClusterError::InvalidDimension {
@@ -2719,15 +2719,15 @@ where
             .await
             .change_context(ClusterError::Store)?;
 
-        let permitted_ids: Vec<EntityId> = params
+        let permitted_ids: Vec<_> = params
             .entity_ids
             .iter()
             .filter(|&id| permitted.contains_key(id))
             .copied()
             .collect();
 
-        let entity_uuids: Vec<EntityUuid> = permitted_ids.iter().map(|id| id.entity_uuid).collect();
-        let web_ids: Vec<WebId> = permitted_ids.iter().map(|id| id.web_id).collect();
+        let entity_uuids: Vec<_> = permitted_ids.iter().map(|id| id.entity_uuid).collect();
+        let web_ids: Vec<_> = permitted_ids.iter().map(|id| id.web_id).collect();
 
         // Truncate server-side via `subvector` so postgres only sends
         // `truncated_dim`-dimensional vectors over the wire.
@@ -2765,8 +2765,12 @@ where
 
         let mut row_stream = core::pin::pin!(row_stream);
 
-        let mut flat: Vec<f32> = Vec::with_capacity(permitted_ids.len() * truncated_dim);
-        let mut found_ids: Vec<EntityId> = Vec::with_capacity(permitted_ids.len());
+        let mut flat: Vec<_> = Vec::with_capacity(permitted_ids.len() * truncated_dim);
+        let mut found_ids: Vec<_> = Vec::with_capacity(permitted_ids.len());
+
+        // Every requested entity not in a cluster goes into `missing_embeddings`, whether due to
+        // permissions or no embedding. Distinguishing the two would leak permission information.
+        let mut missing_ids: HashSet<_> = params.entity_ids.iter().copied().collect();
 
         while let Some(row) = row_stream
             .try_next()
@@ -2779,30 +2783,19 @@ where
 
             flat.extend(embedding.iter());
 
-            found_ids.push(EntityId {
+            let id = EntityId {
                 web_id,
                 entity_uuid,
                 draft_id: None,
-            });
+            };
+            found_ids.push(id);
+            missing_ids.remove(&id);
         }
-
-        // Every requested entity not in a cluster goes into
-        // `missing_embeddings`, whether due to permissions or no embedding.
-        // Distinguishing the two would leak permission information.
-        let found_set: HashSet<(WebId, EntityUuid)> = found_ids
-            .iter()
-            .map(|id| (id.web_id, id.entity_uuid))
-            .collect();
-        let missing_embeddings: Vec<EntityId> = params
-            .entity_ids
-            .into_iter()
-            .filter(|id| !found_set.contains(&(id.web_id, id.entity_uuid)))
-            .collect();
 
         if found_ids.is_empty() || params.cluster_count == 0 {
             return Ok(ClusterEntitiesResponse {
                 clusters: Vec::new(),
-                missing_embeddings,
+                missing_embeddings: missing_ids,
                 inertia: 0.0,
             });
         }
@@ -2831,7 +2824,7 @@ where
 
             let result = result.map_err(JoinError);
 
-            let _tx = tx.send(result);
+            let _: Result<(), Result<Clustering, JoinError>> = tx.send(result);
         });
 
         let clustering = rx
@@ -2839,14 +2832,19 @@ where
             .change_context(ClusterError::Store)?
             .change_context(ClusterError::Store)?;
 
-        let mut groups: BTreeMap<u16, Vec<EntityId>> = BTreeMap::new();
-        for (index, id) in found_ids.iter().enumerate() {
-            groups.entry(clustering.label(index)).or_default().push(*id);
+        let mut groups = vec![Vec::new(); config.k as usize];
+
+        #[expect(clippy::indexing_slicing, reason = "we only ever have k groups")]
+        for (index, &id) in found_ids.iter().enumerate() {
+            let label = clustering.label(index) as usize;
+            groups[label].push(id);
         }
 
         let clusters = groups
             .into_iter()
-            .map(|(cluster_id, entity_ids)| EntityCluster {
+            .zip(0_u16..)
+            .filter(|(entity_ids, _)| !entity_ids.is_empty())
+            .map(|(entity_ids, cluster_id)| EntityCluster {
                 cluster_id,
                 entity_ids,
                 centroid: clustering.centroid(cluster_id).to_vec(),
@@ -2855,7 +2853,7 @@ where
 
         Ok(ClusterEntitiesResponse {
             clusters,
-            missing_embeddings,
+            missing_embeddings: missing_ids,
             inertia: clustering.inertia,
         })
     }

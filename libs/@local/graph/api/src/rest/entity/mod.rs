@@ -3,10 +3,12 @@
 pub mod query;
 
 use alloc::sync::Arc;
+use core::num::NonZero;
 use std::collections::HashMap;
 
 use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
+use futures::future::OptionFuture;
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
@@ -45,6 +47,7 @@ use hash_graph_types::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize as _;
+use tokio::sync::Semaphore;
 use type_system::{
     knowledge::{
         Confidence, Entity, Property,
@@ -606,6 +609,19 @@ where
         .map_err(report_to_response)
 }
 
+pub struct ClusteringContext {
+    pub limit: Option<Semaphore>,
+}
+
+impl ClusteringContext {
+    #[must_use]
+    pub fn new(concurrency_limit: Option<NonZero<usize>>) -> Self {
+        Self {
+            limit: concurrency_limit.map(|limit| Semaphore::new(limit.get())),
+        }
+    }
+}
+
 #[utoipa::path(
     post,
     path = "/entities/embeddings/clusters",
@@ -623,15 +639,21 @@ where
 )]
 async fn cluster_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    store_pool: Extension<Arc<S>>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Extension(store_pool): Extension<Arc<S>>,
+    Extension(temporal_client): Extension<Option<Arc<TemporalClient>>>,
+    Extension(context): Extension<Arc<ClusteringContext>>,
     Json(params): Json<ClusterEntitiesParams>,
 ) -> Result<Json<ClusterEntitiesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
+    let _permit = OptionFuture::from(context.limit.as_ref().map(Semaphore::acquire))
+        .await
+        .transpose()
+        .expect("semaphore should never be closed");
+
     let store = store_pool
-        .acquire(temporal_client.0)
+        .acquire(temporal_client)
         .await
         .map_err(report_to_response)?;
 

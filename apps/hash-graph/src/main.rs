@@ -30,9 +30,10 @@ fn main() -> Result<(), Report<GraphError>> {
     let Args {
         subcommand,
         tracing_config,
+        worker_threads,
     } = Args::parse_args();
 
     let _sentry_guard = init(&tracing_config.sentry, release_name!());
 
-    subcommand.execute(tracing_config)
+    subcommand.execute(tracing_config, worker_threads)
 }

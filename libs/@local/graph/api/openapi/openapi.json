@@ -3856,7 +3856,8 @@
             "items": {
               "$ref": "#/components/schemas/EntityId"
             },
-            "description": "Entities from the request that had no stored embedding or that do not exist."
+            "description": "Entities from the request that had no stored embedding or that do not exist.",
+            "uniqueItems": true
           }
         }
       },

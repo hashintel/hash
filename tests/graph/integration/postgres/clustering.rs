@@ -289,7 +289,7 @@ async fn permission_denied_is_reported_as_missing() {
     );
     assert_eq!(
         response.missing_embeddings,
-        vec![entity_id],
+        HashSet::from([entity_id]),
         "unauthorized entities should be indistinguishable from missing embeddings"
     );
     assert!(response.inertia.abs() < f32::EPSILON);
