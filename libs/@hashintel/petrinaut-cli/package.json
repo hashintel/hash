@@ -2,7 +2,7 @@
   "name": "@hashintel/petrinaut-cli",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Internal CLI and local server for Petrinaut simulations",
+  "description": "Internal Unix-socket CLI for Petrinaut simulations",
   "license": "(MIT OR Apache-2.0)",
   "bin": {
     "petrinaut": "./dist/cli.js",
@@ -15,7 +15,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "serve": "node ./dist/cli.js serve",
-    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --host 127.0.0.1 --port 8765"
+    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock"
   },
   "dependencies": {
     "@hashintel/petrinaut-core": "workspace:*"

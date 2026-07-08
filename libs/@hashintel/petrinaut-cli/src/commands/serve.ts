@@ -1,9 +1,5 @@
 import { existsSync, unlinkSync } from "node:fs";
-import {
-  createServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type Socket } from "node:net";
 import { resolve } from "node:path";
 
 import { compilePetrinautModel } from "@hashintel/petrinaut-core";
@@ -16,46 +12,23 @@ import {
 
 type ServeOptions = {
   modelPath: string;
-  socketPath?: string;
-  host: string;
-  port?: number;
+  socketPath: string;
 };
 
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
-function sendJson(
-  response: ServerResponse,
-  statusCode: number,
-  value: unknown,
-): void {
-  response.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8",
-  });
-  response.end(`${JSON.stringify(value)}\n`);
-}
-
-async function readJsonBody(request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let byteLength = 0;
-
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    byteLength += buffer.byteLength;
-    if (byteLength > MAX_BODY_BYTES) {
-      throw new Error("Request body is too large");
-    }
-    chunks.push(buffer);
-  }
-
-  if (chunks.length === 0) {
-    return {};
-  }
-
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-}
-
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+type SocketRequest = {
+  id?: unknown;
+  method?: unknown;
+  params?: unknown;
+};
+
+function writeResponse(socket: Socket, value: unknown): void {
+  socket.write(`${JSON.stringify(value)}\n`);
 }
 
 export async function serve(options: ServeOptions): Promise<void> {
@@ -65,7 +38,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   let socketRemoved = false;
 
   const removeSocket = (): void => {
-    if (!options.socketPath || socketRemoved) {
+    if (socketRemoved) {
       return;
     }
     socketRemoved = true;
@@ -76,42 +49,90 @@ export async function serve(options: ServeOptions): Promise<void> {
     }
   };
 
-  const server = createServer(async (request, response) => {
-    try {
-      const url = new URL(request.url ?? "/", "http://localhost");
+  const activeSockets = new Set<Socket>();
+  const server = createServer((socket) => {
+    activeSockets.add(socket);
+    let buffer = "";
 
-      if (request.method === "GET" && url.pathname === "/healthz") {
-        sendJson(response, 200, { ok: true });
+    const handleLine = (line: string): void => {
+      if (line.trim() === "") {
         return;
       }
 
-      if (request.method === "GET" && url.pathname === "/metadata") {
-        sendJson(response, 200, model.metadata);
+      let id: unknown = null;
+      try {
+        const request = JSON.parse(line) as SocketRequest;
+        id = request.id ?? null;
+        if (typeof request.method !== "string") {
+          throw new Error("Request method must be a string");
+        }
+
+        switch (request.method) {
+          case "healthz":
+            writeResponse(socket, { id, result: { ok: true } });
+            return;
+          case "metadata":
+            writeResponse(socket, { id, result: model.metadata });
+            return;
+          case "run": {
+            const runRequest = parseServerRunRequest(request.params ?? {});
+            const result = model.run(
+              toPetrinautRunConfig(model.metadata, runRequest),
+            );
+            writeResponse(socket, { id, result });
+            return;
+          }
+          default:
+            throw new Error(`Unknown method "${request.method}"`);
+        }
+      } catch (error) {
+        writeResponse(socket, {
+          id,
+          error: { message: getErrorMessage(error) },
+        });
+      }
+    };
+
+    socket.setEncoding("utf8");
+    socket.on("data", (chunk) => {
+      buffer += chunk;
+      if (Buffer.byteLength(buffer, "utf8") > MAX_BODY_BYTES) {
+        writeResponse(socket, {
+          id: null,
+          error: { message: "Request line is too large" },
+        });
+        socket.destroy();
         return;
       }
 
-      if (request.method === "POST" && url.pathname === "/runs") {
-        const body = await readJsonBody(request);
-        const runRequest = parseServerRunRequest(body);
-        const result = model.run(
-          toPetrinautRunConfig(model.metadata, runRequest),
-        );
-        sendJson(response, 200, result);
-        return;
+      let newlineIndex = buffer.indexOf("\n");
+      while (newlineIndex !== -1) {
+        const line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        handleLine(line);
+        newlineIndex = buffer.indexOf("\n");
       }
+    });
 
-      sendJson(response, 404, { error: "Not found" });
-    } catch (error) {
-      sendJson(response, 400, { error: getErrorMessage(error) });
-    }
+    socket.on("end", () => {
+      if (buffer.trim() !== "") {
+        handleLine(buffer);
+      }
+    });
+    socket.on("error", () => {
+      // Per-connection errors are reported through the socket lifecycle.
+    });
+    socket.on("close", () => {
+      activeSockets.delete(socket);
+    });
   });
   server.on("close", removeSocket);
 
-  const shutdown = (): void => {
-    server.close(() => process.exit(0));
-  };
-  process.once("SIGINT", shutdown);
-  process.once("SIGTERM", shutdown);
+  if (existsSync(options.socketPath)) {
+    throw new Error(
+      `Socket path already exists: ${options.socketPath}. Remove it if no Petrinaut process is using it.`,
+    );
+  }
 
   await new Promise<void>((resolveListen, rejectListen) => {
     const onError = (error: Error): void => {
@@ -122,29 +143,28 @@ export async function serve(options: ServeOptions): Promise<void> {
       server.off("error", onError);
       resolveListen();
     });
-
-    if (options.socketPath) {
-      if (existsSync(options.socketPath)) {
-        throw new Error(
-          `Socket path already exists: ${options.socketPath}. Remove it if no server is using it.`,
-        );
-      }
-      server.listen(options.socketPath);
-      return;
-    }
-
-    if (options.port === undefined) {
-      throw new Error("Serve requires --socket or --port");
-    }
-    server.listen(options.port, options.host);
+    server.listen(options.socketPath);
   });
 
-  const address = server.address();
-  const location =
-    typeof address === "string"
-      ? `unix:${address}`
-      : `${address?.address ?? options.host}:${address?.port ?? options.port}`;
   process.stderr.write(
-    `Petrinaut server ready at ${location} for model ${modelPath}\n`,
+    `Petrinaut socket ready at ${options.socketPath} for model ${modelPath}\n`,
   );
+
+  await new Promise<void>((resolveShutdown) => {
+    let shuttingDown = false;
+    const shutdown = (): void => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
+      for (const socket of activeSockets) {
+        socket.destroy();
+      }
+      server.close(() => {
+        resolveShutdown();
+      });
+    };
+    process.once("SIGINT", shutdown);
+    process.once("SIGTERM", shutdown);
+  });
 }
