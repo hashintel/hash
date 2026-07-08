@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
 import {
   OverlayBody,
@@ -24,7 +24,7 @@ import {
 } from "../../util/overlay-parts";
 import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { styles } from "./drawer.recipe";
+import { skipEnterAnimationClass, styles } from "./drawer.recipe";
 
 export type DrawerSize = "sm" | "md" | "lg" | "xl";
 
@@ -214,15 +214,6 @@ const getTopDrawerSwapKey = (): string | undefined => {
   }
   return topEntry?.swapKey;
 };
-
-// Suppresses the *enter* animation (data-state=open) for a drawer that is taking
-// over from a sibling with the same swap key, so it appears in place instead of
-// sliding in.
-const skipEnterAnimationClass = css({
-  "&[data-state=open]": {
-    animationName: "[none !important]",
-  },
-});
 
 const DrawerRoot = ({
   className,

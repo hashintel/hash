@@ -1,6 +1,6 @@
 import { drawerAnatomy } from "@ark-ui/react/anatomy";
 
-import { sva } from "@hashintel/ds-helpers/css";
+import { css, sva } from "@hashintel/ds-helpers/css";
 
 /**
  * The header / body / footer chrome is shared with the Dialog and lives in
@@ -185,5 +185,16 @@ export const styles = sva({
   defaultVariants: {
     size: "md",
     position: "right",
+  },
+});
+
+/**
+ * Suppresses the *enter* animation (data-state=open) for a drawer that is taking
+ * over from a sibling with the same swap key, so it appears in place instead of
+ * sliding in. Applied alongside the `content` and `backdrop` classes.
+ */
+export const skipEnterAnimationClass = css({
+  "&[data-state=open]": {
+    animationName: "[none !important]",
   },
 });

@@ -168,12 +168,7 @@ const ViewMetricContent = ({
   };
 
   return (
-    <Drawer
-      shouldCloseOn="closeButton"
-      showBackdrop={false}
-      onClose={onClose}
-      swapKey="metric"
-    >
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="metric">
       <Drawer.Header title={metric.name} />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <MetricFormBody

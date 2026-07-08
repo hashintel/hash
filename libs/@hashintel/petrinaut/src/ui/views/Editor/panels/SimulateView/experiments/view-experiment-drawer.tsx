@@ -243,7 +243,6 @@ export const ViewExperimentDrawer = ({
   return (
     <Drawer
       size="xl"
-      shouldCloseOn="closeButton"
       showBackdrop={false}
       onClose={onClose}
       swapKey="experiment"
