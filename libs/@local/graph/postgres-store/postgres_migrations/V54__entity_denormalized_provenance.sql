@@ -1,11 +1,8 @@
 -- Denormalize the entity creator and creation timestamps out of the provenance JSONB into
--- dedicated columns, so authorization filters and sorting no longer pull the JSONB per row.
+-- dedicated columns, so authorization filters and sorting no longer read the JSONB per row.
 -- All three values are set once at creation and never change, keeping the columns consistent
 -- with `provenance ->> 'createdById'`, `->> 'createdAtTransactionTime'` and
 -- `->> 'createdAtDecisionTime'`.
---
--- The columns stay nullable: binaries deployed before this migration keep inserting rows
--- without them during the rollout window. TODO(BE-639): backfill those rows and add NOT NULL.
 ALTER TABLE entity_ids
     ADD COLUMN created_by_id UUID,
     ADD COLUMN created_at_transaction_time TIMESTAMP WITH TIME ZONE,
