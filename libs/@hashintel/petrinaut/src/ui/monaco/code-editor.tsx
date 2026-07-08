@@ -22,9 +22,7 @@ const multiLineContainerStyle = cva({
     position: "relative",
     border: "[1px solid rgba(0, 0, 0, 0.1)]",
     borderRadius: "sm",
-    "& .monaco-editor, & .monaco-editor .overflow-guard": {
-      borderRadius: "sm",
-    },
+    overflow: "hidden",
   },
   variants: {
     isReadOnly: {
@@ -44,9 +42,7 @@ const singleLineContainerStyle = cva({
     borderStyle: "solid",
     borderColor: "neutral.bd.subtle",
     borderRadius: "lg",
-    "& .monaco-editor, & .monaco-editor .overflow-guard": {
-      borderRadius: "lg",
-    },
+    overflow: "hidden",
     height: `[${SINGLE_LINE_TOTAL_HEIGHT}px]`,
     flex: "1",
     minWidth: "[0]",
@@ -204,6 +200,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
           top: SINGLE_LINE_PADDING_Y,
           bottom: SINGLE_LINE_PADDING_Y,
         },
+        fixedOverflowWidgets: true,
         scrollbar: {
           vertical: "hidden",
           horizontal: "hidden",
@@ -232,6 +229,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         lineDecorationsWidth: 0,
         lineNumbersMinChars: 3,
         padding: { top: 8, bottom: 8 },
+        fixedOverflowWidgets: true,
         ...options,
       };
 
@@ -242,7 +240,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
       )}
       <Editor
         theme="vs-light"
-        height="100%"
+        height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={handleMount}
         value={value}
@@ -278,7 +276,12 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const editorElement = (
     <div className={containerClass} style={singleLine ? undefined : { height }}>
       <Suspense fallback={fallback}>
-        <CodeEditorInner options={options} singleLine={singleLine} {...props} />
+        <CodeEditorInner
+          options={options}
+          height={height}
+          singleLine={singleLine}
+          {...props}
+        />
       </Suspense>
     </div>
   );
