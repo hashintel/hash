@@ -11,7 +11,10 @@ const componentEntries = Object.fromEntries(
 
 export default {
   clean: true,
-  dts: true,
+  // Declarations are emitted separately via `tsc -p tsconfig.dts.json` (see
+  // `build:lib`): tsup's rollup-dts worker needed ~2.9 GB heap and OOM'd on
+  // memory-constrained machines.
+  dts: false,
   entry: {
     main: "./src/main.ts",
     preset: "./src/preset.ts",
