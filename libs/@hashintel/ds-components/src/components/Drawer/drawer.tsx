@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   OverlayBody,
@@ -74,6 +74,7 @@ type DrawerStackEntry = {
   position: DrawerPosition;
   extent: number;
   open: boolean;
+  swapKey: string | undefined;
 };
 const drawerStackEntries = new Map<string, DrawerStackEntry>();
 const drawerStackListeners = new Set<() => void>();
@@ -133,6 +134,7 @@ const computeDrawerStackTranslate = (id: string): string => {
 const useDrawerStackTranslate = (
   position: DrawerPosition,
   open: boolean,
+  swapKey: string | undefined,
 ): {
   ref: (node: HTMLDivElement | null) => void;
   translate: string;
@@ -170,11 +172,12 @@ const useDrawerStackTranslate = (
         existing.order === order &&
         existing.position === position &&
         existing.extent === extent &&
-        existing.open === open
+        existing.open === open &&
+        existing.swapKey === swapKey
       ) {
         return;
       }
-      drawerStackEntries.set(id, { order, position, extent, open });
+      drawerStackEntries.set(id, { order, position, extent, open, swapKey });
       emitDrawerStackChange();
     };
 
@@ -187,7 +190,7 @@ const useDrawerStackTranslate = (
       drawerStackEntries.delete(id);
       emitDrawerStackChange();
     };
-  }, [id, position, contentNode, open]);
+  }, [id, position, contentNode, open, swapKey]);
 
   const translate = useSyncExternalStore(
     subscribeToDrawerStack,
@@ -198,6 +201,29 @@ const useDrawerStackTranslate = (
   return { ref: setContentNode, translate };
 };
 
+/**
+ * The `swapKey` of the drawer currently on top of the stack (the highest-order
+ * entry), or `undefined` if there is none or it has no key.
+ */
+const getTopDrawerSwapKey = (): string | undefined => {
+  let topEntry: DrawerStackEntry | undefined;
+  for (const entry of drawerStackEntries.values()) {
+    if (!topEntry || entry.order > topEntry.order) {
+      topEntry = entry;
+    }
+  }
+  return topEntry?.swapKey;
+};
+
+// Suppresses the *enter* animation (data-state=open) for a drawer that is taking
+// over from a sibling with the same swap key, so it appears in place instead of
+// sliding in.
+const skipEnterAnimationClass = css({
+  "&[data-state=open]": {
+    animationName: "[none !important]",
+  },
+});
+
 const DrawerRoot = ({
   className,
   size = "md",
@@ -206,6 +232,7 @@ const DrawerRoot = ({
   children,
   showBackdrop = true,
   shouldCloseOn = "closeButtonAndOverlay",
+  swapKey,
   loading,
   onClose,
   initialFocusRef,
@@ -219,8 +246,20 @@ const DrawerRoot = ({
   variant?: "partitionedFooter" | "plain";
   /** Which viewport edge the drawer is anchored to. Defaults to `"right"`. */
   position?: DrawerPosition;
-  /** Render the dimmed overlay behind the drawer. Defaults to `true`. */
+  /**
+   * Render the dimmed overlay behind the drawer. Defaults to `true`.
+   * When set to false it also turns off closing on overlay clicks
+   * */
   showBackdrop?: boolean;
+  /**
+   * Ties drawers that occupy the same slot together by a shared key. When one
+   * drawer opens while another with the same `swapKey` is still on top of the
+   * stack, the incoming drawer skips its enter animation and appears in place,
+   * so switching between them changes the panel content instead of sliding out
+   * and back in. Opening the first drawer in a slot (no sibling present) still
+   * animates in.
+   */
+  swapKey?: string;
   children:
     | readonly [
         React.ReactElement<OverlayHeaderProps, typeof OverlayHeader>,
@@ -242,32 +281,44 @@ const DrawerRoot = ({
 
   const classes = useMemo(() => styles({ size, position }), [size, position]);
 
+  const [takingOverFromSwapSibling] = useState(
+    () => !!swapKey && getTopDrawerSwapKey() === swapKey,
+  );
+
   // The parent mounts/unmounts the Drawer to open/close it, but Ark only plays
   // the slide animations when `open` actually transitions. So we drive `open`
   // internally: it starts closed and flips open on the next frame (playing the
   // enter animation), and every close request flips it back to closed to play
   // the exit animation. The parent-facing `onClose` is deferred until that exit
   // animation completes, so the panel finishes sliding out before it unmounts.
-  const [open, setOpen] = useState(false);
+  // A drawer taking over from a swap-key sibling instead starts already open, so
+  // there is no next-frame flip and (via `skipEnterAnimationClass`) no slide-in.
+  const [open, setOpen] = useState(takingOverFromSwapSibling);
 
   useEffect(() => {
+    if (takingOverFromSwapSibling) {
+      return;
+    }
     const frame = requestAnimationFrame(() => {
       setOpen(true);
     });
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [takingOverFromSwapSibling]);
 
   // `open` is passed to the stack tracker so a drawer stops offsetting the
   // drawers beneath it the moment it starts closing, letting them un-nest in
-  // step with its slide-out.
+  // step with its slide-out. `swapKey` is stored on the stack entry so a
+  // later sibling can detect a same-key swap from the top of the stack.
   const { ref: stackContentRef, translate: stackTranslate } =
-    useDrawerStackTranslate(position, open);
+    useDrawerStackTranslate(position, open, swapKey);
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";
-  const closeOnInteractOutside = shouldCloseOn === "closeButtonAndOverlay";
+  const closeOnInteractOutside =
+    showBackdrop && shouldCloseOn === "closeButtonAndOverlay";
+  const allowSwipe = shouldCloseOn !== "none";
 
   const requestClose = () => {
     setOpen(false);
@@ -278,7 +329,9 @@ const DrawerRoot = ({
       open={open}
       lazyMount
       unmountOnExit
-      swipeDirection={swipeDirectionByPosition[position]}
+      swipeDirection={
+        allowSwipe ? swipeDirectionByPosition[position] : undefined
+      }
       // Without a backdrop the drawer is non-modal, so the page behind stays interactive
       // But we still want to keep focus trapped even when modal={false}
       modal={showBackdrop}
@@ -300,13 +353,24 @@ const DrawerRoot = ({
     >
       <Portal container={portalContainerRef}>
         <div className={classes.stackRoot} data-overlay-stack-root="">
-          {showBackdrop && <ArkDrawer.Backdrop className={backdropClassName} />}
+          {showBackdrop && (
+            <ArkDrawer.Backdrop
+              className={cx(
+                backdropClassName,
+                takingOverFromSwapSibling && skipEnterAnimationClass,
+              )}
+            />
+          )}
           <ArkDrawer.Positioner className={classes.positioner}>
             <ArkDrawer.Content
               {...ariaAttributes}
               ref={stackContentRef}
               data-drawer-position={position}
-              className={cx(classes.content, className)}
+              className={cx(
+                classes.content,
+                takingOverFromSwapSibling && skipEnterAnimationClass,
+                className,
+              )}
               style={{ translate: stackTranslate }}
               aria-busy={loading ?? undefined}
               onKeyDown={onKeyDown}

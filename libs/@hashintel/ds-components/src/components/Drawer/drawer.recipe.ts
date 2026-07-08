@@ -36,6 +36,7 @@ export const styles = sva({
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
       "--panel-top-padding": "var(--spacing-4)",
       "--panel-close-button-gap": "var(--spacing-3\\.5)",
+      "--bleed": "3rem",
       position: "relative",
       display: "flex",
       flexDirection: "column",
@@ -44,6 +45,13 @@ export const styles = sva({
       backgroundColor: "neutral.s10",
       padding: "1",
       transition: "[transform 0.2s ease, translate 0.15s ease]",
+      /* Bleed effect */
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        backgroundColor: "[inherit]",
+        pointerEvents: "none",
+      },
       _open: {
         animationDuration: "normal",
       },
@@ -89,6 +97,11 @@ export const styles = sva({
           borderBottomRightRadius: "[0]",
           boxShadow:
             "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
+          "&::after": {
+            insetBlock: "0",
+            left: "[100%]",
+            width: "var(--bleed)",
+          },
           _open: { animationName: "drawerSlideInRight" },
           _closed: { animationName: "drawerSlideOutRight" },
         },
@@ -108,6 +121,11 @@ export const styles = sva({
           borderBottomLeftRadius: "[0]",
           boxShadow:
             "[1px 0 0 0 rgba(0, 0, 0, 0.03), 1px 0 2px -1px rgba(0, 0, 0, 0.06), 8px 0 16px -6px rgba(0, 0, 0, 0.09), 18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
+          "&::after": {
+            insetBlock: "0",
+            right: "[100%]",
+            width: "var(--bleed)",
+          },
           _open: { animationName: "drawerSlideInLeft" },
           _closed: { animationName: "drawerSlideOutLeft" },
         },
@@ -128,6 +146,11 @@ export const styles = sva({
           borderTopRightRadius: "[0]",
           boxShadow:
             "[0 1px 0 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
+          "&::after": {
+            insetInline: "0",
+            bottom: "[100%]",
+            height: "var(--bleed)",
+          },
           _open: { animationName: "drawerSlideInTop" },
           _closed: { animationName: "drawerSlideOutTop" },
         },
@@ -148,6 +171,11 @@ export const styles = sva({
           borderBottomRightRadius: "[0]",
           boxShadow:
             "[0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 -1px 2px -1px rgba(0, 0, 0, 0.06), 0 -8px 16px -6px rgba(0, 0, 0, 0.09), 0 -18px 32px -14px rgba(0, 0, 0, 0.16)]",
+          "&::after": {
+            insetInline: "0",
+            top: "[100%]",
+            height: "var(--bleed)",
+          },
           _open: { animationName: "drawerSlideInBottom" },
           _closed: { animationName: "drawerSlideOutBottom" },
         },

@@ -187,7 +187,12 @@ const ViewScenarioContent = ({
   );
 
   return (
-    <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
+    <Drawer
+      shouldCloseOn="closeButton"
+      showBackdrop={false}
+      onClose={onClose}
+      swapKey="scenario"
+    >
       <Drawer.Header title={scenario.name} />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <ScenarioFormBody

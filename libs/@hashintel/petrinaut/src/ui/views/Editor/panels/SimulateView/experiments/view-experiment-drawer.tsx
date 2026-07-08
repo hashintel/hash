@@ -246,6 +246,7 @@ export const ViewExperimentDrawer = ({
       shouldCloseOn="closeButton"
       showBackdrop={false}
       onClose={onClose}
+      swapKey="experiment"
     >
       <Drawer.Header
         title={experiment.name}

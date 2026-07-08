@@ -165,7 +165,12 @@ export const CreateScenarioDrawer = ({
   }
 
   return (
-    <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
+    <Drawer
+      shouldCloseOn="closeButton"
+      showBackdrop={false}
+      onClose={onClose}
+      swapKey="scenario"
+    >
       <Drawer.Header
         title="Create a scenario"
         description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode"

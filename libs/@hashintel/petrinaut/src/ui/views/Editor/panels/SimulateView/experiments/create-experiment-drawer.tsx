@@ -1027,6 +1027,7 @@ export const CreateExperimentDrawer = ({
       shouldCloseOn={isSubmitting ? "none" : "closeButton"}
       showBackdrop={false}
       onClose={handleClose}
+      swapKey="experiment"
     >
       <Drawer.Header
         title="Create an experiment"

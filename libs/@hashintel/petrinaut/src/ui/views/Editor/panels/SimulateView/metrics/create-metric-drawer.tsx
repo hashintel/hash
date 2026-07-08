@@ -142,7 +142,12 @@ export const CreateMetricDrawer = ({
   }
 
   return (
-    <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
+    <Drawer
+      shouldCloseOn="closeButton"
+      showBackdrop={false}
+      onClose={onClose}
+      swapKey="metric"
+    >
       <Drawer.Header
         title="Create a metric"
         description="A function over the simulation state that returns a number to plot on the timeline."
