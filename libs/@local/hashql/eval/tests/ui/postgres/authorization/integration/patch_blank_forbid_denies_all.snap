@@ -74,7 +74,7 @@ CROSS JOIN LATERAL
                 ROW(
                     COALESCE(
                         (
-                            (TO_JSONB(JSONB_EXTRACT_PATH("entity_editions_0_0_1"."properties", ((($3::text))::text))) = TO_JSONB(($4::jsonb)))::boolean
+                            (TO_JSONB(JSONB_EXTRACT_PATH("entity_editions_0_0_1"."properties", ((($3::text))::text))) = TO_JSONB(($4::jsonb)))::bool
                         ),
                         FALSE
                     ),

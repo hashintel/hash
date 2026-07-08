@@ -25,7 +25,7 @@ CROSS JOIN LATERAL
         SELECT
             (
                 ROW(
-                    COALESCE(((($3::jsonb))::boolean), FALSE), NULL, NULL, NULL
+                    COALESCE(((($3::jsonb))::bool), FALSE), NULL, NULL, NULL
                 )::continuation
             ) AS "row"
     ) AS "continuation_0_0"
