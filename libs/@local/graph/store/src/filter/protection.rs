@@ -560,28 +560,69 @@ use crate::{
     subgraph::edges::SharedEdgeKind,
 };
 
+/// Subset of [`EntityQueryPath`] that property protection filters can reference.
+///
+/// Adding a new variant requires updating every consumer that lowers these
+/// to SQL expressions (including the HashQL authorization graft).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PropertyFilterEntityQueryPath {
+    /// The entity's UUID (`entity_temporal_metadata.entity_uuid`).
+    Uuid,
+    /// The base URLs of the entity's type(s) (`entity_edition_cache.base_urls`).
+    TypeBaseUrls,
+}
+
+impl From<PropertyFilterEntityQueryPath> for EntityQueryPath<'_> {
+    fn from(value: PropertyFilterEntityQueryPath) -> Self {
+        match value {
+            PropertyFilterEntityQueryPath::Uuid => EntityQueryPath::Uuid,
+            PropertyFilterEntityQueryPath::TypeBaseUrls => EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::BaseUrl,
+                inheritance_depth: None,
+            },
+        }
+    }
+}
+
+/// A single operand in a [`PropertyFilter`] comparison.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PropertyFilterExpression<'p> {
-    Path { path: EntityQueryPath<'p> },
+    /// A column reference resolved from an entity query path.
+    Path { path: PropertyFilterEntityQueryPath },
+    /// A literal value bound as a query parameter.
     Parameter { parameter: Parameter<'p> },
+    /// The UUID of the actor executing the query.
+    ///
+    /// Resolved to the public actor UUID when no actor is present.
     ActorId,
 }
 
+/// An array-valued operand for [`PropertyFilter::In`].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PropertyFilterExpressionList<'p> {
-    Path { path: EntityQueryPath<'p> },
+pub enum PropertyFilterExpressionList {
+    /// An array column reference resolved from an entity query path.
+    Path { path: PropertyFilterEntityQueryPath },
 }
 
+/// Condition tree that controls when a property should be masked.
+///
+/// Each protected property in [`PropertyProtectionFilterConfig`] is paired
+/// with a `PropertyFilter` that evaluates to true when the property should
+/// be stripped from the result. For example, the default configuration
+/// masks email when the entity is a User and the actor is not the owner.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PropertyFilter<'p> {
+    /// All conditions must hold.
     All(Vec<Self>),
+    /// At least one condition must hold.
     Any(Vec<Self>),
+    /// Scalar equality.
     Equal(PropertyFilterExpression<'p>, PropertyFilterExpression<'p>),
+    /// Scalar inequality.
     NotEqual(PropertyFilterExpression<'p>, PropertyFilterExpression<'p>),
-    In(
-        PropertyFilterExpression<'p>,
-        PropertyFilterExpressionList<'p>,
-    ),
+    /// Array containment (`lhs = ANY(rhs)`).
+    In(PropertyFilterExpression<'p>, PropertyFilterExpressionList),
 }
 
 #[derive(Debug, Default)]
@@ -642,16 +683,12 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
                         )),
                     },
                     PropertyFilterExpressionList::Path {
-                        path: EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::BaseUrl,
-                            inheritance_depth: None,
-                        },
+                        path: PropertyFilterEntityQueryPath::TypeBaseUrls,
                     },
                 ),
                 PropertyFilter::NotEqual(
                     PropertyFilterExpression::Path {
-                        path: EntityQueryPath::Uuid,
+                        path: PropertyFilterEntityQueryPath::Uuid,
                     },
                     PropertyFilterExpression::ActorId,
                 ),
@@ -693,6 +730,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
                 })
                 .collect(),
         }
+    }
+
+    #[must_use]
+    pub const fn property_filters(&self) -> &HashMap<BaseUrl, PropertyFilter<'_>> {
+        &self.property_filters
     }
 
     /// Returns the embedding exclusions map: entity type → properties to exclude.

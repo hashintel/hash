@@ -1431,7 +1431,7 @@ impl<'p> FilterExpression<'p, Entity> {
         actor_id: Option<ActorId>,
     ) -> Self {
         match expression {
-            PropertyFilterExpression::Path { path } => Self::Path { path },
+            PropertyFilterExpression::Path { path } => Self::Path { path: path.into() },
             PropertyFilterExpression::Parameter { parameter } => Self::Parameter {
                 parameter,
                 convert: None,

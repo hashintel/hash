@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/eval/src/postgres/projections.rs
+description: "Projections { index: 2, base_alias: Alias { condition_index: 0, chain_depth: 0, number: 0 }, entity_editions: Some(Alias { condition_index: 0, chain_depth: 0, number: 1 }), entity_ids: None, entity_type_ids: None, left: None, right: None }, 1 continuation lateral"
+expression: from.transpile_to_string()
+---
+"entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+CROSS JOIN LATERAL (SELECT "ee"."entity_edition_id" AS "entity_edition_id", "ee"."properties" AS "properties", "ee"."archived" AS "archived", "ee"."confidence" AS "confidence", "ee"."provenance" AS "provenance", "ee"."property_metadata" AS "property_metadata"
+FROM "entity_editions" AS "ee"
+WHERE "ee"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "entity_editions_0_0_1"
+CROSS JOIN LATERAL (SELECT 
+FROM "entity_temporal_metadata" AS "continuation_1") AS "continuation_1"

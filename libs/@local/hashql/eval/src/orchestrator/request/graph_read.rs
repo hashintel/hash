@@ -32,6 +32,7 @@ use hashql_mir::{
 };
 use tokio_postgres::{Client, Row};
 
+use super::iter::ExactSizeAdapter;
 use crate::{
     orchestrator::{
         Indexed, Orchestrator,
@@ -410,7 +411,13 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
             .inner
             .client
             .as_ref()
-            .query_raw(&statement, params.iter().map(|param| &**param))
+            .query_raw(
+                &statement,
+                ExactSizeAdapter::from_chain(
+                    params.iter().map(|param| &**param),
+                    query.auxiliary_parameters().into_iter(),
+                ),
+            )
             .await
             .map_err(|source| BridgeError::QueryExecution {
                 sql: statement.clone(),

@@ -7,4 +7,5 @@
 //! [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 
 mod graph_read;
+mod iter;
 pub(crate) use self::graph_read::GraphReadOrchestrator;

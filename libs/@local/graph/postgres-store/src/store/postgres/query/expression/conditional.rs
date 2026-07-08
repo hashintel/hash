@@ -55,6 +55,11 @@ pub enum Function {
     /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
     ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
+    /// Returns all subscript positions where the array element equals the given value.
+    ///
+    /// Transpiles to `array_positions(<array>, <value>)` in PostgreSQL.
+    /// Returns an integer array (e.g. `{1,3}`) or an empty array if no match.
+    ArrayPositions(Box<Expression>, Box<Expression>),
     Now,
 }
 
@@ -195,6 +200,13 @@ impl Transpile for Function {
                     element.transpile(fmt)?;
                 }
 
+                fmt.write_char(')')
+            }
+            Self::ArrayPositions(array, value) => {
+                fmt.write_str("array_positions(")?;
+                array.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
                 fmt.write_char(')')
             }
             Self::JsonPathQueryFirst(target, path) => {

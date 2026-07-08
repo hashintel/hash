@@ -10,6 +10,8 @@
     // Library Features
     extend_one,
     iter_intersperse,
+    variant_count,
+    maybe_uninit_array_assume_init
 )]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(

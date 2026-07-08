@@ -1,4 +1,5 @@
 extern crate alloc;
+use alloc::sync::Arc;
 use core::sync::atomic::{self, AtomicUsize};
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
@@ -216,7 +217,7 @@ impl Runner {
             PostgresStoreSettings {
                 validate_links: true,
                 skip_embedding_creation: true,
-                filter_protection: PropertyProtectionFilterConfig::new(), // Disabled for benchmarks
+                filter_protection: Arc::new(PropertyProtectionFilterConfig::new()), // Disabled for benchmarks
             },
         )
         .await

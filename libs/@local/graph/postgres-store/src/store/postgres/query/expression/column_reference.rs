@@ -10,10 +10,15 @@ use crate::store::postgres::query::{Column, Transpile, table::DatabaseColumn as 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ColumnName<'name>(Identifier<'name>);
 
-impl ColumnName<'_> {
+impl<'name> ColumnName<'name> {
     #[must_use]
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
+    }
+
+    #[must_use]
+    pub fn into_identifier(self) -> Identifier<'name> {
+        self.0
     }
 }
 
