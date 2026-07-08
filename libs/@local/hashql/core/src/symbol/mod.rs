@@ -258,6 +258,15 @@ impl<'heap> Symbol<'heap> {
     }
 }
 
+impl From<ConstantSymbol> for Symbol<'_> {
+    #[inline]
+    #[expect(unsafe_code)]
+    fn from(value: ConstantSymbol) -> Self {
+        // SAFETY: The constant symbol is already interned, so the repr is valid.
+        unsafe { Symbol::from_repr(Repr::constant(value.repr)) }
+    }
+}
+
 impl AsRef<Self> for Symbol<'_> {
     #[inline]
     fn as_ref(&self) -> &Self {

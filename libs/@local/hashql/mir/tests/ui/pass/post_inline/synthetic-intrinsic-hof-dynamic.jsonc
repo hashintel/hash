@@ -1,0 +1,16 @@
+//@ run: pass
+//@ description: Higher-order function receiving an intrinsic as a value with dynamic arguments
+// Same as synthetic-intrinsic-hof but uses inputs instead of literals so the
+// comparison cannot be constant-folded and the call shape survives optimization.
+[
+  "let",
+  "apply",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer", "f": "_" } },
+    "_",
+    ["f", "a", "b"]
+  ],
+  ["apply", ["input", "x", "Integer"], ["input", "y", "Integer"], "<="]
+]
