@@ -1,15 +1,7 @@
-import { IconButton, TextField } from "@hashintel/design-system";
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon,
-  Save as SaveIcon,
-} from "@mui/icons-material";
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { Button } from "../../../shared/ui/button";
+import { Button, TextArea, TextInput } from "@hashintel/ds-components";
 
 type DashboardHeaderProps = {
   title: string;
@@ -56,27 +48,39 @@ export const DashboardHeader = ({
     >
       <Box sx={{ flex: 1 }}>
         {isEditing ? (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <TextField
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              maxWidth: 600,
+            }}
+          >
+            <TextInput
               value={editedTitle}
-              onChange={(event) => setEditedTitle(event.target.value)}
-              size="small"
+              onChange={(value) => setEditedTitle(value ?? "")}
               placeholder="Dashboard title"
-              sx={{ maxWidth: 400 }}
+              size="md"
             />
-            <TextField
+            <TextArea
               value={editedDescription}
-              onChange={(event) => setEditedDescription(event.target.value)}
-              size="small"
+              onChange={(value) => setEditedDescription(value)}
               placeholder="Description (optional)"
-              multiline
               rows={2}
-              sx={{ maxWidth: 600 }}
+              size="sm"
             />
           </Box>
         ) : (
           <>
-            <Typography variant="h4" component="h1">
+            <Typography
+              component="h1"
+              sx={{
+                fontSize: 24,
+                fontWeight: 500,
+                lineHeight: "30px",
+                color: "#202020",
+              }}
+            >
               {title}
             </Typography>
             {description && (
@@ -91,25 +95,37 @@ export const DashboardHeader = ({
         )}
       </Box>
 
-      <Box sx={{ display: "flex", gap: 1 }}>
-        {canEdit && isEditing && (
+      <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+        {canEdit && (
           <Button
-            variant="secondary"
-            startIcon={<AddIcon />}
+            variant="subtle"
+            tone="neutral"
+            size="sm"
+            iconName={isEditing ? "check" : "pencil"}
+            pressed={isEditing}
+            aria-label={isEditing ? "Finish editing" : "Edit dashboard"}
+            onClick={isEditing ? handleSave : onEditToggle}
+          />
+        )}
+        <Button
+          variant="subtle"
+          tone="neutral"
+          size="sm"
+          iconName={isFullscreen ? "collapse" : "expand"}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          onClick={onFullscreenToggle}
+        />
+        {canEdit && (
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            iconName="plus"
             onClick={onAddItem}
-            size="xs"
           >
-            Add Item
+            Add item
           </Button>
         )}
-        {canEdit && (
-          <IconButton onClick={isEditing ? handleSave : onEditToggle}>
-            {isEditing ? <SaveIcon /> : <EditIcon />}
-          </IconButton>
-        )}
-        <IconButton onClick={onFullscreenToggle}>
-          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-        </IconButton>
       </Box>
     </Box>
   );

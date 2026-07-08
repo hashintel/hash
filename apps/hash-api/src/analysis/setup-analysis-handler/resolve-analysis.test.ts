@@ -26,8 +26,11 @@ import {
 import { resolveInvocation } from "./resolve-analysis";
 
 import type { GraphApi } from "../../graph/context-types";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 
 const mockedGetRole = vi.mocked(getActorGroupRole);
+
+const temporalClient = {} as TemporalClient;
 
 const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
 const ACTOR_ID = "actor-test" as ActorEntityUuid;
@@ -74,6 +77,7 @@ const resolve = (
     invocation: { id: "test", analysis, args, webId },
     actorId: ACTOR_ID,
     graphApi: {} as GraphApi,
+    temporalClient,
     uploadProvider,
     cache,
   });
@@ -158,6 +162,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider,
       cache,
     });
@@ -182,6 +187,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider,
       cache,
     });
@@ -245,6 +251,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider: {
         ...uploadProvider,
         presignDownloadByKey,

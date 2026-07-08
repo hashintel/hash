@@ -1,4 +1,8 @@
-import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChartColumn,
+  faHome,
+  faTruckFast,
+} from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -160,6 +164,13 @@ export const PageSidebar: FunctionComponent = () => {
         path: "/processes",
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
         activeIfPathMatches: /^\/processes(\/|$)/,
+      },
+      {
+        title: "Dashboards",
+        path: "/dashboards",
+        icon: <FontAwesomeIcon icon={faChartColumn} />,
+        activeIfPathMatches: /^\/dashboards?(\/|$)/,
+        tooltipTitle: "",
       },
       {
         title: "Inbox",

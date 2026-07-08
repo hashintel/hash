@@ -1,5 +1,6 @@
 import {
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -286,5 +287,29 @@ export class AwsS3StorageProvider implements FileStorageProvider {
     }
 
     return Buffer.concat(chunks);
+  }
+
+  /**
+   * Get the last-modified time of an object via a HEAD request, without
+   * downloading its contents. Returns `null` if the object does not exist.
+   */
+  async getObjectLastModified({ key }: { key: string }): Promise<Date | null> {
+    const command = new HeadObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    try {
+      const response = await this.client.send(command);
+      return response.LastModified ?? null;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.name === "NotFound" || error.name === "NoSuchKey")
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 }

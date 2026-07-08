@@ -1,10 +1,5 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-
-import type { EntityId } from "@blockprotocol/type-system";
-import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
 import { Box, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -14,21 +9,22 @@ import {
   verticalCompactor,
 } from "react-grid-layout";
 
+import { Icon } from "@hashintel/ds-components";
+
+import {
+  DashboardItem,
+  DRAG_HANDLE_CLASS,
+} from "./dashboard-grid/dashboard-item";
+
 import type { DashboardData, DashboardItemData } from "../shared/types";
-import { DashboardItem } from "./dashboard-grid/dashboard-item";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
 
 type DashboardGridProps = {
   dashboard: DashboardData;
-  /** Current script params per item (e.g. date range). Keyed by item id (gridPosition.i or entityId). */
-  scriptParamsByItemId?: Record<string, Record<string, string>>;
-  onScriptParamsChange?: (
-    itemId: string,
-    params: Record<string, string>,
-  ) => void;
   onAddItemClick: () => void;
   onLayoutChange: (layout: GridPosition[]) => void;
   onItemConfigureClick: (item: DashboardItemData) => void;
-  onItemRefreshClick: (item: DashboardItemData) => void;
   onItemDeleteClick: (item: DashboardItemData) => void;
   onEntityClick?: (entityId: EntityId) => void;
   /** Dashboard-wide hovered entity; used to highlight matching rows/markers across items. */
@@ -36,27 +32,29 @@ type DashboardGridProps = {
   onHoveredEntityChange?: (entityId: EntityId | null) => void;
   isEditing: boolean;
   canEdit: boolean;
-  isDataLoading?: boolean;
 };
 
 // Height in grid rows for a minimized item (header only, rowHeight is 36px)
 const MINIMIZED_HEIGHT = 1;
 
+/**
+ * Layered shadow shown on a card while it is being dragged (from the Figma
+ * dragging-state design).
+ */
+const draggingShadow =
+  "0px 1px 1px 0px rgba(0,0,0,0.05), 0px 2px 2px 0px rgba(0,0,0,0.05), 0px 5px 5px 0px rgba(0,0,0,0.05), 0px 10px 10px 0px rgba(0,0,0,0.05), 0px 0px 8px 0px rgba(0,0,0,0.05)";
+
 export const DashboardGrid = ({
   dashboard,
-  scriptParamsByItemId = {},
-  onScriptParamsChange,
   onAddItemClick,
   onLayoutChange,
   onItemConfigureClick,
-  onItemRefreshClick,
   onItemDeleteClick,
   onEntityClick,
   hoveredEntityId,
   onHoveredEntityChange,
   isEditing = false,
   canEdit = false,
-  isDataLoading = false,
 }: DashboardGridProps) => {
   const { width, containerRef, mounted } = useContainerWidth();
   const [minimizedItems, setMinimizedItems] = useState<Record<string, number>>(
@@ -104,7 +102,8 @@ export const DashboardGrid = ({
     [onLayoutChange],
   );
 
-  const showClickPrompt = isEditing && canEdit && dashboard.items.length === 0;
+  const isEmpty = dashboard.items.length === 0;
+  const showClickPrompt = isEditing && canEdit && isEmpty;
 
   return (
     <Box
@@ -113,15 +112,40 @@ export const DashboardGrid = ({
       sx={({ palette }) => ({
         cursor: showClickPrompt ? "pointer" : "default",
         position: "relative",
-        borderRadius: 1,
-        backgroundColor: palette.gray[10],
-        border: `1px dashed ${palette.gray[30]}`,
-        minHeight: dashboard.items.length === 0 ? 600 : "auto",
-        transition: "background-color 0.2s ease",
-        "&:hover": isEditing &&
-          canEdit && {
-            backgroundColor: palette.gray[15],
+        borderRadius: "12px",
+        ...(isEmpty && {
+          backgroundColor: palette.gray[10],
+          border: `1px dashed ${palette.gray[30]}`,
+          minHeight: 600,
+          transition: "background-color 0.2s ease",
+          "&:hover":
+            isEditing && canEdit
+              ? { backgroundColor: palette.gray[15] }
+              : undefined,
+        }),
+        // Neutral drop placeholder instead of the library's red default
+        "& .react-grid-item.react-grid-placeholder": {
+          backgroundColor: "rgba(0, 0, 0, 0.06)",
+          opacity: 1,
+          borderRadius: "12px",
+        },
+        // Elevated, slightly tilted card while dragging
+        "& .react-grid-item.react-draggable-dragging": {
+          zIndex: 10,
+          "& .dashboard-item-card": {
+            boxShadow: draggingShadow,
+            rotate: "1.5deg",
           },
+        },
+        "& .dashboard-item-card": {
+          transition: "box-shadow 0.15s ease, rotate 0.15s ease",
+        },
+        [`& .${DRAG_HANDLE_CLASS}`]: {
+          cursor: "grab",
+        },
+        [`& .react-draggable-dragging .${DRAG_HANDLE_CLASS}`]: {
+          cursor: "grabbing",
+        },
       })}
     >
       {showClickPrompt && (
@@ -134,21 +158,16 @@ export const DashboardGrid = ({
             textAlign: "center",
             pointerEvents: "none",
             zIndex: 1,
+            color: ({ palette }) => palette.gray[40],
           }}
         >
-          <FontAwesomeIcon
-            icon={faPlusCircle}
-            sx={({ palette }) => ({
-              fontSize: 48,
-              color: palette.gray[40],
-              mb: 2,
-            })}
-          />
+          <Icon name="circlePlus" size="lg" />
           <Typography
             variant="regularTextParagraphs"
             sx={({ palette }) => ({
               color: palette.gray[60],
               display: "block",
+              mt: 1,
             })}
           >
             Click anywhere to add your first item
@@ -168,6 +187,7 @@ export const DashboardGrid = ({
           dragConfig={{
             bounded: true,
             enabled: isEditing,
+            handle: `.${DRAG_HANDLE_CLASS}`,
           }}
           resizeConfig={{
             enabled: isEditing,
@@ -182,18 +202,12 @@ export const DashboardGrid = ({
               <div key={itemId}>
                 <DashboardItem
                   item={item}
-                  scriptParams={
-                    scriptParamsByItemId[itemId] ?? item.scriptParams
-                  }
-                  onScriptParamsChange={onScriptParamsChange}
                   isEditing={isEditing}
                   isMinimized={isMinimized}
-                  isDataLoading={isDataLoading}
                   onMinimizeToggle={() =>
                     toggleMinimized(itemId, item.gridPosition.h)
                   }
                   onConfigureClick={() => onItemConfigureClick(item)}
-                  onRefreshClick={() => onItemRefreshClick(item)}
                   onDeleteClick={() => onItemDeleteClick(item)}
                   onEntityClick={onEntityClick}
                   hoveredEntityId={hoveredEntityId}

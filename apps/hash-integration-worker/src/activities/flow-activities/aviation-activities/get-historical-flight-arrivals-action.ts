@@ -12,7 +12,6 @@ import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrat
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 
 import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";

@@ -1,30 +1,69 @@
+import { Box, Typography } from "@mui/material";
+import { useCallback, useRef, useState } from "react";
+
+import { Modal as BaseModal } from "@hashintel/design-system";
+import {
+  Button,
+  PortalContainerContext,
+  TextInput,
+} from "@hashintel/ds-components";
+
+import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
+import { ChartConfigBuilder } from "./item-config-modal/chart-config-builder";
+import { ConfigAccordion } from "./item-config-modal/config-accordion";
+import { StructuralQueryBuilder } from "./item-config-modal/structural-query-builder";
+
+import type { DashboardItemInitialValues } from "../hooks/use-dashboard-item-config";
+import type {
+  ConfigSectionKey,
+  SectionControls,
+} from "./item-config-modal/config-accordion";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
-import { TextField } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
-import { AutoAwesome as AiIcon } from "@mui/icons-material";
-import { Box, CircularProgress, LinearProgress, Stack } from "@mui/material";
-import { useCallback, useState } from "react";
-
-import { Button } from "../../../shared/ui/button";
-import { Modal } from "../../../shared/ui/modal";
-import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
-import { ConfigAccordion } from "./item-config-modal/config-accordion";
 
 type ItemConfigModalProps = {
   open: boolean;
   onClose: () => void;
-  itemEntityId: EntityId;
+  /** `null` when configuring a new item whose entity is created lazily */
+  itemEntityId: EntityId | null;
+  /** Creates the item entity (and dashboard link) on first save/generate */
+  createItemEntity?: () => Promise<EntityId>;
   webId: WebId;
   initialGoal?: string;
+  initialValues?: DashboardItemInitialValues;
 };
+
+/**
+ * Parse a JSON editor value, returning null for empty/invalid content.
+ */
+const tryParseJson = <T,>(value: string): T | null => {
+  if (!value.trim()) {
+    return null;
+  }
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+};
+
+/** Outer dialog frame shadow (Figma `shadow/component/modal-outer`) */
+const modalOuterShadow =
+  "0px 0px 1px 0px rgba(0,0,0,0.02), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 6px 6px -3px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.03), 0px 24px 24px -12px rgba(0,0,0,0.02)";
+
+/** Inner card shadow (Figma `shadow/component/modal-inner`) */
+const modalInnerShadow =
+  "0px 0px 0px 1px rgba(0,0,0,0.08), 0px 12px 32px 0px rgba(0,0,0,0.02)";
 
 export const ItemConfigModal = ({
   open,
   onClose,
   itemEntityId,
+  createItemEntity,
   webId,
   initialGoal = "",
+  initialValues,
 }: ItemConfigModalProps) => {
   const {
     state,
@@ -36,22 +75,58 @@ export const ItemConfigModal = ({
     reset,
   } = useDashboardItemConfig({
     itemEntityId,
+    createItemEntity,
     webId,
+    initialValues,
     onComplete: () => {
       onClose();
       reset();
     },
   });
 
-  const [expandedSection, setExpandedSection] = useState<
-    "query" | "analysis" | "config" | null
-  >(null);
+  const [expandedSection, setExpandedSection] =
+    useState<ConfigSectionKey | null>(null);
 
-  const handleClose = () => {
+  const modalRootRef = useRef<HTMLDivElement | null>(null);
+
+  const sectionControlsRef = useRef<
+    Partial<Record<ConfigSectionKey, SectionControls>>
+  >({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSectionControlsChange = useCallback(
+    (section: ConfigSectionKey, controls: SectionControls) => {
+      sectionControlsRef.current[section] = controls;
+    },
+    [],
+  );
+
+  const handleClose = useCallback(() => {
     onClose();
     // Reset state after a delay to avoid UI flash
     setTimeout(reset, 300);
-  };
+  }, [onClose, reset]);
+
+  /**
+   * Persist any sections with unsaved edits, then close. Per-section save
+   * errors are surfaced inside the section, so on failure we keep the modal
+   * open.
+   */
+  const handleSaveAndClose = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      for (const controls of Object.values(sectionControlsRef.current)) {
+        if (controls.isDirty) {
+          await controls.save();
+        }
+      }
+      handleClose();
+    } catch {
+      // Error already displayed inside the failed section
+    } finally {
+      setIsSaving(false);
+    }
+  }, [handleClose]);
 
   const isConfiguring =
     state.step !== "goal" &&
@@ -69,12 +144,17 @@ export const ItemConfigModal = ({
 
   const handleSaveStructuralQuery = useCallback(
     async (value: string) => {
+      let parsed: Filter;
       try {
-        const parsed = JSON.parse(value) as Filter;
-        await saveStructuralQuery(parsed);
-      } catch {
-        // Invalid JSON - don't save
+        parsed = JSON.parse(value) as Filter;
+      } catch (error) {
+        throw new Error(
+          `Not saved – the query is not valid JSON: ${
+            error instanceof Error ? error.message : "parse error"
+          }`,
+        );
       }
+      await saveStructuralQuery(parsed);
     },
     [saveStructuralQuery],
   );
@@ -88,96 +168,236 @@ export const ItemConfigModal = ({
 
   const handleSaveChartConfig = useCallback(
     async (value: string) => {
+      let parsed: ChartConfig;
       try {
-        const parsed = JSON.parse(value) as ChartConfig;
-        await saveChartConfig(parsed);
-      } catch {
-        // Invalid JSON - don't save
+        parsed = JSON.parse(value) as ChartConfig;
+      } catch (error) {
+        throw new Error(
+          `Not saved – the chart config is not valid JSON: ${
+            error instanceof Error ? error.message : "parse error"
+          }`,
+        );
       }
+      await saveChartConfig(parsed);
     },
     [saveChartConfig],
+  );
+
+  const renderQueryBuilder = useCallback(
+    (value: string, onChange: (newValue: string) => void) => (
+      <StructuralQueryBuilder
+        value={tryParseJson<Filter>(value)}
+        onChange={(filter) =>
+          onChange(filter ? JSON.stringify(filter, null, 2) : "")
+        }
+      />
+    ),
+    [],
+  );
+
+  const chartDataKeys =
+    state.chartData && state.chartData.length > 0
+      ? Object.keys(state.chartData[0] as Record<string, unknown>)
+      : [];
+
+  const renderChartConfigBuilder = useCallback(
+    (value: string, onChange: (newValue: string) => void) => (
+      <ChartConfigBuilder
+        value={tryParseJson<ChartConfig>(value)}
+        onChange={(config) => onChange(JSON.stringify(config, null, 2))}
+        dataKeys={chartDataKeys}
+      />
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chartDataKeys.join(",")],
   );
 
   const goalValue = state.userGoal || initialGoal;
 
   return (
-    <Modal
+    <BaseModal
       open={open}
       onClose={handleClose}
-      header={{ title: "Configure Chart" }}
-      contentStyle={{ p: { xs: 0, md: 0 } }}
+      contentStyle={{
+        p: "0 !important",
+        borderRadius: "16px",
+        backgroundColor: "#fcfcfc",
+        boxShadow: modalOuterShadow,
+        overflow: "hidden",
+      }}
     >
-      <Box sx={{ minWidth: { xs: "95%", md: 740 } }}>
-        {state.isLoading && <LinearProgress />}
-
-        <Box sx={{ p: 3 }}>
-          {/* Generation input and button */}
-          <Stack
-            component="form"
-            onSubmit={(evt) => {
-              evt.preventDefault();
-              void generateQuery();
+      <PortalContainerContext.Provider value={modalRootRef}>
+        <Box
+          ref={modalRootRef}
+          className="hash-ds-root"
+          sx={{
+            width: { xs: "95vw", md: "min(92vw, 960px)" },
+            height: "min(84vh, 1000px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "3px",
+            p: "3px",
+          }}
+        >
+          {/* Inner white card */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              backgroundColor: "white",
+              borderRadius: "12px",
+              boxShadow: modalInnerShadow,
+              overflow: "hidden",
             }}
-            direction="row"
-            spacing={2}
-            sx={{ mb: 3 }}
           >
-            <TextField
-              fullWidth
-              value={goalValue}
-              onChange={(event) => setUserGoal(event.target.value)}
-              placeholder="Describe what you want to visualize..."
-              disabled={state.isLoading}
-              size="medium"
-            />
-            <Button
-              variant="primary"
-              size="small"
-              onClick={generateQuery}
-              disabled={!goalValue.trim() || state.isLoading}
-              startIcon={
-                isConfiguring ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <AiIcon />
-                )
-              }
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              {isConfiguring ? "Generating..." : "Generate"}
-            </Button>
-          </Stack>
-
-          {/* Configuration accordion sections */}
-          <ConfigAccordion
-            structuralQuery={structuralQueryString}
-            pythonScript={state.pythonScript ?? ""}
-            chartConfig={chartConfigString}
-            onSaveStructuralQuery={handleSaveStructuralQuery}
-            onSavePythonScript={handleSavePythonScript}
-            onSaveChartConfig={handleSaveChartConfig}
-            expandedSection={expandedSection}
-            onExpandedSectionChange={setExpandedSection}
-            isLoading={state.isLoading}
-          />
-
-          {/* Error display */}
-          {state.error && (
+            {/* Header */}
             <Box
               sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 1,
-                backgroundColor: ({ palette }) => palette.red[20],
-                border: 1,
-                borderColor: ({ palette }) => palette.red[70],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                px: 2.5,
+                py: 2,
+                borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+                flexShrink: 0,
               }}
             >
-              {state.error}
+              <Typography
+                sx={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  lineHeight: "20px",
+                  color: "#171717",
+                }}
+              >
+                Configure Chart
+              </Typography>
+              <Button
+                variant="ghost"
+                tone="neutral"
+                size="sm"
+                iconName="close"
+                aria-label="Close"
+                onClick={handleClose}
+              />
             </Box>
-          )}
+
+            {/* Body */}
+            <Box
+              sx={{
+                p: 2.5,
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2.5,
+              }}
+            >
+              {/* Generation input and button */}
+              <Box
+                component="form"
+                onSubmit={(evt: React.FormEvent) => {
+                  evt.preventDefault();
+                  void generateQuery();
+                }}
+                sx={{
+                  display: "flex",
+                  gap: 0.5,
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <TextInput
+                    value={goalValue}
+                    onChange={(value) => setUserGoal(value)}
+                    placeholder="Describe what you want to visualize..."
+                    disabled={state.isLoading}
+                    size="md"
+                    width="fullWidth"
+                  />
+                </Box>
+                <Button
+                  variant="solid"
+                  tone="neutral"
+                  size="md"
+                  type="submit"
+                  iconName="sparkles"
+                  loading={state.isLoading && isConfiguring}
+                  disabled={!goalValue.trim() || state.isLoading}
+                >
+                  {isConfiguring ? "Generating..." : "Generate"}
+                </Button>
+              </Box>
+
+              {/* Configuration accordion sections */}
+              <ConfigAccordion
+                structuralQuery={structuralQueryString}
+                pythonScript={state.pythonScript ?? ""}
+                chartConfig={chartConfigString}
+                onSaveStructuralQuery={handleSaveStructuralQuery}
+                onSavePythonScript={handleSavePythonScript}
+                onSaveChartConfig={handleSaveChartConfig}
+                expandedSection={expandedSection}
+                onExpandedSectionChange={setExpandedSection}
+                onSectionControlsChange={handleSectionControlsChange}
+                renderQueryBuilder={renderQueryBuilder}
+                renderChartConfigBuilder={renderChartConfigBuilder}
+              />
+
+              {/* Error display */}
+              {state.error && (
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: "8px",
+                    flexShrink: 0,
+                    backgroundColor: ({ palette }) => palette.red[20],
+                    border: 1,
+                    borderColor: ({ palette }) => palette.red[70],
+                  }}
+                >
+                  {state.error}
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          {/* Footer */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 1,
+              px: 2,
+              py: 1.5,
+              flexShrink: 0,
+            }}
+          >
+            <Button
+              variant="subtle"
+              tone="neutral"
+              size="sm"
+              onClick={handleClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              tone="neutral"
+              size="sm"
+              loading={isSaving}
+              disabled={state.isLoading}
+              onClick={handleSaveAndClose}
+            >
+              Save
+            </Button>
+          </Box>
         </Box>
-      </Box>
-    </Modal>
+      </PortalContainerContext.Provider>
+    </BaseModal>
   );
 };

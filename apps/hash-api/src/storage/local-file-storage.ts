@@ -168,6 +168,24 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     return fs.promises.readFile(filePath);
   }
 
+  /**
+   * Get the last-modified time of a stored file, or `null` if it does not exist.
+   */
+  async getObjectLastModified({ key }: { key: string }): Promise<Date | null> {
+    const filePath = path.join(this.fileUploadPath, path.normalize(key));
+
+    if (!filePath.startsWith(this.fileUploadPath)) {
+      throw new Error("Invalid key: path traversal detected");
+    }
+
+    try {
+      const stats = await fs.promises.stat(filePath);
+      return stats.mtime;
+    } catch {
+      return null;
+    }
+  }
+
   /** Sets up express routes required for uploading and downloading files */
   setupExpressRoutes(app: Express) {
     app.put(UPLOAD_BASE_URL, async (req, res, _next) => {

@@ -1,196 +1,97 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
-import {
-  Refresh as RefreshIcon,
-  Settings as SettingsIcon,
-} from "@mui/icons-material";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { useMemo, useRef } from "react";
 
-import type { DashboardItemData } from "../../../shared/types";
-import { runDataScript } from "../../run-data-script";
+import { Button } from "@hashintel/ds-components";
+
 import { ChartRenderer } from "./dashboard-item-content/chart-renderer";
-import type { FlightBoardFlight } from "./dashboard-item-content/flight-board";
-import { FlightBoard } from "./dashboard-item-content/flight-board";
-import type { FlightPosition } from "./dashboard-item-content/world-map-renderer";
 import { WorldMapRenderer } from "./dashboard-item-content/world-map-renderer";
 
-/** Custom chart types that don't use ECharts standard charts */
-const CUSTOM_CHART_TYPES = ["flight-board", "world-map"] as const;
-type CustomChartType = (typeof CUSTOM_CHART_TYPES)[number];
-
-const isCustomChartType = (
-  chartType: string | null,
-): chartType is CustomChartType => {
-  return CUSTOM_CHART_TYPES.includes(chartType as CustomChartType);
-};
+import type { DashboardItemData } from "../../../shared/types";
+import type { FlightPosition } from "./dashboard-item-content/world-map-renderer";
+import type { EntityId } from "@blockprotocol/type-system";
 
 type DashboardItemContentProps = {
   item: DashboardItemData;
-  /** Effective script params (from parent state or item default). Used when item has dataScript. */
-  scriptParams?: Record<string, string>;
-  isDataLoading?: boolean;
+  /** Server-computed chart data (fetched via the analysis gateway) */
+  chartData: unknown[] | null;
+  /** Whether chart data is being fetched/computed */
+  dataLoading: boolean;
+  /** Error from fetching/computing chart data */
+  dataError: string | null;
+  onRetryDataClick?: () => void;
   onConfigureClick?: () => void;
   onEntityClick?: (entityId: EntityId) => void;
   hoveredEntityId?: EntityId | null;
   onHoveredEntityChange?: (entityId: EntityId | null) => void;
 };
 
+const CenteredMessage = ({ children }: { children: React.ReactNode }) => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100%",
+      gap: 2,
+      p: 2,
+    }}
+  >
+    {children}
+  </Box>
+);
+
 /**
- * Renders custom (non-ECharts) visualizations based on chart type.
+ * Point-based geo data (individual positions with coordinates) renders on the
+ * interactive world map; other `map`-type data falls back to the ECharts
+ * choropleth via {@link ChartRenderer}.
  */
-const CustomRenderer = ({
-  chartType,
-  chartData,
-  onEntityClick,
-  hoveredEntityId,
-  onHoveredEntityChange,
-}: {
-  chartType: CustomChartType;
-  chartData: unknown[];
-  onEntityClick?: (entityId: EntityId) => void;
-  hoveredEntityId?: EntityId | null;
-  onHoveredEntityChange?: (entityId: EntityId | null) => void;
-}) => {
-  switch (chartType) {
-    case "flight-board":
-      return (
-        <FlightBoard
-          flights={chartData as FlightBoardFlight[]}
-          mode="arrivals"
-          onFlightClick={onEntityClick}
-          hoveredEntityId={hoveredEntityId}
-          onHoveredEntityChange={onHoveredEntityChange}
-        />
-      );
-    case "world-map":
-      return (
-        <WorldMapRenderer
-          flights={chartData as FlightPosition[]}
-          onFlightClick={onEntityClick}
-          hoveredEntityId={hoveredEntityId}
-          onHoveredEntityChange={onHoveredEntityChange}
-        />
-      );
-    default:
-      return null;
-  }
-};
+const isPositionData = (chartData: unknown[]): chartData is FlightPosition[] =>
+  chartData.length > 0 &&
+  chartData.every(
+    (dataItem) =>
+      typeof dataItem === "object" &&
+      dataItem !== null &&
+      typeof (dataItem as { latitude?: unknown }).latitude === "number" &&
+      typeof (dataItem as { longitude?: unknown }).longitude === "number",
+  );
 
 export const DashboardItemContent = ({
   item,
-  scriptParams: scriptParamsProp,
-  isDataLoading = false,
+  chartData,
+  dataLoading,
+  dataError,
+  onRetryDataClick,
   onConfigureClick,
   onEntityClick,
   hoveredEntityId,
   onHoveredEntityChange,
 }: DashboardItemContentProps) => {
-  const {
-    chartType,
-    chartData: itemChartData,
-    chartConfig,
-    configurationStatus,
-    errorMessage,
-    rawData,
-    dataScript,
-    scriptParams: itemScriptParams,
-  } = item;
-
-  const rawEffectiveScriptParams =
-    scriptParamsProp ?? itemScriptParams ?? undefined;
-
-  // Stabilise the empty-params case so the useMemo doesn't bust on every render.
-  const prevParamsRef = useRef(rawEffectiveScriptParams);
-  const effectiveScriptParams = useMemo(() => {
-    const next = rawEffectiveScriptParams ?? {};
-    const prev = prevParamsRef.current ?? {};
-    // Shallow-compare: if all keys/values match, keep the previous reference.
-    const keys = Object.keys(next);
-    if (
-      keys.length === Object.keys(prev).length &&
-      keys.every((key) => prev[key] === next[key])
-    ) {
-      return prevParamsRef.current ?? {};
-    }
-    prevParamsRef.current = next;
-    return next;
-  }, [rawEffectiveScriptParams]);
-
-  const { chartData: scriptChartData, scriptError } = useMemo(() => {
-    if (!dataScript?.script || rawData === undefined) {
-      return {
-        chartData: null as unknown[] | null,
-        scriptError: null as string | null,
-      };
-    }
-    try {
-      const result = runDataScript(rawData, dataScript, effectiveScriptParams);
-      return { chartData: result, scriptError: null };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { chartData: null, scriptError: message };
-    }
-  }, [rawData, dataScript, effectiveScriptParams]);
-
-  const chartData =
-    dataScript && rawData !== undefined ? scriptChartData : itemChartData;
-
-  // Show loading spinner when data is loading
-  if (isDataLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={32} />
-        <Typography
-          variant="smallTextParagraphs"
-          sx={{ color: ({ palette }) => palette.gray[60] }}
-        >
-          Loading data...
-        </Typography>
-      </Box>
-    );
-  }
+  const { chartType, chartConfig, configurationStatus, errorMessage } = item;
 
   switch (configurationStatus) {
     case "pending":
       return (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            gap: 2,
-          }}
-        >
-          <IconButton onClick={onConfigureClick} size="large">
-            <SettingsIcon />
-          </IconButton>
-        </Box>
+        <CenteredMessage>
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{ color: ({ palette }) => palette.gray[60] }}
+          >
+            Configure this item to display a chart
+          </Typography>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            onClick={onConfigureClick}
+          >
+            Configure chart
+          </Button>
+        </CenteredMessage>
       );
 
     case "configuring":
       return (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            gap: 2,
-          }}
-        >
+        <CenteredMessage>
           <CircularProgress />
           <Typography
             variant="smallTextParagraphs"
@@ -198,22 +99,12 @@ export const DashboardItemContent = ({
           >
             AI is configuring your chart...
           </Typography>
-        </Box>
+        </CenteredMessage>
       );
 
     case "error":
       return (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            gap: 2,
-            p: 2,
-          }}
-        >
+        <CenteredMessage>
           <Typography
             variant="smallTextParagraphs"
             sx={{
@@ -223,26 +114,36 @@ export const DashboardItemContent = ({
           >
             {errorMessage ?? "Failed to configure chart"}
           </Typography>
-          <IconButton onClick={onConfigureClick}>
-            <RefreshIcon />
-          </IconButton>
-        </Box>
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="sm"
+            iconName="rotate"
+            onClick={onConfigureClick}
+          >
+            Reconfigure
+          </Button>
+        </CenteredMessage>
       );
 
-    case "ready":
-      if (scriptError) {
+    case "ready": {
+      if (dataLoading && !chartData) {
         return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 1,
-              p: 2,
-            }}
-          >
+          <CenteredMessage>
+            <CircularProgress size={32} />
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{ color: ({ palette }) => palette.gray[60] }}
+            >
+              Computing chart data...
+            </Typography>
+          </CenteredMessage>
+        );
+      }
+
+      if (dataError) {
+        return (
+          <CenteredMessage>
             <Typography
               variant="smallTextParagraphs"
               sx={{
@@ -250,28 +151,26 @@ export const DashboardItemContent = ({
                 textAlign: "center",
               }}
             >
-              Script error: {scriptError}
+              {dataError}
             </Typography>
-            {onConfigureClick && (
-              <IconButton onClick={onConfigureClick} size="small">
-                <SettingsIcon fontSize="small" />
-              </IconButton>
+            {onRetryDataClick && (
+              <Button
+                variant="subtle"
+                tone="neutral"
+                size="sm"
+                iconName="rotate"
+                onClick={onRetryDataClick}
+              >
+                Retry
+              </Button>
             )}
-          </Box>
+          </CenteredMessage>
         );
       }
 
       if (!chartType || !chartData) {
         return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
+          <CenteredMessage>
             <Typography
               variant="smallTextParagraphs"
               sx={{
@@ -281,35 +180,24 @@ export const DashboardItemContent = ({
             >
               Missing chart configuration
             </Typography>
-          </Box>
+          </CenteredMessage>
         );
       }
 
-      // Handle custom chart types (non-ECharts)
-      if (isCustomChartType(chartType)) {
+      if (chartType === "map" && isPositionData(chartData)) {
         return (
-          <CustomRenderer
-            chartType={chartType}
-            chartData={chartData}
-            onEntityClick={onEntityClick}
+          <WorldMapRenderer
+            flights={chartData}
+            onFlightClick={onEntityClick}
             hoveredEntityId={hoveredEntityId}
             onHoveredEntityChange={onHoveredEntityChange}
           />
         );
       }
 
-      // ECharts-based charts require chartConfig
       if (!chartConfig) {
         return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
+          <CenteredMessage>
             <Typography
               variant="smallTextParagraphs"
               sx={{
@@ -319,7 +207,7 @@ export const DashboardItemContent = ({
             >
               Missing chart configuration
             </Typography>
-          </Box>
+          </CenteredMessage>
         );
       }
 
@@ -331,6 +219,7 @@ export const DashboardItemContent = ({
           onEntityClick={onEntityClick}
         />
       );
+    }
 
     default:
       return null;

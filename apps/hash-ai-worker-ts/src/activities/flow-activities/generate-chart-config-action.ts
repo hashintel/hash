@@ -1,3 +1,18 @@
+import dedent from "dedent";
+
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { StatusCode } from "@local/status";
+
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { stringify } from "../shared/stringify.js";
+import { chartConfigSchema } from "./chart-config-schema.gen.js";
+import { getChartConfigProblems } from "./chart-config-validation.js";
+
+import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 /**
  * Flow activity for generating chart configuration.
  * This activity generates Apache ECharts configuration based on chart data and user goal.
@@ -8,25 +23,36 @@ import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { StatusCode } from "@local/status";
-import dedent from "dedent";
 
-import { getFlowContext } from "../shared/get-flow-context.js";
-import { getLlmResponse } from "../shared/get-llm-response.js";
-import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
-import { graphApiClient } from "../shared/graph-api-client.js";
-import { openAiSeed } from "../shared/open-ai-seed.js";
-import { stringify } from "../shared/stringify.js";
-import { chartConfigSchema } from "./chart-config-schema.gen.js";
-
-const model: PermittedAnthropicModel = "claude-opus-4-5";
+const model: PermittedAnthropicModel = "claude-opus-4-8";
 
 const systemPrompt = dedent(`
-  You are an expert at data visualization. Your job is to generate configuration for Apache ECharts
-  based on the chart data and user's goal.
+  You are an expert at data visualization. Your job is to generate a chart configuration for an
+  Apache ECharts-based renderer, given the chart data and the user's goal.
+
+  The configuration is NOT a raw ECharts option object — it is a simplified ChartConfig that the
+  renderer translates into ECharts options:
+  - "categoryKey": the data key used for the category axis (x-axis for bar/line, slice name for
+    pie, point label for scatter/map). It MUST be one of the keys present in the data rows.
+  - "series": one entry per data series. Each entry's "dataKey" MUST be a numeric key present in
+    the data rows. "type" is the chart type for that series.
+  - Multiple series (e.g. several numeric keys on a bar chart) render as grouped series; set
+    "name" on each so the legend is meaningful, and set "showLegend": true.
+  - For stacked bar/line charts, give the series a shared "stack" value.
+  - For line charts of time series, "smooth": true usually reads better.
+  - For pie charts, use a single series with "radius" (e.g. "60%" or ["40%", "70%"] for a donut)
+    and enable the legend when there are several slices.
+  - Always set "showTooltip": true; set "showGrid": true for bar/line/scatter.
+  - Provide "xAxisLabel" / "yAxisLabel" for bar, line and scatter charts, with units where known
+    (e.g. "Revenue (USD)").
+  - Only provide "colors" if the user's goal implies specific colors; otherwise omit it and let
+    the app palette apply.
+
+  Choose keys strictly from the data keys you are shown — never invent keys.
+
+  The requested chart type is an input — respect it. But if you are ever in a position to choose,
+  strongly prefer bar and line charts over pie charts: pies are hard to compare and only
+  acceptable when the user explicitly asked for one.
 `);
 
 type ToolName = "submit_config";
@@ -36,12 +62,16 @@ type ToolName = "submit_config";
  * Uses the auto-generated schema from ChartConfig type.
  */
 const buildToolSchema = (): LlmToolDefinition<ToolName>["inputSchema"] => {
-  // The OpenAI JSONSchema type doesn't include $ref/$defs but OpenAI's API supports them
+  /**
+   * The generated schema's internal $refs point at `#/definitions/...`, so
+   * the definitions must be mounted under `definitions` (not `$defs`) for
+   * those references to resolve during input validation.
+   */
   return {
     type: "object",
     properties: {
       config: {
-        $ref: "#/$defs/ChartConfig",
+        $ref: "#/definitions/ChartConfig",
         description: "The chart configuration object",
       },
       explanation: {
@@ -51,7 +81,7 @@ const buildToolSchema = (): LlmToolDefinition<ToolName>["inputSchema"] => {
     },
     required: ["config", "explanation"],
     additionalProperties: false,
-    $defs: chartConfigSchema.definitions,
+    definitions: chartConfigSchema.definitions,
   } as LlmToolDefinition<ToolName>["inputSchema"];
 };
 
@@ -59,11 +89,29 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "submit_config",
     description: "Submit the ECharts configuration",
+    /**
+     * The model sometimes provides the `config` argument as a JSON-encoded
+     * string rather than an object — parse it before schema validation.
+     */
+    sanitizeInputBeforeValidation: (rawInput) => {
+      if (
+        "config" in rawInput &&
+        typeof (rawInput as { config: unknown }).config === "string"
+      ) {
+        return {
+          ...rawInput,
+          config: JSON.parse(
+            (rawInput as { config: string }).config,
+          ) as unknown,
+        };
+      }
+      return rawInput;
+    },
     inputSchema: buildToolSchema(),
   },
 ];
 
-const maximumIterations = 3;
+const maximumIterations = 4;
 
 type ActionOutputs = AiActionStepOutput<"generateChartConfig">[];
 
@@ -95,6 +143,13 @@ export const generateChartConfigAction: AiFlowActionActivity<
   let chartConfig: ChartConfig | null = null;
   let explanation = "";
 
+  const dataKeys =
+    parsedChartData.length > 0 &&
+    typeof parsedChartData[0] === "object" &&
+    parsedChartData[0] !== null
+      ? Object.keys(parsedChartData[0])
+      : [];
+
   type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
 
   const callModel = async (
@@ -112,8 +167,6 @@ export const generateChartConfigAction: AiFlowActionActivity<
         model,
         systemPrompt,
         messages,
-        temperature: 0,
-        seed: openAiSeed,
         tools,
       },
       {
@@ -142,6 +195,40 @@ export const generateChartConfigAction: AiFlowActionActivity<
         config: ChartConfig;
         explanation: string;
       };
+
+      const problems = getChartConfigProblems(args.config, dataKeys);
+
+      if (problems.length > 0) {
+        /**
+         * Every tool_use block in the assistant message needs a matching
+         * tool_result, otherwise the Anthropic API rejects the conversation
+         * — so also answer any extra (ignored) tool calls.
+         */
+        return callModel(
+          [
+            ...messages,
+            message,
+            {
+              role: "user",
+              content: toolCalls.map((toolCall) => ({
+                type: "tool_result" as const,
+                tool_use_id: toolCall.id,
+                content:
+                  toolCall.id === submitCall.id
+                    ? dedent(`
+                        The submitted configuration is invalid:
+                        ${problems.map((problem) => `- ${problem}`).join("\n")}
+
+                        Please fix these issues and submit again.
+                      `)
+                    : "Ignored: only submit one configuration at a time.",
+              })),
+            },
+          ],
+          iteration + 1,
+        );
+      }
+
       chartConfig = args.config;
       explanation = args.explanation;
       return;
@@ -179,9 +266,19 @@ export const generateChartConfigAction: AiFlowActionActivity<
                 Chart type: ${chartType}
 
                 Chart data (first 20 items):
-                ${stringify(Array.isArray(parsedChartData) ? parsedChartData.slice(0, 20) : parsedChartData)}
+                ${stringify(
+                  Array.isArray(parsedChartData)
+                    ? parsedChartData.slice(0, 20)
+                    : parsedChartData,
+                )}
 
-                Data keys available: ${Array.isArray(parsedChartData) && parsedChartData.length > 0 && parsedChartData[0] ? Object.keys(parsedChartData[0] as object).join(", ") : "unknown"}
+                Data keys available: ${
+                  Array.isArray(parsedChartData) &&
+                  parsedChartData.length > 0 &&
+                  parsedChartData[0]
+                    ? Object.keys(parsedChartData[0] as object).join(", ")
+                    : "unknown"
+                }
 
                 Generate an appropriate ECharts configuration for this data.
               `),

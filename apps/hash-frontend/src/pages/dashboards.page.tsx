@@ -1,29 +1,4 @@
 import { useMutation, useQuery } from "@apollo/client";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
-import type { EntityId } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { TextField } from "@hashintel/design-system";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  HashEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Dashboard,
-  DashboardProperties,
-} from "@local/hash-isomorphic-utils/system-types/dashboard";
 import { Add as AddIcon } from "@mui/icons-material";
 import {
   Box,
@@ -39,21 +14,45 @@ import {
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { TextField } from "@hashintel/design-system";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  HashEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import {
+  createEntityMutation,
+  queryEntitySubgraphQuery,
+} from "../graphql/queries/knowledge/entity.queries";
+import { getLayoutWithSidebar } from "../shared/layout";
+import { Button } from "../shared/ui/button";
+import { Modal } from "../shared/ui/modal";
+import { useActiveWorkspace } from "./shared/workspace-context";
+
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import {
-  createEntityMutation,
-  queryEntitySubgraphQuery,
-} from "../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
-import { Button } from "../shared/ui/button";
-import { Modal } from "../shared/ui/modal";
-import { useActiveWorkspace } from "./shared/workspace-context";
+import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  Dashboard,
+  DashboardProperties,
+} from "@local/hash-isomorphic-utils/system-types/dashboard";
 
 type DashboardListItem = {
   entityId: EntityId;
@@ -78,10 +77,12 @@ const DashboardsPage: NextPageWithLayout = () => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.dashboard.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                { parameter: systemEntityTypes.dashboard.entityTypeId },
+              ],
+            },
             { equal: [{ path: ["archived"] }, { parameter: false }] },
           ],
         },
@@ -204,9 +205,21 @@ const DashboardsPage: NextPageWithLayout = () => {
       <Box
         sx={{
           mb: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
         <Typography variant="h1">Dashboards</Typography>
+        {dashboards.length > 0 && (
+          <Button
+            variant="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            Create Dashboard
+          </Button>
+        )}
       </Box>
 
       {loading && dashboards.length === 0 ? (

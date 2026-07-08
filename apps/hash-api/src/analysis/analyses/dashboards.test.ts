@@ -1,0 +1,228 @@
+import { WorkflowExecutionAlreadyStartedError } from "@temporalio/client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  generateDashboardItemConfigHash,
+  getDashboardItemDataStorageKey,
+} from "@local/hash-backend-utils/dashboards";
+
+import type {
+  ActorEntityUuid,
+  RoleName,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type Keyv from "keyv";
+
+vi.mock("@local/hash-graph-sdk/principal/actor-group", () => ({
+  getActorGroupRole: vi.fn(),
+}));
+
+vi.mock("@local/hash-graph-sdk/entity", () => ({
+  queryEntities: vi.fn(),
+}));
+
+vi.mock("../../logger", () => ({
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { resolveInvocation } from "../setup-analysis-handler/resolve-analysis";
+import {
+  clearAnalysisRegistry,
+  registerAnalyses,
+} from "../shared/analysis-registry";
+import { dashboardAnalyses } from "./dashboards";
+
+import type { GraphApi } from "../../graph/context-types";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+
+const mockedGetRole = vi.mocked(getActorGroupRole);
+const mockedQueryEntities = vi.mocked(queryEntities);
+
+const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
+const ACTOR_ID = "00000000-0000-4000-8000-0000000000aa" as ActorEntityUuid;
+const ITEM_UUID = "00000000-0000-4000-8000-00000000feed";
+
+const structuralQuery = {
+  all: [
+    {
+      equal: [
+        { path: ["type", "baseUrl"] },
+        { parameter: "https://hash.ai/@h/types/entity-type/crm-deal/" },
+      ],
+    },
+  ],
+};
+const pythonScript = "print('[]')";
+
+const configHash = generateDashboardItemConfigHash({
+  structuralQuery,
+  pythonScript,
+});
+const storageKey = getDashboardItemDataStorageKey({
+  webId: WEB_ID,
+  configHash,
+});
+
+const itemEntity = {
+  properties: {
+    [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl]: structuralQuery,
+    [systemPropertyTypes.pythonScript.propertyTypeBaseUrl]: pythonScript,
+  },
+};
+
+const workflowStart = vi.fn();
+
+const temporalClient = {
+  workflow: { start: workflowStart },
+} as unknown as TemporalClient;
+
+/** Per-test control over the artifact's last-modified timestamp. */
+let artifactLastModified: Date | null = null;
+
+const uploadProvider = {
+  getObjectLastModified: async () => artifactLastModified,
+  presignDownloadByKey: async ({ key }: { key: string }) =>
+    `https://signed.example/${key}`,
+} as unknown as FileStorageProvider;
+
+const cache = {
+  get: async () => undefined,
+  set: async () => true,
+} as unknown as Keyv;
+
+const resolve = (args: Record<string, unknown>) =>
+  resolveInvocation({
+    invocation: {
+      id: "test",
+      analysis: "dashboardItemData",
+      args,
+      webId: WEB_ID,
+    },
+    actorId: ACTOR_ID,
+    graphApi: {} as GraphApi,
+    temporalClient,
+    uploadProvider,
+    cache,
+  });
+
+describe("dashboardItemData analysis", () => {
+  beforeEach(() => {
+    clearAnalysisRegistry();
+    registerAnalyses(dashboardAnalyses);
+
+    mockedGetRole.mockReset();
+    mockedGetRole.mockResolvedValue("member" as RoleName);
+
+    mockedQueryEntities.mockReset();
+    mockedQueryEntities.mockResolvedValue({
+      entities: [itemEntity],
+    } as unknown as Awaited<ReturnType<typeof queryEntities>>);
+
+    workflowStart.mockReset();
+    workflowStart.mockResolvedValue({});
+
+    artifactLastModified = null;
+  });
+
+  it("rejects a non-uuid itemUuid", async () => {
+    const result = await resolve({ itemUuid: "../not-a-uuid" });
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/itemUuid/i);
+    expect(mockedQueryEntities).not.toHaveBeenCalled();
+  });
+
+  it("errors when the item does not exist in the web", async () => {
+    mockedQueryEntities.mockResolvedValue({
+      entities: [],
+    } as unknown as Awaited<ReturnType<typeof queryEntities>>);
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/unknown dashboard item/i);
+  });
+
+  it("errors when the item is not fully configured", async () => {
+    mockedQueryEntities.mockResolvedValue({
+      entities: [{ properties: {} }],
+    } as unknown as Awaited<ReturnType<typeof queryEntities>>);
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/not fully configured/i);
+  });
+
+  it("starts the compute workflow and returns computing when no artifact exists", async () => {
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("computing");
+    expect(result.retryAfterMs).toBeGreaterThan(0);
+    expect(workflowStart).toHaveBeenCalledTimes(1);
+
+    const [workflowName, options] = workflowStart.mock.calls[0]!;
+    expect(workflowName).toBe("computeDashboardItemData");
+    expect(options.workflowId).toBe(`compute-dashboard-item-${configHash}`);
+    expect(options.args[0]).toMatchObject({
+      webId: WEB_ID,
+      pythonScript,
+      storageKey,
+    });
+  });
+
+  it("serves a fresh artifact without recomputing", async () => {
+    artifactLastModified = new Date();
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("ready");
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts![0]!.url).toContain(configHash);
+    expect(workflowStart).not.toHaveBeenCalled();
+  });
+
+  it("serves a stale artifact but kicks off a background recompute", async () => {
+    artifactLastModified = new Date(Date.now() - 60 * 60 * 1000); // 1h old
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("ready");
+    expect(workflowStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("recomputes even a fresh artifact when force is set", async () => {
+    artifactLastModified = new Date();
+
+    const result = await resolve({ itemUuid: ITEM_UUID, force: true });
+
+    expect(result.status).toBe("computing");
+    expect(workflowStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats an already-started workflow as computing (dedupe)", async () => {
+    workflowStart.mockRejectedValue(
+      new WorkflowExecutionAlreadyStartedError(
+        "already started",
+        `compute-dashboard-item-${configHash}`,
+        "computeDashboardItemData",
+      ),
+    );
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("computing");
+  });
+
+  it("denies access when the actor has no role in the web", async () => {
+    mockedGetRole.mockResolvedValue(null);
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/access/i);
+    expect(workflowStart).not.toHaveBeenCalled();
+  });
+});

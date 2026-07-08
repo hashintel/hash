@@ -1,34 +1,89 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
-import {
-  Delete as DeleteIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  Refresh as RefreshIcon,
-  Settings as SettingsIcon,
-} from "@mui/icons-material";
-import { Box, Paper, Typography } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
+import { Box, ButtonBase, CircularProgress, Typography } from "@mui/material";
+import { useCallback } from "react";
+
+import { Icon } from "@hashintel/ds-components";
+
+import { useDashboardItemData } from "../../hooks/use-dashboard-item-data";
+import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 
 import type { DashboardItemData } from "../../shared/types";
-import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { ReactNode } from "react";
+
+/** CSS class for the element that initiates a card drag while editing */
+export const DRAG_HANDLE_CLASS = "dashboard-item-drag-handle";
+
+const cardBorderColor = "#dfdfdf";
+
+/**
+ * Small square action button used in the card header (from the Figma card
+ * design – 24px, 6px radius, faint neutral or red backgrounds).
+ */
+const CardActionButton = ({
+  children,
+  destructive = false,
+  disabled,
+  label,
+  onClick,
+}: {
+  children: ReactNode;
+  destructive?: boolean;
+  disabled?: boolean;
+  label: string;
+  onClick?: () => void;
+}) => (
+  <ButtonBase
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={label}
+    title={label}
+    sx={{
+      width: 24,
+      height: 24,
+      borderRadius: "6px",
+      flexShrink: 0,
+      color: destructive ? "#e5484d" : "#202020",
+      backgroundColor: destructive
+        ? "rgba(251, 112, 114, 0.12)"
+        : "rgba(0, 0, 0, 0.05)",
+      transition: "background-color 0.15s ease",
+      "&:hover": {
+        backgroundColor: destructive
+          ? "rgba(251, 112, 114, 0.24)"
+          : "rgba(0, 0, 0, 0.1)",
+      },
+      "&.Mui-disabled": {
+        opacity: 0.5,
+      },
+    }}
+  >
+    {children}
+  </ButtonBase>
+);
+
+/** Two-column grip glyph shown in the drag handle (no ds-components icon exists for it) */
+const GripVerticalIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    fill="none"
+    aria-hidden="true"
+  >
+    {[5, 10, 15].flatMap((y) =>
+      [7.5, 12.5].map((x) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="1.4" fill="#9b9b9b" />
+      )),
+    )}
+  </svg>
+);
 
 type DashboardItemProps = {
   item: DashboardItemData;
-  /** Effective script params (from page state). Passed to content for script execution. */
-  scriptParams?: Record<string, string>;
-  /** Called when user changes a script parameter (e.g. date range). */
-  onScriptParamsChange?: (
-    itemId: string,
-    params: Record<string, string>,
-  ) => void;
   isEditing?: boolean;
   isMinimized?: boolean;
-  isDataLoading?: boolean;
   onMinimizeToggle?: () => void;
   onConfigureClick?: () => void;
-  onRefreshClick?: () => void;
   onDeleteClick?: () => void;
   onEntityClick?: (entityId: EntityId) => void;
   hoveredEntityId?: EntityId | null;
@@ -37,158 +92,170 @@ type DashboardItemProps = {
 
 export const DashboardItem = ({
   item,
-  scriptParams,
-  onScriptParamsChange,
   isEditing = false,
   isMinimized = false,
-  isDataLoading = false,
   onMinimizeToggle,
   onConfigureClick,
-  onRefreshClick,
   onDeleteClick,
   onEntityClick,
   hoveredEntityId,
   onHoveredEntityChange,
 }: DashboardItemProps) => {
-  const { configurationStatus, title, dataScript, entityId } = item;
-  const itemId = item.gridPosition.i || entityId;
-  const dateRangeParam = dataScript?.parameters?.dateRange;
-  const effectiveScriptParams = scriptParams ?? item.scriptParams ?? {};
-  const currentDateRange =
-    effectiveScriptParams.dateRange ?? dateRangeParam?.default ?? "";
+  const { configurationStatus, title, entityId } = item;
+
+  const {
+    data: chartData,
+    loading: dataLoading,
+    error: dataError,
+    refresh,
+  } = useDashboardItemData({
+    itemEntityId: entityId,
+    enabled: configurationStatus === "ready",
+  });
+
+  const handleRefreshClick = useCallback(() => {
+    refresh({ force: true });
+  }, [refresh]);
+
+  const handleRetryClick = useCallback(() => {
+    refresh();
+  }, [refresh]);
 
   return (
-    <Paper
+    <Box
+      className="dashboard-item-card"
       sx={{
         height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         position: "relative",
+        backgroundColor: "white",
+        border: `1px solid ${cardBorderColor}`,
+        borderRadius: "12px",
       }}
-      elevation={2}
     >
-      {/* Header with title and action buttons */}
+      {/* Header: optional drag handle + title + action buttons. When
+          minimized the card is a single (36px) grid row, so the header fills
+          it rather than keeping its 44px height and getting clipped. */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          px: 1.5,
-          py: 0.5,
-          borderBottom: isMinimized
-            ? "none"
-            : ({ palette }) => `1px solid ${palette.gray[20]}`,
-          height: 36,
+          alignItems: "stretch",
+          height: isMinimized ? "100%" : 44,
+          flexShrink: 0,
+          borderBottom: isMinimized ? "none" : `1px solid ${cardBorderColor}`,
         }}
       >
-        {title && (
-          <Typography
-            variant="smallTextLabels"
+        {isEditing && (
+          <Box
+            className={DRAG_HANDLE_CLASS}
             sx={{
-              fontWeight: 600,
-              color: ({ palette }) => palette.gray[80],
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              mr: 1,
+              display: "flex",
+              alignItems: "center",
+              px: 1,
+              backgroundColor: "#fafafa",
+              borderRight: `1px solid ${cardBorderColor}`,
             }}
           >
-            {title}
-          </Typography>
+            <GripVerticalIcon />
+          </Box>
         )}
-        {!isMinimized &&
-          configurationStatus === "ready" &&
-          dateRangeParam &&
-          onScriptParamsChange && (
-            <Select
-              size="small"
-              value={currentDateRange}
-              onChange={(e) => {
-                const value = e.target.value;
-                onScriptParamsChange(itemId, {
-                  ...effectiveScriptParams,
-                  dateRange: value,
-                });
-              }}
-              sx={{
-                minWidth: 100,
-                height: 28,
-                fontSize: 12,
-                "& .MuiSelect-select": { py: 0.25 },
-              }}
-            >
-              {dateRangeParam.options.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+
         <Box
           sx={{
+            flex: 1,
+            minWidth: 0,
             display: "flex",
-            gap: 0.5,
-            flexShrink: 0,
+            alignItems: "center",
+            justifyContent: "space-between",
+            pl: isEditing ? 1.25 : 1.5,
+            pr: 1.25,
+            gap: 1,
           }}
         >
-          {configurationStatus === "ready" && (
-            <>
-              <IconButton
-                size="small"
-                onClick={onRefreshClick}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              minWidth: 0,
+            }}
+          >
+            {title && (
+              <Typography
                 sx={{
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.gray[10],
-                  },
+                  fontSize: 14,
+                  fontWeight: 500,
+                  lineHeight: "20px",
+                  color: "#000",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={onConfigureClick}
+                {title}
+              </Typography>
+            )}
+            {configurationStatus === "ready" && (
+              <ButtonBase
+                onClick={handleRefreshClick}
+                disabled={dataLoading}
+                aria-label="Recompute chart data"
+                title="Recompute chart data"
                 sx={{
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.gray[10],
-                  },
+                  width: 16,
+                  height: 16,
+                  borderRadius: "4px",
+                  color: "#838383",
+                  flexShrink: 0,
+                  "&:hover": { color: "#202020" },
                 }}
               >
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={onMinimizeToggle}
-                sx={{
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.gray[10],
-                  },
-                }}
-              >
-                {isMinimized ? (
-                  <ExpandMoreIcon fontSize="small" />
+                {dataLoading && chartData ? (
+                  <CircularProgress size={12} sx={{ color: "inherit" }} />
                 ) : (
-                  <ExpandLessIcon fontSize="small" />
+                  <Icon name="rotate" size="xs" />
                 )}
-              </IconButton>
-            </>
-          )}
-          {isEditing && (
-            <IconButton
-              size="small"
-              onClick={onDeleteClick}
-              sx={{
-                color: ({ palette }) => palette.red[70],
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.red[10],
-                  color: ({ palette }) => palette.red[80],
-                },
-              }}
+              </ButtonBase>
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              flexShrink: 0,
+            }}
+          >
+            {isEditing && (
+              <>
+                <CardActionButton
+                  destructive
+                  label="Delete item"
+                  onClick={onDeleteClick}
+                >
+                  <Icon name="trash" size="sm" />
+                </CardActionButton>
+                <CardActionButton
+                  label="Configure chart"
+                  onClick={onConfigureClick}
+                >
+                  <Icon name="sliders" size="sm" />
+                </CardActionButton>
+              </>
+            )}
+            <CardActionButton
+              label={isMinimized ? "Expand" : "Collapse"}
+              onClick={onMinimizeToggle}
             >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          )}
+              <Icon
+                name={isMinimized ? "chevronDown" : "chevronUp"}
+                size="sm"
+              />
+            </CardActionButton>
+          </Box>
         </Box>
       </Box>
 
@@ -197,8 +264,10 @@ export const DashboardItem = ({
         <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
           <DashboardItemContent
             item={item}
-            scriptParams={effectiveScriptParams}
-            isDataLoading={isDataLoading}
+            chartData={chartData}
+            dataLoading={dataLoading}
+            dataError={dataError}
+            onRetryDataClick={handleRetryClick}
             onConfigureClick={onConfigureClick}
             onEntityClick={onEntityClick}
             hoveredEntityId={hoveredEntityId}
@@ -206,6 +275,6 @@ export const DashboardItem = ({
           />
         </Box>
       )}
-    </Paper>
+    </Box>
   );
 };

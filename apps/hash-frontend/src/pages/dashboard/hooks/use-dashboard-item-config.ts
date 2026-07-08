@@ -1,4 +1,23 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { FlowRunStatus } from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+
+import type {
+  FlowRun,
+  GetFlowRunByIdQuery,
+  GetFlowRunByIdQueryVariables,
+  StartFlowMutation,
+  StartFlowMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
 import type { JsonValue } from "@blockprotocol/core/.";
 import type {
   EntityId,
@@ -10,24 +29,7 @@ import type {
   ChartConfig,
   ChartType,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
-import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useCallback, useEffect, useRef, useState } from "react";
-
-import type {
-  FlowRun,
-  GetFlowRunByIdQuery,
-  GetFlowRunByIdQueryVariables,
-  StartFlowMutation,
-  StartFlowMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
-import { FlowRunStatus } from "../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 
 export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 
@@ -61,9 +63,33 @@ const initialState: ConfigState = {
   flowRunId: null,
 };
 
+export type DashboardItemInitialValues = {
+  structuralQuery: Filter | null;
+  pythonScript: string | null;
+  chartType: ChartType | null;
+  chartConfig: ChartConfig | null;
+};
+
 type UseDashboardItemConfigParams = {
-  itemEntityId: EntityId;
+  /**
+   * The dashboard item entity being configured, or `null` when configuring a
+   * brand-new item whose entity hasn't been created yet (see
+   * {@link UseDashboardItemConfigParams.createItemEntity}).
+   */
+  itemEntityId: EntityId | null;
+  /**
+   * Creates the dashboard item entity (and its link to the dashboard),
+   * returning the new entity's id. Required when `itemEntityId` is `null`:
+   * the entity is only created once the user first persists something
+   * (generates a config or saves), so cancelling leaves nothing behind.
+   */
+  createItemEntity?: () => Promise<EntityId>;
   webId: WebId;
+  /**
+   * Existing configuration stored on the entity, used to pre-populate the
+   * editors when re-configuring an already-configured item.
+   */
+  initialValues?: DashboardItemInitialValues;
   onComplete?: () => void;
 };
 
@@ -95,11 +121,46 @@ const getOutputValue = <T>(
  */
 export const useDashboardItemConfig = ({
   itemEntityId,
+  createItemEntity,
   webId,
+  initialValues,
   onComplete,
 }: UseDashboardItemConfigParams) => {
-  const [state, setState] = useState<ConfigState>(initialState);
+  /**
+   * Captured once on mount — the modal is remounted for each item, so the
+   * seeded state doesn't need to track later prop changes.
+   */
+  const seededStateRef = useRef<ConfigState>({
+    ...initialState,
+    structuralQuery: initialValues?.structuralQuery ?? null,
+    pythonScript: initialValues?.pythonScript ?? null,
+    chartType: initialValues?.chartType ?? null,
+    chartConfig: initialValues?.chartConfig ?? null,
+  });
+
+  const [state, setState] = useState<ConfigState>(seededStateRef.current);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const entityIdRef = useRef<EntityId | null>(itemEntityId);
+  const pendingEntityCreationRef = useRef<Promise<EntityId> | null>(null);
+
+  /**
+   * Resolve the entity id to persist to, creating the entity on first use
+   * for new items. The in-flight promise is shared so concurrent saves don't
+   * create duplicates.
+   */
+  const ensureEntityId = useCallback(async (): Promise<EntityId> => {
+    if (entityIdRef.current) {
+      return entityIdRef.current;
+    }
+    if (!createItemEntity) {
+      throw new Error("No dashboard item entity to save to");
+    }
+    pendingEntityCreationRef.current ??= createItemEntity();
+    const entityId = await pendingEntityCreationRef.current;
+    entityIdRef.current = entityId;
+    return entityId;
+  }, [createItemEntity]);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -133,7 +194,18 @@ export const useDashboardItemConfig = ({
    */
   const updateEntityWithFlowOutputs = useCallback(
     async (flowRun: FlowRun) => {
-      const outputs = flowRun.outputs as StepOutput[] | undefined;
+      /**
+       * The flow run's `outputs` field is a list of Status objects wrapping
+       * the actual step outputs (see `StepRunOutput`) — unwrap to the flat
+       * list of named outputs.
+       */
+      const outputs = (
+        flowRun.outputs as
+          | { contents: { outputs?: StepOutput[] }[] }[]
+          | undefined
+      )?.flatMap((status) =>
+        status.contents.flatMap((content) => content.outputs ?? []),
+      );
 
       const structuralQueryJson = getOutputValue<string>(
         outputs,
@@ -218,7 +290,7 @@ export const useDashboardItemConfig = ({
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId: itemEntityId,
+            entityId: await ensureEntityId(),
             propertyPatches,
           },
         },
@@ -234,125 +306,134 @@ export const useDashboardItemConfig = ({
         chartData: chartDataJson
           ? (JSON.parse(chartDataJson) as unknown[])
           : null,
-        chartType: chartType as ChartType | null,
+        chartType,
         chartConfig: chartConfigJson
           ? (JSON.parse(chartConfigJson) as ChartConfig)
           : null,
-        step: "chart",
+        step: "complete",
         isLoading: false,
       }));
+
+      // The item is fully configured – let the caller close/refresh.
+      onComplete?.();
     },
-    [itemEntityId, updateEntity],
+    [ensureEntityId, updateEntity, onComplete],
   );
 
   /**
    * Poll the flow run to check for completion.
+   *
+   * Takes the flow run id as an argument (rather than reading it from state)
+   * because the polling interval captures this callback when polling starts,
+   * before the state update containing the flow run id has been applied.
    */
-  const pollFlowForCompletion = useCallback(async () => {
-    if (!state.flowRunId) {
-      return;
-    }
-
-    try {
-      const { data } = await fetchFlowRun({
-        variables: { flowRunId: state.flowRunId },
-      });
-
-      if (!data?.getFlowRunById) {
-        return;
-      }
-
-      const flowRun = data.getFlowRunById;
-
-      // Update step based on flow progress
-      const steps = flowRun.steps;
-      const step1 = steps.find((st) => st.stepId === "1");
-      const step2 = steps.find((st) => st.stepId === "2");
-      const step3 = steps.find((st) => st.stepId === "3");
-
-      let newStep: ConfigStep = state.step;
-      if (step3?.closedAt) {
-        newStep = "chart";
-      } else if (step2?.closedAt) {
-        newStep = "analysis";
-      } else if (step1?.closedAt) {
-        newStep = "query";
-      }
-
-      setState((prev) => ({ ...prev, step: newStep }));
-
-      // Check if flow completed
-      if (flowRun.status === FlowRunStatus.Completed) {
-        stopPolling();
-        await updateEntityWithFlowOutputs(flowRun);
-        return;
-      }
-
-      // Check if flow failed
-      if (
-        flowRun.status === FlowRunStatus.Failed ||
-        flowRun.status === FlowRunStatus.Cancelled ||
-        flowRun.status === FlowRunStatus.TimedOut ||
-        flowRun.status === FlowRunStatus.Terminated
-      ) {
-        stopPolling();
-
-        // Update entity status to error
-        await updateEntity({
-          variables: {
-            entityUpdate: {
-              entityId: itemEntityId,
-              propertyPatches: [
-                {
-                  op: "replace",
-                  path: [
-                    systemPropertyTypes.configurationStatus.propertyTypeBaseUrl,
-                  ],
-                  property: {
-                    value: "error",
-                    metadata: {
-                      dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                    },
-                  },
-                },
-              ],
-            },
-          },
+  const pollFlowForCompletion = useCallback(
+    async (flowRunId: string) => {
+      try {
+        const { data } = await fetchFlowRun({
+          variables: { flowRunId },
         });
 
-        setState((prev) => ({
-          ...prev,
-          error: flowRun.failureMessage ?? "Flow configuration failed",
-          isLoading: false,
-        }));
+        if (!data?.getFlowRunById) {
+          return;
+        }
+
+        const flowRun = data.getFlowRunById;
+
+        // Update step based on flow progress
+        const steps = flowRun.steps;
+        const step1 = steps.find((st) => st.stepId === "1");
+        const step2 = steps.find((st) => st.stepId === "2");
+        const step3 = steps.find((st) => st.stepId === "3");
+
+        setState((prev) => {
+          let newStep: ConfigStep = prev.step;
+          if (step3?.closedAt) {
+            newStep = "chart";
+          } else if (step2?.closedAt) {
+            newStep = "analysis";
+          } else if (step1?.closedAt) {
+            newStep = "query";
+          }
+          return { ...prev, step: newStep };
+        });
+
+        // Check if flow completed
+        if (flowRun.status === FlowRunStatus.Completed) {
+          stopPolling();
+          await updateEntityWithFlowOutputs(flowRun);
+          return;
+        }
+
+        // Check if flow failed
+        if (
+          flowRun.status === FlowRunStatus.Failed ||
+          flowRun.status === FlowRunStatus.Cancelled ||
+          flowRun.status === FlowRunStatus.TimedOut ||
+          flowRun.status === FlowRunStatus.Terminated
+        ) {
+          stopPolling();
+
+          // Update entity status to error
+          await updateEntity({
+            variables: {
+              entityUpdate: {
+                entityId: await ensureEntityId(),
+                propertyPatches: [
+                  {
+                    op: "replace",
+                    path: [
+                      systemPropertyTypes.configurationStatus
+                        .propertyTypeBaseUrl,
+                    ],
+                    property: {
+                      value: "error",
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          });
+
+          setState((prev) => ({
+            ...prev,
+            error: flowRun.failureMessage ?? "Flow configuration failed",
+            isLoading: false,
+          }));
+        }
+      } catch (err) {
+        // Don't stop polling on transient errors, just log
+        // eslint-disable-next-line no-console
+        console.error("Error polling flow run:", err);
       }
-    } catch (err) {
-      // Don't stop polling on transient errors, just log
-      // eslint-disable-next-line no-console
-      console.error("Error polling flow run:", err);
-    }
-  }, [
-    fetchFlowRun,
-    state.flowRunId,
-    state.step,
-    stopPolling,
-    updateEntityWithFlowOutputs,
-    updateEntity,
-    itemEntityId,
-  ]);
+    },
+    [
+      fetchFlowRun,
+      stopPolling,
+      updateEntityWithFlowOutputs,
+      updateEntity,
+      ensureEntityId,
+    ],
+  );
 
-  const startPolling = useCallback(() => {
-    if (pollIntervalRef.current) {
-      return; // Already polling
-    }
+  const startPolling = useCallback(
+    (flowRunId: string) => {
+      if (pollIntervalRef.current) {
+        return; // Already polling
+      }
 
-    // Poll immediately, then every 2 seconds
-    void pollFlowForCompletion();
-    pollIntervalRef.current = setInterval(() => {
-      void pollFlowForCompletion();
-    }, 2000);
-  }, [pollFlowForCompletion]);
+      // Poll immediately, then every 2 seconds
+      void pollFlowForCompletion(flowRunId);
+      pollIntervalRef.current = setInterval(() => {
+        void pollFlowForCompletion(flowRunId);
+      }, 2000);
+    },
+    [pollFlowForCompletion],
+  );
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -385,7 +466,7 @@ export const useDashboardItemConfig = ({
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId: itemEntityId,
+            entityId: await ensureEntityId(),
             propertyPatches: [
               {
                 op: "add",
@@ -455,7 +536,7 @@ export const useDashboardItemConfig = ({
         }));
 
         // Start polling for flow completion
-        startPolling();
+        startPolling(data.startFlow);
       } else {
         setError("Failed to start configuration flow");
       }
@@ -465,7 +546,7 @@ export const useDashboardItemConfig = ({
   }, [
     state.userGoal,
     setError,
-    itemEntityId,
+    ensureEntityId,
     webId,
     updateEntity,
     startFlow,
@@ -518,7 +599,7 @@ export const useDashboardItemConfig = ({
         await updateEntity({
           variables: {
             entityUpdate: {
-              entityId: itemEntityId,
+              entityId: await ensureEntityId(),
               propertyPatches: [
                 {
                   op: "add" as const,
@@ -547,7 +628,7 @@ export const useDashboardItemConfig = ({
         );
       }
     },
-    [updateEntity, itemEntityId, setError],
+    [updateEntity, ensureEntityId, setError],
   );
 
   /**
@@ -561,7 +642,7 @@ export const useDashboardItemConfig = ({
         await updateEntity({
           variables: {
             entityUpdate: {
-              entityId: itemEntityId,
+              entityId: await ensureEntityId(),
               propertyPatches: [
                 {
                   op: "add" as const,
@@ -586,7 +667,7 @@ export const useDashboardItemConfig = ({
         );
       }
     },
-    [updateEntity, itemEntityId, setError],
+    [updateEntity, ensureEntityId, setError],
   );
 
   /**
@@ -600,7 +681,7 @@ export const useDashboardItemConfig = ({
         await updateEntity({
           variables: {
             entityUpdate: {
-              entityId: itemEntityId,
+              entityId: await ensureEntityId(),
               propertyPatches: [
                 {
                   op: "add" as const,
@@ -627,7 +708,7 @@ export const useDashboardItemConfig = ({
         );
       }
     },
-    [updateEntity, itemEntityId, setError],
+    [updateEntity, ensureEntityId, setError],
   );
 
   /**
@@ -683,7 +764,7 @@ export const useDashboardItemConfig = ({
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId: itemEntityId,
+            entityId: await ensureEntityId(),
             propertyPatches,
           },
         },
@@ -702,12 +783,12 @@ export const useDashboardItemConfig = ({
     state.chartType,
     state.chartConfig,
     updateEntity,
-    itemEntityId,
+    ensureEntityId,
   ]);
 
   const reset = useCallback(() => {
     stopPolling();
-    setState(initialState);
+    setState(seededStateRef.current);
   }, [stopPolling]);
 
   return {

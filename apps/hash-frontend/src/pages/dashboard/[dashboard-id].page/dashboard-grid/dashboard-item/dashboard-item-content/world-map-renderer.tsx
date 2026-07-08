@@ -1,3 +1,9 @@
+import { Box, Typography } from "@mui/material";
+import * as echarts from "echarts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { EChart } from "@hashintel/design-system";
+
 /**
  * World Map Renderer Component
  *
@@ -6,11 +12,7 @@
  */
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Chart, ECOption } from "@hashintel/design-system";
-import { EChart } from "@hashintel/design-system";
-import { Box, Typography } from "@mui/material";
-import * as echarts from "echarts";
 import type { ECElementEvent } from "echarts/types/dist/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /** Status used for arrow color: green = on time, red = delayed */
 export type FlightPosition = {
@@ -317,7 +319,9 @@ export const WorldMapRenderer = ({
             };
           };
           if (tooltipData.data) {
-            let tooltip = `<strong>${tooltipData.name ?? "Flight"}</strong><br/>`;
+            let tooltip = `<strong>${
+              tooltipData.name ?? "Flight"
+            }</strong><br/>`;
             if (tooltipData.data.lat !== null) {
               tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°<br />`;
             }

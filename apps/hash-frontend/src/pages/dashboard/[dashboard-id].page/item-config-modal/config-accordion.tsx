@@ -1,128 +1,272 @@
-import {
-  ExpandMore as ExpandMoreIcon,
-  Save as SaveIcon,
-} from "@mui/icons-material";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "../../../../shared/ui/button";
-import { CodeEditor, type CodeLanguage } from "./code-editor";
+import { Icon, SegmentedControl } from "@hashintel/ds-components";
+
+import { CodeEditor, type CodeLanguage } from "../../../../shared/code-editor";
+
+import type { ReactNode } from "react";
+
+const sectionBorderColor = "#dfdfdf";
+
+export type ConfigSectionKey = "query" | "analysis" | "config";
+
+/**
+ * Save controls exposed by each section so the modal footer's Save button can
+ * persist any unsaved edits.
+ */
+export type SectionControls = {
+  isDirty: boolean;
+  save: () => Promise<void>;
+};
 
 type ConfigAccordionSectionProps = {
+  sectionKey: ConfigSectionKey;
   title: string;
   hasContent: boolean;
   expanded: boolean;
+  isLast?: boolean;
   onChange: (expanded: boolean) => void;
   initialValue: string;
   language: CodeLanguage;
   onSave: (value: string) => Promise<void>;
-  isLoading: boolean;
+  onControlsChange: (
+    section: ConfigSectionKey,
+    controls: SectionControls,
+  ) => void;
+  /**
+   * Optional visual builder for the section's value. Receives the current
+   * (string) value and a change callback; rendered as an alternative view to
+   * the code editor.
+   */
+  renderBuilder?: (
+    value: string,
+    onChange: (value: string) => void,
+  ) => ReactNode;
 };
 
 const ConfigAccordionSection = ({
+  sectionKey,
   title,
   hasContent,
   expanded,
+  isLast = false,
   onChange,
   initialValue,
   language,
   onSave,
-  isLoading,
+  onControlsChange,
+  renderBuilder,
 }: ConfigAccordionSectionProps) => {
-  const statusColor = hasContent ? "green" : "orange";
   const [localValue, setLocalValue] = useState(initialValue);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [view, setView] = useState<"builder" | "code">(
+    renderBuilder ? "builder" : "code",
+  );
 
-  // Update local value when initial value changes (e.g., after generation)
+  /**
+   * Derived rather than event-based: some builder inputs (MUI Autocomplete)
+   * fire change events on mount with an unchanged value, which must not mark
+   * the section dirty.
+   */
+  const hasUnsavedChanges = localValue !== initialValue;
+
+  // Update local value when initial value changes (e.g., after generation or save)
   useEffect(() => {
     setLocalValue(initialValue);
-    setHasUnsavedChanges(false);
+    setSaveError(null);
   }, [initialValue]);
 
   const handleChange = useCallback((value: string) => {
     setLocalValue(value);
-    setHasUnsavedChanges(true);
+    setSaveError(null);
   }, []);
 
   const handleSave = useCallback(async () => {
-    await onSave(localValue);
-    setHasUnsavedChanges(false);
+    try {
+      await onSave(localValue);
+      setSaveError(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to save changes";
+      setSaveError(message);
+      throw error;
+    }
   }, [localValue, onSave]);
 
+  // Expose save controls to the modal footer
+  useEffect(() => {
+    onControlsChange(sectionKey, {
+      isDirty: hasUnsavedChanges,
+      save: handleSave,
+    });
+  }, [onControlsChange, sectionKey, hasUnsavedChanges, handleSave]);
+
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, isExpanded) => onChange(isExpanded)}
+    <Box
       sx={{
-        backgroundColor: "transparent",
-        boxShadow: "none",
-        "&:before": {
-          display: "none",
-        },
-        "&.Mui-expanded": {
-          margin: 0,
-        },
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        flexShrink: 0,
+        ...(expanded && { flex: 1 }),
+        ...(!isLast && {
+          borderBottom: `1px solid ${sectionBorderColor}`,
+        }),
       }}
-      disableGutters
     >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
+      {/* Section header */}
+      <Box
+        role="button"
+        tabIndex={0}
+        onClick={() => onChange(!expanded)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onChange(!expanded);
+          }
+        }}
         sx={{
-          backgroundColor: ({ palette }) => palette[statusColor][10],
-          border: 1,
-          borderColor: ({ palette }) => palette[statusColor][30],
-          borderRadius: 1,
-          minHeight: 48,
-          "&.Mui-expanded": {
-            minHeight: 48,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-          },
-          "& .MuiAccordionSummary-content": {
-            margin: "12px 0",
-          },
+          height: 44,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          pl: 1.5,
+          pr: 1.25,
+          cursor: "pointer",
+          backgroundColor: "white",
+          ...(expanded && {
+            borderBottom: `1px solid ${sectionBorderColor}`,
+          }),
         }}
       >
-        <Typography variant="smallTextLabels" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-      </AccordionSummary>
-      <AccordionDetails
-        sx={{
-          p: 2,
-          border: 1,
-          borderTop: 0,
-          borderColor: ({ palette }) => palette.gray[30],
-          borderBottomLeftRadius: 4,
-          borderBottomRightRadius: 4,
-        }}
-      >
-        <CodeEditor
-          value={localValue}
-          onChange={handleChange}
-          height={300}
-          language={language}
-        />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Button
-            variant="primary"
-            size="small"
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges || isLoading}
-            startIcon={<SaveIcon />}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              lineHeight: "20px",
+              color: "#000",
+            }}
           >
-            {isLoading ? "Saving..." : "Save"}
-          </Button>
+            {title}
+          </Typography>
+          <Box
+            aria-hidden
+            sx={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              backgroundColor: hasContent ? "#46a758" : "#f5a623",
+            }}
+          />
+          {hasUnsavedChanges && (
+            <Typography
+              sx={{
+                fontSize: 12,
+                color: ({ palette }) => palette.gray[60],
+              }}
+            >
+              (unsaved changes)
+            </Typography>
+          )}
         </Box>
-      </AccordionDetails>
-    </Accordion>
+        <Box
+          sx={{
+            width: 24,
+            height: 24,
+            borderRadius: "6px",
+            backgroundColor: "rgba(0, 0, 0, 0.05)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#202020",
+          }}
+        >
+          <Icon name={expanded ? "chevronUp" : "chevronDown"} size="sm" />
+        </Box>
+      </Box>
+
+      {/* Section content */}
+      {expanded && (
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.5,
+            p: 1.5,
+            backgroundColor: "#fafafa",
+            overflow: "auto",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              flexShrink: 0,
+            }}
+          >
+            {renderBuilder ? (
+              /* The ds SegmentedControl has no size prop – compact it here.
+                 Panda's atomic classes carry a :not(#\#) specificity boost,
+                 so the overrides need !important to take effect. */
+              <Box
+                sx={{
+                  '& [data-scope="segment-group"][data-part="item"]': {
+                    padding: "4px 10px !important",
+                  },
+                  '& [data-scope="segment-group"][data-part="item-text"]': {
+                    fontSize: "12px !important",
+                    lineHeight: "16px !important",
+                  },
+                }}
+              >
+                <SegmentedControl
+                  options={[
+                    { name: "Builder", value: "builder" },
+                    { name: "JSON", value: "code" },
+                  ]}
+                  value={view}
+                  onValueChange={(newView) =>
+                    setView(newView as "builder" | "code")
+                  }
+                />
+              </Box>
+            ) : (
+              <Box />
+            )}
+            {saveError && (
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  color: ({ palette }) => palette.red[70],
+                }}
+              >
+                {saveError}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ flex: 1, minHeight: 200, overflow: "auto" }}>
+            {renderBuilder && view === "builder" ? (
+              renderBuilder(localValue, handleChange)
+            ) : (
+              <CodeEditor
+                value={localValue}
+                onChange={handleChange}
+                height="100%"
+                language={language}
+              />
+            )}
+          </Box>
+        </Box>
+      )}
+    </Box>
   );
 };
 
@@ -133,11 +277,20 @@ type ConfigAccordionProps = {
   onSaveStructuralQuery: (value: string) => Promise<void>;
   onSavePythonScript: (value: string) => Promise<void>;
   onSaveChartConfig: (value: string) => Promise<void>;
-  expandedSection: "query" | "analysis" | "config" | null;
-  onExpandedSectionChange: (
-    section: "query" | "analysis" | "config" | null,
+  expandedSection: ConfigSectionKey | null;
+  onExpandedSectionChange: (section: ConfigSectionKey | null) => void;
+  onSectionControlsChange: (
+    section: ConfigSectionKey,
+    controls: SectionControls,
   ) => void;
-  isLoading: boolean;
+  renderQueryBuilder?: (
+    value: string,
+    onChange: (value: string) => void,
+  ) => ReactNode;
+  renderChartConfigBuilder?: (
+    value: string,
+    onChange: (value: string) => void,
+  ) => ReactNode;
 };
 
 export const ConfigAccordion = ({
@@ -149,18 +302,33 @@ export const ConfigAccordion = ({
   onSaveChartConfig,
   expandedSection,
   onExpandedSectionChange,
-  isLoading,
+  onSectionControlsChange,
+  renderQueryBuilder,
+  renderChartConfigBuilder,
 }: ConfigAccordionProps) => {
   const handleSectionChange = (
-    section: "query" | "analysis" | "config",
+    section: ConfigSectionKey,
     expanded: boolean,
   ) => {
     onExpandedSectionChange(expanded ? section : null);
   };
 
   return (
-    <Stack spacing={1.5}>
+    <Box
+      sx={{
+        // Only stretch to fill the modal when a section is expanded
+        flex: expandedSection ? 1 : "0 0 auto",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        border: `1px solid ${sectionBorderColor}`,
+        borderRadius: "12px",
+        overflow: "hidden",
+        backgroundColor: "white",
+      }}
+    >
       <ConfigAccordionSection
+        sectionKey="query"
         title="Data Query"
         hasContent={!!structuralQuery.trim()}
         expanded={expandedSection === "query"}
@@ -168,10 +336,12 @@ export const ConfigAccordion = ({
         initialValue={structuralQuery}
         language="json"
         onSave={onSaveStructuralQuery}
-        isLoading={isLoading}
+        onControlsChange={onSectionControlsChange}
+        renderBuilder={renderQueryBuilder}
       />
 
       <ConfigAccordionSection
+        sectionKey="analysis"
         title="Data Analysis"
         hasContent={!!pythonScript.trim()}
         expanded={expandedSection === "analysis"}
@@ -179,19 +349,22 @@ export const ConfigAccordion = ({
         initialValue={pythonScript}
         language="python"
         onSave={onSavePythonScript}
-        isLoading={isLoading}
+        onControlsChange={onSectionControlsChange}
       />
 
       <ConfigAccordionSection
+        sectionKey="config"
         title="Chart Config"
         hasContent={!!chartConfig.trim()}
         expanded={expandedSection === "config"}
+        isLast
         onChange={(expanded) => handleSectionChange("config", expanded)}
         initialValue={chartConfig}
         language="json"
         onSave={onSaveChartConfig}
-        isLoading={isLoading}
+        onControlsChange={onSectionControlsChange}
+        renderBuilder={renderChartConfigBuilder}
       />
-    </Stack>
+    </Box>
   );
 };

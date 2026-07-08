@@ -1,24 +1,19 @@
 import { useMutation, useQuery } from "@apollo/client";
+import { Box, CircularProgress, Container, Typography } from "@mui/material";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import { PortalContainerContext } from "@hashintel/ds-components";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import type {
-  ChartConfig,
-  ChartType,
-  DashboardGridLayout,
-  GridPosition,
-} from "@local/hash-isomorphic-utils/dashboard-types";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedOntologyResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -26,11 +21,19 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Dashboard } from "@local/hash-isomorphic-utils/system-types/dashboard";
-import type { DashboardItem as DashboardItemEntity } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
-import { Box, CircularProgress, Container, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  archiveEntitiesMutation,
+  createEntityMutation,
+  queryEntitySubgraphQuery,
+  updateEntityMutation,
+} from "../../graphql/queries/knowledge/entity.queries";
+import { getLayoutWithSidebar } from "../../shared/layout";
+import { useSlideStack } from "../shared/slide-stack";
+import { useActiveWorkspace } from "../shared/workspace-context";
+import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
+import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
+import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 
 import type {
   ArchiveEntitiesMutation,
@@ -42,21 +45,18 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import {
-  archiveEntitiesMutation,
-  createEntityMutation,
-  queryEntitySubgraphQuery,
-  updateEntityMutation,
-} from "../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
-import { useSlideStack } from "../shared/slide-stack";
-import { useActiveWorkspace } from "../shared/workspace-context";
-import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
-import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
-import { generateDashboardItems } from "./[dashboard-id].page/generate-dashboard-items";
-import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 import type { DashboardData, DashboardItemData } from "./shared/types";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type {
+  ChartConfig,
+  ChartType,
+  DashboardGridLayout,
+  GridPosition,
+} from "@local/hash-isomorphic-utils/dashboard-types";
+import type { Dashboard } from "@local/hash-isomorphic-utils/system-types/dashboard";
+import type { DashboardItem as DashboardItemEntity } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
 
 type DashboardContainerProps = {
   children: React.ReactNode;
@@ -64,27 +64,35 @@ type DashboardContainerProps = {
   isFullscreen: boolean;
 };
 
+/**
+ * Wraps the page in `.hash-ds-root` so `@hashintel/ds-components` token CSS
+ * variables resolve, and supplies the element as the portal container so ds
+ * overlays (tooltips, selects) render inside the token scope.
+ */
 const DashboardContainer = ({
   children,
   containerRef,
   isFullscreen,
 }: DashboardContainerProps) => {
   return (
-    <Container
-      ref={containerRef}
-      sx={{
-        maxWidth: { lg: 1400 },
-        py: 5,
-        ...(isFullscreen && {
-          maxWidth: "100% !important",
-          height: "100vh",
-          overflow: "auto",
-          backgroundColor: ({ palette }) => palette.common.white,
-        }),
-      }}
-    >
-      {children}
-    </Container>
+    <PortalContainerContext.Provider value={containerRef}>
+      <Container
+        ref={containerRef}
+        className="hash-ds-root"
+        sx={{
+          maxWidth: { lg: 1400 },
+          py: 5,
+          ...(isFullscreen && {
+            maxWidth: "100% !important",
+            height: "100vh",
+            overflow: "auto",
+            backgroundColor: ({ palette }) => palette.common.white,
+          }),
+        }}
+      >
+        {children}
+      </Container>
+    </PortalContainerContext.Provider>
   );
 };
 
@@ -100,19 +108,11 @@ const DashboardPage: NextPageWithLayout = () => {
   const [selectedItem, setSelectedItem] = useState<DashboardItemData | null>(
     null,
   );
+  /** Whether the config modal is open for a not-yet-created item */
+  const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [scriptParamsByItemId, setScriptParamsByItemId] = useState<
-    Record<string, Record<string, string>>
-  >({});
   const [hoveredEntityId, setHoveredEntityId] = useState<EntityId | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const handleScriptParamsChange = useCallback(
-    (itemId: string, params: Record<string, string>) => {
-      setScriptParamsByItemId((prev) => ({ ...prev, [itemId]: params }));
-    },
-    [],
-  );
 
   // Listen for fullscreen changes (e.g., user pressing Escape)
   useEffect(() => {
@@ -148,35 +148,6 @@ const DashboardPage: NextPageWithLayout = () => {
     },
     [pushToSlideStack],
   );
-
-  const { data: flightGraphData, loading: flightGraphLoading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          equal: [
-            { path: ["type", "versionedUrl"] },
-            { parameter: systemEntityTypes.flight.entityTypeId },
-          ],
-        },
-        graphResolveDepths: zeroedOntologyResolveDepths,
-        traversalPaths: [
-          {
-            edges: [
-              { kind: "has-left-entity", direction: "incoming" },
-              { kind: "has-right-entity", direction: "outgoing" },
-            ],
-          },
-        ],
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-  });
 
   // Query for the dashboard and its linked items
   const {
@@ -239,49 +210,52 @@ const DashboardPage: NextPageWithLayout = () => {
       dashboardEntity.metadata.recordId.entityId,
     );
 
-    // const items: DashboardItemData[] = [];
+    const items: DashboardItemData[] = [];
 
-    // for (const { linkEntity, rightEntity } of outgoingLinks) {
-    //   const link = linkEntity[0];
-    //   if (
-    //     !link?.metadata.entityTypeIds.includes(
-    //       systemLinkEntityTypes.has.linkEntityTypeId,
-    //     )
-    //   ) {
-    //     continue;
-    //   }
+    for (const { linkEntity, rightEntity } of outgoingLinks) {
+      const link = linkEntity[0];
+      if (
+        !link?.metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.has.linkEntityTypeId,
+        )
+      ) {
+        continue;
+      }
 
-    //   const itemEntity = rightEntity[0] as
-    //     | HashEntity<DashboardItemEntity>
-    //     | undefined;
+      const itemEntity = rightEntity[0] as
+        | HashEntity<DashboardItemEntity>
+        | undefined;
 
-    //   if (!itemEntity) {
-    //     continue;
-    //   }
+      if (!itemEntity) {
+        continue;
+      }
 
-    //   const itemProps = simplifyProperties(itemEntity.properties);
-    //   const itemEntityId = itemEntity.metadata.recordId.entityId;
-    //   const linkEntityId = link.metadata.recordId.entityId;
+      const itemProps = simplifyProperties(itemEntity.properties);
+      const itemEntityId = itemEntity.metadata.recordId.entityId;
+      const linkEntityId = link.metadata.recordId.entityId;
 
-    //   items.push({
-    //     entityId: itemEntityId,
-    //     linkEntityId,
-    //     title: itemProps.name,
-    //     userGoal: itemProps.goal,
-    //     chartType: itemProps.chartType as ChartType,
-    //     chartData: null, // Chart data is computed at runtime
-    //     chartConfig: itemProps.chartConfiguration as ChartConfig,
-    //     gridPosition: itemProps.gridPosition as GridPosition,
-    //     configurationStatus:
-    //       itemProps.configurationStatus as DashboardItemData["configurationStatus"],
-    //   });
-    // }
-
-    // Pass API vertices to generate dashboard items (raw data for script-based items)
-    const vertices = flightGraphData?.queryEntitySubgraph.subgraph.vertices as
-      | Record<string, Record<string, { kind: string; inner: unknown }>>
-      | undefined;
-    const items: DashboardItemData[] = generateDashboardItems(vertices ?? {});
+      items.push({
+        entityId: itemEntityId,
+        linkEntityId,
+        title: itemProps.name,
+        userGoal: itemProps.goal,
+        structuralQuery:
+          (itemProps.structuralQuery as Filter | undefined) ?? null,
+        pythonScript: itemProps.pythonScript ?? null,
+        chartType: (itemProps.chartType as ChartType | undefined) ?? null,
+        chartConfig:
+          (itemProps.chartConfiguration as ChartConfig | undefined) ?? null,
+        gridPosition: (itemProps.gridPosition as GridPosition | undefined) ?? {
+          i: itemEntityId,
+          x: 0,
+          y: 0,
+          w: 6,
+          h: 4,
+        },
+        configurationStatus:
+          itemProps.configurationStatus as DashboardItemData["configurationStatus"],
+      });
+    }
 
     return {
       entityId: dashboardEntity.metadata.recordId.entityId,
@@ -290,7 +264,7 @@ const DashboardPage: NextPageWithLayout = () => {
       gridLayout: gridLayout as DashboardGridLayout,
       items,
     };
-  }, [dashboardData, flightGraphData]);
+  }, [dashboardData]);
 
   const canEdit = useMemo((): boolean => {
     if (!dashboard) {
@@ -325,9 +299,6 @@ const DashboardPage: NextPageWithLayout = () => {
 
   const handleLayoutChange = useCallback(
     async (newLayout: GridPosition[]) => {
-      // @todo before merging – remove this return, just skipping db update for demo purpose
-      return;
-
       if (!dashboard) {
         return;
       }
@@ -380,10 +351,6 @@ const DashboardPage: NextPageWithLayout = () => {
     setSelectedItem(item);
     setConfigModalOpen(true);
   }, []);
-
-  const handleItemRefreshClick = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
 
   const handleItemDeleteClick = useCallback(
     async (item: DashboardItemData) => {
@@ -439,12 +406,24 @@ const DashboardPage: NextPageWithLayout = () => {
         },
       });
     },
-    [],
+    [dashboard?.entityId, updateEntity],
   );
 
-  const handleAddItem = useCallback(async () => {
+  /** Open the config modal immediately; the entity is created lazily */
+  const handleAddItem = useCallback(() => {
+    setSelectedItem(null);
+    setIsAddingNewItem(true);
+    setConfigModalOpen(true);
+  }, []);
+
+  /**
+   * Create the dashboard item entity and its link to the dashboard. Called
+   * by the config modal the first time the new item is persisted (generate
+   * or save), so cancelling the modal leaves nothing behind.
+   */
+  const createItemEntity = useCallback(async (): Promise<EntityId> => {
     if (!dashboard?.entityId) {
-      return;
+      throw new Error("Dashboard not loaded");
     }
 
     const { data: itemData } = await createEntity({
@@ -476,10 +455,10 @@ const DashboardPage: NextPageWithLayout = () => {
       : null;
 
     if (!newItemEntity) {
-      return;
+      throw new Error("Failed to create dashboard item");
     }
 
-    const { data: linkData } = await createEntity({
+    await createEntity({
       variables: {
         entityTypeIds: [systemLinkEntityTypes.has.linkEntityTypeId],
         webId: activeWorkspaceWebId,
@@ -491,39 +470,13 @@ const DashboardPage: NextPageWithLayout = () => {
       },
     });
 
-    const newLinkEntity = linkData?.createEntity
-      ? new HashEntity(linkData.createEntity)
-      : null;
-
-    // Refetch and open the config modal for the new item
-    await refetch();
-
-    setSelectedItem({
-      entityId: newItemEntity.metadata.recordId.entityId,
-      // Link entity ID will be available after refetch; use item ID as placeholder
-      linkEntityId:
-        newLinkEntity?.metadata.recordId.entityId ??
-        newItemEntity.metadata.recordId.entityId,
-      title: "",
-      userGoal: "",
-      chartType: null,
-      chartData: null,
-      chartConfig: null,
-      gridPosition: {
-        i: `item-${Date.now()}`,
-        x: 0,
-        y: 0,
-        w: 6,
-        h: 4,
-      },
-      configurationStatus: "pending",
-    });
-    setConfigModalOpen(true);
-  }, [dashboard?.entityId, activeWorkspaceWebId, createEntity, refetch]);
+    return newItemEntity.metadata.recordId.entityId;
+  }, [dashboard?.entityId, activeWorkspaceWebId, createEntity]);
 
   const handleCloseConfigModal = useCallback(() => {
     setConfigModalOpen(false);
     setSelectedItem(null);
+    setIsAddingNewItem(false);
     void refetch();
   }, [refetch]);
 
@@ -585,28 +538,36 @@ const DashboardPage: NextPageWithLayout = () => {
 
       <DashboardGrid
         dashboard={dashboard}
-        scriptParamsByItemId={scriptParamsByItemId}
-        onScriptParamsChange={handleScriptParamsChange}
         onAddItemClick={handleAddItem}
         onLayoutChange={handleLayoutChange}
         onItemConfigureClick={handleItemConfigureClick}
-        onItemRefreshClick={handleItemRefreshClick}
         onItemDeleteClick={handleItemDeleteClick}
         onEntityClick={handleEntityClick}
         hoveredEntityId={hoveredEntityId}
         onHoveredEntityChange={setHoveredEntityId}
         isEditing={isEditing}
         canEdit={canEdit}
-        isDataLoading={flightGraphLoading}
       />
 
-      {selectedItem && activeWorkspaceWebId && (
+      {(selectedItem ?? isAddingNewItem) && activeWorkspaceWebId && (
         <ItemConfigModal
+          key={selectedItem?.entityId ?? "new-item"}
           open={configModalOpen}
           onClose={handleCloseConfigModal}
-          itemEntityId={selectedItem.entityId}
+          itemEntityId={selectedItem?.entityId ?? null}
+          createItemEntity={createItemEntity}
           webId={activeWorkspaceWebId}
-          initialGoal={selectedItem.userGoal}
+          initialGoal={selectedItem?.userGoal}
+          initialValues={
+            selectedItem
+              ? {
+                  structuralQuery: selectedItem.structuralQuery,
+                  pythonScript: selectedItem.pythonScript,
+                  chartType: selectedItem.chartType,
+                  chartConfig: selectedItem.chartConfig,
+                }
+              : undefined
+          }
         />
       )}
     </DashboardContainer>

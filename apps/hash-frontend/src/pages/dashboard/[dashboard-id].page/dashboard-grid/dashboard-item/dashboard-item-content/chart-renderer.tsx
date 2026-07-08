@@ -1,12 +1,14 @@
+import { Box, Typography } from "@mui/material";
+import { useCallback, useMemo } from "react";
+
+import { EChart } from "@hashintel/design-system";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Chart, ECOption } from "@hashintel/design-system";
-import { EChart } from "@hashintel/design-system";
 import type {
   ChartConfig,
   ChartType,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { Box, Typography } from "@mui/material";
-import { useCallback, useMemo } from "react";
 
 const DEFAULT_COLORS = [
   "#3b82f6",
@@ -25,6 +27,24 @@ type ChartRendererProps = {
   chartConfig: ChartConfig;
   onEntityClick?: (entityId: EntityId) => void;
 };
+
+const AXIS_LABEL_FONT_SIZE = 10;
+
+/** Cap rotated category labels so very long values truncate with an ellipsis */
+const MAX_ROTATED_LABEL_WIDTH = 100;
+
+/** Rough pixel width of a label (average glyph ≈ 0.6em at this size) */
+const estimateTextWidth = (text: string): number =>
+  Math.ceil(text.length * AXIS_LABEL_FONT_SIZE * 0.6);
+
+/**
+ * Compact tick labels for value axes ("1.5M" rather than "1500000"), keeping
+ * wide numbers from colliding with each other and with the axis caption.
+ */
+const compactNumberFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 /**
  * Converts our ChartConfig format to ECharts option format
@@ -184,6 +204,54 @@ const buildEChartsOption = (
 
   const needsCartesianAxes = !isPieChart && !isMap;
 
+  /**
+   * Rotated tick labels extend below the axis line, so the axis caption's
+   * offset (`nameGap`) must clear them or the two overlap. Estimate the
+   * labels' vertical extent and position the caption just beyond it.
+   */
+  const rotateXAxisLabels = categories.length > 6;
+
+  const longestCategoryLabelWidth = Math.min(
+    categories.reduce(
+      (max, category) => Math.max(max, estimateTextWidth(category)),
+      0,
+    ),
+    MAX_ROTATED_LABEL_WIDTH,
+  );
+
+  // 8px default margin between axis line and labels, then either the
+  // projection of the rotated label (45°) or a single line of text.
+  const xAxisLabelExtent =
+    8 +
+    (rotateXAxisLabels
+      ? Math.ceil(
+          (longestCategoryLabelWidth + AXIS_LABEL_FONT_SIZE) * Math.SQRT1_2,
+        )
+      : AXIS_LABEL_FONT_SIZE + 4);
+
+  const xAxisNameGap = xAxisLabelExtent + 14;
+
+  // The y-axis caption needs the same treatment: clear the widest tick label.
+  const numericSeriesValues = needsCartesianAxes
+    ? seriesConfig.flatMap((seriesItem) =>
+        data
+          .map((item) => item[seriesItem.dataKey])
+          .filter(
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value),
+          ),
+      )
+    : [];
+
+  const maxAbsSeriesValue = numericSeriesValues.length
+    ? Math.max(...numericSeriesValues.map(Math.abs))
+    : 0;
+
+  const yAxisNameGap =
+    8 +
+    estimateTextWidth(compactNumberFormatter.format(maxAbsSeriesValue)) +
+    12;
+
   const option: ECOption = {
     tooltip: showTooltip
       ? {
@@ -193,7 +261,9 @@ const buildEChartsOption = (
             formatter: (params: unknown) => {
               const p = params as { name?: string; value?: [number, number] };
               if (p.value) {
-                return `${p.name ?? "Flight"}<br/>Lng: ${p.value[0]?.toFixed(4)}<br/>Lat: ${p.value[1]?.toFixed(4)}`;
+                return `${p.name ?? "Flight"}<br/>Lng: ${p.value[0]?.toFixed(
+                  4,
+                )}<br/>Lat: ${p.value[1]?.toFixed(4)}`;
               }
               return "";
             },
@@ -245,9 +315,11 @@ const buildEChartsOption = (
     grid:
       showGrid && needsCartesianAxes
         ? {
-            left: 60,
+            // With containLabel the tick labels sit inside the grid box, so
+            // the margins only need to fit the axis captions (and legend).
+            left: yAxisLabel ? 40 : 12,
             right: 20,
-            bottom: showLegend ? 50 : 40,
+            bottom: (showLegend ? 30 : 0) + (xAxisLabel ? 32 : 8),
             top: 20,
             containLabel: true,
           }
@@ -259,19 +331,26 @@ const buildEChartsOption = (
           data: categories,
           name: xAxisLabel,
           nameLocation: "middle" as const,
-          nameGap: 25,
+          nameGap: xAxisNameGap,
           axisLabel: {
-            rotate: categories.length > 6 ? 45 : 0,
-            fontSize: 10,
+            rotate: rotateXAxisLabels ? 45 : 0,
+            fontSize: AXIS_LABEL_FONT_SIZE,
+            hideOverlap: true,
+            ...(rotateXAxisLabels && {
+              width: MAX_ROTATED_LABEL_WIDTH,
+              overflow: "truncate" as const,
+            }),
           },
         },
         yAxis: {
           type: "value" as const,
           name: yAxisLabel,
           nameLocation: "middle" as const,
-          nameGap: 35,
+          nameGap: yAxisNameGap,
           axisLabel: {
-            fontSize: 10,
+            fontSize: AXIS_LABEL_FONT_SIZE,
+            hideOverlap: true,
+            formatter: (value: number) => compactNumberFormatter.format(value),
           },
         },
       }),

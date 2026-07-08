@@ -12,6 +12,7 @@ import { isWebScopedKeyForWeb } from "../shared/storage-key";
 import type { GraphApi } from "../../graph/context-types";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AnalysisInvocation,
   AnalysisResult,
@@ -50,6 +51,7 @@ export interface ResolveInvocationParams {
   invocation: AnalysisInvocation;
   actorId: ActorEntityUuid;
   graphApi: GraphApi;
+  temporalClient: TemporalClient;
   uploadProvider: FileStorageProvider;
   cache: Keyv;
 }
@@ -58,6 +60,7 @@ export const resolveInvocation = async ({
   invocation,
   actorId,
   graphApi,
+  temporalClient,
   uploadProvider,
   cache,
 }: ResolveInvocationParams): Promise<AnalysisResult> => {
@@ -134,10 +137,24 @@ export const resolveInvocation = async ({
       }
     };
 
+    const getArtifactLastModified = async (
+      key: string,
+    ): Promise<Date | null> => {
+      try {
+        return await uploadProvider.getObjectLastModified({ key });
+      } catch {
+        return null;
+      }
+    };
+
     const resolution = await analysis.resolve({
       webId,
+      actorId,
       args,
       loadArtifact,
+      getArtifactLastModified,
+      graphApi,
+      temporalClient,
     });
 
     if (resolution.status === "computing") {
