@@ -26,6 +26,18 @@ export {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
 } from "./monte-carlo";
+export { compilePetrinautModel } from "./compiled-model";
+export type {
+  CompilePetrinautModelConfig,
+  PetrinautCompiledModel,
+  PetrinautCompiledModelMetadata,
+  PetrinautCompiledModelMetricMetadata,
+  PetrinautCompiledModelParameterMetadata,
+  PetrinautCompiledModelPlaceMetadata,
+  PetrinautRunCompletionReason,
+  PetrinautRunConfig,
+  PetrinautRunResult,
+} from "./compiled-model";
 export type {
   CreateMonteCarloExperimentConfig,
   MonteCarloAdvanceResult,
