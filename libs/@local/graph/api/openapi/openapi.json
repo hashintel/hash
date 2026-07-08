@@ -3856,7 +3856,7 @@
             "items": {
               "$ref": "#/components/schemas/EntityId"
             },
-            "description": "Entities from the request that had no stored embedding or that do not exist.",
+            "description": "Entities from the request that were not clustered (either because no embedding exists, or\nbecause the actor lacks permission to view the entity).",
             "uniqueItems": true
           }
         }
