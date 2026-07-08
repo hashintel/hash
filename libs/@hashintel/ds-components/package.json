@@ -47,7 +47,7 @@
     "build": "npm-run-all build:lib build:buildinfo",
     "build:buildinfo": "panda ship --config panda.config.ts --outfile dist/panda.buildinfo.json",
     "build:ladle": "ladle build",
-    "build:lib": "tsup --config tsup.config.ts",
+    "build:lib": "NODE_OPTIONS=--max-old-space-size=8192 tsup --config tsup.config.ts",
     "codegen": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:panda",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
     "codegen:panda": "panda codegen --clean",
