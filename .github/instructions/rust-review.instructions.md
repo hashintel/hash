@@ -5,16 +5,21 @@ excludeAgent: "coding-agent"
 
 # Rust Review Rules
 
-This repository uses nightly Rust with `clippy` (warnings denied) in CI. All merged and pushed code compiles. These are Rust semantics that past reviews have repeatedly gotten wrong — do not flag any of the following as errors:
+This workspace uses **Rust edition 2024** on nightly, with `clippy` (warnings denied) and `rustfmt` in CI. All merged and pushed code compiles. These are Rust semantics that past reviews have repeatedly gotten wrong — do not flag any of the following as errors:
 
 ## Language semantics reviewers commonly get wrong
 
-- Functional record update (`Self { ..*self }` through `&self`) does NOT require the struct to be `Copy`. It moves/copies field-by-field; it compiles whenever every remaining field is `Copy`. Do not claim it "moves out of `&self`" or "requires `Copy`".
-- `Iterator`/`Rng` adapters that take `self` by value (e.g. `Rng::sample_iter`) work on immutable bindings. Do not claim a binding must be `mut` without checking whether the method takes `self`, `&self`, or `&mut self`.
-- The standard library implements arithmetic between integers and `NonZero` types (e.g. `usize / NonZero<usize>`). Do not claim such impls are missing.
-- Block expressions in statement position (`unsafe { ... }`, `if`, `match`, `loop`) do NOT need a trailing semicolon. Never post "missing semicolon" comments — syntax is the compiler's job, and CI already ran it.
-- `str::strip_prefix`, `trim_matches`, and friends accept any `Pattern`, which includes `char` arrays/slices like `['n', 'N']`. Do not claim these calls are invalid.
-- Moves, borrows, and drop order are checked by the compiler. Never post "use of moved value", "partial move", or "borrow conflict" comments — if the code is in the PR and CI is green, the borrow checker already accepted it.
+- **Edition 2024 prelude**: `Future` and `IntoFuture` are in the prelude. Do not claim they (or other prelude items) are missing imports.
+- Functional record update (`Self { ..*self }` through `&self`) does NOT require the struct to be `Copy`. It moves/copies field-by-field; it compiles whenever every remaining field is `Copy`.
+- `==` desugars to `PartialEq::eq(&a, &b)` — comparing fields through a reference moves nothing. Likewise, matching on a non-`Copy` field by value is fine when the patterns only bind `Copy` data or wildcards.
+- Partially moving one field while borrowing a different field of the same local is accepted — the borrow checker tracks fields independently.
+- A trait impl may return a longer lifetime than the trait declares (e.g. `&'static str` for `fn as_str(&self) -> &str`) — impl signatures are checked with subtyping.
+- Adapters that take `self` by value (e.g. `Rng::sample_iter`) work on immutable bindings. Check whether a method takes `self`, `&self`, or `&mut self` before claiming a binding must be `mut`.
+- The standard library implements arithmetic between integers and `NonZero` types (e.g. `usize / NonZero<usize>`).
+- Block expressions in statement position (`unsafe { ... }`, `if`, `match`, `loop`) do NOT need a trailing semicolon.
+- `str::strip_prefix`, `trim_matches`, and friends accept any `Pattern`, which includes `char` arrays/slices like `['n', 'N']`.
+
+If a comment of yours depends on the borrow checker, trait resolution, or the prelude rejecting code that is sitting in the diff with green CI, the comment is wrong — discard it.
 
 ## Project conventions
 
@@ -25,6 +30,7 @@ This repository uses nightly Rust with `clippy` (warnings denied) in CI. All mer
 ## What is worth flagging in Rust code here
 
 - SQL built in Rust: missing `WHERE` conditions (e.g. draft/permission filters), missing `ORDER BY` when order feeds a deterministic contract, mispaired `unnest` arrays.
+- Serialization boundaries: values that serialize successfully in tests but fail on real data (e.g. `serde_json` rejects `NaN`/infinite floats), error types whose serialized form leaks internal or user data to clients.
 - Authorization: code paths that could return or leak data the actor cannot view.
 - Unbounded allocation or CPU driven by user-controlled request parameters.
 - Panics reachable from request handlers (`unwrap`, `expect`, indexing) on untrusted input.
