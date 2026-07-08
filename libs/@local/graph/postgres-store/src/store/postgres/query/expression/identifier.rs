@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::fmt::{self, Write as _};
 
-use crate::store::postgres::query::Transpile;
+use crate::store::postgres::query::{Table, Transpile};
 
 /// A PostgreSQL identifier (table name, column name, alias, schema name, etc.).
 ///
@@ -16,6 +16,14 @@ use crate::store::postgres::query::Transpile;
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Identifier<'name> {
     name: Cow<'name, str>,
+}
+
+impl Identifier<'static> {
+    pub(crate) const fn from_table(table: Table) -> Self {
+        Self {
+            name: Cow::Borrowed(table.as_str()),
+        }
+    }
 }
 
 impl fmt::Debug for Identifier<'_> {

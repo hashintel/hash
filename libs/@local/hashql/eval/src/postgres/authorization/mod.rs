@@ -205,8 +205,8 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
                 );
             };
 
-            if alias.as_ref() == table::EntityEditions::Properties.as_str()
-                || alias.as_ref() == table::EntityEditions::PropertyMetadata.as_str()
+            if alias.as_ref() == table::EntityEditions::Properties.name().as_str()
+                || alias.as_ref() == table::EntityEditions::PropertyMetadata.name().as_str()
             {
                 let base = mem::replace(expression, Expression::Parameter(0));
 

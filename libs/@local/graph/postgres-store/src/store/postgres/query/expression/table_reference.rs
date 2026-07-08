@@ -47,7 +47,7 @@ pub struct TableName<'name>(Identifier<'name>);
 impl TableName<'_> {
     #[must_use]
     pub const fn from_table(name: Table) -> Self {
-        Self(TableNameImpl::Static(name))
+        Self(Identifier::from_table(name))
     }
 }
 

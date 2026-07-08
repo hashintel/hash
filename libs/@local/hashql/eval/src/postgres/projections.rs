@@ -269,7 +269,7 @@ impl Projections {
                     correlation: Some(inner_ref.clone()),
                     name: Column::EntityEditions(column).into(),
                 }),
-                alias: Some(column.as_str().into()),
+                alias: Some(column.name().into_identifier()),
             })
             .collect();
 
@@ -596,7 +596,7 @@ impl AuxiliaryProjections {
     /// (`entity_editions`, then continuations). Authorization joins must appear
     /// before these so that the LATERAL subqueries can reference them.
     ///
-    /// This traverses the right spine of `CrossJoin` nodes to find the
+    /// This traverses the left spine of `CrossJoin` nodes to find the
     /// insertion point (the innermost non-LATERAL join tree), appends
     /// authorization joins there, and reassembles the LATERAL chain on top.
     pub(crate) fn build_joins(&self, mut from: FromItem<'static>) -> FromItem<'static> {
