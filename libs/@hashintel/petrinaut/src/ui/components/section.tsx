@@ -1,5 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -118,7 +118,6 @@ const triggerButtonStyle = css({
 });
 
 const collapsibleContentStyle = css({
-  overflow: "hidden",
   animationDuration: "[200ms]",
   animationTimingFunction: "ease-in-out",
 
@@ -128,6 +127,10 @@ const collapsibleContentStyle = css({
   "&[data-state=closed]": {
     animationName: "collapse",
   },
+});
+
+const animatingContentStyle = css({
+  overflow: "hidden",
 });
 
 const contentStyle = css({
@@ -183,6 +186,8 @@ export const Section = ({
 
   const { showAnimations } = use(UserSettingsContext);
 
+  const [isAnimating, setIsAnimating] = useState(false);
+
   if (collapsible) {
     return (
       <Collapsible.Root
@@ -205,8 +210,19 @@ export const Section = ({
         <Collapsible.Content
           className={cx(
             showAnimations ? collapsibleContentStyle : undefined,
+            isAnimating && animatingContentStyle,
             contentPaddingStyle,
           )}
+          onAnimationStart={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsAnimating(true);
+            }
+          }}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsAnimating(false);
+            }
+          }}
         >
           <div className={collapsibleContentInnerStyle}>{children}</div>
         </Collapsible.Content>

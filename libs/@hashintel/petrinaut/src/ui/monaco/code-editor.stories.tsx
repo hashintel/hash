@@ -18,8 +18,6 @@ import type { editor as MonacoEditor } from "monaco-editor";
 // -- Helpers ------------------------------------------------------------------
 
 const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
   gap: "[12px]",
   width: "full",
 });
