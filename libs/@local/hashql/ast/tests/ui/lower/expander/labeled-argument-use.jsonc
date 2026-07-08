@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `use`
+[
+  "::kernel::special_form::use",
+  "::core::math",
+  { "#tuple": ["add"] },
+  { "#literal": 0 },
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `use`
+]

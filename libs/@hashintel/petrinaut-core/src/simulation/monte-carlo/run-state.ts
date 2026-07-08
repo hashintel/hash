@@ -33,7 +33,7 @@ function deriveRunSeed(baseSeed: number, runIndex: number): number {
 }
 
 /**
- * Ensures a frame has enough Float64 token value capacity.
+ * Ensures a frame has enough token byte capacity.
  *
  * If the frame is too small, this allocates a replacement with 2x growth,
  * copies existing state, rewires the owning run's current/next frame pointer,
@@ -42,16 +42,16 @@ function deriveRunSeed(baseSeed: number, runIndex: number): number {
 export function ensureFrameCapacity(
   run: MonteCarloRunState,
   frame: MonteCarloFrameBuffer,
-  requiredTokenValueCount: number,
+  requiredTokenByteCount: number,
 ): MonteCarloFrameBuffer {
-  if (frame.tokenValueCapacity >= requiredTokenValueCount) {
+  if (frame.tokenByteCapacity >= requiredTokenByteCount) {
     return frame;
   }
 
   const nextCapacity = Math.max(
-    requiredTokenValueCount,
-    frame.tokenValueCapacity * 2,
-    8,
+    requiredTokenByteCount,
+    frame.tokenByteCapacity * 2,
+    64,
   );
   const resizedFrame = cloneMonteCarloFrameBuffer(
     run.simulation.frameLayout,
@@ -102,10 +102,10 @@ export function createRunState(
   }
 
   const initialView = readEngineFrame(simulation.frameLayout, initialFrame);
-  const initialTokenValueCount = initialView.tokenValues.length;
+  const initialTokenByteCount = initialView.tokenBytes.byteLength;
   const initialCapacity = Math.max(
-    config.initialTokenValueCapacity ?? initialTokenValueCount,
-    initialTokenValueCount,
+    config.initialTokenByteCapacity ?? initialTokenByteCount,
+    initialTokenByteCount,
   );
   const currentFrame = createMonteCarloFrameBuffer(
     simulation.frameLayout,
@@ -160,8 +160,8 @@ export function summarizeRun(run: MonteCarloRunState): MonteCarloRunSummary {
     parameterValues: run.parameterValues,
     completionReason: run.completionReason,
     error: run.error,
-    tokenValueCount: run.currentFrame.tokenValueCount,
-    tokenValueCapacity: run.currentFrame.tokenValueCapacity,
+    tokenByteCount: run.currentFrame.tokenByteCount,
+    tokenByteCapacity: run.currentFrame.tokenByteCapacity,
     reallocations: run.reallocations,
   };
 }

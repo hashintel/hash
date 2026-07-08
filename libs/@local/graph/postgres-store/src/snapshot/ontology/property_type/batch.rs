@@ -4,12 +4,15 @@ use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 
 use crate::{
-    snapshot::WriteBatch,
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
         AsClient, PostgresStore,
-        postgres::query::rows::{
-            PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
-            PropertyTypeEmbeddingRow, PropertyTypeRow,
+        postgres::query::{
+            OnConflict,
+            rows::{
+                PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
+                PropertyTypeEmbeddingRow, PropertyTypeRow,
+            },
         },
     },
 };
@@ -67,93 +70,59 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(property_types) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO property_types_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::property_types[])
-                            RETURNING 1;
-                        ",
-                        &[&property_types],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} property type schemas", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &property_types,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} property type schemas");
                 }
             }
             Self::ConstrainsValues(values) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO property_type_constrains_values_on_tmp
-                            SELECT DISTINCT *
-                              FROM UNNEST($1::property_type_constrains_values_on[])
-                            RETURNING 1;
-                        ",
-                        &[&values],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} property type value constrains", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &values,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} property type value constrains");
                 }
             }
             Self::ConstrainsProperties(properties) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO property_type_constrains_properties_on_tmp
-                            SELECT DISTINCT * FROM \
-                         UNNEST($1::property_type_constrains_properties_on[])
-                            RETURNING 1;
-                        ",
-                        &[&properties],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} property type property type constrains", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &properties,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} property type property type constrains");
                 }
             }
             Self::Embeddings(embeddings) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO property_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::property_type_embeddings[])
-                            RETURNING 1;
-                        ",
-                        &[&embeddings],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} property type embeddings", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &embeddings,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} property type embeddings");
                 }
             }
         }

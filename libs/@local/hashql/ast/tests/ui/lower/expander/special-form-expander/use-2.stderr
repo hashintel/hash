@@ -1,0 +1,7 @@
+error[expander::invalid-argument-count]: Invalid argument count
+  ╭▸ 
+3 │ ["::kernel::special_form::use", "::math", { "#tuple": ["pi"] }]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected 3 arguments to `use`, found 2
+  │
+  ├ help: use `(use path imports body)`
+  ╰ note: the arguments are, in order: the module path to import from, the import specifier (`*`, a tuple of names, or a struct of aliases), and the body where the imports are in scope

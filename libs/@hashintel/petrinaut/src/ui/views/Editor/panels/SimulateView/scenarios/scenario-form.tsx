@@ -17,7 +17,10 @@ import { Spreadsheet } from "../../../../../components/spreadsheet";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
-import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
+import type {
+  SpreadsheetCellValue,
+  SpreadsheetColumn,
+} from "../../../../../components/spreadsheet";
 import type {
   Color,
   Parameter,
@@ -200,8 +203,8 @@ const PlaceInitialStateRow = ({
   placeType: Color | undefined;
   tokenCount: string;
   onTokenCountChange: (value: string) => void;
-  tokenData: number[][];
-  onTokenDataChange: (data: number[][]) => void;
+  tokenData: SpreadsheetCellValue[][];
+  onTokenDataChange: (data: SpreadsheetCellValue[][]) => void;
   documentUri?: string;
   error?: string;
   onFocus?: () => void;
@@ -211,6 +214,7 @@ const PlaceInitialStateRow = ({
     ? placeType.elements.map((element) => ({
         id: element.elementId,
         name: element.name,
+        type: element.type,
       }))
     : [];
 
@@ -269,7 +273,7 @@ export interface ScenarioFormState {
   scenarioParams: ScenarioParameterDraft[];
   parameterOverrides: Record<string, string>;
   initialTokenCounts: Record<string, string>;
-  initialTokenData: Record<string, number[][]>;
+  initialTokenData: Record<string, SpreadsheetCellValue[][]>;
   showAllPlaces: boolean;
   initialStateAsCode: boolean;
   initialStateCode: string;
@@ -288,7 +292,9 @@ export interface ScenarioFormCallbacks {
     updater: (prev: Record<string, string>) => Record<string, string>,
   ) => void;
   onInitialTokenDataChange: (
-    updater: (prev: Record<string, number[][]>) => Record<string, number[][]>,
+    updater: (
+      prev: Record<string, SpreadsheetCellValue[][]>,
+    ) => Record<string, SpreadsheetCellValue[][]>,
   ) => void;
   onShowAllPlacesChange: (value: boolean) => void;
   onInitialStateAsCodeChange: (value: boolean) => void;

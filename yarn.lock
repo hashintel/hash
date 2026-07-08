@@ -735,6 +735,7 @@ __metadata:
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-api": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-type-fetcher": "workspace:*"
@@ -13084,6 +13085,7 @@ __metadata:
     "@rust/harpc-types": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
@@ -13135,6 +13137,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-graph-embeddings@workspace:*, @rust/hash-graph-embeddings@workspace:libs/@local/graph/embeddings":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-embeddings@workspace:libs/@local/graph/embeddings"
+  dependencies:
+    "@rust/darwin-kperf-criterion": "workspace:*"
+    "@rust/error-stack": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-http-tests@workspace:tests/graph/http":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-http-tests@workspace:tests/graph/http"
@@ -13157,6 +13169,7 @@ __metadata:
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-test-data": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-status": "workspace:*"
     "@rust/hash-telemetry": "workspace:*"
   languageName: unknown
@@ -13186,6 +13199,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-migrations": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"

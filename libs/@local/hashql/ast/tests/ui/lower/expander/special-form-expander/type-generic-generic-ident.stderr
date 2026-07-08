@@ -1,0 +1,7 @@
+error[expander::invalid-generic-argument]: Invalid generic argument
+  ╭▸ 
+5 │   "Foo<Bar<Baz>>",
+  │        ━━━━━━━━ expected a simple type parameter
+  │
+  ├ help: use a simple identifier like `T`, not a qualified path
+  ╰ note: generic parameters are declared as `Name<T>` for unconstrained or `Name<T: Bound>` for constrained parameters

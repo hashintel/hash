@@ -1,0 +1,40 @@
+Expr#4294967040@41
+  ExprKind (Closure)
+    ClosureExpr#4294967040@41
+      ClosureSignature#4294967040@41
+        Generics#4294967040@8
+        ClosureParam#4294967040@16 (name: a)
+          Type#4294967040@15
+            TypeKind (Path)
+              Path#4294967040@15 (rooted: true)
+                PathSegment#4294967040@14 (name: kernel)
+                PathSegment#4294967040@14 (name: type)
+                PathSegment#4294967040@14 (name: Integer)
+        ClosureParam#4294967040@23 (name: b)
+          Type#4294967040@22
+            TypeKind (Path)
+              Path#4294967040@22 (rooted: true)
+                PathSegment#4294967040@21 (name: kernel)
+                PathSegment#4294967040@21 (name: type)
+                PathSegment#4294967040@21 (name: Integer)
+        Type#4294967040@27
+          TypeKind (Infer)
+      Expr#4294967040@40
+        ExprKind (Call)
+          CallExpr#4294967040@40
+            Expr#4294967040@31
+              ExprKind (Path)
+                Path#4294967040@31 (rooted: true)
+                  PathSegment#4294967040@30 (name: core)
+                  PathSegment#4294967040@30 (name: math)
+                  PathSegment#4294967040@30 (name: add)
+            Argument#4294967040@35
+              Expr#4294967040@35
+                ExprKind (Path)
+                  Path#4294967040@35 (rooted: false)
+                    PathSegment#4294967040@34 (name: a)
+            Argument#4294967040@39
+              Expr#4294967040@39
+                ExprKind (Path)
+                  Path#4294967040@39 (rooted: false)
+                    PathSegment#4294967040@38 (name: b)

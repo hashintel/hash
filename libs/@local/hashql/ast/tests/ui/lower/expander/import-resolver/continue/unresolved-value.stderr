@@ -1,0 +1,11 @@
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+5 │   "shl",
+  │    ━━━ cannot find value `shl` in this scope
+  │
+  ├ help: bring it into scope: `use ::core::bits::shl in`
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: use one of these fully qualified paths
+  ╭╴
+5 │   "::core::bits::shl",
+  ╰╴   ++++++++++++++

@@ -21,10 +21,11 @@ use crate::store::postgres::query::{
     Alias, Column, Distinctness, EqualityOperator, Expression, Function, Identifier,
     PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
     WindowStatement,
-    expression::{FromItem, GroupByExpression, PostgresType},
+    expression::{FromItem, GroupByExpression},
+    postgres_type::PostgresType,
     table::{
-        DataTypeEmbeddings, DatabaseColumn as _, EntityEditions, EntityEmbeddings,
-        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds,
+        DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
+        EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyIds,
         OntologyTemporalMetadata, PropertyTypeEmbeddings,
     },
 };
@@ -549,6 +550,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
                             | Table::EntityEdge
+                            | Table::Action
+                            | Table::ActionHierarchy
+                            | Table::Policy
+                            | Table::PolicyEdition
+                            | Table::PolicyAction
+                            | Table::UserActor
+                            | Table::MachineActor
+                            | Table::AiActor
+                            | Table::Web
+                            | Table::Team
+                            | Table::Role
+                            | Table::ActorRole
                             | Table::Reference(_) => {
                                 bail!(SelectCompilerError::UnsupportedEmbeddingPath)
                             }
@@ -605,6 +618,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
                             | Table::EntityEdge
+                            | Table::Action
+                            | Table::ActionHierarchy
+                            | Table::Policy
+                            | Table::PolicyEdition
+                            | Table::PolicyAction
+                            | Table::UserActor
+                            | Table::MachineActor
+                            | Table::AiActor
+                            | Table::Web
+                            | Table::Team
+                            | Table::Role
+                            | Table::ActorRole
                             | Table::Reference(_) => unreachable!(),
                         };
 

@@ -3,23 +3,26 @@
 pub mod query;
 
 use alloc::sync::Arc;
+use core::num::NonZero;
 use std::collections::HashMap;
 
 use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
+use futures::future::OptionFuture;
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
     self,
     entity::{
-        ClosedMultiEntityTypeMap, CreateEntityParams, DiffEntityParams, DiffEntityResult,
-        EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
-        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
-        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
-        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
-        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
-        PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
-        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
+        ClosedMultiEntityTypeMap, ClusterEntitiesParams, ClusterEntitiesResponse,
+        CreateEntityParams, DiffEntityParams, DiffEntityResult, EntityCluster, EntityPermissions,
+        EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken,
+        EntityStore, EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, LinkDataStateError, LinkDataValidationReport, LinkError,
+        LinkTargetError, LinkValidationReport, LinkedEntityError, MetadataValidationReport,
+        PatchEntityParams, PropertyMetadataValidationReport, QueryConversion,
+        QueryEntitiesResponse, SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
         SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
@@ -44,6 +47,7 @@ use hash_graph_types::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize as _;
+use tokio::sync::Semaphore;
 use type_system::{
     knowledge::{
         Confidence, Entity, Property,
@@ -79,7 +83,7 @@ use self::query::{
 use crate::rest::{
     ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, SearchRequestError,
     json::Json,
-    resolve_limit,
+    resolve_limit, resolve_search_embedding,
     status::{BoxedResponse, report_to_response},
 };
 
@@ -96,6 +100,7 @@ use crate::rest::{
         search_entities,
         patch_entity,
         update_entity_embeddings,
+        cluster_entities,
         diff_entity,
     ),
     components(
@@ -113,6 +118,9 @@ use crate::rest::{
             Embedding,
             UpdateEntityEmbeddingsParams,
             EntityEmbedding,
+            ClusterEntitiesParams,
+            ClusterEntitiesResponse,
+            EntityCluster,
             EntityQueryToken,
 
             PatchEntityParams,
@@ -225,7 +233,12 @@ impl EntityResource {
                 .route("/bulk", post(create_entities::<S>))
                 .route("/diff", post(diff_entity::<S>))
                 .route("/validate", post(validate_entity::<S>))
-                .route("/embeddings", post(update_entity_embeddings::<S>))
+                .nest(
+                    "/embeddings",
+                    Router::new()
+                        .route("/", post(update_entity_embeddings::<S>))
+                        .route("/clusters", post(cluster_entities::<S>)),
+                )
                 .route("/permissions", post(has_permission_for_entities::<S>))
                 .route("/search", post(search_entities::<S>))
                 .nest(
@@ -406,10 +419,18 @@ where
 }
 
 /// Request body for the entity embedding search endpoint.
+///
+/// Exactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted
+/// into an embedding by the server, which requires an embedding client to be configured.
 #[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct SearchEntitiesRequest {
-    pub embedding: Embedding<'static>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub embedding: Option<Embedding<'static>>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    pub semantic_string: Option<String>,
     pub maximum_semantic_distance: f64,
     pub limit: Option<usize>,
     #[serde(default)]
@@ -419,27 +440,34 @@ pub(crate) struct SearchEntitiesRequest {
 }
 
 impl SearchEntitiesRequest {
-    /// Convert this request into [`SearchEntitiesParams`] with the given [`ApiConfig`].
+    /// Converts the request into [`SearchEntitiesParams`], resolving the query embedding.
     ///
     /// # Errors
     ///
-    /// - [`InvalidSemanticDistance`] if the maximum semantic distance is invalid.
-    /// - [`LimitExceeded`] if the requested limit exceeds the configured maximum.
-    ///
-    /// [`InvalidSemanticDistance`]: SearchRequestError::InvalidSemanticDistance
-    /// [`LimitExceeded`]: SearchRequestError::LimitExceeded
-    pub(crate) fn into_params(
+    /// Returns a [`SearchRequestError`] if the query embedding cannot be resolved, the maximum
+    /// semantic distance is invalid, or the requested limit exceeds the configured maximum.
+    pub(crate) async fn into_params(
         self,
         config: ApiConfig,
+        embedding_client: Option<&OpenAiEmbeddingClient>,
     ) -> Result<SearchEntitiesParams, Report<SearchRequestError>> {
+        // Validate the local fields before resolving the embedding so an invalid request does not
+        // spend an embedding-provider call.
+        let maximum_semantic_distance = SemanticDistance::try_from(self.maximum_semantic_distance)
+            .change_context(SearchRequestError::InvalidSemanticDistance)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
+        let limit = resolve_limit(self.limit, config.query_entity_limit)
+            .change_context(SearchRequestError::LimitExceeded)
+            .attach(hash_status::StatusCode::InvalidArgument)?;
         Ok(SearchEntitiesParams {
-            embedding: self.embedding,
-            maximum_semantic_distance: SemanticDistance::try_from(self.maximum_semantic_distance)
-                .change_context(
-                SearchRequestError::InvalidSemanticDistance,
-            )?,
-            limit: resolve_limit(self.limit, config.query_entity_limit)
-                .change_context(SearchRequestError::LimitExceeded)?,
+            embedding: resolve_search_embedding(
+                self.embedding,
+                self.semantic_string,
+                embedding_client,
+            )
+            .await?,
+            maximum_semantic_distance,
+            limit,
             include_entity_types: self.include_entity_types,
             filter: self.filter,
         })
@@ -469,20 +497,21 @@ async fn search_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
     Extension(api_config): Extension<ApiConfig>,
     Json(request): Json<SearchEntitiesRequest>,
 ) -> Result<Json<SearchEntitiesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
-    let store = store_pool
-        .acquire(temporal_client.0)
+    let params = request
+        .into_params(api_config, embedding_client.0.as_deref())
         .await
         .map_err(report_to_response)?;
 
-    let params = request
-        .into_params(api_config)
-        .attach(hash_status::StatusCode::InvalidArgument)
+    let store = store_pool
+        .acquire(temporal_client.0)
+        .await
         .map_err(report_to_response)?;
 
     store
@@ -578,6 +607,61 @@ where
         .update_entity_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
+}
+
+pub struct ClusteringContext {
+    pub limit: Option<Semaphore>,
+}
+
+impl ClusteringContext {
+    #[must_use]
+    pub fn new(concurrency_limit: Option<NonZero<usize>>) -> Self {
+        Self {
+            limit: concurrency_limit.map(|limit| Semaphore::new(limit.get())),
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/embeddings/clusters",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "Clusters of entities by embedding similarity", body = ClusterEntitiesResponse),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = ClusterEntitiesParams,
+)]
+async fn cluster_entities<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Extension(store_pool): Extension<Arc<S>>,
+    Extension(temporal_client): Extension<Option<Arc<TemporalClient>>>,
+    Extension(context): Extension<Arc<ClusteringContext>>,
+    Json(params): Json<ClusterEntitiesParams>,
+) -> Result<Json<ClusterEntitiesResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let _permit = OptionFuture::from(context.limit.as_ref().map(Semaphore::acquire))
+        .await
+        .transpose()
+        .expect("semaphore should never be closed");
+
+    let store = store_pool
+        .acquire(temporal_client)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .cluster_entities(actor_id, params)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(

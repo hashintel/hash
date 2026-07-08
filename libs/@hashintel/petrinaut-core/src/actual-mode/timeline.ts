@@ -9,9 +9,8 @@ import { parseActualModeTimestampMs } from "./time";
 import type {
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationPlaceTokenValues,
 } from "../simulation/api";
-import type { Color, Place, SDCPN } from "../types/sdcpn";
+import type { Place, SDCPN } from "../types/sdcpn";
 import type {
   ActualModeContextValue,
   ActualModeMarking,
@@ -193,47 +192,10 @@ export const createActualModeTimelineFrameReader = (params: {
     time: point.timeMs / 1_000,
     getPlaceTokenCount: (placeId: string) =>
       getActualModePlaceMarkingTokenCount(marking[placeId]),
-    getPlaceTokenValues: (
-      placeId: string,
-    ): SimulationPlaceTokenValues | null => {
-      const place = definition.places.find(
-        (candidatePlace) => candidatePlace.id === placeId,
-      );
-      const color = place
-        ? definition.types.find((type) => type.id === place.colorId)
-        : null;
-      const placeMarking = marking[placeId];
-
-      if (!place || !color || !isActualModeTokenColourArray(placeMarking)) {
-        return {
-          count: getActualModePlaceMarkingTokenCount(placeMarking),
-          values: new Float64Array(),
-        };
-      }
-
-      const values = new Float64Array(
-        placeMarking.length * color.elements.length,
-      );
-
-      for (const [tokenIndex, token] of placeMarking.entries()) {
-        for (const [elementIndex, element] of color.elements.entries()) {
-          values[tokenIndex * color.elements.length + elementIndex] =
-            token[element.name] ?? token[element.elementId] ?? 0;
-        }
-      }
-
-      return {
-        count: placeMarking.length,
-        values,
-      };
-    },
-    getPlaceTokens: (
-      place: Place,
-      color: Color | null | undefined,
-    ): Record<string, number>[] => {
+    getPlaceTokens: (place: Place): Record<string, number>[] => {
       const placeMarking = marking[place.id];
 
-      if (!color || !isActualModeTokenColourArray(placeMarking)) {
+      if (!place.colorId || !isActualModeTokenColourArray(placeMarking)) {
         return [];
       }
 

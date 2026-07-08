@@ -18,6 +18,7 @@
     "@rust/hash-graph-store": "workspace:*",
     "@rust/hash-graph-temporal-versioning": "workspace:*",
     "@rust/hash-graph-test-data": "workspace:*",
+    "@rust/hash-graph-types": "workspace:*",
     "@rust/hash-status": "workspace:*",
     "@rust/hash-telemetry": "workspace:*"
   }

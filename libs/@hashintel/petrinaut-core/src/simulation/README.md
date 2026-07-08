@@ -2,6 +2,11 @@
 
 Headless SDCPN simulation runtime.
 
+> Illustrated architecture documentation (memory layouts, sequence diagrams,
+> protocols) lives in
+> [`../../docs/architecture/index.html`](../../docs/architecture/index.html) —
+> self-contained HTML, open it in a browser.
+
 ## Overview
 
 The simulation module exposes the core `createSimulation` factory and the

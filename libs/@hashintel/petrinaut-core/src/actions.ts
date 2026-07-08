@@ -32,6 +32,7 @@ import {
   stripDisabledExtensionData,
   type PetrinautExtensionSettings,
 } from "./extensions";
+import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
 import type {
   ArcEndpoint,
@@ -768,6 +769,10 @@ export function createPetrinautActions(
           if (type.id === parsed.typeId) {
             type.elements.push(parsed.element);
             colorSchema.parse(type);
+            migrateScenarioRowsForTypeEdit(sdcpn, parsed.typeId, {
+              kind: "add",
+              element: parsed.element,
+            });
             break;
           }
         }
@@ -782,10 +787,21 @@ export function createPetrinautActions(
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         for (const type of net.types) {
           if (type.id === parsed.typeId) {
-            for (const element of type.elements) {
+            for (const [index, element] of type.elements.entries()) {
               if (element.elementId === parsed.elementId) {
+                const previousElementType = element.type;
                 Object.assign(element, parsed.update);
                 colorSchema.parse(type);
+                if (
+                  parsed.update.type !== undefined &&
+                  parsed.update.type !== previousElementType
+                ) {
+                  migrateScenarioRowsForTypeEdit(sdcpn, parsed.typeId, {
+                    kind: "changeType",
+                    index,
+                    element,
+                  });
+                }
                 break;
               }
             }
@@ -807,6 +823,10 @@ export function createPetrinautActions(
               if (element.elementId === parsed.elementId) {
                 type.elements.splice(index, 1);
                 colorSchema.parse(type);
+                migrateScenarioRowsForTypeEdit(sdcpn, parsed.typeId, {
+                  kind: "remove",
+                  index,
+                });
                 break;
               }
             }
@@ -834,6 +854,18 @@ export function createPetrinautActions(
             if (element) {
               type.elements.splice(parsed.toIndex, 0, element);
               colorSchema.parse(type);
+              // Use the actual landing index (splice clamps out-of-range
+              // destinations to the end of the array).
+              const toIndex = type.elements.findIndex(
+                (candidate) => candidate.elementId === parsed.elementId,
+              );
+              if (toIndex !== fromIndex) {
+                migrateScenarioRowsForTypeEdit(sdcpn, parsed.typeId, {
+                  kind: "move",
+                  fromIndex,
+                  toIndex,
+                });
+              }
             }
             break;
           }

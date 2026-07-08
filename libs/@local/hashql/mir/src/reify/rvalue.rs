@@ -4,6 +4,7 @@ use hashql_core::{
     id::{Id as _, IdVec},
     symbol::sym,
     r#type::{TypeBuilder, Typed, builder},
+    value::Primitive,
 };
 use hashql_hir::node::{
     HirPtr, Node,
@@ -37,6 +38,7 @@ use crate::{
 impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A, S> {
     fn rvalue_data(&mut self, data: Data<'heap>) -> RValue<'heap> {
         match data {
+            Data::Primitive(Primitive::Null) => RValue::Load(Operand::Constant(Constant::Unit)),
             Data::Primitive(primitive) => {
                 // First try if we can promote the primitive to a non-opaque constant:
                 let constant = match Int::try_from(primitive) {
@@ -75,6 +77,9 @@ impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A
                     kind: AggregateKind::Dict,
                     operands,
                 })
+            }
+            Data::Tuple(Tuple { fields }) if fields.is_empty() => {
+                RValue::Load(Operand::Constant(Constant::Unit))
             }
             Data::Tuple(Tuple { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len(), self.context.mir.heap);

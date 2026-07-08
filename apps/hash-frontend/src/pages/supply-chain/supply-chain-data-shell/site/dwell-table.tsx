@@ -1,6 +1,6 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { BriefLink, StatusActionButton } from "../../shared/action-buttons";
+import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
 import { formatCost, formatNumber } from "../../shared/cost";
 import {
@@ -9,10 +9,15 @@ import {
   useBaseMeasure,
 } from "../../shared/measure-context";
 import { siteNodeKey } from "../../shared/site-node-key";
-import { deriveStatusActionState, statusKey } from "../../shared/status";
-import { trackSupplyChainInteraction } from "../../shared/telemetry";
+import {
+  deriveStatusActionState,
+  statusKey,
+  type StatusActionLabel,
+  type StatusStore,
+} from "../../shared/status";
 import { TrendIndicator } from "../../shared/trend-indicator";
-import { siteNodeDisplayLabel } from "./shared/helpers";
+import { ColumnHeader } from "./shared/column-header";
+import { siteNodeDisplayLabel, sortRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import {
@@ -21,11 +26,10 @@ import {
   type SortKey,
   type SortDir,
 } from "./shared/row-types";
-import { SortHeader } from "./shared/sort-header";
 import * as threshold from "./shared/table-styles";
+import { useStepTableView } from "./shared/use-step-table-view";
 
-import type { StatusStore } from "../../shared/status";
-import type { SiteNode } from "../../shared/types";
+import type { SiteNode, StepType } from "../../shared/types";
 
 export const DwellTable = ({
   rows,
@@ -33,11 +37,16 @@ export const DwellTable = ({
   sort,
   onSort,
   onRowClick,
-  briefHref,
   statusHistory = {},
   onStatus,
   timeRange,
   currency,
+  typeHidden,
+  onTypeHiddenChange,
+  productHidden,
+  onProductHiddenChange,
+  statusHidden,
+  onStatusHiddenChange,
 }: {
   rows: DwellRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -45,25 +54,35 @@ export const DwellTable = ({
   sort: { key: SortKey; dir: SortDir };
   onSort: (s: { key: SortKey; dir: SortDir }) => void;
   onRowClick: (node: SiteNode) => void;
-  briefHref: (node: SiteNode) => string;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
   timeRange: string;
   currency: string | null;
+  typeHidden: Set<StepType>;
+  onTypeHiddenChange: (next: Set<StepType>) => void;
+  productHidden: Set<string>;
+  onProductHiddenChange: (next: Set<string>) => void;
+  statusHidden: Set<StatusActionLabel>;
+  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
-  const toggleSort = (key: SortKey) => {
-    trackSupplyChainInteraction({
-      interaction: "table_sort_changed",
-      siteId: rows[0]?.plant ?? "",
+
+  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
+    useStepTableView<DwellRow>({
+      rows,
+      siteId,
+      sort,
+      onSort,
+      statusHistory,
+      typeHidden,
+      onTypeHiddenChange,
+      productHidden,
+      onProductHiddenChange,
+      statusHidden,
+      onStatusHiddenChange,
+      sortRows,
       source: "dwell_table",
     });
-    if (sort.key === key) {
-      onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
-    } else {
-      onSort({ key, dir: "desc" });
-    }
-  };
 
   return (
     <div
@@ -74,36 +93,64 @@ export const DwellTable = ({
         <thead>
           <tr className={threshold.theadRow}>
             <th className={threshold.th}>
-              <SortHeader
+              <ColumnHeader
                 label="Step"
-                sortKey="material"
-                current={sort}
-                onToggle={toggleSort}
+                sort={{
+                  active: sort.key === "material",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("material"),
+                }}
+                filter={typeFilter}
               />
             </th>
-            <th className={threshold.th}>Products</th>
+            <th className={threshold.th}>
+              <ColumnHeader label="Products" filter={productFilter} />
+            </th>
             <th className={threshold.thRight}>
-              <SortHeader
+              <ColumnHeader
                 label={MEASURE_LABELS[measure]}
-                sortKey="median"
-                current={sort}
-                onToggle={toggleSort}
+                sort={{
+                  active: sort.key === "median",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("median"),
+                }}
               />
             </th>
             <th className={threshold.thRight}>
-              <SortHeader
+              <ColumnHeader
                 label={`Cost (${timeRange})`}
-                sortKey="cost"
-                current={sort}
-                onToggle={toggleSort}
+                sort={{
+                  active: sort.key === "cost",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("cost"),
+                }}
               />
             </th>
-            <th className={threshold.thRight}>Samples</th>
-            <th className={threshold.thRight}>Brief</th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Samples"
+                sort={{
+                  active: sort.key === "sample",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("sample"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Status"
+                sort={{
+                  active: sort.key === "status",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("status"),
+                }}
+                filter={statusFilter}
+              />
+            </th>
           </tr>
         </thead>
         <tbody className={threshold.tbodyDivide}>
-          {rows.map((row) => (
+          {displayedRows.map((row) => (
             <tr
               key={siteNodeKey(row)}
               onClick={() => onRowClick(row)}
@@ -172,11 +219,8 @@ export const DwellTable = ({
               </td>
               <td className={cx(threshold.td, threshold.tdRight)}>
                 <div className={threshold.briefActionStack}>
-                  <BriefLink
-                    href={briefHref(row)}
-                    onClick={(event) => event.stopPropagation()}
-                  />
-
+                  {/* Brief button commented out; still reachable via the step slide-over. */}
+                  {/* <BriefLink href={briefHref(row)} onClick={(event) => event.stopPropagation()} /> */}
                   <StatusActionButton
                     state={deriveStatusActionState(
                       statusHistory[statusKey(siteId, row)],
@@ -190,10 +234,12 @@ export const DwellTable = ({
               </td>
             </tr>
           ))}
-          {rows.length === 0 && (
+          {displayedRows.length === 0 && (
             <tr>
               <td colSpan={6} className={threshold.emptyCell}>
-                No dwell steps in the selected period
+                {rows.length === 0
+                  ? "No dwell steps for this site."
+                  : "No dwell steps match the current filters."}
               </td>
             </tr>
           )}

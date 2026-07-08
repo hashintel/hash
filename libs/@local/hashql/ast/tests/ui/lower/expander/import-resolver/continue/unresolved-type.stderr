@@ -1,0 +1,28 @@
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+7 │   "T",
+  │    ━ cannot find type `T` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar local binding exists
+  ╭╴
+7 -   "T",
+7 +   "Foo",
+  ╰╴
+help: a similar imported name exists
+  ╭╴
+7 -   "T",
+7 +   "String",
+  ├╴
+7 -   "T",
+7 +   "Union",
+  ├╴
+7 -   "T",
+7 +   "Unknown",
+  ├╴
+7 -   "T",
+7 +   "Url",
+  ├╴
+7 -   "T",
+7 +   "|",
+  ╰╴

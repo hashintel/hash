@@ -6,9 +6,12 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { getItemFilePath } from "./file-paths";
 
 import type {
+  Color,
+  ColorElementType,
   InputArc,
   OutputArc,
   SDCPN,
@@ -26,10 +29,67 @@ function sanitizeColorId(colorId: string): string {
 }
 
 /**
- * Maps SDCPN element types to TypeScript types
+ * Maps SDCPN element types to TypeScript types. `ratio` is a scenario
+ * parameter type (not a `ColorElementType`), so it is handled here rather
+ * than in the type-policy registry.
  */
-function toTsType(type: "real" | "integer" | "boolean" | "ratio"): string {
-  return type === "boolean" ? "boolean" : "number";
+function toTsType(type: ColorElementType | "ratio"): string {
+  return type === "ratio" ? "number" : TYPE_POLICIES[type].tsInputType;
+}
+
+/**
+ * Dynamics derivatives only apply to continuous (real) attributes. Discrete
+ * elements are typed `?: never` rather than omitted: user code returns
+ * derivatives through `tokens.map(...)`, whose result is not a fresh object
+ * literal, so excess property checks would not reject extra keys — `never`
+ * rejects them in any assignment.
+ */
+function toDynamicsDerivativeType(color: Color): string {
+  const properties = color.elements
+    .map((element) =>
+      element.type === "real"
+        ? `  ${element.name}?: number;`
+        : `  ${element.name}?: never;`,
+    )
+    .join("\n");
+
+  return properties.length > 0
+    ? `{\n${properties}\n}`
+    : "Record<string, never>";
+}
+
+/**
+ * Kernel output token type, generated per element:
+ *
+ * - `real` attributes may additionally be produced as a `Distribution` when
+ *   stochasticity is enabled — the generic `Probabilistic<T>` mapped type
+ *   could not distinguish integer from real (both are `number`), so the type
+ *   is generated per element instead.
+ * - `uuid` attributes are OPTIONAL (omitted values are auto-generated from
+ *   the seeded simulation RNG) and also accept UUID strings and the
+ *   `Uuid.generate()` / `Uuid.from(value)` sentinels.
+ * - Other discrete attributes (`integer`, `boolean`, `string`) must be plain
+ *   values (`string` never takes a Distribution or a sentinel).
+ */
+function toKernelOutputTokenType(
+  color: Color,
+  stochasticityEnabled: boolean,
+): string {
+  const properties = color.elements
+    .map((element) => {
+      if (element.type === "real" && stochasticityEnabled) {
+        return `  ${element.name}: number | Distribution;`;
+      }
+      const policy = TYPE_POLICIES[element.type];
+      return `  ${element.name}${policy.kernelOutputOptional ? "?" : ""}: ${
+        policy.tsKernelOutputType
+      };`;
+    })
+    .join("\n");
+
+  return properties.length > 0
+    ? `{\n${properties}\n}`
+    : "Record<string, never>";
 }
 
 /**
@@ -82,19 +142,27 @@ export function generateVirtualFiles(
 ): Map<string, VirtualFile> {
   const files = new Map<string, VirtualFile>();
 
-  // Generate global SDCPN library definitions
+  // Generate global SDCPN library definitions. The Uuid helper is always
+  // available (uuid token attributes exist regardless of stochasticity);
+  // Distribution declarations stay gated on the stochasticity extension.
   files.set(getItemFilePath("sdcpn-lib-defs"), {
-    content: extensions.stochasticity
-      ? [
-          `type Distribution = { map(fn: (value: number) => number): Distribution };`,
-          `type Probabilistic<T> = { [K in keyof T]: T[K] extends number ? number | Distribution : T[K] };`,
-          `declare namespace Distribution {`,
-          `  function Gaussian(mean: number, deviation: number): Distribution;`,
-          `  function Uniform(min: number, max: number): Distribution;`,
-          `  function Lognormal(mu: number, sigma: number): Distribution;`,
-          `}`,
-        ].join("\n")
-      : "",
+    content: [
+      ...(extensions.stochasticity
+        ? [
+            `type Distribution = { map(fn: (value: number) => number): Distribution };`,
+            `declare namespace Distribution {`,
+            `  function Gaussian(mean: number, deviation: number): Distribution;`,
+            `  function Uniform(min: number, max: number): Distribution;`,
+            `  function Lognormal(mu: number, sigma: number): Distribution;`,
+            `}`,
+          ]
+        : []),
+      `type PetrinautUuid = { readonly __petrinautUuid: "generate" | "from" };`,
+      `declare namespace Uuid {`,
+      `  function generate(): PetrinautUuid;`,
+      `  function from(value: unknown): PetrinautUuid;`,
+      `}`,
+    ].join("\n"),
   });
 
   // Build lookup maps for places and types.
@@ -138,6 +206,7 @@ export function generateVirtualFiles(
     ? sdcpn.differentialEquations
     : []) {
     const sanitizedColorId = de.colorId ? sanitizeColorId(de.colorId) : null;
+    const color = de.colorId ? colorById.get(de.colorId) : undefined;
     const deDefsPath = getItemFilePath("differential-equation-defs", {
       id: de.id,
     });
@@ -162,7 +231,10 @@ export function generateVirtualFiles(
         sanitizedColorId
           ? `type Tokens = Array<Color_${sanitizedColorId}>;`
           : `type Tokens = Array<number>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Tokens) => void;`,
+        color
+          ? `type Derivative = ${toDynamicsDerivativeType(color)};`
+          : `type Derivative = Record<string, never>;`,
+        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
       ].join("\n"),
     });
 
@@ -240,6 +312,9 @@ export function generateVirtualFiles(
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
     const outputTypeImports: string[] = [];
     const outputTypeProperties: string[] = [];
+    // Per-colour kernel output token types (optional uuid; Distribution on
+    // real only when stochasticity is enabled).
+    const outputTokenTypeAliases = new Map<string, string>();
 
     for (const arc of transition.outputArcs) {
       const place = resolveArcPlace(arc);
@@ -264,12 +339,17 @@ export function generateVirtualFiles(
         outputTypeImports.push(importStatement);
       }
       const tokenTuple = Array.from({ length: arc.weight })
-        .fill(
-          extensions.stochasticity
-            ? `Probabilistic<Color_${sanitizedColorId}>`
-            : `Color_${sanitizedColorId}`,
-        )
+        .fill(`Output_${sanitizedColorId}`)
         .join(", ");
+      if (!outputTokenTypeAliases.has(sanitizedColorId)) {
+        outputTokenTypeAliases.set(
+          sanitizedColorId,
+          `type Output_${sanitizedColorId} = ${toKernelOutputTokenType(
+            color,
+            extensions.stochasticity,
+          )};`,
+        );
+      }
       const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
       outputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
     }
@@ -319,6 +399,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          ...outputTokenTypeAliases.values(),
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
@@ -521,7 +602,9 @@ export function generateMetricSessionFiles(
   const { sessionId } = session;
 
   // Build per-place state types. Colored places expose typed `tokens` arrays;
-  // uncolored places fall back to `Record<string, number>[]`.
+  // uncolored places (and places whose color can't be resolved) always yield
+  // `[]` at runtime, so their element type is `never` — indexing into them is
+  // a type error instead of a phantom token record.
   const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
   const placeStateImports: string[] = [];
   const placeStateProperties: string[] = [];
@@ -541,10 +624,10 @@ export function generateMetricSessionFiles(
         }
         tokensType = `Color_${sanitized}[]`;
       } else {
-        tokensType = "Record<string, number>[]";
+        tokensType = "never[]";
       }
     } else {
-      tokensType = "Record<string, number>[]";
+      tokensType = "never[]";
     }
     placeStateProperties.push(
       `  "${place.name}": { count: number; tokens: ${tokensType} };`,
@@ -554,7 +637,7 @@ export function generateMetricSessionFiles(
   const placesType =
     placeStateProperties.length > 0
       ? `{\n${placeStateProperties.join("\n")}\n}`
-      : "Record<string, { count: number; tokens: Record<string, number>[] }>";
+      : "Record<string, { count: number; tokens: Record<string, number | boolean | bigint | string>[] }>";
 
   // defs file (kept separate so updates only invalidate code on real changes)
   const defsPath = getItemFilePath("metric-session-defs", { sessionId });

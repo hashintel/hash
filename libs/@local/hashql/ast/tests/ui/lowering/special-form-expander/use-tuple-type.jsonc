@@ -1,9 +1,0 @@
-//@ run: fail
-//@ description: any tuple with a type annotation should fail
-[
-  "::kernel::special_form::use",
-  "::core",
-  { "#tuple": ["::core::math::sub"], "#type": "Number" },
-  //~^ ERROR Remove this type annotation
-  "x"
-]

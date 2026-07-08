@@ -1,0 +1,22 @@
+Expr#4294967040@23
+  ExprKind (As)
+    AsExpr#4294967040@23
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (True)
+      Type#4294967040@22
+        TypeKind (Union)
+          UnionType#4294967040@22
+            Type#4294967040@17
+              TypeKind (Path)
+                Path#4294967040@17 (rooted: true)
+                  PathSegment#4294967040@16 (name: kernel)
+                  PathSegment#4294967040@16 (name: type)
+                  PathSegment#4294967040@16 (name: Integer)
+            Type#4294967040@21
+              TypeKind (Path)
+                Path#4294967040@21 (rooted: true)
+                  PathSegment#4294967040@20 (name: kernel)
+                  PathSegment#4294967040@20 (name: type)
+                  PathSegment#4294967040@20 (name: Number)

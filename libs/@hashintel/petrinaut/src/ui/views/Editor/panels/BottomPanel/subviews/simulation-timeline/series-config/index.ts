@@ -43,7 +43,6 @@ export function buildTimelineSeriesConfig(args: {
         metric: selectedMetric,
         compiledMetric,
         places,
-        types,
       });
     case "per-transition":
       return buildPerTransitionSeriesConfig({ transitions });

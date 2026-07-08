@@ -1,0 +1,10 @@
+error[expander::invalid-type-constructor-call]: Invalid type constructor call
+  ╭▸ 
+6 │   ["::kernel::type::List", "Integer"],
+  │   ┬─┯━━━━━━━━━━━━━━━━━━━─────────────
+  │   │ │
+  │   │ `::kernel::type::List` is a type, not a type constructor
+  │   call syntax is only valid for type constructors like `|` and `&`
+  │
+  ├ help: use `::kernel::type::List` directly as a type path, or write `::kernel::type::List<...>` for generic arguments
+  ╰ note: only `|` (union) and `&` (intersection) can be called as type constructors in type position

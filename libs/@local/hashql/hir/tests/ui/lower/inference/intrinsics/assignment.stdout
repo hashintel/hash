@@ -1,16 +1,16 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-let add:0 = ::core::math::add in add:0
+let add:0 = ::core::math::add in ::core::math::add
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-let add:0 = ::core::math::add in add:0
+let add:0 = ::core::math::add in ::core::math::add
 
 ════ Intrinsics ════════════════════════════════════════════════════════════════
 
 ┌─ ::core::math::add
 └→ ::core::math::add
 
-┌─ add:0
+┌─ ::core::math::add
 └→ ::core::math::add
 

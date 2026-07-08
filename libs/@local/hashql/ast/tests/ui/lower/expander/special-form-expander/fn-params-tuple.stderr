@@ -1,0 +1,6 @@
+error[expander::invalid-fn-params]: Invalid parameter list
+  ╭▸ 
+6 │   { "#tuple": [] },
+  │   ━━━━━━━━━━━━━━━━ expected a struct for function parameters
+  │
+  ╰ help: write parameters as `(x: int, y: string)` where each field declares a parameter and its type

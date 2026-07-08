@@ -57,10 +57,10 @@ impl From<ParameterKind> for PostgresType {
         match value {
             ParameterKind::Value => Self::JsonB,
             ParameterKind::String => Self::Text,
-            ParameterKind::Integer => Self::BigInt,
-            ParameterKind::Boolean => Self::Boolean,
+            ParameterKind::Integer => Self::Int8,
+            ParameterKind::Boolean => Self::Bool,
             ParameterKind::Number => Self::Numeric,
-            ParameterKind::TimestampInterval => Self::TimestampTzRange,
+            ParameterKind::TimestampInterval => Self::TstzRange,
         }
     }
 }

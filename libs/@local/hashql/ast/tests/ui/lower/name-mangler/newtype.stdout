@@ -1,0 +1,28 @@
+Expr#4294967040@36
+  ExprKind (Let)
+    LetExpr#4294967040@36 (name: T:0)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            Primitive (Integer)
+              Integer (1)
+      Expr#4294967040@35
+        ExprKind (NewType)
+          NewTypeExpr#4294967040@35 (name: T:1)
+            Type#4294967040@21
+              TypeKind (Path)
+                Path#4294967040@21 (rooted: true)
+                  PathSegment#4294967040@20 (name: kernel)
+                  PathSegment#4294967040@20 (name: type)
+                  PathSegment#4294967040@20 (name: Number)
+            Expr#4294967040@34
+              ExprKind (As)
+                AsExpr#4294967040@34
+                  Expr#4294967040@29
+                    ExprKind (Path)
+                      Path#4294967040@29 (rooted: false)
+                        PathSegment#4294967040@28 (name: T:1)
+                  Type#4294967040@33
+                    TypeKind (Path)
+                      Path#4294967040@33 (rooted: false)
+                        PathSegment#4294967040@32 (name: T:1)

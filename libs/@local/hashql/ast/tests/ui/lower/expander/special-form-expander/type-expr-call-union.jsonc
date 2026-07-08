@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Invoking `::kernel::types::union` should convert into a union type expression
+["::kernel::special_form::as", { "#literal": true }, ["|", "Integer", "Number"]]

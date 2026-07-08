@@ -4,7 +4,7 @@
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Language Features
-    impl_trait_in_assoc_type,
+    impl_trait_in_assoc_type
 )]
 #![cfg_attr(test, feature(
     // Language Features

@@ -28,7 +28,7 @@ use crate::node::{generic::GenericConstraint, id::NodeId, r#type::Type};
 /// type UserId = String in <body>
 /// type Point = {x: Float, y: Float} in <body>
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct TypeExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

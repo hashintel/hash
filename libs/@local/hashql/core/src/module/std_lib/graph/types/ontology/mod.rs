@@ -1,3 +1,11 @@
+use crate::{
+    module::{
+        StandardLibrary,
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    },
+    symbol::{Symbol, sym},
+};
+
 pub(in crate::module::std_lib) mod entity_type;
 
 pub mod types {
@@ -50,15 +58,6 @@ pub mod types {
     }
 }
 
-use crate::{
-    heap::Heap,
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
-    },
-    symbol::{Symbol, sym},
-};
-
 pub(in crate::module::std_lib) struct Ontology {
     _dependencies: (std_lib::core::url::Url,),
 }
@@ -66,8 +65,8 @@ pub(in crate::module::std_lib) struct Ontology {
 impl<'heap> StandardLibraryModule<'heap> for Ontology {
     type Children = (self::entity_type::EntityType,);
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("ontology")
+    fn name() -> Symbol<'heap> {
+        sym::ontology
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

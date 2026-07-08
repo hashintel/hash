@@ -1,0 +1,7 @@
+error[expander::invalid-argument-count]: Invalid argument count
+  ╭▸ 
+3 │ ["::kernel::special_form::as", { "#literal": true }]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected 2 arguments to `as`, found 1
+  │
+  ├ help: use `(as value type)`
+  ╰ note: the first argument is the value to cast and the second is the target type

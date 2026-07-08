@@ -28,7 +28,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
                         JSONB_EXTRACT_PATH("entity_editions_0_0_1"."properties", ((($1::text))::text))
                     )
                     = TO_JSONB(($2::jsonb))
-                )::boolean
+                )::bool
             ),
             FALSE
         ),

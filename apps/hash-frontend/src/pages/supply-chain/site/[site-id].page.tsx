@@ -1,3 +1,4 @@
+import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
@@ -20,6 +21,10 @@ const SitePage: NextPageWithLayout = () => {
   );
   const opportunityStatusStore = useSupplyChainStatusState(siteId);
 
+  const siteName = sites.find(
+    (site) => normaliseSiteCode(site.slug) === siteId,
+  )?.name;
+
   useEffect(() => {
     if (!siteId) {
       return;
@@ -33,13 +38,16 @@ const SitePage: NextPageWithLayout = () => {
   }, [siteId]);
 
   return (
-    <SiteOverview
-      products={products}
-      siteId={siteId}
-      opportunityStatuses={opportunityStatusStore.statuses}
-      opportunityStatusHistory={opportunityStatusStore.statusHistory}
-      opportunityStatusActions={opportunityStatusStore.actions}
-    />
+    <>
+      <NextSeo title={siteName ?? "Site"} />
+      <SiteOverview
+        key={siteId}
+        products={products}
+        siteId={siteId}
+        opportunityStatusHistory={opportunityStatusStore.statusHistory}
+        opportunityStatusActions={opportunityStatusStore.actions}
+      />
+    </>
   );
 };
 

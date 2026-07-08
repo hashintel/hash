@@ -1,85 +1,41 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  createEngineFrame,
-  createEngineFrameLayout,
-  materializeEngineFrame,
-  type EngineFrameLayout,
-  type EngineFrameSnapshot,
-} from "../frames/internal-frame";
+import { materializeEngineFrame } from "../frames/internal-frame";
 import { removeTokensFromSimulationFrame as removeTokensFromEngineFrame } from "./remove-tokens-from-simulation-frame";
+import {
+  decodePlaceTokens,
+  makeTestFrame,
+  realElements,
+  type TestFrame,
+} from "./token-layout.test-helpers";
 
-import type { Color, Place } from "../../types/sdcpn";
+import type { TokenRecord } from "../../types/sdcpn";
+import type { EngineFrameSnapshot } from "../frames/internal-frame";
 import type { EngineFrame } from "./types";
-
-type TestFrame = EngineFrame & { layout: EngineFrameLayout };
-
-function makeColor(dimensions: number): Color {
-  return {
-    id: `type-${dimensions}`,
-    name: `Type ${dimensions}`,
-    iconSlug: "circle",
-    displayColor: "#000000",
-    elements: Array.from({ length: dimensions }, (_, index) => ({
-      elementId: `d${index}`,
-      name: `d${index}`,
-      type: "real",
-    })),
-  };
-}
-
-function makePlace(id: string, dimensions: number): Place {
-  return {
-    id,
-    name: id,
-    colorId: dimensions === 0 ? null : `type-${dimensions}`,
-    dynamicsEnabled: false,
-    differentialEquationId: null,
-    x: 0,
-    y: 0,
-  };
-}
-
-function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
-  const dimensions = new Set(
-    Object.values(snapshot.places).map((place) => place.dimensions),
-  );
-  const layout = createEngineFrameLayout({
-    places: Object.entries(snapshot.places).map(([id, place]) =>
-      makePlace(id, place.dimensions),
-    ),
-    transitions: [],
-    types: [...dimensions]
-      .filter((dimension) => dimension > 0)
-      .map((dimension) => makeColor(dimension)),
-  });
-  const frame = createEngineFrame(layout, snapshot) as TestFrame;
-  Object.defineProperty(frame, "layout", { value: layout });
-  return frame;
-}
 
 function removeTokensFromSimulationFrame(
   frame: TestFrame,
   tokensToRemove: Map<string, Set<number> | number>,
-): EngineFrameSnapshot {
+): {
+  frame: EngineFrame;
+  snapshot: EngineFrameSnapshot;
+  decode: (placeId: string) => TokenRecord[];
+} {
   const result = removeTokensFromEngineFrame(
     frame,
     tokensToRemove,
     frame.layout,
   );
-  if (result === frame) {
-    return frame as unknown as EngineFrameSnapshot;
-  }
-  return materializeEngineFrame(frame.layout, result);
+  return {
+    frame: result,
+    snapshot: materializeEngineFrame(frame.layout, result),
+    decode: (placeId) => decodePlaceTokens(frame.layout, result, placeId),
+  };
 }
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const frame = makeFrame({
-      places: {},
-      transitions: {},
-      buffer: new Float64Array([]),
-    });
+    const frame = makeTestFrame({ places: {} });
 
     expect(() => {
       removeTokensFromSimulationFrame(
@@ -90,34 +46,32 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 3,
-          dimensions: 2,
+          elements: realElements("d0", "d1"),
+          tokens: [
+            { d0: 1, d1: 2 },
+            { d0: 3, d1: 4 },
+            { d0: 5, d1: 6 },
+          ],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
     });
 
-    const result = removeTokensFromSimulationFrame(frame, new Map());
+    const result = removeTokensFromEngineFrame(frame, new Map(), frame.layout);
 
     expect(result).toBe(frame);
   });
 
   it("throws error when token index is out of bounds", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0]),
     });
 
     expect(() => {
@@ -126,38 +80,32 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 3,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }, { d0: 3 }],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0, 3.0]),
     });
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set()]]),
+      new Map([["p1", new Set<number>()]]),
     );
 
-    expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
-    expect(result.places.p1?.count).toBe(3);
+    expect(result.decode("p1")).toEqual([{ d0: 1 }, { d0: 2 }, { d0: 3 }]);
+    expect(result.snapshot.places.p1?.count).toBe(3);
   });
 
-  it("removes a single token from a place with 1D tokens", () => {
-    const frame = makeFrame({
+  it("removes a single token from a place with one attribute", () => {
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 3,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }, { d0: 3 }],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0, 3.0]),
     });
 
     const result = removeTokensFromSimulationFrame(
@@ -165,22 +113,19 @@ describe("removeTokensFromSimulationFrame", () => {
       new Map([["p1", new Set([1])]]),
     );
 
-    expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
-    expect(result.places.p1?.count).toBe(2);
-    expect(result.places.p1?.offset).toBe(0);
+    expect(result.decode("p1")).toEqual([{ d0: 1 }, { d0: 3 }]);
+    expect(result.snapshot.places.p1?.count).toBe(2);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
   });
 
-  it("removes multiple tokens from a place with 1D tokens", () => {
-    const frame = makeFrame({
+  it("removes multiple tokens from a place with one attribute", () => {
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 4,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }, { d0: 3 }, { d0: 4 }],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     });
 
     const result = removeTokensFromSimulationFrame(
@@ -188,55 +133,55 @@ describe("removeTokensFromSimulationFrame", () => {
       new Map([["p1", new Set([0, 2])]]),
     );
 
-    expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
-    expect(result.places.p1?.count).toBe(2);
-    expect(result.places.p1?.offset).toBe(0);
+    expect(result.decode("p1")).toEqual([{ d0: 2 }, { d0: 4 }]);
+    expect(result.snapshot.places.p1?.count).toBe(2);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
   });
 
-  it("removes tokens from a place with multi-dimensional tokens", () => {
-    const frame = makeFrame({
+  it("removes tokens from a place with multi-attribute tokens", () => {
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 3,
-          dimensions: 3,
+          elements: realElements("d0", "d1", "d2"),
+          tokens: [
+            { d0: 1, d1: 2, d2: 3 },
+            { d0: 4, d1: 5, d2: 6 },
+            { d0: 7, d1: 8, d2: 9 },
+          ],
         },
       },
-      transitions: {},
-      // 3 tokens with 3 dimensions each: [1,2,3], [4,5,6], [7,8,9]
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
     });
 
-    // Remove token at index 1 (middle token: [4,5,6])
+    // Remove token at index 1 (middle token: {4,5,6})
     const result = removeTokensFromSimulationFrame(
       frame,
       new Map([["p1", new Set([1])]]),
     );
 
-    expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
-    );
-    expect(result.places.p1?.count).toBe(2);
-    expect(result.places.p1?.offset).toBe(0);
+    expect(result.decode("p1")).toEqual([
+      { d0: 1, d1: 2, d2: 3 },
+      { d0: 7, d1: 8, d2: 9 },
+    ]);
+    expect(result.snapshot.places.p1?.count).toBe(2);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
   });
 
-  it("adjusts offsets for subsequent places after removal", () => {
-    const frame = makeFrame({
+  it("adjusts byte offsets for subsequent places after removal", () => {
+    const frame = makeTestFrame({
       places: {
+        // 2 tokens with stride 16 bytes → p2 starts at byte offset 32
         p1: {
-          offset: 0,
-          count: 2,
-          dimensions: 2,
+          elements: realElements("d0", "d1"),
+          tokens: [
+            { d0: 1, d1: 2 },
+            { d0: 3, d1: 4 },
+          ],
         },
         p2: {
-          offset: 4, // After p1's 2 tokens * 2 dimensions
-          count: 3,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 5 }, { d0: 6 }, { d0: 7 }],
         },
       },
-      transitions: {},
-      // p1: [1,2], [3,4]  |  p2: [5], [6], [7]
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
     });
 
     // Remove one token from p1
@@ -245,31 +190,29 @@ describe("removeTokensFromSimulationFrame", () => {
       new Map([["p1", new Set([0])]]),
     );
 
-    // Expected: p1: [3,4]  |  p2: [5], [6], [7]
-    expect(result.buffer).toEqual(new Float64Array([3.0, 4.0, 5.0, 6.0, 7.0]));
-    expect(result.places.p1?.count).toBe(1);
-    expect(result.places.p1?.offset).toBe(0);
-    // p2's offset should be adjusted from 4 to 2 (removed 2 elements)
-    expect(result.places.p2?.offset).toBe(2);
-    expect(result.places.p2?.count).toBe(3);
+    // Expected: p1: [{3,4}]  |  p2: [{5}], [{6}], [{7}]
+    expect(result.decode("p1")).toEqual([{ d0: 3, d1: 4 }]);
+    expect(result.decode("p2")).toEqual([{ d0: 5 }, { d0: 6 }, { d0: 7 }]);
+    expect(result.snapshot.places.p1?.count).toBe(1);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
+    // p2's byte offset should be adjusted from 32 to 16 (removed one
+    // 16-byte token)
+    expect(result.snapshot.places.p2?.byteOffset).toBe(16);
+    expect(result.snapshot.places.p2?.count).toBe(3);
   });
 
   it("removes all tokens from a place", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
         p1: {
-          offset: 0,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }],
         },
         p2: {
-          offset: 2,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 3 }, { d0: 4 }],
         },
       },
-      transitions: {},
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     });
 
     const result = removeTokensFromSimulationFrame(
@@ -277,35 +220,31 @@ describe("removeTokensFromSimulationFrame", () => {
       new Map([["p1", new Set([0, 1])]]),
     );
 
-    expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
-    expect(result.places.p1?.count).toBe(0);
-    expect(result.places.p1?.offset).toBe(0);
-    expect(result.places.p2?.offset).toBe(0);
-    expect(result.places.p2?.count).toBe(2);
+    expect(result.decode("p1")).toEqual([]);
+    expect(result.decode("p2")).toEqual([{ d0: 3 }, { d0: 4 }]);
+    expect(result.snapshot.places.p1?.count).toBe(0);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
+    expect(result.snapshot.places.p2?.byteOffset).toBe(0);
+    expect(result.snapshot.places.p2?.count).toBe(2);
   });
 
   it("handles removal from middle place with three places", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
+        // Stride 8 bytes each: p1 @ 0, p2 @ 16, p3 @ 40
         p1: {
-          offset: 0,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }],
         },
         p2: {
-          offset: 2,
-          count: 3,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 3 }, { d0: 4 }, { d0: 5 }],
         },
         p3: {
-          offset: 5,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 6 }, { d0: 7 }],
         },
       },
-      transitions: {},
-      // p1: [1, 2] | p2: [3, 4, 5] | p3: [6, 7]
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
     });
 
     // Remove one token from p2 (middle place)
@@ -314,44 +253,44 @@ describe("removeTokensFromSimulationFrame", () => {
       new Map([["p2", new Set([1])]]),
     );
 
-    // Expected: p1: [1, 2] | p2: [3, 5] | p3: [6, 7]
-    expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
-    );
-    expect(result.places.p1?.offset).toBe(0);
-    expect(result.places.p1?.count).toBe(2);
-    expect(result.places.p2?.offset).toBe(2);
-    expect(result.places.p2?.count).toBe(2);
-    // p3's offset should be adjusted from 5 to 4 (removed 1 element)
-    expect(result.places.p3?.offset).toBe(4);
-    expect(result.places.p3?.count).toBe(2);
+    // Expected: p1: [{1}, {2}] | p2: [{3}, {5}] | p3: [{6}, {7}]
+    expect(result.decode("p1")).toEqual([{ d0: 1 }, { d0: 2 }]);
+    expect(result.decode("p2")).toEqual([{ d0: 3 }, { d0: 5 }]);
+    expect(result.decode("p3")).toEqual([{ d0: 6 }, { d0: 7 }]);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
+    expect(result.snapshot.places.p1?.count).toBe(2);
+    expect(result.snapshot.places.p2?.byteOffset).toBe(16);
+    expect(result.snapshot.places.p2?.count).toBe(2);
+    // p3's byte offset should be adjusted from 40 to 32 (removed one
+    // 8-byte token)
+    expect(result.snapshot.places.p3?.byteOffset).toBe(32);
+    expect(result.snapshot.places.p3?.count).toBe(2);
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const frame = makeFrame({
+    const frame = makeTestFrame({
       places: {
+        // p1 @ 0 (stride 8), p2 @ 24 (stride 16), p3 @ 56 (stride 8)
         p1: {
-          offset: 0,
-          count: 3,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 1 }, { d0: 2 }, { d0: 3 }],
         },
         p2: {
-          offset: 3,
-          count: 2,
-          dimensions: 2,
+          elements: realElements("d0", "d1"),
+          tokens: [
+            { d0: 4, d1: 5 },
+            { d0: 6, d1: 7 },
+          ],
         },
         p3: {
-          offset: 7,
-          count: 2,
-          dimensions: 1,
+          elements: realElements("d0"),
+          tokens: [{ d0: 8 }, { d0: 9 }],
         },
       },
-      transitions: {},
-      // p1: [1], [2], [3] | p2: [4,5], [6,7] | p3: [8], [9]
-      buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
     });
 
-    // Remove tokens from multiple places: token 1 from p1, token 0 from p2, token 1 from p3
+    // Remove tokens from multiple places: token 1 from p1, token 0 from p2,
+    // token 1 from p3
     const result = removeTokensFromSimulationFrame(
       frame,
       new Map([
@@ -361,13 +300,15 @@ describe("removeTokensFromSimulationFrame", () => {
       ]),
     );
 
-    // Expected: p1: [1], [3] | p2: [6,7] | p3: [8]
-    expect(result.buffer).toEqual(new Float64Array([1.0, 3.0, 6.0, 7.0, 8.0]));
-    expect(result.places.p1?.count).toBe(2);
-    expect(result.places.p1?.offset).toBe(0);
-    expect(result.places.p2?.count).toBe(1);
-    expect(result.places.p2?.offset).toBe(2);
-    expect(result.places.p3?.count).toBe(1);
-    expect(result.places.p3?.offset).toBe(4);
+    // Expected: p1: [{1}, {3}] | p2: [{6,7}] | p3: [{8}]
+    expect(result.decode("p1")).toEqual([{ d0: 1 }, { d0: 3 }]);
+    expect(result.decode("p2")).toEqual([{ d0: 6, d1: 7 }]);
+    expect(result.decode("p3")).toEqual([{ d0: 8 }]);
+    expect(result.snapshot.places.p1?.count).toBe(2);
+    expect(result.snapshot.places.p1?.byteOffset).toBe(0);
+    expect(result.snapshot.places.p2?.count).toBe(1);
+    expect(result.snapshot.places.p2?.byteOffset).toBe(16);
+    expect(result.snapshot.places.p3?.count).toBe(1);
+    expect(result.snapshot.places.p3?.byteOffset).toBe(32);
   });
 });

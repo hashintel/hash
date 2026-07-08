@@ -17,7 +17,7 @@ import {
 
 export type MenuItem = Item & { selected?: boolean };
 
-const collectSelectedIds = (
+export const collectSelectedIds = (
   entries: Array<ItemOrGroup<MenuItem>>,
 ): string[] => {
   const result: string[] = [];

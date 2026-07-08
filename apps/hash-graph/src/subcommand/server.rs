@@ -16,12 +16,13 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, hashql::CompilerContext,
-        rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, entity::ClusteringContext,
+        hashql::CompilerContext, rest_api_router,
     },
     rpc::Dependencies,
 };
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
+use hash_graph_embeddings::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -187,6 +188,13 @@ pub struct ServerConfig {
     #[clap(flatten)]
     pub temporal: TemporalConfig,
 
+    /// The OpenAI API key used to generate embeddings for semantic search queries.
+    ///
+    /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
+    /// callers must provide a precomputed `embedding` instead.
+    #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY")]
+    pub openai_api_key: Option<String>,
+
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
     ///
@@ -230,6 +238,13 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
+
+    /// Maximum number of entity-clustering requests processed at the same time.
+    ///
+    /// Excess requests wait until a slot frees up. If not set, the number of concurrent
+    /// clustering requests is unbounded.
+    #[clap(long, env = "HASH_GRAPH_CLUSTERING_CONCURRENCY_LIMIT")]
+    pub clustering_concurrency_limit: Option<NonZero<usize>>,
 
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
@@ -315,6 +330,33 @@ async fn create_temporal_client(
     }
 }
 
+fn create_embedding_client(
+    config: &ServerConfig,
+) -> Result<Option<OpenAiEmbeddingClient>, Report<GraphError>> {
+    // Treat an unset *or empty* key as "not configured", so an empty environment variable (a
+    // common deployment footgun) cleanly disables semantic-string search instead of building a
+    // client that fails every request with an authentication error.
+    let Some(api_key) = config
+        .openai_api_key
+        .as_ref()
+        .filter(|api_key| !api_key.trim().is_empty())
+    else {
+        tracing::warn!(
+            "`HASH_GRAPH_OPENAI_API_KEY` is not set; semantic-string search is disabled. Search \
+             requests must supply a precomputed embedding."
+        );
+        return Ok(None);
+    };
+
+    let client = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
+        api_key: api_key.trim().to_owned(),
+        base_url: None,
+    })
+    .change_context(GraphError)?;
+    tracing::info!("Semantic-string search is enabled via the OpenAI embedding client.");
+    Ok(Some(client))
+}
+
 fn start_rest_server(router: axum::Router, address: HttpAddress, lifecycle: &ServerLifecycle) {
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("REST server", async move {
@@ -397,6 +439,7 @@ where
     let temporal_client = create_temporal_client(&config.temporal)
         .await?
         .map(Arc::new);
+    let embedding_client = create_embedding_client(&config)?.map(Arc::new);
 
     if config.rpc_enabled {
         tracing::info!("Starting RPC server...");
@@ -416,10 +459,12 @@ where
         store,
         postgres,
         temporal_client,
+        embedding_client,
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
         compiler,
+        clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
     });
     start_rest_server(router, config.http_address, lifecycle);
 
