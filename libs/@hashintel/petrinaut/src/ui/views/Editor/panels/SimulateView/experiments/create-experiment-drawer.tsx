@@ -1032,7 +1032,7 @@ export const CreateExperimentDrawer = ({
         title="Create an experiment"
         description="Run a Monte Carlo experiment from the current model and scenario"
       />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
             <div className={fieldStyle}>

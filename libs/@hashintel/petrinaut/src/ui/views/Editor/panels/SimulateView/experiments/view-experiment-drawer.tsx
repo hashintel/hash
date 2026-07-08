@@ -251,7 +251,7 @@ export const ViewExperimentDrawer = ({
         title={experiment.name}
         description="Monte Carlo experiment metrics"
       />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Summary" collapsible defaultOpen>
             <ExperimentSummary experiment={experiment} />

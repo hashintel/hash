@@ -2,6 +2,7 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   scenarioSchema,
   type Color,
@@ -188,7 +189,7 @@ const ViewScenarioContent = ({
   return (
     <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
       <Drawer.Header title={scenario.name} />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <ScenarioFormBody
           form={form}
           parameters={

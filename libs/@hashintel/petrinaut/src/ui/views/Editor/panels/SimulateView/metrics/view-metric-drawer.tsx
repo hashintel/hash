@@ -2,6 +2,7 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   metricSchema,
   compileMetric,
@@ -169,7 +170,7 @@ const ViewMetricContent = ({
   return (
     <Drawer shouldCloseOn="closeButton" showBackdrop={false} onClose={onClose}>
       <Drawer.Header title={metric.name} />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <MetricFormBody
           form={form}
           idPrefix="view-"

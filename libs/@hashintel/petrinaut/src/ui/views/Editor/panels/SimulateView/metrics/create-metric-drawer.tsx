@@ -2,6 +2,7 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import { metricSchema, compileMetric } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -146,7 +147,7 @@ export const CreateMetricDrawer = ({
         title="Create a metric"
         description="A function over the simulation state that returns a number to plot on the timeline."
       />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <MetricFormBody
           form={form}
           idPrefix="create-"

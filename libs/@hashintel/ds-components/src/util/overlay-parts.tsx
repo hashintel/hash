@@ -59,9 +59,11 @@ export type OverlayHeaderProps = ExclusifyUnion<
       description?: React.ReactNode;
       iconName?: IconName;
       actions?: React.ReactNode;
+      className?: string;
     }
   | {
       children?: React.ReactNode;
+      className?: string;
     }
 >;
 
@@ -71,6 +73,7 @@ export const OverlayHeader = ({
   iconName,
   actions,
   children,
+  className,
 }: OverlayHeaderProps) => {
   const {
     classes,
@@ -102,7 +105,7 @@ export const OverlayHeader = ({
 
   if (!hasStructuredHeader) {
     return (
-      <div className={cx(classes.header, classes.hasCustomHeader)}>
+      <div className={cx(classes.header, classes.hasCustomHeader, className)}>
         {children && <div>{children}</div>}
         {closeButton}
       </div>
@@ -110,7 +113,7 @@ export const OverlayHeader = ({
   }
 
   return (
-    <div className={classes.header}>
+    <div className={cx(classes.header, className)}>
       <div className={classes.headerMain}>
         {iconName && (
           <Icon name={iconName} size="md" className={classes.titleIcon} />
@@ -144,7 +147,7 @@ export const OverlayHeader = ({
 };
 
 export type OverlayFooterProps = ExclusifyUnion<
-  | { children?: React.ReactNode }
+  | { children?: React.ReactNode; className?: string }
   | RequireAtLeastOne<{
       actions?: React.ReactNode;
       secondaryActions?: React.ReactNode;
@@ -152,6 +155,7 @@ export type OverlayFooterProps = ExclusifyUnion<
 >;
 
 export const OverlayFooter = ({
+  className,
   children,
   actions,
   secondaryActions,
@@ -159,7 +163,7 @@ export const OverlayFooter = ({
   const { classes } = useOverlayContext();
 
   return (
-    <div className={classes.footer}>
+    <div className={cx(classes.footer, className)}>
       {children ?? (
         <>
           {secondaryActions && (
@@ -181,9 +185,11 @@ export type OverlayBodyProps = {
    * If set, you will need to apply useAvoidScrollWidthChange yourself if the content height/width can change.
    * */
   withPadding?: boolean;
+  className?: string;
 };
 
 export const OverlayBody = ({
+  className,
   children,
   withPadding = true,
 }: OverlayBodyProps) => {
@@ -203,6 +209,7 @@ export const OverlayBody = ({
       className={cx(
         classes.body,
         !withPadding && css({ padding: "[0 !important]" }),
+        className,
       )}
     >
       {children}

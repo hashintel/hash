@@ -174,12 +174,15 @@ export const overlayPartsStyles = sva({
       alignItems: "center",
       gap: "2",
       marginLeft: "auto",
+      minWidth: "[0]",
     },
     footerSecondaryActions: {
       display: "flex",
       flexWrap: "wrap",
       alignItems: "center",
       gap: "2",
+      minWidth: "[0]",
+      flex: "[1 1 50%]",
     },
     closeButton: {
       flex: "[0 0 auto]",

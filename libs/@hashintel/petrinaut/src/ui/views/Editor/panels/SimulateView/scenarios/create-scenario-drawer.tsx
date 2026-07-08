@@ -170,7 +170,7 @@ export const CreateScenarioDrawer = ({
         title="Create a scenario"
         description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode"
       />
-      <Drawer.Body>
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <CreateScenarioBody form={form} />
       </Drawer.Body>
       <CreateScenarioFooter form={form} onClose={onClose} />
