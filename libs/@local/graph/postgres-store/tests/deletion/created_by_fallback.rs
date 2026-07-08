@@ -80,13 +80,19 @@ async fn created_by_reads_use_columns() {
         .query_one(
             "SELECT
                 (SELECT COUNT(*) FROM entity_ids
-                    WHERE created_by_id IS DISTINCT FROM (provenance ->> 'createdById')::uuid)
+                    WHERE created_by_id IS DISTINCT FROM (provenance ->> 'createdById')::uuid
+                       OR created_at_transaction_time
+                              IS DISTINCT FROM (provenance ->> \
+             'createdAtTransactionTime')::timestamptz
+                       OR created_at_decision_time
+                              IS DISTINCT FROM (provenance ->> \
+             'createdAtDecisionTime')::timestamptz)
               + (SELECT COUNT(*) FROM entity_editions
                     WHERE created_by_id IS DISTINCT FROM (provenance ->> 'createdById')::uuid)",
             &[],
         )
         .await
-        .expect("could not compare created_by_id columns against provenance")
+        .expect("could not compare denormalized columns against provenance")
         .get(0);
     assert_eq!(column_mismatches, 0);
 

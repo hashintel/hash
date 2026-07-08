@@ -4,6 +4,8 @@ CREATE TABLE entity_ids (
     provenance JSONB NOT NULL,
     read_only BOOLEAN NOT NULL,
     created_by_id UUID,
+    created_at_transaction_time TIMESTAMP WITH TIME ZONE,
+    created_at_decision_time TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (web_id, entity_uuid)
 );
 

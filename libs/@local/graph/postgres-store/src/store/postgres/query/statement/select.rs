@@ -738,6 +738,35 @@ mod tests {
     }
 
     #[test]
+    fn sort_entity_by_created_at_transaction_time() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+        compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::CreatedAtTransactionTime,
+            Distinctness::Distinct,
+            Some((Ordering::Descending, Some(NullOrdering::First))),
+        );
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                DISTINCT ON(COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz)))
+                COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz))
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
+              ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+            ORDER BY COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz)) DESC NULLS FIRST
+            "#,
+            &[&pinned_timestamp, &temporal_axes.variable_interval()],
+        );
+    }
+
+    #[test]
     fn entity_with_manual_selection() {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();

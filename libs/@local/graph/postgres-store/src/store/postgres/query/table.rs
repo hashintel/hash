@@ -852,6 +852,8 @@ pub enum EntityIds {
     Provenance,
     ReadOnly,
     CreatedById,
+    CreatedAtTransactionTime,
+    CreatedAtDecisionTime,
 }
 
 impl DatabaseColumn<'_> for EntityIds {
@@ -862,6 +864,8 @@ impl DatabaseColumn<'_> for EntityIds {
             Self::Provenance => "provenance".into(),
             Self::ReadOnly => "read_only".into(),
             Self::CreatedById => "created_by_id".into(),
+            Self::CreatedAtTransactionTime => "created_at_transaction_time".into(),
+            Self::CreatedAtDecisionTime => "created_at_decision_time".into(),
         }
     }
 
@@ -870,6 +874,9 @@ impl DatabaseColumn<'_> for EntityIds {
             Self::WebId | Self::EntityUuid | Self::CreatedById => PostgresType::Uuid,
             Self::Provenance => PostgresType::JsonB,
             Self::ReadOnly => PostgresType::Bool,
+            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                PostgresType::TimestampTz
+            }
         }
     }
 }
@@ -880,6 +887,9 @@ impl FilterColumn<'_> for EntityIds {
             Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
             Self::Provenance => ParameterType::Any,
             Self::ReadOnly => ParameterType::Boolean,
+            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                ParameterType::Timestamp
+            }
         }
     }
 }

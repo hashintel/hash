@@ -24,7 +24,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::DraftId => vec![],
-            Self::Provenance(_) | Self::ReadOnly | Self::CreatedById => {
+            Self::Provenance(_)
+            | Self::ReadOnly
+            | Self::CreatedById
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime => {
                 vec![Relation::EntityIds]
             }
             Self::Embedding => vec![Relation::EntityEmbeddings],
@@ -133,6 +137,12 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::ReadOnly => (Column::EntityIds(EntityIds::ReadOnly), None),
             Self::CreatedById => (Column::EntityIds(EntityIds::CreatedById), None),
             Self::EditionCreatedById => (Column::EntityEditions(EntityEditions::CreatedById), None),
+            Self::CreatedAtTransactionTime => {
+                (Column::EntityIds(EntityIds::CreatedAtTransactionTime), None)
+            }
+            Self::CreatedAtDecisionTime => {
+                (Column::EntityIds(EntityIds::CreatedAtDecisionTime), None)
+            }
             Self::Embedding => (Column::EntityEmbeddings(EntityEmbeddings::Embedding), None),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,

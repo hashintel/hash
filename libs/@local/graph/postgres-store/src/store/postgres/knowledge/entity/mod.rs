@@ -868,9 +868,11 @@ where
             entity_id_rows.push(EntityIdRow {
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
-                provenance: entity_provenance.inferred.clone(),
                 read_only: params.read_only,
                 created_by_id: entity_provenance.inferred.created_by_id,
+                created_at_transaction_time: entity_provenance.inferred.created_at_transaction_time,
+                created_at_decision_time: entity_provenance.inferred.created_at_decision_time,
+                provenance: entity_provenance.inferred.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {

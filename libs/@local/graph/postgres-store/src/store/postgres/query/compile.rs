@@ -134,6 +134,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Column::EntityEditions(EntityEditions::CreatedById),
             Self::edition_created_by_id_fallback,
         );
+        column_hooks.insert(
+            Column::EntityIds(EntityIds::CreatedAtTransactionTime),
+            Self::created_at_transaction_time_fallback,
+        );
+        column_hooks.insert(
+            Column::EntityIds(EntityIds::CreatedAtDecisionTime),
+            Self::created_at_decision_time_fallback,
+        );
 
         Self {
             statement: SelectStatement::builder()
@@ -183,23 +191,53 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     fn entity_created_by_id_fallback(_: &mut Self, column: Expression) -> Expression {
-        Self::provenance_created_by_id_fallback(column, Column::EntityIds(EntityIds::Provenance))
-    }
-
-    fn edition_created_by_id_fallback(_: &mut Self, column: Expression) -> Expression {
-        Self::provenance_created_by_id_fallback(
+        Self::provenance_field_fallback(
             column,
-            Column::EntityEditions(EntityEditions::Provenance),
+            Column::EntityIds(EntityIds::Provenance),
+            "createdById",
+            PostgresType::Uuid,
         )
     }
 
-    /// Compiles `created_by_id` reads to `COALESCE(created_by_id, (provenance ->>
-    /// 'createdById')::uuid)`.
+    fn edition_created_by_id_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityEditions(EntityEditions::Provenance),
+            "createdById",
+            PostgresType::Uuid,
+        )
+    }
+
+    fn created_at_transaction_time_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityIds(EntityIds::Provenance),
+            "createdAtTransactionTime",
+            PostgresType::TimestampTz,
+        )
+    }
+
+    fn created_at_decision_time_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityIds(EntityIds::Provenance),
+            "createdAtDecisionTime",
+            PostgresType::TimestampTz,
+        )
+    }
+
+    /// Compiles a denormalized provenance column read to `COALESCE(<column>, (provenance ->>
+    /// '<field>')::<cast>)`.
     ///
-    /// Binaries predating the columns keep inserting rows with NULL `created_by_id` during the
-    /// rollout window, and the provenance JSONB always carries the value.
+    /// Binaries predating the columns keep inserting rows with NULL values during the rollout
+    /// window, and the provenance JSONB always carries the value.
     // TODO(BE-639): read the column directly once it is backfilled and NOT NULL.
-    fn provenance_created_by_id_fallback(column: Expression, provenance: Column) -> Expression {
+    fn provenance_field_fallback(
+        column: Expression,
+        provenance: Column,
+        field: &'static str,
+        cast: PostgresType,
+    ) -> Expression {
         let Expression::ColumnReference(reference) = &column else {
             return column;
         };
@@ -212,10 +250,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Box::new(Expression::grouped(Expression::Function(
                 Function::JsonExtractAsText(
                     Box::new(Expression::ColumnReference(provenance_reference)),
-                    PathToken::Field(Cow::Borrowed("createdById")),
+                    PathToken::Field(Cow::Borrowed(field)),
                 ),
             ))),
-            PostgresType::Uuid,
+            cast,
         ))
     }
 
