@@ -2740,14 +2740,24 @@ where
             .query_raw(
                 &format!(
                     "SELECT
-                        e.web_id,
-                        e.entity_uuid,
+                        u.web_id,
+                        u.entity_uuid,
                         subvector(e.embedding, 1, {truncated_dim})::vector({truncated_dim}) AS \
                      embedding
-                    FROM entity_embeddings e
+                    FROM (
+                        SELECT DISTINCT ON (t.web_id, t.entity_uuid)
+                            t.web_id,
+                            t.entity_uuid,
+                            t.ord
+                        FROM unnest($1::uuid[], $2::uuid[])
+                            WITH ORDINALITY AS t(web_id, entity_uuid, ord)
+                        ORDER BY t.web_id, t.entity_uuid, t.ord
+                    ) u
+                    JOIN entity_embeddings e
+                        ON e.web_id = u.web_id
+                            AND e.entity_uuid = u.entity_uuid
                     WHERE e.property IS NULL
-                      AND (e.web_id, e.entity_uuid) IN (SELECT * FROM unnest($1::uuid[], \
-                     $2::uuid[]))"
+                    ORDER BY u.ord"
                 ),
                 [
                     &web_ids as &(dyn ToSql + Sync),

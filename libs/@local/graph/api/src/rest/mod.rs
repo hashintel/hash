@@ -596,7 +596,7 @@ where
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
         .layer(Extension(dependencies.compiler))
-        .layer(Extension(Arc::new(dependencies.clustering)));
+        .layer(Extension(dependencies.clustering));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
