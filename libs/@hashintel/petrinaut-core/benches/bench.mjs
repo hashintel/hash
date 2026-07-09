@@ -362,13 +362,21 @@ function sample(scenario) {
     throw new Error(`run errored: ${summary?.error}`);
   }
 
+  const digest = checksum(simulator);
+  // Forced GC with the simulator still alive: what the results actually
+  // retain, as opposed to heapDeltaMb which includes uncollected garbage.
+  globalThis.gc();
+  const heapRetained = process.memoryUsage().heapUsed;
+
   return {
     buildMs: buildEnd - buildStart,
     runMs: runEnd - buildEnd,
     heapDeltaMb: (heapAfter - heapBefore) / 1024 / 1024,
+    retainedMb: (heapRetained - heapBefore) / 1024 / 1024,
+    rssMb: process.memoryUsage().rss / 1024 / 1024,
     gcCount,
     gcMs,
-    checksum: checksum(simulator),
+    checksum: digest,
   };
 }
 
@@ -474,6 +482,8 @@ for (const scenario of selected) {
     runMsMin: Math.min(...samples.map((entry) => entry.runMs)),
     runMsMax: Math.max(...samples.map((entry) => entry.runMs)),
     heapDeltaMb: median(samples.map((entry) => entry.heapDeltaMb)),
+    retainedMb: median(samples.map((entry) => entry.retainedMb)),
+    rssMb: median(samples.map((entry) => entry.rssMb)),
     gcCount: median(samples.map((entry) => entry.gcCount)),
     gcMs: median(samples.map((entry) => entry.gcMs)),
     checksum: samples[0].checksum,
@@ -483,7 +493,8 @@ for (const scenario of selected) {
     `${row.variant}  ${row.scenario}\n` +
       `  build ${row.buildMs.toFixed(1)}ms  run ${row.runMs.toFixed(1)}ms ` +
       `(min ${row.runMsMin.toFixed(1)} max ${row.runMsMax.toFixed(1)})  ` +
-      `heap ${row.heapDeltaMb.toFixed(1)}MB  gc ${row.gcCount}x/${row.gcMs.toFixed(1)}ms  ` +
+      `heap ${row.heapDeltaMb.toFixed(1)}MB retained ${row.retainedMb.toFixed(1)}MB ` +
+      `rss ${row.rssMb.toFixed(1)}MB  gc ${row.gcCount}x/${row.gcMs.toFixed(1)}ms  ` +
       `checksum ${row.checksum}`,
   );
 }
