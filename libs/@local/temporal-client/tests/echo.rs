@@ -45,11 +45,20 @@ const WORKFLOW_EXECUTION_TIMEOUT: Duration = Duration::from_mins(5);
 fn server_url() -> Url {
     let host = std::env::var("HASH_TEMPORAL_SERVER_HOST")
         .unwrap_or_else(|_| "http://localhost".to_owned());
-    let port = std::env::var("HASH_TEMPORAL_SERVER_PORT").map_or(7233, |port| {
-        port.parse::<u16>().expect("could not parse port")
-    });
+    let mut url = Url::parse(&host).expect("could not parse Temporal server URL");
 
-    Url::parse(&format!("{host}:{port}")).expect("could not parse Temporal server URL")
+    // A port already present in `HASH_TEMPORAL_SERVER_HOST` wins; only fall
+    // back to `HASH_TEMPORAL_SERVER_PORT` (default 7233) when the host does
+    // not carry one.
+    if url.port().is_none() {
+        let port = std::env::var("HASH_TEMPORAL_SERVER_PORT").map_or(7233, |port| {
+            port.parse::<u16>().expect("could not parse port")
+        });
+        url.set_port(Some(port))
+            .expect("could not set Temporal server port");
+    }
+
+    url
 }
 
 /// Completes the next workflow task on the given task queue by echoing the

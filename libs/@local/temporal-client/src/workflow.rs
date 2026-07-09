@@ -224,6 +224,7 @@ impl TemporalClient {
             .await
             .change_context_lazy(|| WorkflowResultError {
                 workflow_id: workflow_id.to_owned(),
+                run_id: run_id.to_owned(),
             })?;
 
         let payload = result.payloads.into_iter().next().unwrap_or_default();
@@ -234,6 +235,7 @@ impl TemporalClient {
         })
         .change_context_lazy(|| WorkflowResultError {
             workflow_id: workflow_id.to_owned(),
+            run_id: run_id.to_owned(),
         })
     }
 }

@@ -9,7 +9,8 @@ pub struct ConnectionError;
 pub struct WorkflowError(pub &'static str);
 
 #[derive(Debug, Error)]
-#[error("Could not retrieve the result of workflow {workflow_id}")]
+#[error("Could not retrieve the result of workflow {workflow_id} (run {run_id})")]
 pub struct WorkflowResultError {
     pub workflow_id: String,
+    pub run_id: String,
 }
