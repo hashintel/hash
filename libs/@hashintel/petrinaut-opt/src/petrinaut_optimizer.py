@@ -136,7 +136,7 @@ class PetrinautOptimizer:
         self.fixed = opt_spec.fixed()
         self.params = opt_spec.parameters
         self.init_states = opt_spec.initial_states
-        self.study_name = f"input_opt_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
+        self.study_name = f"{opt_spec.study_name}_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
         self.sampler = SAMPLERS[opt_spec.sampler.lower()](**kwargs)
         self.direction = opt_spec.direction
         self.n_trials = opt_spec.n_trials
@@ -247,8 +247,8 @@ class PetrinautOptimizer:
                 params_and_init_states.setdefault(outer, {})[inner] = v
             payload = {
                 "step": trial.number,
-                "params": params_and_init_states["parameters"],
-                "init_states": params_and_init_states["initial_states"],
+                "params": params_and_init_states.get("parameters",dict()),
+                "init_states": params_and_init_states.get("initial_states",dict()),
                 "metric": trial.value,
                 "state": trial.state.name,
             }
@@ -326,8 +326,8 @@ class PetrinautOptimizer:
                 best_params_and_init_states.setdefault(outer, {})[inner] = v
             payload = {
                 "step": trial.number,
-                "params": best_params_and_init_states["parameters"],
-                "init_states": best_params_and_init_states["initial_states"],
+                "params": best_params_and_init_states.get("parameters",dict()),
+                "init_states": best_params_and_init_states.get("initial_states",dict()),
                 "metric": study.best_value,
                 "state": "COMPLETE",
             }
