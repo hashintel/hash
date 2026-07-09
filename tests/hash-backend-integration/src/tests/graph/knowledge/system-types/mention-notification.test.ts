@@ -28,7 +28,6 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestUser,
@@ -84,8 +83,6 @@ describe.skip("Page Mention Notification", () => {
     await deleteKratosIdentity({
       kratosIdentityId: recipientUser.kratosIdentityId,
     });
-
-    await resetGraph();
   });
 
   let pageMentionNotification: MentionNotification;

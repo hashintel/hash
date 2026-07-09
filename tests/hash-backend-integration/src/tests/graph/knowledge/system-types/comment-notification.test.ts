@@ -15,7 +15,6 @@ import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -81,8 +80,6 @@ describe("Comment Notification", () => {
       await deleteKratosIdentity({
         kratosIdentityId: recipientUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

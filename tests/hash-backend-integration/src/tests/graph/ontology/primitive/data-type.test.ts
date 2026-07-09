@@ -22,7 +22,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -92,7 +91,6 @@ beforeAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser2.kratosIdentityId,
     });
-    await resetGraph();
   };
 });
 

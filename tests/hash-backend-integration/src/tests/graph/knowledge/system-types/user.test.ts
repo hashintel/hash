@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   createKratosIdentity,
@@ -38,7 +38,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
-import { deleteUser, resetGraph } from "../../../admin-server";
+import { deleteUser } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -60,7 +60,7 @@ const shortname = generateRandomShortname("userTest");
 
 /**
  * Email addresses that are permitted to sign up in a test environment.
- * See USER_EMAIL_ALLOW_LIST in .env.local
+ * See USER_EMAIL_ALLOW_LIST in .env.test
  */
 const allowListedEmail = "charlie@example.com";
 
@@ -73,10 +73,6 @@ describe("User model class", () => {
     });
   });
 
-  afterAll(async () => {
-    await resetGraph();
-  });
-
   let createdUser: User;
   let orgEntityId: EntityId;
   let membershipLinkEntityId: EntityId;
@@ -86,13 +82,13 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["test-user@example.com"],
+        emails: [`${shortname}@example.com`],
       },
       verifyEmails: true,
     });
 
     createdUser = await createUser(graphContext, authentication, {
-      emails: ["test-user@example.com"],
+      emails: [`${shortname}@example.com`],
       kratosIdentityId: identity.id,
       shortname,
       displayName: "Alice",
@@ -129,7 +125,7 @@ describe("User model class", () => {
 
     await expect(
       createUser(graphContext, authentication, {
-        emails: ["bob@example.com"],
+        emails: [`${generateRandomShortname("bob")}@example.com`],
         kratosIdentityId: createdUser.kratosIdentityId,
       }),
     ).rejects.toThrowError(`"${createdUser.kratosIdentityId}" already exists.`);
@@ -161,21 +157,28 @@ describe("User model class", () => {
   it("cannot create a user with a shortname differing only in case", async () => {
     const authentication = { actorId: systemAccountId };
 
+    const email = `${generateRandomShortname("caseTest")}@example.com`;
+
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["case-test-user@example.com"],
+        emails: [email],
       },
       verifyEmails: true,
     });
 
-    await expect(
-      createUser(graphContext, authentication, {
-        emails: ["case-test-user@example.com"],
-        kratosIdentityId: identity.id,
-        shortname: shortname.toUpperCase(),
-        displayName: "Case Test",
-      }),
-    ).rejects.toThrowError("already exists");
+    try {
+      await expect(
+        createUser(graphContext, authentication, {
+          emails: [email],
+          kratosIdentityId: identity.id,
+          shortname: shortname.toUpperCase(),
+          displayName: "Case Test",
+        }),
+      ).rejects.toThrowError("already exists");
+    } finally {
+      // The user creation fails, so no user deletion cleans this identity up.
+      await deleteKratosIdentity({ kratosIdentityId: identity.id });
+    }
   });
 
   it("can get a user by its shortname with leading/trailing whitespace", async () => {
@@ -202,7 +205,7 @@ describe("User model class", () => {
   });
 
   it("prevents users from amending Kratos profile traits directly", async () => {
-    const email = "kratos-profile-update@example.com";
+    const email = `${generateRandomShortname("kratosProfile")}@example.com`;
     const injectedEmail = "injected-profile-update@example.com";
     const password = "password";
 
@@ -615,9 +618,5 @@ describe("User model class", () => {
         }),
       ).rejects.toThrow();
     });
-  });
-
-  afterAll(async () => {
-    await resetGraph();
   });
 });
