@@ -3,6 +3,9 @@ CREATE TABLE entity_ids (
     entity_uuid UUID NOT NULL,
     provenance JSONB NOT NULL,
     read_only BOOLEAN NOT NULL,
+    created_by_id UUID,
+    created_at_transaction_time TIMESTAMP WITH TIME ZONE,
+    created_at_decision_time TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (web_id, entity_uuid)
 );
 
@@ -19,7 +22,8 @@ CREATE TABLE entity_editions (
     property_metadata JSONB,
     archived BOOLEAN NOT NULL,
     provenance JSONB NOT NULL,
-    confidence DOUBLE PRECISION
+    confidence DOUBLE PRECISION,
+    created_by_id UUID
 );
 
 -- Denormalized per-edition cache of the sorting/filtering aggregates, rebuildable at

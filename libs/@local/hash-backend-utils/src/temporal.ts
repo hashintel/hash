@@ -1,6 +1,6 @@
 import { trace } from "@opentelemetry/api";
 import { Client as TemporalClient, Connection } from "@temporalio/client";
-import { OpenTelemetryWorkflowClientInterceptor } from "@temporalio/interceptors-opentelemetry";
+import { OpenTelemetryWorkflowClientInterceptor } from "@temporalio/interceptors-opentelemetry-v2";
 
 import { getRequiredEnv } from "./environment.js";
 
@@ -27,7 +27,9 @@ export const createTemporalClient = async () => {
     ? {
         workflow: [
           new OpenTelemetryWorkflowClientInterceptor({
-            tracer: trace.getTracer("@temporalio/interceptors-opentelemetry"),
+            tracer: trace.getTracer(
+              "@temporalio/interceptors-opentelemetry-v2",
+            ),
           }),
         ],
       }

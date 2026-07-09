@@ -21,10 +21,10 @@ use crate::store::postgres::query::{
     Alias, Column, Distinctness, EqualityOperator, Expression, Function, Identifier,
     PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
     WindowStatement,
-    expression::{FromItem, GroupByExpression},
+    expression::{ColumnName, FromItem, GroupByExpression},
     postgres_type::PostgresType,
     table::{
-        DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
+        DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityIds, EntityTemporalMetadata,
         EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyIds,
         OntologyTemporalMetadata, PropertyTypeEmbeddings,
     },
@@ -125,6 +125,24 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             );
         }
 
+        let mut column_hooks = HashMap::<_, ColumnHook<'p, 'q, R>>::new();
+        column_hooks.insert(
+            Column::EntityIds(EntityIds::CreatedById),
+            Self::entity_created_by_id_fallback,
+        );
+        column_hooks.insert(
+            Column::EntityEditions(EntityEditions::CreatedById),
+            Self::edition_created_by_id_fallback,
+        );
+        column_hooks.insert(
+            Column::EntityIds(EntityIds::CreatedAtTransactionTime),
+            Self::created_at_transaction_time_fallback,
+        );
+        column_hooks.insert(
+            Column::EntityIds(EntityIds::CreatedAtDecisionTime),
+            Self::created_at_decision_time_fallback,
+        );
+
         Self {
             statement: SelectStatement::builder()
                 .selects(Vec::new())
@@ -150,7 +168,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             temporal_axes,
             table_hooks,
-            column_hooks: HashMap::new(),
+            column_hooks,
             include_drafts,
             selections: HashMap::new(),
             property_protection_filter: None,
@@ -170,6 +188,73 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .selects
             .push(SelectExpression::Asterisk(None));
         default
+    }
+
+    fn entity_created_by_id_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityIds(EntityIds::Provenance),
+            "createdById",
+            PostgresType::Uuid,
+        )
+    }
+
+    fn edition_created_by_id_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityEditions(EntityEditions::Provenance),
+            "createdById",
+            PostgresType::Uuid,
+        )
+    }
+
+    fn created_at_transaction_time_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityIds(EntityIds::Provenance),
+            "createdAtTransactionTime",
+            PostgresType::TimestampTz,
+        )
+    }
+
+    fn created_at_decision_time_fallback(_: &mut Self, column: Expression) -> Expression {
+        Self::provenance_field_fallback(
+            column,
+            Column::EntityIds(EntityIds::Provenance),
+            "createdAtDecisionTime",
+            PostgresType::TimestampTz,
+        )
+    }
+
+    /// Compiles a denormalized provenance column read to `COALESCE(<column>, (provenance ->>
+    /// '<field>')::<cast>)`.
+    ///
+    /// Binaries predating the columns keep inserting rows with NULL values during the rollout
+    /// window, and the provenance JSONB always carries the value.
+    // TODO(BE-639): read the column directly once it is backfilled and NOT NULL.
+    fn provenance_field_fallback(
+        column: Expression,
+        provenance: Column,
+        field: &'static str,
+        cast: PostgresType,
+    ) -> Expression {
+        let Expression::ColumnReference(reference) = &column else {
+            return column;
+        };
+        let provenance_reference = ColumnReference {
+            correlation: reference.correlation.clone(),
+            name: ColumnName::from(provenance),
+        };
+        // `::` binds tighter than `->>`, so without grouping the cast would hit the key literal.
+        column.coalesce(Expression::Cast(
+            Box::new(Expression::grouped(Expression::Function(
+                Function::JsonExtractAsText(
+                    Box::new(Expression::ColumnReference(provenance_reference)),
+                    PathToken::Field(Cow::Borrowed(field)),
+                ),
+            ))),
+            cast,
+        ))
     }
 
     pub const fn set_limit(&mut self, limit: usize) {

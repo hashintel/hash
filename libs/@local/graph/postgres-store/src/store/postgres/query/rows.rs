@@ -26,7 +26,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeUuid},
         provenance::OntologyEditionProvenance,
     },
-    principal::actor_group::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
 use crate::store::postgres::query::{
@@ -278,6 +278,7 @@ pub struct EntityEditionRow {
     pub confidence: Option<Confidence>,
     pub provenance: EntityEditionProvenance,
     pub property_metadata: PropertyObjectMetadata,
+    pub created_by_id: ActorEntityUuid,
 }
 
 impl PostgresRow for EntityEditionRow {
@@ -294,6 +295,7 @@ impl PostgresRow for EntityEditionRow {
         let mut confidences = Vec::with_capacity(rows.len());
         let mut provenances = Vec::with_capacity(rows.len());
         let mut property_metadatas = Vec::with_capacity(rows.len());
+        let mut created_by_ids = Vec::with_capacity(rows.len());
         for Self {
             entity_edition_id,
             properties: row_properties,
@@ -301,6 +303,7 @@ impl PostgresRow for EntityEditionRow {
             confidence,
             provenance,
             property_metadata,
+            created_by_id,
         } in rows
         {
             entity_edition_ids.push(entity_edition_id);
@@ -309,6 +312,7 @@ impl PostgresRow for EntityEditionRow {
             confidences.push(confidence);
             provenances.push(provenance);
             property_metadatas.push(property_metadata);
+            created_by_ids.push(created_by_id);
         }
         vec![
             (EntityEditions::EditionId, entity_edition_ids.into()),
@@ -317,6 +321,7 @@ impl PostgresRow for EntityEditionRow {
             (EntityEditions::Confidence, confidences.into()),
             (EntityEditions::Provenance, provenances.into()),
             (EntityEditions::PropertyMetadata, property_metadatas.into()),
+            (EntityEditions::CreatedById, created_by_ids.into()),
         ]
     }
 }
@@ -450,6 +455,9 @@ pub struct EntityIdRow {
     pub entity_uuid: EntityUuid,
     pub provenance: InferredEntityProvenance,
     pub read_only: bool,
+    pub created_by_id: ActorEntityUuid,
+    pub created_at_transaction_time: Timestamp<TransactionTime>,
+    pub created_at_decision_time: Timestamp<DecisionTime>,
 }
 
 impl PostgresRow for EntityIdRow {
@@ -464,23 +472,41 @@ impl PostgresRow for EntityIdRow {
         let mut entity_uuids = Vec::with_capacity(rows.len());
         let mut provenances = Vec::with_capacity(rows.len());
         let mut read_onlys = Vec::with_capacity(rows.len());
+        let mut created_by_ids = Vec::with_capacity(rows.len());
+        let mut created_at_transaction_times = Vec::with_capacity(rows.len());
+        let mut created_at_decision_times = Vec::with_capacity(rows.len());
         for Self {
             web_id,
             entity_uuid,
             provenance,
             read_only,
+            created_by_id,
+            created_at_transaction_time,
+            created_at_decision_time,
         } in rows
         {
             web_ids.push(web_id);
             entity_uuids.push(entity_uuid);
             provenances.push(provenance);
             read_onlys.push(read_only);
+            created_by_ids.push(created_by_id);
+            created_at_transaction_times.push(created_at_transaction_time);
+            created_at_decision_times.push(created_at_decision_time);
         }
         vec![
             (EntityIds::WebId, web_ids.into()),
             (EntityIds::EntityUuid, entity_uuids.into()),
             (EntityIds::Provenance, provenances.into()),
             (EntityIds::ReadOnly, read_onlys.into()),
+            (EntityIds::CreatedById, created_by_ids.into()),
+            (
+                EntityIds::CreatedAtTransactionTime,
+                created_at_transaction_times.into(),
+            ),
+            (
+                EntityIds::CreatedAtDecisionTime,
+                created_at_decision_times.into(),
+            ),
         ]
     }
 }

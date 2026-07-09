@@ -2,7 +2,7 @@
  * OpenTelemetry workflow interceptors.
  *
  * Used as a workflow module via Temporal's `workflowModules` option so the
- * upstream `@temporalio/interceptors-opentelemetry` interceptors can run
+ * upstream `@temporalio/interceptors-opentelemetry-v2` interceptors can run
  * inside the workflow sandbox. Pair with the worker-side
  * `makeWorkflowExporter` sink so the spans created here are exported to
  * the worker's OTEL trace provider.
@@ -11,7 +11,7 @@ import {
   OpenTelemetryInboundInterceptor,
   OpenTelemetryInternalsInterceptor,
   OpenTelemetryOutboundInterceptor,
-} from "@temporalio/interceptors-opentelemetry";
+} from "@temporalio/interceptors-opentelemetry-v2";
 
 import type { WorkflowInterceptors } from "@temporalio/workflow";
 

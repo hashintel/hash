@@ -20,10 +20,7 @@ use hash_graph_authorization::policies::{
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::{
-        PropertyValue,
-        entity::{Entity, EntityId, id::EntityEditionId},
-    },
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -958,16 +955,14 @@ impl<'p> Filter<'p, Entity> {
             }
             EntityResourceFilter::CreatedByPrincipal => Self::Equal(
                 FilterExpression::Path {
-                    path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                        PathToken::Field(Cow::Borrowed("createdById")),
-                    ]))),
+                    path: EntityQueryPath::CreatedById,
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::Any(PropertyValue::String(
+                    parameter: Parameter::Uuid(
                         actor_id
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
-                            .to_string(),
-                    )),
+                            .into(),
+                    ),
                     convert: None,
                 },
             ),
