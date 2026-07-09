@@ -1,6 +1,6 @@
 import { HeartIcon } from "lucide-react";
 
-import { Icon } from "./icon";
+import { Icon } from "../icon";
 
 export const App = () => {
   return (

@@ -1,12 +1,14 @@
-import type Anthropic from "@anthropic-ai/sdk";
-import type { LinearClient } from "@linear/sdk";
-import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
 import chalk from "chalk";
 import { execa } from "execa";
 import { z } from "zod";
 import zodToJsonSchema, {
   type JsonSchema7ObjectType,
 } from "zod-to-json-schema";
+
+import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
+
+import type Anthropic from "@anthropic-ai/sdk";
+import type { LinearClient } from "@linear/sdk";
 
 const LinearTicketIdsSchema = z.object({
   ticketIds: z.array(z.string().regex(/^H-\d+$/, "Must be in format H-XXXX")),

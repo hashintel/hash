@@ -1,8 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Grid, HStack, VStack } from "@hashintel/ds-helpers/jsx";
-import type { Token } from "@hashintel/ds-helpers/tokens";
 import { token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 import type {
   BaseShadow,
@@ -10,6 +8,8 @@ import type {
   ElevationScale,
   InsetShadow,
 } from "./_types";
+import type { Token } from "@hashintel/ds-helpers/tokens";
+import type { Story } from "@ladle/react";
 
 const SHADOW_STEPS: readonly BaseShadow[] = [
   "2xs",
@@ -61,7 +61,10 @@ const sectionTitleStyles = css({
 const ShadowSwatch = ({
   name,
   tokenPath,
-}: { name: string; tokenPath: string }) => {
+}: {
+  name: string;
+  tokenPath: string;
+}) => {
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (
@@ -84,7 +87,10 @@ const ShadowSwatch = ({
 const InsetSwatch = ({
   name,
   tokenPath,
-}: { name: string; tokenPath: string }) => {
+}: {
+  name: string;
+  tokenPath: string;
+}) => {
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (

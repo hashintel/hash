@@ -1,3 +1,14 @@
+import {
+  DATA_TYPE_META_SCHEMA,
+  ontologyTypeRecordIdToVersionedUrl,
+} from "@blockprotocol/type-system";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { hasPermissionForDataTypes } from "@local/hash-graph-sdk/data-type";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+
+import { getWebShortname } from "./util";
+
+import type { ImpureGraphFunction } from "../../context-types";
 import type {
   BaseUrl,
   Conversions,
@@ -9,25 +20,15 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  DATA_TYPE_META_SCHEMA,
-  ontologyTypeRecordIdToVersionedUrl,
-} from "@blockprotocol/type-system";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveDataTypeParams,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
-import { hasPermissionForDataTypes } from "@local/hash-graph-sdk/data-type";
 import type {
   ConstructDataTypeParams,
   DataTypeDirectConversionsMap,
 } from "@local/hash-graph-sdk/ontology";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
 
 /**
  * Create a data type.

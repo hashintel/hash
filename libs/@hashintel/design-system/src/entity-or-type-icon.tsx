@@ -1,10 +1,11 @@
-import type { BaseUrl, Entity } from "@blockprotocol/type-system";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
-import type { ReactElement } from "react";
 
 import { AsteriskRegularIcon } from "./icon-asterisk-regular";
 import { LinkTypeIcon } from "./ontology-icons";
+
+import type { BaseUrl, Entity } from "@blockprotocol/type-system";
+import type { SxProps, Theme } from "@mui/material";
+import type { ReactElement } from "react";
 
 export const EntityOrTypeIcon = ({
   entity,

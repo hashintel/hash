@@ -1,24 +1,25 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
+import { expect, test } from "vitest";
 
+import {
+  currentTimestamp,
+  entityIdFromComponents,
+} from "@blockprotocol/type-system";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
+import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
+
+import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type {
   EntityUuid,
   Timestamp,
   Url,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  entityIdFromComponents,
-} from "@blockprotocol/type-system";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { expect, test } from "vitest";
-
-import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { Claim } from "../claims.js";
-import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
 
 /**
  * @file These are not 'tests' but rather ways of running specific agents,
@@ -75,6 +76,9 @@ const huntingPlcEntityClaims = [
 
 test(
   "Test proposeEntityFromClaims: HUNTING PLC ORD 25P",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -121,9 +125,6 @@ test(
     console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
     expect(proposeEntityFromClaimsStatus).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -242,6 +243,9 @@ const claimsAboutGraphicsCard: Claim[] = [
 
 test(
   "Test proposeEntityFromClaims with graphics card entity",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -270,8 +274,5 @@ test(
     console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
     expect(proposeEntityFromClaimsStatus).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

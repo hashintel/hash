@@ -1,14 +1,14 @@
-import type { ReactNode } from "react";
-
 import { PencilSimpleLine } from "../../../shared/icons/svg";
 import { WarnIcon } from "../../../shared/icons/warn-icon";
-import type { ButtonProps } from "../../../shared/ui/button";
 import {
   EditBarCollapse,
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
 } from "../shared/edit-bar-contents";
+
+import type { ButtonProps } from "../../../shared/ui/button";
+import type { ReactNode } from "react";
 
 export const EditBarEntityEditor = ({
   confirmButtonProps,

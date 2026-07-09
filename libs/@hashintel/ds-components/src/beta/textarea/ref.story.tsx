@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Textarea } from "./textarea";
+import { Textarea } from "../textarea";
 
 export const App = () => {
   const ref = useRef<HTMLTextAreaElement>(null);

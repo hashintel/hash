@@ -1,14 +1,16 @@
-import type {
-  BaseUrl,
-  EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system";
+import { useMemo } from "react";
+
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
   extractVersion,
 } from "@blockprotocol/type-system";
-import { useMemo } from "react";
+
+import type {
+  BaseUrl,
+  EntityType,
+  PropertyType,
+} from "@blockprotocol/type-system";
 
 /**
  * Return a list of types options, minus any exclusions, returning only the latest version of each

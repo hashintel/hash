@@ -1,23 +1,23 @@
 import "prosemirror-view/style/prosemirror.css";
-
 import { useApolloClient } from "@apollo/client";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
-import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
-import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { useLocalStorage } from "@mantine/hooks";
-import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
-import type { EditorView } from "prosemirror-view";
-import type { FunctionComponent } from "react";
 import { useLayoutEffect, useRef } from "react";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { Button } from "../../../shared/ui";
 import { usePortals } from "./block-portals";
-import type { EditorConnection } from "./collab/editor-connection";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
+
+import type { EditorConnection } from "./collab/editor-connection";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { BoxProps } from "@mui/material";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent } from "react";
 
 type BlockCollectionProps = {
   contents: BlockCollectionContentItem[];

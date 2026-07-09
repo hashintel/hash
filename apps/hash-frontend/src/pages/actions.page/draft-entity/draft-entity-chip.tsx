@@ -1,5 +1,6 @@
-import { Chip } from "@hashintel/design-system";
 import { chipClasses, styled } from "@mui/material";
+
+import { Chip } from "@hashintel/design-system";
 
 export const DraftEntityChip = styled(Chip)(({ theme, clickable }) => ({
   color: theme.palette.common.black,

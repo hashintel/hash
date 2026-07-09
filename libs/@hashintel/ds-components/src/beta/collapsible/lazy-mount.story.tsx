@@ -1,7 +1,7 @@
 import { Box } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
-import * as Collapsible from "./collapsible";
+import { Button } from "../button";
+import * as Collapsible from "../collapsible";
 
 export const App = () => {
   return (

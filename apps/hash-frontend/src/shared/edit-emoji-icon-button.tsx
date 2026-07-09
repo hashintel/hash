@@ -1,22 +1,24 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { Box, iconButtonClasses, Tooltip } from "@mui/material";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { useCallback, useState } from "react";
+
 import {
   FontAwesomeIcon,
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, iconButtonClasses, Tooltip } from "@mui/material";
-import type { SystemStyleObject } from "@mui/system";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
-import { useCallback, useState } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
+import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+
 import type {
   EmojiData,
   EmojiPickerPopoverProps,
 } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
-import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { SxProps, Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
+import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
 
 export type SizeVariant = "small" | "medium";
 

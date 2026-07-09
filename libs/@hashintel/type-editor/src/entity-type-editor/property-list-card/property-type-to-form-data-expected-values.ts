@@ -1,16 +1,18 @@
+import uniqueId from "lodash.uniqueid";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
+
+import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";
+import { getExpectedValueDescriptor } from "./shared/get-expected-value-descriptor";
+
+import type { ExpectedValue } from "./shared/expected-value-types";
+import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 import type {
   OneOfSchema,
   PropertyType,
   PropertyValues,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import uniqueId from "lodash.uniqueid";
-
-import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";
-import type { ExpectedValue } from "./shared/expected-value-types";
-import { getExpectedValueDescriptor } from "./shared/get-expected-value-descriptor";
-import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
 export const propertyTypeToFormDataExpectedValues = (
   property: PropertyType,

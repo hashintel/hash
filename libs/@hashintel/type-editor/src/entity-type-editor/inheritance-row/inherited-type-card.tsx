@@ -1,4 +1,5 @@
-import type { EntityType } from "@blockprotocol/type-system";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
@@ -7,13 +8,14 @@ import {
 import { TypeCard } from "@hashintel/design-system";
 /* eslint-disable no-restricted-imports */
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { Link } from "../shared/link";
 import { useTypeVersions } from "../shared/use-type-versions";
+
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { EntityType } from "@blockprotocol/type-system";
 
 export const InheritedTypeCard = ({
   onRemove,

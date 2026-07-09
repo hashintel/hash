@@ -1,9 +1,10 @@
-import { Stack } from "@hashintel/ds-helpers/jsx";
 import { AtSignIcon, EuroIcon } from "lucide-react";
 
-import { Group } from "../group/group";
-import { InputAddon } from "../input-addon/input-addon";
-import { Input } from "./input";
+import { Stack } from "@hashintel/ds-helpers/jsx";
+
+import { Group } from "../group";
+import { Input } from "../input";
+import { InputAddon } from "../input-addon";
 
 export const App = () => {
   return (

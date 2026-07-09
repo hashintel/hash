@@ -2,9 +2,9 @@ import {
   type EntityUuid,
   extractEntityUuidFromEntityId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { simplifyProperties } from "../simplify-properties.js";
+
 import type { FlowDefinition as FlowDefinitionEntity } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
@@ -14,6 +14,7 @@ import type {
   LocalFlowRun,
   OutputDefinition,
 } from "./types.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition<FlowActionDefinitionId>,

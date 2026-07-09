@@ -1,14 +1,16 @@
-import { CircleCheckRegularIcon } from "@hashintel/design-system";
-import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
-import type { SxProps, Theme } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
+
+import { CircleCheckRegularIcon } from "@hashintel/design-system";
 
 import { CircleInfoIcon } from "../../../../../../shared/icons/circle-info-icon";
 import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 import { QuestionModal } from "../shared/question-modal";
-import type { ResolvedQuestionRequest } from "./manager/resolved-questions-modal";
 import { ResolvedQuestionsModal } from "./manager/resolved-questions-modal";
+
+import type { ResolvedQuestionRequest } from "./manager/resolved-questions-modal";
+import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
+import type { SxProps, Theme } from "@mui/material";
 
 const iconSx: SxProps<Theme> = {
   mr: 1.5,

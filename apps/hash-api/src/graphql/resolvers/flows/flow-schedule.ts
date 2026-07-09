@@ -1,11 +1,11 @@
+import { ScheduleNotFoundError } from "@temporalio/client";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   defaultScheduleCatchupWindowMs,
   scheduleSpecToTemporalSpec,
 } from "@local/hash-isomorphic-utils/flows/schedule-types";
-import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ScheduleNotFoundError } from "@temporalio/client";
 
 import {
   createFlowSchedule as createFlowScheduleEntity,
@@ -16,6 +16,9 @@ import {
   revertFlowScheduleResume,
   updateFlowSchedule as updateFlowScheduleEntity,
 } from "../../../graph/knowledge/system-types/flow-schedule";
+import * as GraphQLError from "../../error";
+import { graphQLContextToImpureGraphContext } from "../util";
+
 import type {
   Mutation,
   MutationArchiveFlowScheduleArgs,
@@ -26,8 +29,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import * as GraphQLError from "../../error";
-import { graphQLContextToImpureGraphContext } from "../util";
+import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export const createFlowScheduleResolver: ResolverFn<
   Promise<Mutation["createFlowSchedule"]>,

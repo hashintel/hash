@@ -132,6 +132,7 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
 }
 
 impl Default for DeadStoreElimination {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -139,13 +140,15 @@ impl Default for DeadStoreElimination {
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        let dead = self.alloc.scoped(|alloc| Self::dead_locals(body, &alloc));
+        let dead = self
+            .alloc
+            .scoped_mut(|alloc| Self::dead_locals(body, &alloc));
 
         if dead.is_empty() {
             return Changed::No;
         }
 
-        let mut changed = self.alloc.scoped(|alloc| {
+        let mut changed = self.alloc.scoped_mut(|alloc| {
             let mut visitor = EliminationVisitor {
                 dead: &dead,
                 params: BasicBlockVec::from_fn_in(
@@ -164,7 +167,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElim
             Changed::from(visitor.changed)
         });
 
-        changed |= self.alloc.scoped(|alloc| {
+        changed |= self.alloc.scoped_mut(|alloc| {
             DeadLocalElimination::new_in(alloc)
                 .with_dead(dead)
                 .run(context, body)

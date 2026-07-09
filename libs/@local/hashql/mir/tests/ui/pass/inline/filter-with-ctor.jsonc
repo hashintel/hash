@@ -4,10 +4,7 @@
   "::graph::tail::collect",
   [
     "::graph::body::filter",
-    [
-      "::graph::head::entities",
-      ["input", "axis", "::graph::QueryTemporalAxes"]
-    ],
+    ["::graph::head::entities", ["input", "axis", "_"]],
     [
       "fn",
       { "#tuple": [] },
@@ -15,7 +12,7 @@
       "_",
       [
         "==",
-        "vertex.id.entity_id.entity_uuid",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
         [
           "::graph::types::knowledge::entity::EntityUuid",
           [

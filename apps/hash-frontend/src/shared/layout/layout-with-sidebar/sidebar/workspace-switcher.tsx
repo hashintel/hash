@@ -1,6 +1,4 @@
-import type { WebId } from "@blockprotocol/type-system";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   Divider,
@@ -17,11 +15,15 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
+import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
+
 import { useLogoutFlow } from "../../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../../pages/shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../../pages/shared/get-file-properties";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../../ui";
+
+import type { WebId } from "@blockprotocol/type-system";
 
 export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({

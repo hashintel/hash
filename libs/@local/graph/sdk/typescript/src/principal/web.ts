@@ -1,3 +1,4 @@
+import type { AuthenticationContext } from "../authentication-context.js";
 import type {
   Web,
   WebId,
@@ -5,8 +6,6 @@ import type {
   WebRoleId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-
-import type { AuthenticationContext } from "../authentication-context.js";
 
 /**
  * Retrieves a web by its ID.

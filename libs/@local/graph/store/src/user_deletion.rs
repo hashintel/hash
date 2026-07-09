@@ -1,6 +1,5 @@
 use error_stack::{Report, ReportSink, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
-use hash_graph_temporal_versioning::TemporalBound;
 use serde::Serialize;
 use type_system::principal::{actor::UserId, actor_group::WebId};
 
@@ -13,9 +12,7 @@ use crate::{
     filter::{Filter, FilterExpression, Parameter},
     identity_provider::IdentityProvider,
     oauth_provider::OAuthProvider,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 
 /// Errors that can occur during user deletion.
@@ -146,13 +143,7 @@ where
             actor,
             DeleteEntitiesParams {
                 filter: web_filter,
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Archive,

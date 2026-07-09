@@ -1,5 +1,15 @@
 // This code is written in a way that be *easily* auto generated, which is why we use the classes.
 
+import {
+  Effect,
+  Function,
+  Option,
+  pipe,
+  Predicate,
+  Schema,
+  Stream,
+} from "effect";
+
 import { ClientError } from "@local/harpc-client";
 import { Decoder, Encoder } from "@local/harpc-client/codec";
 import {
@@ -18,15 +28,6 @@ import {
 } from "@local/harpc-client/types";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- otherwise TypeScript will fail on inference, I don't know why
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
-import {
-  Effect,
-  Function,
-  Option,
-  pipe,
-  Predicate,
-  Schema,
-  Stream,
-} from "effect";
 
 const ServerResult = <A, I, R>(ok: Schema.Schema<A, I, R>) =>
   Schema.transform(

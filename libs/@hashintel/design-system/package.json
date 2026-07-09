@@ -52,15 +52,15 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
+    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts"
   },
   "dependencies": {
     "@blockprotocol/type-system": "workspace:*",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "clsx": "2.1.1",
-    "echarts": "5.6.0",
+    "echarts": "6.1.0",
     "react-loading-skeleton": "3.5.0"
   },
   "devDependencies": {
@@ -71,11 +71,11 @@
     "@local/tsconfig": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "typescript": "5.9.3"
   },
   "peerDependencies": {

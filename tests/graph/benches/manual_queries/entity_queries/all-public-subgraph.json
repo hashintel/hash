@@ -6,7 +6,6 @@
     "parameters": {
       "actorId": [],
       "limit": [],
-      "includeCount": [],
       "traversalParams": [
         {
           "graphResolveDepths": {

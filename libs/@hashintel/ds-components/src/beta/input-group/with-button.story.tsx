@@ -1,8 +1,8 @@
 import { SearchIcon } from "lucide-react";
 
-import { IconButton } from "../icon-button/icon-button";
-import { Input } from "../input/input";
-import { InputGroup } from "./input-group";
+import { IconButton } from "../icon-button";
+import { Input } from "../input";
+import { InputGroup } from "../input-group";
 
 export const App = () => {
   return (

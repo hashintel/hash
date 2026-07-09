@@ -2,8 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { safeStringify } from "@local/hash-backend-utils/logger";
 import { Context } from "@temporalio/activity";
+
+import { safeStringify } from "@local/hash-backend-utils/logger";
 
 import { logger as baseLogger } from "../../shared/logger.js";
 
@@ -35,7 +36,10 @@ const log = (
     runId: "no-context",
   };
   try {
-    workflowExecution = Context.current().info.workflowExecution;
+    workflowExecution = Context.current().info.workflowExecution ?? {
+      workflowId: "no-context",
+      runId: "no-context",
+    };
   } catch {
     // no Temporal context — placeholders above are used
   }

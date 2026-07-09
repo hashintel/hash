@@ -1,20 +1,22 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SxProps, Theme } from "@mui/material";
-import type { MouseEventHandler } from "react";
 import { useCallback } from "react";
 
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useDefaultState } from "../components/hooks/use-default-state";
-import type { SizeVariant } from "./edit-emoji-icon-button";
 import {
   EditEmojiIconButton,
   iconVariantSizes,
 } from "./edit-emoji-icon-button";
-import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
+
+import type { SizeVariant } from "./edit-emoji-icon-button";
+import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { SxProps, Theme } from "@mui/material";
+import type { MouseEventHandler } from "react";
 
 type PageIconButtonProps = {
   entityId: EntityId;

@@ -12,8 +12,8 @@
 └→ _0«Number»
 
 ┌─ ::core::math::add
-└→ <T?25: Number, U?26: Number>(T?25«Number», U?26«Integer») ->
-       (T?25«Number» | U?26«Integer»)
+└→ <T?29: Number, U?30: Number>(T?29«Number», U?30«Integer») ->
+       (T?29«Number» | U?30«Integer»)
 
 ┌─ 42.12
 └→ Number

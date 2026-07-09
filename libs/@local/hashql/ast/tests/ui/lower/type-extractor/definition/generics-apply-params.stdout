@@ -1,0 +1,10 @@
+Expr#4294967040@42
+  ExprKind (Underscore)
+
+------------------------
+
+┌─ StringWrapper:0<>
+└→ ([?31 = String] <T:0?31>(foo: T:0?31),)
+
+┌─ Wrapper:0<T:0?30>
+└→ <T:0?30>(foo: T:0?30)

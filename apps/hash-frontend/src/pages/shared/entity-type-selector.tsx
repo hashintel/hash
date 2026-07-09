@@ -1,15 +1,17 @@
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { useMemo, useRef, useState } from "react";
+
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import { pageEntityTypeIds } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { BoxProps } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useEnabledFeatureFlags } from "./use-enabled-feature-flags";
+
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { BoxProps } from "@mui/material";
 
 export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,
@@ -51,16 +53,18 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
 
-  const filteredEntityTypes = useMemo(
+  const filteredAndSortedEntityTypes = useMemo(
     () =>
-      latestEntityTypes?.filter(
-        ({ schema }) =>
-          !excludeEntityTypeIds?.includes(schema.$id) &&
-          (!excludeLinkTypes ||
-            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
-          (enabledFeatureFlags.pages ||
-            !pageEntityTypeIds.includes(schema.$id)),
-      ),
+      latestEntityTypes
+        ?.filter(
+          ({ schema }) =>
+            !excludeEntityTypeIds?.includes(schema.$id) &&
+            (!excludeLinkTypes ||
+              !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
+            (enabledFeatureFlags.pages ||
+              !pageEntityTypeIds.includes(schema.$id)),
+        )
+        .sort((a, b) => a.schema.title.localeCompare(b.schema.title)),
     [
       enabledFeatureFlags.pages,
       excludeEntityTypeIds,
@@ -93,7 +97,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
       }}
       autoFocus={autoFocus}
       inputHeight={inputHeight}
-      options={filteredEntityTypes ?? []}
+      options={filteredAndSortedEntityTypes ?? []}
       multiple={multiple}
       filterOptions={(options, { inputValue }) => {
         return options.filter((option) => {

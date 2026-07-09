@@ -20,11 +20,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { ImpureGraphFunction } from "../graph/context-types";
-import type {
-  EntityTypeDefinition,
-  PropertyTypeDefinition,
-} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   generateSystemEntityTypeSchema,
   generateSystemPropertyTypeSchema,
@@ -37,6 +32,12 @@ import {
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
 import { createPropertyType } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
+
+import type { ImpureGraphFunction } from "../graph/context-types";
+import type {
+  EntityTypeDefinition,
+  PropertyTypeDefinition,
+} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 
 const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",

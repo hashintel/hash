@@ -1,12 +1,11 @@
-import type { MultiFilter } from "@blockprotocol/graph";
-import type { BaseUrl } from "@blockprotocol/type-system";
-
 import type {
   FilterValue,
   FilterValueType,
   FormValues,
   PropertyFilter,
 } from "./types";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 /** @todo confirm this function with backend */
 export const mapFormValuesToMultiFilter = (data: FormValues): MultiFilter => {

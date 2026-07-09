@@ -1,9 +1,10 @@
-import type { PropsWithChildren } from "react";
 import { createContext, useContext } from "react";
 
-import type { LocalStorage } from "../../../../shared/storage";
 // eslint-disable-next-line no-restricted-imports
 import { useUserValue } from "../../../shared/use-user-value";
+
+import type { LocalStorage } from "../../../../shared/storage";
+import type { PropsWithChildren } from "react";
 
 export type PopupUserContextType = {
   loading: boolean;

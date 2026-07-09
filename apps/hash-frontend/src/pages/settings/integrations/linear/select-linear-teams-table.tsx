@@ -1,8 +1,3 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import { Chip, Select } from "@hashintel/design-system";
-import { ArrowTurnDownRightIcon } from "@hashintel/type-editor/src/entity-type-editor/shared/arrow-turn-down-right-icon";
-import type { SyncWithWeb } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Box,
   outlinedInputClasses,
@@ -11,17 +6,24 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { Fragment, useCallback, useMemo, useState } from "react";
 
-import type { GetLinearOrganizationQuery } from "../../../../graphql/api-types.gen";
-import type { MinimalUser, Org } from "../../../../lib/user-and-org";
+import { Chip, Select } from "@hashintel/design-system";
+import { ArrowTurnDownRightIcon } from "@hashintel/type-editor/src/entity-type-editor/shared/arrow-turn-down-right-icon";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
 import { LinearLogoGray } from "../../../../shared/icons/linear-logo-gray";
 import { MenuItem } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { SettingsTable } from "../../shared/settings-table";
 import { SettingsTableCell } from "../../shared/settings-table-cell";
+
+import type { GetLinearOrganizationQuery } from "../../../../graphql/api-types.gen";
+import type { MinimalUser, Org } from "../../../../lib/user-and-org";
 import type { LinearIntegration } from "./use-linear-integrations";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { SyncWithWeb } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 
 const SelectWebs: FunctionComponent<{
   selectedWebEntityIds: EntityId[];

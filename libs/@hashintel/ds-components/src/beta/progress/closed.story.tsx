@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from "react";
 
-import * as StyledProgress from "./progress";
+import * as StyledProgress from "../progress";
 
 interface ProgressProps extends StyledProgress.RootProps {
   showValueText?: boolean;

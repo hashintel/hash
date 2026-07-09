@@ -1,7 +1,8 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { CircleDotIcon } from "lucide-react";
 
-import { Button } from "./button";
+import { Wrap } from "@hashintel/ds-helpers/jsx";
+
+import { Button } from "../button";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg", "xl", "2xl"] as const;

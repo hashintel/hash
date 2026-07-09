@@ -50,6 +50,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
+    fmt,
     ops::{Index, IndexMut},
 };
 
@@ -137,11 +138,13 @@ impl<E> HasId for Edge<E> {
 
 impl<E> Edge<E> {
     /// Returns the source node of this edge.
+    #[inline]
     pub const fn source(&self) -> NodeId {
         self.source
     }
 
     /// Returns the target node of this edge.
+    #[inline]
     pub const fn target(&self) -> NodeId {
         self.target
     }
@@ -213,7 +216,7 @@ impl<E> Edge<E> {
 /// }
 /// # else { unreachable!() }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct LinkedGraph<N, E, A: Allocator = Global> {
     /// All nodes in the graph, indexed by [`NodeId`].
     nodes: IdVec<NodeId, Node<N>, A>,
@@ -364,7 +367,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// Returns a slice view of all nodes in the graph.
     ///
     /// Nodes are indexed by their [`NodeId`] and returned in insertion order.
-    pub fn nodes(&self) -> &IdSlice<NodeId, Node<N>> {
+    pub const fn nodes(&self) -> &IdSlice<NodeId, Node<N>> {
         self.nodes.as_slice()
     }
 
@@ -434,7 +437,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// Returns a slice view of all edges in the graph.
     ///
     /// Edges are indexed by their [`EdgeId`] and returned in insertion order.
-    pub fn edges(&self) -> &IdSlice<EdgeId, Edge<E>> {
+    pub const fn edges(&self) -> &IdSlice<EdgeId, Edge<E>> {
         self.edges.as_slice()
     }
 
@@ -538,6 +541,15 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
 impl<N, E> Default for LinkedGraph<N, E> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<N: fmt::Debug, E: fmt::Debug, A: Allocator> fmt::Debug for LinkedGraph<N, E, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("LinkedGraph")
+            .field("nodes", &self.nodes)
+            .field("edges", &self.edges)
+            .finish()
     }
 }
 

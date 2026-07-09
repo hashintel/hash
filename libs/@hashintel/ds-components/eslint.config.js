@@ -1,4 +1,5 @@
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import reactHooks from "eslint-plugin-react-hooks";
 
 import { createBase, disableRules } from "@local/eslint/deprecated";
 
@@ -17,6 +18,7 @@ export default [
       "src/stories/Intro.mdx",
     ],
   },
+  reactHooks.configs.flat["recommended-latest"],
   ...createBase(import.meta.dirname),
   ...disableRules([]),
   {

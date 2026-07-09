@@ -49,7 +49,8 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let (root, mut bodies) = mir_reify(heap, expr, interner, environment, diagnostics)?;
+    let (root, mut bodies, mut scratch) =
+        mir_reify(heap, expr, interner, environment, diagnostics)?;
 
     render(heap, environment, root, &bodies);
 
@@ -59,7 +60,6 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
         interner,
         diagnostics: DiagnosticIssues::new(),
     };
-    let mut scratch = Scratch::new();
 
     let mut pass = CfgSimplify::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {

@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Kbd } from "./kbd";
+import { Kbd } from "../kbd";
 
 export const App = () => {
   return (

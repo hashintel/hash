@@ -1,21 +1,23 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import dedent from "dedent";
+
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { logger } from "../../../shared/activity-logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { PermittedAnthropicModel } from "../../../shared/get-llm-response/anthropic-client.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+
+import type { PermittedAnthropicModel } from "../../../shared/get-llm-response/anthropic-client.js";
 import type {
   LlmParams,
   LlmToolDefinition,
   LlmUsage,
 } from "../../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "../../../shared/openai-client.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "../coordinating-agent/summarize-existing-entities.js";
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * @todo

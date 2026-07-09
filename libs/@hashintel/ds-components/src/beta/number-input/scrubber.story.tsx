@@ -1,7 +1,7 @@
 import { ArrowLeftRightIcon } from "lucide-react";
 
-import { InputGroup } from "../input-group/input-group";
-import * as NumberInput from "./number-input";
+import { InputGroup } from "../input-group";
+import * as NumberInput from "../number-input";
 
 export const App = () => {
   return (

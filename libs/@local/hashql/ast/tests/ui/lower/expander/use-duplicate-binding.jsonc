@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: duplicate names in use bindings should error
+[
+  "::kernel::special_form::use",
+  "::core::math",
+  { "#tuple": ["add", "add"] },
+  //~^ ERROR duplicate import binding `add`
+  { "#literal": 0 }
+]

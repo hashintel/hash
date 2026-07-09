@@ -2,11 +2,12 @@ import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import type { DataTypeFormData } from "../data-type-form";
 import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
 import { EnumEditor } from "./shared/enum-editor";
 import { NumberInput } from "./shared/number-input";
+
+import type { DataTypeFormData } from "../data-type-form";
 import type { InheritedConstraints } from "./types";
 
 const NumberRangeEditor = ({
@@ -266,14 +267,20 @@ const NumberRangeText = ({
     return (
       <>
         {" between "}
-        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} />{" "}
+        <ConstraintText
+          text={minimum.toString()}
+          from={minimumInheritedFrom}
+        />{" "}
         (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.minimum?.from}
         />
         ){" and "}
-        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} />{" "}
+        <ConstraintText
+          text={maximum.toString()}
+          from={maximumInheritedFrom}
+        />{" "}
         (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}
@@ -288,7 +295,10 @@ const NumberRangeText = ({
     return (
       <>
         {" greater than "}
-        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} />{" "}
+        <ConstraintText
+          text={minimum.toString()}
+          from={minimumInheritedFrom}
+        />{" "}
         (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
@@ -303,7 +313,10 @@ const NumberRangeText = ({
     return (
       <>
         {" less than "}
-        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} />{" "}
+        <ConstraintText
+          text={maximum.toString()}
+          from={maximumInheritedFrom}
+        />{" "}
         (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}

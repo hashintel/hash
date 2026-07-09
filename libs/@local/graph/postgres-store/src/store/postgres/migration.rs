@@ -40,12 +40,14 @@ where
             .collect())
     }
 
-    async fn all_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
-        Ok(embedded::migrations::runner()
+    fn all_migrations(
+        &mut self,
+    ) -> impl Future<Output = Result<Vec<Migration>, Report<MigrationError>>> + Send {
+        core::future::ready(Ok(embedded::migrations::runner()
             .get_migrations()
             .iter()
             .map(create_postgres_migration)
-            .collect())
+            .collect()))
     }
 
     async fn applied_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {

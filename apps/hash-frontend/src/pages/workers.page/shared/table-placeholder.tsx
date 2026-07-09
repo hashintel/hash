@@ -3,6 +3,7 @@ import {
   TableCell as MuiTableCell,
   TableRow as MuiTableRow,
 } from "@mui/material";
+
 import type { PropsWithChildren } from "react";
 
 export const placeholderHeight = 200;

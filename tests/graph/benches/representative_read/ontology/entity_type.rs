@@ -2,11 +2,8 @@ use criterion::{BatchSize::SmallInput, Bencher};
 use hash_graph_store::{
     entity_type::{CommonQueryEntityTypesParams, EntityTypeStore as _, QueryEntityTypesParams},
     filter::Filter,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{ontology::VersionedUrl, principal::actor::ActorEntityUuid};
@@ -35,13 +32,7 @@ pub fn bench_get_entity_type_by_id(
                     QueryEntityTypesParams {
                         request: CommonQueryEntityTypesParams {
                             filter: Filter::for_versioned_url(entity_type_id),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(
-                                    Some(TemporalBound::Unbounded),
-                                    None,
-                                ),
-                            },
+                            temporal_axes: QueryTemporalAxesUnresolved::all(),
                             after: None,
                             limit: None,
                             include_count: false,

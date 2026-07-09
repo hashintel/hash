@@ -11,8 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { U16_MAX, U16_MIN } from "../../constants.js";
 import { MutableBuffer } from "../../binary/index.js";
+import { U16_MAX, U16_MIN } from "../../constants.js";
 import {
   createProto,
   hashUint8Array,
@@ -37,9 +37,7 @@ export class PayloadTooLargeError extends Data.TaggedError(
 }
 
 export interface Payload
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly buffer: Uint8Array<ArrayBuffer>;

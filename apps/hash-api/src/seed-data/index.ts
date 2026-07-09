@@ -1,18 +1,21 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { Logger } from "@local/hash-backend-utils/logger";
 
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { Org } from "../graph/knowledge/system-types/org";
 import {
   createOrg,
   getOrgByShortname,
 } from "../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../graph/knowledge/system-types/org-membership";
-import type { User } from "../graph/knowledge/system-types/user";
 import { joinOrg } from "../graph/knowledge/system-types/user";
-import type { PageDefinition } from "./seed-pages";
+import { isDevEnv, isTestEnv } from "../lib/env-config";
 import { seedPages } from "./seed-pages";
+import { seedSupplyChainDemo } from "./seed-supply-chain-demo";
 import { ensureUsersAreSeeded } from "./seed-users";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { Org } from "../graph/knowledge/system-types/org";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { PageDefinition } from "./seed-pages";
+import type { Logger } from "@local/hash-backend-utils/logger";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {
@@ -154,5 +157,11 @@ export const seedOrgsAndUsers = async (params: {
         `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
       );
     }
+  }
+
+  // Seed the precomputed supply-chain demo dataset into the example org's web
+  // (dev/test only – it no-ops where the example org or vendored data are absent).
+  if (isDevEnv || isTestEnv) {
+    await seedSupplyChainDemo({ logger, context });
   }
 };

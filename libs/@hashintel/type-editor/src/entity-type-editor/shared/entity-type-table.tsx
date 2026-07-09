@@ -1,6 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { WhiteCard } from "@hashintel/design-system";
-import type { TypographyProps } from "@mui/material";
 import {
   Box,
   ButtonBase,
@@ -19,10 +16,15 @@ import {
   useForkRef,
 } from "@mui/material";
 import memoize from "lodash.memoize";
-import type { PropsWithChildren, ReactNode, RefObject } from "react";
 import { forwardRef, useEffect, useRef, useState } from "react";
 
+import { WhiteCard } from "@hashintel/design-system";
+
 import { useIsReadonly } from "../../shared/read-only-context";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { TypographyProps } from "@mui/material";
+import type { PropsWithChildren, ReactNode, RefObject } from "react";
 
 /**
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend

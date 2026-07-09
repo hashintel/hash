@@ -1,16 +1,18 @@
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { EntityTypeEditor } from "@hashintel/type-editor";
 import { useMemo } from "react";
+
+import { EntityTypeEditor } from "@hashintel/type-editor";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
 import { useNewTypeOwner } from "../shared/use-new-type-owner";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
+
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type DefinitionTabProps = {
   entityTypeAndPropertyTypes: {

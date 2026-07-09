@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   AppliesFromPropertyValue,
   AppliesFromPropertyValueWithMetadata,
@@ -64,21 +62,16 @@ import type {
   ObjectDataTypeWithMetadata,
   OutputDefinitionsPropertyValue,
   OutputDefinitionsPropertyValueWithMetadata,
-  OutputsPropertyValue,
-  OutputsPropertyValueWithMetadata,
   OutputUnitCostPropertyValue,
   OutputUnitCostPropertyValueWithMetadata,
-  PausedAtPropertyValue,
-  PausedAtPropertyValueWithMetadata,
+  OutputsPropertyValue,
+  OutputsPropertyValueWithMetadata,
   PauseOnFailurePropertyValue,
   PauseOnFailurePropertyValueWithMetadata,
+  PausedAtPropertyValue,
+  PausedAtPropertyValueWithMetadata,
   ScheduleCatchupWindowPropertyValue,
   ScheduleCatchupWindowPropertyValueWithMetadata,
-  ScheduledBy,
-  ScheduledByOutgoingLinkAndTarget,
-  ScheduledByOutgoingLinksByLinkEntityTypeId,
-  ScheduledByProperties,
-  ScheduledByPropertiesWithMetadata,
   ScheduleOverlapPolicyDataType,
   ScheduleOverlapPolicyDataTypeWithMetadata,
   ScheduleOverlapPolicyPropertyValue,
@@ -91,6 +84,11 @@ import type {
   ScheduleStatusDataTypeWithMetadata,
   ScheduleStatusPropertyValue,
   ScheduleStatusPropertyValueWithMetadata,
+  ScheduledBy,
+  ScheduledByOutgoingLinkAndTarget,
+  ScheduledByOutgoingLinksByLinkEntityTypeId,
+  ScheduledByProperties,
+  ScheduledByPropertiesWithMetadata,
   ServiceFeature,
   ServiceFeatureOutgoingLinkAndTarget,
   ServiceFeatureOutgoingLinksByLinkEntityTypeId,
@@ -117,9 +115,12 @@ import type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WorkflowIDPropertyValue,
   WorkflowIDPropertyValueWithMetadata,
 } from "./shared.js";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   AppliesFromPropertyValue,
@@ -234,6 +235,8 @@ export type {
   UsesOutgoingLinksByLinkEntityTypeId,
   UsesProperties,
   UsesPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WorkflowIDPropertyValue,
   WorkflowIDPropertyValueWithMetadata,
 };

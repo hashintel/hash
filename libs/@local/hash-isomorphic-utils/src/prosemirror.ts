@@ -1,9 +1,10 @@
 import { toggleMark } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import type { Node, NodeSpec, NodeType } from "prosemirror-model";
 import { Schema } from "prosemirror-model";
 
 import { paragraphBlockComponentId } from "./blocks-constants.js";
+
+import type { Node, NodeSpec, NodeType } from "prosemirror-model";
 
 type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
   Node,

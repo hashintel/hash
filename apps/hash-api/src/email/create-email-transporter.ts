@@ -6,10 +6,16 @@ import {
   monorepoRootDir,
 } from "@local/hash-backend-utils/environment";
 
-import { isDevEnv, isProdEnv, isTestEnv } from "../lib/env-config";
+import {
+  isDevEnv,
+  isProdEnv,
+  isStagingEnv,
+  isTestEnv,
+} from "../lib/env-config";
 import { logger } from "../logger";
 import { AwsSesEmailTransporter, DummyEmailTransporter } from "./transporters";
 import { SmtpEmailTransporter } from "./transporters/smtp-email-transporter";
+
 import type { EmailTransporter } from "./transporters/types";
 
 const transporterType = process.env.HASH_EMAIL_TRANSPORTER;
@@ -32,7 +38,11 @@ export const createEmailTransporter = (): EmailTransporter => {
     });
   }
 
-  const subjectPrefix = isProdEnv ? undefined : "[DEV SITE] ";
+  const subjectPrefix = isProdEnv
+    ? undefined
+    : isStagingEnv
+      ? "[STAGING SITE] "
+      : "[DEV SITE] ";
 
   if (transporterType === "aws") {
     return new AwsSesEmailTransporter({

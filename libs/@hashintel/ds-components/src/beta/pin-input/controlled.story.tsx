@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import * as PinInput from "./pin-input";
+import * as PinInput from "../pin-input";
 
 export const App = () => {
   const [value, setValue] = useState(["", "", "", ""]);

@@ -1,11 +1,13 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { type EntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { memo } from "react";
 
+import { type EntityId } from "@blockprotocol/type-system";
+
 import { Entity } from "../entity";
+
 import type { EntityEditorProps } from "../entity/entity-editor";
 import type { SlideItem } from "./types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export type EntitySlideProps = {
   /**

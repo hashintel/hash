@@ -1,10 +1,12 @@
+import { type FunctionComponent } from "react";
+
 import {
   componentsFromVersionedUrl,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
-import { type FunctionComponent } from "react";
 
 import { DataType } from "../data-type";
+
 import type { SlideItem } from "./types";
 
 type DataTypeSlideProps = {

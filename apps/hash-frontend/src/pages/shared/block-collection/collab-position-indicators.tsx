@@ -1,10 +1,11 @@
-import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { AnimatePresence, motion } from "framer-motion";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { useCollabPositionContext } from "../../../contexts/collab-position-context";
 import { CollabPositionIndicator } from "./collab-position-indicator";
+
+import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
+import type { FunctionComponent } from "react";
 
 function pickColor(inputString: string) {
   let hash = 0;

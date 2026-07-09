@@ -195,6 +195,80 @@ macro_rules! impl_bitset {
 
 impl_bitset!(DenseBitSet, ChunkedBitSet, MixedBitSet);
 
+impl<T, U, A, B> HasBottom<(T, U)> for (A, B)
+where
+    A: HasBottom<T>,
+    B: HasBottom<U>,
+{
+    #[inline]
+    fn bottom(&self) -> (T, U) {
+        (self.0.bottom(), self.1.bottom())
+    }
+
+    #[inline]
+    fn is_bottom(&self, value: &(T, U)) -> bool {
+        self.0.is_bottom(&value.0) && self.1.is_bottom(&value.1)
+    }
+}
+
+impl<T, U, A, B> HasTop<(T, U)> for (A, B)
+where
+    A: HasTop<T>,
+    B: HasTop<U>,
+{
+    #[inline]
+    fn top(&self) -> (T, U) {
+        (self.0.top(), self.1.top())
+    }
+
+    #[inline]
+    fn is_top(&self, value: &(T, U)) -> bool {
+        self.0.is_top(&value.0) && self.1.is_top(&value.1)
+    }
+}
+
+impl<T, U, A, B> JoinSemiLattice<(T, U)> for (A, B)
+where
+    A: JoinSemiLattice<T>,
+    B: JoinSemiLattice<U>,
+{
+    #[inline]
+    fn join_owned(&self, mut lhs: (T, U), rhs: &(T, U)) -> (T, U)
+    where
+        (T, U): Sized,
+    {
+        self.0.join(&mut lhs.0, &rhs.0);
+        self.1.join(&mut lhs.1, &rhs.1);
+        lhs
+    }
+
+    #[inline]
+    fn join(&self, lhs: &mut (T, U), rhs: &(T, U)) -> bool {
+        self.0.join(&mut lhs.0, &rhs.0) | self.1.join(&mut lhs.1, &rhs.1)
+    }
+}
+
+impl<T, U, A, B> MeetSemiLattice<(T, U)> for (A, B)
+where
+    A: MeetSemiLattice<T>,
+    B: MeetSemiLattice<U>,
+{
+    #[inline]
+    fn meet_owned(&self, mut lhs: (T, U), rhs: &(T, U)) -> (T, U)
+    where
+        (T, U): Sized,
+    {
+        self.0.meet(&mut lhs.0, &rhs.0);
+        self.1.meet(&mut lhs.1, &rhs.1);
+        lhs
+    }
+
+    #[inline]
+    fn meet(&self, lhs: &mut (T, U), rhs: &(T, U)) -> bool {
+        self.0.meet(&mut lhs.0, &rhs.0) | self.1.meet(&mut lhs.1, &rhs.1)
+    }
+}
+
 impl<T, U> MeetSemiLattice<T> for Reverse<U>
 where
     U: JoinSemiLattice<T>,
@@ -246,10 +320,14 @@ where
 #[cfg(test)]
 mod tests {
     #![expect(clippy::min_ident_chars)]
+    use core::cmp::Reverse;
+
     use hashql_core::id::{self, Id as _, bit_vec::DenseBitSet};
 
     use super::{PowersetLattice, SaturatingSemiring, WrappingSemiring};
-    use crate::pass::analysis::dataflow::lattice::laws::{assert_bounded_lattice, assert_semiring};
+    use crate::pass::analysis::dataflow::lattice::laws::{
+        assert_bounded_join_semilattice, assert_bounded_lattice, assert_semiring,
+    };
 
     #[test]
     fn saturating_semiring_u32() {
@@ -302,5 +380,95 @@ mod tests {
         c.insert(TestId::from_usize(6));
 
         assert_bounded_lattice(&lattice, a, b, c);
+    }
+
+    /// Tuple lattice with two `PowersetLattice`s of different domain sizes.
+    #[test]
+    fn tuple_lattice_different_domains() {
+        id::newtype!(struct Left(u32 is 0..=15));
+        id::newtype!(struct Right(u32 is 0..=31));
+
+        let lattice = (PowersetLattice::new(16), PowersetLattice::new(32));
+
+        let mut left_a: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+        let mut left_b: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+        let mut left_c: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+
+        left_a.insert(Left::from_usize(0));
+        left_a.insert(Left::from_usize(1));
+
+        left_b.insert(Left::from_usize(1));
+        left_b.insert(Left::from_usize(2));
+
+        left_c.insert(Left::from_usize(2));
+        left_c.insert(Left::from_usize(3));
+
+        let mut right_a: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_b: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_c: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+
+        right_a.insert(Right::from_usize(10));
+        right_a.insert(Right::from_usize(11));
+
+        right_b.insert(Right::from_usize(11));
+        right_b.insert(Right::from_usize(12));
+
+        right_c.insert(Right::from_usize(12));
+        right_c.insert(Right::from_usize(13));
+
+        assert_bounded_lattice(
+            &lattice,
+            (left_a, right_a),
+            (left_b, right_b),
+            (left_c, right_c),
+        );
+    }
+
+    /// Tuple lattice with `Reverse<PowersetLattice>` and `PowersetLattice`.
+    ///
+    /// Verifies the `(A, B)` combinator works with heterogeneous lattice structures
+    /// where one component uses intersection-as-join (the dual lattice).
+    #[test]
+    fn tuple_lattice_heterogeneous_structures() {
+        id::newtype!(struct Left(u32 is 0..=15));
+        id::newtype!(struct Right(u32 is 0..=31));
+
+        let lattice = (Reverse(PowersetLattice::new(16)), PowersetLattice::new(32));
+
+        let mut left_a: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+        let mut left_b: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+        let mut left_c: DenseBitSet<Left> = DenseBitSet::new_empty(16);
+
+        left_a.insert(Left::from_usize(0));
+        left_a.insert(Left::from_usize(1));
+        left_a.insert(Left::from_usize(2));
+
+        left_b.insert(Left::from_usize(1));
+        left_b.insert(Left::from_usize(2));
+        left_b.insert(Left::from_usize(3));
+
+        left_c.insert(Left::from_usize(2));
+        left_c.insert(Left::from_usize(3));
+        left_c.insert(Left::from_usize(4));
+
+        let mut right_a: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_b: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+        let mut right_c: DenseBitSet<Right> = DenseBitSet::new_empty(32);
+
+        right_a.insert(Right::from_usize(10));
+        right_a.insert(Right::from_usize(11));
+
+        right_b.insert(Right::from_usize(11));
+        right_b.insert(Right::from_usize(12));
+
+        right_c.insert(Right::from_usize(12));
+        right_c.insert(Right::from_usize(13));
+
+        assert_bounded_join_semilattice(
+            &lattice,
+            (left_a, right_a),
+            (left_b, right_b),
+            (left_c, right_c),
+        );
     }
 }

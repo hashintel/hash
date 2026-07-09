@@ -1,0 +1,188 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+
+### Seed default policies
+GET http://127.0.0.1:4000/policies/seed
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
+### Get system user
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("system_machine_id", response.body);
+%}
+
+### Create account
+POST http://127.0.0.1:4000/actors/user
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
+
+{
+  "shortname": "alice",
+  "registrationComplete": true
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("user_id", response.body.userId);
+%}
+
+### HashQL: filter-false returns empty list
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+
+{
+  "query": ["let", "axes",
+    ["::graph::temporal::PinnedTransactionTimeTemporalAxes",
+      {"#struct": {
+        "pinned": ["::graph::temporal::TransactionTime",
+          ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+        ],
+        "variable": ["::graph::temporal::DecisionTime",
+          ["::graph::temporal::Interval", {"#struct": {
+            "start": ["::graph::temporal::UnboundedTemporalBound"],
+            "end": ["::graph::temporal::ExclusiveTemporalBound",
+              ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+            ]
+          }}]
+        ]
+      }}
+    ],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", "axes"],
+        ["fn", {"#tuple": []}, {"#struct": {"vertex": "_"}}, "_",
+          {"#literal": false}
+        ]
+      ]
+    ]
+  ],
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.test("empty list", function() {
+    client.assert(response.body.value !== undefined, "Expected 'value' field");
+    client.assert(response.body.value.List !== undefined, "Expected 'List' in value");
+    client.assert(response.body.value.List.length === 0, "Expected empty list for filter-false");
+    client.assert(response.body.advisories !== undefined, "Expected 'advisories' field");
+  });
+%}
+
+### HashQL: parse error returns 400 with diagnostics
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+
+{
+  "query": {"not": "a valid query"},
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for invalid query");
+  });
+  client.test("has diagnostic", function() {
+    client.assert(response.body.primary !== undefined, "Expected primary diagnostic");
+    client.assert(response.body.primary.category !== undefined, "Expected diagnostic category");
+  });
+%}
+
+### HashQL: missing inputs field returns 400
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+
+{
+  "query": {"#literal": 1}
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for missing inputs field");
+  });
+  client.test("error message mentions inputs", function() {
+    client.assert(response.body.message !== undefined, "Expected error message");
+    client.assert(response.body.contents[0].Error.metadata.deserializationError.includes("inputs"),
+      "Expected error to mention missing 'inputs' field");
+  });
+%}
+
+### HashQL: json-compat wraps result in envelope with advisories
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+Json-Compat: true
+
+{
+  "query": ["let", "axes",
+    ["::graph::temporal::PinnedTransactionTimeTemporalAxes",
+      {"#struct": {
+        "pinned": ["::graph::temporal::TransactionTime",
+          ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+        ],
+        "variable": ["::graph::temporal::DecisionTime",
+          ["::graph::temporal::Interval", {"#struct": {
+            "start": ["::graph::temporal::UnboundedTemporalBound"],
+            "end": ["::graph::temporal::ExclusiveTemporalBound",
+              ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+            ]
+          }}]
+        ]
+      }}
+    ],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", "axes"],
+        ["fn", {"#tuple": []}, {"#struct": {"vertex": "_"}}, "_",
+          {"#literal": false}
+        ]
+      ]
+    ]
+  ],
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.test("envelope shape", function() {
+    client.assert(response.body.value !== undefined, "Expected 'value' field in envelope");
+    client.assert(response.body.advisories !== undefined, "Expected 'advisories' field in envelope");
+    client.assert(Array.isArray(response.body.value), "Expected value to be an array");
+    client.assert(response.body.value.length === 0, "Expected empty list for filter-false");
+  });
+%}
+
+### HashQL: interactive header returns HTML on error
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+Interactive: true
+
+{
+  "query": {"not": "a valid query"},
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for invalid query");
+  });
+  client.test("html response", function() {
+    var contentType = response.headers.valueOf("content-type");
+    client.assert(contentType.includes("text/html"), "Expected HTML content type, got: " + contentType);
+  });
+%}

@@ -1,12 +1,13 @@
-import type { MenuItemProps as MuiMenuItemProps } from "@mui/material";
 import {
   listItemIconClasses,
   listItemTextClasses,
   MenuItem as MuiMenuItem,
   typographyClasses,
 } from "@mui/material";
-import type { ReactNode } from "react";
 import { forwardRef } from "react";
+
+import type { MenuItemProps as MuiMenuItemProps } from "@mui/material";
+import type { ReactNode } from "react";
 
 export type MenuItemProps = {
   children?: ReactNode;

@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
@@ -16,10 +16,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
         drop %2                                                                 // cost: 0
         drop %3                                                                 // cost: 0
 
-        return %4
+        return %4                                                               // cost: 8
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

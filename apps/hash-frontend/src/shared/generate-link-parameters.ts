@@ -1,8 +1,9 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import type { Url } from "next/dist/shared/lib/router/router";
 
 import { isHrefExternal } from "./is-href-external";
+
+import type { Url } from "next/dist/shared/lib/router/router";
 
 /**
  * A RegExp to match the path of HASH or Block Protocol-formatted type URLs.

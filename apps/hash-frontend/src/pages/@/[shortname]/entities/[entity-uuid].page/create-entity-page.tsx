@@ -1,5 +1,9 @@
 import { useMutation } from "@apollo/client";
-import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import { GlobalStyles, Typography } from "@mui/material";
+import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
+import { useContext, useState } from "react";
+
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
@@ -9,27 +13,25 @@ import {
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import { GlobalStyles, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useContext, useState } from "react";
+
+import {
+  createEntityMutation,
+  queryEntitySubgraphQuery,
+} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { generateSidebarEntitiesQueryVariables } from "../../../../../shared/generate-sidebar-entities-query-variables";
+import { Link } from "../../../../../shared/ui/link";
+import { Entity } from "../../../../shared/entity";
+import { EntityPageLoadingState } from "../../../../shared/entity/entity-page-loading-state";
+import { useApplyDraftLinkEntityChanges } from "../../../../shared/entity/shared/use-apply-draft-link-entity-changes";
+import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
 
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import {
-  createEntityMutation,
-  queryEntitySubgraphQuery,
-} from "../../../../../graphql/queries/knowledge/entity.queries";
-import { Link } from "../../../../../shared/ui/link";
-import { generateSidebarEntityTypeEntitiesQueryVariables } from "../../../../../shared/use-entity-type-entities";
-import { Entity } from "../../../../shared/entity";
-import { EntityPageLoadingState } from "../../../../shared/entity/entity-page-loading-state";
-import { useApplyDraftLinkEntityChanges } from "../../../../shared/entity/shared/use-apply-draft-link-entity-changes";
 import type { DraftLinksToCreate } from "../../../../shared/entity/shared/use-draft-link-state";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
-import { createInitialDraftEntitySubgraph } from "./create-entity-page/create-initial-draft-entity-subgraph";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
@@ -56,7 +58,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
            */
           {
             query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
+            variables: generateSidebarEntitiesQueryVariables({
               webId: activeWorkspaceWebId,
             }),
           },

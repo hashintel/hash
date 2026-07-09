@@ -1,10 +1,4 @@
 import { Backdrop, Box, Portal, Slide } from "@mui/material";
-import type {
-  Dispatch,
-  FunctionComponent,
-  RefObject,
-  SetStateAction,
-} from "react";
 import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
 import { useScrollLock } from "../../shared/use-scroll-lock";
@@ -13,7 +7,14 @@ import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
 import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
 import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
+
 import type { SlideItem } from "./slide-stack/types";
+import type {
+  Dispatch,
+  FunctionComponent,
+  RefObject,
+  SetStateAction,
+} from "react";
 
 export { useSlideStack } from "./slide-stack/context";
 
@@ -77,20 +78,22 @@ const StackSlide = ({
           onClose={onClose}
         />
 
-        {item.kind === "dataType" && (
-          <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
-        )}
-        {item.kind === "entityType" && (
-          <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
-        )}
-        {item.kind === "entity" && (
-          <EntitySlide
-            {...item}
-            entityId={item.itemId}
-            removeItem={removeItem}
-            replaceItem={replaceItem}
-          />
-        )}
+        <Box sx={{ pt: 1, background: ({ palette }) => palette.common.white }}>
+          {item.kind === "dataType" && (
+            <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
+          )}
+          {item.kind === "entityType" && (
+            <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
+          )}
+          {item.kind === "entity" && (
+            <EntitySlide
+              {...item}
+              entityId={item.itemId}
+              removeItem={removeItem}
+              replaceItem={replaceItem}
+            />
+          )}
+        </Box>
       </Box>
     </Slide>
   );

@@ -1,8 +1,8 @@
-import type { GraphApi } from "@local/hash-graph-client";
-
 import { getHistoricalFlightArrivalsAction } from "./aviation-activities/get-historical-flight-arrivals-action.js";
 import { createGetLiveFlightPositionsAction } from "./aviation-activities/get-live-flight-positions-action.js";
 import { getScheduledFlightsAction } from "./aviation-activities/get-scheduled-flights-action.js";
+
+import type { GraphApi } from "@local/hash-graph-client";
 
 export { getHistoricalFlightArrivalsAction } from "./aviation-activities/get-historical-flight-arrivals-action.js";
 export { createGetLiveFlightPositionsAction } from "./aviation-activities/get-live-flight-positions-action.js";

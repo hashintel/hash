@@ -1,5 +1,6 @@
-import { faCirclePlus, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
+
+import { faCirclePlus, FontAwesomeIcon } from "@hashintel/design-system";
 
 export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
   <Box

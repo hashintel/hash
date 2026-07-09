@@ -8,31 +8,55 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hash-graph-store   = { workspace = true, optional = true, public = true }
-hashql-diagnostics = { workspace = true, public = true }
-hashql-hir         = { workspace = true, optional = true, public = true }
+hash-graph-postgres-store = { workspace = true, public = true }
+hashql-diagnostics        = { workspace = true, public = true }
+hashql-hir                = { workspace = true, public = true }
+hashql-mir                = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
-hashql-core = { workspace = true, optional = true }
-type-system = { workspace = true, optional = true }
+hashql-core = { workspace = true }
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["display"] }
-simple-mermaid = { workspace = true }
+bytes             = { workspace = true }
+futures-lite      = { workspace = true }
+postgres-protocol = { workspace = true }
+postgres-types    = { workspace = true, features = ["uuid-1"] }
+serde             = { workspace = true }
+serde_json        = { workspace = true, features = ["raw_value"] }
+simple-mermaid    = { workspace = true }
+tokio-postgres    = { workspace = true }
+url               = { workspace = true }
+uuid              = { workspace = true }
 
 [dev-dependencies]
-hashql-compiletest = { workspace = true }
-
-[features]
-graph = ["dep:hash-graph-store", "dep:hashql-core", "dep:hashql-hir", "dep:type-system"]
+error-stack              = { workspace = true }
+hash-graph-authorization = { workspace = true }
+hash-graph-store         = { workspace = true }
+hash-graph-test-data     = { workspace = true }
+hashql-compiletest       = { workspace = true }
+hashql-diagnostics       = { workspace = true, features = ["render"] }
+insta                    = { workspace = true }
+libtest-mimic            = { workspace = true }
+regex                    = { workspace = true }
+similar-asserts          = { workspace = true }
+sqruff-lib               = { workspace = true }
+sqruff-lib-core          = { workspace = true }
+testcontainers           = { workspace = true, features = ["reusable-containers"] }
+testcontainers-modules   = { workspace = true, features = ["postgres"] }
+tokio                    = { workspace = true }
+type-system              = { workspace = true }
 
 [lints]
 workspace = true
 
 [[test]]
 name    = "compiletest"
+harness = false
+
+[[test]]
+name    = "orchestrator"
 harness = false
 
 [package.metadata.sync.turborepo]

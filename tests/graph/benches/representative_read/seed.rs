@@ -205,6 +205,7 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        read_only: false,
                     },
                     quantity,
                 )
@@ -260,6 +261,7 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
                             sources: Vec::new(),
                         },
+                        read_only: false,
                     })
                     .collect(),
             )

@@ -1,6 +1,7 @@
+import { createContext, useContext } from "react";
+
 import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import { createContext, useContext } from "react";
 
 export type TitleValidationFunction = (proposal: {
   kind: "entity-type" | "property-type";

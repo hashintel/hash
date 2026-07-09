@@ -1,6 +1,6 @@
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 extern crate alloc;
 
@@ -337,13 +337,13 @@ fn embed_migrations_impl(input: &EmbedMigrationsInput) -> Result<TokenStream, Bo
                     MIGRATIONS.iter()
                 }
 
-                async fn traverse(
+                fn traverse(
                     self,
                     _: &impl MigrationRunner,
                     _: &mut C,
                     _: MigrationDirection,
-                ) -> Result<(), Report<MigrationError>> {
-                    Ok(())
+                ) -> impl Future<Output = Result<(), Report<MigrationError>>> {
+                    ::core::future::ready(Ok(()))
                 }
             }
 

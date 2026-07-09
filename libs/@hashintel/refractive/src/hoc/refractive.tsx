@@ -1,9 +1,10 @@
-import type { ComponentType } from "react";
 import { createElement, useEffect, useId, useRef, useState } from "react";
-import type { JSX } from "react/jsx-runtime";
 
 import { Filter } from "../components/filter";
 import { convex } from "../helpers/surface-equations";
+
+import type { ComponentType } from "react";
+import type { JSX } from "react/jsx-runtime";
 
 type RefractionProps = {
   refraction: {
@@ -41,6 +42,7 @@ function createRefractiveComponent<
     const internalRef = useRef<HTMLElement>(null);
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
+    const hasMeasuredElement = width > 0 && height > 0;
 
     // If a ref is passed in props, use it; otherwise, use internalRef.
     // If the passed ref is updated later, it will trigger a re-render.
@@ -77,21 +79,23 @@ function createRefractiveComponent<
 
     return (
       <>
-        <Filter
-          id={filterId}
-          scaleRatio={1} // Always 1 for now, could be animatable in the future
-          pixelRatio={6} // Always 6 for now, could be configurable in the future
-          width={width}
-          height={height}
-          radius={refraction.radius}
-          blur={refraction.blur ?? 0}
-          glassThickness={refraction.glassThickness ?? 70}
-          bezelWidth={refraction.bezelWidth ?? 0}
-          refractiveIndex={refraction.refractiveIndex ?? 1.5}
-          specularOpacity={refraction.specularOpacity ?? 0}
-          specularAngle={refraction.specularAngle ?? 0}
-          bezelHeightFn={refraction.bezelHeightFn ?? convex}
-        />
+        {hasMeasuredElement ? (
+          <Filter
+            id={filterId}
+            scaleRatio={1} // Always 1 for now, could be animatable in the future
+            pixelRatio={6} // Always 6 for now, could be configurable in the future
+            width={width}
+            height={height}
+            radius={refraction.radius}
+            blur={refraction.blur ?? 0}
+            glassThickness={refraction.glassThickness ?? 70}
+            bezelWidth={refraction.bezelWidth ?? 0}
+            refractiveIndex={refraction.refractiveIndex ?? 1.5}
+            specularOpacity={refraction.specularOpacity ?? 0}
+            specularAngle={refraction.specularAngle ?? 0}
+            bezelHeightFn={refraction.bezelHeightFn ?? convex}
+          />
+        ) : null}
 
         {/* @ts-expect-error Need to fix types in this file */}
         <Component
@@ -99,7 +103,9 @@ function createRefractiveComponent<
           ref={elementRef}
           style={{
             ...componentProps.style,
-            backdropFilter: `url(#${filterId})`,
+            ...(hasMeasuredElement
+              ? { backdropFilter: `url(#${filterId})` }
+              : undefined),
             borderRadius: refraction.radius,
           }}
         />

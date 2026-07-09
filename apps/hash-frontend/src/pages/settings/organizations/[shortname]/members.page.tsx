@@ -1,4 +1,3 @@
-import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
   Box,
   styled,
@@ -9,11 +8,10 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
-import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
@@ -23,6 +21,9 @@ import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 import { PendingInvitationsTable } from "./members.page/pending-invitations-table";
+
+import type { NextPageWithLayout } from "../../../../shared/layout";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 
 const InviteNewButton = styled("button")`
   background: none;

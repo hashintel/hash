@@ -1,16 +1,18 @@
-import { Avatar, UserPlusRegularIcon } from "@hashintel/design-system";
 import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useState } from "react";
 
-import type { Org, User } from "../../../lib/user-and-org";
+import { Avatar, UserPlusRegularIcon } from "@hashintel/design-system";
+
 import { CogRegularIcon } from "../../../shared/icons/cog-regular-icon";
 import { Button } from "../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";
 import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
-import type { ProfilePageTab } from "./util";
 import { leftColumnWidth } from "./util";
+
+import type { Org, User } from "../../../lib/user-and-org";
+import type { ProfilePageTab } from "./util";
+import type { FunctionComponent } from "react";
 
 const avatarTopOffset = 25;
 

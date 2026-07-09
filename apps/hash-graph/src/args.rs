@@ -7,7 +7,7 @@ use clap::{
 };
 use hash_telemetry::TracingConfig;
 
-use crate::subcommand::Subcommand;
+use crate::subcommand::{Subcommand, WorkerThreads};
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
@@ -15,6 +15,19 @@ use crate::subcommand::Subcommand;
 pub struct Args {
     #[clap(flatten)]
     pub tracing_config: TracingConfig,
+
+    /// Number of threads in the global worker pool used for CPU-bound work such as entity
+    /// clustering.
+    ///
+    /// Accepts a fixed count (e.g. `4`) or a count relative to the available CPU cores: `n` for
+    /// all cores, `n/2` for half, `n/4` for a quarter, and so on.
+    #[clap(
+        long,
+        global = true,
+        default_value_t,
+        env = "HASH_GRAPH_WORKER_THREADS"
+    )]
+    pub worker_threads: WorkerThreads,
 
     /// Specify a subcommand to run.
     #[command(subcommand)]

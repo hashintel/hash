@@ -1,10 +1,12 @@
 import { faCheck, faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+
 import { JsonEditor } from "./json-input/json-editor";
+
 import type { CellInputProps } from "./types";
 
 const isJsonObjectString = (str?: string) => {

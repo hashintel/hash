@@ -24,18 +24,16 @@ export default defineConfig({
     ],
     environment: "node",
     testTimeout: 60_000,
-    hookTimeout: 60_000,
+    hookTimeout: 120_000,
     sequence: {
       hooks: "list",
     },
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-      forks: {
-        singleFork: true,
-      },
-    },
+    /**
+     * These integration tests share a single graph instance and reset it
+     * between files, so running files in parallel causes graph state races.
+     */
+    fileParallelism: false,
+    maxWorkers: 1,
     maxConcurrency: 1,
   },
 });

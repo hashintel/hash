@@ -1,7 +1,9 @@
 import { css, type Styles } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 
-import { Icon, iconNames, sizes } from "./icon";
+import { formInputSizes } from "../../util/form-shared";
+import { Icon, iconNames } from "./icon";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Components/Icon",
@@ -18,7 +20,7 @@ export default {
     size: {
       control: {
         type: "select",
-        options: sizes,
+        options: formInputSizes,
       },
     },
     alt: {
@@ -31,10 +33,6 @@ export default {
   },
 } satisfies StoryDefault<React.ComponentProps<typeof Icon>>;
 
-export const Default: Story<React.ComponentProps<typeof Icon>> = (args) => (
-  <Icon {...args} />
-);
-
 export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
   <div
     className={css({
@@ -43,7 +41,7 @@ export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
       alignItems: "center",
     })}
   >
-    {sizes.map((size) => (
+    {formInputSizes.map((size) => (
       <div
         key={size}
         className={css({
@@ -106,9 +104,9 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   </div>
 );
 
-export const AllIcons: Story<React.ComponentProps<typeof Icon>> = (args) =>
+export const Default: Story<React.ComponentProps<typeof Icon>> = (args) =>
   iconGrid(args);
-AllIcons.parameters = {
+Default.parameters = {
   controls: { exclude: ["name"], disabled: true },
 };
 

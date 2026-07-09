@@ -16,14 +16,17 @@ ALWAYS use this exact template structure:
 # [Analysis Title]
 
 ## Executive summary
+
 [One-paragraph overview of key findings]
 
 ## Key findings
+
 - Finding 1 with supporting data
 - Finding 2 with supporting data
 - Finding 3 with supporting data
 
 ## Recommendations
+
 1. Specific actionable recommendation
 2. Specific actionable recommendation
 ```
@@ -38,12 +41,15 @@ Here is a sensible default format, but use your best judgment:
 # [Analysis Title]
 
 ## Executive summary
+
 [Overview]
 
 ## Key findings
+
 [Adapt sections based on what you discover]
 
 ## Recommendations
+
 [Tailor to the specific context]
 
 Adjust sections as needed for the specific analysis type.
@@ -67,7 +73,7 @@ feat(auth): implement JWT-based authentication
 
 Add login endpoint and token validation middleware
 
-```text
+````text
 
 **Example 2:**
 Input: Fixed bug where dates displayed incorrectly in reports
@@ -81,6 +87,6 @@ Use UTC timestamps consistently across report generation
 ```text
 
 Follow this style: type(scope): brief description, then detailed explanation.
-```
+````
 
 Examples help agents understand the desired style and level of detail more clearly than descriptions alone.

@@ -1,5 +1,6 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Tooltip } from "@mui/material";
+
+import type { SxProps, Theme } from "@mui/material";
 import type { PropsWithChildren, ReactElement } from "react";
 
 export const ValueChip = ({

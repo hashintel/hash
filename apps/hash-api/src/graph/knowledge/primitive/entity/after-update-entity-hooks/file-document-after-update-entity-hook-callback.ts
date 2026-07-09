@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   isStorageType,
@@ -10,14 +9,15 @@ import {
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { DOCXDocument } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import type { File } from "@local/hash-isomorphic-utils/system-types/file";
 import type { PDFDocument } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
 import type { PPTXPresentation } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
-
-import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
 
 export const entityTypesToParseTextFrom: VersionedUrl[] = [
   systemEntityTypes.docxDocument.entityTypeId,

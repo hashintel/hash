@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Alert } from "./alert";
+import { Alert } from "../alert";
 
 export const App = () => {
   const statuses = ["neutral", "info", "warning", "error", "success"] as const;

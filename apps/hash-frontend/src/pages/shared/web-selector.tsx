@@ -1,9 +1,3 @@
-import type { WebId } from "@blockprotocol/type-system";
-import {
-  AngleRightRegularIcon,
-  Autocomplete,
-  Avatar,
-} from "@hashintel/design-system";
 import {
   autocompleteClasses,
   Box,
@@ -11,12 +5,20 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { ReactElement } from "react";
 import { useMemo } from "react";
+
+import {
+  AngleRightRegularIcon,
+  Autocomplete,
+  Avatar,
+} from "@hashintel/design-system";
 
 import { MenuItem } from "../../shared/ui/menu-item";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { getImageUrlFromEntityProperties } from "./get-file-properties";
+
+import type { WebId } from "@blockprotocol/type-system";
+import type { ReactElement } from "react";
 
 const RenderOptionContent = ({
   avatarComponent,

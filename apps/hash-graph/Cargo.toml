@@ -18,6 +18,7 @@ harpc-server              = { workspace = true }
 hash-codec                = { workspace = true }
 hash-graph-api            = { workspace = true, features = ["clap"] }
 hash-graph-authorization  = { workspace = true }
+hash-graph-embeddings     = { workspace = true }
 hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-store          = { workspace = true }
 hash-graph-type-fetcher   = { workspace = true }
@@ -33,8 +34,9 @@ futures = { workspace = true }
 jsonwebtoken = { workspace = true }
 mimalloc = { workspace = true }
 multiaddr = { workspace = true }
+rayon = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls"] }
+reqwest = { workspace = true, features = ["rustls"] }
 simple-mermaid = { workspace = true }
 tarpc = { workspace = true, features = [
     "serde1",

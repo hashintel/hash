@@ -1,22 +1,4 @@
 import { useApolloClient } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-  intervalForTimestamp,
-} from "@blockprotocol/graph/stdlib";
-import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
-import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { VerifiableIdentityAddress } from "@ory/client";
-import type { AxiosError } from "axios";
-import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
   useCallback,
@@ -27,13 +9,34 @@ import {
   useState,
 } from "react";
 
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+  intervalCompareWithInterval,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 import { oryKratosClient } from "./ory-kratos";
+
+import type { MeQuery } from "../../graphql/api-types.gen";
+import type { User } from "../../lib/user-and-org";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { VerifiableIdentityAddress } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FunctionComponent, ReactElement } from "react";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;
@@ -50,6 +53,29 @@ type AuthInfoContextValue = {
 export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
   undefined,
 );
+
+/**
+ * Returns `true` if `candidate` contains a newer edition of the user (by
+ * transaction time) than `existing`.
+ */
+const subgraphHasNewerUser = (
+  candidate: Subgraph<EntityRootType<HashEntity>>,
+  existing: Subgraph<EntityRootType<HashEntity>>,
+): boolean => {
+  const candidateUser = getRoots(candidate)[0];
+  const existingUser = getRoots(existing)[0];
+
+  if (!candidateUser || !existingUser) {
+    return true;
+  }
+
+  return (
+    intervalCompareWithInterval(
+      existingUser.metadata.temporalVersioning.transactionTime,
+      candidateUser.metadata.temporalVersioning.transactionTime,
+    ) < 0
+  );
+};
 
 type AuthInfoProviderProps = {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
@@ -69,6 +95,24 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   const [aal2Required, setAal2Required] = useState(false);
   const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] =
     useState(false);
+
+  /**
+   * `getInitialProps` re-fetches the authenticated user on every navigation and
+   * passes it as `initialAuthenticatedUserSubgraph`. Adopt that server-provided
+   * data whenever it is newer than what the client currently holds.
+   */
+  useEffect(() => {
+    if (!initialAuthenticatedUserSubgraph) {
+      return;
+    }
+
+    setAuthenticatedUserSubgraph((current) =>
+      !current ||
+      subgraphHasNewerUser(initialAuthenticatedUserSubgraph, current)
+        ? initialAuthenticatedUserSubgraph
+        : current,
+    );
+  }, [initialAuthenticatedUserSubgraph]);
 
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {

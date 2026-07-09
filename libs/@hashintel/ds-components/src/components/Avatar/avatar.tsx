@@ -1,5 +1,7 @@
 import { Avatar as BaseAvatar } from "@ark-ui/react/avatar";
+
 import { css, cva } from "@hashintel/ds-helpers/css";
+
 import type { ReactNode } from "react";
 
 export interface AvatarProps {

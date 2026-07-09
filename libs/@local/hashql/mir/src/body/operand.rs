@@ -60,12 +60,14 @@ impl<'heap> Operand<'heap> {
 }
 
 impl From<!> for Operand<'_> {
+    #[inline]
     fn from(value: !) -> Self {
         value
     }
 }
 
 impl From<Local> for Operand<'_> {
+    #[inline]
     fn from(local: Local) -> Self {
         Operand::Place(Place::local(local))
     }

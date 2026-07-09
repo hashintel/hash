@@ -1,7 +1,7 @@
 //! # HaRPC Net
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Language Features
     never_type,
@@ -9,9 +9,9 @@
     trait_alias,
 
     // Library Features
-    error_generic_member_access,
+    error_generic_member_access
 )]
-#![cfg_attr(test, feature(async_fn_track_caller))]
+#![cfg_attr(test, feature(async_fn_track_caller, core_io))]
 
 extern crate alloc;
 

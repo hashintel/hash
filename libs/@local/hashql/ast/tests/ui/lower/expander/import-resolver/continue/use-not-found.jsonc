@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Tests that a `use` statement for a non-existent module (`kernel::foo`) is handled by dummy replacement, allowing lowering to continue.
+//@ suite#continue: true
+[
+  "use",
+  "kernel::foo",
+  //~^ ERROR cannot find module `foo`
+  "*",
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+  //~^ ERROR cannot find value `add` in this scope
+]

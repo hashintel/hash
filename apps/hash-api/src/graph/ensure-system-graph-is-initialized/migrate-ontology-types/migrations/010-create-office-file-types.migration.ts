@@ -1,8 +1,9 @@
-import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 const migrate: MigrationFunction = async ({
   context,

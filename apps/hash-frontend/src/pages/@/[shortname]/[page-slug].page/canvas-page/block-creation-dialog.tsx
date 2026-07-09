@@ -1,27 +1,29 @@
 import { useMutation } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { useApp } from "@tldraw/editor";
+import { useCallback, useState } from "react";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { useApp } from "@tldraw/editor";
-import type { DialogProps } from "@tldraw/tldraw";
-import { useCallback, useState } from "react";
+
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../../../shared/block-collection-contents";
+import { BlockSuggester } from "../../../../shared/block-collection/create-suggester/block-suggester";
+import { usePageContext } from "../../../../shared/block-collection/page-context";
+import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
 import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { BlockSuggester } from "../../../../shared/block-collection/create-suggester/block-suggester";
-import { usePageContext } from "../../../../shared/block-collection/page-context";
-import { getBlockCollectionContentsStructuralQueryVariables } from "../../../../shared/block-collection-contents";
-import { useRouteNamespace } from "../../shared/use-route-namespace";
 import type { BlockShape } from "./block-shape";
-import { defaultBlockHeight, defaultBlockWidth } from "./shared";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { BlockCollection } from "@local/hash-isomorphic-utils/entity";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { DialogProps } from "@tldraw/tldraw";
 
 // An interface for selecting a Block Protocol block and creating the entity it needs
 export const BlockCreationDialog = ({ onClose }: DialogProps) => {

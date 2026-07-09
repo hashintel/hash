@@ -1,9 +1,9 @@
 import { FileUpIcon } from "lucide-react";
 
-import { CloseButton } from "../close-button/close-button";
-import { Input } from "../input/input";
-import { InputGroup } from "../input-group/input-group";
-import * as FileUpload from "./file-upload";
+import { CloseButton } from "../close-button";
+import * as FileUpload from "../file-upload";
+import { Input } from "../input";
+import { InputGroup } from "../input-group";
 
 export const App = () => {
   return (

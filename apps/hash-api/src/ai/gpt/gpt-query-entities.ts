@@ -1,36 +1,32 @@
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type {
-  SimpleEntityWithoutHref,
-  SimpleLinkWithoutHref,
-} from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-graph-sdk/embeddings";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
+import { stringifyResults } from "./shared/stringify-results";
+import { getUserSimpleWebs } from "./shared/webs";
+
+import type { SimpleWeb } from "./shared/webs";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  SimpleEntityWithoutHref,
+  SimpleLinkWithoutHref,
+} from "@local/hash-backend-utils/simplified-graph";
 import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { RequestHandler } from "express";
-
-import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { stringifyResults } from "./shared/stringify-results";
-import type { SimpleWeb } from "./shared/webs";
-import { getUserSimpleWebs } from "./shared/webs";
 
 export type GptQueryEntitiesRequestBody = {
   /**
@@ -135,27 +131,14 @@ export const gptQueryEntities: RequestHandler<
     return;
   }
 
-  const { types, query, entityIds, webUuids, traversalDepth, includeDrafts } =
+  const { types, entityIds, webUuids, traversalDepth, includeDrafts } =
     req.body;
 
   const depth = traversalDepth ?? 2;
 
-  const semanticSearchString = query
-    ? await req.context.temporalClient.workflow
-        .execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [query],
-            },
-          ],
-          workflowId: generateUuid(),
-        })
-        .then(({ embeddings }) => embeddings[0])
-    : null;
-
+  // TODO(BE-624): semantic search is disabled here, so the `query` field is currently accepted but
+  // ignored. The `cosineDistance` filter was removed because it is no longer supported on the
+  // generic filter — migrate this endpoint to the dedicated `searchEntities` endpoint to restore it.
   const queryResponse: GptQueryEntitiesResponseBody = await queryEntitySubgraph(
     req.context,
     { actorId: user.accountId },
@@ -205,17 +188,6 @@ export const gptQueryEntities: RequestHandler<
                   any: webUuids.map((webUuid) => ({
                     equal: [{ path: ["webId"] }, { parameter: webUuid }],
                   })),
-                },
-              ]
-            : []),
-          ...(semanticSearchString
-            ? [
-                {
-                  cosineDistance: [
-                    { path: ["embedding"] },
-                    { parameter: semanticSearchString },
-                    { parameter: 0.8 },
-                  ],
                 },
               ]
             : []),

@@ -1,10 +1,11 @@
+import { Link, Stack, Typography } from "@mui/material";
+
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { Link, Stack, Typography } from "@mui/material";
 
 export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
   return (

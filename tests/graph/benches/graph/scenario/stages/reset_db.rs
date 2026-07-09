@@ -90,7 +90,7 @@ impl ResetDbStage {
                         ActorEntityUuid::new(uuid::Uuid::nil()).into(),
                         DeleteEntitiesParams {
                             filter: Filter::All(Vec::new()),
-                            temporal_axes: QueryTemporalAxesUnresolved::default(),
+                            temporal_axes: QueryTemporalAxesUnresolved::all(),
                             include_drafts: true,
                             scope: DeletionScope::Erase,
                             decision_time: None,

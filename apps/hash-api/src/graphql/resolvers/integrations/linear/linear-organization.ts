@@ -1,12 +1,13 @@
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { getOrganization, listTeams } from "../../../../integrations/linear";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   LinearOrganization,
   QueryGetLinearOrganizationArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getLinearOrganizationResolver: ResolverFn<
   Promise<LinearOrganization>,

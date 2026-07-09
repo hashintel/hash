@@ -52,10 +52,12 @@ import type {
   OriginalURLPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-  UploadCompletedAtPropertyValue,
-  UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  UploadCompletedAtPropertyValue,
+  UploadCompletedAtPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -112,4 +114,6 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

@@ -1,17 +1,19 @@
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+
 import {
   ArrowRightRegularIcon,
   CheckRegularIcon,
   CircleEllipsisRegularIcon,
   CloseIcon,
 } from "@hashintel/design-system";
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import { EllipsisRegularIcon } from "../../../../../../../shared/icons/ellipsis-regular-icon";
 import {
   statusToSimpleStatus,
   useStatusForStep,
 } from "../../../../../../shared/flow-runs-context";
+
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type StatusFor = "group" | "step";
 

@@ -8,20 +8,20 @@
 /// <reference lib="esnext" />
 
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { test } from "vitest";
 
-import type { LlmParams } from "../../../shared/get-llm-response/types.js";
 import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
-import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 import {
   entitySummariesFromTextSystemPrompt,
   getEntitySummariesFromText,
 } from "./get-entity-summaries-from-text.js";
 import { testData } from "./get-entity-summaries-from-text.optimize/test-data.js";
+
+import type { LlmParams } from "../../../shared/get-llm-response/types.js";
+import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 
 const metrics: MetricDefinition[] = testData.map((testItem) => {
   return {
@@ -149,6 +149,9 @@ const baseDirectoryPath = path.join(
 
 test(
   "Get entity summaries from text system prompt test",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
     const models: LlmParams["model"][] = ["claude-haiku-4-5-20251001"];
 
@@ -160,8 +163,5 @@ test(
       metrics,
       promptIterations: 3,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

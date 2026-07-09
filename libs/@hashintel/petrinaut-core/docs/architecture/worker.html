@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simulation Architecture — Worker &amp; Protocol</title>
+    <link rel="stylesheet" href="./architecture.css" />
+  </head>
+  <body>
+    <nav class="docs">
+      <a href="./index.html">Overview</a>
+      <a class="tag-engine" href="./engine.html">Engine</a>
+      <a class="tag-authoring" href="./authoring.html">Compilation</a>
+      <a class="tag-worker current" href="./worker.html">Worker</a>
+      <a class="tag-mc" href="./monte-carlo.html">Monte Carlo</a>
+    </nav>
+
+    <h1 style="color: var(--worker)">Worker &amp; Protocol</h1>
+    <p class="subtitle">
+      <code>worker/</code> (protocol + worker entrypoint) and
+      <code>runtime/</code>
+      (main-thread lifecycle, transport, frame retention). Everything between
+      the host application and the engine.
+    </p>
+
+    <dl class="glance">
+      <dt>Protocol</dt>
+      <dd>
+        <code>worker/messages.ts</code> — discriminated unions over
+        <code>postMessage</code>
+      </dd>
+      <dt>Transport</dt>
+      <dd>
+        <code>runtime/transport.ts</code> — wraps a <code>Worker</code> factory;
+        queues messages until the worker boots
+      </dd>
+      <dt>Host handle</dt>
+      <dd>
+        <code>createSimulation()</code> → <code>Simulation</code> (stores:
+        <code>status</code>, <code>frames</code>; events;
+        <code>run/pause/reset/ack/getFrame/dispose</code>)
+      </dd>
+      <dt>Flow control</dt>
+      <dd>
+        Ack-based backpressure — the consumer’s pace bounds worker
+        memory/compute
+      </dd>
+    </dl>
+
+    <h2>Message protocol</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th colspan="3" style="color: var(--worker)">
+            Host → Worker (<code>ToWorkerMessage</code>)
+          </th>
+        </tr>
+        <tr>
+          <th>Type</th>
+          <th>Payload</th>
+          <th>Effect in the worker</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>init</code></td>
+          <td>
+            <code
+              >sdcpn, extensions?, initialMarking, parameterValues, seed, dt,
+              maxTime (number | null), maxFramesAhead?, batchSize?</code
+            >
+          </td>
+          <td>
+            Runs <code>buildSimulation()</code> (compiles user code, packs frame
+            0), replies <code>frame(0)</code> then <code>ready</code>. Resets
+            <code>lastAckedFrame = -1</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><code>start</code></td>
+          <td>—</td>
+          <td>
+            Starts the async compute loop (no-op if running; refuses from
+            complete/error).
+          </td>
+        </tr>
+        <tr>
+          <td><code>pause</code></td>
+          <td>—</td>
+          <td>Stops the loop, keeps all state, replies <code>paused</code>.</td>
+        </tr>
+        <tr>
+          <td><code>stop</code></td>
+          <td>—</td>
+          <td>Discards the <code>SimulationInstance</code> entirely.</td>
+        </tr>
+        <tr>
+          <td><code>setBackpressure</code></td>
+          <td><code>maxFramesAhead?, batchSize?</code></td>
+          <td>Live-updates loop tuning.</td>
+        </tr>
+        <tr>
+          <td><code>ack</code></td>
+          <td><code>frameNumber</code></td>
+          <td>
+            <code>lastAckedFrame = max(lastAckedFrame, n)</code> — unblocks
+            computation.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th colspan="3" style="color: var(--worker)">
+            Worker → Host (<code>ToMainMessage</code>)
+          </th>
+        </tr>
+        <tr>
+          <th>Type</th>
+          <th>Payload</th>
+          <th>Effect on the main thread</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ready</code></td>
+          <td><code>initialFrameCount</code></td>
+          <td>
+            Resolves the <code>createSimulation</code> promise; status →
+            <code>Ready</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><code>frame</code> / <code>frames</code></td>
+          <td>
+            <code>SimulationFramePayload</code> =
+            <code>{ time, frame: ArrayBuffer }</code> (single / batch)
+          </td>
+          <td>
+            Appended to the frame store; <code>frames</code> store publishes
+            <code>{count, latest: reader}</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><code>paused</code></td>
+          <td><code>frameNumber</code></td>
+          <td>Status → <code>Paused</code>.</td>
+        </tr>
+        <tr>
+          <td><code>complete</code></td>
+          <td><code>reason: "deadlock" | "maxTime", frameNumber</code></td>
+          <td>Status → <code>Complete</code>; emitted on the event stream.</td>
+        </tr>
+        <tr>
+          <td><code>error</code></td>
+          <td><code>message, itemId</code> (offending SDCPN item if known)</td>
+          <td>
+            Status → <code>Error</code>; rejects init if still initializing.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Sequence — one quick simulation</h2>
+
+    <figure>
+      <svg
+        viewBox="0 0 760 560"
+        font-family="ui-monospace, Menlo, monospace"
+        font-size="11"
+      >
+        <defs>
+          <marker
+            id="arr"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill="#111" />
+          </marker>
+        </defs>
+
+        <!-- lifeline headers -->
+        <rect
+          x="20"
+          y="10"
+          width="200"
+          height="34"
+          rx="6"
+          fill="#ecfeff"
+          stroke="#0891b2"
+          stroke-width="1.5"
+        />
+        <text
+          x="120"
+          y="31"
+          text-anchor="middle"
+          fill="#0891b2"
+          font-weight="bold"
+          font-family="system-ui"
+          font-size="12"
+        >
+          Host (playback driver)
+        </text>
+        <rect
+          x="280"
+          y="10"
+          width="200"
+          height="34"
+          rx="6"
+          fill="#ecfdf5"
+          stroke="#059669"
+          stroke-width="1.5"
+        />
+        <text
+          x="380"
+          y="31"
+          text-anchor="middle"
+          fill="#059669"
+          font-weight="bold"
+          font-family="system-ui"
+          font-size="12"
+        >
+          createSimulation (main)
+        </text>
+        <rect
+          x="540"
+          y="10"
+          width="200"
+          height="34"
+          rx="6"
+          fill="#eff6ff"
+          stroke="#2563eb"
+          stroke-width="1.5"
+        />
+        <text
+          x="640"
+          y="31"
+          text-anchor="middle"
+          fill="#2563eb"
+          font-weight="bold"
+          font-family="system-ui"
+          font-size="12"
+        >
+          simulation.worker
+        </text>
+
+        <!-- lifelines -->
+        <line
+          x1="120"
+          y1="44"
+          x2="120"
+          y2="545"
+          stroke="#bbb"
+          stroke-dasharray="4 4"
+        />
+        <line
+          x1="380"
+          y1="44"
+          x2="380"
+          y2="545"
+          stroke="#bbb"
+          stroke-dasharray="4 4"
+        />
+        <line
+          x1="640"
+          y1="44"
+          x2="640"
+          y2="545"
+          stroke="#bbb"
+          stroke-dasharray="4 4"
+        />
+
+        <!-- createSimulation(config) -->
+        <line
+          x1="120"
+          y1="70"
+          x2="376"
+          y2="70"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="128" y="63">createSimulation(config)</text>
+
+        <!-- init -->
+        <line
+          x1="380"
+          y1="95"
+          x2="636"
+          y2="95"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="392" y="88">init {sdcpn, initialMarking, seed, dt…}</text>
+        <rect
+          x="644"
+          y="104"
+          width="112"
+          height="30"
+          rx="4"
+          fill="#eff6ff"
+          stroke="#2563eb"
+        />
+        <text x="650" y="117" fill="#2563eb" font-size="10">
+          buildSimulation()
+        </text>
+        <text x="650" y="129" fill="#2563eb" font-size="10">
+          compile + frame 0
+        </text>
+
+        <!-- frame 0 + ready -->
+        <line
+          x1="636"
+          y1="152"
+          x2="384"
+          y2="152"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="400" y="145">frame {t:0, ArrayBuffer²}</text>
+        <line
+          x1="636"
+          y1="175"
+          x2="384"
+          y2="175"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="400" y="168">ready {initialFrameCount:1}</text>
+        <line
+          x1="376"
+          y1="198"
+          x2="124"
+          y2="198"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="150" y="191">Promise resolves · status "Ready"</text>
+
+        <!-- run -->
+        <line
+          x1="120"
+          y1="228"
+          x2="376"
+          y2="228"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="128" y="221">simulation.run()</text>
+        <line
+          x1="380"
+          y1="248"
+          x2="636"
+          y2="248"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="392" y="241">start</text>
+
+        <!-- backpressure note -->
+        <rect
+          x="560"
+          y="258"
+          width="188"
+          height="28"
+          rx="4"
+          fill="#fefce8"
+          stroke="#eab308"
+        />
+        <text x="568" y="270" font-family="system-ui">
+          loop blocked: lastAckedFrame = -1
+        </text>
+        <text x="568" y="281" font-family="system-ui">
+          → nothing computes until first ack
+        </text>
+
+        <!-- loop box -->
+        <rect
+          x="60"
+          y="300"
+          width="660"
+          height="170"
+          rx="6"
+          fill="none"
+          stroke="#059669"
+          stroke-width="1.5"
+        />
+        <rect
+          x="60"
+          y="300"
+          width="220"
+          height="20"
+          fill="#ecfdf5"
+          stroke="#059669"
+          stroke-width="1.5"
+        />
+        <text
+          x="68"
+          y="314"
+          fill="#059669"
+          font-weight="bold"
+          font-family="system-ui"
+        >
+          loop — while frames remain to compute
+        </text>
+
+        <!-- ack -->
+        <line
+          x1="120"
+          y1="345"
+          x2="636"
+          y2="345"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="128" y="338">
+          ack(frameNumber) — playback mode decides when
+        </text>
+
+        <!-- compute batch -->
+        <rect
+          x="644"
+          y="356"
+          width="112"
+          height="42"
+          rx="4"
+          fill="#eff6ff"
+          stroke="#2563eb"
+        />
+        <text x="650" y="369" fill="#2563eb" font-size="9.5">
+          computeNextFrame()
+        </text>
+        <text x="650" y="381" fill="#2563eb" font-size="10">
+          × batchSize while
+        </text>
+        <text x="650" y="393" fill="#2563eb" font-size="10">
+          n - acked &lt; ahead
+        </text>
+
+        <!-- frames -->
+        <line
+          x1="636"
+          y1="418"
+          x2="384"
+          y2="418"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="400" y="411">frames [{time, ArrayBuffer²}, …]</text>
+        <line
+          x1="376"
+          y1="445"
+          x2="124"
+          y2="445"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="132" y="438">frames store → {count, latest reader}</text>
+
+        <!-- complete -->
+        <line
+          x1="636"
+          y1="500"
+          x2="384"
+          y2="500"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="400" y="493">complete {reason: deadlock | maxTime}</text>
+        <line
+          x1="376"
+          y1="525"
+          x2="124"
+          y2="525"
+          stroke="#111"
+          marker-end="url(#arr)"
+        />
+        <text x="140" y="518">status "Complete" + event emitted</text>
+      </svg>
+      <figcaption>
+        ² = the frame <code>ArrayBuffer</code> is
+        <strong>structured-clone copied</strong>
+        across the boundary (no transfer list); the worker keeps its own copy in
+        <code>SimulationInstance.frames[]</code>.
+      </figcaption>
+    </figure>
+
+    <h2>Backpressure — the ack contract</h2>
+
+    <pre><code>// worker compute loop (simplified from simulation.worker.ts)
+while (isRunning) {
+  if (lastAckedFrame &lt; 0 || currentFrame - lastAckedFrame >= maxFramesAhead) {
+    await delay(10); continue;          // wait for the consumer
+  }
+  batch = compute up to batchSize frames (stop on complete/error)
+  post "frame" | "frames"
+  await delay(0);                        // let pause/stop/ack messages in
+}</code></pre>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Play mode (core <code>playback</code> module)</th>
+          <th>maxFramesAhead</th>
+          <th>batchSize</th>
+          <th>Ack behaviour</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>viewOnly</code></td>
+          <td colspan="2"><em>n/a</em></td>
+          <td>
+            No core backpressure profile — the React playback provider pauses
+            the worker and never acks, so nothing new is computed.
+          </td>
+        </tr>
+        <tr>
+          <td><code>computeBuffer</code></td>
+          <td>40</td>
+          <td>10</td>
+          <td>
+            Acks when playback is within ~0.5 s of the last computed frame —
+            keeps a small rolling buffer ahead of the playhead.
+          </td>
+        </tr>
+        <tr>
+          <td><code>computeMax</code></td>
+          <td>10000</td>
+          <td>500</td>
+          <td>Acks every arrival → compute as fast as possible.</td>
+        </tr>
+        <tr>
+          <td>Worker defaults</td>
+          <td>1000</td>
+          <td>1000</td>
+          <td>Used when <code>init</code> omits the settings.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Lifecycle</h2>
+
+    <figure>
+      <svg viewBox="0 0 760 190" font-family="system-ui" font-size="12">
+        <defs>
+          <marker
+            id="arr2"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" fill="#111" />
+          </marker>
+        </defs>
+        <g>
+          <rect
+            x="10"
+            y="70"
+            width="110"
+            height="34"
+            rx="17"
+            fill="#f5f5f5"
+            stroke="#111"
+            stroke-width="1.5"
+          />
+          <text x="65" y="91" text-anchor="middle">Initializing</text>
+          <rect
+            x="180"
+            y="70"
+            width="90"
+            height="34"
+            rx="17"
+            fill="#ecfdf5"
+            stroke="#059669"
+            stroke-width="1.5"
+          />
+          <text x="225" y="91" text-anchor="middle">Ready</text>
+          <rect
+            x="340"
+            y="70"
+            width="100"
+            height="34"
+            rx="17"
+            fill="#eff6ff"
+            stroke="#2563eb"
+            stroke-width="1.5"
+          />
+          <text x="390" y="91" text-anchor="middle">Running</text>
+          <rect
+            x="340"
+            y="10"
+            width="100"
+            height="34"
+            rx="17"
+            fill="#fefce8"
+            stroke="#eab308"
+            stroke-width="1.5"
+          />
+          <text x="390" y="31" text-anchor="middle">Paused</text>
+          <rect
+            x="530"
+            y="45"
+            width="110"
+            height="34"
+            rx="17"
+            fill="#f0fdf4"
+            stroke="#059669"
+            stroke-width="1.5"
+          />
+          <text x="585" y="66" text-anchor="middle">Complete</text>
+          <rect
+            x="530"
+            y="105"
+            width="110"
+            height="34"
+            rx="17"
+            fill="#fef2f2"
+            stroke="#dc2626"
+            stroke-width="1.5"
+          />
+          <text x="585" y="126" text-anchor="middle">Error</text>
+        </g>
+        <line
+          x1="120"
+          y1="87"
+          x2="176"
+          y2="87"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="126" y="80" font-size="10">ready msg</text>
+        <line
+          x1="270"
+          y1="87"
+          x2="336"
+          y2="87"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="284" y="80" font-size="10">run()</text>
+        <line
+          x1="375"
+          y1="70"
+          x2="375"
+          y2="48"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="300" y="58" font-size="10">pause()</text>
+        <line
+          x1="405"
+          y1="44"
+          x2="405"
+          y2="66"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="412" y="58" font-size="10">run()</text>
+        <line
+          x1="440"
+          y1="80"
+          x2="526"
+          y2="64"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="446" y="66" font-size="10">deadlock / maxTime</text>
+        <line
+          x1="440"
+          y1="96"
+          x2="526"
+          y2="118"
+          stroke="#111"
+          marker-end="url(#arr2)"
+        />
+        <text x="458" y="118" font-size="10">error msg</text>
+        <path
+          d="M 585 45 C 585 -6 260 -14 227 66"
+          fill="none"
+          stroke="#888"
+          stroke-dasharray="4 3"
+          marker-end="url(#arr2)"
+        />
+        <text x="300" y="129" font-size="10" fill="#555">
+          reset(): stop + clear store → Ready (from any state)
+        </text>
+      </svg>
+      <figcaption>
+        Main-thread <code>SimulationState</code>. The worker mirrors a smaller
+        internal status (<code>ready / running / complete / error</code>);
+        complete and error are terminal for the worker —
+        <code>reset()</code> sends <code>stop</code> and requires a fresh
+        <code>init</code> to run again.
+      </figcaption>
+    </figure>
+
+    <h2>
+      Main-thread runtime responsibilities (<code>createSimulation</code>)
+    </h2>
+    <ul>
+      <li>
+        <strong>Snapshot preparation:</strong> sanitizes the SDCPN for the
+        enabled extensions and flattens component instances so the
+        <em>main-thread frame layout matches what the worker produces</em>
+        (place-count mismatch throws on read).
+      </li>
+      <li>
+        <strong>Transport:</strong>
+        <code>createWorkerTransport(createWorker)</code> queues outbound
+        messages until the worker resolves; test code can inject a pre-built
+        <code>SimulationTransport</code> instead.
+      </li>
+      <li>
+        <strong>Retention:</strong>
+        <code>createInMemorySimulationFrameStore(sdcpn)</code>
+        compiles the reader factory once and appends every payload — it keeps
+        <em>all</em> frames so playback can scrub. Alternative stores
+        (latest-only, sliding window, persisted) can be swapped in without
+        changing consumers.
+      </li>
+      <li>
+        <strong>Publication:</strong> <code>status</code> and
+        <code>frames</code> readable stores + <code>events</code> stream; hosts
+        subscribe with <code>store.subscribe(listener)</code>.
+      </li>
+    </ul>
+
+    <div class="note refactor">
+      <strong>Refactoring seams.</strong>
+      (1) Frames could be posted with a transfer list to halve copies &mdash;
+      but not as-is: <code>computeNextFrame()</code> re-reads the latest stored
+      frame to compute the next one, so transferring (detaching) the posted
+      buffer first requires stepping from a retained working copy (e.g.
+      latest-only retention or a double buffer). (2) <code>reset()</code> keeps
+      the main-thread status <code>Ready</code> but the worker has discarded its
+      simulation — a subsequent <code>run()</code> sends <code>start</code> to a
+      worker with nothing to run; a full re-init is what actually happens in the
+      UI flow. (3) The 10&nbsp;ms poll while waiting for acks is a busy-wait; a
+      promise-per-ack would be exact.
+    </div>
+  </body>
+</html>

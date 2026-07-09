@@ -1,13 +1,14 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+
+import * as Error from "../../error";
 
 import type {
   MutationSubmitExternalInputResponseArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import * as Error from "../../error";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const submitExternalInputResponse: ResolverFn<
   Promise<boolean>,

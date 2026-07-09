@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as Tabs from "./tabs";
+import * as Tabs from "../tabs";
 
 export const App = () => {
   const sizes = ["sm", "md", "lg"] as const;

@@ -1,9 +1,7 @@
-import type { WebId } from "@blockprotocol/type-system";
-import { Autocomplete, MenuItem } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
-import type { ReactElement } from "react";
 
-import type { LocalStorage } from "../../../../../../shared/storage";
+import { Autocomplete, MenuItem } from "@hashintel/design-system";
+
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -11,6 +9,10 @@ import {
 } from "../../../../../shared/style-values";
 import { Avatar } from "../../../shared/avatar";
 import { inputPropsSx, menuItemSx } from "../autocomplete-sx";
+
+import type { LocalStorage } from "../../../../../../shared/storage";
+import type { WebId } from "@blockprotocol/type-system";
+import type { ReactElement } from "react";
 
 type WebOption = {
   avatarComponent: ReactElement;

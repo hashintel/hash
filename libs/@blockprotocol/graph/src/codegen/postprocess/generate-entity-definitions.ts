@@ -1,9 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries } from "../../util/typed-entries.js";
-import type { PostprocessContext } from "../context/postprocess.js";
 import { entityDefinitionNameForEntityType } from "../shared.js";
+
+import type { PostprocessContext } from "../context/postprocess.js";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const generateEntityDefinitionForEntityType = (
   entityTypeId: VersionedUrl,

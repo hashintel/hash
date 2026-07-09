@@ -1,5 +1,5 @@
-import { Input } from "../input/input";
-import * as Field from "./field";
+import * as Field from "../field";
+import { Input } from "../input";
 
 export const App = () => {
   return (

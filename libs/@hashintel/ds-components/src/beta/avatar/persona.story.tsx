@@ -1,7 +1,7 @@
 import { Box, HStack } from "@hashintel/ds-helpers/jsx";
 
-import { Text } from "../text/text";
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
+import { Text } from "../text";
 
 export const App = () => {
   return (

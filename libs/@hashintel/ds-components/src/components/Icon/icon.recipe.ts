@@ -10,6 +10,7 @@ export const styles = cva({
   },
   variants: {
     size: {
+      xxs: { "--icon-size": "8px" },
       xs: { "--icon-size": "12px" },
       sm: { "--icon-size": "16px" },
       md: { "--icon-size": "24px" },

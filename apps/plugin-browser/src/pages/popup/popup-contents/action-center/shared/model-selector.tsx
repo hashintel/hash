@@ -1,6 +1,6 @@
-import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { Stack, Typography } from "@mui/material";
+
+import { Autocomplete, MenuItem } from "@hashintel/design-system";
 
 import {
   darkModeBorderColor,
@@ -9,6 +9,8 @@ import {
 } from "../../../../shared/style-values";
 import { inputPropsSx, menuItemSx } from "./autocomplete-sx";
 import { OpenAiIcon } from "./model-selector/openai-icon";
+
+import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 
 type ModelOption = {
   value: InferenceModelName;

@@ -1,11 +1,13 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import { ImageSolidIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { useCallback } from "react";
-import type { Accept } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import { ImageSolidIcon } from "@hashintel/design-system";
+
 import { UploadIcon } from "../../../shared/icons/upload-icon";
+
+import type { Accept } from "react-dropzone";
 
 type FileUploadDropzoneProps = {
   /** @see https://react-dropzone.js.org/#section-accepting-specific-file-types */

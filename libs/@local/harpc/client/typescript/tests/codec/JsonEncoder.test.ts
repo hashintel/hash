@@ -1,8 +1,9 @@
 import { describe, it } from "@effect/vitest";
 import { Chunk, Effect, pipe, Schema, Stream } from "effect";
-import type { ReadonlyRecord } from "effect/Record";
 
 import { Encoder, JsonEncoder } from "../../src/codec/index.js";
+
+import type { ReadonlyRecord } from "effect/Record";
 
 const encode = Effect.fn("encode")(function* (
   items: readonly ReadonlyRecord<string, string>[],

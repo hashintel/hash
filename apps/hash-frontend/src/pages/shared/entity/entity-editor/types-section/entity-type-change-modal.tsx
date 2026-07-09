@@ -1,10 +1,4 @@
-import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import {
-  AlertModal,
-  FontAwesomeIcon,
-  LinkIcon,
-} from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -17,6 +11,14 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useMemo } from "react";
+
+import {
+  AlertModal,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+
+import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 
 export type EntityTypeChangeDetails = {
   onAccept: (args: {

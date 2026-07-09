@@ -1,14 +1,8 @@
 import crypto from "node:crypto";
 
-import type {
-  Entity,
-  EntityId,
-  EntityUuid,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
+
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import {
   apiOrigin,
@@ -16,17 +10,25 @@ import {
 } from "@local/hash-isomorphic-utils/environment";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
-import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
 import {
   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
+
+import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
+import type {
+  Entity,
+  EntityId,
+  EntityUuid,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { RequestHandler } from "express";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;

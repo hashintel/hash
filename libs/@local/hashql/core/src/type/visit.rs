@@ -709,6 +709,7 @@ impl<'heap, A: Allocator> RecursiveVisitorGuard<'heap, A> {
 }
 
 impl Default for RecursiveVisitorGuard<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

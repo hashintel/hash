@@ -1,13 +1,5 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
-  ArrowDownRegularIcon,
-  ArrowUpRegularIcon,
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import {
   Box,
   Collapse,
   outlinedInputClasses,
@@ -16,12 +8,22 @@ import {
   Typography,
 } from "@mui/material";
 import debounce from "lodash/debounce";
-import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import { useEffect, useRef, useState } from "react";
-import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
+
+import {
+  ArrowDownRegularIcon,
+  ArrowUpRegularIcon,
+  FontAwesomeIcon,
+  IconButton,
+  TextField,
+} from "@hashintel/design-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-icon";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
+
+import type { TextItem } from "pdfjs-dist/types/src/display/api";
+import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
 
 type PositionInPage = {
   rowIndex: number;

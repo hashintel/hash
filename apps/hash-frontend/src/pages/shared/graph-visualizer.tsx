@@ -1,5 +1,4 @@
 import "@react-sigma/core/lib/react-sigma.min.css";
-
 import dynamic from "next/dynamic";
 import { memo } from "react";
 

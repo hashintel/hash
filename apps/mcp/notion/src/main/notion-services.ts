@@ -1,5 +1,6 @@
-import type { Client } from "@notionhq/client";
 import { NotionToMarkdown } from "notion-to-md";
+
+import type { Client } from "@notionhq/client";
 
 type PageSearchResult = {
   id: string;

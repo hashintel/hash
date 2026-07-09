@@ -1,28 +1,8 @@
-import type { BlockVariant, JsonObject } from "@blockprotocol/core";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
-import type { Node, Schema } from "prosemirror-model";
-import type { EditorState, Transaction } from "prosemirror-state";
-import type { EditorProps, EditorView } from "prosemirror-view";
-
-import type { HashBlock } from "./blocks.js";
-import { fetchBlock, prepareBlockCache } from "./blocks.js";
 import {
   areComponentsCompatible,
   isBlockWithTextualContentProperty,
 } from "./blocks-constants.js";
-import type { BlockEntity } from "./entity.js";
-import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
-import type {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
-} from "./entity-store.js";
-import {
-  createEntityStore,
-  isBlockEntity,
-  isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
-} from "./entity-store.js";
+import { fetchBlock, prepareBlockCache } from "./blocks.js";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -31,13 +11,33 @@ import {
   mustGetDraftEntityByEntityId,
 } from "./entity-store-plugin.js";
 import {
+  createEntityStore,
+  isBlockEntity,
+  isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
+} from "./entity-store.js";
+import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
+import {
   componentNodeGroupName,
   findComponentNode,
   mutateSchema,
 } from "./prosemirror.js";
-import type { TextualContentPropertyValue } from "./system-types/shared.js";
 import { childrenForTextEntity } from "./text.js";
+
+import type { HashBlock } from "./blocks.js";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
+import type { BlockEntity } from "./entity.js";
+import type { TextualContentPropertyValue } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
+import type { BlockVariant, JsonObject } from "@blockprotocol/core";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { Node, Schema } from "prosemirror-model";
+import type { EditorState, Transaction } from "prosemirror-state";
+import type { EditorProps, EditorView } from "prosemirror-view";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 

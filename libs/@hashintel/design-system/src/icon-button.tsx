@@ -1,6 +1,7 @@
-import type { IconButtonProps as MuiIconButtonProps } from "@mui/material";
 import { IconButton as MuiIconButton } from "@mui/material";
 import { forwardRef } from "react";
+
+import type { IconButtonProps as MuiIconButtonProps } from "@mui/material";
 
 export type IconButtonProps = {
   unpadded?: boolean;

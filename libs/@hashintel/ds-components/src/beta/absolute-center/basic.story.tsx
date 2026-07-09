@@ -1,6 +1,6 @@
 import { Box } from "@hashintel/ds-helpers/jsx";
 
-import { AbsoluteCenter } from "./absolute-center";
+import { AbsoluteCenter } from "../absolute-center";
 
 export const App = () => {
   return (

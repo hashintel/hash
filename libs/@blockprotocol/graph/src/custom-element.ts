@@ -1,17 +1,18 @@
-import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 import { LitElement } from "lit";
 
-import type { BlockGraphProperties, LinkEntityAndRightEntity } from "./main.js";
 import { GraphBlockHandler } from "./main.js";
 import { getOutgoingLinkAndTargetEntities, getRoots } from "./stdlib.js";
+
+import type { BlockGraphProperties, LinkEntityAndRightEntity } from "./main.js";
+import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 
 export interface BlockElementBase<
   RootEntity extends Entity = Entity,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- this is used in the class definition
-  RootEntityLinkedEntities extends
-    LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
-> extends LitElement,
-    BlockGraphProperties<RootEntity> {}
+  RootEntityLinkedEntities extends LinkEntityAndRightEntity[] =
+    LinkEntityAndRightEntity[],
+>
+  extends LitElement, BlockGraphProperties<RootEntity> {}
 
 /**
  * A class to use as a base for implementing Block Protocol blocks as custom elements.

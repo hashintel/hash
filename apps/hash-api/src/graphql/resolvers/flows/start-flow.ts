@@ -1,8 +1,3 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type {
-  RunFlowWorkflowParams,
-  RunFlowWorkflowResponse,
-} from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
@@ -10,8 +5,14 @@ import {
   type MutationStartFlowArgs,
   type ResolverFn,
 } from "../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../context";
 import * as Error from "../../error";
+
+import type { LoggedInGraphQLContext } from "../../context";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type {
+  RunFlowWorkflowParams,
+  RunFlowWorkflowResponse,
+} from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export const startFlow: ResolverFn<
   Promise<EntityUuid>,

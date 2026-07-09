@@ -1,6 +1,6 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
-
 import { validateName } from "./validate-name.js";
+
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 /**
  * The base URL of the User entity type, used to detect user entities

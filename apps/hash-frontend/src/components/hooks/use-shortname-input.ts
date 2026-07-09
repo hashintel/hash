@@ -1,11 +1,12 @@
 import { useApolloClient } from "@apollo/client";
 import { useCallback, useState } from "react";
 
+import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
+
 import type {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
 } from "../../graphql/api-types.gen";
-import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
 type ShortnameErrorCode =
   | "IS_EMPTY"

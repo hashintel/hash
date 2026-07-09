@@ -1,3 +1,12 @@
+import debounce from "lodash.debounce";
+import browser from "webextension-polyfill";
+
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { setDisabledBadge, setEnabledBadge } from "./badge";
+import { updateEntity } from "./storage/update-entity";
+
+import type { FlowRun } from "../graphql/api-types.gen";
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   Entity,
@@ -18,7 +27,6 @@ import type {
   PersistedEntityMetadata,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
   Simplified,
@@ -29,12 +37,6 @@ import type {
   Organization,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import debounce from "lodash.debounce";
-import browser from "webextension-polyfill";
-
-import type { FlowRun } from "../graphql/api-types.gen";
-import { setDisabledBadge, setEnabledBadge } from "./badge";
-import { updateEntity } from "./storage/update-entity";
 
 type SimplifiedUser = {
   metadata: EntityMetadata;

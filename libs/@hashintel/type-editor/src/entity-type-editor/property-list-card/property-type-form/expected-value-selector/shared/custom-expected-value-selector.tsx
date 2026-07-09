@@ -1,7 +1,4 @@
 import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
-import type { AutocompleteProps } from "@mui/material";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -9,6 +6,11 @@ import {
   inputBaseClasses,
 } from "@mui/material";
 import { useRef, useState } from "react";
+
+import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
+import type { AutocompleteProps } from "@mui/material";
 
 type CustomExpectedValueSelectorProps<T> = {
   inputLabel: string;

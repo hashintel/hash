@@ -1,5 +1,7 @@
-import type { ApolloClient } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { generateNKeysBetween } from "fractional-indexing";
+import { isEqual } from "lodash-es";
+import { v4 as uuid } from "uuid";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -10,29 +12,32 @@ import {
   type VersionedUrl,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import { generateNKeysBetween } from "fractional-indexing";
-import { isEqual } from "lodash-es";
-import type { Node } from "prosemirror-model";
-import { v4 as uuid } from "uuid";
 
 import {
   getBlockCollectionTraversalPath,
   sortBlockCollectionLinks,
 } from "./block-collection.js";
-import type { ComponentIdHashBlockMap } from "./blocks.js";
-import type { BlockEntity } from "./entity.js";
-import type { DraftEntity, EntityStore } from "./entity-store.js";
 import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "./entity-store.js";
 import { currentTimeInstantTemporalAxes } from "./graph-queries.js";
+import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
+import { queryEntitySubgraphQuery } from "./graphql/queries/entity.queries.js";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "./ontology-type-ids.js";
+import { isEntityNode } from "./prosemirror.js";
+
+import type { ComponentIdHashBlockMap } from "./blocks.js";
+import type { DraftEntity, EntityStore } from "./entity-store.js";
+import type { BlockEntity } from "./entity.js";
 import type {
   Block as GqlBlock,
   QueryEntitySubgraphQuery,
@@ -42,15 +47,12 @@ import type {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen.js";
-import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
-import { queryEntitySubgraphQuery } from "./graphql/queries/entity.queries.js";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "./ontology-type-ids.js";
-import { isEntityNode } from "./prosemirror.js";
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
 import type { Block, HasIndexedContent } from "./system-types/shared.js";
+import type { ApolloClient } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Node } from "prosemirror-model";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 

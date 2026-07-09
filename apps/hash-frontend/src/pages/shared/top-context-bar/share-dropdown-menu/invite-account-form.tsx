@@ -1,29 +1,31 @@
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-} from "@blockprotocol/type-system";
-import { Autocomplete, Avatar } from "@hashintel/design-system";
 import {
   autocompleteClasses,
   Box,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
+
+import { Autocomplete, Avatar } from "@hashintel/design-system";
 
 import { useOrgs } from "../../../../components/hooks/use-orgs";
 import { useOrgsWithLinks } from "../../../../components/hooks/use-orgs-with-links";
 import { useUsers } from "../../../../components/hooks/use-users";
 import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-links";
+import { Button } from "../../../../shared/ui";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
+
 import type {
   MinimalOrg,
   MinimalUser,
   Org,
   User,
 } from "../../../../lib/user-and-org";
-import { Button } from "../../../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../../get-file-properties";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+} from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 export const InviteAccountForm: FunctionComponent<{
   excludeAccountIds?: (ActorEntityUuid | ActorGroupEntityUuid)[];

@@ -30,7 +30,7 @@ derive_more           = { workspace = true, features = ["display", "error"] }
 futures               = { workspace = true }
 include_dir           = { workspace = true, features = ["glob"] }
 opentelemetry         = { workspace = true }
-reqwest               = { workspace = true, features = ["json"] }
+reqwest               = { workspace = true, features = ["json", "stream"] }
 reqwest-middleware    = { workspace = true }
 reqwest-tracing       = { workspace = true }
 serde                 = { workspace = true, features = ["derive"] }

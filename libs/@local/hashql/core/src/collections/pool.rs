@@ -344,6 +344,7 @@ where
     /// let pool = VecPool::<i32>::new(15);
     /// assert_eq!(pool.capacity(), 15);
     /// ```
+    #[inline]
     pub const fn capacity(&self) -> usize {
         self.capacity
     }

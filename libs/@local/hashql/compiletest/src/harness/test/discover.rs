@@ -175,6 +175,10 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
             )
         };
 
+        if spec.skip == Some(true) {
+            continue;
+        }
+
         cases.push(TestCase {
             spec: spec.clone(),
             path: candidate,

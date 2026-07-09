@@ -1,11 +1,7 @@
-import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useWindowEvent } from "@mantine/hooks";
-import type { PopoverPosition } from "@mui/material";
 import { Box, Popper, Typography } from "@mui/material";
-import type { VirtualElement } from "@popperjs/core";
 import { isEqual } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -13,6 +9,10 @@ import type {
   TooltipCellProps,
   UseGridTooltipResponse,
 } from "./use-grid-tooltip/types";
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
+import type { PopoverPosition } from "@mui/material";
+import type { VirtualElement } from "@popperjs/core";
+import type { RefObject } from "react";
 
 export const useGridTooltip = (
   gridRef: RefObject<DataEditorRef | null>,

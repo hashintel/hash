@@ -2,22 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
+import appRoot from "app-root-path";
+import express from "express";
+import mime from "mime-types";
+
+import { getSafeContentType } from "@local/hash-backend-utils/file-storage";
+
 import type { Url } from "@blockprotocol/type-system";
 import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
   GetFlowOutputStorageKeyParams,
+  PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedPutUpload,
   PresignedStorageRequest,
   StorageType,
 } from "@local/hash-backend-utils/file-storage";
-import { getSafeContentType } from "@local/hash-backend-utils/file-storage";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import appRoot from "app-root-path";
 import type { Express } from "express";
-import express from "express";
-import mime from "mime-types";
 
 export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
@@ -45,7 +48,9 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     fileUploadPath,
     apiOrigin,
   }: LocalFileSystemStorageProviderConstructorArgs) {
-    this.fileUploadPath = path.join(appRoot.path, fileUploadPath);
+    this.fileUploadPath = path.isAbsolute(fileUploadPath)
+      ? fileUploadPath
+      : path.join(appRoot.path, fileUploadPath);
     this.apiOrigin = apiOrigin;
     if (!fs.existsSync(this.fileUploadPath)) {
       fs.mkdirSync(this.fileUploadPath, { recursive: true });
@@ -86,6 +91,13 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
+    return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
+      .href as Url;
+  }
+
+  async presignDownloadByKey(
+    params: PresignedDownloadByKeyRequest,
+  ): Promise<Url> {
     return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
       .href as Url;
   }

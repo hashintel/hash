@@ -1,19 +1,17 @@
 import { getEntityRevision, getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   type HashEntity,
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -36,12 +34,15 @@ export const getSecretEntitiesForIntegration = async ({
   return queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-          {
-            ignoreParents: true,
-          },
-        ),
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter:
+                systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [
             { path: ["leftEntity", "uuid"] },

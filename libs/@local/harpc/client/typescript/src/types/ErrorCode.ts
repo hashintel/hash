@@ -10,9 +10,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../binary/index.js";
 import { U16_MAX } from "../constants.js";
 import { createProto, implEncode } from "../utils.js";
-import { MutableBuffer } from "../binary/index.js";
 
 const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
 
@@ -37,9 +37,7 @@ export class ErrorCodeTooSmallError extends Data.TaggedError(
 }
 
 export interface ErrorCode
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly value: number;

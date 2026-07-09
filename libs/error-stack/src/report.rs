@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{error::Error, marker::PhantomData, mem, panic::Location};
+use core::{error::Error, marker::PhantomData, mem, ops::ControlFlow, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -13,7 +13,7 @@ use crate::iter::{RequestRef, RequestValue};
 use crate::{
     Attachment, Frame, OpaqueAttachment,
     context::SourceContext,
-    iter::{Frames, FramesMut},
+    iter::{self, Frames},
 };
 
 /// Contains a [`Frame`] stack consisting of [`Error`] contexts and attachments.
@@ -592,9 +592,49 @@ impl<C: ?Sized> Report<C> {
         Frames::new(&self.frames)
     }
 
-    /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
-    pub fn frames_mut(&mut self) -> FramesMut<'_> {
-        FramesMut::new(&mut self.frames)
+    /// Visits every [`Frame`] of the report mutably, in the same order as [`frames()`].
+    ///
+    /// Returning [`ControlFlow::Break`] from `visitor` stops the traversal early. The break is
+    /// propagated to the caller, a full traversal returns [`ControlFlow::Continue`].
+    ///
+    /// This is deliberately not an [`Iterator`]: an iterator over `&mut Frame` hands out
+    /// references whose lifetimes are independent of each other, so a frame and one of its
+    /// sources (reachable via [`Frame::sources_mut`]) could be borrowed mutably at the same
+    /// time. Scoping mutable access to a visitor rules that out.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, io, path::Path};
+    /// # use core::ops::ControlFlow;
+    /// # use error_stack::Report;
+    /// # fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    /// #     fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// # }
+    /// let mut report = read_file("test.txt").unwrap_err();
+    /// let flow = report.frames_mut(|frame| {
+    ///     if let Some(io_error) = frame.downcast_mut::<io::Error>() {
+    ///         *io_error = io::Error::from(io::ErrorKind::Other);
+    ///         return ControlFlow::Break(());
+    ///     }
+    ///     ControlFlow::Continue(())
+    /// });
+    /// assert!(flow.is_break());
+    /// ```
+    ///
+    /// [`frames()`]: Self::frames
+    pub fn frames_mut(
+        &mut self,
+        mut visitor: impl FnMut(&mut Frame) -> ControlFlow<()>,
+    ) -> ControlFlow<()> {
+        // If lending iterators ever land in `core`, this should become one: yielding `&mut Frame`
+        // bound to the `next()` borrow is sound and more ergonomic than a visitor.
+        let mut stack = vec![self.frames.iter_mut()];
+        while let Some(frame) = iter::next(&mut stack) {
+            visitor(frame)?;
+            stack.push(frame.sources_mut().iter_mut());
+        }
+        ControlFlow::Continue(())
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
@@ -668,7 +708,17 @@ impl<C: ?Sized> Report<C> {
     /// `T` can either be an attachment or a new [`Error`] context.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.frames_mut().find_map(Frame::downcast_mut::<T>)
+        // This cannot use `frames_mut` as the found reference needs to outlive the visitor
+        // closure. Each frame is either returned or descended into, never both, so the borrow
+        // checker accepts this without `unsafe`.
+        let mut stack = vec![self.frames.iter_mut()];
+        while let Some(frame) = iter::next(&mut stack) {
+            if frame.is::<T>() {
+                return frame.downcast_mut();
+            }
+            stack.push(frame.sources_mut().iter_mut());
+        }
+        None
     }
 }
 

@@ -1,30 +1,32 @@
 import { useMutation } from "@apollo/client";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
+
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { syncLinearIntegrationWithWebsMutation } from "../../../graphql/queries/integrations/linear.queries";
+import { Button } from "../../../shared/ui";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { getSettingsLayout } from "../../shared/settings-layout";
+import { SettingsPageContainer } from "../shared/settings-page-container";
+import { LinearHeader } from "./linear/linear-header";
+import {
+  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
+  mapLinearOrganizationToSyncWithWebsInputVariable,
+  SelectLinearTeamsTable,
+} from "./linear/select-linear-teams-table";
+import { useLinearIntegrations } from "./linear/use-linear-integrations";
 
 import type {
   GetLinearOrganizationQuery,
   SyncLinearIntegrationWithWebsMutation,
   SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { syncLinearIntegrationWithWebsMutation } from "../../../graphql/queries/integrations/linear.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
-import { Button } from "../../../shared/ui";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { getSettingsLayout } from "../../shared/settings-layout";
-import { SettingsPageContainer } from "../shared/settings-page-container";
-import { LinearHeader } from "./linear/linear-header";
 import type { LinearOrganizationTeamsWithWebs } from "./linear/select-linear-teams-table";
-import {
-  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
-  mapLinearOrganizationToSyncWithWebsInputVariable,
-  SelectLinearTeamsTable,
-} from "./linear/select-linear-teams-table";
 import type { LinearIntegration } from "./linear/use-linear-integrations";
-import { useLinearIntegrations } from "./linear/use-linear-integrations";
+import type { FunctionComponent } from "react";
 
 const DataAccess: FunctionComponent<{
   linearIntegrations: LinearIntegration[];

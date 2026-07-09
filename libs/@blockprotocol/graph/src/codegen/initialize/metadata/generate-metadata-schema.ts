@@ -1,14 +1,5 @@
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  PropertyValues,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { isPropertyValuesArray } from "@blockprotocol/type-system";
-import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 
-import type { JsonSchema } from "../../shared.js";
 import {
   arrayMetadataSchema,
   confidenceMetadataSchema,
@@ -17,6 +8,16 @@ import {
   objectMetadataSchema,
   propertyProvenanceSchema,
 } from "../../shared.js";
+
+import type { JsonSchema } from "../../shared.js";
+import type {
+  DataType,
+  EntityType,
+  PropertyType,
+  PropertyValues,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { JSONSchema as PartialJsonSchema } from "json-schema-to-typescript";
 
 const generateMetadataSchemaTitles = ({
   title,

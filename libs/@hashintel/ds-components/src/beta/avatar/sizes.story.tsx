@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg", "xl", "2xl"] as const;

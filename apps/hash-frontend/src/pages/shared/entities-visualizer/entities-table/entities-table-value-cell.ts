@@ -1,12 +1,6 @@
-import type { PropertyMetadata } from "@blockprotocol/type-system";
-import type {
-  CustomCell,
-  CustomRenderer,
-  ProvideEditorComponent,
-} from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+
 import { customColors } from "@hashintel/design-system/theme";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
 import {
   getCellHorizontalPadding,
@@ -16,6 +10,14 @@ import { drawChipWithText } from "../../../../components/grid/utils/draw-chip-wi
 import { drawTextWithIcon } from "../../../../components/grid/utils/draw-text-with-icon";
 import { formatValue } from "../../format-value";
 import { ReadonlyEntitiesTableValueCellPopup } from "./entities-table-value-cell/popup";
+
+import type { PropertyMetadata } from "@blockprotocol/type-system";
+import type {
+  CustomCell,
+  CustomRenderer,
+  ProvideEditorComponent,
+} from "@glideapps/glide-data-grid";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
 export interface EntitiesTableValueCellProps {
   readonly kind: "entities-table-value-cell";

@@ -1,40 +1,28 @@
 import { useQuery } from "@apollo/client";
+import { Box } from "@mui/material";
+import { NextSeo } from "next-seo";
+import { Router, useRouter } from "next/router";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { SxProps } from "@mui/material";
-import { Box } from "@mui/material";
-import { Router, useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import type { PropsWithChildren } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../../blocks/user-blocks";
-import type { AccountPagesInfo } from "../../../components/hooks/use-account-pages";
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
-import type { PageThread } from "../../../components/hooks/use-page-comments";
 import { usePageComments } from "../../../components/hooks/use-page-comments";
 import { PageIcon } from "../../../components/page-icon";
 import { PageLoadingState } from "../../../components/page-loading-state";
 import { CollabPositionProvider } from "../../../contexts/collab-position-context";
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../../lib/routes";
-import type { MinimalOrg, MinimalUser } from "../../../lib/user-and-org";
 import { iconVariantSizes } from "../../../shared/edit-emoji-icon-button";
-import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { PageIconButton } from "../../../shared/page-icon-button";
@@ -42,15 +30,15 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../../shared/routing/route-page-info";
-import { BlockCollection } from "../../shared/block-collection/block-collection";
-import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
-import { PageContextProvider } from "../../shared/block-collection/page-context";
-import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import {
   getBlockCollectionContents,
   getBlockCollectionContentsStructuralQueryVariables,
 } from "../../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { BlockCollection } from "../../shared/block-collection/block-collection";
+import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
+import { PageContextProvider } from "../../shared/block-collection/page-context";
+import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import { NotFound } from "../../shared/not-found";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -59,6 +47,20 @@ import {
 import { useEnabledFeatureFlags } from "../../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
+
+import type { AccountPagesInfo } from "../../../components/hooks/use-account-pages";
+import type { PageThread } from "../../../components/hooks/use-page-comments";
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../graphql/api-types.gen";
+import type { MinimalOrg, MinimalUser } from "../../../lib/user-and-org";
+import type { NextPageWithLayout } from "../../../shared/layout";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { SxProps } from "@mui/material";
+import type { PropsWithChildren } from "react";
 
 /**
  * Use to check if current browser is Safari or not

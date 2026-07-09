@@ -1,15 +1,9 @@
-import type {
-  BaseUrl,
-  EntityTypeReference,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { outlinedInputClasses, Typography } from "@mui/material";
+import { useMemo } from "react";
+
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { PopperProps } from "@mui/material";
-import { outlinedInputClasses, Typography } from "@mui/material";
-import { useMemo } from "react";
 
 import {
   darkModeBorderColor,
@@ -19,6 +13,14 @@ import {
 } from "../../../../shared/style-values";
 import { useEntityTypes } from "../../../../shared/use-entity-types";
 import { menuItemSx } from "./autocomplete-sx";
+
+import type {
+  BaseUrl,
+  EntityTypeReference,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { PopperProps } from "@mui/material";
 
 // This assumes a VersionedURL in the hash.ai/blockprotocol.org format
 const getChipLabelFromId = (id: VersionedUrl) => {

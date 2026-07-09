@@ -1,8 +1,8 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Paper, Stack } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useState } from "react";
+
+import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { WhiteChip } from "../../../@/[shortname]/shared/white-chip";
 import { SectionWrapper } from "../../section-wrapper";
@@ -10,6 +10,8 @@ import { PropertiesSectionEmptyState } from "../shared/properties-section-empty-
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 import { PropertyTable } from "./properties-section/property-table";
 import { useRows } from "./properties-section/property-table/use-rows";
+
+import type { FunctionComponent } from "react";
 
 export const PropertiesSection: FunctionComponent<{
   hideSectionHeading?: boolean;

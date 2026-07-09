@@ -1,9 +1,4 @@
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
@@ -11,18 +6,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  Comment as CommentEntity,
-  CommentPropertiesWithMetadata,
-  Text as TextEntity,
-  TextPropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import {
   createEntity,
   getEntityIncomingLinks,
@@ -34,12 +18,29 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
 import { getBlockFromEntity } from "./block";
-import type { Text } from "./text";
 import { getTextFromEntity } from "./text";
-import type { User } from "./user";
 import { getUserFromEntity } from "./user";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Block } from "./block";
+import type { Text } from "./text";
+import type { User } from "./user";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  CreateEntityParameters,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  Comment as CommentEntity,
+  CommentPropertiesWithMetadata,
+  Text as TextEntity,
+  TextPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export type Comment = {
   /**

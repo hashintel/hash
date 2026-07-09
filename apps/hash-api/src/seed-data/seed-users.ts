@@ -1,14 +1,15 @@
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import type { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
 import { createUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { AxiosError } from "axios";
 
 type SeededUser = {
   email: string;
@@ -30,14 +31,18 @@ const devUsers: readonly SeededUser[] = [
   {
     email: "alice@example.com",
     shortname: "alice",
-    // Alice has all feature flags enabled
-    enabledFeatureFlags: Array.from(featureFlags),
+    // Alice has all non-document editing features enabled
+    enabledFeatureFlags: Array.from(featureFlags).filter(
+      (flag) => !["pages", "canvases", "documents", "notes"].includes(flag),
+    ),
     displayName: "Alice",
   },
   {
     email: "bob@example.com",
     shortname: "bob01",
     displayName: "Bob",
+    // Bob exercises the supply-chain views without the full feature set.
+    enabledFeatureFlags: ["supplyChain"],
   },
 ] as const;
 

@@ -116,7 +116,7 @@ Use explicit `# Arguments` section:
 
 ### Module Documentation
 
-```rust
+````rust
 //! Entity management functionality.
 //!
 //! Main types:
@@ -128,11 +128,11 @@ Use explicit `# Arguments` section:
 //! ```
 //! use hash_graph::entity::Entity;
 //! ```
-```
+````
 
 ### Examples with Error Handling
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
@@ -140,7 +140,7 @@ Use explicit `# Arguments` section:
 /// assert_eq!(entities.len(), 2);
 /// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-```
+````
 
 ## Verification
 

@@ -1,16 +1,18 @@
 import { useQuery } from "@apollo/client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import { useMemo } from "react";
+
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
 
 import type {
   EnabledIntegrations,
   GetHashInstanceSettingsQueryQuery,
   GetHashInstanceSettingsQueryQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getHashInstanceSettings } from "../../graphql/queries/knowledge/hash-instance.queries";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 export const useHashInstance = (): {
   loading: boolean;
@@ -44,13 +46,20 @@ export const useHashInstance = (): {
     };
   }, [hashInstanceSettings]);
 
+  const enabledIntegrations: EnabledIntegrations = useMemo(() => {
+    const { __typename, ...rest } =
+      hashInstanceSettings?.enabledIntegrations ?? {
+        googleSheets: false,
+        linear: false,
+      };
+
+    return rest;
+  }, [hashInstanceSettings?.enabledIntegrations]);
+
   return {
     loading,
     hashInstance,
     isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
-    enabledIntegrations: hashInstanceSettings?.enabledIntegrations ?? {
-      googleSheets: false,
-      linear: false,
-    },
+    enabledIntegrations,
   };
 };

@@ -1,6 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
-import type { Url } from "@blockprotocol/type-system";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -8,6 +6,8 @@ import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { getEntitySummariesFromText } from "./get-entity-summaries-from-text.js";
+
+import type { Url } from "@blockprotocol/type-system";
 
 /**
  * @file These are not 'tests' but rather ways of running specific agents,
@@ -18,6 +18,9 @@ import { getEntitySummariesFromText } from "./get-entity-summaries-from-text.js"
 
 test(
   "Test getEntitySummariesFromText with a FTSE350 table",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -56,13 +59,13 @@ test(
     expect(entitySummaries).toBeDefined();
     expect(entitySummaries.length).toBe(20);
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test getEntitySummariesFromText with Sora paper authors",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -101,13 +104,13 @@ test(
     expect(entitySummaries).toBeDefined();
     expect(entitySummaries.length).toBe(13);
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test getEntitySummariesFromText with church lab members",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -140,8 +143,5 @@ test(
     });
 
     expect(entitySummaries).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

@@ -1,7 +1,8 @@
 import { Box, Container } from "@mui/material";
-import type { PropsWithChildren } from "react";
 
 import { inSlideContainerStyles } from "../shared/slide-styles";
+
+import type { PropsWithChildren } from "react";
 
 export const EntityEditorContainer = ({
   children,

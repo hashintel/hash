@@ -3,13 +3,14 @@ import {
   type EntityId,
   extractEntityUuidFromEntityId,
 } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { Filter } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Generates string primary keys for aviation entities, used for in-memory deduplication.
@@ -177,7 +178,7 @@ export const generateEntityMatcher = {
  * Generates Graph API filters to find existing link entities.
  */
 export const generateLinkMatcher = {
-  [systemLinkEntityTypes.arrivesAt.linkEntityTypeBaseUrl]: (input: {
+  [systemLinkEntityTypes.landsAt.linkEntityTypeBaseUrl]: (input: {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
   }) => {
@@ -201,7 +202,7 @@ export const generateLinkMatcher = {
       ],
     };
   },
-  [systemLinkEntityTypes.departsFrom.linkEntityTypeBaseUrl]: (input: {
+  [systemLinkEntityTypes.takesOffFrom.linkEntityTypeBaseUrl]: (input: {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
   }) => {

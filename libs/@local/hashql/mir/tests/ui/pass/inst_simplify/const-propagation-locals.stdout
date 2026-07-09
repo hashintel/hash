@@ -7,7 +7,7 @@
     let %3: Boolean
 
     bb0(): {
-        switchInt(1) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
@@ -19,7 +19,7 @@
     }
 
     bb2(): {
-        goto -> bb3(1)
+        goto -> bb3(true)
     }
 
     bb3(%0): {
@@ -37,7 +37,7 @@
     bb0(): {
         %1 = 5
         %2 = 3
-        %3 = 0
+        %3 = false
         %0 = %3
 
         return %3

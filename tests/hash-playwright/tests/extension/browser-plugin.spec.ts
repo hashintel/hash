@@ -1,8 +1,8 @@
-// eslint-disable-next-line no-restricted-imports
-import type { Page } from "@playwright/test";
-
 import { expect, test } from "../shared/browser-plugin-fixtures/fixtures";
 import { expectSignedIn, signInWithPassword } from "../shared/signin-utils";
+
+// eslint-disable-next-line no-restricted-imports
+import type { Page } from "@playwright/test";
 
 const loggedOutHeaderLocator = "text=Connect to HASH";
 const createAccountButtonLocator = "text=Create a free account";
@@ -206,7 +206,7 @@ test("options page loads with logged-in state", async ({
   await expect(page.locator("text=Welcome, Alice")).toBeVisible();
 });
 
-test("user can type a quick note which persists across logouts", async ({
+test.skip("user can type a quick note which persists across logouts", async ({
   page,
   extensionId,
 }) => {

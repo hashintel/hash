@@ -1,7 +1,6 @@
+import type { FlightPositionLight } from "./types.js";
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
-
-import type { FlightPositionLight } from "./types.js";
 
 const feetToMeters = (feet: number) => feet * 0.3048;
 

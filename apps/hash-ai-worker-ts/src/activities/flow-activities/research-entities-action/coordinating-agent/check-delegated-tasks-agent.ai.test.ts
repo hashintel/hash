@@ -1,5 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -9,6 +8,9 @@ import { checkDelegatedTasksAgent } from "./check-delegated-tasks-agent.js";
 
 test.skip(
   "Test checkDelegatedTasksAgent",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
     const allDereferencedEntityTypesById =
@@ -97,8 +99,5 @@ test.skip(
     );
 
     expect(rejectedDelegatedTasks).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

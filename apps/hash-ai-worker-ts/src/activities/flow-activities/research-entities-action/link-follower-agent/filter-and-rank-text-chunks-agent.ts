@@ -2,16 +2,17 @@ import dedent from "dedent";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+
 import type {
   LlmMessage,
   LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmErrorResponse,
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 const systemPrompt = dedent(`
   You are an assistant tasked with determining which sections of a PDF file

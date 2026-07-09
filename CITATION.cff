@@ -1,13 +1,13 @@
 cff-version: 1.2.0
 title: HASH
 type: software
-url: 'https://hash.ai/'
-repository-code: 'https://github.com/hashintel/hash'
+url: "https://hash.ai/"
+repository-code: "https://github.com/hashintel/hash"
 authors:
   - given-names: Dei
     family-names: Vilkinsons
     affiliation: HASH
-    orcid: 'https://orcid.org/0000-0001-5348-3913'
+    orcid: "https://orcid.org/0000-0001-5348-3913"
   - given-names: Ciaran
     family-names: Morinan
     affiliation: HASH
@@ -15,7 +15,7 @@ authors:
     family-names: Diekmann
     affiliation: HASH
   - name: HASH
-    website: 'https://hash.ai/'
+    website: "https://hash.ai/"
     email: team@hash.ai
 abstract: >-
   HASH is an open, multi-tenant type system and
@@ -26,4 +26,4 @@ keywords:
   - graph database
   - artificial intelligence
   - world model
-message: 'If you this software, please cite it using this metadata.'
+message: "If you this software, please cite it using this metadata."

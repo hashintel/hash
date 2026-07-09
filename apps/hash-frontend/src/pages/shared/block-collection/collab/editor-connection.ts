@@ -3,6 +3,10 @@
 /**
  * Collab is currently disabled, which means this file does not represent the current way to edit pages.
  */
+import isString from "lodash/isString";
+import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
+import { Step } from "prosemirror-transform";
+
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import {
   EntityStore,
@@ -16,14 +20,13 @@ import {
   EntityStorePluginAction,
 } from "@local/hash-isomorphic-utils/entity-store-plugin";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import isString from "lodash/isString";
-import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
-import { Node, Schema } from "prosemirror-model";
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
-import { Step } from "prosemirror-transform";
-import { EditorView } from "prosemirror-view";
+
 import { AbortingPromise, GET, POST } from "./http";
 import { StatusError } from "./status-error";
+
+import type { Node, Schema } from "prosemirror-model";
+import type { EditorState, Plugin, Transaction } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 
 // @todo check this
 const badVersion = (err: Error | StatusError) =>

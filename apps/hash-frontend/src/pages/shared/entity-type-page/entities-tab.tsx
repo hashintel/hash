@@ -1,11 +1,13 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { EntitiesVisualizer } from "../entities-visualizer";
 import { SectionWrapper } from "../section-wrapper";
 import { useEntityType } from "./shared/entity-type-context";
+
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 export const EntitiesTab = ({
   entityTypeBaseUrl,

@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Input } from "./input";
+import { Input } from "../input";
 
 export const App = () => {
   const variants = ["outline", "subtle", "surface", "flushed"] as const;

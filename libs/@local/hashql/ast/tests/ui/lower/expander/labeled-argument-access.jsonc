@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `access`
+[
+  "::kernel::special_form::access",
+  { "#literal": "hello" },
+  "name",
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `.`
+]

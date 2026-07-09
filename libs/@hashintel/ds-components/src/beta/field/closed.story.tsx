@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from "react";
 
-import * as StyledField from "./field";
+import * as StyledField from "../field";
 
 export interface FieldProps extends Omit<StyledField.RootProps, "label"> {
   label?: ReactNode;

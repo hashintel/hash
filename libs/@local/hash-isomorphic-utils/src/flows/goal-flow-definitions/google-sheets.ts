@@ -1,11 +1,10 @@
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
-
 import type {
   AiFlowActionDefinitionId,
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "../action-definitions.js";
 import type { FlowDefinition } from "../types.js";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 export type GoogleSheetTriggerInput = "Google Account" | "Google Sheet";
 

@@ -1,17 +1,19 @@
-import { type ProxyFlowActivity } from "@local/hash-backend-utils/flows";
-import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
-import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  BaseRunFlowWorkflowParams,
-  RunFlowWorkflowResponse,
-} from "@local/hash-isomorphic-utils/flows/temporal-types";
 import {
   ActivityCancellationType,
   proxyActivities,
 } from "@temporalio/workflow";
 
-import type { createFlowActivities } from "../activities/flow-activities.js";
+import { type ProxyFlowActivity } from "@local/hash-backend-utils/flows";
+import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
+
 import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
+
+import type { createFlowActivities } from "../activities/flow-activities.js";
+import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  BaseRunFlowWorkflowParams,
+  RunFlowWorkflowResponse,
+} from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
 
@@ -21,6 +23,7 @@ type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
  */
 const activitiesHeartbeating: FlowActivityId[] = [
   "persistIntegrationEntitiesAction",
+  "getHistoricalFlightArrivalsAction",
 ];
 
 const proxyFlowActivity: ProxyFlowActivity<

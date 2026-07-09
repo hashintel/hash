@@ -1,0 +1,31 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
+    }
+  ],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react-hooks-js/rules-of-hooks": "off",
+    "react-hooks-js/exhaustive-deps": "off",
+    "react-hooks-js/static-components": "warn",
+    "react-hooks-js/use-memo": "warn",
+    "react-hooks-js/void-use-memo": "warn",
+    "react-hooks-js/component-hook-factories": "warn",
+    "react-hooks-js/preserve-manual-memoization": "warn",
+    "react-hooks-js/incompatible-library": "warn",
+    "react-hooks-js/immutability": "warn",
+    "react-hooks-js/globals": "warn",
+    "react-hooks-js/refs": "warn",
+    "react-hooks-js/set-state-in-effect": "warn",
+    "react-hooks-js/error-boundaries": "warn",
+    "react-hooks-js/purity": "warn",
+    "react-hooks-js/set-state-in-render": "warn",
+    "react-hooks-js/unsupported-syntax": "warn",
+    "react-hooks-js/config": "warn",
+    "react-hooks-js/gating": "warn"
+  }
+}

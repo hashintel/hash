@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
 
 export const App = () => {
   const [checked, setChecked] = useState<Checkbox.CheckedState>(false);

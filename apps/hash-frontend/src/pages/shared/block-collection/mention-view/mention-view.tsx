@@ -1,9 +1,9 @@
+import { MentionDisplay } from "./mention-display";
+
+import type { RenderPortal } from "../block-portals";
 import type { WebId } from "@blockprotocol/type-system";
 import type { Node } from "prosemirror-model";
 import type { EditorView, NodeView } from "prosemirror-view";
-
-import type { RenderPortal } from "../block-portals";
-import { MentionDisplay } from "./mention-display";
 
 export class MentionView implements NodeView {
   dom: HTMLSpanElement;

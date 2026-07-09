@@ -1,3 +1,20 @@
+import { Context } from "@temporalio/activity";
+
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import {
+  blockProtocolPropertyTypes,
+  systemDataTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { logProgress } from "../../shared/log-progress.js";
+
+import type { DocumentData } from "./get-llm-analysis-of-doc.js";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -7,16 +24,7 @@ import type {
   ProvidedEntityEditionProvenance,
   WebId,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  blockProtocolPropertyTypes,
-  systemDataTypes,
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   Claim as ClaimEntity,
   HasObject,
@@ -27,12 +35,6 @@ import type {
   PersonProperties,
   TextDataTypeMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Context } from "@temporalio/activity";
-
-import { getFlowContext } from "../../shared/get-flow-context.js";
-import { graphApiClient } from "../../shared/graph-api-client.js";
-import { logProgress } from "../../shared/log-progress.js";
-import type { DocumentData } from "./get-llm-analysis-of-doc.js";
 
 const createClaim = async ({
   claimText,

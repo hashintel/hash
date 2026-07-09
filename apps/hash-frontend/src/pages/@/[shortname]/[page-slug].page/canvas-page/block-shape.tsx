@@ -1,13 +1,4 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type {
-  UpdateBlockCollectionContentsMutation,
-  UpdateBlockCollectionContentsMutationVariables,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { toDomPrecision } from "@tldraw/primitives";
-import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";
 import {
   defineShape,
   HTMLContainer,
@@ -15,14 +6,25 @@ import {
   TLBoxUtil,
 } from "@tldraw/tldraw";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+
 import { BlockLoader } from "../../../../../components/block-loader/block-loader";
 import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../../../lib/apollo-client";
-import { BlockContextProvider } from "../../../../shared/block-collection/block-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../../shared/block-collection-context";
-import type { JsonSerializableBlockLoaderProps } from "./shared";
+import { BlockContextProvider } from "../../../../shared/block-collection/block-context";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
+
+import type { JsonSerializableBlockLoaderProps } from "./shared";
+import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  UpdateBlockCollectionContentsMutation,
+  UpdateBlockCollectionContentsMutationVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";
 
 // Defines the string id and the 'props' available on our custom TLDraw shape
 export type BlockShape = TLBaseShape<

@@ -1,5 +1,6 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+
+import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 import type {
   FlowRun,
@@ -7,7 +8,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
+import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getFlowRunsResolver: ResolverFn<
   {

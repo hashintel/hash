@@ -1,11 +1,13 @@
+import { Box, Typography } from "@mui/material";
+
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { ArrowUpRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
+
 import type { EntityTypeDisplayInfoByBaseUrl } from "../draft-entities/types";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 const iconSx = { fontSize: 14, marginRight: 0.5 };
 

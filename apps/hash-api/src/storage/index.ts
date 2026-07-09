@@ -1,16 +1,10 @@
-import type { Entity, EntityId } from "@blockprotocol/type-system";
 import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import type {
-  FileStorageProvider,
-  StorageType,
-} from "@local/hash-backend-utils/file-storage";
 import {
   isStorageType,
   storageProviderLookup,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
@@ -19,15 +13,22 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Express } from "express";
-import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { ImpureGraphContext } from "../graph/context-types";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { Entity, EntityId } from "@blockprotocol/type-system";
+import type {
+  FileStorageProvider,
+  StorageType,
+} from "@local/hash-backend-utils/file-storage";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Express } from "express";
+import type Keyv from "keyv";
 
 // S3-like APIs have a upper bound.
 // 7 days.

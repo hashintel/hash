@@ -1,10 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { HStack, VStack } from "@hashintel/ds-helpers/jsx";
-import type { Token } from "@hashintel/ds-helpers/tokens";
 import { token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 import type { FontWeightToken, Leading, TextStyle } from "./_types";
+import type { Token } from "@hashintel/ds-helpers/tokens";
+import type { Story } from "@ladle/react";
 
 const textStyles: readonly TextStyle[] = [
   "xs",
@@ -107,7 +107,10 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
 const FontFamilyDemo = ({
   name,
   tokenPath,
-}: { name: string; tokenPath: Token }) => (
+}: {
+  name: string;
+  tokenPath: Token;
+}) => (
   <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
     <span

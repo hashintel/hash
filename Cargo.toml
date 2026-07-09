@@ -13,6 +13,7 @@ members = [
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
+    "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
@@ -58,10 +59,10 @@ version = "0.0.0"
 
 [workspace.dependencies]
 # Workspace members
-darwin-kperf.path                   = "libs/darwin-kperf"
-darwin-kperf-criterion.path         = "libs/darwin-kperf/criterion"
-darwin-kperf-events.path            = "libs/darwin-kperf/events"
-darwin-kperf-sys.path               = "libs/darwin-kperf/sys"
+darwin-kperf                        = { path = "libs/darwin-kperf", version = "0.1.1" }
+darwin-kperf-criterion              = { path = "libs/darwin-kperf/criterion", version = "0.1.1" }
+darwin-kperf-events                 = { path = "libs/darwin-kperf/events", version = "0.1.1" }
+darwin-kperf-sys                    = { path = "libs/darwin-kperf/sys", version = "0.1.1" }
 error-stack                         = { path = "./libs/error-stack", default-features = false }
 harpc-client.path                   = "libs/@local/harpc/client/rust"
 harpc-codec.path                    = "libs/@local/harpc/codec"
@@ -75,6 +76,7 @@ hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
+hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
@@ -104,20 +106,21 @@ type-system.path                    = "libs/@blockprotocol/type-system/rust"
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
 ansi-to-tui                        = { version = "8.0.1" }
-anstream                           = { version = "0.6.21", default-features = false }
+anstream                           = { version = "1.0.0", default-features = false }
 anstyle                            = { version = "1.0.13", default-features = false }
 anstyle-lossy                      = { version = "1.1.4", default-features = false }
-anstyle-svg                        = { version = "0.1.11", default-features = false }
+anstyle-svg                        = { version = "1.0.0", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.8.10" }
 aws-sdk-s3                         = { version = "1.110.0", default-features = false }
 aws-types                          = { version = "1.3.10", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
+base16ct                           = { version = "1.0.0", default-features = false }
 bitvec                             = { version = "1.0.1", default-features = false }
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
-bump-scope                         = { version = "1.5.1", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
+bump-scope                         = { version = "2.0.0", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
@@ -153,6 +156,7 @@ futures                            = { version = "0.3.31", default-features = fa
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }
 futures-io                         = { version = "0.3.31", default-features = false }
+futures-lite                       = { version = "2.6.1" }
 futures-sink                       = { version = "0.3.31", default-features = false }
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
@@ -168,40 +172,40 @@ include_dir_macros                 = { version = "0.7.4", default-features = fal
 indexmap                           = { version = "2.12.0", default-features = false }
 indoc                              = { version = "2.0.7", default-features = false }
 inferno                            = { version = "0.12.3", default-features = false }
-insta                              = { version = "1.43.2", default-features = false }
+insta                              = { version = "1.47.2", default-features = false }
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
 lcov                               = { version = "0.8.1" }
 lexical                            = { version = "7.0.5", default-features = false }
-libp2p                             = { version = "0.56.0", default-features = false }
-libp2p-core                        = { version = "0.43.1", default-features = false }
-libp2p-identity                    = { version = "0.2.12", default-features = false }
-libp2p-ping                        = { version = "0.47.0", default-features = false }
-libp2p-stream                      = { version = "0.4.0-alpha", default-features = false }
-libp2p-swarm                       = { version = "0.47.0", default-features = false }
-libp2p-yamux                       = { version = "0.47.0", default-features = false }
+libp2p                             = { version = "0.57.0", default-features = false }
+libp2p-core                        = { version = "0.44.0", default-features = false }
+libp2p-identity                    = { version = "0.2.13", default-features = false }
+libp2p-ping                        = { version = "0.48.0", default-features = false }
+libp2p-stream                      = { version = "0.5.0-alpha", default-features = false }
+libp2p-swarm                       = { version = "0.48.0", default-features = false }
+libp2p-yamux                       = { version = "0.48.0", default-features = false }
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
 logos                              = { version = "0.16.0", default-features = false }
-md-5                               = { version = "0.10.6", default-features = false }
+md-5                               = { version = "0.11.0", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
-multistream-select                 = { version = "0.13.0", default-features = false }
-napi                               = { version = "2.16.17", default-features = false }
-napi-build                         = { version = "2.2.4", default-features = false }
-napi-derive                        = { version = "2.16.13", default-features = false }
+multistream-select                 = { version = "0.14.0", default-features = false }
+napi                               = { version = "3.9.0", default-features = false }
+napi-build                         = { version = "2.3.2", default-features = false }
+napi-derive                        = { version = "3.5.6", default-features = false, features = ["type-def"] }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
-opentelemetry                      = { version = "0.30.0", default-features = false }
-opentelemetry-appender-tracing     = { version = "0.30.1", default-features = false }
-opentelemetry-otlp                 = { version = "0.30.0", default-features = false }
-opentelemetry-semantic-conventions = { version = "0.30.0", default-features = false }
-opentelemetry_sdk                  = { version = "0.30.0", default-features = false }
+opentelemetry                      = { version = "0.32.0", default-features = false }
+opentelemetry-appender-tracing     = { version = "0.32.0", default-features = false }
+opentelemetry-otlp                 = { version = "0.32.0", default-features = false }
+opentelemetry-semantic-conventions = { version = "0.32.1", default-features = false }
+opentelemetry_sdk                  = { version = "0.32.1", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
 oxc                                = { version = "0.95.0", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
@@ -212,7 +216,6 @@ postgres-types                     = { version = "0.2.11", default-features = fa
 pretty                             = { version = "0.12.5", default-features = false }
 pretty_assertions                  = { version = "1.4.1", default-features = false, features = ["alloc"] }
 prettyplease                       = { version = "0.2.37", default-features = false }
-proc-macro-error2                  = { version = "2.0.1", default-features = false }
 proc-macro2                        = { version = "1.0.103", default-features = false }
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
@@ -220,34 +223,38 @@ quote                              = { version = "1.0.41", default-features = fa
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
 rand_distr                         = { version = "0.6.0", default-features = false }
+rand_xoshiro                       = { version = "0.8.1" }
 rapidfuzz                          = { version = "0.5.0", default-features = false }
 ratatui                            = { version = "0.30.0" }
 rayon                              = { version = "1.11.0", default-features = false }
 refinery                           = { version = "0.8.16", default-features = false }
 regex                              = { version = "1.11.2", default-features = false, features = ["perf", "unicode"] }
-reqwest                            = { version = "0.12.24", default-features = false, features = ["rustls-tls"] }
-reqwest-middleware                 = { version = "0.4.2", default-features = false }
-reqwest-tracing                    = { version = "0.5.8", default-features = false }
+reqwest                            = { version = "0.13.0", default-features = false, features = ["json", "rustls"] }
+reqwest-middleware                 = { version = "0.5.0", default-features = false }
+reqwest-retry                      = { version = "0.9.1", default-features = false }
+reqwest-tracing                    = { version = "0.7.0", default-features = false }
 roaring                            = { version = "0.11.2", default-features = false }
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "2.4.0", default-features = false }
 semver                             = { version = "1.0.27", default-features = false }
-sentry                             = { version = "0.46.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-core                        = { version = "0.46.0", default-features = false }
-sentry-types                       = { version = "0.46.0", default-features = false }
+sentry                             = { version = "0.47.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-core                        = { version = "0.47.0", default-features = false }
+sentry-types                       = { version = "0.47.0", default-features = false }
 serde                              = { version = "1.0.228", default-features = false }
 serde_core                         = { version = "1.0.228", default-features = false }
 serde_json                         = { version = "1.0.145" }
 serde_plain                        = { version = "1.0.2", default-features = false }
 sha2                               = { version = "0.11.0", default-features = false }
-similar-asserts                    = { version = "1.7.0", default-features = false }
+similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
+sqruff-lib                         = { version = "0.37.3" }
+sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
@@ -258,6 +265,8 @@ temporalio-client                  = { git = "https://github.com/temporalio/sdk-
 temporalio-common                  = { git = "https://github.com/temporalio/sdk-core", rev = "231e21c" }
 test-log                           = { version = "0.2.18", default-features = false }
 test-strategy                      = { version = "0.4.3", default-features = false }
+testcontainers                     = { version = "0.27.1", default-features = false }
+testcontainers-modules             = { version = "0.15.0", default-features = false }
 text-size                          = { version = "1.1.1", default-features = false }
 thiserror                          = { version = "2.0.17", default-features = false }
 time                               = { version = "0.3.44", default-features = false }
@@ -266,7 +275,7 @@ tokio-postgres                     = { version = "0.7.15", default-features = fa
 tokio-stream                       = { version = "0.1.17", default-features = false }
 tokio-test                         = { version = "0.4.4", default-features = false }
 tokio-util                         = { version = "0.7.16", default-features = false }
-toml                               = { version = "0.9.8", default-features = false }
+toml                               = { version = "1.0.0", default-features = false }
 tower                              = { version = "0.5.2", default-features = false }
 tower-http                         = { version = "0.6.6", features = ["trace"] }
 tower-layer                        = { version = "0.3.3", default-features = false }
@@ -277,7 +286,7 @@ tracing-appender                   = { version = "0.2.3", default-features = fal
 tracing-core                       = { version = "0.1.34", default-features = false }
 tracing-error                      = { version = "0.2.1", default-features = false }
 tracing-flame                      = { version = "0.2.0", default-features = false }
-tracing-opentelemetry              = { version = "0.31.0", default-features = false }
+tracing-opentelemetry              = { version = "0.33.0", default-features = false }
 tracing-subscriber                 = { version = "0.3.20", default-features = false }
 trait-variant                      = { version = "0.1.2", default-features = false }
 trybuild                           = { version = "1.0.113", default-features = false }
@@ -294,7 +303,7 @@ uuid                               = { version = "1.18.1", default-features = fa
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
-winnow                             = { version = "0.7.13", default-features = false }
+winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
 
 [profile.dev]
@@ -355,6 +364,7 @@ as_conversions                 = "allow"
 # Too many false positives when macros and/or loops are involved
 cognitive_complexity    = "allow"
 expect_used             = "allow"
+inline_modules          = "allow" # right now flags inline test modules, even if it shouldn't
 let_underscore_must_use = "allow"
 missing_assert_message  = "allow"
 multiple_inherent_impl  = "allow"
@@ -365,6 +375,7 @@ unwrap_in_result        = "allow"
 # Consider enabling:
 default_numeric_fallback      = "allow"
 impl_trait_in_params          = "allow"
+inline_trait_bounds           = "allow"
 iter_over_hash_type           = "allow"
 multiple_unsafe_ops_per_block = "allow"
 pattern_type_mismatch         = "allow"
@@ -403,3 +414,26 @@ ignored = ["futures-core", "futures-io", "futures-sink"]
 [patch.crates-io]
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
+
+libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-allow-block-list  = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-connection-limits = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-core              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-dns               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-identify          = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-identity          = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-mdns              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-metrics           = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-noise             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-ping              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-quic              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-stream            = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-swarm             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-swarm-derive      = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-tcp               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-tls               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-upnp              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-yamux             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+multistream-select       = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+quick-protobuf-codec     = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+rw-stream-sink           = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }

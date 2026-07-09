@@ -5,11 +5,8 @@ use hash_graph_store::{
     },
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::{data_type, entity_type, property_type};
 use type_system::{
     ontology::{
@@ -110,13 +107,7 @@ async fn query() {
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&organization_et.id),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
                     after: None,
                     limit: None,
                     include_count: false,
@@ -212,13 +203,7 @@ async fn update() {
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v1.id),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
                     after: None,
                     limit: None,
                     include_count: false,
@@ -240,13 +225,7 @@ async fn update() {
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v2.id),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
                     after: None,
                     limit: None,
                     include_count: false,

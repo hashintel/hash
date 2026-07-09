@@ -1,5 +1,4 @@
 import { Box, Tooltip, useMediaQuery, useTheme } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
@@ -11,8 +10,10 @@ import { Button, Link } from "../../ui";
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
 import { NotificationsDropdown } from "./notifications-dropdown";
-import { SearchBar } from "./search-bar";
+// import { SearchBar } from "./search-bar";
 import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-count";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
@@ -79,7 +80,7 @@ export const PageHeader: FunctionComponent = () => {
               />
             </Link>
           </Box>
-          {authenticatedUser?.accountSignupComplete ? <SearchBar /> : null}
+          {/* {authenticatedUser?.accountSignupComplete ? <SearchBar /> : null} */}
         </Box>
         {authenticatedUser ? (
           <Box

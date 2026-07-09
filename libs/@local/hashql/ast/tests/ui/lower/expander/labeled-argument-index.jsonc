@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `[]`
+[
+  "::kernel::special_form::index",
+  { "#literal": "hello" },
+  { "#literal": 0 },
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `[]`
+]

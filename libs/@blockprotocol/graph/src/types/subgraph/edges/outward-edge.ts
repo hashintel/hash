@@ -1,11 +1,3 @@
-import type {
-  EntityId,
-  LimitedTemporalBound,
-  TemporalBound,
-  TemporalInterval,
-  Timestamp,
-} from "@blockprotocol/type-system";
-
 import { isEntityRecordId } from "../../entity.js";
 import { isOntologyTypeRecordId } from "../../ontology.js";
 import {
@@ -13,8 +5,16 @@ import {
   isOntologyEdgeKind,
   isSharedEdgeKind,
 } from "./kind.js";
+
 import type { KnowledgeGraphOutwardEdge } from "./variants/knowledge.js";
 import type { OntologyOutwardEdge } from "./variants/ontology.js";
+import type {
+  EntityId,
+  LimitedTemporalBound,
+  TemporalBound,
+  TemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, at a given {@link Timestamp}.

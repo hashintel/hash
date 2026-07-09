@@ -1,4 +1,3 @@
-import type { PropertyValue } from "@blockprotocol/type-system";
 import get from "lodash/get.js";
 
 import { logger } from "./activity-logger.js";
@@ -9,8 +8,10 @@ import {
   getToolCallsFromLlmAssistantMessage,
   type LlmUserMessage,
 } from "./get-llm-response/llm-message.js";
-import type { LlmParams, LlmToolDefinition } from "./get-llm-response/types.js";
 import { graphApiClient } from "./graph-api-client.js";
+
+import type { LlmParams, LlmToolDefinition } from "./get-llm-response/types.js";
+import type { PropertyValue } from "@blockprotocol/type-system";
 
 type ExchangeToReview = Required<Pick<LlmParams, "messages" | "tools">> &
   Pick<LlmParams, "systemPrompt">;

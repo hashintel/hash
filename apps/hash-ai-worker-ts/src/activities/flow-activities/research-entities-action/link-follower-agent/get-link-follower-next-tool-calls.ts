@@ -1,22 +1,24 @@
-import type { Url } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
-import { sleep } from "@local/hash-backend-utils/utils";
 import dedent from "dedent";
+
+import { sleep } from "@local/hash-backend-utils/utils";
 
 import { logger } from "../../../../shared/logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+
+import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
+import type { Url } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 const defaultModel: LlmParams["model"] = "gpt-4o-2024-08-06";
 

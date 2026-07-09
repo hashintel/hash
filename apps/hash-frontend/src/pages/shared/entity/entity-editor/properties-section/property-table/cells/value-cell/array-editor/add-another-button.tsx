@@ -1,4 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
+
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../../../../../../../shared/ui";

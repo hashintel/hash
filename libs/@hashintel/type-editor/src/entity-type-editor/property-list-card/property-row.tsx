@@ -1,10 +1,4 @@
-import type {
-  BaseUrl,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { Collapse, Table, TableBody, TableCell, TableRow } from "@mui/material";
-import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
@@ -15,11 +9,18 @@ import { EntityTypeTableRow } from "../shared/entity-type-table";
 import { generateReadonlyMessage } from "../shared/generate-readonly-message";
 import { MULTIPLE_VALUES_CELL_WIDTH } from "../shared/multiple-values-cell";
 import { TypeMenuCell } from "../shared/type-menu-cell";
-import type { InheritanceData } from "../shared/use-inherited-values";
 import { useTypeVersions } from "../shared/use-type-versions";
 import { DisabledCheckboxCell } from "./disabled-checkbox-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyTitleCell } from "./property-title-cell";
+
+import type { InheritanceData } from "../shared/use-inherited-values";
+import type {
+  BaseUrl,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { ReactNode } from "react";
 
 const CollapsibleTableRow = ({
   expanded,
@@ -133,8 +134,8 @@ export const PropertyRow = ({
               const array = "type" in ref;
               const required = Boolean(
                 selectedProperty &&
-                  "required" in selectedProperty &&
-                  selectedProperty.required?.includes(propertyId as BaseUrl),
+                "required" in selectedProperty &&
+                selectedProperty.required?.includes(propertyId as BaseUrl),
               );
               return [
                 ...childrenArray,

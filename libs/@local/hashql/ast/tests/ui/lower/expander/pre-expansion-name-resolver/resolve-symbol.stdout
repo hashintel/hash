@@ -1,0 +1,19 @@
+Expr#4294967040@8
+  ExprKind (Call)
+    CallExpr#4294967040@8
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: true)
+            PathSegment#4294967040@2 (name: core)
+            PathSegment#4294967040@2 (name: bool)
+            PathSegment#4294967040@2 (name: and)
+      Argument#4294967040@5
+        Expr#4294967040@5
+          ExprKind (Literal)
+            LiteralExpr#4294967040@4
+              Primitive (True)
+      Argument#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Literal)
+            LiteralExpr#4294967040@6
+              Primitive (False)

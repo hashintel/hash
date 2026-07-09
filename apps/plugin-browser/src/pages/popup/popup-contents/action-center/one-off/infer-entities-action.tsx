@@ -1,16 +1,11 @@
-import { Button, CaretDownSolidIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
-import type { Tabs } from "webextension-polyfill";
 import browser from "webextension-polyfill";
+
+import { Button, CaretDownSolidIcon } from "@hashintel/design-system";
 
 import { FlowRunStatus } from "../../../../../graphql/api-types.gen";
 import { createDefaultSettings } from "../../../../../shared/create-default-settings";
-import type {
-  GetTabContentRequest,
-  GetTabContentReturn,
-} from "../../../../../shared/messages";
-import type { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
@@ -21,6 +16,13 @@ import { SelectWebTarget } from "../shared/select-web-target";
 import { useFlowRuns } from "../shared/use-flow-runs";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
+
+import type {
+  GetTabContentRequest,
+  GetTabContentReturn,
+} from "../../../../../shared/messages";
+import type { LocalStorage } from "../../../../../shared/storage";
+import type { Tabs } from "webextension-polyfill";
 
 export const InferEntitiesAction = ({
   activeTab,

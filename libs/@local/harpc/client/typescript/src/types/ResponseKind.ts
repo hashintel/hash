@@ -13,9 +13,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, implDecode, implEncode } from "../utils.js";
 import { MutableBuffer } from "../binary/index.js";
-
+import { createProto, implDecode, implEncode } from "../utils.js";
 import * as ErrorCode from "./ErrorCode.js";
 
 const TypeId: unique symbol = Symbol(
@@ -25,9 +24,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface Ok
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly _tag: "Ok";
 }
@@ -72,9 +69,7 @@ const OkProto: Ok = {
 export const ok = (): Ok => createProto(OkProto, {});
 
 export interface Err
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly _tag: "Err";
 

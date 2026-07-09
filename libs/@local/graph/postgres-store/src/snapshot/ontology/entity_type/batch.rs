@@ -4,10 +4,13 @@ use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 
 use crate::{
-    snapshot::WriteBatch,
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
         AsClient, PostgresStore,
-        postgres::query::rows::{EntityTypeEmbeddingRow, EntityTypeRow},
+        postgres::query::{
+            OnConflict,
+            rows::{EntityTypeEmbeddingRow, EntityTypeRow},
+        },
     },
 };
 
@@ -54,47 +57,31 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(entity_types) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_types_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_types[])
-                            RETURNING 1;
-                        ",
-                        &[&entity_types],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity type schemas", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &entity_types,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity type schemas");
                 }
             }
             Self::Embeddings(embeddings) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::entity_type_embeddings[])
-                            RETURNING 1;
-                        ",
-                        &[&embeddings],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity type embeddings", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &embeddings,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity type embeddings");
                 }
             }
         }

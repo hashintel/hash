@@ -1,14 +1,15 @@
-import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { inferEntitySummaries } from "./infer-entity-summaries.js";
+
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types.js";
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
 export const inferEntitySummariesFromWebPage = async (params: {
   webPage: WebPage | string;

@@ -1,4 +1,4 @@
-import * as Breadcrumb from "./breadcrumb";
+import * as Breadcrumb from "../breadcrumb";
 
 export const App = () => {
   return (

@@ -1,3 +1,9 @@
+import {
+  // eslint-disable-next-line no-restricted-imports
+  useSnackbar as useLibSnackbar,
+} from "notistack";
+import { useMemo } from "react";
+
 import type {
   OptionsObject,
   ProviderContext,
@@ -5,11 +11,6 @@ import type {
   SnackbarMessage,
   VariantType,
 } from "notistack";
-import {
-  // eslint-disable-next-line no-restricted-imports
-  useSnackbar as useLibSnackbar,
-} from "notistack";
-import { useMemo } from "react";
 
 type EnqueueWithoutVariant = (
   message: SnackbarMessage,

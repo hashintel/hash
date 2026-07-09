@@ -1,11 +1,16 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { Stack } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+
 import { TextField } from "@hashintel/design-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Stack } from "@mui/material";
-import type { FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
+import { Button } from "../../../../../shared/ui/button";
+import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 
 import type {
   InviteUserToOrgMutation,
@@ -13,11 +18,8 @@ import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
-import { Button } from "../../../../../shared/ui/button";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import type { FormEvent } from "react";
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);

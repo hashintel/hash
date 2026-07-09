@@ -1,16 +1,20 @@
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+
+import { FlowRunStatus } from "../../graphql/api-types.gen";
+
+import type { User } from "../../graph/knowledge/system-types/user";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
   ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import type {
   AutomaticInferenceTriggerInputName,
   AutomaticInferenceTriggerInputs,
@@ -24,9 +28,6 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
-
-import type { User } from "../../graph/knowledge/system-types/user";
-import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 export const handleInferEntitiesRequest = async ({
   graphApiClient,

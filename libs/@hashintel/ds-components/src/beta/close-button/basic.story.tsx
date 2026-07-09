@@ -1,4 +1,4 @@
-import { CloseButton } from "./close-button";
+import { CloseButton } from "../close-button";
 
 export const App = () => {
   return <CloseButton />;

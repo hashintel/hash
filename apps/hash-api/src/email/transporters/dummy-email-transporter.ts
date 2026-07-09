@@ -6,6 +6,7 @@ import { convert } from "html-to-text";
 import { dump } from "js-yaml";
 
 import { logger } from "../../logger";
+
 import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,

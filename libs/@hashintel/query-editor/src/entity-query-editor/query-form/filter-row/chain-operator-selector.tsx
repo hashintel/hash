@@ -1,10 +1,12 @@
-import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { MenuItem } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
-import type { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
+
+import type { FormValues } from "../../types";
 
 export const ChainOperatorSelector = () => {
   const { control } = useFormContext<FormValues>();

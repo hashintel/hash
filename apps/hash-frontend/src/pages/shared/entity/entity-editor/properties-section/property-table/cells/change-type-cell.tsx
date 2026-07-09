@@ -1,23 +1,25 @@
-import type { ClosedDataType } from "@blockprotocol/type-system";
-import type {
-  CustomCell,
-  CustomRenderer,
-  DataEditorRef,
-} from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { produce } from "immer";
+
 import { customColors } from "@hashintel/design-system/theme";
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
-import { produce } from "immer";
-import type { RefObject } from "react";
 
 import { getYCenter } from "../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChip } from "../../../../../../../components/grid/utils/draw-chip";
 import { drawChipWithIcon } from "../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
-import type { PropertyRow } from "../types";
 import { getEditorSpecs } from "./value-cell/editor-specs";
+
+import type { PropertyRow } from "../types";
 import type { ValueCell } from "./value-cell/types";
+import type { ClosedDataType } from "@blockprotocol/type-system";
+import type {
+  CustomCell,
+  CustomRenderer,
+  DataEditorRef,
+} from "@glideapps/glide-data-grid";
+import type { RefObject } from "react";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";

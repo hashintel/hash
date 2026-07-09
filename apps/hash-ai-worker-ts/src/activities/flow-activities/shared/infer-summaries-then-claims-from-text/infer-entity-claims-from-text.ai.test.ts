@@ -1,15 +1,16 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
+import { expect, test } from "vitest";
 
-import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { inferEntityClaimsFromTextAgent } from "./infer-entity-claims-from-text-agent.js";
+
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 
 /**
  * @file These are not 'tests' but rather ways of running specific agents,
@@ -25,6 +26,9 @@ const generateEntityId = (entityUuid: string) =>
 
 test(
   "Test inferEntityClaimsFromText with the FTSE350 table",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -86,13 +90,13 @@ test(
 
     expect(claims).toBeDefined();
   },
-  {
-    timeout: 5 * 60 * 1000,
-  },
 );
 
 test(
   "Test inferEntityClaimsFromText for the GeForce RTX 4090 graphics card",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -150,8 +154,5 @@ test(
     console.log(JSON.stringify({ claims }, null, 2));
 
     expect(claims).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

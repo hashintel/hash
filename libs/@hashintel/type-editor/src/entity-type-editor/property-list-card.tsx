@@ -1,11 +1,4 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  PropertyTypeIcon,
-  StyledPlusCircleIcon,
-} from "@hashintel/design-system";
 import {
   Checkbox,
   TableBody,
@@ -29,7 +22,13 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import type { EntityTypeEditorFormData } from "../shared/form-types";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  FontAwesomeIcon,
+  PropertyTypeIcon,
+  StyledPlusCircleIcon,
+} from "@hashintel/design-system";
+
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { usePropertyTypesOptions } from "../shared/property-types-options-context";
 import { useIsReadonly } from "../shared/read-only-context";
@@ -39,7 +38,6 @@ import { InheritedPropertyRow } from "./property-list-card/inherited-property-ro
 import { PropertyRow } from "./property-list-card/property-row";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
-import type { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -50,8 +48,6 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import type { TypeSelectorType } from "./shared/insert-property-field/type-selector";
-import type { InsertTypeFieldProps } from "./shared/insert-type-field";
 import { InsertTypeField } from "./shared/insert-type-field";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
@@ -61,6 +57,12 @@ import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
+
+import type { EntityTypeEditorFormData } from "../shared/form-types";
+import type { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import type { TypeSelectorType } from "./shared/insert-property-field/type-selector";
+import type { InsertTypeFieldProps } from "./shared/insert-type-field";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export const REQUIRED_CELL_WIDTH = 100;
 

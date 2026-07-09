@@ -3,7 +3,7 @@
 //! Code generation utilities for the HASH ecosystem.
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![expect(clippy::todo)]
 
 use alloc::{borrow::Cow, collections::BTreeSet};

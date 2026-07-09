@@ -11,9 +11,10 @@ import {
   PreprocessContext,
 } from "./codegen/context.js";
 import { initialize } from "./codegen/initialize.js";
-import type { CodegenParameters } from "./codegen/parameters.js";
 import { postprocess } from "./codegen/postprocess.js";
 import { preprocess } from "./codegen/preprocess.js";
+
+import type { CodegenParameters } from "./codegen/parameters.js";
 import type { LogLevel } from "./codegen/shared.js";
 
 export {

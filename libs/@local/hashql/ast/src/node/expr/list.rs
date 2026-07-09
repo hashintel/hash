@@ -7,7 +7,7 @@ use crate::node::{id::NodeId, r#type::Type};
 ///
 /// Represents a single value in a list, containing the expression that
 /// produces the element value.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ListElement<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -36,7 +36,7 @@ pub struct ListElement<'heap> {
 /// [value1, value2, value3]
 /// [value1, value2, value3] as List<String>
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ListExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

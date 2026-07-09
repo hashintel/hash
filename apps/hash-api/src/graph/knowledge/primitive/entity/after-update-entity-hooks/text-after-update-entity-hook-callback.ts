@@ -1,8 +1,5 @@
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entity";
-import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 import {
   archiveNotification,
@@ -16,7 +13,11 @@ import {
 import { getUser } from "../../../system-types/user";
 import { checkPermissionsOnEntity } from "../../entity";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
+
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 /**
  * This after update `Text` entity hook is responsible for creating

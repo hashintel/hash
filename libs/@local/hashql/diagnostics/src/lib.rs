@@ -1,7 +1,7 @@
 //! # HashQL Diagnostics
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Language Features
     const_trait_impl,
@@ -36,5 +36,5 @@ pub use self::{
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,
     source::{Source, Sources},
-    status::{Failure, Status, StatusExt, Success},
+    status::{Failure, IntoStatus, Status, StatusExt, Success},
 };

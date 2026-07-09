@@ -1,9 +1,10 @@
-import { Center } from "@hashintel/ds-helpers/jsx";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
-import { IconButton } from "../icon-button/icon-button";
-import { Text } from "../text/text";
-import * as Carousel from "./carousel";
+import { Center } from "@hashintel/ds-helpers/jsx";
+
+import * as Carousel from "../carousel";
+import { IconButton } from "../icon-button";
+import { Text } from "../text";
 
 export const App = () => {
   const slides = 5;

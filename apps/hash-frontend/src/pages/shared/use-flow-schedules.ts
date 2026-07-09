@@ -1,23 +1,25 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   type Simplified,
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
 
 type UseFlowSchedulesResult = {
   loading: boolean;

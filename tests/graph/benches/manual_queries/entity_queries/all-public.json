@@ -5,8 +5,7 @@
     "sampleSize": 10,
     "parameters": {
       "actorId": [],
-      "limit": [10, 100, 500],
-      "includeCount": [false]
+      "limit": [10, 100, 500]
     }
   },
   "request": {

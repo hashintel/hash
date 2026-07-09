@@ -1,7 +1,7 @@
 import { defineGlobalStyles, definePreset } from "@pandacss/dev";
+import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
-import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
@@ -106,7 +106,89 @@ export function createPreset(options?: PresetOptions) {
       extend: {
         tokens,
         semanticTokens,
+        keyframes: {
+          ...pandaPreset.theme.keyframes,
+          fadeIn: {
+            from: { opacity: "0" },
+            to: { opacity: "1" },
+          },
+          fadeOut: {
+            from: { opacity: "1" },
+            to: { opacity: "0" },
+          },
+          drawerSlideInRight: {
+            from: { transform: "translateX(100%)" },
+            to: { transform: "translateX(0)" },
+          },
+          drawerSlideOutRight: {
+            from: { transform: "translateX(0)" },
+            to: { transform: "translateX(100%)" },
+          },
+          drawerSlideInLeft: {
+            from: { transform: "translateX(-100%)" },
+            to: { transform: "translateX(0)" },
+          },
+          drawerSlideOutLeft: {
+            from: { transform: "translateX(0)" },
+            to: { transform: "translateX(-100%)" },
+          },
+          drawerSlideInTop: {
+            from: { transform: "translateY(-100%)" },
+            to: { transform: "translateY(0)" },
+          },
+          drawerSlideOutTop: {
+            from: { transform: "translateY(0)" },
+            to: { transform: "translateY(-100%)" },
+          },
+          drawerSlideInBottom: {
+            from: { transform: "translateY(100%)" },
+            to: { transform: "translateY(0)" },
+          },
+          drawerSlideOutBottom: {
+            from: { transform: "translateY(0)" },
+            to: { transform: "translateY(100%)" },
+          },
+          popoverIn: {
+            from: { opacity: "0", transform: "scale(0.98)" },
+            to: { opacity: "1", transform: "scale(1)" },
+          },
+          popoverOut: {
+            from: { opacity: "1", transform: "scale(1)" },
+            to: { opacity: "0", transform: "scale(0.98)" },
+          },
+          rotateRight: {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
+          },
+          rotateLeft: {
+            from: { transform: "rotate(360deg)" },
+            to: { transform: "rotate(0deg)" },
+          },
+          expand: {
+            from: { height: "0" },
+            to: { height: "var(--height)" },
+          },
+          collapse: {
+            from: { height: "var(--height)" },
+            to: { height: "0" },
+          },
+          pulse: {
+            "0%, 100%": { opacity: "0.25" },
+            "50%": { opacity: "1" },
+          },
+          shimmer: {
+            from: { backgroundPosition: "200% 0" },
+            to: { backgroundPosition: "-200% 0" },
+          },
+        },
         textStyles: {
+          xxs: {
+            value: {
+              fontSize: "{fontSizes.xxs}",
+              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              letterSpacing: "0.01em",
+            },
+          },
           xs: {
             value: {
               fontSize: "{fontSizes.xs}",
@@ -164,14 +246,31 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
-        // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-        // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
         colorPalette: {
           enabled: true,
-          include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
+          include: [
+            "bg",
+            "bg.*",
+            "*.bg",
+            "*.bg.*",
+            "bgSolid",
+            "bgSolid.*",
+            "*.bgSolid",
+            "*.bgSolid.*",
+            "fg",
+            "fg.*",
+            "*.fg",
+            "*.fg.*",
+            "bd",
+            "bd.*",
+            "*.bd",
+            "*.bd.*",
+            "status",
+            "status.*",
+            "*.status",
+            "*.status.*",
+          ],
         },
-        recipes,
-        slotRecipes,
       },
     },
   });

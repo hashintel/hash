@@ -5,13 +5,12 @@ import {
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+
+import * as Error from "../../../error";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 import type {
   Query,
@@ -19,8 +18,7 @@ import type {
   UserUsageRecords,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import * as Error from "../../../error";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 export const getUsageRecordsResolver: ResolverFn<
   Query["getUsageRecords"],
@@ -44,11 +42,13 @@ export const getUsageRecordsResolver: ResolverFn<
     authentication,
     {
       filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
+        equal: [
+          {
+            path: ["type", "baseUrl"],
+          },
+          {
+            parameter: systemEntityTypes.user.entityTypeBaseUrl,
+          },
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,

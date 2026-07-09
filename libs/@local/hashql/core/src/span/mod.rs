@@ -275,6 +275,13 @@ pub use self::table::SpanTable;
 ///     Some(TextRange::new(0.into(), 10.into()))
 /// );
 /// ```
+#[cfg_attr(
+    feature = "serde",
+    expect(
+        clippy::unsafe_derive_deserialize,
+        reason = "id() is safe to use with serde"
+    )
+)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanId(u32);
@@ -311,8 +318,10 @@ impl SpanId {
         SourceId::new_unchecked(self.0 >> Self::SOURCE_OFFSET)
     }
 
-    pub(crate) const fn id(self) -> u32 {
-        self.0 & Self::ID_MASK
+    #[expect(unsafe_code)]
+    pub(crate) const fn id(self) -> LocalSpanId {
+        // SAFETY: The mask ensures that the value does not exceed the maximum span index.
+        unsafe { LocalSpanId::new_unchecked(self.0 & Self::ID_MASK) }
     }
 }
 
@@ -320,6 +329,11 @@ impl Display for SpanId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, fmt)
     }
+}
+
+crate::id::newtype! {
+    #[id(crate = crate)]
+    pub(crate) struct LocalSpanId(u32 is 0..=SpanId::MAX_ID)
 }
 
 /// Determines how multiple ancestor spans should be combined during span resolution.

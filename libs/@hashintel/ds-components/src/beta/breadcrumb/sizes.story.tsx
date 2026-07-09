@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as Breadcrumb from "./breadcrumb";
+import * as Breadcrumb from "../breadcrumb";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

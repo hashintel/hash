@@ -1,22 +1,24 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { google } from "googleapis";
+
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
 } from "@local/hash-backend-utils/google";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import type {
-  GoogleOAuth2CallbackRequest,
-  GoogleOAuth2CallbackResponse,
-} from "@local/hash-isomorphic-utils/google-integration";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { RequestHandler } from "express";
-import { google } from "googleapis";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
+
+import type { WebId } from "@blockprotocol/type-system";
+import type {
+  GoogleOAuth2CallbackRequest,
+  GoogleOAuth2CallbackResponse,
+} from "@local/hash-isomorphic-utils/google-integration";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { RequestHandler } from "express";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,

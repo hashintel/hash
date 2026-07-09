@@ -1,3 +1,20 @@
+import { v4 as uuid } from "uuid";
+import browser from "webextension-polyfill";
+
+import {
+  automaticBrowserInferenceFlowDefinition,
+  manualBrowserInferenceFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+
+import { FlowRunStatus } from "../../graphql/api-types.gen";
+import {
+  getFromLocalStorage,
+  getSetFromLocalStorageValue,
+} from "../../shared/storage";
+import { getWebsiteContent } from "./infer-entities/get-website-content";
+
+import type { InferEntitiesRequest } from "../../shared/messages";
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceWebsocketRequestMessage,
@@ -7,25 +24,10 @@ import type {
   InferenceWebsocketServerMessage,
   ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { v4 as uuid } from "uuid";
-import browser from "webextension-polyfill";
-
-import { FlowRunStatus } from "../../graphql/api-types.gen";
-import type { InferEntitiesRequest } from "../../shared/messages";
-import {
-  getFromLocalStorage,
-  getSetFromLocalStorageValue,
-} from "../../shared/storage";
-import { getWebsiteContent } from "./infer-entities/get-website-content";
 
 const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",

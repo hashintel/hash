@@ -52,4 +52,9 @@ export const testUsers = {
     "signup-allow",
     "Signup Allow",
   ),
+  signupUppercase: user(
+    "signup-uppercase@example.com",
+    "signup-uppercase",
+    "Signup Uppercase",
+  ),
 } as const;

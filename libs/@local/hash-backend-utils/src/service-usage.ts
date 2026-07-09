@@ -1,4 +1,23 @@
+import { backOff } from "exponential-backoff";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
+
+import { getWebMachineId } from "./machine-actors.js";
+
 import type {
   ActorEntityUuid,
   AiId,
@@ -9,32 +28,12 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  HashEntity,
-  queryEntities,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
-import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
 import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import { backOff } from "exponential-backoff";
-
-import { getWebMachineId } from "./machine-actors.js";
 
 /**
  * Retrieve a web's service usage
@@ -74,10 +73,16 @@ export const getWebServiceUsage = async (
         {
           filter: {
             all: [
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.usageRecord.entityTypeId,
-                { ignoreParents: true },
-              ),
+              {
+                equal: [
+                  {
+                    path: ["type", "baseUrl"],
+                  },
+                  {
+                    parameter: systemEntityTypes.usageRecord.entityTypeBaseUrl,
+                  },
+                ],
+              },
               {
                 equal: [
                   {
@@ -214,10 +219,16 @@ export const createUsageRecord = async (
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.serviceFeature.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemEntityTypes.serviceFeature.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {

@@ -1,11 +1,10 @@
 use super::func;
 use crate::{
-    heap::Heap,
     module::{
         locals::TypeDef,
         std_lib::{ModuleDef, StandardLibrary, StandardLibraryModule, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Bool {
@@ -15,8 +14,8 @@ pub(in crate::module::std_lib) struct Bool {
 impl<'heap> StandardLibraryModule<'heap> for Bool {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("bool")
+    fn name() -> Symbol<'heap> {
+        sym::bool
     }
 
     #[expect(non_snake_case)]
@@ -27,24 +26,24 @@ impl<'heap> StandardLibraryModule<'heap> for Bool {
 
         let items = [
             (
-                "::core::bool::not",
-                &["!"],
+                sym::path::core::bool::not,
+                &[sym::not, sym::symbol::exclamation],
                 decl!(lib; <>(value: Boolean) -> Boolean),
             ),
             (
-                "::core::bool::and",
-                &["&&"],
+                sym::path::core::bool::and,
+                &[sym::and, sym::symbol::ampamp],
                 decl!(lib; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
             ),
             (
-                "::core::bool::or",
-                &["||"],
+                sym::path::core::bool::or,
+                &[sym::or, sym::symbol::pipepipe],
                 decl!(lib; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
             ),
         ];
 
         for (name, alias, r#type) in items {
-            func(lib, &mut def, name, alias, r#type);
+            func(&mut def, name, alias.iter().copied(), r#type);
         }
 
         def

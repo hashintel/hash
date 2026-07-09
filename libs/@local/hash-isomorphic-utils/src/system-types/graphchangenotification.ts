@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
@@ -32,7 +30,10 @@ import type {
   ReadAtPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   ArchivedPropertyValue,
@@ -62,6 +63,8 @@ export type {
   ReadAtPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

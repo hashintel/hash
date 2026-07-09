@@ -24,8 +24,7 @@ export class EncodingError extends Data.TaggedError("EncodingError")<{
 }
 
 export interface Encoder<E = EncodingError, R = never>
-  extends Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly encode: {

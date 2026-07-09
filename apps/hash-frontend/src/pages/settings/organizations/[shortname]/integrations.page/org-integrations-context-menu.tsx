@@ -1,5 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
 import { Box, ListItemText, Menu } from "@mui/material";
 import {
   bindMenu,
@@ -7,13 +6,15 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
+import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { MenuItem } from "../../../../../shared/ui";
+import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
+
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { MenuItem } from "../../../../../shared/ui";
-import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const OrgIntegrationContextMenu = ({
   linkEntityId,

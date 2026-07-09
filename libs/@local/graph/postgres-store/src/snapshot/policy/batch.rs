@@ -5,8 +5,8 @@ use tracing::Instrument as _;
 
 use super::table::{PolicyActionRow, PolicyEditionRow, PolicyRow};
 use crate::{
-    snapshot::WriteBatch,
-    store::{AsClient, PostgresStore},
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
+    store::{AsClient, PostgresStore, postgres::query::OnConflict},
 };
 
 pub enum PolicyRowBatch {
@@ -57,70 +57,45 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Id(policy) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO policy_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::policy[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&policy],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} policy IDs", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &policy,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} policy IDs");
                 }
             }
             Self::Edition(edition) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO policy_edition_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::policy_edition[])
-                            RETURNING 1;
-                        ",
-                        &[&edition],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} policy editions", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &edition,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} policy editions");
                 }
             }
             Self::Action(action) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO policy_action_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::policy_action[])
-                            RETURNING 1;
-                        ",
-                        &[&action],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} policy actions", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &action,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} policy actions");
                 }
             }
         }

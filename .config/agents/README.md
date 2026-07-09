@@ -1,17 +1,14 @@
-Agent rules and symlinks
-========================
+# Agent rules and symlinks
 
 This directory defines a single, canonical set of agent rules and then fans them out via symlinks into the various agent-specific locations used in this repo.
 
-Source of truth
----------------
+## Source of truth
 
 - Canonical rule files live in:
   - `.config/agents/rules/*.md`
 - Each Markdown file in `rules/` represents one logical rule, where the **basename** (e.g. `foo.md` → `foo`) is used as the rule ID.
 
-Frontmatter requirements
-------------------------
+## Frontmatter requirements
 
 For compatibility across all consumers (Cursor, Augment, Claude, Cline, Windsurf, etc.), **all values in YAML frontmatter must be double-quoted strings**, even when plain YAML would allow unquoted values.
 
@@ -44,8 +41,7 @@ status: experimental
 
 Some agents will mis-parse or ignore unquoted values, so always use double quotes.
 
-Where rules are symlinked to
-----------------------------
+## Where rules are symlinked to
 
 From the `rules/` directory, the `symlink-rules` script creates symlinks into these tool-specific locations:
 
@@ -58,8 +54,7 @@ From the `rules/` directory, the `symlink-rules` script creates symlinks into th
 
 The content of each target file is a **symlink** back to the corresponding source file in `.config/agents/rules/`.
 
-Running the sync script
------------------------
+## Running the sync script
 
 From the repo root, run:
 
@@ -79,8 +74,7 @@ The script will:
    - If the expected target path is a **real file or directory**, mark that rule as **disqualified** for that target and skip it (nothing is deleted or overwritten).
    - For all non-disqualified rules, create a new relative symlink from the target path back to the source rule in `rules/`.
 
-Editing rules
--------------
+## Editing rules
 
 You can work with rules in two main ways:
 
@@ -95,8 +89,7 @@ Implementation detail: the files in `.cursor/rules/`, `.augment/rules/`, `.claud
 
 If you manually create a real (non-symlink) file in a target location where the script expects to place a symlink, that rule will be marked as disqualified for that target and will no longer be auto-synced there.
 
-Summary
--------
+## Summary
 
 - Put all shared rule content in `.config/agents/rules/*.md`.
 - Always use **double-quoted YAML frontmatter values**.

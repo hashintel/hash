@@ -5,6 +5,7 @@ import {
   ToggleButtonGroup,
   Tooltip,
 } from "@mui/material";
+
 import type { ReactElement } from "react";
 
 type TableHeaderToggleProps<Option extends string> = {

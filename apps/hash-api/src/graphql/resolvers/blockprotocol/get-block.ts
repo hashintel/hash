@@ -1,8 +1,9 @@
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-constants";
 
+import * as Error from "../../error";
+
 import type { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import * as Error from "../../error";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
   BlockProtocolBlock[],

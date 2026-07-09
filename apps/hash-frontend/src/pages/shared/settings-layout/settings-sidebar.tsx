@@ -1,5 +1,3 @@
-import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
-import type { SvgIconProps } from "@mui/material";
 import {
   Box,
   Collapse,
@@ -10,10 +8,14 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
+import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
+
 import { Link } from "../../../shared/ui/link";
+
+import type { SvgIconProps } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 export type SidebarItemData = {
   // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy

@@ -1,15 +1,16 @@
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
 import { createRateLimitedRequester } from "../../../rate-limiter.js";
 import { mapFlight } from "./client/flight.js";
 import { generateFlightradar24Provenance } from "./client/provenance.js";
+
 import type {
   ErrorResponse,
   FlightPositionsLightRequestParams,
   FlightPositionsLightResponse,
 } from "./client/types.js";
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
 const baseUrl = "https://fr24api.flightradar24.com/api/";
 

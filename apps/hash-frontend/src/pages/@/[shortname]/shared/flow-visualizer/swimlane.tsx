@@ -1,6 +1,4 @@
 import "reactflow/dist/style.css";
-
-import { customColors } from "@hashintel/design-system/theme";
 import { Box, Fade, Stack, Typography } from "@mui/material";
 import ELK, { type ElkNode } from "elkjs";
 import { useEffect, useMemo } from "react";
@@ -13,6 +11,8 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
+import { customColors } from "@hashintel/design-system/theme";
+
 import {
   useFlowRunsContext,
   useStatusForSteps,
@@ -21,14 +21,15 @@ import { flowRunStatusToStatusText } from "../../../../shared/flow-tables";
 import { MarkerEnd } from "./marker-end";
 import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
 import { transitionOptions } from "./shared/styles";
+import { CustomEdge } from "./swimlane/custom-edge";
+import { CustomNode } from "./swimlane/custom-node";
+import { edgeColor } from "./swimlane/shared/edge-styles";
+
 import type {
   CustomNodeType,
   GroupWithEdgesAndNodes,
   UngroupedEdgesAndNodes,
 } from "./shared/types";
-import { CustomEdge } from "./swimlane/custom-edge";
-import { CustomNode } from "./swimlane/custom-node";
-import { edgeColor } from "./swimlane/shared/edge-styles";
 
 const nodeTypes = {
   action: CustomNode,

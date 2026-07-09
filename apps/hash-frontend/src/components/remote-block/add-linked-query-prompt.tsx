@@ -1,8 +1,9 @@
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { Button } from "../../shared/ui";
+
+import type { FunctionComponent } from "react";
 
 export const AddLinkedQueryPrompt: FunctionComponent<{
   blockIconSrc?: string;

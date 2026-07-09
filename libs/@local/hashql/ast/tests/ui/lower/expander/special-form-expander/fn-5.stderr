@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::fn",
+ 5 │ ┃   { "#tuple": [] },
+ 6 │ ┃   { "#struct": {} },
+   ‡ ┃
+ 9 │ ┃   ["*", "c", "d"]
+   │ ┃   ─────────────── unexpected argument
+10 │ ┃   //~^ ERROR unexpected argument
+11 │ ┃ ]
+   │ ┗━┛ expected 4 arguments to `fn`, found 5
+   │
+   ├ help: use `(fn generics params return-type body)`
+   ╰ note: the arguments are, in order: the generic parameters (a tuple or struct), the function parameters (a struct), the return type, and the body expression

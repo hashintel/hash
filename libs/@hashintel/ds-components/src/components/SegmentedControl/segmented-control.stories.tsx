@@ -1,10 +1,11 @@
-import type { Story, StoryDefault } from "@ladle/react";
 import { useState } from "react";
 
 import {
   SegmentedControl,
   type SegmentedControlProps,
 } from "./segmented-control";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Legacy/SegmentedControl",

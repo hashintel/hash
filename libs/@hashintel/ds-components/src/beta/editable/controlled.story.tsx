@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import * as Editable from "./editable";
+import * as Editable from "../editable";
 
 export const App = () => {
   const [name, setName] = useState("");

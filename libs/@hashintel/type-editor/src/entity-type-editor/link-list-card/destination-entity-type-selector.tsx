@@ -1,4 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Box } from "@mui/material";
+import { useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { useFormContext, useWatch } from "react-hook-form";
+import { useResizeObserverRef } from "rooks";
+
 import {
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
@@ -7,21 +12,18 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import type { PopperPlacementType } from "@mui/material";
-import { Box } from "@mui/material";
-import type { MouseEvent } from "react";
-import { useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { useFormContext, useWatch } from "react-hook-form";
-import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
 import { AnythingChip } from "./anything-chip";
 import { DestinationEntityType } from "./destination-entity-type";
 import { DestinationTypeContainer } from "./destination-type-container";
+
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PopperPlacementType } from "@mui/material";
+import type { MouseEvent } from "react";
 
 const linkEntityTypeSelectorDropdownProps = {
   query: "",

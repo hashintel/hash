@@ -1,18 +1,11 @@
 import { useMutation } from "@apollo/client";
-import type { MultiFilter } from "@blockprotocol/graph";
-import type { WebId } from "@blockprotocol/type-system";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
+import { useMemo, useState } from "react";
+
 import { CheckIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
 
-import type {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -21,6 +14,15 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAccountSelect } from "../../../shared/integrations/google/google-account-select";
 import { useGoogleAuth } from "../../../shared/integrations/google/google-auth-context";
 import { SelectOrNameGoogleSheet } from "../../../shared/integrations/google/select-or-name-google-sheet";
+
+import type {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { WebId } from "@blockprotocol/type-system";
+import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
+import type { PropsWithChildren } from "react";
 
 const StepContainer = ({
   children,

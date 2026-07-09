@@ -1,7 +1,7 @@
 import { VStack } from "@hashintel/ds-helpers/jsx";
 
-import { Text } from "../text/text";
-import { Spinner } from "./spinner";
+import { Spinner } from "../spinner";
+import { Text } from "../text";
 
 export const App = () => {
   return (

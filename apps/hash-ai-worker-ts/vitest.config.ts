@@ -1,8 +1,9 @@
 /// <reference types="vitest" />
-import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
+
+import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 
 export default defineConfig(({ mode }) => {
   return {

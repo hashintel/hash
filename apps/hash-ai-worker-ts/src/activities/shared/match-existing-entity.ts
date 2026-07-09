@@ -1,3 +1,18 @@
+import dedent from "dedent";
+
+import { isValueMetadata } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import { logger } from "./activity-logger.js";
+import { getFlowContext } from "./get-flow-context.js";
+import { getLlmResponse } from "./get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "./get-llm-response/llm-message.js";
+import { graphApiClient } from "./graph-api-client.js";
+
+import type { LlmParams, LlmToolDefinition } from "./get-llm-response/types.js";
 import type {
   EntityId,
   PropertyObject,
@@ -5,20 +20,7 @@ import type {
   SourceProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { isValueMetadata } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import dedent from "dedent";
-
-import { logger } from "./activity-logger.js";
-import { getFlowContext } from "./get-flow-context.js";
-import { getLlmResponse } from "./get-llm-response.js";
-import { getToolCallsFromLlmAssistantMessage } from "./get-llm-response/llm-message.js";
-import type { LlmParams, LlmToolDefinition } from "./get-llm-response/types.js";
-import { graphApiClient } from "./graph-api-client.js";
 
 export const matchExistingEntitySystemPrompt = `
 You are managing a database of entities, which may be any type of thing.

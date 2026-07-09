@@ -1,16 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
-import {
-  Chip,
-  IconButton,
-  PlaySolidIcon,
-  Skeleton,
-  StopSolidIcon,
-} from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Box,
   Stack,
@@ -20,14 +8,14 @@ import {
 } from "@mui/material";
 import { memo, useCallback, useMemo, useState } from "react";
 
-import type {
-  ArchiveFlowScheduleMutation,
-  ArchiveFlowScheduleMutationVariables,
-  PauseFlowScheduleMutation,
-  PauseFlowScheduleMutationVariables,
-  ResumeFlowScheduleMutation,
-  ResumeFlowScheduleMutationVariables,
-} from "../../graphql/api-types.gen";
+import {
+  Chip,
+  IconButton,
+  PlaySolidIcon,
+  Skeleton,
+  StopSolidIcon,
+} from "@hashintel/design-system";
+
 import {
   archiveFlowScheduleMutation,
   pauseFlowScheduleMutation,
@@ -36,18 +24,32 @@ import {
 import { TrashRegularIcon } from "../../shared/icons/trash-regular-icon";
 import { flowTableCellSx, flowTableRowHeight } from "../shared/flow-tables";
 import { useFlowSchedules } from "../shared/use-flow-schedules";
+import { VirtualizedTable } from "../shared/virtualized-table";
+import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
+import {
+  PlaceholderContainer,
+  placeholderHeight,
+} from "./shared/table-placeholder";
+
+import type {
+  ArchiveFlowScheduleMutation,
+  ArchiveFlowScheduleMutationVariables,
+  PauseFlowScheduleMutation,
+  PauseFlowScheduleMutationVariables,
+  ResumeFlowScheduleMutation,
+  ResumeFlowScheduleMutationVariables,
+} from "../../graphql/api-types.gen";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "../shared/virtualized-table";
-import { VirtualizedTable } from "../shared/virtualized-table";
-import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
-import {
-  PlaceholderContainer,
-  placeholderHeight,
-} from "./shared/table-placeholder";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
 
 type FieldId = "name" | "interval" | "status" | "actions";
 

@@ -1,8 +1,9 @@
+import { useRouter } from "next/router";
+import { createContext, useContext, useMemo } from "react";
+
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
-import { useRouter } from "next/router";
 import type { FunctionComponent, ReactNode } from "react";
-import { createContext, useContext, useMemo } from "react";
 
 type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;

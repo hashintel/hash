@@ -1,12 +1,11 @@
-use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
-use hashql_diagnostics::Diagnostic;
+use hashql_core::span::{SpanAncestors, SpanTable};
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
 pub(crate) use self::number::Number;
 use self::{
     error::{
-        LexerDiagnosticCategory, LexerError, from_hifijson_str_error, from_invalid_utf8_error,
+        LexerDiagnostic, LexerError, from_hifijson_str_error, from_invalid_utf8_error,
         from_number_error, from_unrecognized_character_error,
     },
     number::ParseNumberError,
@@ -63,7 +62,7 @@ impl<'source> Lexer<'source> {
     pub(crate) fn advance(
         &mut self,
         context: &mut LexerContext,
-    ) -> Option<Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>> {
+    ) -> Option<Result<Token<'source>, LexerDiagnostic>> {
         let (kind, span) = self.inner.next()?;
 
         let span = {
@@ -131,18 +130,22 @@ impl<'source> Lexer<'source> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::non_ascii_literal)]
-    use hashql_core::span::{SpanId, SpanTable};
-    use hashql_diagnostics::{Diagnostic, source::SourceId};
+    use hashql_core::span::SpanTable;
+    use hashql_diagnostics::source::SourceId;
     use insta::{assert_snapshot, with_settings};
     use text_size::TextRange;
 
-    use super::{Lexer, LexerContext, error::LexerDiagnosticCategory, token::Token};
+    use super::{
+        Lexer, LexerContext,
+        error::{LexerDiagnostic, LexerDiagnosticCategory},
+        token::Token,
+    };
     use crate::{span::Span, test::render_diagnostic};
 
     fn parse<'source>(
         source: &'source str,
         spans: &mut SpanTable<Span>,
-    ) -> Result<Vec<Token<'source>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
+    ) -> Result<Vec<Token<'source>>, LexerDiagnostic> {
         let mut lexer = Lexer::new(source.as_bytes());
 
         let mut tokens = Vec::new();
@@ -289,6 +292,7 @@ mod test {
         empty_comment("42\n//\n42") => "Empty comment should be skipped",
         comment_json_inside(r#"//"{"key": "value"}""#) => "JSON inside comment",
         comment_no_space_between("//abc") => "JSON inside comment without space",
+        consecutive_comments("// first\n// second\n42") => "Multiple consecutive line comments",
 
         // Multi line comments
         preceded_multiline_comment("/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",

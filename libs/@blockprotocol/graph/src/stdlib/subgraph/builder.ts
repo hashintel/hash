@@ -1,12 +1,3 @@
-import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityRecordId,
-  EntityTypeWithMetadata,
-  OntologyTypeRecordId,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
-
 import {
   inferDataTypeEdgesInSubgraphByMutation,
   inferEntityEdgesInSubgraphByMutation,
@@ -19,14 +10,23 @@ import {
   addEntityVerticesToSubgraphByMutation,
   addPropertyTypeVerticesToSubgraphByMutation,
 } from "../../internal/mutate-subgraph/element.js";
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
+import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
+
 import type {
   EntityRootType,
   EntityVertexId,
   Subgraph,
   SubgraphTemporalAxes,
 } from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { getVertexIdForRecordId } from "./vertex-id-for-element.js";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityRecordId,
+  EntityTypeWithMetadata,
+  OntologyTypeRecordId,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 /**
  * Builds a {@link Subgraph} from a given set of graph elements.

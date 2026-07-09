@@ -93,12 +93,12 @@ pub struct EchoServer;
 impl EchoSystem for EchoServer {
     type ExecutionScope = Session<Account>;
 
-    async fn echo(
+    fn echo(
         &self,
         _: Session<Account>,
         payload: Box<str>,
-    ) -> Result<Box<str>, Report<EchoError>> {
-        Ok(payload)
+    ) -> impl Future<Output = Result<Box<str>, Report<EchoError>>> {
+        core::future::ready(Ok(payload))
     }
 }
 

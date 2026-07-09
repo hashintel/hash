@@ -1,25 +1,27 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useCallback } from "react";
+
 import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { Dispatch, SetStateAction } from "react";
-import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../use-get-closed-multi-entity-type";
-import type { EntityEditorProps } from "../entity-editor";
 import { getEntityMultiTypeDependencies } from "../get-entity-multi-type-dependencies";
 import { createDraftEntitySubgraph } from "./create-draft-entity-subgraph";
+
+import type { EntityEditorProps } from "../entity-editor";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { Dispatch, SetStateAction } from "react";
 
 export const useHandleTypeChanges = ({
   entitySubgraph,

@@ -1,25 +1,27 @@
 import { useMutation } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
 } from "@blockprotocol/graph/stdlib";
-import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { type HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
+
+import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { useNotificationCount } from "../../shared/notification-count-context";
+import { Button } from "../../shared/ui";
 
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useNotificationCount } from "../../shared/notification-count-context";
 import type { ButtonProps } from "../../shared/ui";
-import { Button } from "../../shared/ui";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {

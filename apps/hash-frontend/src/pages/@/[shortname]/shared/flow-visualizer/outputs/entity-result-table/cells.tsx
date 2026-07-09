@@ -1,8 +1,3 @@
-import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
-import type { ValueMetadata } from "@local/hash-graph-client/api";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import {
   Box,
   Stack,
@@ -13,10 +8,17 @@ import {
 } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { IconButton } from "@hashintel/design-system";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
 import { CircleInfoIcon } from "../../../../../../../shared/icons/circle-info-icon";
 import { SourcesPopover } from "../../../../../../shared/sources-popover";
 import { ValueChip } from "../../../../../../shared/value-chip";
 import { defaultCellSx } from "../../../../../../shared/virtualized-table";
+
+import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
+import type { ValueMetadata } from "@local/hash-graph-client/api";
 
 export const typographySx = {
   color: ({ palette }) => palette.common.black,

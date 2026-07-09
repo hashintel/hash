@@ -27,7 +27,7 @@ use crate::node::{id::NodeId, r#type::Type};
 /// let x = 42 in <body>
 /// let x: Int = 42 in <body>
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct LetExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

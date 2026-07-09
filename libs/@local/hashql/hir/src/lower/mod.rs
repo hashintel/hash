@@ -1,4 +1,4 @@
-use hashql_ast::lowering::ExtractedTypes;
+use hashql_ast::lower::ExtractedTypes;
 use hashql_core::r#type::environment::Environment;
 use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 

@@ -1,20 +1,21 @@
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
+import { logger } from "../../../shared/activity-logger.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { claimTextualContentFromClaim } from "../../shared/claims.js";
+
+import type { Claim } from "../../shared/claims.js";
 import type {
   BaseUrl,
   EntityId,
   PropertyPatchOperation,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ClaimProperties } from "@local/hash-isomorphic-utils/system-types/claim";
-
-import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
-import { logger } from "../../../shared/activity-logger.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { Claim } from "../../shared/claims.js";
-import { claimTextualContentFromClaim } from "../../shared/claims.js";
 
 const noObjectEntityIdKey = "no-object-entity-id";
 

@@ -1,0 +1,163 @@
+import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { buildPropertyFilterClause } from "./property-filters/build-property-filter-clause";
+
+import type { EntitiesFilterState } from "./filter-state";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+
+const MATCH_NOTHING_WEB_ID = "00000000-0000-0000-0000-000000000000" as WebId;
+
+const buildArchivedClauses = (includeArchived: boolean): Filter[] => {
+  if (includeArchived) {
+    return [];
+  }
+
+  return [
+    {
+      notEqual: [{ path: ["archived"] }, { parameter: true }],
+    },
+  ];
+};
+
+const buildWebClause = (
+  webState: EntitiesFilterState["web"],
+  internalWebIds: WebId[],
+): Filter | null => {
+  if (!webState.includeOtherWebs) {
+    const selected = internalWebIds.filter((id) =>
+      webState.selectedInternalWebIds.has(id),
+    );
+
+    const webIdsToMatch = selected.length ? selected : [MATCH_NOTHING_WEB_ID];
+
+    return {
+      any: webIdsToMatch.map((webId) => ({
+        equal: [{ path: ["webId"] }, { parameter: webId }],
+      })),
+    };
+  }
+
+  const uncheckedInternalWebIds = internalWebIds.filter(
+    (id) => !webState.selectedInternalWebIds.has(id),
+  );
+
+  if (uncheckedInternalWebIds.length === 0) {
+    return null;
+  }
+
+  return {
+    all: uncheckedInternalWebIds.map((webId) => ({
+      notEqual: [{ path: ["webId"] }, { parameter: webId }],
+    })),
+  };
+};
+
+const buildTypeClause = ({
+  pinnedEntityTypeBaseUrl,
+  pinnedEntityTypeIds,
+  selectedTypeIds,
+}: {
+  pinnedEntityTypeBaseUrl?: BaseUrl;
+  pinnedEntityTypeIds?: VersionedUrl[];
+  selectedTypeIds: Set<VersionedUrl> | null;
+}): { clause: Filter | null; isPinned: boolean } => {
+  if (pinnedEntityTypeBaseUrl) {
+    return {
+      clause: {
+        equal: [
+          { path: ["type", "baseUrl"] },
+          { parameter: pinnedEntityTypeBaseUrl },
+        ],
+      },
+      isPinned: true,
+    };
+  }
+
+  if (pinnedEntityTypeIds?.length) {
+    return {
+      clause: {
+        any: pinnedEntityTypeIds.map((entityTypeId) => ({
+          equal: [
+            { path: ["type", "versionedUrl"] },
+            { parameter: entityTypeId },
+          ],
+        })),
+      },
+      isPinned: true,
+    };
+  }
+
+  if (selectedTypeIds === null) {
+    return { clause: null, isPinned: false };
+  }
+
+  const typeIds = Array.from(selectedTypeIds);
+
+  if (typeIds.length === 0) {
+    return {
+      clause: {
+        equal: [{ path: ["type", "versionedUrl"] }, { parameter: "" }],
+      },
+      isPinned: false,
+    };
+  }
+
+  return {
+    clause: {
+      any: typeIds.map((entityTypeId) => ({
+        equal: [
+          { path: ["type", "versionedUrl"] },
+          { parameter: entityTypeId },
+        ],
+      })),
+    },
+    isPinned: false,
+  };
+};
+
+export const buildEntitiesFilter = ({
+  filterState,
+  internalWebIds,
+  pinnedEntityTypeBaseUrl,
+  pinnedEntityTypeIds,
+}: {
+  filterState: EntitiesFilterState;
+  internalWebIds: WebId[];
+  pinnedEntityTypeBaseUrl?: BaseUrl;
+  pinnedEntityTypeIds?: VersionedUrl[];
+}): Filter => {
+  const clauses: Filter[] = [];
+
+  clauses.push(...buildArchivedClauses(filterState.includeArchived));
+
+  const webClause = buildWebClause(filterState.web, internalWebIds);
+  if (webClause) {
+    clauses.push(webClause);
+  }
+
+  const { clause: typeClause, isPinned: isTypePinned } = buildTypeClause({
+    pinnedEntityTypeBaseUrl,
+    pinnedEntityTypeIds,
+    selectedTypeIds: filterState.type.selectedTypeIds,
+  });
+
+  if (typeClause) {
+    clauses.push(typeClause);
+  }
+
+  if (!isTypePinned) {
+    clauses.push(ignoreNoisySystemTypesFilter);
+  }
+
+  for (const propertyFilter of filterState.propertyFilters) {
+    const propertyClause = buildPropertyFilterClause(propertyFilter);
+
+    // An incomplete or invalid filter contributes no clause (it is inert).
+    if (propertyClause) {
+      clauses.push(propertyClause);
+    }
+  }
+
+  return { all: clauses };
+};

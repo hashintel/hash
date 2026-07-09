@@ -9,18 +9,14 @@ import {
   type OriginProvenance,
   type PropertyMetadata,
 } from "@blockprotocol/type-system";
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
-import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
-import type { GraphApi } from "@local/hash-graph-client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -28,20 +24,25 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  type ArrivesAt,
-  type ArrivesAtProperties,
-  type DepartsFrom,
-  type DepartsFromProperties,
+  type LandsAtProperties,
+  type TakesOffFromProperties,
   type Flight,
+  type TakesOffFrom,
+  type LandsAt,
 } from "@local/hash-isomorphic-utils/system-types/flight";
-import type {
-  DateDataTypeMetadata,
-  TextDataTypeMetadata,
-} from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
+
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  DateDataTypeMetadata,
+  TextDataTypeMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 
@@ -51,8 +52,8 @@ const TEN_MINUTES_MS = 10 * 60 * 1000;
  * 2. There is no confirmed arrival time, or confirmed arrival time was in the last 10 minutes
  */
 const shouldFetchLivePosition = (
-  departsFromProperties: DepartsFromProperties,
-  arrivesAtProperties: ArrivesAtProperties,
+  departsFromProperties: TakesOffFromProperties,
+  arrivesAtProperties: LandsAtProperties,
 ): boolean => {
   // Get departure time - prefer estimated, fall back to scheduled
   const actualDepartureTime =
@@ -208,16 +209,16 @@ export const createGetLiveFlightPositionsAction = ({
         );
 
         const departsFromLink = outgoingLinks.find(
-          (link): link is LinkEntity<DepartsFrom> =>
+          (link): link is LinkEntity<TakesOffFrom> =>
             link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.departsFrom.linkEntityTypeId,
+              systemLinkEntityTypes.takesOffFrom.linkEntityTypeId,
             ),
         );
 
         const arrivesAtLink = outgoingLinks.find(
-          (link): link is LinkEntity<ArrivesAt> =>
+          (link): link is LinkEntity<LandsAt> =>
             link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.arrivesAt.linkEntityTypeId,
+              systemLinkEntityTypes.landsAt.linkEntityTypeId,
             ),
         );
 

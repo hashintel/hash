@@ -14,8 +14,8 @@ in
                               ),
                               (vertex2:0: _2): _3 ->
                                   ::core::cmp::eq(
-                                      vertex1:0.id.entity_id.entity_uuid,
-                                      vertex2:0.id.entity_id.entity_uuid
+                                      vertex1:0.metadata.record_id.entity_id.entity_uuid,
+                                      vertex2:0.metadata.record_id.entity_id.entity_uuid
                                   )
                           )
                       )
@@ -34,7 +34,7 @@ let a:0 = true,
          |> ::graph::body::filter((vertex1:0: Entity): Boolean ->
              let c:0 = ::graph::head::entities(%6)
                        |> ::graph::body::filter((vertex2:0: Entity): Boolean ->
-                           let %7 = vertex1:0.id.entity_id.entity_uuid == vertex2:0.id.entity_id.entity_uuid
+                           let %7 = vertex1:0.metadata.record_id.entity_id.entity_uuid == vertex2:0.metadata.record_id.entity_id.entity_uuid
                            in
                            %7
                        )

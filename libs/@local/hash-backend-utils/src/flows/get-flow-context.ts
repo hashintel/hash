@@ -1,22 +1,21 @@
-import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
+import { caching } from "cache-manager";
+import { backOff } from "exponential-backoff";
+
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
+
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Client as TemporalClient } from "@temporalio/client";
 import type { MemoryCache } from "cache-manager";
-import { caching } from "cache-manager";
-import { backOff } from "exponential-backoff";
-
-import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 
 let _flowContextCache: MemoryCache | undefined;
 
@@ -90,10 +89,16 @@ export const getFlowEntityInfo = async (params: {
                   { parameter: workflowId },
                 ],
               },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.flowRun.entityTypeId,
-                { ignoreParents: true },
-              ),
+              {
+                equal: [
+                  {
+                    path: ["type", "baseUrl"],
+                  },
+                  {
+                    parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
+                  },
+                ],
+              },
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,

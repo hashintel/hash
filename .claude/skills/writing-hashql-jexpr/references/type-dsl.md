@@ -197,7 +197,9 @@ Whitespace is allowed around operators and inside structures:
 ### Complex Entity Types
 
 ```jsonc
-{"#type": "(id: ID, attrs: (name: String, metadata: (created: Timestamp, modified: Timestamp | Null)))"}
+{
+  "#type": "(id: ID, attrs: (name: String, metadata: (created: Timestamp, modified: Timestamp | Null)))",
+}
 ```
 
 ### Union and Intersection
@@ -237,7 +239,7 @@ Whitespace is allowed around operators and inside structures:
 Used within function definitions:
 
 ```jsonc
-["fn", 
+["fn",
   {"#tuple": []},           // Type parameters (empty)
   {"#struct": {"x": "_"}},  // Parameter struct (inferred types)
   "_",                      // Return type (inferred)
@@ -247,11 +249,13 @@ Used within function definitions:
 With explicit types:
 
 ```jsonc
-["fn",
-  {"#tuple": []},
-  {"#struct": {"x": "Int", "y": "Int"}},  // Explicit param types
-  "Int",                                   // Explicit return type
-  ["add", "x", "y"]]
+[
+  "fn",
+  { "#tuple": [] },
+  { "#struct": { "x": "Int", "y": "Int" } }, // Explicit param types
+  "Int", // Explicit return type
+  ["add", "x", "y"],
+]
 ```
 
 ## Error Cases
@@ -267,7 +271,7 @@ With explicit types:
 ### Empty Generic Arguments
 
 ```jsonc
-"Vec<>"             // Error - empty generics
+"Vec<>" // Error - empty generics
 ```
 
 ### Missing Elements

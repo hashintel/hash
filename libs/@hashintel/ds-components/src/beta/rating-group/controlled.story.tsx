@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import * as RatingGroup from "./rating-group";
+import * as RatingGroup from "../rating-group";
 
 export const App = () => {
   const [value, setValue] = useState(3);

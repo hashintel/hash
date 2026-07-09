@@ -4,14 +4,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
-import type { ReadableStream } from "node:stream/web";
 
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { fetchFileFromUrl } from "./fetch-file-from-url.js";
+
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { ReadableStream } from "node:stream/web";
 
 const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
 

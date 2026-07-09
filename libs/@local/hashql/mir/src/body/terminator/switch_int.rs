@@ -380,7 +380,7 @@ impl<'heap> SwitchTargets<'heap> {
     /// The slice contains all targets in the same order as the values, with the
     /// otherwise target (if any) as the last element.
     #[must_use]
-    pub fn targets(&self) -> &[Target<'heap>] {
+    pub const fn targets(&self) -> &[Target<'heap>] {
         &self.targets
     }
 
@@ -388,7 +388,7 @@ impl<'heap> SwitchTargets<'heap> {
     ///
     /// The slice contains all targets in the same order as the values, with the
     /// otherwise target (if any) as the last element.
-    pub fn targets_mut(&mut self) -> &mut [Target<'heap>] {
+    pub const fn targets_mut(&mut self) -> &mut [Target<'heap>] {
         &mut self.targets
     }
 
@@ -396,7 +396,7 @@ impl<'heap> SwitchTargets<'heap> {
     ///
     /// The values are guaranteed to be sorted in ascending order and to be unique.
     #[must_use]
-    pub fn values(&self) -> &[u128] {
+    pub const fn values(&self) -> &[u128] {
         &self.values
     }
 

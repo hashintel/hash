@@ -2,8 +2,8 @@
 
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
-import { toaster } from "./toast";
+import { Button } from "../button";
+import { toaster } from "../toast";
 
 export const App = () => {
   const types = ["success", "error", "warning", "info"] as const;

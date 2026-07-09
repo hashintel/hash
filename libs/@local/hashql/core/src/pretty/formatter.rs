@@ -35,6 +35,7 @@ impl FormatterOptions {
 }
 
 impl Default for FormatterOptions {
+    #[inline]
     fn default() -> Self {
         Self { indent: 4 }
     }

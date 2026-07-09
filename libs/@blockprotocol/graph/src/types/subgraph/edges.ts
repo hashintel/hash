@@ -1,10 +1,9 @@
+import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
+import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 import type {
   OntologyTypeVersion,
   Timestamp,
 } from "@blockprotocol/type-system";
-
-import type { KnowledgeGraphOutwardEdge } from "./edges/variants/knowledge.js";
-import type { OntologyOutwardEdge } from "./edges/variants/ontology.js";
 
 export * from "./edges/kind.js";
 export * from "./edges/outward-edge.js";

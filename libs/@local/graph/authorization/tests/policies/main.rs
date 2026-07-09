@@ -110,6 +110,7 @@ impl TestUser {
                     .collect(),
             ),
             created_by: id.into(),
+            read_only: false,
         };
 
         policy_store
@@ -162,6 +163,7 @@ impl TestMachine {
                     .collect(),
             ),
             created_by: id.into(),
+            read_only: false,
         };
 
         context.add_entity(&entity);
@@ -236,6 +238,7 @@ impl TestSystem {
                     .expect("should be a valid URL"),
             ]),
             created_by: machine.id.into(),
+            read_only: false,
         };
         context.add_entity(&hash_instance_entity);
         for policy in permit_hash_instance_admins(hash_instance_admins, hash_instance_entity.id) {
@@ -391,6 +394,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
         entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),
         entity_base_types: Cow::Owned(vec![web_type.id.as_url().base_url.clone()]),
         created_by: user.id.into(),
+        read_only: false,
     };
     context.add_entity(&web_entity);
 
@@ -568,6 +572,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),
         entity_base_types: Cow::Owned(vec![web_type.id.as_url().base_url.clone()]),
         created_by: user.id.into(),
+        read_only: false,
     };
     context.add_entity(&web_entity);
 

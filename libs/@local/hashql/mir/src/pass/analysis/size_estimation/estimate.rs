@@ -178,6 +178,26 @@ impl<T> Estimate<T> {
             &other.constant().saturating_mul(coefficient),
         );
     }
+
+    pub(crate) fn saturating_coeff_mul<U>(&mut self, other: &Estimate<U>)
+    where
+        T: Clone,
+    {
+        match self {
+            Self::Constant(_) => {}
+            Self::Affine(equation) => {
+                equation.coefficients.truncate(other.coefficients().len());
+            }
+        }
+
+        for (coeff, &other_coeff) in self
+            .coefficients_mut()
+            .iter_mut()
+            .zip(other.coefficients().iter())
+        {
+            *coeff = coeff.saturating_mul(other_coeff);
+        }
+    }
 }
 
 impl<T> AdditiveMonoid<Estimate<T>> for SaturatingSemiring

@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
-
 import { convex } from "../src/helpers/surface-equations";
 import { refractive } from "../src/hoc/refractive";
 import { ExampleArticle } from "./example-article";
+
+import type { Meta, StoryObj } from "@storybook/react";
 
 const refraction = {
   blur: 2,

@@ -1,5 +1,5 @@
 use hashql_core::span::SpanId;
-use hashql_diagnostics::Diagnostic;
+use hashql_diagnostics::{Diagnostic, severity::Critical};
 
 use crate::{
     ParserState,
@@ -21,8 +21,8 @@ pub(crate) fn verify_no_repeat<C>(
         &mut ParserState<'_, '_, '_>,
         Vec<SpanId>,
         VerifyState,
-    ) -> Diagnostic<C, SpanId>,
-) -> Result<(), Diagnostic<C, SpanId>>
+    ) -> Diagnostic<C, SpanId, Critical>,
+) -> Result<(), Diagnostic<C, SpanId, Critical>>
 where
     C: From<LexerDiagnosticCategory>,
 {

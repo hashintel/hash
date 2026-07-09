@@ -1,15 +1,15 @@
-import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  generateToolDefinitions as generateCoordinatorToolDefinitions,
+  subCoordinatorOmittedCoordinatorToolNames,
+} from "../shared/coordinator-tools.js";
 
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type {
   SubCoordinatingAgentCustomToolName,
   SubCoordinatingAgentToolName,
 } from "../shared/coordinator-tools.js";
-import {
-  generateToolDefinitions as generateCoordinatorToolDefinitions,
-  subCoordinatorOmittedCoordinatorToolNames,
-} from "../shared/coordinator-tools.js";
 import type { SubCoordinatingAgentState } from "./state.js";
+import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Generate tool definitions for the sub-coordinating agent, to be passed to the LLM.

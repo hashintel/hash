@@ -1,9 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 import { mustBeDefined } from "../../util/must-be-defined.js";
 import { typedEntries } from "../../util/typed-entries.js";
-import type { PostprocessContext } from "../context/postprocess.js";
 import { sharedTypeFileName } from "../shared.js";
+
+import type { PostprocessContext } from "../context/postprocess.js";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Allocates types to files. If a type is defined in multiple files, it is hoisted to a shared file.

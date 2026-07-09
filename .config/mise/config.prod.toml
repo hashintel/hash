@@ -1,4 +1,0 @@
-[env]
-_.file = [".env.production", ".env.production.local"]
-
-NODE_ENV = "production"

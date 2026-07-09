@@ -1,4 +1,10 @@
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
+import { StatusCode } from "@local/status";
+
+import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
+import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
+
 import type {
   ArrayPayload,
   DeepReadOnly,
@@ -10,12 +16,7 @@ import type {
   StepInputSource,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
-import { StatusCode } from "@local/status";
-
-import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
-import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
 
 /**
  * This method is used to pass the outputs of a step to any unprocessed steps

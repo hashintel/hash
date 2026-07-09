@@ -1,10 +1,11 @@
 [package]
 name              = "darwin-kperf-events"
-version           = "0.1.0"
+version           = "0.1.1"
 authors.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
 publish           = true
+readme            = "../README.md"
 description       = "Apple Silicon PMU event definitions for darwin-kperf"
 documentation     = "https://docs.rs/darwin-kperf-events"
 repository        = "https://github.com/hashintel/hash/tree/main/libs/darwin-kperf/events"

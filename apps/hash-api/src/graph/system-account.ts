@@ -1,7 +1,6 @@
+import type { ImpureGraphContext } from "./context-types";
 import type { MachineId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
-
-import type { ImpureGraphContext } from "./context-types";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemAccountId: MachineId;

@@ -28,7 +28,7 @@ use crate::node::{id::NodeId, r#type::Type};
 /// input(limit, Int)
 /// input(limit, Int, 10)
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct InputExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

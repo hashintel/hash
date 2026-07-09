@@ -1,4 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { useCallback } from "react";
+
 import {
   compareOntologyTypeVersions,
   componentsFromVersionedUrl,
@@ -11,11 +12,12 @@ import {
   getClosedMultiEntityTypeFromMap,
   getPropertyTypeForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import { useCallback } from "react";
 
 import { useGetClosedMultiEntityTypes } from "../../../use-get-closed-multi-entity-type";
 import { useEntityEditor } from "../entity-editor-context";
+
 import type { EntityTypeChangeDetails } from "./entity-type-change-modal";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const useGetTypeChangeDetails = () => {
   const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();

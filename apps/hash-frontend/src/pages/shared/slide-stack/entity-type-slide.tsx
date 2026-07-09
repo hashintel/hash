@@ -2,10 +2,11 @@ import {
   componentsFromVersionedUrl,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
 
 import { EntityType } from "../entity-type";
+
 import type { SlideItem } from "./types";
+import type { FunctionComponent } from "react";
 
 interface EntityTypeSlideProps {
   replaceItem: (item: SlideItem) => void;

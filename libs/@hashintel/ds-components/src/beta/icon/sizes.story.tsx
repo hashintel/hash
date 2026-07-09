@@ -1,7 +1,8 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { DiamondIcon } from "lucide-react";
 
-import { Icon } from "./icon";
+import { Wrap } from "@hashintel/ds-helpers/jsx";
+
+import { Icon } from "../icon";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg", "xl"] as const;

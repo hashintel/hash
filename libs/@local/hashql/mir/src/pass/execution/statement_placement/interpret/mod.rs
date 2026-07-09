@@ -5,15 +5,13 @@ use crate::{
     body::{
         Body, Source,
         location::Location,
-        statement::{Assign, Statement, StatementKind},
+        statement::{Statement, StatementKind},
+        terminator::Terminator,
     },
     context::MirContext,
-    pass::{
-        execution::{
-            cost::{Cost, StatementCostVec, TraversalCostVec},
-            target::TargetArray,
-        },
-        transform::Traversals,
+    pass::execution::{
+        VertexType,
+        cost::{Cost, StatementCostVec, TerminatorCostVec},
     },
     visit::Visitor,
 };
@@ -21,14 +19,14 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-struct CostVisitor<'ctx, A: Allocator, B: Allocator> {
+struct CostVisitor<A: Allocator> {
     cost: Cost,
 
     statement_costs: StatementCostVec<A>,
-    traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<B>>>,
+    terminator_costs: TerminatorCostVec<A>,
 }
 
-impl<'heap, A: Allocator, B: Allocator> Visitor<'heap> for CostVisitor<'_, A, B> {
+impl<'heap, A: Allocator> Visitor<'heap> for CostVisitor<A> {
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -36,30 +34,25 @@ impl<'heap, A: Allocator, B: Allocator> Visitor<'heap> for CostVisitor<'_, A, B>
         location: Location,
         statement: &Statement<'heap>,
     ) -> Self::Result {
-        // All statements are supported; TraversalExtraction provides backend data access
         match &statement.kind {
-            StatementKind::Assign(Assign { lhs, rhs: _ }) => {
-                // If it's a traversal load (aka we add the interpreter cost, as well as the cost to
-                // load the statement). We assume worst case for the traversal.
-                let cost = if lhs.projections.is_empty()
-                    && let Some(cost) = self
-                        .traversal_costs
-                        .iter()
-                        .filter_map(|costs| costs.as_ref())
-                        .filter_map(|costs| costs.get(lhs.local))
-                        .max()
-                {
-                    self.cost.saturating_add(cost)
-                } else {
-                    self.cost
-                };
-
-                self.statement_costs[location] = Some(cost);
+            StatementKind::Assign(_) => {
+                self.statement_costs[location] = Some(self.cost);
             }
             StatementKind::StorageDead(_) | StatementKind::StorageLive(_) | StatementKind::Nop => {
                 self.statement_costs[location] = Some(cost!(0));
             }
         }
+
+        Ok(())
+    }
+
+    fn visit_terminator(&mut self, location: Location, _: &Terminator<'heap>) -> Self::Result {
+        // Because interpreter is our base case, every terminator is supported, via the default base
+        // cost.
+        // Because this is done *before* basic block splitting, we assign the same cost to as well,
+        // splitting, then assigns a cumulative cost of `0` for generated GOTOs to not distort the
+        // cost distribution.
+        self.terminator_costs.insert(location.block, self.cost);
 
         Ok(())
     }
@@ -69,49 +62,43 @@ impl<'heap, A: Allocator, B: Allocator> Visitor<'heap> for CostVisitor<'_, A, B>
 /// target.
 ///
 /// Supports all statements unconditionally, serving as the universal fallback.
-pub(crate) struct InterpreterStatementPlacement<'ctx, A: Allocator> {
-    traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<A>>>,
+pub(crate) struct InterpreterStatementPlacement {
     statement_cost: Cost,
 }
 
-impl<'ctx, A: Allocator> InterpreterStatementPlacement<'ctx, A> {
-    pub(crate) const fn new(
-        traversal_costs: &'ctx TargetArray<Option<TraversalCostVec<A>>>,
-    ) -> Self {
+impl InterpreterStatementPlacement {
+    pub(crate) const fn new() -> Self {
         Self {
-            traversal_costs,
             statement_cost: cost!(8),
         }
     }
 }
 
-impl<'heap, A: Allocator + Clone, B: Allocator> StatementPlacement<'heap, A>
-    for InterpreterStatementPlacement<'_, B>
-{
+impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
     fn statement_placement_in(
         &mut self,
         _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        _: VertexType,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
+    ) -> (StatementCostVec<A>, TerminatorCostVec<A>) {
         let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
-        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc);
+        let terminator_costs = TerminatorCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return (traversal_costs, statement_costs);
+                return (statement_costs, terminator_costs);
             }
         }
 
         let mut visitor = CostVisitor {
             cost: self.statement_cost,
             statement_costs,
-            traversal_costs: self.traversal_costs,
+            terminator_costs,
         };
         visitor.visit_body(body);
 
-        (traversal_costs, visitor.statement_costs)
+        (visitor.statement_costs, visitor.terminator_costs)
     }
 }

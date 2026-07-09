@@ -1,4 +1,3 @@
-/* eslint-disable import/first */
 import "./_app.page/why-did-you-render";
 
 // @todo have webpack polyfill this
@@ -8,49 +7,38 @@ require("setimmediate");
 
 import "./globals.scss";
 import "./prism.css";
-
+import "./ds-components-styles.gen.css";
 import { ApolloProvider } from "@apollo/client/react";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
-import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { ErrorBoundary, getClient } from "@sentry/nextjs";
-import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import type { FunctionComponent } from "react";
 import { Suspense, useEffect, useState } from "react";
 
-import type {
-  GetHashInstanceSettingsQueryQuery,
-  HasAccessToHashQuery,
-  MeQuery,
-} from "../graphql/api-types.gen";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
+
 import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import type { MinimalUser } from "../lib/user-and-org";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { InvitesContextProvider } from "../shared/invites-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { NotificationCountContextProvider } from "../shared/notification-count-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
+import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
-import type { AppPage } from "./shared/_app.util";
+import { reportIframeReactError } from "./processes/shared/iframe-error-reporter";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
@@ -59,6 +47,22 @@ import { type IdentityTraits, oryKratosClient } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { SlideStackProvider } from "./shared/slide-stack";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
+
+import type {
+  GetHashInstanceSettingsQueryQuery,
+  HasAccessToHashQuery,
+  MeQuery,
+} from "../graphql/api-types.gen";
+import type { MinimalUser } from "../lib/user-and-org";
+import type { NextPageWithLayout } from "../shared/layout";
+import type { AppPage } from "./shared/_app.util";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EmotionCache } from "@emotion/react";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
+import type { AppProps as NextAppProps } from "next/app";
+import type { FunctionComponent } from "react";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -124,27 +128,65 @@ const App: FunctionComponent<AppProps> = ({
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
 
   /**
+   * A `redirectTo` that points at the page we're already on is a no-op we must
+   * ignore. `getInitialProps` re-runs on every navigation — including the
+   * same-URL `router.replace`s this effect performs — and `useRouter()` returns
+   * a fresh object each time, so honouring such a redirect spins forever in a
+   * `replace` -> `getInitialProps` -> `replace` loop (e.g. landing on `/` after
+   * accepting an org invite, where a stale `redirectTo: "/"` kept re-firing).
+   */
+  const pendingRedirect =
+    !!redirectTo && redirectTo !== router.asPath ? redirectTo : undefined;
+
+  /**
    * Handle client-side redirects that were determined in getInitialProps.
    * On the server these are HTTP 307s; on the client getInitialProps returns
    * a `redirectTo` prop instead, and this effect performs the navigation after
    * the current route transition completes (avoiding NProgress stalls).
    */
   useEffect(() => {
-    if (redirectTo) {
-      void router.replace(redirectTo);
+    if (pendingRedirect) {
+      void router.replace(pendingRedirect);
     }
-  }, [redirectTo, router]);
+  }, [pendingRedirect, router]);
 
   useEffect(() => {
     setSentryUser({ authenticatedUser });
   }, [authenticatedUser]);
 
+  useEffect(() => {
+    if (!router.isReady) {
+      return undefined;
+    }
+
+    // Initial view (fires once the router is ready); subsequent views come from
+    // `routeChangeComplete`. `router.asPath` is intentionally omitted from the
+    // deps so we don't double-count navigations.
+    trackPageView(router.asPath);
+
+    const handleRouteChange = (url: string) => {
+      trackPageView(url);
+    };
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.events]);
+
   // App UI often depends on [shortname] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
-  // We also gate on `redirectTo` so the page doesn't flash before navigating.
-  if (ssr || !router.isReady || awaitingEmailVerificationStatus || redirectTo) {
+  // We also gate on a pending redirect so the page doesn't flash before
+  // navigating. A `redirectTo` matching the current path isn't pending (see
+  // `pendingRedirect`), so we render rather than stall on the loading state.
+  if (
+    ssr ||
+    !router.isReady ||
+    awaitingEmailVerificationStatus ||
+    pendingRedirect
+  ) {
     return <Suspense />; // Replace with app skeleton
   }
 
@@ -200,10 +242,52 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
+const PETRINAUT_EMBED_PATHNAME = "/processes/[uuid]/embed";
+
+/**
+ * Minimal `_app` shell for the Petrinaut embed route.
+ */
+const PetrinautEmbedAppShell: FunctionComponent<AppProps> = ({
+  Component,
+  pageProps,
+  emotionCache = clientSideEmotionCache,
+}) => (
+  <Suspense>
+    <CacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>
+        <ErrorBoundary
+          beforeCapture={(scope) => {
+            scope.setTag("error-boundary", "_app-embed");
+          }}
+          /**
+           * Forward into the host's Sentry. The boundary's local
+           * captureException is a no-op here because Sentry isn't
+           * initialised inside the embed iframe (see
+           * `instrumentation-client.ts`).
+           */
+          onError={(error) => reportIframeReactError(error)}
+          fallback={ErrorFallback}
+        >
+          <Component {...pageProps} />
+        </ErrorBoundary>
+      </ThemeProvider>
+    </CacheProvider>
+    {globalStyles}
+  </Suspense>
+);
+
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUserSubgraph, user } = props;
+  const {
+    initialAuthenticatedUserSubgraph,
+    user,
+    router: { pathname },
+  } = props;
+
+  if (pathname === PETRINAUT_EMBED_PATHNAME) {
+    return <PetrinautEmbedAppShell {...props} />;
+  }
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -246,9 +330,11 @@ const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
         return false;
       }
 
+      const normalizedPrimaryEmail = normalizeEmail(primaryEmailAddress);
+
       return (
         identity.verifiable_addresses?.find(
-          ({ value }) => value === primaryEmailAddress,
+          ({ value }) => normalizeEmail(value) === normalizedPrimaryEmail,
         )?.verified === true
       );
     })
@@ -265,6 +351,7 @@ const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
   notes: ["/notes"],
   workers: ["/goals", "/flows", "/workers", "/agents"],
   ai: ["/goals"],
+  supplyChain: [],
 };
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
@@ -304,6 +391,21 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const userEntity = initialAuthenticatedUserSubgraph
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
+
+  if (pathname === PETRINAUT_EMBED_PATHNAME) {
+    if (userEntity) {
+      /**
+       * Don't inject user data into the Petrinaut embed route.
+       */
+      return {};
+    }
+    return {
+      redirectTo: redirectInGetInitialProps({
+        appContext,
+        location: `/signin?return_to=${req?.url ?? asPath}`,
+      }),
+    };
+  }
 
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {
@@ -376,7 +478,10 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         location: "/",
       });
     }
-  } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
+  } else if (
+    redirectIfAuthenticatedPathnames.includes(pathname) &&
+    !(pathname === "/signup" && (asPath ?? "").includes("invitationId="))
+  ) {
     /**
      * If the user has completed signup and is on a page they shouldn't be on
      * (e.g. /signup), then redirect them to the home page.
