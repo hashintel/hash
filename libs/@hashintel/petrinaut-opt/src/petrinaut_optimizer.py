@@ -378,9 +378,9 @@ class PetrinautOptimizer:
                 outer, inner = k.split('.', 1)
                 params_and_init_states.setdefault(outer, {})[inner] = v
             q.put((
-                trial.number, 
-                params_and_init_states["parameters"], 
-                params_and_init_states["initial_states"], 
+                trial.number,
+                params_and_init_states.get("parameters", dict()),
+                params_and_init_states.get("initial_states", dict()),
                 trial.value
             ))
 
