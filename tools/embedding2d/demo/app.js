@@ -1,4 +1,4 @@
-/* HASH Entity Map -- zoomable LOD demo.
+/* HASH Entity Map -- zoomable LOD demo with an alpha-ladder slider.
  *
  * Nodes arrive pre-sorted by (min_zoom asc, importance desc), so the
  * set visible at reveal level z is exactly the first cumulative[z]
@@ -6,6 +6,14 @@
  * DataFilterExtension shows rows [0, count(zoom)], so zooming never
  * re-uploads buffers. Fractional zoom interpolates the count for a
  * smooth, monotone reveal (most important nodes first).
+ *
+ * The alpha slider morphs between the ladder's layouts (alpha=1.0 pure
+ * semantic ... alpha=0.25 mostly relational). All levels share one row
+ * order, so blending is a plain lerp between position buffers. The
+ * lerp writes into one of two scratch buffers (deck re-uploads only on
+ * array identity change, so we alternate); everything else that
+ * depends on positions -- density weights, far-field colors, labels,
+ * ambient links -- settles on a debounce after the scrub pauses.
  *
  * A "far field" layer draws every node as a tiny dim dot, playing the
  * continent/nebula role when zoomed out; because it shares the exact
@@ -32,8 +40,9 @@ const MAX_EDGES_SHOWN = 1200;
 // density reads as "how solidly the type's color fills in" and hue is
 // preserved everywhere -- same principle as the log-density render
 // this emulates. Per-point density-equalization weights (rho^-0.7,
-// precomputed) keep cores from flattening; the zoom term is mild
-// exposure compensation for overlap growth as you zoom out.
+// precomputed per alpha level) keep cores from flattening; the zoom
+// term is mild exposure compensation for overlap growth as you zoom
+// out.
 const FARFIELD_INTENSITY = 0.5; // exposure at the reference zoom
 const FARFIELD_REF_REVEAL = 2.5;
 const farfieldOpacity = (reveal) =>
@@ -85,16 +94,27 @@ async function main() {
       `${(loadedBytes / 1e6).toFixed(1)} / ${(totalBytes / 1e6).toFixed(1)} MB`;
   };
 
-  const [xy, cls, minzoom, degree, weight, edgeOffsets, edgeNeighbors] =
-    await Promise.all([
-      fetchBin("data/nodes_xy.f32", Float32Array, onBytes),
-      fetchBin("data/nodes_class.u8", Uint8Array, onBytes),
-      fetchBin("data/nodes_minzoom.u8", Uint8Array, onBytes),
-      fetchBin("data/nodes_degree.u16", Uint16Array, onBytes),
-      fetchBin("data/nodes_weight.f32", Float32Array, onBytes),
-      fetchBin("data/edges_offsets.u32", Uint32Array, onBytes),
-      fetchBin("data/edges_neighbors.u32", Uint32Array, onBytes),
-    ]);
+  const alphas = manifest.alphas; // descending, e.g. [1.0, 0.75, 0.5, 0.25]
+  const tags = alphas.map(
+    (a) => `a${String(Math.round(a * 100)).padStart(3, "0")}`,
+  );
+  const levels = alphas.length;
+
+  const [cls, minzoom, degree, edgeOffsets, edgeNeighbors] = await Promise.all([
+    fetchBin("data/nodes_class.u8", Uint8Array, onBytes),
+    fetchBin("data/nodes_minzoom.u8", Uint8Array, onBytes),
+    fetchBin("data/nodes_degree.u16", Uint16Array, onBytes),
+    fetchBin("data/edges_offsets.u32", Uint32Array, onBytes),
+    fetchBin("data/edges_neighbors.u32", Uint32Array, onBytes),
+  ]);
+  const xyLevels = await Promise.all(
+    tags.map((t) => fetchBin(`data/nodes_xy_${t}.f32`, Float32Array, onBytes)),
+  );
+  const weightLevels = await Promise.all(
+    tags.map((t) =>
+      fetchBin(`data/nodes_weight_${t}.f32`, Float32Array, onBytes),
+    ),
+  );
 
   const n = manifest.count;
   const [[xmin, ymin], [xmax, ymax]] = manifest.extent;
@@ -102,12 +122,59 @@ async function main() {
     [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)),
   );
 
+  // --- alpha slider state --------------------------------------------------
+  // `pos` in [0, levels-1]: integer values sit exactly on a fitted
+  // level, fractional values lerp between the two adjacent ones.
+  let sliderPos = 0;
+  let xy = xyLevels[0]; // current (possibly blended) positions
+  let weight = weightLevels[0]; // follows on settle, not per frame
+  let positionVersion = 0;
+  const scratch = [
+    new Float32Array(n * 2),
+    new Float32Array(n * 2),
+    new Float32Array(n), // weights, blended on settle only
+  ];
+
+  const levelOf = (pos) => Math.max(0, Math.min(levels - 2, Math.floor(pos)));
+  const alphaAt = (pos) => {
+    if (levels === 1) return alphas[0];
+    const i = levelOf(pos);
+    return alphas[i] + (alphas[i + 1] - alphas[i]) * (pos - i);
+  };
+
+  function blendPositions(pos) {
+    const i = levelOf(pos);
+    const t = pos - i;
+    if (t < 1e-3 || levels === 1) return xyLevels[i];
+    if (t > 1 - 1e-3) return xyLevels[i + 1];
+    // alternate scratch buffers: deck re-uploads when the attribute
+    // array identity changes, and skips when it doesn't
+    const out = xy === scratch[0] ? scratch[1] : scratch[0];
+    const a = xyLevels[i];
+    const b = xyLevels[i + 1];
+    for (let k = 0; k < n * 2; k++) out[k] = a[k] + (b[k] - a[k]) * t;
+    return out;
+  }
+
+  function blendWeights(pos) {
+    const i = levelOf(pos);
+    const t = pos - i;
+    if (t < 1e-3 || levels === 1) return weightLevels[i];
+    if (t > 1 - 1e-3) return weightLevels[i + 1];
+    const out = scratch[2];
+    const a = weightLevels[i];
+    const b = weightLevels[i + 1];
+    for (let k = 0; k < n; k++) out[k] = a[k] + (b[k] - a[k]) * t;
+    return out;
+  }
+
   // --- per-node GPU attributes -------------------------------------------
   const colors = new Uint8Array(n * 4);
   const farColors = new Uint8Array(n * 4); // alpha carries density weight
   const radius = new Float32Array(n);
   const ranks = new Float32Array(n);
   const activeTypes = new Set(palette.map((_, i) => i));
+  let colorVersion = 0;
 
   function paintColors() {
     for (let i = 0; i < n; i++) {
@@ -122,11 +189,44 @@ async function main() {
       farColors[i * 4 + 2] = c[2];
       farColors[i * 4 + 3] = on ? Math.round(255 * weight[i]) : 1;
     }
+    colorVersion++;
   }
   paintColors();
   for (let i = 0; i < n; i++) {
     radius[i] = 1.8 + Math.log2(1 + degree[i]) * 0.7;
     ranks[i] = i;
+  }
+
+  // Rebuilt only when positionVersion changes, so ordinary pan/zoom
+  // redraws keep stable data identities (no attribute re-uploads).
+  let cachedData = null;
+  let cachedFarData = null;
+  let cachedVersion = -1;
+  function nodeData() {
+    if (cachedVersion !== positionVersion) {
+      cachedData = {
+        length: n,
+        attributes: {
+          getPosition: { value: xy, size: 2 },
+          getFillColor: { value: colors, size: 4 },
+          getRadius: { value: radius, size: 1 },
+          getFilterValue: { value: ranks, size: 1 },
+        },
+      };
+      // NB: binary attributes override accessor props, so the far field
+      // gets its own set WITHOUT getRadius -- otherwise every far-field
+      // speck inherits the degree-scaled radius and the far view floods
+      // with light
+      cachedFarData = {
+        length: n,
+        attributes: {
+          getPosition: { value: xy, size: 2 },
+          getFillColor: { value: farColors, size: 4 },
+        },
+      };
+      cachedVersion = positionVersion;
+    }
+    return { nodes: cachedData, far: cachedFarData };
   }
 
   // --- zoom -> reveal ----------------------------------------------------
@@ -144,6 +244,24 @@ async function main() {
     return Math.round(lo + (hi - lo) * (reveal - z));
   };
 
+  // --- labels: lerp positions between the adjacent levels -----------------
+  // prepare_demo guarantees each level has the same label list (same
+  // types, same order), so blending by index is safe.
+  function labelData(pos) {
+    const i = levelOf(pos);
+    const t = pos - i;
+    const a = manifest.labels[tags[i]];
+    if (t < 1e-3 || levels === 1) return a;
+    const b = manifest.labels[tags[Math.min(i + 1, levels - 1)]];
+    return a.map((la, j) => ({
+      ...la,
+      position: [
+        la.position[0] + (b[j].position[0] - la.position[0]) * t,
+        la.position[1] + (b[j].position[1] - la.position[1]) * t,
+      ],
+    }));
+  }
+
   // --- ui chrome ----------------------------------------------------------
   $("legend-rows").innerHTML = manifest.types
     .map(
@@ -156,12 +274,10 @@ async function main() {
     )
     .join("");
 
-  let colorVersion = 0;
   function setTypeFilter(next) {
     activeTypes.clear();
     next.forEach((i) => activeTypes.add(i));
     paintColors();
-    colorVersion++;
     document.querySelectorAll(".legend-row").forEach((el) => {
       el.classList.toggle("off", !activeTypes.has(+el.dataset.class));
     });
@@ -201,11 +317,40 @@ async function main() {
     tooltip.style.top = `${info.y + 14}px`;
   }
 
+  // --- alpha slider --------------------------------------------------------
+  let settleTimer = null;
+  function setSlider(pos) {
+    sliderPos = pos;
+    xy = blendPositions(pos);
+    positionVersion++;
+    $("alpha-value").textContent = `α ${alphaAt(pos).toFixed(2)}`;
+    redraw();
+
+    // weights (-> far-field brightness) and ambient links follow once
+    // the scrub settles; they're O(n) CPU repaints, not per-frame work
+    if (settleTimer) clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      weight = blendWeights(sliderPos);
+      paintColors();
+      scheduleAmbient();
+      redraw();
+    }, 120);
+  }
+
+  if (levels > 1) {
+    const slider = $("alpha-slider");
+    slider.max = levels - 1;
+    slider.oninput = () => setSlider(+slider.value);
+    $("alpha").style.display = "block";
+    $("alpha-value").textContent = `α ${alphas[0].toFixed(2)}`;
+  }
+
   // --- ambient links (deep zoom) -------------------------------------------
   // Recomputed on a debounce after the view settles: scan revealed nodes
   // for those near the viewport, then draw a capped sample of their
   // edges -- including ones that run offscreen.
   let ambient = [];
+  let ambientVersion = 0;
   let ambientTimer = null;
   let viewTarget = null;
 
@@ -245,6 +390,7 @@ async function main() {
       }
     }
     ambient = pairs;
+    ambientVersion++;
     redraw();
   }
 
@@ -281,21 +427,6 @@ async function main() {
   }
 
   // --- layers ---------------------------------------------------------------
-  const nodeAttributes = {
-    getPosition: { value: xy, size: 2 },
-    getFillColor: { value: colors, size: 4 },
-    getRadius: { value: radius, size: 1 },
-    getFilterValue: { value: ranks, size: 1 },
-  };
-  // NB: binary attributes override accessor props, so the far field
-  // gets its own set WITHOUT getRadius -- otherwise every far-field
-  // speck inherits the degree-scaled radius and the far view floods
-  // with light
-  const farfieldAttributes = {
-    getPosition: { value: xy, size: 2 },
-    getFillColor: { value: farColors, size: 4 },
-  };
-
   let viewZoom = fitZoom - 1.6; // intro start; animated to fitZoom below
 
   function layers() {
@@ -306,14 +437,14 @@ async function main() {
       0,
       Math.min(1, (reveal - AMBIENT_MIN_REVEAL) / 1.5),
     );
+    const data = nodeData();
 
     const out = [
-      // far field: every node as a speck of light, additively blended
-      // so overlap accumulates into glow instead of clipping to a flat
-      // solid fill -- density gradation is what makes it read as a map
+      // far field: every node as a speck of light; density-weighted
+      // over-blending, see the constant block up top
       new ScatterplotLayer({
         id: "farfield",
-        data: { length: n, attributes: farfieldAttributes },
+        data: data.far,
         radiusUnits: "pixels",
         getRadius: 1,
         radiusMinPixels: 0.7,
@@ -334,6 +465,11 @@ async function main() {
           getColor: [255, 255, 255, Math.round(26 * ambientOpacity)],
           getWidth: 1,
           widthUnits: "pixels",
+          updateTriggers: {
+            // accessors close over `xy`; nudge them when it changes
+            getSourcePosition: [positionVersion, ambientVersion],
+            getTargetPosition: [positionVersion, ambientVersion],
+          },
         }),
       );
     }
@@ -341,7 +477,7 @@ async function main() {
     out.push(
       new ScatterplotLayer({
         id: "nodes",
-        data: { length: n, attributes: nodeAttributes },
+        data: data.nodes,
         radiusUnits: "pixels",
         radiusMinPixels: 1,
         radiusMaxPixels: 11,
@@ -362,7 +498,7 @@ async function main() {
       out.push(
         new TextLayer({
           id: "labels",
-          data: manifest.labels,
+          data: labelData(sliderPos),
           getPosition: (d) => d.position,
           getText: (d) => d.text,
           getColor: [235, 235, 245, Math.round(235 * labelOpacity)],
@@ -409,6 +545,7 @@ async function main() {
           getLineColor: [255, 255, 255, 200],
           getLineWidth: 1,
           lineWidthUnits: "pixels",
+          updateTriggers: { getPosition: positionVersion },
         }),
         new ScatterplotLayer({
           id: "selection-ring",

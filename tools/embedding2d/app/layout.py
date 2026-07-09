@@ -7,7 +7,12 @@ import hnswlib
 import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
-from umap.umap_ import find_ab_params, fuzzy_simplicial_set, simplicial_set_embedding
+from umap.umap_ import (
+    find_ab_params,
+    fuzzy_simplicial_set,
+    reset_local_connectivity,
+    simplicial_set_embedding,
+)
 
 from app.sample import Sample
 
@@ -92,17 +97,25 @@ class LayoutGraph:
     def fuse(self, other: Self, *, alpha: float) -> Self:
         """
         Convex blend of the two graphs: F = alpha*self + (1-alpha)*other
-        -- call as `semantic.fuse(relation, alpha=...)`, in that order.
+        -- call as `semantic.fuse(relation, alpha=...)`, in that order --
+        followed by umap's local-connectivity reset.
 
-        `alpha` slides between worldviews: 1.0 is the purely semantic
-        layout, 0.0 the purely relational one. Uniform scale cancels in
-        UMAP's optimizer (edge weights are normalized by graph.max() when
-        converted to epochs-per-sample), so what the blend really sets is
-        the ratio alpha/(1-alpha) between semantic and relation edges.
+        `alpha` slides between worldviews: 1.0 is the (locally reset)
+        purely semantic layout, 0.0 the purely relational one; in
+        between, what the blend sets is the ratio alpha/(1-alpha)
+        between a node's semantic and relation edges.
 
-        Caveat at low alpha: entities with no relations keep only their
-        down-weighted semantic edges and drift toward the periphery --
-        honest, but worth knowing when reading those layouts.
+        The reset is what makes the blend *rearrange* the map instead of
+        contracting it. The fuzzy set arrives locally normalized (every
+        node's strongest edge is ~1) but the relation graph is only
+        globally scaled, so a raw blend gives relation-connected nodes
+        far more total attraction than relation-poor ones: the connected
+        core implodes while everything else diffuses against unchanged
+        repulsion. Rescaling each row's max back to 1 (then re-unioning,
+        umap's standard post-combination step) restores uniform local
+        attraction: relation-poor entities keep their full-strength
+        semantic neighborhoods at every alpha, and alpha shifts *which*
+        neighbours bind, not *how hard* everything binds.
         """
         fused = (
             alpha * self.graph.tocsr() + (1.0 - alpha) * other.graph.tocsr()
@@ -112,6 +125,7 @@ class LayoutGraph:
         # drop them rather than carrying dead entries through the layout.
         fused.eliminate_zeros()
 
+        fused = reset_local_connectivity(fused).tocoo()
         return self.__class__(graph=fused)
 
 
@@ -245,6 +259,53 @@ class RelationSetParams:
     # in absolute terms", not merely "the largest".
     hub_min_ratio: float = 4.0
 
+    # Direct relations alone give UMAP almost nothing to lay out: the
+    # graph is quasi-bipartite (measured clustering coefficient ~0.01)
+    # with median degree 1 -- mostly pendants whose whole relational
+    # identity is "sit on my one partner", which renders as piles, not
+    # structure. Co-neighbor edges from the 2-step walk (W @ W) connect
+    # entities that share partners -- the movements of one material,
+    # the items of one order -- which is where bipartite-ish data keeps
+    # its cluster structure. Top-k per node keeps it sparse; 0 disables.
+    shared_k: int = 10
+    # Strength of co-neighbor edges relative to direct ones.
+    shared_weight: float = 1.0
+
+
+def sampled_clustering(adjacency: sp.csr_matrix, samples: int = 2000) -> float:
+    """Clustering coefficient estimated on a node sample: the fraction
+    of a node's neighbour pairs that are themselves connected."""
+    degree = np.diff(adjacency.indptr)
+    candidates = np.nonzero(degree >= 2)[0]
+    if not len(candidates):
+        return 0.0
+
+    rng = np.random.default_rng(0)
+    chosen = rng.choice(candidates, min(samples, len(candidates)), replace=False)
+    triangles = wedges = 0
+    for i in chosen:
+        nb = adjacency.indices[adjacency.indptr[i] : adjacency.indptr[i + 1]]
+        triangles += adjacency[nb][:, nb].nnz // 2
+        wedges += len(nb) * (len(nb) - 1) // 2
+    return triangles / max(wedges, 1)
+
+
+def top_k_per_row(m: sp.csr_matrix, k: int) -> sp.csr_matrix:
+    """Keep only each row's k largest entries (ties broken arbitrarily)."""
+    keep = np.zeros(m.nnz, dtype=bool)
+    for i in range(m.shape[0]):
+        start, stop = m.indptr[i], m.indptr[i + 1]
+        if stop - start <= k:
+            keep[start:stop] = True
+        else:
+            top = np.argpartition(m.data[start:stop], -k)[-k:]
+            keep[start + top] = True
+
+    rows = np.repeat(np.arange(m.shape[0]), np.diff(m.indptr))
+    return sp.coo_matrix(
+        (m.data[keep], (rows[keep], m.indices[keep])), shape=m.shape
+    ).tocsr()
+
 
 def relation_set(*, sample: Sample, params: RelationSetParams) -> RelationSet:
     """
@@ -315,7 +376,35 @@ def relation_set(*, sample: Sample, params: RelationSetParams) -> RelationSet:
         inv_sqrt = np.where(degree > 0, 1.0 / np.sqrt(np.maximum(degree, 1e-12)), 0.0)
     d_inv = sp.diags(inv_sqrt.astype(np.float32))
 
-    relation = (d_inv @ adjacency @ d_inv).tocoo()
+    w = (d_inv @ adjacency @ d_inv).tocsr()
+
+    # Self-diagnosis for new datasets: near-zero clustering + median
+    # degree ~1 means the direct graph is quasi-bipartite/pendant-heavy
+    # and the co-neighbor projection below is doing the heavy lifting;
+    # a natively clustered graph (say, >0.1) may want shared_k lowered
+    # or disabled.
+    logging.info(
+        f"relation graph: {(degree > 0).sum():,} connected "
+        f"({100 * (degree > 0).mean():.1f}%), median degree "
+        f"{np.median(degree[degree > 0]) if (degree > 0).any() else 0:.0f}, "
+        f"clustering {sampled_clustering(adjacency):.3f}"
+    )
+
+    if params.shared_k:
+        # Two-step walk: the path i -> h -> j contributes
+        # 1 / (deg_h * sqrt(deg_i * deg_j)), so co-neighbor edges through
+        # popular intermediates are automatically discounted.
+        shared = (w @ w).tocsr()
+        # A node trivially co-occurs with itself through every partner;
+        # subtracting the diagonal (rather than setdiag on CSR) avoids a
+        # structure-change pass, eliminate_zeros sweeps the residue.
+        shared = (shared - sp.diags(shared.diagonal())).tocsr()
+        shared.eliminate_zeros()
+        shared = top_k_per_row(shared, params.shared_k)
+        shared = shared.maximum(shared.T)  # top-k selection breaks symmetry
+        w = w.maximum(shared * params.shared_weight)
+
+    relation = w.tocoo()
     if relation.nnz:
         relation.data /= relation.data.max()  # same (0, 1] scale as the semantic set
 

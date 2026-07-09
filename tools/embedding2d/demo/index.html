@@ -145,6 +145,37 @@
         text-align: right;
       }
 
+      #alpha {
+        display: none;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 16px;
+        width: 320px;
+        text-align: center;
+      }
+      #alpha .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #alpha input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+      }
+      #alpha .ends {
+        display: flex;
+        justify-content: space-between;
+        color: var(--dim);
+        font-size: 10.5px;
+        margin-top: 3px;
+      }
+      #alpha-value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 650;
+        min-width: 52px;
+        text-align: right;
+      }
+
       #card {
         top: 16px;
         right: 16px;
@@ -258,6 +289,21 @@
     <div id="hint" class="panel">
       scroll to zoom &nbsp;·&nbsp; drag to pan<br />click a node to see its
       connections<br />click a type to focus it<br />links fade in at deep zoom
+    </div>
+
+    <div id="alpha" class="panel">
+      <div class="row">
+        <input
+          id="alpha-slider"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0"
+        />
+        <span id="alpha-value">α 1.00</span>
+      </div>
+      <div class="ends"><span>semantic</span><span>relational</span></div>
     </div>
 
     <div id="card" class="panel">
