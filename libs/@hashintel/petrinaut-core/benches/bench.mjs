@@ -21,8 +21,16 @@ import { performance, PerformanceObserver } from "node:perf_hooks";
 const core = await import("../dist/index.js");
 const hir = await import("../dist/hir.js").catch(() => null);
 
-const SAMPLES = 5;
-const WARMUPS = 2;
+const argv = process.argv.slice(2);
+const flag = (name) => argv.includes(name);
+const arg = (name, fallback) => {
+  const index = argv.indexOf(name);
+  return index !== -1 && argv[index + 1] ? argv[index + 1] : fallback;
+};
+
+const SAMPLES = Number(arg("--samples", 5));
+const WARMUPS = flag("--no-warmup") ? 0 : 2;
+const ONLY = arg("--only", null);
 
 // ---------------------------------------------------------------------------
 // Model builders
@@ -369,8 +377,88 @@ function median(values) {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
+// ---------------------------------------------------------------------------
+// Compile-time mode: isolate user-code compilation (no simulation).
+// HIR branch: compileHirArtifacts (lower + typecheck + emit for every item).
+// Baseline: Babel compileUserCode per item + compileMetric per metric.
+// ---------------------------------------------------------------------------
+if (flag("--compile")) {
+  const experiment = experimentScenario(1, 10);
+  const kernelNet = kernelScenario(1);
+  const lambdaNet = lambdaScenario(10);
+  const sdcpn = {
+    ...experiment.sdcpn,
+    types: [
+      ...experiment.sdcpn.types,
+      ...lambdaNet.sdcpn.types,
+      ...kernelNet.sdcpn.types,
+    ],
+    places: [
+      ...experiment.sdcpn.places,
+      ...lambdaNet.sdcpn.places,
+      ...kernelNet.sdcpn.places,
+    ],
+    transitions: [
+      ...experiment.sdcpn.transitions,
+      ...lambdaNet.sdcpn.transitions,
+      ...kernelNet.sdcpn.transitions,
+    ],
+    differentialEquations: experiment.sdcpn.differentialEquations,
+    metrics: experiment.metricSpecs.map((spec) => ({
+      id: spec.id,
+      name: spec.label,
+      code: spec.code,
+    })),
+  };
+  // 1 dynamics + 4 lambdas + 2 kernels + 3 metrics = 10 compiled programs.
+  const compileOnce = hir
+    ? () => {
+        const { failures } = hir.compileHirArtifacts(sdcpn);
+        if (failures.length > 0) throw new Error(JSON.stringify(failures));
+      }
+    : () => {
+        for (const de of sdcpn.differentialEquations) {
+          core.compileUserCode(de.code, "Dynamics");
+        }
+        for (const transition of sdcpn.transitions) {
+          if (transition.lambdaCode.trim() !== "") {
+            core.compileUserCode(transition.lambdaCode, "Lambda");
+          }
+          if (transition.transitionKernelCode.trim() !== "") {
+            core.compileUserCode(
+              transition.transitionKernelCode,
+              "TransitionKernel",
+            );
+          }
+        }
+        for (const metric of sdcpn.metrics) {
+          const compiled = core.compileMetric(metric);
+          if (!compiled.ok) throw new Error(compiled.error);
+        }
+      };
+
+  const coldStart = performance.now();
+  compileOnce();
+  const coldMs = performance.now() - coldStart;
+
+  const times = [];
+  for (let index = 0; index < 50; index += 1) {
+    const start = performance.now();
+    compileOnce();
+    times.push(performance.now() - start);
+  }
+  const sorted = [...times].sort((a, b) => a - b);
+  console.log(
+    `${hir ? "hir" : "baseline"}  compile 10 programs: ` +
+      `cold ${coldMs.toFixed(1)}ms  warm median ${sorted[25].toFixed(2)}ms  ` +
+      `min ${sorted[0].toFixed(2)}ms`,
+  );
+  process.exit(0);
+}
+
 const results = [];
-for (const scenario of SCENARIOS) {
+const selected = ONLY === null ? SCENARIOS : [SCENARIOS[Number(ONLY)]];
+for (const scenario of selected) {
   for (let index = 0; index < WARMUPS; index += 1) {
     sample(scenario);
   }
