@@ -1,8 +1,5 @@
 -- Denormalize the entity creator and creation timestamps out of the provenance JSONB into
 -- dedicated columns, so authorization filters and sorting no longer read the JSONB per row.
--- All three values are set once at creation and never change, keeping the columns consistent
--- with `provenance ->> 'createdById'`, `->> 'createdAtTransactionTime'` and
--- `->> 'createdAtDecisionTime'`.
 ALTER TABLE entity_ids
     ADD COLUMN created_by_id UUID,
     ADD COLUMN created_at_transaction_time TIMESTAMP WITH TIME ZONE,
@@ -13,7 +10,6 @@ UPDATE entity_ids
         created_at_transaction_time = (provenance ->> 'createdAtTransactionTime')::timestamptz,
         created_at_decision_time = (provenance ->> 'createdAtDecisionTime')::timestamptz;
 
--- Same creator denormalization for the edition level out of `entity_editions.provenance`.
 ALTER TABLE entity_editions
     ADD COLUMN created_by_id UUID;
 
