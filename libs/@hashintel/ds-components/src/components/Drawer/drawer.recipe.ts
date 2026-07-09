@@ -58,6 +58,9 @@ export const styles = sva({
       _closed: {
         animationDuration: "fast",
       },
+      "&[data-swiping]": {
+        animationName: "[none !important]",
+      },
     },
   },
   variants: {
