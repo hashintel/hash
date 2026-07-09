@@ -208,4 +208,4 @@ if __name__ == "__main__":
         init_states = {"Susceptible": args.susceptible}
     )
     # Read metric value from petrinaut execution
-    log.info('metric_value',metric_value)
+    log.info(f'metric_value = {metric_value}')
