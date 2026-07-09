@@ -71,7 +71,3 @@ path = "policy/lib.rs"
 extra-dev-dependencies = [
     { name = "@apps/hash-graph", version = "workspace:*" },
 ]
-
-[package.metadata.cargo-shear]
-# Cargo shear does not detect these dependencies
-ignored = ["tokio-postgres", "tracing-subscriber", "hash-repo-chores", "tracing-flame", "tracing"]
