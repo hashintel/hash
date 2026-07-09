@@ -7,7 +7,7 @@
 
 use core::time::Duration;
 
-use hash_temporal_client::TemporalClientConfig;
+use hash_temporal_client::{TemporalClient, TemporalClientConfig, WorkflowRun};
 use serde_json::json;
 use temporalio_client::{
     Client, ClientOptions, Connection, ConnectionOptions, grpc::WorkflowService,
@@ -20,12 +20,27 @@ use temporalio_common::protos::temporal::api::{
     taskqueue::v1::TaskQueue,
     workflowservice::v1::{PollWorkflowTaskQueueRequest, RespondWorkflowTaskCompletedRequest},
 };
-use tokio::time::timeout;
+use tokio::time::{Instant, sleep, timeout};
 use url::Url;
 use uuid::Uuid;
 
 const NAMESPACE: &str = "HASH";
 const WORKER_IDENTITY: &str = "hash-temporal-client-integration-test";
+
+/// Total time budget for the initial connect + workflow start.
+///
+/// In CI `docker compose up -d` returns before the one-shot `temporal-setup`
+/// container has created the `HASH` namespace, and the connection retries
+/// inside `Connection::connect` cap out after roughly ten seconds, so a
+/// single attempt can race the server (and its namespace) coming up.
+const STARTUP_DEADLINE: Duration = Duration::from_secs(90);
+
+/// Pause between startup attempts.
+const STARTUP_RETRY_INTERVAL: Duration = Duration::from_secs(2);
+
+/// Server-side execution timeout for the test workflow, so failed test runs
+/// cannot leave workflow executions running forever on a local dev server.
+const WORKFLOW_EXECUTION_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
 fn server_url() -> Url {
     let host = std::env::var("HASH_TEMPORAL_SERVER_HOST")
@@ -54,27 +69,32 @@ async fn echo_next_workflow_task(task_queue: &str) {
     let mut worker = Client::new(connection, ClientOptions::new(NAMESPACE).build())
         .expect("should be able to create the test worker client");
 
-    let task = WorkflowService::poll_workflow_task_queue(
-        &mut worker,
-        PollWorkflowTaskQueueRequest {
-            namespace: NAMESPACE.to_owned(),
-            task_queue: Some(TaskQueue {
-                name: task_queue.to_owned(),
-                kind: TaskQueueKind::Normal as i32,
-                normal_name: String::new(),
-            }),
-            identity: WORKER_IDENTITY.to_owned(),
-            ..Default::default()
+    // A long poll may legally return an empty response (no task became
+    // available before the server's poll timeout expired), so re-poll until
+    // a real task arrives or the timeout wrapped around this function trips.
+    let task = loop {
+        let task = WorkflowService::poll_workflow_task_queue(
+            &mut worker,
+            PollWorkflowTaskQueueRequest {
+                namespace: NAMESPACE.to_owned(),
+                task_queue: Some(TaskQueue {
+                    name: task_queue.to_owned(),
+                    kind: TaskQueueKind::Normal as i32,
+                    normal_name: String::new(),
+                }),
+                identity: WORKER_IDENTITY.to_owned(),
+                ..Default::default()
+            }
+            .into_request(),
+        )
+        .await
+        .expect("should be able to poll the task queue")
+        .into_inner();
+
+        if !task.task_token.is_empty() {
+            break task;
         }
-        .into_request(),
-    )
-    .await
-    .expect("should be able to poll the task queue")
-    .into_inner();
-    assert!(
-        !task.task_token.is_empty(),
-        "did not receive a workflow task"
-    );
+    };
 
     let input = task
         .history
@@ -114,24 +134,50 @@ async fn echo_next_workflow_task(task_queue: &str) {
     .expect("should be able to complete the workflow task");
 }
 
+/// Connects to the Temporal server and starts the `echo` workflow, retrying
+/// until [`STARTUP_DEADLINE`] so the test does not race the server — and the
+/// `temporal-setup` one-shot that creates the `HASH` namespace — coming up.
+async fn connect_and_start_workflow(
+    task_queue: &str,
+    payload: &serde_json::Value,
+) -> (TemporalClient, WorkflowRun) {
+    let deadline = Instant::now() + STARTUP_DEADLINE;
+    loop {
+        let error = match TemporalClientConfig::new(server_url()).await {
+            Ok(client) => match client
+                .start_workflow(
+                    task_queue,
+                    "echo",
+                    payload,
+                    Some(WORKFLOW_EXECUTION_TIMEOUT),
+                )
+                .await
+            {
+                Ok(run) => return (client, run),
+                Err(error) => format!("{error:?}"),
+            },
+            Err(error) => format!("{error:?}"),
+        };
+        assert!(
+            Instant::now() + STARTUP_RETRY_INTERVAL < deadline,
+            "could not connect to the Temporal server and start the echo workflow within \
+             {STARTUP_DEADLINE:?}: {error}"
+        );
+        sleep(STARTUP_RETRY_INTERVAL).await;
+    }
+}
+
 /// Starts an `echo` workflow, completes it with a stand-in worker, and awaits
 /// its result, asserting that the payload made it through the entire
 /// client → server → worker → server → client roundtrip unchanged.
 #[tokio::test]
 async fn echo() {
-    let client = TemporalClientConfig::new(server_url())
-        .await
-        .expect("should be able to connect to the Temporal server");
-
     // A fresh task queue per test run so runs cannot interfere with each
     // other or with any real workers.
     let task_queue = format!("hash-temporal-client-test-{}", Uuid::new_v4());
     let payload = json!({ "message": "hello from the HASH graph" });
 
-    let run = client
-        .start_workflow(&task_queue, "echo", &payload)
-        .await
-        .expect("should be able to start the echo workflow");
+    let (client, run) = connect_and_start_workflow(&task_queue, &payload).await;
 
     timeout(
         Duration::from_secs(30),

@@ -1,3 +1,4 @@
+use core::time::Duration;
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
@@ -107,6 +108,11 @@ impl TemporalClient {
     /// The payload is JSON-serialized into a single workflow argument, which
     /// matches how the TypeScript workers deserialize their inputs.
     ///
+    /// If `execution_timeout` is set it is applied as the server-side
+    /// `workflow_execution_timeout`, after which the server terminates the
+    /// execution. Production callers pass `None` (no server-side limit);
+    /// tests set it so abandoned executions cannot linger forever.
+    ///
     /// Goes via the low-level `WorkflowService::start_workflow_execution`
     /// because the high-level `Client::start_workflow` does not expose the
     /// proto `header` field. The span is annotated with `otel.kind = "producer"` for the
@@ -117,7 +123,7 @@ impl TemporalClient {
     ///
     /// Returns an error if the workflow fails to start.
     #[instrument(
-        skip(self, payload),
+        skip(self, payload, execution_timeout),
         fields(workflow_type = workflow, task_queue = task_queue, otel.kind = "producer"),
     )]
     pub async fn start_workflow(
@@ -125,13 +131,15 @@ impl TemporalClient {
         task_queue: &str,
         workflow: &'static str,
         payload: &(impl Serialize + Sync),
+        execution_timeout: Option<Duration>,
     ) -> Result<WorkflowRun, Report<WorkflowError>> {
         let mut client = self.client.clone();
-        // The high-level start-workflow path auto-populates `identity` from
-        // the connection options (typically `pid@hostname`). The low-level
-        // `StartWorkflowExecutionRequest` defaults it to an empty string,
-        // which makes Temporal Server / UI unable to attribute starts to a
-        // client. Read it back from the configured client.
+        // `identity` is read back from the client's connection options. We
+        // never set it there and `ConnectionOptions::identity` defaults to an
+        // empty string, so workflow starts are currently not attributed to
+        // this client in the Temporal server / UI. If attribution is ever
+        // needed, configure `identity` on the `ConnectionOptions` when
+        // building the connection (see `TemporalClientConfig::new`).
         let identity = client.identity();
         let workflow_id = Uuid::new_v4().to_string();
         let request = StartWorkflowExecutionRequest {
@@ -156,6 +164,11 @@ impl TemporalClient {
             }),
             identity,
             request_id: Uuid::new_v4().to_string(),
+            // Same conversion the high-level `Client::start_workflow` uses:
+            // a `Duration` too large for the proto representation is treated
+            // as "no timeout" rather than failing the start.
+            workflow_execution_timeout: execution_timeout
+                .and_then(|timeout| timeout.try_into().ok()),
             header: build_otel_header(),
             ..Default::default()
         };
@@ -174,6 +187,10 @@ impl TemporalClient {
 
     /// Waits until the given workflow execution reaches a terminal state and
     /// returns its deserialized result.
+    ///
+    /// The call itself has no client-side deadline — it long-polls the server
+    /// until the workflow reaches a terminal state — so callers that need a
+    /// bound should wrap it in `tokio::time::timeout`.
     ///
     /// The result payload is expected to be JSON-encoded, which is how both
     /// this client and the TypeScript workers encode payloads. A workflow

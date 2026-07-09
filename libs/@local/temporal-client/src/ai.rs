@@ -27,7 +27,10 @@ impl TemporalClient {
         workflow: &'static str,
         payload: &(impl Serialize + Sync),
     ) -> Result<String, Report<WorkflowError>> {
-        Ok(self.start_workflow("ai", workflow, payload).await?.run_id)
+        Ok(self
+            .start_workflow("ai", workflow, payload, None)
+            .await?
+            .run_id)
     }
 
     /// Starts a workflow to update the embeddings for the provided data type.
