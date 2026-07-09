@@ -8,6 +8,7 @@
 )]
 
 use core::fmt;
+use std::process;
 
 pub use self::{
     error::{ConnectionError, WorkflowError, WorkflowResultError},
@@ -59,12 +60,23 @@ impl IntoFuture for TemporalClientConfig {
     }
 }
 
+/// Returns the client identity in Temporal's conventional `pid@hostname` format, falling back to
+/// just the process ID if the hostname is unavailable.
+fn client_identity() -> String {
+    let pid = process::id();
+    hostname::get().map_or_else(
+        |_| pid.to_string(),
+        |hostname| format!("{pid}@{}", hostname.to_string_lossy()),
+    )
+}
+
 impl TemporalClientConfig {
     pub fn new(url: impl Into<Url>) -> Self {
         Self {
             options: ConnectionOptions::new(url)
                 .client_name("HASH Temporal client")
                 .client_version(env!("CARGO_PKG_VERSION"))
+                .identity(client_identity())
                 .build(),
         }
     }

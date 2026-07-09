@@ -4039,6 +4039,7 @@ name = "hash-temporal-client"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "hostname",
  "opentelemetry 0.32.0",
  "serde",
  "serde_json",

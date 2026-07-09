@@ -134,12 +134,10 @@ impl TemporalClient {
         execution_timeout: Option<Duration>,
     ) -> Result<WorkflowRun, Report<WorkflowError>> {
         let mut client = self.client.clone();
-        // `identity` is read back from the client's connection options. We
-        // never set it there and `ConnectionOptions::identity` defaults to an
-        // empty string, so workflow starts are currently not attributed to
-        // this client in the Temporal server / UI. If attribution is ever
-        // needed, configure `identity` on the `ConnectionOptions` when
-        // building the connection (see `TemporalClientConfig::new`).
+        // `identity` is read back from the client's connection options, where
+        // `TemporalClientConfig::new` sets it to `pid@hostname` (matching the
+        // Temporal SDK convention), so workflow starts are attributed to this
+        // client in the Temporal server / UI.
         let identity = client.identity();
         let workflow_id = Uuid::new_v4().to_string();
         let request = StartWorkflowExecutionRequest {
