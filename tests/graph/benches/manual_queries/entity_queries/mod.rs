@@ -321,7 +321,7 @@ where
     match request {
         GraphQuery::QueryEntities(request) => {
             let _response = store
-                .borrow()
+                .borrow_mut()
                 .query_entities(
                     request.actor_id,
                     request.request.into_params_unchecked(config, None),

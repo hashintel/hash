@@ -554,7 +554,7 @@ where
 
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    async fn query_entities_impl(
+    async fn read_entities_impl(
         &self,
         params: &QueryEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
@@ -708,6 +708,77 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    async fn query_entities_impl(
+        &self,
+        actor_id: ActorEntityUuid,
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
+
+        params
+            .filter
+            .convert_parameters(&provider)
+            .await
+            .change_context(QueryError)?;
+
+        let temporal_axes = params.temporal_axes.resolve();
+
+        let mut response = self
+            .read_entities_impl(&params, &temporal_axes, &policy_components)
+            .await?;
+
+        if !params.conversions.is_empty() {
+            for entity in &mut response.entities {
+                self.convert_entity(&provider, entity, &params.conversions)
+                    .await
+                    .change_context(QueryError)?;
+            }
+        }
+
+        if params.include_permissions {
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect::<Vec<_>>();
+
+            let update_permissions = self
+                .has_permission_for_entities(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
+        }
+
+        Ok(response)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph_impl(
         &self,
@@ -742,7 +813,7 @@ where
             definitions: _,
             permissions,
         } = self
-            .query_entities_impl(&request, &temporal_axes, &policy_components)
+            .read_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
@@ -1544,78 +1615,33 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitiesParams<'_>,
+        params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
+        // An entity query consists of multiple statements: the entity read itself, the optional
+        // entity-type resolution, and the permission checks on the returned entities. Under
+        // `READ COMMITTED` each statement uses its own MVCC snapshot, so a write committing
+        // mid-read can yield entities, entity types, and permissions reflecting different
+        // states of the store. Running the whole read in a single `REPEATABLE READ, READ ONLY`
+        // transaction gives all statements one shared snapshot.
+        let transaction = self
+            .transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only()
             .await
             .change_context(QueryError)?;
 
-        let provider = StoreProvider::new(self, &policy_components);
+        let response = transaction.query_entities_impl(actor_id, params).await?;
 
-        params
-            .filter
-            .convert_parameters(&provider)
-            .await
-            .change_context(QueryError)?;
-
-        let temporal_axes = params.temporal_axes.resolve();
-
-        let mut response = self
-            .query_entities_impl(&params, &temporal_axes, &policy_components)
-            .await?;
-
-        if !params.conversions.is_empty() {
-            for entity in &mut response.entities {
-                self.convert_entity(&provider, entity, &params.conversions)
-                    .await
-                    .change_context(QueryError)?;
-            }
-        }
-
-        if params.include_permissions {
-            let entity_ids = response
-                .entities
-                .iter()
-                .map(|entity| entity.metadata.record_id.entity_id)
-                .collect::<Vec<_>>();
-
-            let update_permissions = self
-                .has_permission_for_entities(
-                    policy_components.actor_id().into(),
-                    HasPermissionForEntitiesParams {
-                        action: ActionName::UpdateEntity,
-                        entity_ids: Cow::Borrowed(&entity_ids),
-                        temporal_axes: params.temporal_axes,
-                        include_drafts: params.include_drafts,
-                    },
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let mut permissions: HashMap<EntityId, EntityPermissions> =
-                HashMap::with_capacity(update_permissions.len());
-
-            for (entity_id, editions) in update_permissions {
-                permissions.entry(entity_id).or_default().update = editions;
-            }
-
-            debug_assert!(
-                response.permissions.is_none(),
-                "Should not be populated yet"
-            );
-            response.permissions = Some(permissions);
-        }
+        transaction.commit().await.change_context(QueryError)?;
 
         Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn search_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {

@@ -19,10 +19,15 @@ use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEnti
 
 use crate::util::Store;
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &RefCell<&mut Store>,
     actor_id: ActorEntityUuid,
     entity_uuids: &[EntityUuid],
 ) {
@@ -36,6 +41,7 @@ pub fn bench_get_entity_by_id(
         },
         |entity_uuid| async move {
             let response = store
+                .borrow_mut()
                 .query_entities(
                     actor_id,
                     QueryEntitiesParams {

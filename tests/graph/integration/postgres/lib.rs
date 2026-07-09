@@ -821,7 +821,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn query_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
@@ -829,7 +829,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn search_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
