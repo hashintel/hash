@@ -8,7 +8,8 @@ export type PlaceID = string;
 
 export type TransitionEffect = {
   remove: Record<PlaceID, Set<number> | number>;
-  add: Record<PlaceID, number[][]>;
+  /** One packed token byte block (strideBytes long) per new token. */
+  add: Record<PlaceID, Uint8Array[]>;
   newRngState: number;
 };
 

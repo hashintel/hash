@@ -11,11 +11,16 @@ import type {
   InputArcType,
   Place,
   SDCPN,
+  TokenAttributeValue,
+  TokenRecord,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { UuidSentinel } from "../authoring/user-code/uuid-runtime";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
+import type { StringPool } from "./string-pool";
+import type { TokenSlotLayout } from "./token-layout";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -27,19 +32,31 @@ export type ParameterValues = Record<string, number | boolean>;
  * Engine-facing differential equation for one place's continuous dynamics.
  *
  * Today this wraps the user-authored object API and adapts it to/from the
- * engine's packed numeric buffers. Later this can be replaced by an
+ * engine's packed token byte regions. Later this can be replaced by an
  * IR-compiled buffer-native function without changing the stepping loop.
+ *
+ * `placeBytes` is one place's token byte region (`numberOfTokens ×
+ * strideBytes`, 8-aligned). The returned derivatives are laid out as
+ * `numberOfTokens × realFieldF64Offsets.length`, in the field order of the
+ * place colour's `TokenSlotLayout.realFieldF64Offsets`.
  */
 export type DifferentialEquationFn = (
-  currentState: Float64Array,
-  dimensions: number,
+  placeBytes: Uint8Array,
   numberOfTokens: number,
 ) => Float64Array;
 
-export type TransitionTokenValues = Record<string, Record<string, number>[]>;
+export type TransitionTokenValues = Record<string, TokenRecord[]>;
+/**
+ * Kernel output tokens keyed by output place name. `uuid` attributes may be
+ * omitted (`undefined` — the engine auto-generates a UUID from the seeded
+ * RNG) or produced via the `Uuid.generate()` / `Uuid.from(value)` sentinels.
+ */
 export type TransitionKernelOutput = Record<
   string,
-  Record<string, number | RuntimeDistribution>[]
+  Record<
+    string,
+    TokenAttributeValue | RuntimeDistribution | UuidSentinel | undefined
+  >[]
 >;
 
 /**
@@ -66,7 +83,10 @@ export type CompiledTransitionPlace = {
   placeId: string;
   placeName: string;
   weight: number;
-  elementNames: readonly string[] | null;
+  /** Colour elements in declaration order, or null for uncoloured places. */
+  elements: readonly Color["elements"][number][] | null;
+  /** Packed token layout for the place colour, or null for uncoloured places. */
+  tokenLayout: TokenSlotLayout | null;
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
@@ -127,6 +147,12 @@ export type SimulationInstance = {
   currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
+  /**
+   * Per-run intern pool for `string` token elements. Owned by the simulation
+   * (fresh per init/run), append-only while the run advances — frames store
+   * u64 pool references, never the strings themselves.
+   */
+  stringPool: StringPool;
   /** SDCPN-specialized binary frame layout for this simulation run. */
   frameLayout: EngineFrameLayout;
   /** History of all computed frames */

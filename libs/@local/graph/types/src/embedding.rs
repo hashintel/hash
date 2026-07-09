@@ -20,6 +20,18 @@ impl Embedding<'_> {
         self.0.iter().copied()
     }
 
+    /// Returns the number of dimensions in this embedding.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns `true` if this embedding has no dimensions.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     #[must_use]
     pub fn into_owned(self) -> Embedding<'static> {
         Embedding(Cow::Owned(self.0.into_owned()))

@@ -1,3 +1,8 @@
+import {
+  getArcEndpoint,
+  getArcEndpointKey,
+  getArcEndpointNodeId,
+} from "../arc-endpoints";
 import { generateArcId } from "../arc-id";
 
 import type { Transition } from "../types/sdcpn";
@@ -23,17 +28,21 @@ export function getNodeConnections(
     const transitionSelected = selectedIds.has(transition.id);
 
     for (const inputArc of transition.inputArcs) {
+      const endpoint = getArcEndpoint(inputArc);
+      const nodeId = getArcEndpointNodeId(endpoint);
+      const endpointType =
+        endpoint.kind === "place" ? "place" : "componentInstance";
       const arcId = generateArcId({
-        inputId: inputArc.placeId,
+        inputId: getArcEndpointKey(endpoint),
         outputId: transition.id,
       });
-      const placeSelected = selectedIds.has(inputArc.placeId);
+      const endpointSelected = selectedIds.has(nodeId);
       const arcSelected = selectedIds.has(arcId);
 
-      if (transitionSelected || placeSelected || arcSelected) {
-        connections.set(inputArc.placeId, {
-          type: "place",
-          id: inputArc.placeId,
+      if (transitionSelected || endpointSelected || arcSelected) {
+        connections.set(nodeId, {
+          type: endpointType,
+          id: nodeId,
         });
         connections.set(transition.id, {
           type: "transition",
@@ -44,17 +53,21 @@ export function getNodeConnections(
     }
 
     for (const outputArc of transition.outputArcs) {
+      const endpoint = getArcEndpoint(outputArc);
+      const nodeId = getArcEndpointNodeId(endpoint);
+      const endpointType =
+        endpoint.kind === "place" ? "place" : "componentInstance";
       const arcId = generateArcId({
         inputId: transition.id,
-        outputId: outputArc.placeId,
+        outputId: getArcEndpointKey(endpoint),
       });
-      const placeSelected = selectedIds.has(outputArc.placeId);
+      const endpointSelected = selectedIds.has(nodeId);
       const arcSelected = selectedIds.has(arcId);
 
-      if (transitionSelected || placeSelected || arcSelected) {
-        connections.set(outputArc.placeId, {
-          type: "place",
-          id: outputArc.placeId,
+      if (transitionSelected || endpointSelected || arcSelected) {
+        connections.set(nodeId, {
+          type: endpointType,
+          id: nodeId,
         });
         connections.set(transition.id, {
           type: "transition",

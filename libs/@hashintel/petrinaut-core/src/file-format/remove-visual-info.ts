@@ -1,13 +1,42 @@
-import type { Color, Place, SDCPN, Transition } from "../types/sdcpn";
-
-type SDCPNWithoutVisualInfo = Omit<
+import type {
+  Color,
+  ComponentInstance,
+  Place,
   SDCPN,
-  "places" | "transitions" | "types"
+  Subnet,
+  Transition,
+} from "../types/sdcpn";
+
+type NetWithoutVisualInfo<Net extends SDCPN | Subnet> = Omit<
+  Net,
+  "places" | "transitions" | "types" | "componentInstances" | "subnets"
 > & {
   places: Array<Omit<Place, "x" | "y">>;
   transitions: Array<Omit<Transition, "x" | "y">>;
   types: Array<Omit<Color, "displayColor" | "iconSlug">>;
+  componentInstances: Array<Omit<ComponentInstance, "x" | "y">>;
 };
+
+type SubnetWithoutVisualInfo = NetWithoutVisualInfo<Subnet>;
+type SDCPNWithoutVisualInfo = NetWithoutVisualInfo<SDCPN> & {
+  subnets: SubnetWithoutVisualInfo[];
+};
+
+const stripVisualFromNet = <Net extends SDCPN | Subnet>(
+  net: Net,
+): NetWithoutVisualInfo<Net> => ({
+  ...net,
+  places: net.places.map(({ x: _x, y: _y, ...place }) => place),
+  transitions: net.transitions.map(
+    ({ x: _x, y: _y, ...transition }) => transition,
+  ),
+  types: net.types.map(
+    ({ displayColor: _displayColor, iconSlug: _iconSlug, ...type }) => type,
+  ),
+  componentInstances: (net.componentInstances ?? []).map(
+    ({ x: _x, y: _y, ...instance }) => instance,
+  ),
+});
 
 /**
  * Removes graphical information from an SDCPN.
@@ -16,13 +45,7 @@ type SDCPNWithoutVisualInfo = Omit<
  */
 export function removeVisualInformation(sdcpn: SDCPN): SDCPNWithoutVisualInfo {
   return {
-    ...sdcpn,
-    places: sdcpn.places.map(({ x: _x, y: _y, ...place }) => place),
-    transitions: sdcpn.transitions.map(
-      ({ x: _x, y: _y, ...transition }) => transition,
-    ),
-    types: sdcpn.types.map(
-      ({ displayColor: _displayColor, iconSlug: _iconSlug, ...type }) => type,
-    ),
+    ...stripVisualFromNet(sdcpn),
+    subnets: (sdcpn.subnets ?? []).map((subnet) => stripVisualFromNet(subnet)),
   };
 }

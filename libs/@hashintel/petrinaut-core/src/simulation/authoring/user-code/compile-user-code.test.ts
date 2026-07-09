@@ -338,4 +338,31 @@ describe("compileUserCode", () => {
       ]);
     });
   });
+
+  describe("Uuid runtime injection", () => {
+    it("exposes Uuid.generate() and Uuid.from() sentinels", () => {
+      const code = `
+        export default TransitionKernel(() => {
+          return { generated: Uuid.generate(), derived: Uuid.from("order-1") };
+        });
+      `;
+      const fn = compileUserCode(code, "TransitionKernel");
+      expect(fn()).toEqual({
+        generated: { __petrinautUuid: "generate" },
+        derived: { __petrinautUuid: "from", value: "order-1" },
+      });
+    });
+
+    it("keeps Uuid available when Distribution is disabled", () => {
+      const code = `
+        export default TransitionKernel(() => {
+          return Uuid.generate();
+        });
+      `;
+      const fn = compileUserCode(code, "TransitionKernel", {
+        enableDistribution: false,
+      });
+      expect(fn()).toEqual({ __petrinautUuid: "generate" });
+    });
+  });
 });

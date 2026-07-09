@@ -7,7 +7,7 @@
 //! environments, including REST APIs and RPC APIs.
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 mod status_code;
 

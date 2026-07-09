@@ -15,6 +15,12 @@ import type {
   AuthoredByPropertiesWithMetadata,
   CalendarYearDataType,
   CalendarYearDataTypeWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -23,12 +29,6 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
-  DOIDataType,
-  DOIDataTypeWithMetadata,
-  DOILinkPropertyValue,
-  DOILinkPropertyValueWithMetadata,
-  DOIPropertyValue,
-  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -69,6 +69,8 @@ import type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -139,6 +141,8 @@ export type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

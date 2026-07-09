@@ -8,15 +8,18 @@ import { AlertModal, ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import {
   acceptOrgInvitationMutation,
+  getMyPendingInvitationsQuery,
   getPendingInvitationByEntityIdQuery,
 } from "../graphql/queries/knowledge/org.queries";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
+import { useInvites } from "../shared/invites-context";
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
 import { VerifyEmailStep } from "./shared/verify-email-step";
+import { useActiveWorkspace } from "./shared/workspace-context";
 import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
@@ -26,6 +29,8 @@ import { SignupSteps } from "./signup.page/signup-steps";
 import type {
   AcceptOrgInvitationMutation,
   AcceptOrgInvitationMutationVariables,
+  GetMyPendingInvitationsQuery,
+  GetMyPendingInvitationsQueryVariables,
   GetPendingInvitationByEntityIdQuery,
   GetPendingInvitationByEntityIdQueryVariables,
   HasAccessToHashQuery,
@@ -95,6 +100,8 @@ const SignupPage: NextPageWithLayout = () => {
 
   const { authenticatedUser, refetch: refetchAuthenticatedUser } =
     useAuthInfo();
+  const { refetch: refetchInvites } = useInvites();
+  const { updateActiveWorkspaceWebId } = useActiveWorkspace();
 
   const userHasVerifiedEmail =
     authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
@@ -139,12 +146,24 @@ const SignupPage: NextPageWithLayout = () => {
     skip: !invitationId,
   });
 
+  const { data: pendingInvitationsData, loading: pendingInvitationsLoading } =
+    useQuery<
+      GetMyPendingInvitationsQuery,
+      GetMyPendingInvitationsQueryVariables
+    >(getMyPendingInvitationsQuery, {
+      skip: !!invitationId || !authenticatedUser || !userHasVerifiedEmail,
+    });
+
   const [acceptInvitation] = useMutation<
     AcceptOrgInvitationMutation,
     AcceptOrgInvitationMutationVariables
   >(acceptOrgInvitationMutation);
 
-  const invitation = invitationData?.getPendingInvitationByEntityId;
+  const invitation =
+    invitationData?.getPendingInvitationByEntityId ??
+    pendingInvitationsData?.getMyPendingInvitations[0];
+
+  const loadingInvitation = invitationLoading || pendingInvitationsLoading;
 
   const [acceptingInvitation, setAcceptingInvitation] = useState(false);
   const acceptingInvitationEntityIdRef = useRef<EntityId | undefined>(
@@ -220,8 +239,19 @@ const SignupPage: NextPageWithLayout = () => {
     })
       .then(async (result) => {
         if (result?.accepted || result?.alreadyAMember) {
+          refetchInvites();
           await refetchAuthenticatedUser();
-          void router.replace("/");
+          updateActiveWorkspaceWebId(invitation.org.webId);
+          /**
+           * Hard navigation rather than `router.replace`: a client-side
+           * transition here can leave this component mounted on `/` (Next
+           * doesn't reliably re-resolve the route component on these
+           * `getInitialProps`-driven transitions). A full load guarantees a
+           * clean home render with fresh auth state.
+           *
+           * @todo sort out signup redirecting logic generally
+           */
+          window.location.assign("/");
           return;
         }
 
@@ -245,7 +275,9 @@ const SignupPage: NextPageWithLayout = () => {
     clearInvitationAcceptanceReservation,
     invitation,
     refetchAuthenticatedUser,
+    refetchInvites,
     router,
+    updateActiveWorkspaceWebId,
   ]);
 
   useEffect(() => {
@@ -253,7 +285,7 @@ const SignupPage: NextPageWithLayout = () => {
       router.isReady &&
       authenticatedUser?.accountSignupComplete &&
       invitationId &&
-      !invitationLoading &&
+      !loadingInvitation &&
       !invitation &&
       !acceptingInvitation
     ) {
@@ -264,7 +296,7 @@ const SignupPage: NextPageWithLayout = () => {
     authenticatedUser?.accountSignupComplete,
     invitation,
     invitationId,
-    invitationLoading,
+    loadingInvitation,
     router,
   ]);
 
@@ -340,16 +372,30 @@ const SignupPage: NextPageWithLayout = () => {
       }
 
       await refetchAuthenticatedUser();
+      refetchInvites();
+      if (invitation) {
+        updateActiveWorkspaceWebId(invitation.org.webId);
+      }
 
-      void router.push("/");
+      /**
+       * Hard navigation rather than `router.push`: a client-side transition
+       * here can leave this component mounted on `/` (Next doesn't reliably
+       * re-resolve the route component on these `getInitialProps`-driven
+       * transitions), stranding the user on a loading state. A full load
+       * guarantees a clean home render with fresh auth state.
+       *
+       * @todo sort out signup redirecting logic generally
+       */
+      window.location.assign("/");
     },
     [
       acceptInvitationOnce,
       clearInvitationAcceptanceReservation,
       invitation,
+      refetchInvites,
       refetchAuthenticatedUser,
       updateAuthenticatedUser,
-      router,
+      updateActiveWorkspaceWebId,
     ],
   );
 
@@ -395,7 +441,9 @@ const SignupPage: NextPageWithLayout = () => {
       >
         <Grid container columnSpacing={16}>
           <Grid item xs={12} md={7}>
-            {invitationLoading ? null : invitation && showInvitationStep ? (
+            {loadingInvitation ? null : invitation &&
+              showInvitationStep &&
+              !authenticatedUser ? (
               <AcceptOrgInvitation
                 invitation={invitation}
                 onAccept={() => setShowInvitationStep(false)}

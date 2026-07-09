@@ -152,6 +152,51 @@ describe("applyClipboardPaste", () => {
 
     expect(instance.definition.get().places).toEqual([]);
   });
+
+  test("can paste into a subnet target", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    const payload = buildClipboardPayload({
+      places: [
+        {
+          id: "place-1",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+
+    const { newItemIds } = instance.commands.applyClipboardPaste({
+      payload,
+      targetSubnetId: "subnet-1",
+    });
+    const pastedPlace = newItemIds.find((item) => item.type === "place");
+
+    expect(pastedPlace).toBeDefined();
+    expect(instance.definition.get().places).toHaveLength(0);
+    expect(instance.definition.get().subnets?.[0]?.places).toHaveLength(1);
+    expect(instance.definition.get().subnets?.[0]?.places[0]?.id).toBe(
+      pastedPlace!.id,
+    );
+  });
 });
 
 describe("applyAutoLayout", () => {
@@ -210,5 +255,66 @@ describe("applyAutoLayout", () => {
       "place-2",
     ]);
     expect(places.some((place) => place.x !== 0 || place.y !== 0)).toBe(true);
+  });
+
+  test("repositions subnet nodes when targetSubnetId is provided", async () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-1",
+              name: "Input",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+            {
+              id: "place-2",
+              name: "Output",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [
+            {
+              id: "transition-1",
+              name: "Move",
+              inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: "place-2", weight: 1 }],
+              lambdaType: "predicate",
+              lambdaCode: "export default Lambda(() => true);",
+              transitionKernelCode: "",
+              x: 0,
+              y: 0,
+            },
+          ],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    const { commitCount } = await instance.commands.applyAutoLayout({
+      targetSubnetId: "subnet-1",
+    });
+
+    expect(commitCount).toBeGreaterThan(0);
+    expect(instance.definition.get().places).toEqual([]);
+    expect(
+      instance.definition
+        .get()
+        .subnets?.[0]?.places.some((place) => place.x !== 0 || place.y !== 0),
+    ).toBe(true);
   });
 });

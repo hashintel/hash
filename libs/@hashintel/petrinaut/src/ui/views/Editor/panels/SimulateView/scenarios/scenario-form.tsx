@@ -5,6 +5,7 @@ import {
   Button,
   NumberInput,
   Select,
+  TextArea,
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
@@ -16,7 +17,10 @@ import { Spreadsheet } from "../../../../../components/spreadsheet";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
-import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
+import type {
+  SpreadsheetCellValue,
+  SpreadsheetColumn,
+} from "../../../../../components/spreadsheet";
 import type {
   Color,
   Parameter,
@@ -36,35 +40,6 @@ const labelStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
-});
-
-const textareaStyle = css({
-  boxSizing: "border-box",
-  width: "full",
-  minHeight: "[80px]",
-  padding: "[8px]",
-  fontSize: "sm",
-  fontWeight: "medium",
-  fontFamily: "[inherit]",
-  color: "neutral.fg.body",
-  backgroundColor: "neutral.s00",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  outline: "none",
-  resize: "vertical",
-  transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
-  _hover: {
-    borderColor: "neutral.bd.subtle.hover",
-  },
-  _focus: {
-    borderColor: "neutral.bd.subtle",
-    boxShadow: "[0px 0px 0px 2px {colors.neutral.a25}]",
-  },
-  _placeholder: {
-    color: "neutral.s80",
-  },
 });
 
 // -- Scenario parameter row styles --------------------------------------------
@@ -228,8 +203,8 @@ const PlaceInitialStateRow = ({
   placeType: Color | undefined;
   tokenCount: string;
   onTokenCountChange: (value: string) => void;
-  tokenData: number[][];
-  onTokenDataChange: (data: number[][]) => void;
+  tokenData: SpreadsheetCellValue[][];
+  onTokenDataChange: (data: SpreadsheetCellValue[][]) => void;
   documentUri?: string;
   error?: string;
   onFocus?: () => void;
@@ -239,6 +214,7 @@ const PlaceInitialStateRow = ({
     ? placeType.elements.map((element) => ({
         id: element.elementId,
         name: element.name,
+        type: element.type,
       }))
     : [];
 
@@ -297,7 +273,7 @@ export interface ScenarioFormState {
   scenarioParams: ScenarioParameterDraft[];
   parameterOverrides: Record<string, string>;
   initialTokenCounts: Record<string, string>;
-  initialTokenData: Record<string, number[][]>;
+  initialTokenData: Record<string, SpreadsheetCellValue[][]>;
   showAllPlaces: boolean;
   initialStateAsCode: boolean;
   initialStateCode: string;
@@ -316,7 +292,9 @@ export interface ScenarioFormCallbacks {
     updater: (prev: Record<string, string>) => Record<string, string>,
   ) => void;
   onInitialTokenDataChange: (
-    updater: (prev: Record<string, number[][]>) => Record<string, number[][]>,
+    updater: (
+      prev: Record<string, SpreadsheetCellValue[][]>,
+    ) => Record<string, SpreadsheetCellValue[][]>,
   ) => void;
   onShowAllPlacesChange: (value: boolean) => void;
   onInitialStateAsCodeChange: (value: boolean) => void;
@@ -626,11 +604,12 @@ const ScenarioFormSections = ({
           >
             Description
           </label>
-          <textarea
-            id={`${idPrefix}scenario-description`}
-            className={textareaStyle}
+          <TextArea
+            htmlForId={`${idPrefix}scenario-description`}
+            className={css({ minHeight: "[80px]" })}
+            size="sm"
             value={state.description}
-            onChange={(e) => callbacks.onDescriptionChange(e.target.value)}
+            onChange={callbacks.onDescriptionChange}
           />
         </div>
       </Section>

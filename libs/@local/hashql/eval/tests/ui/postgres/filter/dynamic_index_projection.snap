@@ -27,7 +27,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
                     JSONB_EXTRACT_PATH(
                         JSONB_BUILD_ARRAY(10, 20, 30), ((($1::jsonb))::text)
                     )
-                )::boolean
+                )::bool
             ),
             FALSE
         ),

@@ -1,0 +1,37 @@
+Opaque(
+    Opaque {
+        name: Symbol(
+            "::main::Outer:0",
+        ),
+        value: Struct(
+            Struct {
+                fields: [
+                    Symbol(
+                        "x",
+                    ),
+                    Symbol(
+                        "y",
+                    ),
+                ],
+                values: [
+                    Opaque(
+                        Opaque {
+                            name: Symbol(
+                                "::main::A:0",
+                            ),
+                            value: Unit,
+                        },
+                    ),
+                    Opaque(
+                        Opaque {
+                            name: Symbol(
+                                "::main::A:0",
+                            ),
+                            value: Unit,
+                        },
+                    ),
+                ],
+            },
+        ),
+    },
+)

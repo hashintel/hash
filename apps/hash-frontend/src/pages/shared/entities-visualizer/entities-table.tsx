@@ -106,6 +106,7 @@ export const EntitiesTable: FunctionComponent<
     loading: boolean;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
+    hasMoreRowsAvailable: boolean;
     loadMoreRows?: () => void;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
@@ -136,6 +137,7 @@ export const EntitiesTable: FunctionComponent<
   loading: entityDataLoading,
   isViewingOnlyPages,
   maxHeight,
+  hasMoreRowsAvailable,
   loadMoreRows,
   selectedRows,
   setActiveConversions,
@@ -810,8 +812,6 @@ export const EntitiesTable: FunctionComponent<
     });
   }, [rows.length]);
 
-  const hasMoreRowsAvailable =
-    !!totalResultCount && totalResultCount > rows.length;
   const loadMoreRowHeight = 60;
 
   return (
@@ -906,7 +906,9 @@ export const EntitiesTable: FunctionComponent<
                     component="span"
                     sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
                   >
-                    - {formatNumber(totalResultCount - rows.length)} remaining
+                    {totalResultCount != null
+                      ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                      : ""}
                   </Box>
                   <ArrowDownRegularIcon
                     sx={{

@@ -1,7 +1,13 @@
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  type MinimalNetMetadata,
+  type PetrinautDocHandle,
+  type PetrinautHandleCapabilities,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import {
   DefaultChatTransport,
   Petrinaut,
@@ -18,18 +24,16 @@ import {
 } from "./use-local-storage-sdcpns";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
-import type {
-  MinimalNetMetadata,
-  PetrinautDocHandle,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
-
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
   sdcpn.types.length === 0 &&
   sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0;
+  sdcpn.differentialEquations.length === 0 &&
+  (sdcpn.subnets ?? []).length === 0 &&
+  (sdcpn.componentInstances ?? []).length === 0 &&
+  (sdcpn.scenarios ?? []).length === 0 &&
+  (sdcpn.metrics ?? []).length === 0;
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -64,8 +68,16 @@ const createLocalStorageNetRecord = (params: {
   };
 };
 
+const DEMO_CAPABILITIES = {
+  disabledExtensions: [],
+} satisfies PetrinautHandleCapabilities;
+
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
-  createJsonDocHandle({ id: net.id, initial: net.sdcpn });
+  createJsonDocHandle({
+    id: net.id,
+    initial: net.sdcpn,
+    capabilities: DEMO_CAPABILITIES,
+  });
 
 const petrinautAiChatTransport: PetrinautAiChatTransport =
   new DefaultChatTransport({

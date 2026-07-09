@@ -6,7 +6,9 @@ import {
 } from "react";
 
 import {
+  arcMatchesEndpoint,
   DEFAULT_PETRINAUT_EXTENSIONS,
+  placeArcEndpoint,
   type Color,
   type DifferentialEquation,
   type Parameter,
@@ -241,6 +243,10 @@ const PlaceEmptyPanelStory = () => {
 
 const TransitionPanelStory = () => {
   const [transition, setTransition] = useState<Transition>(TRANSITION);
+  const endpointFromInput = (input: {
+    placeId?: string;
+    endpoint?: Parameters<typeof arcMatchesEndpoint>[1];
+  }) => input.endpoint ?? placeArcEndpoint(input.placeId ?? "");
   const updateTransition: PetrinautMutations["updateTransition"] = (input) => {
     applyStoryUpdate(setTransition, input.update);
   };
@@ -249,7 +255,8 @@ const TransitionPanelStory = () => {
       const next = clone(prev);
       const arcs =
         input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const arc = arcs.find((item) => item.placeId === input.placeId);
+      const endpoint = endpointFromInput(input);
+      const arc = arcs.find((item) => arcMatchesEndpoint(item, endpoint));
       if (arc) {
         arc.weight = input.weight;
       }
@@ -261,9 +268,20 @@ const TransitionPanelStory = () => {
       const next = clone(prev);
       const arcs =
         input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const arc = arcs.find((item) => item.placeId === input.oldPlaceId);
+      const oldEndpoint =
+        input.oldEndpoint ?? placeArcEndpoint(input.oldPlaceId ?? "");
+      const newEndpoint =
+        input.newEndpoint ?? placeArcEndpoint(input.newPlaceId ?? "");
+      const arc = arcs.find((item) => arcMatchesEndpoint(item, oldEndpoint));
       if (arc) {
-        arc.placeId = input.newPlaceId;
+        delete arc.placeId;
+        delete arc.endpoint;
+        Object.assign(
+          arc,
+          newEndpoint.kind === "place"
+            ? { placeId: newEndpoint.placeId }
+            : { endpoint: newEndpoint },
+        );
       }
       return next;
     });
@@ -273,7 +291,8 @@ const TransitionPanelStory = () => {
       const next = clone(prev);
       const arcs =
         input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const index = arcs.findIndex((arc) => arc.placeId === input.placeId);
+      const endpoint = endpointFromInput(input);
+      const index = arcs.findIndex((arc) => arcMatchesEndpoint(arc, endpoint));
       if (index !== -1) {
         arcs.splice(index, 1);
       }
@@ -284,6 +303,7 @@ const TransitionPanelStory = () => {
     <PanelFrame>
       <TransitionProperties
         transition={transition}
+        net={{ places: PLACES, componentInstances: [] }}
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}
@@ -314,6 +334,7 @@ const TransitionEmptyPanelStory = () => {
     <PanelFrame>
       <TransitionProperties
         transition={transition}
+        net={{ places: PLACES, componentInstances: [] }}
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}

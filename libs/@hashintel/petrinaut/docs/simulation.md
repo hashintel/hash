@@ -9,7 +9,7 @@ Before running a simulation, set the **initial marking** -- the starting tokens 
 Select a place and open the **State** sub-view in its properties:
 
 - **Untyped places** -- set a token count (integer).
-- **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token.
+- **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token. UUID dimensions show a shortened identifier (hover for the full value); when editing, enter a UUID string or any free text -- non-UUID text is converted deterministically to a UUID.
 
 <img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
 

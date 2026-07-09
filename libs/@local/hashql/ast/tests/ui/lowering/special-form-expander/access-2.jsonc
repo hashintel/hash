@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: access/2 should compile
-["::kernel::special_form::access", "x", "y"]

@@ -21,7 +21,6 @@ annotate-snippets = { workspace = true, optional = true, features = ["simd"] }
 anstream          = { workspace = true }
 anstyle-lossy     = { workspace = true, optional = true }
 anstyle-svg       = { workspace = true }
-derive_more       = { workspace = true, features = ["display"] }
 serde             = { workspace = true, optional = true, features = ["derive", "alloc"] }
 simple-mermaid    = { workspace = true }
 

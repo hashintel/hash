@@ -23,6 +23,7 @@ impl SymbolRegistry<'_> {
 }
 
 impl Default for SymbolRegistry<'_> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -44,6 +45,7 @@ impl Counter {
 }
 
 impl Default for Counter {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

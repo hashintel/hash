@@ -6,11 +6,14 @@ const PORT = process.env.PORT;
 export const isTestEnv = process.env.NODE_ENV === "test";
 
 /** Whether the backend is running in the development environment. */
-export const isDevEnv =
-  process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+export const isDevEnv = process.env.NODE_ENV === "development";
 
 /** Whether the backend is running in the production environment. */
-export const isProdEnv = process.env.NODE_ENV === "production";
+export const isProdEnv =
+  process.env.ENVIRONMENT === "production" ||
+  (!process.env.ENVIRONMENT && process.env.NODE_ENV === "production");
+
+export const isStagingEnv = process.env.ENVIRONMENT === "staging";
 
 /** The port the backend server should be running on */
 export const port = PORT ? parseInt(PORT, 10) : 5001;

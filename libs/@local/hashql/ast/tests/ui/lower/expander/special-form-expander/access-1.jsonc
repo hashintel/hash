@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: access/1 should error out
+["::kernel::special_form::access", "x"]
+//~^ ERROR expected 2 arguments to `.`, found 1

@@ -1554,7 +1554,7 @@ const fn chunk_word_index_and_mask(elem: usize) -> (usize, Word) {
     word_index_and_mask(chunk_elem)
 }
 
-fn clear_excess_bits_in_final_word(domain_size: usize, words: &mut [Word]) {
+const fn clear_excess_bits_in_final_word(domain_size: usize, words: &mut [Word]) {
     let num_bits_in_final_word = domain_size % WORD_BITS;
     if num_bits_in_final_word > 0 {
         let mask = (1 << num_bits_in_final_word) - 1;

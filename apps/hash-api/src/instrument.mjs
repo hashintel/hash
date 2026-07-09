@@ -13,7 +13,7 @@ import {
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
 
-import { isProdEnv } from "./lib/env-config";
+import { isProdEnv, isStagingEnv } from "./lib/env-config";
 
 /**
  * OpenTelemetry setup handle, exported so `index.ts` can wire
@@ -55,7 +55,7 @@ export const otelSetup = (() => {
     // Outside production, fail loud: the only realistic causes here are
     // coding errors (bad URL, malformed instrumentation config) and
     // hiding them in dev/CI loses regressions.
-    if (!isProdEnv) {
+    if (!isProdEnv && !isStagingEnv) {
       throw error;
     }
     // eslint-disable-next-line no-console

@@ -40,6 +40,12 @@ impl From<String> for Identifier<'_> {
     }
 }
 
+impl<'name> From<Cow<'name, str>> for Identifier<'name> {
+    fn from(name: Cow<'name, str>) -> Self {
+        Self { name }
+    }
+}
+
 impl AsRef<str> for Identifier<'_> {
     fn as_ref(&self) -> &str {
         &self.name

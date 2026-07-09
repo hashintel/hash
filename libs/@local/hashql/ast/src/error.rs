@@ -3,7 +3,7 @@ use alloc::borrow::Cow;
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
-use crate::lowering::error::LoweringDiagnosticCategory;
+use crate::lower::error::LoweringDiagnosticCategory;
 
 pub type AstDiagnostic = Diagnostic<AstDiagnosticCategory, SpanId>;
 

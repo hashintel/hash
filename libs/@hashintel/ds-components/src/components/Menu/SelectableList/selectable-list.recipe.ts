@@ -19,12 +19,6 @@ export const styles = sva({
       minWidth: "[140px]",
       zIndex: "popover",
       transformOrigin: "var(--transform-origin)",
-      '&[data-state="open"]': {
-        animation: "popoverIn 120ms ease-out",
-      },
-      '&[data-state="closed"]': {
-        animation: "popoverOut 50ms ease-in",
-      },
     },
     group: {
       width: "full",
@@ -132,6 +126,28 @@ export const styles = sva({
         },
         emptyContainer: {
           textStyle: "sm",
+        },
+      },
+    },
+    component: {
+      select: {
+        content: {
+          '&[data-state="open"]': {
+            animation: "popoverIn 120ms ease-out",
+          },
+          '&[data-state="closed"]': {
+            animation: "popoverOut 50ms ease-in",
+          },
+        },
+      },
+      menu: {
+        content: {
+          '&[data-state="open"]': {
+            animation: "fadeIn 120ms ease-out",
+          },
+          '&[data-state="closed"]': {
+            animation: "fadeOut 50ms ease-in",
+          },
         },
       },
     },

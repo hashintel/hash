@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Test let expression with non-path target is not treated specially
+[
+  "let",
+  ["+", { "#literal": 1 }, { "#literal": 2 }],
+  //~^ ERROR expected a simple identifier for the `let` binding name
+  { "#literal": 3 },
+  { "#literal": 4 }
+]

@@ -6,6 +6,7 @@
 
 extern crate alloc;
 
+mod clustering;
 mod data_type;
 mod drafts;
 mod email_filter_protection;
@@ -49,15 +50,17 @@ use hash_graph_store::{
         CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
         EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
         QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
         GetClosedMultiEntityTypesResponse, HasPermissionForEntityTypesParams,
         IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
@@ -638,6 +641,14 @@ impl EntityTypeStore for DatabaseApi<'_> {
         self.store.count_entity_types(actor_id, params).await
     }
 
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        self.store.search_entity_types(actor_id, params).await
+    }
+
     async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -816,6 +827,14 @@ impl EntityStore for DatabaseApi<'_> {
         self.store.query_entities(actor_id, params).await
     }
 
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        self.store.search_entities(actor_id, params).await
+    }
+
     async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
@@ -870,6 +889,17 @@ impl EntityStore for DatabaseApi<'_> {
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
+    }
+
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: hash_graph_store::entity::ClusterEntitiesParams,
+    ) -> Result<
+        hash_graph_store::entity::ClusterEntitiesResponse,
+        Report<hash_graph_store::error::ClusterError>,
+    > {
+        self.store.cluster_entities(actor_id, params).await
     }
 
     async fn has_permission_for_entities(

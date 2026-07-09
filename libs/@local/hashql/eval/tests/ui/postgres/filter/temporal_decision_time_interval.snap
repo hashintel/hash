@@ -33,7 +33,7 @@ CROSS JOIN LATERAL
     (
         SELECT
             (
-                ROW(NULL, 1, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation
+                ROW(NULL, 1, ARRAY[]::int4 [], ARRAY[]::jsonb [])::continuation
             ) AS "row"
     ) AS "continuation_0_0"
 WHERE

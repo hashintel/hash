@@ -1,0 +1,5 @@
+//@ run: fail
+//@ description: Field index out of bounds should error
+["::kernel::special_form::access", "data", { "#literal": 18446744073709551616 }]
+//~^ ERROR field index is out of bounds
+//~| ERROR cannot find value `data` in this scope

@@ -1,0 +1,32 @@
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+   ╭▸ 
+22 │   { "#dict": { "a": { "#literal": 1 } } }
+   │   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a dictionary expression as a type
+   │
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+   ╭▸ 
+16 │       { "#literal": 1 }
+   │       ━━━━━━━━━━━━━━━━━ cannot use a literal value as a type
+   │
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+   ╭▸ 
+19 │     { "#list": [{ "#literal": 1 }, { "#literal": 2 }] }
+   │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use a list expression as a type
+   │
+   ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+   ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::item-not-found]: Item not found
+   ╭▸ 
+13 │         ["::kernel::special_form::as", { "#literal": 1 }, "Integer"]
+   │                     ┬───────────  ━━ cannot find type `as` in module `::kernel::special_form`
+   │                     │
+   │                     looked in this module
+   │
+   ╰ help: `as` exists as a value, not type

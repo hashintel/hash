@@ -1,0 +1,38 @@
+error[expander::invalid-expression-in-type-position]: Invalid expression in type position
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+  │                                         ━━━━━━━━━━━━━━━━━ cannot use a literal value as a type
+  │
+  ├ help: replace this with a type path, tuple type, struct type, `_`, `(| ...)`, or `(& ...)`
+  ╰ note: valid type forms are: type paths like `String`, tuple types like `(Int, String)`, struct types like `(name: String)`, `_` for inference, unions `(| ...)`, and intersections `(& ...)`
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+  │                                                             ━ cannot find value `x` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+3 - ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+3 + ["::kernel::special_form::type", "::x", { "#literal": 1 }, "~"]
+  ├╴
+3 - ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+3 + ["::kernel::special_form::type", "::x", { "#literal": 1 }, "↑"]
+  ├╴
+3 - ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+3 + ["::kernel::special_form::type", "::x", { "#literal": 1 }, "√"]
+  ├╴
+3 - ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+3 + ["::kernel::special_form::type", "::x", { "#literal": 1 }, "∛"]
+  ├╴
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "index"]
+  ╰╴                                                            ++++
+
+error[expander::invalid-binding-name]: Invalid binding name
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+  │                                   ━━━ expected a type name for the `type` binding
+  │
+  ├ help: write `(type Name type-expr body)` with a name like `MyType` or `Pair<A, B>`
+  ╰ note: the first argument to `type` introduces a new type alias and must be a simple identifier, optionally with generic parameters

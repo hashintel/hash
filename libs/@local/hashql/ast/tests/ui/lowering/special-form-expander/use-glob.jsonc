@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: glob pattern should compile to AST node
-["::kernel::special_form::use", "::math", "*", "x"]

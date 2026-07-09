@@ -1,0 +1,5 @@
+//@ run: fail
+//@ description: Field access with boolean literal should error
+["::kernel::special_form::access", "data", { "#literal": true }]
+//~^ ERROR expected an integer for field indexing
+//~| ERROR cannot find value `data` in this scope

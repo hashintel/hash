@@ -38,7 +38,8 @@ impl Suite for MirPassAnalysisDataDependency {
 
         let mut buffer = Vec::new();
 
-        let (root, mut bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
+        let (root, mut bodies, _) =
+            mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
 
         writeln!(buffer, "{}\n", Header::new("MIR")).expect("should be able to write to buffer");
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);

@@ -147,23 +147,30 @@ impl<C: AsClient> PostgresStore<C> {
         L: From<VersionedUrl>,
         R: From<VersionedUrl>,
     {
-        let table = Table::Reference(reference_table).transpile_to_string();
+        let table = Table::Reference(reference_table)
+            .name()
+            .transpile_to_string();
         let source =
             if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
-                join.transpile_to_string()
+                join.name().transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
         let target =
             if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
-                on.transpile_to_string()
+                on.name().transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
         let depth = reference_table
             .inheritance_depth_column()
-            .and_then(|column| Some((column.as_str(), column.inheritance_depth()?)));
+            .and_then(|column| {
+                Some((
+                    column.name().transpile_to_string(),
+                    column.inheritance_depth()?,
+                ))
+            });
 
         let where_statement = match depth {
             Some((column, depth)) => Cow::Owned(format!("WHERE {table}.{column} <= {depth}")),

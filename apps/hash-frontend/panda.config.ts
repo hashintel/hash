@@ -22,10 +22,13 @@ export default defineConfig({
   ...scopedThemeConfig(".hash-ds-root"),
 
   /**
-   * Only styles used inside ds-components itself — this app does not author
-   * Panda styles. Add `./src` globs here if `css()` calls are introduced.
+   * Styles used inside ds-components itself, plus the supply-chain tool
+   * and its route pages, which author Panda `css()` calls against the ds-components preset tokens.
    */
-  include: [require.resolve("@hashintel/ds-components/panda.buildinfo.json")],
+  include: [
+    require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
+    "./src/pages/supply-chain/**/*.{ts,tsx}",
+  ],
 
   exclude: [],
 

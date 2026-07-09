@@ -1,3 +1,4 @@
+import { getArcEndpointPlaceId } from "../arc-endpoints";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
@@ -57,12 +58,14 @@ export function serializeSelection(
     .filter((transition) => selectedTransitionIds.has(transition.id))
     .map((transition) => ({
       ...transition,
-      inputArcs: transition.inputArcs.filter((arc) =>
-        selectedPlaceIds.has(arc.placeId),
-      ),
-      outputArcs: transition.outputArcs.filter((arc) =>
-        selectedPlaceIds.has(arc.placeId),
-      ),
+      inputArcs: transition.inputArcs.filter((arc) => {
+        const placeId = getArcEndpointPlaceId(arc);
+        return placeId ? selectedPlaceIds.has(placeId) : false;
+      }),
+      outputArcs: transition.outputArcs.filter((arc) => {
+        const placeId = getArcEndpointPlaceId(arc);
+        return placeId ? selectedPlaceIds.has(placeId) : false;
+      }),
     }));
 
   return {

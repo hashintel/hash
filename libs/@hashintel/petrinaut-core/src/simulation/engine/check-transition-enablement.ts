@@ -1,3 +1,4 @@
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import { materializeEngineFrame } from "../frames/internal-frame";
 
 import type { Transition } from "../../types/sdcpn";
@@ -56,11 +57,15 @@ function isTransitionStructurallyEnabledSnapshot(
 
   // Check if all input places satisfy the required arc conditions.
   return transition.inputArcs.every((arc) => {
-    const placeState = snapshot.places[arc.placeId];
-    if (!placeState) {
+    const placeId = getArcEndpointPlaceId(arc);
+    if (!placeId) {
       throw new Error(
-        `Place with ID ${arc.placeId} not found in current marking.`,
+        `Component port endpoint found in unflattened transition ${transition.id}.`,
       );
+    }
+    const placeState = snapshot.places[placeId];
+    if (!placeState) {
+      throw new Error(`Place with ID ${placeId} not found in current marking.`);
     }
 
     return arc.type === "inhibitor"

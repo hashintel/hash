@@ -12,9 +12,7 @@ error-stack = { workspace = true, public = true, features = ["unstable"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
-futures-core   = { workspace = true, public = true }
 postgres-types = { workspace = true, public = true, features = ["derive", "with-uuid-1"], optional = true }
-reqwest        = { workspace = true, public = true, features = ["json", "stream"] }
 specta         = { workspace = true, public = true, optional = true, features = ["derive"] }
 
 # Private workspace dependencies
@@ -26,7 +24,6 @@ cedar-policy-core = { workspace = true }
 derive-where      = { workspace = true }
 derive_more       = { workspace = true, features = ["display", "error", "from"] }
 enum-iterator     = { workspace = true }
-futures           = { workspace = true }
 serde             = { workspace = true, features = ["derive", "unstable"] }
 serde_json        = { workspace = true }
 serde_plain       = { workspace = true }

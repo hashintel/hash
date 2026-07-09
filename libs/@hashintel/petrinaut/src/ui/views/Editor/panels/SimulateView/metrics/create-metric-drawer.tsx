@@ -1,13 +1,13 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import { metricSchema, compileMetric } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   MetricFormBody,
@@ -52,32 +52,38 @@ const CreateMetricFooter = ({
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
-    <Drawer.Footer>
-      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Cancel
-      </Button>
-      <Button
-        variant="solid"
-        tone="neutral"
-        size="sm"
-        disabled={!canSave}
-        tooltip={
-          formError ??
-          (hasLspErrors
-            ? "Fix the errors in the metric code before saving."
-            : (compileError ??
-              (isDefaultValue
-                ? "Make changes to enable creation."
-                : undefined)))
-        }
-        onClick={() => {
-          void form.handleSubmit();
-        }}
-      >
-        Create
-      </Button>
-    </Drawer.Footer>
+    <Drawer.Footer
+      secondaryActions={
+        <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      }
+      actions={
+        <>
+          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            disabled={!canSave}
+            tooltip={
+              formError ??
+              (hasLspErrors
+                ? "Fix the errors in the metric code before saving."
+                : (compileError ??
+                  (isDefaultValue
+                    ? "Make changes to enable creation."
+                    : undefined)))
+            }
+            onClick={() => {
+              void form.handleSubmit();
+            }}
+          >
+            Create
+          </Button>
+        </>
+      }
+    />
   );
 };
 
@@ -131,26 +137,29 @@ export const CreateMetricDrawer = ({
   // diagnostics summary to the same session.
   const metricSessionId = useMetricLspSession(values.code);
 
+  if (!open) {
+    return null;
+  }
+
   return (
-    <Drawer.Root open={open} onClose={onClose}>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="A function over the simulation state that returns a number to plot on the timeline.">
-          Create a metric
-        </Drawer.Header>
-        <Drawer.Body>
-          <MetricFormBody
-            form={form}
-            idPrefix="create-"
-            metricSessionId={metricSessionId}
-          />
-        </Drawer.Body>
-      </Drawer.Card>
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="metric">
+      <Drawer.Header
+        title="Create a metric"
+        description="A function over the simulation state that returns a number to plot on the timeline."
+      />
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+        <MetricFormBody
+          form={form}
+          idPrefix="create-"
+          metricSessionId={metricSessionId}
+        />
+      </Drawer.Body>
       <CreateMetricFooter
         form={form}
         compileError={compileError}
         metricSessionId={metricSessionId}
         onClose={onClose}
       />
-    </Drawer.Root>
+    </Drawer>
   );
 };

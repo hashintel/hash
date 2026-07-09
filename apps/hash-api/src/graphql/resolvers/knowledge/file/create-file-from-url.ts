@@ -24,6 +24,7 @@ export const createFileFromUrl: ResolverFn<
     fileEntityCreationInput,
     fileEntityUpdateInput,
     displayName,
+    makePublic,
     url,
   },
   graphQLContext,
@@ -36,6 +37,7 @@ export const createFileFromUrl: ResolverFn<
     displayName,
     fileEntityCreationInput,
     fileEntityUpdateInput,
+    makePublic,
     url,
   });
 

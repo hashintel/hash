@@ -1,7 +1,8 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   scenarioSchema,
   type Color,
@@ -11,7 +12,6 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   ScenarioFormBody,
@@ -20,13 +20,20 @@ import {
   useScenarioForm,
 } from "./scenario-form";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
-import { buildScenarioFromFormState } from "./scenario-mapping";
+import {
+  buildScenarioFromFormState,
+  buildSpreadsheetDataFromScenario,
+  type ScenarioTokenRowContext,
+} from "./scenario-mapping";
 
 // -- Defaults -----------------------------------------------------------------
 
 let nextKey = 0;
 
-function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
+function buildDefaultsFromScenario(
+  scenario: Scenario,
+  context: ScenarioTokenRowContext,
+): ScenarioFormState {
   return {
     name: scenario.name,
     description: scenario.description ?? "",
@@ -44,14 +51,9 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
             ),
           ) as Record<string, string>)
         : {},
-    initialTokenData:
-      scenario.initialState.type === "per_place"
-        ? (Object.fromEntries(
-            Object.entries(scenario.initialState.content).filter(
-              (entry): entry is [string, number[][]] => Array.isArray(entry[1]),
-            ),
-          ) as Record<string, number[][]>)
-        : {},
+    // Coloured token rows, with uuid strings parsed to bigints for the
+    // spreadsheet.
+    initialTokenData: buildSpreadsheetDataFromScenario(scenario, context),
     showAllPlaces: false,
     initialStateAsCode: scenario.initialState.type === "code",
     initialStateCode:
@@ -89,31 +91,37 @@ const ViewScenarioFooter = ({
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
-    <Drawer.Footer>
-      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Close
-      </Button>
-      <Button
-        variant="solid"
-        tone="neutral"
-        size="sm"
-        disabled={!canSave}
-        tooltip={
-          formError ??
-          (hasLspErrors
-            ? "Fix the errors in the scenario expressions before saving."
-            : isDefaultValue
-              ? "No changes to save."
-              : undefined)
-        }
-        onClick={() => {
-          void form.handleSubmit();
-        }}
-      >
-        Save
-      </Button>
-    </Drawer.Footer>
+    <Drawer.Footer
+      secondaryActions={
+        <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      }
+      actions={
+        <>
+          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            disabled={!canSave}
+            tooltip={
+              formError ??
+              (hasLspErrors
+                ? "Fix the errors in the scenario expressions before saving."
+                : isDefaultValue
+                  ? "No changes to save."
+                  : undefined)
+            }
+            onClick={() => {
+              void form.handleSubmit();
+            }}
+          >
+            Save
+          </Button>
+        </>
+      }
+    />
   );
 };
 
@@ -144,12 +152,21 @@ const ViewScenarioContent = ({
       .map((s) => s.name),
   );
 
+  const tokenRowContext: ScenarioTokenRowContext = {
+    places: petriNetDefinition.places,
+    typesById,
+  };
+
   // Build defaults once from the scenario prop (component remounts via `key`
   // when scenario.id changes, so this is effectively re-evaluated on switch).
   const form = useScenarioForm(
-    buildDefaultsFromScenario(scenario),
+    buildDefaultsFromScenario(scenario, tokenRowContext),
     (value) => {
-      const updated = buildScenarioFromFormState(value, scenario.id);
+      const updated = buildScenarioFromFormState(
+        value,
+        scenario.id,
+        tokenRowContext,
+      );
       const result = scenarioSchema.safeParse(updated);
       if (!result.success) {
         return;
@@ -170,23 +187,21 @@ const ViewScenarioContent = ({
   );
 
   return (
-    <>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header>{scenario.name}</Drawer.Header>
-        <Drawer.Body>
-          <ScenarioFormBody
-            form={form}
-            parameters={
-              extensions.parameters ? petriNetDefinition.parameters : []
-            }
-            places={petriNetDefinition.places}
-            typesById={typesById}
-            idPrefix="view-"
-          />
-        </Drawer.Body>
-      </Drawer.Card>
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
+      <Drawer.Header title={scenario.name} />
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+        <ScenarioFormBody
+          form={form}
+          parameters={
+            extensions.parameters ? petriNetDefinition.parameters : []
+          }
+          places={petriNetDefinition.places}
+          typesById={typesById}
+          idPrefix="view-"
+        />
+      </Drawer.Body>
       <ViewScenarioFooter form={form} onClose={onClose} />
-    </>
+    </Drawer>
   );
 };
 
@@ -202,14 +217,16 @@ export const ViewScenarioDrawer = ({
   open,
   onClose,
   scenario,
-}: ViewScenarioDrawerProps) => (
-  <Drawer.Root open={open} onClose={onClose}>
-    {scenario ? (
-      <ViewScenarioContent
-        key={scenario.id}
-        scenario={scenario}
-        onClose={onClose}
-      />
-    ) : null}
-  </Drawer.Root>
-);
+}: ViewScenarioDrawerProps) => {
+  if (!open || !scenario) {
+    return null;
+  }
+
+  return (
+    <ViewScenarioContent
+      key={scenario.id}
+      scenario={scenario}
+      onClose={onClose}
+    />
+  );
+};

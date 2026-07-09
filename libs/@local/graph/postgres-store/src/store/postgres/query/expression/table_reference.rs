@@ -1,7 +1,4 @@
-use core::{
-    fmt::{self, Write as _},
-    hash::{Hash, Hasher},
-};
+use core::fmt::{self, Write as _};
 
 use super::identifier::Identifier;
 use crate::store::postgres::query::{Alias, Table, Transpile};
@@ -40,44 +37,12 @@ impl Transpile for SchemaReference<'_> {
     }
 }
 
-#[derive(Clone, Eq)]
-enum TableNameImpl<'name> {
-    Static(Table),
-    Dynamic(Identifier<'name>),
-}
-
-impl TableNameImpl<'_> {
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        match self {
-            TableNameImpl::Static(table) => table.as_str(),
-            TableNameImpl::Dynamic(name) => name.as_ref(),
-        }
-    }
-}
-
-impl PartialEq for TableNameImpl<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        if let (TableNameImpl::Static(lhs), TableNameImpl::Static(rhs)) = (self, other) {
-            lhs == rhs
-        } else {
-            self.as_str() == other.as_str()
-        }
-    }
-}
-
-impl Hash for TableNameImpl<'_> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state);
-    }
-}
-
 /// A table name in a PostgreSQL query.
 ///
-/// Can represent either a schema-defined [`Table`] or a dynamically-provided identifier.
-/// The two variants are treated as equal if they represent the same table name string.
+/// Wraps an [`Identifier`], so transpiling always quotes and escapes the name regardless of
+/// whether it came from a schema-defined [`Table`] or was provided dynamically.
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TableName<'name>(TableNameImpl<'name>);
+pub struct TableName<'name>(Identifier<'name>);
 
 impl fmt::Debug for TableName<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -87,22 +52,26 @@ impl fmt::Debug for TableName<'_> {
 
 impl From<Table> for TableName<'_> {
     fn from(table: Table) -> Self {
-        Self(TableNameImpl::Static(table))
+        Self(Identifier::from(table.as_str()))
     }
 }
 
 impl<'name, I: Into<Identifier<'name>>> From<I> for TableName<'name> {
     fn from(identifier: I) -> Self {
-        Self(TableNameImpl::Dynamic(identifier.into()))
+        Self(identifier.into())
+    }
+}
+
+impl TableName<'_> {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
 impl Transpile for TableName<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            TableNameImpl::Dynamic(identifier) => identifier.transpile(fmt),
-            TableNameImpl::Static(table) => table.transpile(fmt),
-        }
+        self.0.transpile(fmt)
     }
 }
 
@@ -156,16 +125,11 @@ impl Transpile for TableReference<'_> {
         }
         if let Some(alias) = &self.alias {
             fmt.write_char('"')?;
-            match &self.name.0 {
-                TableNameImpl::Static(table) => fmt.write_str(table.as_str())?,
-                TableNameImpl::Dynamic(name) => {
-                    for ch in name.as_ref().chars() {
-                        if ch == '"' {
-                            fmt.write_str("\"\"")?;
-                        } else {
-                            fmt.write_char(ch)?;
-                        }
-                    }
+            for ch in self.name.as_str().chars() {
+                if ch == '"' {
+                    fmt.write_str("\"\"")?;
+                } else {
+                    fmt.write_char(ch)?;
                 }
             }
             write!(

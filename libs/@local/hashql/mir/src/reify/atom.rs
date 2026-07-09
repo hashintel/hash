@@ -1,4 +1,6 @@
-use hashql_core::{id::Id as _, r#type::kind::TypeKind};
+use core::alloc::Allocator;
+
+use hashql_core::{id::Id as _, r#type::kind::TypeKind, value::Primitive};
 use hashql_hir::node::{
     Node,
     access::{Access, FieldAccess, IndexAccess},
@@ -25,7 +27,7 @@ use crate::{
     },
 };
 
-impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
+impl<'heap, A: Allocator, S: Allocator> Reifier<'_, '_, '_, '_, 'heap, A, S> {
     fn local(&mut self, node: Node<'heap>) -> Local {
         let NodeKind::Variable(Variable::Local(local)) = node.kind else {
             self.state
@@ -163,6 +165,7 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                 // In the future this would be a simple FnPtr
                 Operand::Constant(Constant::Unit)
             }
+            NodeKind::Data(Data::Primitive(Primitive::Null)) => Operand::Constant(Constant::Unit),
             NodeKind::Data(Data::Primitive(primitive)) => {
                 // First try if we can promote the primitive to a non-opaque constant:
                 let constant = match Int::try_from(primitive) {

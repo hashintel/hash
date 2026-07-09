@@ -67,6 +67,7 @@ import Feather from "./svgs/regular/feather.svg";
 import FileLines from "./svgs/regular/file-lines.svg";
 import FileSpreadsheet from "./svgs/regular/file-spreadsheet.svg";
 import File from "./svgs/regular/file.svg";
+import Filter from "./svgs/regular/filter.svg";
 import Flask from "./svgs/regular/flask.svg";
 import ForwardStep from "./svgs/regular/forward-step.svg";
 import FunctionSymbol from "./svgs/regular/function.svg";
@@ -193,6 +194,7 @@ const IconMap = {
   file: File,
   fileLines: FileLines,
   fileSpreadsheet: FileSpreadsheet,
+  filter: Filter,
   flask: Flask,
   function: FunctionSymbol,
   gear: Gear,

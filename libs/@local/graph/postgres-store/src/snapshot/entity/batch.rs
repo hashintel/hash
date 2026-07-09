@@ -19,14 +19,17 @@ use type_system::{
 };
 
 use crate::{
-    snapshot::WriteBatch,
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
         StoreCache, StoreProvider,
         postgres::{
             AsClient, PostgresStore,
-            query::rows::{
-                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
-                EntityIsOfTypeRow, EntityTemporalMetadataRow,
+            query::{
+                OnConflict,
+                rows::{
+                    EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow,
+                    EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                },
             },
         },
     },
@@ -101,161 +104,101 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ids) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_ids_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_ids[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&ids],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity ids", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ids,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity ids");
                 }
             }
             Self::Drafts(drafts) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_drafts_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_drafts[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&drafts],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity draft ids", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &drafts,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity draft ids");
                 }
             }
             Self::Editions(editions) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_editions_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_editions[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&editions],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity editions", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &editions,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity editions");
                 }
             }
             Self::Type(types) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_is_of_type_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_is_of_type[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&types],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity types", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &types,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity types");
                 }
             }
             Self::TemporalMetadata(temporal_metadata) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_temporal_metadata_tmp
-                            SELECT * FROM UNNEST($1::entity_temporal_metadata[])
-                            RETURNING 1;
-                        ",
-                        &[&temporal_metadata],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity temporal metadata", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &temporal_metadata,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity temporal metadata");
                 }
             }
             Self::EntityEdges(edges) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_edge_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_edge[])
-                            RETURNING 1;
-                        ",
-                        &[&edges],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity edges", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &edges,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity edges");
                 }
             }
             Self::Embeddings(embeddings) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_embeddings_tmp
-                            SELECT * FROM UNNEST($1::entity_embeddings[])
-                            RETURNING 1;
-                        ",
-                        &[&embeddings],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} entity embeddings", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &embeddings,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} entity embeddings");
                 }
             }
         }

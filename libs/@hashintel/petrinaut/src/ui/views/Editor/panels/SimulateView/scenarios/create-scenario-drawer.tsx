@@ -1,13 +1,13 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import { scenarioSchema, type Color } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   ScenarioFormBody,
@@ -16,7 +16,18 @@ import {
 } from "./scenario-form";
 import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
-import { buildScenarioFromFormState } from "./scenario-mapping";
+import {
+  buildScenarioFromFormState,
+  type ScenarioTokenRowContext,
+} from "./scenario-mapping";
+
+// Padding + scroll container for the standalone form (drawer chrome provides
+// this when rendered inside a `Drawer.Body`).
+const standaloneBodyStyle = css({
+  padding: "5",
+  height: "full",
+  overflowY: "auto",
+});
 
 // -- Footer (subscribes to form + LSP state for submit gating) ----------------
 
@@ -46,31 +57,37 @@ const CreateScenarioFooter = ({
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
-    <Drawer.Footer>
-      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Cancel
-      </Button>
-      <Button
-        variant="solid"
-        tone="neutral"
-        size="sm"
-        disabled={!canSave}
-        tooltip={
-          formError ??
-          (hasLspErrors
-            ? "Fix the errors in the scenario expressions before saving."
-            : isDefaultValue
-              ? "Make changes to enable creation."
-              : undefined)
-        }
-        onClick={() => {
-          void form.handleSubmit();
-        }}
-      >
-        Create
-      </Button>
-    </Drawer.Footer>
+    <Drawer.Footer
+      secondaryActions={
+        <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      }
+      actions={
+        <>
+          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="solid"
+            tone="neutral"
+            size="sm"
+            disabled={!canSave}
+            tooltip={
+              formError ??
+              (hasLspErrors
+                ? "Fix the errors in the scenario expressions before saving."
+                : isDefaultValue
+                  ? "Make changes to enable creation."
+                  : undefined)
+            }
+            onClick={() => {
+              void form.handleSubmit();
+            }}
+          >
+            Create
+          </Button>
+        </>
+      }
+    />
   );
 };
 
@@ -87,15 +104,13 @@ const CreateScenarioBody = ({ form }: { form: ScenarioFormInstance }) => {
   }
 
   return (
-    <Drawer.Body>
-      <ScenarioFormBody
-        form={form}
-        parameters={extensions.parameters ? petriNetDefinition.parameters : []}
-        places={petriNetDefinition.places}
-        typesById={typesById}
-        idPrefix="create-"
-      />
-    </Drawer.Body>
+    <ScenarioFormBody
+      form={form}
+      parameters={extensions.parameters ? petriNetDefinition.parameters : []}
+      places={petriNetDefinition.places}
+      typesById={typesById}
+      idPrefix="create-"
+    />
   );
 };
 
@@ -117,10 +132,19 @@ export const CreateScenarioDrawer = ({
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),
   );
 
+  const tokenRowContext: ScenarioTokenRowContext = {
+    places: petriNetDefinition.places,
+    typesById: new Map(petriNetDefinition.types.map((type) => [type.id, type])),
+  };
+
   const form = useScenarioForm(
     EMPTY_SCENARIO_FORM_STATE,
     (value, ctx) => {
-      const scenario = buildScenarioFromFormState(value, crypto.randomUUID());
+      const scenario = buildScenarioFromFormState(
+        value,
+        crypto.randomUUID(),
+        tokenRowContext,
+      );
       // Final structural validation against the persistence schema.
       const result = scenarioSchema.safeParse(scenario);
       if (!result.success) {
@@ -136,16 +160,21 @@ export const CreateScenarioDrawer = ({
     { existingScenarioNames },
   );
 
+  if (!open) {
+    return null;
+  }
+
   return (
-    <Drawer.Root open={open} onClose={onClose}>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode">
-          Create a scenario
-        </Drawer.Header>
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
+      <Drawer.Header
+        title="Create a scenario"
+        description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode"
+      />
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <CreateScenarioBody form={form} />
-      </Drawer.Card>
+      </Drawer.Body>
       <CreateScenarioFooter form={form} onClose={onClose} />
-    </Drawer.Root>
+    </Drawer>
   );
 };
 
@@ -161,5 +190,9 @@ export const CreateScenarioForm = () => {
     existingScenarioNames,
   });
 
-  return <CreateScenarioBody form={form} />;
+  return (
+    <div className={standaloneBodyStyle}>
+      <CreateScenarioBody form={form} />
+    </div>
+  );
 };

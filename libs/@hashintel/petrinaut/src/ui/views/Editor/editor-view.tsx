@@ -179,6 +179,8 @@ export const EditorView = ({
         types: [],
         differentialEquations: [],
         parameters: [],
+        subnets: [],
+        componentInstances: [],
       },
     });
     clearSelection();
@@ -323,30 +325,6 @@ export const EditorView = ({
             text: "Load example",
             subItems: [
               {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
                 id: "load-example-sir-model",
                 text: "SIR Model",
                 onClick: () => {
@@ -359,6 +337,30 @@ export const EditorView = ({
                 text: "Deployment Pipeline",
                 onClick: () => {
                   createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-production-machines",
+                text: "Production with Machine Failure",
+                onClick: () => {
+                  createNewNet(productionMachines);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-supply-chain-stochastic",
+                text: "Supply Chain with Disruption",
+                onClick: () => {
+                  createNewNet(supplyChainWithDisruption);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-probabilistic-satellites",
+                text: "Probabilistic Satellite Launcher",
+                onClick: () => {
+                  createNewNet(probabilisticSatellitesSDCPN);
                   clearSelection();
                 },
               },

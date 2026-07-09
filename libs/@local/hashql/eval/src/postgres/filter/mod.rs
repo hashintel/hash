@@ -62,7 +62,7 @@ use super::{
     traverse::eval_entity_path,
     types::{IntegerType, integer_type},
 };
-use crate::{context::EvalContext, error::EvalDiagnosticIssues};
+use crate::{context::CodeGenerationContext, error::EvalDiagnosticIssues};
 
 /// Internal representation of a continuation result before casting to the SQL composite type.
 ///
@@ -99,7 +99,7 @@ impl From<Continuation> for Expression {
                 vec![
                     filter
                         .grouped()
-                        .cast(PostgresType::Boolean)
+                        .cast(PostgresType::Bool)
                         .coalesce(Self::Constant(query::Constant::Boolean(false))),
                     null.clone(),
                     null.clone(),
@@ -116,7 +116,7 @@ impl From<Continuation> for Expression {
                     Self::Constant(query::Constant::U32(block.as_u32())),
                     Self::Function(query::Function::ArrayLiteral {
                         elements: locals,
-                        element_type: PostgresType::Int,
+                        element_type: PostgresType::Int4,
                     }),
                     Self::Function(query::Function::ArrayLiteral {
                         elements: values,
@@ -183,9 +183,9 @@ fn finish_switch_int<A: Allocator>(
 
     // SwitchInt compares the discriminant against integer values. If the
     // discriminant is a boolean expression (e.g. `IS NOT NULL`), PostgreSQL
-    // rejects `boolean = integer`. Casting to `::int` is safe for all types
+    // rejects `boolean = integer`. Casting to `::int4` is safe for all types
     // and a no-op when the discriminant is already integral.
-    let discriminant = Box::new(discriminant.grouped().cast(PostgresType::Int));
+    let discriminant = Box::new(discriminant.grouped().cast(PostgresType::Int4));
 
     let mut discriminant = Some(discriminant);
     // +1 for the NULL guard: a NULL discriminant means the computation could
@@ -233,7 +233,7 @@ fn finish_switch_int<A: Allocator>(
 /// internal buffer retrievable via [`Self::into_diagnostics`].
 pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S: Allocator = Global>
 {
-    context: &'ctx EvalContext<'ctx, 'heap, A>,
+    context: &'ctx CodeGenerationContext<'ctx, 'heap, A>,
 
     body: &'ctx Body<'heap>,
     env: Local,
@@ -247,7 +247,7 @@ pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S:
 
 impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'heap, A, S> {
     pub(crate) fn new(
-        context: &'ctx EvalContext<'ctx, 'heap, A>,
+        context: &'ctx CodeGenerationContext<'ctx, 'heap, A>,
         body: &'ctx Body<'heap>,
         env: Local,
         scratch: S,
@@ -492,10 +492,10 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 .binary(BinaryOperator::Subtract),
             BinOp::BitAnd => match integer_type(self.context.env, self.body, &binary.left) {
                 Some(IntegerType::Integer) => operands
-                    .cast(PostgresType::BigInt)
+                    .cast(PostgresType::Int8)
                     .binary(BinaryOperator::BitwiseAnd),
                 Some(IntegerType::Boolean) => operands
-                    .cast(PostgresType::Boolean)
+                    .cast(PostgresType::Bool)
                     .variadic(VariadicOperator::And),
                 None => {
                     self.diagnostics
@@ -505,10 +505,10 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
             },
             BinOp::BitOr => match integer_type(self.context.env, self.body, &binary.left) {
                 Some(IntegerType::Integer) => operands
-                    .cast(PostgresType::BigInt)
+                    .cast(PostgresType::Int8)
                     .binary(BinaryOperator::BitwiseOr),
                 Some(IntegerType::Boolean) => operands
-                    .cast(PostgresType::Boolean)
+                    .cast(PostgresType::Bool)
                     .variadic(VariadicOperator::Or),
                 None => {
                     self.diagnostics

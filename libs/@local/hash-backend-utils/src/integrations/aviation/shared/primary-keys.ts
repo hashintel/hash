@@ -178,7 +178,7 @@ export const generateEntityMatcher = {
  * Generates Graph API filters to find existing link entities.
  */
 export const generateLinkMatcher = {
-  [systemLinkEntityTypes.arrivesAt.linkEntityTypeBaseUrl]: (input: {
+  [systemLinkEntityTypes.landsAt.linkEntityTypeBaseUrl]: (input: {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
   }) => {
@@ -202,7 +202,7 @@ export const generateLinkMatcher = {
       ],
     };
   },
-  [systemLinkEntityTypes.departsFrom.linkEntityTypeBaseUrl]: (input: {
+  [systemLinkEntityTypes.takesOffFrom.linkEntityTypeBaseUrl]: (input: {
     leftEntityId: EntityId;
     rightEntityId: EntityId;
   }) => {

@@ -40,6 +40,7 @@ const editorContextValue = (
   globalMode,
   setGlobalMode: () => {},
   setEditionMode: () => {},
+  setAddComponentMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},

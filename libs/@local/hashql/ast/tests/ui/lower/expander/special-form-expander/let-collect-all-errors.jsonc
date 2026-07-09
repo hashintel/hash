@@ -1,0 +1,11 @@
+//@ run: fail
+//@ description: We should collect all errors when lowering let/4, and not only report the first one.
+[
+  "::kernel::special_form::let",
+  "x",
+  { "#literal": 1 },
+  //~^ ERROR cannot use a literal value as a type
+  "y",
+  //~^ ERROR cannot find value `y` in this scope
+  "x"
+]

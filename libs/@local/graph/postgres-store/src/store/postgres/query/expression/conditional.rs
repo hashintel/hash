@@ -6,11 +6,12 @@ use hash_graph_store::filter::PathToken;
 
 use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{
-    SelectStatement, Table, Transpile, WindowStatement,
+    SelectStatement, Transpile, WindowStatement,
     expression::{
         BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator,
     },
+    postgres_type::PostgresType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -258,42 +259,6 @@ impl Transpile for Constant {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PostgresType {
-    Array(Box<Self>),
-    Row(Table),
-    Text,
-    JsonB,
-    JsonPath,
-    Continuation,
-    Numeric,
-    Int,
-    BigInt,
-    Boolean,
-    TimestampTzRange,
-}
-
-impl Transpile for PostgresType {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Array(inner) => {
-                inner.transpile(fmt)?;
-                fmt.write_str("[]")
-            }
-            Self::Row(table) => table.transpile(fmt),
-            Self::Text => fmt.write_str("text"),
-            Self::JsonB => fmt.write_str("jsonb"),
-            Self::JsonPath => fmt.write_str("jsonpath"),
-            Self::Continuation => fmt.write_str("continuation"),
-            Self::Numeric => fmt.write_str("numeric"),
-            Self::Int => fmt.write_str("int"),
-            Self::BigInt => fmt.write_str("bigint"),
-            Self::Boolean => fmt.write_str("boolean"),
-            Self::TimestampTzRange => fmt.write_str("tstzrange"),
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EqualityOperator {
     Equal,
@@ -344,17 +309,6 @@ pub enum Expression {
         expr: Box<Self>,
         index: usize,
     },
-    /// Row expansion - expands a composite type into its constituent columns.
-    ///
-    /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
-    /// composite/row types into individual columns. Commonly used in INSERT
-    /// statements to expand a row parameter into column values.
-    ///
-    /// # Example SQL
-    /// ```sql
-    /// INSERT INTO users VALUES (($1::users).*)
-    /// ```
-    RowExpansion(Box<Self>),
     /// Row constructor - builds a composite row value from individual expressions.
     ///
     /// Transpiles to `ROW(e1, e2, ...)` in PostgreSQL.
@@ -698,10 +652,6 @@ impl Transpile for Expression {
                 cast_type.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::RowExpansion(expression) => {
-                expression.transpile(fmt)?;
-                fmt.write_str(".*")
-            }
             Self::Row(exprs) => {
                 fmt.write_str("ROW(")?;
                 for (i, expr) in exprs.iter().enumerate() {
@@ -982,15 +932,15 @@ mod tests {
         );
         assert_eq!(
             Expression::Parameter(1)
-                .cast(PostgresType::Int)
+                .cast(PostgresType::Int4)
                 .transpile_to_string(),
-            "($1::int)"
+            "($1::int4)"
         );
         assert_eq!(
             Expression::Parameter(1)
-                .cast(PostgresType::BigInt)
+                .cast(PostgresType::Int8)
                 .transpile_to_string(),
-            "($1::bigint)"
+            "($1::int8)"
         );
     }
 

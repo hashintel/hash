@@ -36,7 +36,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
     ROW(
         NULL,
         1,
-        ARRAY[8]::int [],
+        ARRAY[8]::int4 [],
         ARRAY[
             JSONB_BUILD_OBJECT(
                 ($1::text),

@@ -1,0 +1,7 @@
+error[expander::labeled-arguments-not-supported]: Labeled arguments not supported
+  ╭▸ 
+6 │   ["|", "Integer", { ":extra": "String" }],
+  │                      ━━━━━━━━━━━━━━━━━━ labeled arguments are not allowed in type constructor calls
+  │
+  ├ help: remove the labels and write the operand types positionally, for example `(| Int String)`
+  ╰ note: type constructors such as `|` (union) and `&` (intersection) take positional type operands

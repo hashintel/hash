@@ -1,3 +1,4 @@
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import { checkSDCPN } from "./checker";
@@ -152,6 +153,82 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
         "undefinedProperty",
       );
+    });
+
+    it("returns valid when returning derivatives only for real attributes", () => {
+      // GIVEN
+      const sdcpn = createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "count", type: "integer" },
+              { name: "flag", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [
+          {
+            colorId: "color1",
+            code: `export default Dynamics((tokens, parameters) => {
+              return tokens.map(({ x, count, flag }) => {
+                return { x: flag ? x + count : x };
+              });
+            });`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("returns invalid when returning a derivative for a discrete attribute", () => {
+      // GIVEN
+      const sdcpn = createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "flag", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [
+          {
+            colorId: "color1",
+            code: `export default Dynamics((tokens, parameters) => {
+              return tokens.map(({ x }) => {
+                return { x: 1, flag: 0 };
+              });
+            });`,
+          },
+        ],
+      });
+      const de = sdcpn.differentialEquations[0]!;
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics).toHaveLength(1);
+      expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
+      // The assignability error is a nested DiagnosticMessageChain naming the
+      // offending discrete attribute.
+      expect(
+        ts.flattenDiagnosticMessageText(
+          result.itemDiagnostics[0]?.diagnostics[0]?.messageText,
+          "\n",
+        ),
+      ).toContain("flag");
     });
 
     it("returns invalid when accessing undefined parameter", () => {
@@ -352,6 +429,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
@@ -380,6 +458,90 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
+        "missing",
+      );
+    });
+
+    it("lints predicate Lambda code for colored component-port inputs", () => {
+      const sdcpn: SDCPN = {
+        ...createSDCPN({
+          transitions: [
+            {
+              id: "t1",
+              lambdaType: "predicate",
+              inputArcs: [
+                {
+                  endpoint: {
+                    kind: "componentPort",
+                    componentInstanceId: "instance-1",
+                    portPlaceId: "port-in",
+                  },
+                  weight: 1,
+                  type: "standard",
+                },
+              ],
+              outputArcs: [],
+              lambdaCode: `export default Lambda((input) => {
+                return input["Instance 1::PortIn"][0].missing > 0;
+              });`,
+            },
+          ],
+        }),
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance 1",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Subnet 1",
+            types: [
+              {
+                id: "subnet-color",
+                name: "Subnet Color",
+                iconSlug: "circle",
+                displayColor: "#ff0000",
+                elements: [{ elementId: "x", name: "x", type: "real" }],
+              },
+            ],
+            places: [
+              {
+                id: "port-in",
+                name: "PortIn",
+                colorId: "subnet-color",
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      };
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -443,10 +605,70 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("allows Distribution for real attributes but not for discrete attributes", () => {
+      // GIVEN — stochasticity enabled (default extensions), a colour mixing
+      // real and discrete elements
+      const types = [
+        {
+          id: "color1",
+          elements: [
+            { name: "x", type: "real" as const },
+            { name: "count", type: "integer" as const },
+            { name: "active", type: "boolean" as const },
+          ],
+        },
+      ];
+      const places = [
+        { id: "place1", name: "Source", colorId: "color1" },
+        { id: "place2", name: "Target", colorId: "color1" },
+      ];
+      const kernel = (body: string) =>
+        createSDCPN({
+          types,
+          places,
+          transitions: [
+            {
+              id: "t1",
+              inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: "place2", weight: 1 }],
+              transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+                return { Target: [${body}] };
+              });`,
+            },
+          ],
+        });
+
+      // WHEN / THEN — Distribution on the real attribute is fine
+      const valid = check(
+        kernel(`{ x: Distribution.Gaussian(0, 1), count: 1, active: true }`),
+      );
+      expect(valid.isValid).toBe(true);
+      expect(valid.itemDiagnostics).toHaveLength(0);
+
+      // WHEN / THEN — Distribution on the integer attribute is a type error
+      const invalidInteger = check(
+        kernel(`{ x: 1, count: Distribution.Uniform(0, 5), active: true }`),
+      );
+      expect(invalidInteger.isValid).toBe(false);
+      expect(invalidInteger.itemDiagnostics[0]?.itemType).toBe(
+        "transition-kernel",
+      );
+
+      // WHEN / THEN — Distribution on the boolean attribute is a type error
+      const invalidBoolean = check(
+        kernel(`{ x: 1, count: 1, active: Distribution.Uniform(0, 1) }`),
+      );
+      expect(invalidBoolean.isValid).toBe(false);
+      expect(invalidBoolean.itemDiagnostics[0]?.itemType).toBe(
+        "transition-kernel",
+      );
     });
 
     it("returns invalid when TransitionKernel uses Distribution while stochasticity is disabled", () => {
@@ -473,6 +695,7 @@ describe("checkSDCPN", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       });
 
       expect(result.isValid).toBe(false);
@@ -686,6 +909,321 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
         "nonExistentProperty",
       );
+    });
+
+    it("lints TransitionKernel code for colored component-port outputs", () => {
+      const sdcpn: SDCPN = {
+        ...createSDCPN({
+          transitions: [
+            {
+              id: "t1",
+              inputArcs: [],
+              outputArcs: [
+                {
+                  endpoint: {
+                    kind: "componentPort",
+                    componentInstanceId: "instance-1",
+                    portPlaceId: "port-out",
+                  },
+                  weight: 1,
+                },
+              ],
+              transitionKernelCode: `export default TransitionKernel(() => {
+                return { "Instance 1::PortOut": [{ x: "not a number" }] };
+              });`,
+            },
+          ],
+        }),
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance 1",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Subnet 1",
+            types: [
+              {
+                id: "subnet-color",
+                name: "Subnet Color",
+                iconSlug: "circle",
+                displayColor: "#ff0000",
+                elements: [{ elementId: "x", name: "x", type: "real" }],
+              },
+            ],
+            places: [
+              {
+                id: "port-out",
+                name: "PortOut",
+                colorId: "subnet-color",
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      };
+
+      const result = check(sdcpn, {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+      expect(result.itemDiagnostics[0]?.diagnostics).not.toHaveLength(0);
+    });
+  });
+
+  describe("UUID elements", () => {
+    const uuidTypes = [
+      {
+        id: "color1",
+        elements: [
+          { name: "id", type: "uuid" as const },
+          { name: "x", type: "real" as const },
+        ],
+      },
+    ];
+    const uuidPlaces = [
+      { id: "place1", name: "Source", colorId: "color1" },
+      { id: "place2", name: "Target", colorId: "color1" },
+    ];
+    const uuidKernel = (body: string) =>
+      createSDCPN({
+        types: uuidTypes,
+        places: uuidPlaces,
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [${body}] };
+            });`,
+          },
+        ],
+      });
+
+    it("types input uuid attributes as bigint (=== comparison is valid)", () => {
+      const sdcpn = createSDCPN({
+        types: uuidTypes,
+        places: uuidPlaces,
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 2, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].id === input.Source[1].id;
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("rejects arithmetic mixing an input uuid bigint with a number", () => {
+      const sdcpn = createSDCPN({
+        types: uuidTypes,
+        places: uuidPlaces,
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].id * 2 > 0;
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+    });
+
+    it("accepts kernel outputs with omitted uuid, Uuid.generate(), and strings", () => {
+      const omitted = check(uuidKernel(`{ x: 1 }`));
+      expect(omitted.isValid).toBe(true);
+      expect(omitted.itemDiagnostics).toHaveLength(0);
+
+      const generated = check(uuidKernel(`{ id: Uuid.generate(), x: 1 }`));
+      expect(generated.isValid).toBe(true);
+      expect(generated.itemDiagnostics).toHaveLength(0);
+
+      const fromString = check(uuidKernel(`{ id: "order-1", x: 1 }`));
+      expect(fromString.isValid).toBe(true);
+      expect(fromString.itemDiagnostics).toHaveLength(0);
+
+      const forwarded = check(
+        uuidKernel(`{ id: input.Source[0].id, x: input.Source[0].x }`),
+      );
+      expect(forwarded.isValid).toBe(true);
+      expect(forwarded.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("accepts Uuid helpers even when stochasticity is disabled", () => {
+      const result = check(uuidKernel(`{ id: Uuid.generate(), x: 1 }`), {
+        colors: true,
+        stochasticity: false,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("rejects Distribution values on uuid attributes", () => {
+      const result = check(
+        uuidKernel(`{ id: Distribution.Uniform(0, 1), x: 1 }`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+    });
+  });
+
+  describe("string elements", () => {
+    const stringTypes = [
+      {
+        id: "color1",
+        elements: [
+          { name: "label", type: "string" as const },
+          { name: "x", type: "real" as const },
+        ],
+      },
+    ];
+    const stringPlaces = [
+      { id: "place1", name: "Source", colorId: "color1" },
+      { id: "place2", name: "Target", colorId: "color1" },
+    ];
+    const stringKernel = (body: string) =>
+      createSDCPN({
+        types: stringTypes,
+        places: stringPlaces,
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [${body}] };
+            });`,
+          },
+        ],
+      });
+
+    it("types input string attributes as string (comparison and methods are valid)", () => {
+      const sdcpn = createSDCPN({
+        types: stringTypes,
+        places: stringPlaces,
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].label === "queued" && input.Source[0].label.startsWith("q");
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("accepts plain string kernel outputs and forwarded input strings", () => {
+      const literal = check(stringKernel(`{ label: "shipped", x: 1 }`));
+      expect(literal.isValid).toBe(true);
+      expect(literal.itemDiagnostics).toHaveLength(0);
+
+      const forwarded = check(
+        stringKernel(`{ label: input.Source[0].label, x: input.Source[0].x }`),
+      );
+      expect(forwarded.isValid).toBe(true);
+      expect(forwarded.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("rejects arithmetic on an input string attribute", () => {
+      const sdcpn = createSDCPN({
+        types: stringTypes,
+        places: stringPlaces,
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].label * 2 > 0;
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
+    });
+
+    it("rejects Distribution values on string attributes", () => {
+      const result = check(
+        stringKernel(`{ label: Distribution.Uniform(0, 1), x: 1 }`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
+    });
+
+    it("rejects numeric values on string attributes", () => {
+      const result = check(stringKernel(`{ label: 42, x: 1 }`));
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
     });
   });
 

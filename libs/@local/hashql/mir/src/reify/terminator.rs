@@ -1,3 +1,5 @@
+use core::alloc::Allocator;
+
 use hashql_core::{heap, id::Id as _, span::SpanId};
 use hashql_hir::node::{
     branch,
@@ -23,7 +25,7 @@ use crate::{
     def::DefId,
 };
 
-impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
+impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A, S> {
     fn terminator_graph_read_head(
         &mut self,
         head: graph::GraphReadHead<'heap>,

@@ -35,21 +35,24 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
-        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
-        EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
-        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
+        DeletionSummary, EntityStore, EntityValidationReport, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
         QueryEntityTypeSubgraphParams, QueryEntityTypeSubgraphResponse, QueryEntityTypesParams,
-        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-        UpdateEntityTypesParams,
+        QueryEntityTypesResponse, SearchEntityTypesParams, SearchEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+    },
     filter::{Filter, QueryRecord},
     pool::StorePool,
     property_type::{
@@ -1473,6 +1476,14 @@ where
         self.store.query_entity_types(actor_id, params).await
     }
 
+    async fn search_entity_types(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntityTypesParams,
+    ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
+        self.store.search_entity_types(actor_id, params).await
+    }
+
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
@@ -1631,6 +1642,14 @@ where
         self.store.query_entities(actor_id, params).await
     }
 
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        self.store.search_entities(actor_id, params).await
+    }
+
     async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
@@ -1694,6 +1713,14 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: ClusterEntitiesParams,
+    ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
+        self.store.cluster_entities(actor_id, params).await
     }
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {

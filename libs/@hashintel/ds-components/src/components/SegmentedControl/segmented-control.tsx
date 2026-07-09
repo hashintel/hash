@@ -54,7 +54,7 @@ const itemStyles = css({
   textAlign: "center",
   cursor: "pointer",
   transition: "all",
-  transitionDuration: "200ms",
+  transitionDuration: "normal",
   _disabled: {
     cursor: "not-allowed",
     opacity: "0.6",

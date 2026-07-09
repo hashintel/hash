@@ -39,6 +39,10 @@ export const scalars = {
     "@local/hash-graph-sdk/entity-type#QueryEntityTypesParams",
   QueryEntityTypesResponse:
     "@local/hash-graph-sdk/entity-type#QueryEntityTypesResponse",
+  SearchEntityTypesRequest:
+    "@local/hash-graph-sdk/entity-type#SearchEntityTypesRequest",
+  SearchEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#SearchEntityTypesResponse",
   QueryEntityTypeSubgraphParams:
     "@local/hash-graph-sdk/entity-type#QueryEntityTypeSubgraphParams",
   QueryEntityTypeSubgraphResponse:
@@ -74,6 +78,9 @@ export const scalars = {
   QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
   QueryEntitiesResponse:
     "@local/hash-graph-sdk/entity#SerializedQueryEntitiesResponse",
+  SearchEntitiesRequest: "@local/hash-graph-sdk/entity#SearchEntitiesRequest",
+  SearchEntitiesResponse:
+    "@local/hash-graph-sdk/entity#SerializedSearchEntitiesResponse",
   QueryEntitySubgraphRequest:
     "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
   QueryEntitySubgraphResponse:

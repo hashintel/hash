@@ -1,40 +1,38 @@
 import { useQuery } from "@apollo/client";
 import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  getEntityTypeById,
-  getRoots,
-  isEntityRootedSubgraph,
-} from "@blockprotocol/graph/stdlib";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import {
+  deserializeSearchEntitiesResponse,
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { searchEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { searchEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  SearchEntityTypesQuery,
+  SearchEntityTypesQueryVariables,
+  SearchEntitiesQuery,
+  SearchEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityType } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityType,
+  EntityType,
+} from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
@@ -109,29 +107,15 @@ const chipStyles = { cursor: "pointer !important", ml: 1 };
 
 const EntityResult: FunctionComponent<{
   entity: HashEntity;
+  entityType: ClosedMultiEntityType;
   onClick: () => void;
-  subgraph: Subgraph<EntityRootType<HashEntity>>;
-}> = ({ entity, onClick, subgraph }) => {
+}> = ({ entity, entityType, onClick }) => {
   const entityId = entity.metadata.recordId.entityId;
 
   const webId = extractWebIdFromEntityId(entityId);
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
     webId,
   });
-
-  const entityTypes = useMemo(
-    () =>
-      entity.metadata.entityTypeIds.map((entityTypeId) => {
-        const entityType = getEntityTypeById(subgraph, entityTypeId);
-
-        if (!entityType) {
-          throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
-        }
-
-        return entityType;
-      }),
-    [entity.metadata.entityTypeIds, subgraph],
-  );
 
   return (
     <Link
@@ -142,13 +126,13 @@ const EntityResult: FunctionComponent<{
       )}`}
     >
       <ResultItem>
-        {generateEntityLabel(subgraph, entity)}
+        {generateEntityLabel(entityType, entity)}
         <Stack direction="row" gap={1}>
-          {entityTypes.map((entityType) => (
+          {entityType.allOf.map((entityTypeMetadata) => (
             <Chip
-              key={entityType.schema.$id}
+              key={entityTypeMetadata.$id}
               color="teal"
-              label={entityType.schema.title}
+              label={entityTypeMetadata.title}
               sx={chipStyles}
             />
           ))}
@@ -220,6 +204,7 @@ const getSearchBarResponsiveStyles = (
  * The maximum distance between the search query and an entity's embedding for it to appear in results
  */
 const maximumSemanticDistance = 0.7;
+const maximumResults = 100;
 
 export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
@@ -237,70 +222,42 @@ export const SearchBar: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const queryFilter: Filter = useMemo(
-    () => ({
-      cosineDistance: [
-        { path: ["embedding"] },
-        {
-          parameter: submittedQuery,
-        },
-        { parameter: maximumSemanticDistance },
-      ],
-    }),
-    [submittedQuery],
-  );
-
   const { data: entityResultData, loading: entitiesLoading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+    SearchEntitiesQuery,
+    SearchEntitiesQueryVariables
+  >(searchEntitiesQuery, {
     variables: {
       request: {
-        filter: queryFilter,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          inheritsFrom: 255,
-          isOfType: true,
-        },
-        traversalPaths: [],
-        includeDrafts: false,
-        includePermissions: false,
-        limit: 100,
+        semanticString: submittedQuery,
+        includeEntityTypes: true,
+        maximumSemanticDistance,
+        limit: maximumResults,
       },
     },
     skip: !submittedQuery,
   });
 
   const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+    SearchEntityTypesQuery,
+    SearchEntityTypesQueryVariables
+  >(searchEntityTypesQuery, {
     variables: {
       request: {
-        filter: queryFilter,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        limit: 100,
+        semanticString: submittedQuery,
+        maximumSemanticDistance,
+        limit: maximumResults,
       },
     },
     skip: !submittedQuery,
   });
 
-  const deserializedEntitySubgraph = entityResultData
-    ? deserializeSubgraph<EntityRootType<HashEntity>>(
-        entityResultData.queryEntitySubgraph.subgraph,
-      )
+  const entitiesResultSet = entityResultData
+    ? deserializeSearchEntitiesResponse(entityResultData.searchEntities)
     : undefined;
-
-  const entitySubgraph =
-    deserializedEntitySubgraph &&
-    isEntityRootedSubgraph(deserializedEntitySubgraph)
-      ? deserializedEntitySubgraph
-      : undefined;
-  const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
 
   const entityTypeResults =
     (entityTypeResultData &&
-      entityTypeResultData.queryEntityTypes.entityTypes) ??
+      entityTypeResultData.searchEntityTypes.entityTypes) ??
     [];
 
   useHotkeys([["Escape", () => setResultListVisible(false)]]);
@@ -367,7 +324,8 @@ export const SearchBar: FunctionComponent = () => {
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
-          ) : !entityResults.length && !entityTypeResults.length ? (
+          ) : !entitiesResultSet?.entities.length &&
+            !entityTypeResults.length ? (
             <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
@@ -382,13 +340,16 @@ export const SearchBar: FunctionComponent = () => {
                   />
                 );
               })}
-              {entityResults.map((entity) => {
+              {entitiesResultSet?.entities.map((entity) => {
                 return (
                   <EntityResult
                     onClick={() => setResultListVisible(false)}
                     key={entity.metadata.recordId.entityId}
                     entity={entity}
-                    subgraph={entitySubgraph!}
+                    entityType={getClosedMultiEntityTypeFromMap(
+                      entitiesResultSet.closedMultiEntityTypes,
+                      entity.metadata.entityTypeIds,
+                    )}
                   />
                 );
               })}

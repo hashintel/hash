@@ -14,6 +14,8 @@ import type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -29,6 +31,8 @@ export type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**
