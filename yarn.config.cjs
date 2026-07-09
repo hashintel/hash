@@ -16,8 +16,15 @@ const enforcedDevDependencies = {
 };
 
 const allowedUnscriptedDevDependencies = {
-  // Bundled into the LSP worker, not required by published package consumers.
-  "@hashintel/petrinaut-core": new Set(["typescript"]),
+  // TypeScript 5.9.3 (aliased as `typescript5`) is bundled into the LSP worker,
+  // not required by published package consumers. It is intentionally pinned to
+  // 5.x: the in-browser LSP relies on the TypeScript JS API (`createLanguageService`),
+  // which no longer exists in the Go-native TypeScript 7.
+  "@hashintel/petrinaut-core": new Set(["typescript5"]),
+  // The root workspace pins `typescript` so that the repo-root `node_modules/.bin/tsc`
+  // deterministically resolves to the workspace-wide TypeScript version rather than
+  // the `typescript5` alias (which also declares a `tsc` bin).
+  hash: new Set(["typescript"]),
 };
 
 const ignoredDependencies = [

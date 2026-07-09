@@ -59,6 +59,18 @@ export default defineConfig(({ command }) => ({
     ],
   },
 
+  resolve: {
+    alias: [
+      // The LSP worker intentionally bundles TypeScript 5.9.3 (`typescript5`
+      // npm alias): it relies on the TypeScript JS API (`createLanguageService`),
+      // which no longer exists in the Go-native TypeScript 7 the rest of the
+      // repo is migrating towards. Source files keep importing plain
+      // "typescript" so they continue to typecheck against the workspace-wide
+      // TypeScript types.
+      { find: /^typescript(\/.*)?$/, replacement: "typescript5$1" },
+    ],
+  },
+
   plugins: [
     esmExternalRequirePlugin({
       external: ["typescript"],
