@@ -4034,7 +4034,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "temporalio-client",
- "temporalio-common",
+ "temporalio-common 0.5.0",
  "thiserror 2.0.18",
  "tracing",
  "tracing-opentelemetry 0.33.0",
@@ -7179,6 +7179,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pbjson"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8edd1efdd8ab23ba9cb9ace3d9987a72663d5d7c9f74fa00b51d6213645cf6c"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
+name = "pbjson-build"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ed4d5c6ae95e08ac768883c8401cf0e8deb4e6e1d6a4e1fd3d2ec4f0ec63200"
+dependencies = [
+ "heck",
+ "itertools 0.14.0",
+ "prost",
+ "prost-types",
+]
+
+[[package]]
 name = "pem"
 version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9735,7 +9757,7 @@ dependencies = [
  "parking_lot",
  "rand 0.9.4",
  "slotmap",
- "temporalio-common",
+ "temporalio-common 0.1.0",
  "thiserror 2.0.18",
  "tokio",
  "tonic",
@@ -9768,6 +9790,82 @@ dependencies = [
  "tracing-core",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "temporalio-common"
+version = "0.5.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=2cf2c103ee566148981a00c71f5fb2702d41fff6#2cf2c103ee566148981a00c71f5fb2702d41fff6"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bon",
+ "crc32fast",
+ "derive_more",
+ "erased-serde",
+ "futures",
+ "parking_lot",
+ "prost",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "temporalio-common-wasm",
+ "temporalio-protos",
+ "thiserror 2.0.18",
+ "tonic",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "temporalio-common-wasm"
+version = "0.5.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=2cf2c103ee566148981a00c71f5fb2702d41fff6#2cf2c103ee566148981a00c71f5fb2702d41fff6"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bon",
+ "chrono",
+ "crc32fast",
+ "derive_more",
+ "erased-serde",
+ "futures",
+ "parking_lot",
+ "prost",
+ "prost-wkt-types",
+ "serde",
+ "serde_json",
+ "temporalio-protos",
+ "thiserror 2.0.18",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "temporalio-protos"
+version = "0.5.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=2cf2c103ee566148981a00c71f5fb2702d41fff6#2cf2c103ee566148981a00c71f5fb2702d41fff6"
+dependencies = [
+ "anyhow",
+ "base64",
+ "derive_more",
+ "http 1.4.2",
+ "pbjson",
+ "pbjson-build",
+ "prost",
+ "prost-types",
+ "prost-wkt-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tonic",
+ "tonic-prost",
+ "tonic-prost-build",
 ]
 
 [[package]]
@@ -10523,6 +10621,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
+ "parking_lot",
  "regex-automata",
  "serde",
  "serde_json",
