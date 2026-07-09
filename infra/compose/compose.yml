@@ -620,6 +620,7 @@ services:
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "7233"
+      HASH_GRAPH_OPENAI_API_KEY: "${OPENAI_API_KEY-}"
       HASH_OTLP_ENDPOINT: "http://otel-collector:4317"
       RUST_BACKTRACE: 0
     ports:

@@ -1,25 +1,27 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { StatusActionButton } from "../../shared/action-buttons";
 import {
-  BriefLink,
-  StatusActionButton,
-  NeutralActionButton,
-} from "../../shared/action-buttons";
-import { deriveStatusActionState, statusKey } from "../../shared/status";
+  compareStatusLabels,
+  deriveStatusActionState,
+  STATUS_LABELS_IN_ORDER,
+  statusKey,
+  statusLabelForNode,
+  type StatusActionLabel,
+  type StatusStore,
+} from "../../shared/status";
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
+import { buildColumnFilter, countBy } from "./shared/column-filter";
+import { ColumnHeader } from "./shared/column-header";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
-import type { StatusStore } from "../../shared/status";
 import type { SiteNode } from "../../shared/types";
-import type {
-  OpportunityKind,
-  OpportunityStatuses,
-  SiteOpportunity,
-} from "./opportunities";
+import type { OpportunityKind, SiteOpportunity } from "./opportunities";
+import type { SortDir, SortKey } from "./shared/row-types";
 
 // Caps its own height to ~the viewport and scrolls internally: the header band
 // stays pinned (flexShrink:0) and the table body scrolls beneath it. `minH:0`
@@ -55,21 +57,6 @@ const title = css({
   color: "fg.heading",
 });
 const subtitle = css({ textStyle: "xs", color: "fg.subtle" });
-const controls = css({
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "2",
-});
-const checkboxLabel = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  mr: "2",
-  textStyle: "xs",
-  color: "fg.subtle",
-  cursor: "pointer",
-});
 const typePill = css({
   display: "inline-flex",
   alignItems: "center",
@@ -118,20 +105,6 @@ const actionWrap = css({
   gap: "1.5",
   flexWrap: "nowrap",
 });
-const markReadButton = css({
-  color: "status.success.fg.body",
-  borderColor: "status.success.bd.subtle",
-  bg: "status.success.bg.subtle",
-  _hover: {
-    color: "status.success.fg.body",
-    borderColor: "status.success.bd.subtle",
-  },
-});
-const markUnreadButton = css({
-  color: "fg.muted",
-  borderColor: "bd.subtle",
-  bg: "bg.subtle",
-});
 const tooltipLines = css({
   display: "flex",
   flexDirection: "column",
@@ -157,13 +130,12 @@ const sampleBad = css({
   color: "status.error.fg.body",
   bg: "status.error.bg.subtle",
 });
-const headerTable = css({
+// Header cells stick to the top of the scroll area. A single table (shared with
+// the body) keeps the header columns aligned with the rows.
+const oppTh = css({
   position: "sticky",
   top: "0",
   zIndex: "[3]",
-  bg: "[#fafafa]",
-});
-const oppTh = css({
   bg: "[#fafafa]",
   borderBottomWidth: "1px",
   borderColor: "[#d9d9d9]",
@@ -173,6 +145,9 @@ const oppTh = css({
   whiteSpace: "nowrap",
 });
 const oppThRight = css({
+  position: "sticky",
+  top: "0",
+  zIndex: "[3]",
   bg: "[#fafafa]",
   borderBottomWidth: "1px",
   borderColor: "[#d9d9d9]",
@@ -182,7 +157,7 @@ const oppThRight = css({
   textAlign: "right",
   whiteSpace: "nowrap",
 });
-const sectionBlock = css({ position: "relative" });
+// Section header row: a full-width cell that sticks just below the header row.
 const sectionHeader = css({
   position: "sticky",
   top: "[37px]",
@@ -233,14 +208,24 @@ const OPPORTUNITY_SECTIONS: OpportunitySection[] = [
   { id: "planning_under", label: "Under plan", kinds: ["planning_under"] },
 ];
 
+const kindLabel = (kind: OpportunityKind): string =>
+  OPPORTUNITY_SECTIONS.find((section) => section.id === kind)?.label ?? kind;
+
 interface OpportunitiesTableProps {
   opportunities: SiteOpportunity[];
-  statuses: OpportunityStatuses;
+  /** Route site slug; scopes status keys to the global store. */
+  siteId: string;
   statusHistory?: StatusStore;
   onRowClick: (node: SiteNode) => void;
-  onMarkRead: (id: string) => void;
-  onMarkUnread: (id: string) => void;
   onStatus: (node: SiteNode, title: string) => void;
+  sort: { key: SortKey; dir: SortDir } | null;
+  onSort: (next: { key: SortKey; dir: SortDir }) => void;
+  typeHidden: Set<OpportunityKind>;
+  onTypeHiddenChange: (next: Set<OpportunityKind>) => void;
+  productHidden: Set<string>;
+  onProductHiddenChange: (next: Set<string>) => void;
+  statusHidden: Set<StatusActionLabel>;
+  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }
 
 const OpportunityColGroup = () => {
@@ -315,72 +300,146 @@ function sampleClass(label: string): string {
   return sampleBad;
 }
 
-const UnreadIcon = () => {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 3 9 9M9 3 3 9"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-};
+function sortOpportunities(
+  items: SiteOpportunity[],
+  sort: { key: SortKey; dir: SortDir } | null,
+  statusOf: (opportunity: SiteOpportunity) => StatusActionLabel,
+): SiteOpportunity[] {
+  if (!sort) {
+    return items;
+  }
+  if (sort.key === "opportunity") {
+    return [...items].sort((left, right) =>
+      sort.dir === "desc"
+        ? right.title.localeCompare(left.title)
+        : left.title.localeCompare(right.title),
+    );
+  }
+  if (sort.key === "status") {
+    return [...items].sort((left, right) => {
+      const cmp = compareStatusLabels(statusOf(left), statusOf(right));
+      return sort.dir === "desc" ? -cmp : cmp;
+    });
+  }
+  if (sort.key === "impact") {
+    return [...items].sort((left, right) =>
+      sort.dir === "desc" ? right.score - left.score : left.score - right.score,
+    );
+  }
+  return items;
+}
 
-const ReadIcon = () => {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M2 6.2 4.7 9 10 3"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
 export const OpportunitiesTable = ({
   opportunities,
-  statuses,
+  siteId,
   statusHistory = {},
   onRowClick,
-  onMarkRead,
-  onMarkUnread,
   onStatus,
+  sort,
+  onSort,
+  typeHidden,
+  onTypeHiddenChange,
+  productHidden,
+  onProductHiddenChange,
+  statusHidden,
+  onStatusHiddenChange,
 }: OpportunitiesTableProps) => {
-  const [showRead, setShowRead] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<
     Set<OpportunityKind>
   >(() => new Set());
-  const visibleOpportunities = useMemo(() => {
-    return opportunities.filter(
-      (opportunity) =>
-        showRead ||
-        !statuses[statusKey(opportunity.siteId, opportunity.node)]?.read,
+
+  const statusOf = useCallback(
+    (opportunity: SiteOpportunity): StatusActionLabel =>
+      statusLabelForNode(siteId, opportunity.node, statusHistory),
+    [siteId, statusHistory],
+  );
+
+  const typeFilter = useMemo(() => {
+    const values = OPPORTUNITY_SECTIONS.map((section) => section.id).filter(
+      (kind) => opportunities.some((opportunity) => opportunity.kind === kind),
     );
-  }, [opportunities, showRead, statuses]);
+    return buildColumnFilter<OpportunityKind>({
+      header: "Type",
+      values,
+      labelOf: kindLabel,
+      counts: countBy(opportunities, (opportunity) => opportunity.kind),
+      hidden: typeHidden,
+      onHiddenChange: onTypeHiddenChange,
+      searchable: false,
+    });
+  }, [opportunities, typeHidden, onTypeHiddenChange]);
+
+  const productFilter = useMemo(() => {
+    const names = new Map<string, string>();
+    const counts = new Map<string, number>();
+    for (const opportunity of opportunities) {
+      for (const product of opportunity.products) {
+        names.set(product.id, product.name);
+        counts.set(product.id, (counts.get(product.id) ?? 0) + 1);
+      }
+    }
+    const values = [...names.keys()].sort((left, right) =>
+      (names.get(left) ?? "").localeCompare(names.get(right) ?? ""),
+    );
+    return buildColumnFilter<string>({
+      header: "Product",
+      values,
+      labelOf: (id) => names.get(id) ?? id,
+      counts,
+      hidden: productHidden,
+      onHiddenChange: onProductHiddenChange,
+    });
+  }, [opportunities, productHidden, onProductHiddenChange]);
+
+  const statusFilter = useMemo(() => {
+    const values = STATUS_LABELS_IN_ORDER.filter((label) =>
+      opportunities.some((opportunity) => statusOf(opportunity) === label),
+    );
+    return buildColumnFilter<StatusActionLabel>({
+      header: "Status",
+      values,
+      labelOf: (label) => label,
+      counts: countBy(opportunities, statusOf),
+      hidden: statusHidden,
+      onHiddenChange: onStatusHiddenChange,
+      searchable: false,
+    });
+  }, [opportunities, statusHidden, onStatusHiddenChange, statusOf]);
+
   const grouped = useMemo(() => {
-    return OPPORTUNITY_SECTIONS.map((section) => ({
-      ...section,
-      opportunities: visibleOpportunities.filter((opportunity) =>
-        section.kinds.includes(opportunity.kind),
-      ),
-    }));
-  }, [visibleOpportunities]);
+    const passesProduct = (opportunity: SiteOpportunity) =>
+      opportunity.products.length === 0 ||
+      opportunity.products.some((product) => !productHidden.has(product.id));
+    const passesStatus = (opportunity: SiteOpportunity) =>
+      !statusHidden.has(statusOf(opportunity));
+
+    return OPPORTUNITY_SECTIONS.filter(
+      (section) => !typeHidden.has(section.id),
+    ).map((section) => {
+      const items = opportunities.filter(
+        (opportunity) =>
+          section.kinds.includes(opportunity.kind) &&
+          passesProduct(opportunity) &&
+          passesStatus(opportunity),
+      );
+      return {
+        ...section,
+        opportunities: sortOpportunities(items, sort, statusOf),
+      };
+    });
+  }, [opportunities, typeHidden, productHidden, statusHidden, statusOf, sort]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sort?.key === key) {
+      onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
+    } else {
+      onSort({
+        key,
+        dir: key === "opportunity" || key === "status" ? "asc" : "desc",
+      });
+    }
+  };
+
   const toggleSection = (section: OpportunityKind) => {
     trackSupplyChainInteraction({
       interaction: "opportunity_section_toggled",
@@ -397,10 +456,7 @@ export const OpportunitiesTable = ({
       return next;
     });
   };
-  const unreadCount = opportunities.filter(
-    (opportunity) =>
-      !statuses[statusKey(opportunity.siteId, opportunity.node)]?.read,
-  ).length;
+
   const visibleCount = grouped.reduce(
     (sum, section) => sum + section.opportunities.length,
     0,
@@ -417,210 +473,178 @@ export const OpportunitiesTable = ({
         <div className={titleWrap}>
           <h2 className={title}>Opportunities</h2>
           <p className={subtitle}>
-            {unreadCount} unread of {opportunities.length} generated from dwell
-            cost and planning variance.
+            {visibleCount} visible of {opportunities.length} generated from
+            dwell cost and planning variance.
           </p>
-        </div>
-        <div className={controls}>
-          <label className={checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={showRead}
-              onChange={(event) => {
-                trackSupplyChainInteraction({
-                  interaction: event.target.checked
-                    ? "show_read_enabled"
-                    : "show_read_disabled",
-                  source: "opportunities_table",
-                });
-                setShowRead(event.target.checked);
-              }}
-            />
-            Show read
-          </label>
         </div>
       </div>
       <div className={tableScroll}>
-        <table className={cx(threshold.table, headerTable)}>
+        <table className={threshold.table}>
           <OpportunityColGroup />
           <thead>
             <tr className={threshold.theadRow}>
-              <th className={oppTh}>Type</th>
-              <th className={oppTh}>Opportunity</th>
-              <th className={oppThRight}>Impact</th>
-              <th className={oppTh}>Sample</th>
-              <th className={oppThRight}>Actions</th>
+              <th className={oppTh}>
+                <ColumnHeader label="Type" filter={typeFilter} />
+              </th>
+              <th className={oppTh}>
+                <ColumnHeader
+                  label="Opportunity"
+                  sort={{
+                    active: sort?.key === "opportunity",
+                    dir: sort?.dir ?? "asc",
+                    onToggle: () => toggleSort("opportunity"),
+                  }}
+                  filter={productFilter}
+                />
+              </th>
+              <th className={oppThRight}>
+                <ColumnHeader
+                  label="Impact"
+                  sort={{
+                    active: sort?.key === "impact",
+                    dir: sort?.dir ?? "desc",
+                    onToggle: () => toggleSort("impact"),
+                  }}
+                />
+              </th>
+              <th className={oppThRight}>Sample</th>
+              <th className={oppThRight}>
+                <ColumnHeader
+                  label="Status"
+                  sort={{
+                    active: sort?.key === "status",
+                    dir: sort?.dir ?? "asc",
+                    onToggle: () => toggleSort("status"),
+                  }}
+                  filter={statusFilter}
+                />
+              </th>
             </tr>
           </thead>
-        </table>
-        {grouped.map((section) => (
-          <section key={section.id} className={sectionBlock}>
-            <div className={cx(sectionHeader, sectionClass(section.id))}>
-              <button
-                type="button"
-                className={sectionButton}
-                aria-expanded={!collapsedSections.has(section.id)}
-                onClick={() => toggleSection(section.id)}
-              >
-                <CaretIcon
-                  className={cx(
-                    caret,
-                    collapsedSections.has(section.id) && caretClosed,
-                  )}
-                />
+          {grouped.map((section) => (
+            <tbody key={section.id} className={threshold.tbodyDivide}>
+              <tr>
+                <td
+                  colSpan={5}
+                  className={cx(sectionHeader, sectionClass(section.id))}
+                >
+                  <button
+                    type="button"
+                    className={sectionButton}
+                    aria-expanded={!collapsedSections.has(section.id)}
+                    onClick={() => toggleSection(section.id)}
+                  >
+                    <CaretIcon
+                      className={cx(
+                        caret,
+                        collapsedSections.has(section.id) && caretClosed,
+                      )}
+                    />
 
-                <span>{section.label}</span>
-                <span className={sectionCount}>
-                  {section.opportunities.length}
-                </span>
-              </button>
-            </div>
-            {!collapsedSections.has(section.id) && (
-              <table className={threshold.table}>
-                <OpportunityColGroup />
-                <tbody className={threshold.tbodyDivide}>
-                  {section.opportunities.map((opportunity) => {
-                    const key = statusKey(opportunity.siteId, opportunity.node);
-                    const status = statuses[key];
-                    return (
-                      <tr
-                        key={opportunity.id}
-                        className={threshold.bodyRow}
-                        style={{
-                          animation:
-                            "opportunityRowsIn 320ms cubic-bezier(0.2, 0, 0, 1)",
-                        }}
-                        tabIndex={0}
-                        onClick={() => onRowClick(opportunity.node)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            onRowClick(opportunity.node);
-                          }
-                        }}
-                      >
-                        <td className={threshold.td}>
+                    <span>{section.label}</span>
+                    <span className={sectionCount}>
+                      {section.opportunities.length}
+                    </span>
+                  </button>
+                </td>
+              </tr>
+              {!collapsedSections.has(section.id) &&
+                section.opportunities.map((opportunity) => {
+                  const key = statusKey(opportunity.siteId, opportunity.node);
+                  return (
+                    <tr
+                      key={opportunity.id}
+                      className={threshold.bodyRow}
+                      style={{
+                        animation:
+                          "opportunityRowsIn 320ms cubic-bezier(0.2, 0, 0, 1)",
+                      }}
+                      tabIndex={0}
+                      onClick={() => onRowClick(opportunity.node)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          onRowClick(opportunity.node);
+                        }
+                      }}
+                    >
+                      <td className={threshold.td}>
+                        <span
+                          className={cx(typePill, pillClass(opportunity.kind))}
+                        >
+                          {opportunity.typeLabel}
+                        </span>
+                      </td>
+                      <td className={threshold.td}>
+                        <div className={titleCell}>
+                          <span className={titleText}>{opportunity.title}</span>
+                          <ProductTags products={opportunity.products} />
+                        </div>
+                      </td>
+                      <td className={threshold.tdRight}>
+                        <span
+                          className={cx(
+                            impactBase,
+                            opportunity.impactTone === "danger"
+                              ? impactDanger
+                              : opportunity.impactTone === "success"
+                                ? impactSuccess
+                                : impactNeutral,
+                          )}
+                          title={opportunity.evidence}
+                        >
+                          {opportunity.impactValue}
+                        </span>
+                        <div
+                          className={impactLabel}
+                          title={opportunity.evidence}
+                        >
+                          {opportunity.impactLabel}
+                        </div>
+                      </td>
+                      <td className={threshold.tdRight}>
+                        <Tooltip
+                          content={sampleTooltip(opportunity)}
+                          position="top"
+                          openDelay="fast"
+                        >
                           <span
                             className={cx(
-                              typePill,
-                              pillClass(opportunity.kind),
+                              sampleBadge,
+                              sampleClass(opportunity.confidenceLabel),
                             )}
                           >
-                            {opportunity.typeLabel}
+                            {opportunity.confidenceLabel}
                           </span>
-                        </td>
-                        <td className={threshold.td}>
-                          <div className={titleCell}>
-                            <span className={titleText}>
-                              {opportunity.title}
-                            </span>
-                            <ProductTags products={opportunity.products} />
-                          </div>
-                        </td>
-                        <td className={threshold.tdRight}>
-                          <span
-                            className={cx(
-                              impactBase,
-                              opportunity.impactTone === "danger"
-                                ? impactDanger
-                                : opportunity.impactTone === "success"
-                                  ? impactSuccess
-                                  : impactNeutral,
-                            )}
-                            title={opportunity.evidence}
-                          >
-                            {opportunity.impactValue}
-                          </span>
-                          <div
-                            className={impactLabel}
-                            title={opportunity.evidence}
-                          >
-                            {opportunity.impactLabel}
-                          </div>
-                        </td>
-                        <td className={threshold.td}>
-                          <Tooltip
-                            content={sampleTooltip(opportunity)}
-                            position="top"
-                            openDelay="fast"
-                          >
-                            <span
-                              className={cx(
-                                sampleBadge,
-                                sampleClass(opportunity.confidenceLabel),
-                              )}
-                            >
-                              {opportunity.confidenceLabel}
-                            </span>
-                          </Tooltip>
-                        </td>
-                        <td className={threshold.tdRight}>
-                          <div className={actionWrap}>
-                            {opportunity.briefHref && (
-                              <BriefLink
-                                href={opportunity.briefHref}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  trackSupplyChainInteraction({
-                                    interaction: "brief_link_clicked",
-                                    opportunityKind: opportunity.kind,
-                                    siteId: opportunity.siteId,
-                                    source: "opportunities_table",
-                                    stepId: opportunity.stepId,
-                                  });
-                                }}
-                              />
-                            )}
-                            <StatusActionButton
-                              state={deriveStatusActionState(
-                                statusHistory[key],
-                              )}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onStatus(opportunity.node, opportunity.title);
-                              }}
-                            />
-
-                            <NeutralActionButton
-                              className={
-                                status?.read ? markUnreadButton : markReadButton
-                              }
-                              icon={
-                                status?.read ? <UnreadIcon /> : <ReadIcon />
-                              }
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                if (status?.read) {
-                                  onMarkUnread(key);
-                                } else {
-                                  onMarkRead(key);
-                                }
-                              }}
-                            >
-                              {status?.read ? "Mark unread" : "Mark read"}
-                            </NeutralActionButton>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </section>
-        ))}
-        {visibleCount === 0 && (
-          <table className={threshold.table}>
+                        </Tooltip>
+                      </td>
+                      <td className={threshold.tdRight}>
+                        <div className={actionWrap}>
+                          <StatusActionButton
+                            state={deriveStatusActionState(statusHistory[key])}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onStatus(opportunity.node, opportunity.title);
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          ))}
+          {visibleCount === 0 && (
             <tbody className={threshold.tbodyDivide}>
               <tr>
                 <td colSpan={5} className={threshold.emptyCell}>
                   {opportunities.length === 0
-                    ? "No opportunities match the current filters."
-                    : "No unread opportunities. Enable “Show read” to review completed items."}
+                    ? "No opportunities have been generated for this site yet."
+                    : "No opportunities match the current filters. Try resetting filters."}
                 </td>
               </tr>
             </tbody>
-          </table>
-        )}
+          )}
+        </table>
       </div>
     </section>
   );

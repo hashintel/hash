@@ -18,20 +18,20 @@ type PlaceID = ID;
 /**
  * Adds tokens to multiple places in the simulation frame.
  *
- * Takes an EngineFrame and a Map of Place IDs to arrays of token values,
- * and returns a new EngineFrame with:
- * - The specified tokens added to each place's section in the buffer
+ * Takes an EngineFrame and a Map of Place IDs to arrays of packed token byte
+ * blocks, and returns a new EngineFrame with:
+ * - The specified tokens appended to each place's section in the buffer
  * - Each place's count incremented by the number of added tokens
- * - All subsequent places' offsets adjusted accordingly
+ * - All subsequent places' byte offsets adjusted accordingly
  *
  * @param frame - The simulation frame to modify
- * @param tokensToAdd - Map from Place ID to array of token values to add (each token is an array of numbers)
+ * @param tokensToAdd - Map from Place ID to array of token byte blocks to add (each block is one packed token, strideBytes long)
  * @returns A new EngineFrame with the tokens added
- * @throws Error if a place is not found or token dimensions don't match
+ * @throws Error if a place is not found or token byte sizes don't match
  */
 function addTokensToSimulationFrame(
   frame: EngineFrame,
-  tokensToAdd: Map<PlaceID, number[][]>,
+  tokensToAdd: Map<PlaceID, Uint8Array[]>,
   layout: EngineFrameLayout,
 ): EngineFrame {
   // If no tokens to add, return frame as-is
@@ -41,7 +41,7 @@ function addTokensToSimulationFrame(
 
   const snapshot = materializeEngineFrame(layout, frame);
 
-  // Validate all places and token dimensions first
+  // Validate all places and token byte sizes first
   for (const [placeId, tokens] of tokensToAdd) {
     const placeState = snapshot.places[placeId];
     if (!placeState) {
@@ -50,56 +50,61 @@ function addTokensToSimulationFrame(
       );
     }
 
-    // Validate that all tokens have the correct dimensions
-    const expectedDimensions = placeState.dimensions;
+    // Validate that all token blocks have the correct byte size
+    const expectedStrideBytes = placeState.strideBytes;
     for (const token of tokens) {
-      if (token.length !== expectedDimensions) {
+      if (token.byteLength !== expectedStrideBytes) {
         throw new Error(
-          `Token dimension mismatch for place ${placeId}. Expected ${expectedDimensions}, got ${token.length}.`,
+          `Token byte size mismatch for place ${placeId}. Expected ${expectedStrideBytes}, got ${token.byteLength}.`,
         );
       }
     }
   }
 
-  // Calculate total size increase needed in buffer
-  let totalSizeIncrease = 0;
+  // Calculate total byte size increase needed in buffer
+  let totalByteSizeIncrease = 0;
   for (const [placeId, tokens] of tokensToAdd) {
     const placeState = snapshot.places[placeId]!;
-    const tokenSize = placeState.dimensions;
-    totalSizeIncrease += tokens.length * tokenSize;
+    totalByteSizeIncrease += tokens.length * placeState.strideBytes;
   }
 
   // Create a new buffer with increased size
-  const newBuffer = new Float64Array(
-    snapshot.buffer.length + totalSizeIncrease,
+  const newBuffer = new Uint8Array(
+    snapshot.buffer.byteLength + totalByteSizeIncrease,
   );
 
-  // Process places in order of their offsets to build the new buffer
+  // Process places in order of their byte offsets to build the new buffer
   const placesByOffset = Object.entries(snapshot.places).sort(
-    (a, b) => a[1].offset - b[1].offset,
+    (a, b) => a[1].byteOffset - b[1].byteOffset,
   );
 
   const newPlaces: EngineFrameSnapshot["places"] = { ...snapshot.places };
-  let sourceIndex = 0;
-  let targetIndex = 0;
+  let targetByteOffset = 0;
 
   for (const [placeId, placeState] of placesByOffset) {
-    const { count, dimensions } = placeState;
-    const tokenSize = dimensions;
-    const placeSize = count * tokenSize;
+    const { count, strideBytes } = placeState;
+    const placeByteSize = count * strideBytes;
 
-    // Copy existing tokens from this place
-    for (let i = 0; i < placeSize; i++) {
-      newBuffer[targetIndex++] = snapshot.buffer[sourceIndex++]!;
+    // Copy existing tokens from this place, reading at the place's recorded
+    // offset rather than a running counter so the copy stays correct even if
+    // the source region ever contains gaps.
+    if (placeByteSize > 0) {
+      newBuffer.set(
+        snapshot.buffer.subarray(
+          placeState.byteOffset,
+          placeState.byteOffset + placeByteSize,
+        ),
+        targetByteOffset,
+      );
+      targetByteOffset += placeByteSize;
     }
 
     // Add new tokens for this place if any
     const newTokens = tokensToAdd.get(placeId);
     if (newTokens) {
       for (const token of newTokens) {
-        for (const value of token) {
-          newBuffer[targetIndex++] = value;
-        }
+        newBuffer.set(token, targetByteOffset);
+        targetByteOffset += token.byteLength;
       }
 
       // Update this place's count
@@ -110,19 +115,18 @@ function addTokensToSimulationFrame(
     }
   }
 
-  // Recalculate all offsets based on the new buffer layout
-  let currentOffset = 0;
+  // Recalculate all byte offsets based on the new buffer layout
+  let currentByteOffset = 0;
   for (const [placeId, _placeState] of placesByOffset) {
     const updatedState = newPlaces[placeId]!;
-    const tokenSize = updatedState.dimensions;
-    const placeSize = updatedState.count * tokenSize;
+    const placeByteSize = updatedState.count * updatedState.strideBytes;
 
     newPlaces[placeId] = {
       ...updatedState,
-      offset: currentOffset,
+      byteOffset: currentByteOffset,
     };
 
-    currentOffset += placeSize;
+    currentByteOffset += placeByteSize;
   }
 
   return createEngineFrame(layout, {
@@ -166,8 +170,8 @@ export function executeTransitions(
   dt: number,
   rngState: number,
 ): ExecuteTransitionsResult {
-  // Map to accumulate all tokens to add: PlaceID -> array of token values
-  const tokensToAdd = new Map<PlaceID, number[][]>();
+  // Map to accumulate all tokens to add: PlaceID -> array of token byte blocks
+  const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
 
   // Keep track of which transitions fired for updating timeSinceLastFiringMs
   const transitionsFired = new Set<ID>();

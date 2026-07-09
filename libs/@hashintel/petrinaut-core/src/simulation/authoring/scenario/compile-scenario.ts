@@ -1,7 +1,13 @@
+import { coerceTokenRecord } from "../../engine/token-values";
+import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
-import type { InitialMarking, InitialPlaceMarking } from "../../api";
+import type {
+  InitialMarking,
+  InitialPlaceMarking,
+  InitialTokenAttributeValue,
+} from "../../api";
 
 // -- Result types -------------------------------------------------------------
 
@@ -85,23 +91,50 @@ function evaluateExpression(
   );
 }
 
-function tokenRecordsFromRows(
-  rows: number[][],
+type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
+
+/**
+ * Coerces one raw token source through the runtime codec, then converts each
+ * attribute to its at-rest form (uuid bigints become canonical lowercase
+ * strings) so the compiled initial state stays JSON-serializable. Arbitrary
+ * uuid inputs (free text, numbers) are normalized deterministically via
+ * `toUuid` inside `coerceTokenRecord`.
+ */
+function compileTokenRecord(
+  source: Record<string, unknown>,
   elements: Color["elements"],
-): Record<string, number>[] {
+): MarkingTokenRecord {
+  const coerced = coerceTokenRecord(
+    source,
+    elements,
+    "Scenario initial state token",
+  );
+  const token: MarkingTokenRecord = {};
+  for (const element of elements) {
+    token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
+      coerced[element.name]!,
+    );
+  }
+  return token;
+}
+
+function tokenRecordsFromRows(
+  rows: readonly (number | boolean | string)[][],
+  elements: Color["elements"],
+): MarkingTokenRecord[] {
   return rows.map((row) => {
-    const token: Record<string, number> = {};
+    const token: Record<string, unknown> = {};
     for (let i = 0; i < elements.length; i++) {
-      token[elements[i]!.name] = row[i] ?? 0;
+      token[elements[i]!.name] = row[i];
     }
-    return token;
+    return compileTokenRecord(token, elements);
   });
 }
 
 function normalizeTokenRecords(
   tokens: unknown[],
   elements: Color["elements"],
-): Record<string, number>[] {
+): MarkingTokenRecord[] {
   return tokens.flatMap((rawToken) => {
     if (
       typeof rawToken !== "object" ||
@@ -112,18 +145,7 @@ function normalizeTokenRecords(
     }
 
     const source = rawToken as Record<string, unknown>;
-    const token: Record<string, number> = {};
-    const entries =
-      elements.length > 0
-        ? elements.map(
-            (element) => [element.name, source[element.name]] as const,
-          )
-        : Object.entries(source);
-
-    for (const [name, value] of entries) {
-      token[name] = Number(value ?? 0);
-    }
-    return [token];
+    return [compileTokenRecord(source, elements)];
   });
 }
 
@@ -283,7 +305,7 @@ export function compileScenario(
     for (const [placeId, value] of Object.entries(
       scenario.initialState.content,
     )) {
-      // Colored places: number[][] stored directly by the UI.
+      // Colored places: row data stored directly by the UI.
       if (Array.isArray(value)) {
         const place = placeById.get(placeId);
         const color = place?.colorId ? typeById.get(place.colorId) : undefined;
@@ -318,10 +340,24 @@ export function compileScenario(
           continue;
         }
 
-        initialState[placeId] = tokenRecordsFromRows(
-          value,
-          color?.elements ?? [],
-        );
+        try {
+          initialState[placeId] = tokenRecordsFromRows(
+            value,
+            color?.elements ?? [],
+          );
+        } catch (error) {
+          // Row coercion throws on invalid typed values (e.g. a non-finite
+          // number); report it like every other compilation failure instead
+          // of letting compileScenario throw.
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message:
+              error instanceof Error
+                ? error.message
+                : `Invalid token rows for place "${placeId}".`,
+          });
+        }
         continue;
       }
 

@@ -1,0 +1,5 @@
+Expr#4294967040@15
+  ExprKind (Literal)
+    LiteralExpr#4294967040@14
+      Primitive (Integer)
+        Integer (0)

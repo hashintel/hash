@@ -1,4 +1,0 @@
-//@ run: fail
-//@ description: Field access with string literal should error
-["::kernel::special_form::access", "data", { "#literal": "field_name" }]
-//~^ ERROR Use an integer literal here

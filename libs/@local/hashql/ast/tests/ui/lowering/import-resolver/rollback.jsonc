@@ -1,9 +1,0 @@
-//@ run: fail
-//@ description: Tests that imports are properly scoped and don't leak outside their containing expression
-[
-  "if",
-  { "#literal": true },
-  ["use", "core::bits", { "#tuple": ["shl"] }, "shl"],
-  "shl"
-  //~^ ERROR Cannot find variable 'shl'
-]

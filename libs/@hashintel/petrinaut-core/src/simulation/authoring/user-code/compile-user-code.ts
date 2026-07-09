@@ -1,6 +1,7 @@
 import * as Babel from "@babel/standalone";
 
 import { distributionRuntimeCode } from "./distribution";
+import { uuidRuntimeCode } from "./uuid-runtime";
 
 type CompileUserCodeOptions = {
   /**
@@ -90,6 +91,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
     // Create an executable module-like environment
     const executableCode = `
       ${options.enableDistribution === false ? "" : distributionRuntimeCode}
+      ${uuidRuntimeCode}
       ${mockConstructor}
       let __default_export__;
       ${sanitizedCode.replace(/export\s+default\s+/, "__default_export__ = ")}

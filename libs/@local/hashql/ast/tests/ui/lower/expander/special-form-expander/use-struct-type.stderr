@@ -1,0 +1,6 @@
+error[expander::use-imports-type-annotation]: Type annotation on use imports
+  ╭▸ 
+8 │     "#type": "X"
+  │               ━ type annotations are not allowed on the import list
+  │
+  ╰ help: remove the type annotation; the import list declares which names to bring into scope, not a typed value

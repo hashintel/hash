@@ -32,7 +32,7 @@ use crate::node::id::NodeId;
 /// if has_permission
 ///     then perform_action()
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct IfExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

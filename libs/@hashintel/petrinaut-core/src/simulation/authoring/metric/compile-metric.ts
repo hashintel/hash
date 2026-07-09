@@ -1,6 +1,6 @@
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
-import type { Metric } from "../../../types/sdcpn";
+import type { Metric, TokenRecord } from "../../../types/sdcpn";
 
 // -- Public types -------------------------------------------------------------
 
@@ -13,7 +13,7 @@ import type { Metric } from "../../../types/sdcpn";
  */
 export interface MetricPlaceState {
   count: number;
-  tokens: Record<string, number>[];
+  tokens: TokenRecord[];
 }
 
 /**

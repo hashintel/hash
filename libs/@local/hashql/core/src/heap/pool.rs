@@ -80,6 +80,7 @@ impl Default for ScratchPool {
 ///
 /// Derefs to [`Scratch`], so it can be used anywhere a `&Scratch` is expected.
 /// On drop, the allocator is reset and returned to the pool for reuse.
+#[clippy::has_significant_drop]
 pub struct ScratchPoolGuard<'pool> {
     pool: &'pool ScratchPool,
     scratch: ManuallyDrop<Scratch>,
@@ -181,6 +182,7 @@ impl Default for HeapPool {
 ///
 /// Derefs to [`Heap`], so it can be used anywhere a `&Heap` is expected.
 /// On drop, the heap is reset and returned to the pool for reuse.
+#[clippy::has_significant_drop]
 pub struct HeapPoolGuard<'pool> {
     pool: &'pool HeapPool,
     heap: ManuallyDrop<Heap>,

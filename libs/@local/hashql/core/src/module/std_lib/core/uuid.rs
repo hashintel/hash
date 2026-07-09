@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
     symbol::{Symbol, sym},
 };
@@ -22,7 +21,7 @@ pub(in crate::module::std_lib) struct Uuid {
 impl<'heap> StandardLibraryModule<'heap> for Uuid {
     type Children = ();
 
-    fn name(_: &'heap Heap) -> Symbol<'heap> {
+    fn name() -> Symbol<'heap> {
         sym::uuid
     }
 

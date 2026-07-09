@@ -11,7 +11,7 @@ version.workspace = true
 hashql-ast          = { workspace = true, public = true }
 hashql-core         = { workspace = true, public = true }
 hashql-diagnostics  = { workspace = true, features = ["render"], public = true }
-hashql-eval         = { workspace = true, features = ["graph"], public = true }
+hashql-eval         = { workspace = true, public = true }
 hashql-hir          = { workspace = true, public = true }
 hashql-mir          = { workspace = true, public = true }
 hashql-syntax-jexpr = { workspace = true, public = true }

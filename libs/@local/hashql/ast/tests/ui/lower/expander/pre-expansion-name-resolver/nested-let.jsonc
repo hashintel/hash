@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Test nested let expressions with proper scoping
+// prettier-ignore
+["let", "a", {"#literal": 1},
+["let", "b", {"#literal": 2},
+["let", "a", {"#literal": 3},
+  "a"
+]]]

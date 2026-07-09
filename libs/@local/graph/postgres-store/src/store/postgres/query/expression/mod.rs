@@ -17,7 +17,7 @@ mod with_clause;
 pub use self::{
     binary::{BinaryExpression, BinaryOperator},
     column_reference::{ColumnName, ColumnReference},
-    conditional::{Constant, EqualityOperator, Expression, Function, PostgresType},
+    conditional::{Constant, EqualityOperator, Expression, Function},
     from_item::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder,

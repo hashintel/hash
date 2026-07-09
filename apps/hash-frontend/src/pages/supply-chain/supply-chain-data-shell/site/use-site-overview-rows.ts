@@ -24,13 +24,7 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import { recomputeSitePerformance } from "../../shared/supplier-otif";
 import { useTimeRange } from "../../shared/time-range-context";
 import { useSiteNodes } from "../../shared/use-site-nodes";
-import {
-  categoryMatcher,
-  hasEnoughSample,
-  sortRows,
-  sortPlanningRows,
-  aggregateMonthlyCarryCost,
-} from "./shared/helpers";
+import { hasEnoughSample, aggregateMonthlyCarryCost } from "./shared/helpers";
 
 import type {
   Product,
@@ -38,15 +32,12 @@ import type {
   SiteSupplierPerformance,
   VendorOtifStats,
 } from "../../shared/types";
-import type { SortKey, SortDir, SupplierMode } from "./shared/row-types";
+import type { SupplierMode } from "./shared/row-types";
 
 interface SiteOverviewRowsInput {
   siteSlug: string;
   products: Product[];
-  selectedCategories: Set<string>;
   excludeLowSamples: boolean;
-  dwellSort: { key: SortKey; dir: SortDir };
-  planSort: { key: SortKey; dir: SortDir };
   supplierMode: SupplierMode;
   supplierPerformanceEnabled: boolean;
 }
@@ -65,10 +56,7 @@ function supplierLeaderboardMin(
 export function useSiteOverviewRows({
   siteSlug,
   products,
-  selectedCategories,
   excludeLowSamples,
-  dwellSort,
-  planSort,
   supplierMode,
   supplierPerformanceEnabled,
 }: SiteOverviewRowsInput) {
@@ -129,14 +117,11 @@ export function useSiteOverviewRows({
   }, [dedupedNodes, excludeOutliers, procurementBasis]);
 
   const filteredNodes = useMemo((): SiteNode[] => {
-    const matchesCategory = categoryMatcher(selectedCategories);
-    return historicalNodes
-      .filter((count) => matchesCategory(count.type))
-      .map((count) => ({
-        ...windowGraphNodeToRange(count, timeRange),
-        products: count.products,
-      }));
-  }, [historicalNodes, timeRange, selectedCategories]);
+    return historicalNodes.map((count) => ({
+      ...windowGraphNodeToRange(count, timeRange),
+      products: count.products,
+    }));
+  }, [historicalNodes, timeRange]);
 
   const historicalNodesByKey = useMemo(() => {
     return new Map(historicalNodes.map((count) => [siteNodeKey(count), count]));
@@ -186,8 +171,9 @@ export function useSiteOverviewRows({
     [filteredNodes, waccRate, storageCost],
   );
 
+  // Rows are returned unsorted: each detail table owns its own sort + filter.
   const dwellRows = useMemo(() => {
-    const rows = filteredNodes
+    return filteredNodes
       .filter((count) => DWELL_TYPES.includes(count.type) && count.stats.n > 0)
       .map((count) => {
         const historical =
@@ -210,11 +196,9 @@ export function useSiteOverviewRows({
           previousTrendN: timingTrend.previousN,
         };
       });
-    return sortRows(rows, dwellSort, measure);
   }, [
     filteredNodes,
     historicalNodesByKey,
-    dwellSort,
     waccRate,
     storageCost,
     timeRange,
@@ -222,7 +206,7 @@ export function useSiteOverviewRows({
   ]);
 
   const planningRows = useMemo(() => {
-    const rows = planningVisibleNodes
+    return planningVisibleNodes
       .filter(
         (count) => count.plan != null && count.plan > 0 && count.stats.n > 0,
       )
@@ -240,14 +224,7 @@ export function useSiteOverviewRows({
           previousTrendN: trend.previousN,
         };
       });
-    return sortPlanningRows(rows, planSort, measure);
-  }, [
-    planningVisibleNodes,
-    historicalNodesByKey,
-    planSort,
-    timeRange,
-    measure,
-  ]);
+  }, [planningVisibleNodes, historicalNodesByKey, timeRange, measure]);
 
   const windowedSupplier = useMemo(() => {
     if (!supplierData) {

@@ -13,6 +13,7 @@ members = [
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
     "libs/@local/graph/authorization",
+    "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
@@ -75,6 +76,7 @@ hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
+hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
@@ -154,6 +156,7 @@ futures                            = { version = "0.3.31", default-features = fa
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }
 futures-io                         = { version = "0.3.31", default-features = false }
+futures-lite                       = { version = "2.6.1" }
 futures-sink                       = { version = "0.3.31", default-features = false }
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
@@ -198,11 +201,11 @@ napi-derive                        = { version = "3.5.6", default-features = fal
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
-opentelemetry                      = { version = "0.30.0", default-features = false }
-opentelemetry-appender-tracing     = { version = "0.30.1", default-features = false }
-opentelemetry-otlp                 = { version = "0.30.0", default-features = false }
-opentelemetry-semantic-conventions = { version = "0.30.0", default-features = false }
-opentelemetry_sdk                  = { version = "0.30.0", default-features = false }
+opentelemetry                      = { version = "0.32.0", default-features = false }
+opentelemetry-appender-tracing     = { version = "0.32.0", default-features = false }
+opentelemetry-otlp                 = { version = "0.32.0", default-features = false }
+opentelemetry-semantic-conventions = { version = "0.32.1", default-features = false }
+opentelemetry_sdk                  = { version = "0.32.1", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
 oxc                                = { version = "0.95.0", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
@@ -213,7 +216,6 @@ postgres-types                     = { version = "0.2.11", default-features = fa
 pretty                             = { version = "0.12.5", default-features = false }
 pretty_assertions                  = { version = "1.4.1", default-features = false, features = ["alloc"] }
 prettyplease                       = { version = "0.2.37", default-features = false }
-proc-macro-error2                  = { version = "2.0.1", default-features = false }
 proc-macro2                        = { version = "1.0.103", default-features = false }
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
@@ -221,6 +223,7 @@ quote                              = { version = "1.0.41", default-features = fa
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
 rand_distr                         = { version = "0.6.0", default-features = false }
+rand_xoshiro                       = { version = "0.8.1" }
 rapidfuzz                          = { version = "0.5.0", default-features = false }
 ratatui                            = { version = "0.30.0" }
 rayon                              = { version = "1.11.0", default-features = false }
@@ -228,6 +231,7 @@ refinery                           = { version = "0.8.16", default-features = fa
 regex                              = { version = "1.11.2", default-features = false, features = ["perf", "unicode"] }
 reqwest                            = { version = "0.13.0", default-features = false, features = ["json", "rustls"] }
 reqwest-middleware                 = { version = "0.5.0", default-features = false }
+reqwest-retry                      = { version = "0.9.1", default-features = false }
 reqwest-tracing                    = { version = "0.7.0", default-features = false }
 roaring                            = { version = "0.11.2", default-features = false }
 rpds                               = { version = "1.1.2", default-features = false }
@@ -249,6 +253,8 @@ smallvec                           = { version = "2.0.0-alpha.11", default-featu
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
+sqruff-lib                         = { version = "0.37.3" }
+sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
@@ -280,7 +286,7 @@ tracing-appender                   = { version = "0.2.3", default-features = fal
 tracing-core                       = { version = "0.1.34", default-features = false }
 tracing-error                      = { version = "0.2.1", default-features = false }
 tracing-flame                      = { version = "0.2.0", default-features = false }
-tracing-opentelemetry              = { version = "0.31.0", default-features = false }
+tracing-opentelemetry              = { version = "0.33.0", default-features = false }
 tracing-subscriber                 = { version = "0.3.20", default-features = false }
 trait-variant                      = { version = "0.1.2", default-features = false }
 trybuild                           = { version = "1.0.113", default-features = false }

@@ -7,8 +7,8 @@ use super::table::{
     ActorRoleRow, AiActorRow, MachineActorRow, RoleRow, TeamRow, UserActorRow, WebRow,
 };
 use crate::{
-    snapshot::WriteBatch,
-    store::{AsClient, PostgresStore},
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
+    store::{AsClient, PostgresStore, postgres::query::OnConflict},
 };
 
 pub enum PrincipalRowBatch {
@@ -76,157 +76,101 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Users(users) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO user_actor_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::user_actor[])
-                            RETURNING 1;
-                        ",
-                        &[&users],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} users", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &users,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} users");
                 }
             }
             Self::Machines(machines) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO machine_actor_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::machine_actor[])
-                            RETURNING 1;
-                        ",
-                        &[&machines],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} machines", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &machines,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} machines");
                 }
             }
             Self::Ais(ais) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO ai_actor_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::ai_actor[])
-                            RETURNING 1;
-                        ",
-                        &[&ais],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} AIs", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ais,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} AIs");
                 }
             }
             Self::ActorRoles(actor_roles) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO actor_role_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::actor_role[])
-                            RETURNING 1;
-                        ",
-                        &[&actor_roles],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} actor roles", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &actor_roles,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} actor roles");
                 }
             }
             Self::Webs(webs) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO web_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::web[])
-                            RETURNING 1;
-                        ",
-                        &[&webs],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} webs", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &webs,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} webs");
                 }
             }
             Self::Teams(teams) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO team_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::team[])
-                            RETURNING 1;
-                        ",
-                        &[&teams],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} teams", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &teams,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} teams");
                 }
             }
             Self::Roles(roles) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO role_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::role[])
-                            RETURNING 1;
-                        ",
-                        &[&roles],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} roles", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &roles,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} roles");
                 }
             }
         }

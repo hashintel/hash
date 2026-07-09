@@ -554,18 +554,13 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
         </div>
 
         {hasData && isProductionType(node.type) && node.normalization && (
-          <Tooltip
-            content={`Durations normalised to a ${formatNumber(node.normalization.qty, { maximumFractionDigits: 0 })} ${node.normalization.unit ?? ""} batch (${node.normalization.basis}; n=${node.normalization.n_batches}, ${node.normalization.window})`}
-            openDelay="fast"
-          >
-            <span className={normCaption}>
-              per{" "}
-              {formatNumber(node.normalization.qty, {
-                maximumFractionDigits: 0,
-              })}{" "}
-              {node.normalization.unit ?? ""} batch
-            </span>
-          </Tooltip>
+          <span className={normCaption}>
+            per{" "}
+            {formatNumber(node.normalization.qty, {
+              maximumFractionDigits: 0,
+            })}{" "}
+            {node.normalization.unit ?? ""} batch
+          </span>
         )}
 
         {hasData && <MiniBoxPlot stats={stats} />}

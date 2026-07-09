@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: type/3 should be converted to an AST node
-["::kernel::special_form::type", "x", "Integer", "x"]

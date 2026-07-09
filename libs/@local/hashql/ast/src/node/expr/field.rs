@@ -24,7 +24,7 @@ use crate::node::id::NodeId;
 /// ```text
 /// user.name
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct FieldExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

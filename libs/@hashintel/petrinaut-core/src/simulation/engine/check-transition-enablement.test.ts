@@ -81,7 +81,7 @@ function makeFrame({
     transitions: Object.fromEntries(
       transitions.map((transition) => [transition.id, transitionState]),
     ),
-    buffer: new Float64Array([]),
+    buffer: new Uint8Array(0),
   }) as TestFrame;
   Object.defineProperty(frame, "layout", { value: layout });
   return frame;
@@ -93,7 +93,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 2, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 2, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -112,7 +112,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 0, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 0, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -131,7 +131,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 3, type: "standard" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 2, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 2, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -150,7 +150,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 2, type: "read" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 2, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 2, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -169,7 +169,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 2, type: "read" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 1, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 1, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -192,8 +192,8 @@ describe("isTransitionStructurallyEnabled", () => {
     });
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 0 },
-        p2: { offset: 0, count: 0, dimensions: 0 },
+        p1: { byteOffset: 0, count: 2, strideBytes: 0 },
+        p2: { byteOffset: 0, count: 0, strideBytes: 0 },
       },
       transitions: [transition],
     });
@@ -213,7 +213,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 1, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 1, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -232,7 +232,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 3, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 3, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -251,7 +251,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 2, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 2, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -270,7 +270,7 @@ describe("isTransitionStructurallyEnabled", () => {
       inputArcs: [{ placeId: "p1", weight: 1, type: "inhibitor" }],
     });
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 0, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 0, strideBytes: 0 } },
       transitions: [transition],
     });
 
@@ -293,8 +293,8 @@ describe("isTransitionStructurallyEnabled", () => {
     });
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 0 },
-        p2: { offset: 0, count: 0, dimensions: 0 },
+        p1: { byteOffset: 0, count: 2, strideBytes: 0 },
+        p2: { byteOffset: 0, count: 0, strideBytes: 0 },
       },
       transitions: [transition],
     });
@@ -318,8 +318,8 @@ describe("isTransitionStructurallyEnabled", () => {
     });
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 2, dimensions: 0 },
-        p2: { offset: 0, count: 3, dimensions: 0 },
+        p1: { byteOffset: 0, count: 2, strideBytes: 0 },
+        p2: { byteOffset: 0, count: 3, strideBytes: 0 },
       },
       transitions: [transition],
     });
@@ -366,8 +366,8 @@ describe("checkTransitionEnablement", () => {
     ];
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 1, dimensions: 0 },
-        p2: { offset: 0, count: 0, dimensions: 0 },
+        p1: { byteOffset: 0, count: 1, strideBytes: 0 },
+        p2: { byteOffset: 0, count: 0, strideBytes: 0 },
       },
       transitions,
     });
@@ -396,8 +396,8 @@ describe("checkTransitionEnablement", () => {
     ];
     const frame = makeFrame({
       places: {
-        p1: { offset: 0, count: 0, dimensions: 0 },
-        p2: { offset: 0, count: 0, dimensions: 0 },
+        p1: { byteOffset: 0, count: 0, strideBytes: 0 },
+        p2: { byteOffset: 0, count: 0, strideBytes: 0 },
       },
       transitions,
     });
@@ -442,7 +442,7 @@ describe("checkTransitionEnablement", () => {
       }),
     ];
     const frame = makeFrame({
-      places: { p1: { offset: 0, count: 5, dimensions: 0 } },
+      places: { p1: { byteOffset: 0, count: 5, strideBytes: 0 } },
       transitions,
     });
 

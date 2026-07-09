@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: type annotation on a rebinding of an intrinsic should produce a diagnostic
+[
+  "::kernel::special_form::let",
+  "my_if",
+  "Integer",
+  //~^ ERROR type annotation on `my_if` is not allowed here
+  "::kernel::special_form::if",
+  ["my_if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
+]

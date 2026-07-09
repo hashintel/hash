@@ -28,7 +28,6 @@ function createMockFrameReader(number: number): SimulationFrameReader {
     number,
     time: number * 0.01,
     getPlaceTokenCount: () => 0,
-    getPlaceTokenValues: () => null,
     getPlaceTokens: () => [],
     getTransitionState: () => null,
     toFrameState: () => ({

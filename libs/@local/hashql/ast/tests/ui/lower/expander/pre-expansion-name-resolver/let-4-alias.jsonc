@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: if given that `a = b`, then `a` should be replaced with `b` in the body
+[
+  "let",
+  "b",
+  "Integer",
+  { "#literal": 2 },
+  ["let", "a", "Integer", "b", ["+", "a", "a"]]
+]

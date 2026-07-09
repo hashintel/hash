@@ -26,7 +26,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
                         JSONB_BUILD_OBJECT(($1::text), 10, ($2::text), 20),
                         ((($1::text))::text)
                     )
-                )::boolean
+                )::bool
             ),
             FALSE
         ),

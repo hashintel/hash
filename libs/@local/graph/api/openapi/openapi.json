@@ -1580,6 +1580,54 @@
         }
       }
     },
+    "/entities/embeddings/clusters": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "cluster_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterEntitiesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Clusters of entities by embedding similarity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterEntitiesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/permissions": {
       "post": {
         "tags": [
@@ -1647,37 +1695,6 @@
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
             }
-          },
-          {
-            "name": "Interactive",
-            "in": "header",
-            "description": "Whether the request is used interactively",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
-            }
           }
         ],
         "requestBody": {
@@ -1725,37 +1742,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "Interactive",
-            "in": "header",
-            "description": "Whether the query is interactive",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "after",
-            "in": "query",
-            "description": "The cursor to start reading from",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of entities to read",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "nullable": true,
-              "minimum": 0
             }
           }
         ],
@@ -2574,6 +2560,58 @@
           },
           "500": {
             "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/hashql": {
+      "post": {
+        "tags": [
+          "Graph",
+          "HashQL"
+        ],
+        "operationId": "query_hashql",
+        "parameters": [
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "When true, error responses are rendered as HTML instead of JSON",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "Json-Compat",
+            "in": "header",
+            "description": "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashQlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Query executed successfully"
+          },
+          "400": {
+            "description": "Query compilation or validation error"
+          },
+          "500": {
+            "description": "Internal compiler or database error"
           }
         }
       }
@@ -3752,6 +3790,77 @@
           "propertyName": "kind"
         }
       },
+      "ClusterEntitiesParams": {
+        "type": "object",
+        "required": [
+          "entityIds",
+          "clusterCount"
+        ],
+        "properties": {
+          "clusterCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Desired number of clusters.\n\nClamped to the number of entities with embeddings when that is smaller.",
+            "maximum": 64,
+            "minimum": 0
+          },
+          "dimension": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Embedding dimension after matryoshka truncation.\n\nMust be a positive multiple of 8; values above 512 are rejected. Defaults to 256.",
+            "default": 256,
+            "example": 256,
+            "multipleOf": 8,
+            "maximum": 512,
+            "minimum": 8
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seed for the random number generator used in clustering.\n\nIf not provided, a random seed will be used.",
+            "nullable": true,
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterEntitiesResponse": {
+        "type": "object",
+        "description": "Result of [`EntityStore::cluster_entities`].",
+        "required": [
+          "clusters",
+          "missingEmbeddings",
+          "inertia"
+        ],
+        "properties": {
+          "clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityCluster"
+            },
+            "description": "One entry per non-empty cluster. Empty clusters (no points assigned)\nare omitted."
+          },
+          "inertia": {
+            "type": "number",
+            "format": "float",
+            "description": "Sum of squared chord distances from every clustered entity to its\nassigned centroid. Lower is tighter; comparable across runs over the\nsame entities, e.g. to choose a cluster count. `0.0` when nothing was\nclustered."
+          },
+          "missingEmbeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            },
+            "description": "Entities from the request that were not clustered (either because no embedding exists, or\nbecause the actor lacks permission to view the entity).",
+            "uniqueItems": true
+          }
+        }
+      },
       "CommonQueryEntityTypesParams": {
         "type": "object",
         "required": [
@@ -4517,6 +4626,37 @@
           }
         }
       },
+      "EntityCluster": {
+        "type": "object",
+        "description": "One cluster from a spherical k-means run over entity embeddings.",
+        "required": [
+          "clusterId",
+          "entityIds",
+          "centroid"
+        ],
+        "properties": {
+          "centroid": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Centroid with length equal to the requested dimension.\n\nTypically unit-normalized, but may be the all-zero vector if all assigned points have zero\nnorm."
+          },
+          "clusterId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Index in `0..min(cluster_count, n)`.",
+            "minimum": 0
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        }
+      },
       "EntityDeletionProvenance": {
         "type": "object",
         "required": [
@@ -4685,60 +4825,6 @@
         "items": {
           "type": "object"
         }
-      },
-      "EntityQueryOptions": {
-        "type": "object",
-        "required": [
-          "temporalAxes",
-          "includeDrafts",
-          "includePermissions"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
-            }
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
-            ],
-            "nullable": true
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includePermissions": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
       },
       "EntityQuerySortingPath": {
         "type": "array",
@@ -5632,6 +5718,26 @@
               "$ref": "#/components/schemas/VersionedUrl"
             }
           }
+        },
+        "additionalProperties": false
+      },
+      "HashQlRequest": {
+        "type": "object",
+        "description": "Request body for the `/hashql` endpoint.",
+        "required": [
+          "query",
+          "inputs"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "default": null,
+              "nullable": true
+            },
+            "description": "Input values for the query. Must be an empty list until input support ships."
+          },
+          "query": {}
         },
         "additionalProperties": false
       },
@@ -8042,42 +8148,62 @@
         }
       },
       "QueryEntitiesRequest": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "query"
-                ],
-                "properties": {
-                  "query": {}
-                }
-              }
-            ]
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts",
+          "includePermissions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
           },
-          {
+          "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  }
-                }
+                "$ref": "#/components/schemas/EntityQueryCursor"
               }
-            ]
+            ],
+            "nullable": true
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
+          "includePermissions": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
-        ]
+        },
+        "additionalProperties": false
       },
       "QueryEntitiesResponse": {
         "type": "object",
@@ -8125,46 +8251,15 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
               },
               {
                 "type": "object",
                 "required": [
-                  "query",
                   "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  },
-                  "query": {},
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "traversalPaths",
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
                   },
@@ -8181,41 +8276,14 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryOptions"
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
               },
               {
                 "type": "object",
                 "required": [
-                  "query",
                   "traversalPaths"
                 ],
                 "properties": {
-                  "query": {},
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
                   "traversalPaths": {
                     "type": "array",
                     "items": {
@@ -8797,14 +8865,17 @@
       },
       "SearchEntitiesRequest": {
         "type": "object",
-        "description": "Request body for the entity embedding search endpoint.",
+        "description": "Request body for the entity embedding search endpoint.\n\nExactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted\ninto an embedding by the server, which requires an embedding client to be configured.",
         "required": [
-          "embedding",
           "maximumSemanticDistance"
         ],
         "properties": {
           "embedding": {
-            "$ref": "#/components/schemas/Embedding"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Embedding"
+              }
+            ]
           },
           "filter": {
             "$ref": "#/components/schemas/SearchEntitiesFilter"
@@ -8820,6 +8891,9 @@
           "maximumSemanticDistance": {
             "type": "number",
             "format": "double"
+          },
+          "semanticString": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -8847,14 +8921,17 @@
       },
       "SearchEntityTypesRequest": {
         "type": "object",
-        "description": "Request body for the entity type embedding search endpoint.",
+        "description": "Request body for the entity type embedding search endpoint.\n\nExactly one of `embedding` or `semanticString` must be provided. `semanticString` is converted\ninto an embedding by the server, which requires an embedding client to be configured.",
         "required": [
-          "embedding",
           "maximumSemanticDistance"
         ],
         "properties": {
           "embedding": {
-            "$ref": "#/components/schemas/Embedding"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Embedding"
+              }
+            ]
           },
           "limit": {
             "type": "integer",
@@ -8864,6 +8941,9 @@
           "maximumSemanticDistance": {
             "type": "number",
             "format": "double"
+          },
+          "semanticString": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -9848,6 +9928,10 @@
     {
       "name": "Principal",
       "description": "Principal management API"
+    },
+    {
+      "name": "HashQL",
+      "description": "HashQL query execution API"
     }
   ]
 }

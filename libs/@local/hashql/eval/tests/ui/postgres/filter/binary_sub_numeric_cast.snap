@@ -22,11 +22,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
 (
     ROW(
         COALESCE(
-            (
-                (
-                    ((($1::jsonb))::numeric) - ((($2::jsonb))::numeric)
-                )::boolean
-            ),
+            ((((($1::jsonb))::numeric) - ((($2::jsonb))::numeric))::bool),
             FALSE
         ),
         NULL,

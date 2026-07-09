@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: Absolute paths should stay unchanged.
-["let", "a", { "#literal": 2 }, "::a"]
