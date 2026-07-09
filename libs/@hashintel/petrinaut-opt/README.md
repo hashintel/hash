@@ -13,9 +13,8 @@ expensive, so a sample-efficient sampler (TPE by default) is used.
 ## How it connects to Petrinaut
 
 This package does **not** run the Petri net itself — it drives the
-[`petrinaut-cli`](../petrinaut-cli) socket server. Follow the instructions 
+[`petrinaut-cli`](../petrinaut-cli) socket server. Follow the instructions
 on [there](../petrinaut-cli/README.md) first.
-
 
 ## Components
 
