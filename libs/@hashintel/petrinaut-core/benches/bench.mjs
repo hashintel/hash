@@ -262,7 +262,7 @@ const SCENARIOS = [
   dynamicsScenario(10_000),
   lambdaScenario(1_000),
   kernelScenario(2_000),
-  experimentScenario(20, 2_000),
+  experimentScenario(Number(arg("--runs", 20)), 2_000),
 ];
 
 // ---------------------------------------------------------------------------
