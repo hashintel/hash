@@ -14,7 +14,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.4.22 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    export MISE_VERSION=2026.7.0 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -65,17 +65,22 @@ FROM rust AS builder
 
 WORKDIR /usr/local/src/
 
+# Install system packages and tools before copying the JS dependency manifests
+# so this layer stays cached across dependency changes and tools are not
+# re-downloaded from upstream sources on every dependency bump.
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mise install node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    apt-get update && \
-    apt-get install -y --no-install-recommends build-essential && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    mise install node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc && \
     yarn install --immutable && \
     yarn cache clean
 

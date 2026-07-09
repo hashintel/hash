@@ -1,4 +1,4 @@
-min_version = "2026.4.22"
+min_version = "2026.7.0"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -24,6 +24,7 @@ java              = "25"
 protoc            = "32.1"
 
 # CLI tools
+biome                  = "2.5.2"
 "cargo:cargo-codspeed" = "4.1.0"
 "cargo:cargo-hack"     = "0.6.45"
 "cargo:cargo-insta"    = "1.47.2"
