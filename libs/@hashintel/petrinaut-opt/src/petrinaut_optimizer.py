@@ -81,6 +81,8 @@ SamplerName = Enum(
     {name.upper(): name for name in SAMPLERS},
     type=str,
 )
+# optuna study name prefix
+DEFAULT_STUDY_NAME = "opt_study"
 # input space sampling algorithm - default: Tree-structured Parzen Estimator
 DEFAULT_SAMPLER = "tpe"
 # maximise the CLI's output
@@ -92,10 +94,10 @@ DEFAULT_N_TRIALS = 100
 class OptimizationSpec(BaseModel):
     parameters: Parameters = Parameters()
     initial_states: InitialStates = InitialStates()
-    study_name: Optional[str] = Field(default=None, description="Name of optimization study")
-    sampler: Optional[SamplerName] = Field(default=DEFAULT_SAMPLER, description="input sampling algorithm")
-    direction: Optional[Literal["maximize", "minimize"]] = Field(default=DEFAULT_DIRECTION, description="optimization direction")
-    n_trials: Optional[int] = Field(default=DEFAULT_N_TRIALS, description="number of evals to run")
+    study_name: str = Field(default=DEFAULT_STUDY_NAME, description="Name of optimization study")
+    sampler: SamplerName = Field(default=DEFAULT_SAMPLER, description="input sampling algorithm")
+    direction: Literal["maximize", "minimize"] = Field(default=DEFAULT_DIRECTION, description="optimization direction")
+    n_trials: int = Field(default=DEFAULT_N_TRIALS, description="number of evals to run")
 
     def fixed(self) -> dict[str, dict[str, float]]:
         out: dict[str, dict[str, float]] = {}
