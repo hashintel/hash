@@ -161,6 +161,32 @@ pub(crate) fn eval_entity_path<A: Allocator>(
             correlation: Some(db.projections.entity_editions()),
             name: Column::EntityEditions(table::EntityEditions::Confidence).into(),
         }),
+        EntityPath::ReadOnly => Expression::ColumnReference(ColumnReference {
+            correlation: Some(db.projections.entity_ids()),
+            name: Column::EntityIds(table::EntityIds::ReadOnly).into(),
+        }),
+        EntityPath::CreatedById => Expression::ColumnReference(ColumnReference {
+            correlation: Some(db.projections.entity_ids()),
+            name: Column::EntityIds(table::EntityIds::CreatedById).into(),
+        }),
+        EntityPath::CreatedAtTransactionTime => {
+            Expression::Function(query::Function::ExtractEpochMs(Box::new(
+                Expression::ColumnReference(ColumnReference {
+                    correlation: Some(db.projections.entity_ids()),
+                    name: Column::EntityIds(table::EntityIds::CreatedAtTransactionTime).into(),
+                }),
+            )))
+        }
+        EntityPath::CreatedAtDecisionTime => Expression::Function(query::Function::ExtractEpochMs(
+            Box::new(Expression::ColumnReference(ColumnReference {
+                correlation: Some(db.projections.entity_ids()),
+                name: Column::EntityIds(table::EntityIds::CreatedAtDecisionTime).into(),
+            })),
+        )),
+        EntityPath::EditionCreatedById => Expression::ColumnReference(ColumnReference {
+            correlation: Some(db.projections.entity_editions()),
+            name: Column::EntityEditions(table::EntityEditions::CreatedById).into(),
+        }),
         EntityPath::ProvenanceInferred => Expression::ColumnReference(ColumnReference {
             correlation: Some(db.projections.entity_ids()),
             name: Column::EntityIds(table::EntityIds::Provenance).into(),

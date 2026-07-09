@@ -118,7 +118,6 @@ async fn initial_draft() {
         entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
@@ -126,7 +125,6 @@ async fn initial_draft() {
         entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
@@ -173,7 +171,6 @@ async fn initial_draft() {
         updated_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time
             .is_none()
     );
@@ -181,7 +178,6 @@ async fn initial_draft() {
         updated_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time
             .is_none()
     );
@@ -253,7 +249,6 @@ async fn initial_draft() {
         updated_live_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
@@ -261,7 +256,6 @@ async fn initial_draft() {
         updated_live_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
@@ -308,7 +302,6 @@ async fn no_initial_draft() {
         entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time,
         Some(*undraft_transaction_time)
     );
@@ -316,7 +309,6 @@ async fn no_initial_draft() {
         entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time,
         Some(*undraft_decision_time)
     );
@@ -369,7 +361,6 @@ async fn no_initial_draft() {
             (updated_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_transaction_time
                 .expect("transaction time should be set")
                 - *undraft_transaction_time)
@@ -380,7 +371,6 @@ async fn no_initial_draft() {
             (updated_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_decision_time
                 .expect("decision time should be set")
                 - *undraft_decision_time)
@@ -434,7 +424,6 @@ async fn no_initial_draft() {
             (updated_live_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_transaction_time
                 .expect("transaction time should be set")
                 - *undraft_transaction_time)
@@ -445,7 +434,6 @@ async fn no_initial_draft() {
             (updated_live_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_decision_time
                 .expect("decision time should be set")
                 - *undraft_decision_time)
@@ -495,7 +483,6 @@ async fn multiple_drafts() {
         (entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time
             .expect("transaction time should be set")
             - *undraft_transaction_time)
@@ -506,7 +493,6 @@ async fn multiple_drafts() {
         (entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time
             .expect("decision time should be set")
             - *undraft_decision_time)
@@ -563,7 +549,6 @@ async fn multiple_drafts() {
             (updated_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_transaction_time
                 .expect("transaction time should be set")
                 - *undraft_transaction_time)
@@ -574,7 +559,6 @@ async fn multiple_drafts() {
             (updated_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_decision_time
                 .expect("decision time should be set")
                 - *undraft_decision_time)
@@ -624,7 +608,6 @@ async fn multiple_drafts() {
             (updated_live_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_transaction_time
                 .expect("transaction time should be set")
                 - *undraft_transaction_time)
@@ -635,7 +618,6 @@ async fn multiple_drafts() {
             (updated_live_entity
                 .metadata
                 .provenance
-                .inferred
                 .first_non_draft_created_at_decision_time
                 .expect("decision time should be set")
                 - *undraft_decision_time)

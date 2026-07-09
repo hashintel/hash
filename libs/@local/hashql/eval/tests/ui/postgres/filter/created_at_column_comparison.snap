@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: ?
+    let %3: ?
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.metadata.provenance.created_at_transaction_time
+        %3 = input LOAD cutoff
+        %4 = %2 == %3
+
+        return %4
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+(
+    ROW(
+        COALESCE(
+            (
+                (
+                    TO_JSONB(
+                        (EXTRACT(EPOCH FROM "entity_ids_0_0_1"."created_at_transaction_time") * 1000)::int8
+                    )
+                    = TO_JSONB(($1::jsonb))
+                )::bool
+            ),
+            FALSE
+        ),
+        NULL,
+        NULL,
+        NULL
+    )::continuation
+)

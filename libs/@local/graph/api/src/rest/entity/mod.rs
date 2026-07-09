@@ -57,7 +57,7 @@ use type_system::{
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
                 EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
-                InferredEntityProvenance, ProvidedEntityEditionProvenance,
+                ProvidedEntityEditionProvenance,
             },
         },
         property::{
@@ -163,7 +163,6 @@ use crate::rest::{
             EntityProvenance,
             EntityDeletionProvenance,
             EntityEditionProvenance,
-            InferredEntityProvenance,
             ProvidedEntityEditionProvenance,
             ActorType,
             OriginProvenance,

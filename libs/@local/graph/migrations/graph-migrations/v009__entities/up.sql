@@ -3,11 +3,16 @@ CREATE TABLE entity_ids (
     entity_uuid UUID NOT NULL,
     provenance JSONB NOT NULL,
     read_only BOOLEAN NOT NULL,
-    created_by_id UUID,
-    created_at_transaction_time TIMESTAMP WITH TIME ZONE,
-    created_at_decision_time TIMESTAMP WITH TIME ZONE,
+    created_by_id UUID NOT NULL,
+    created_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at_decision_time TIMESTAMP WITH TIME ZONE NOT NULL,
     PRIMARY KEY (web_id, entity_uuid)
 );
+
+CREATE INDEX entity_ids_created_at_transaction_time
+ON entity_ids (created_at_transaction_time);
+CREATE INDEX entity_ids_created_at_decision_time
+ON entity_ids (created_at_decision_time);
 
 CREATE TABLE entity_drafts (
     web_id UUID NOT NULL,
@@ -23,7 +28,7 @@ CREATE TABLE entity_editions (
     archived BOOLEAN NOT NULL,
     provenance JSONB NOT NULL,
     confidence DOUBLE PRECISION,
-    created_by_id UUID
+    created_by_id UUID NOT NULL
 );
 
 -- Denormalized per-edition cache of the sorting/filtering aggregates, rebuildable at

@@ -51,9 +51,14 @@
                 )>,
                 properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                 provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                    created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                    created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                    created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                     edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                    edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                     inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                 ),
+                read_only: Boolean,
                 record_id: ::graph::types::knowledge::entity::RecordId(
                     edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                     entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -127,9 +132,14 @@
 │                  )>,
 │                  properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
 │                  provenance: ::graph::types::knowledge::entity::EntityProvenance(
+│                      created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+│                      created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+│                      created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
 │                      edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+│                      edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
 │                      inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
 │                  ),
+│                  read_only: Boolean,
 │                  record_id: ::graph::types::knowledge::entity::RecordId(
 │                      edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                      entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -198,9 +208,14 @@
                )>,
                properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                   created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                   created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                    edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                    inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
+               read_only: Boolean,
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -265,9 +280,14 @@
                    )>,
                    properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                       created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                       created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                        edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                        inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
+                   read_only: Boolean,
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -329,9 +349,14 @@
                    )>,
                    properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                       created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                       created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                        edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                        inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
+                   read_only: Boolean,
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -394,9 +419,14 @@
                    )>,
                    properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                       created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                       created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                        edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                        inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
+                   read_only: Boolean,
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -460,9 +490,14 @@
                )>,
                properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                   created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                   created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                    edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                    inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
+               read_only: Boolean,
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -548,9 +583,14 @@
                    )>,
                    properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                       created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                       created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                        edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                       edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                        inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                    ),
+                   read_only: Boolean,
                    record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -658,9 +698,14 @@
 │              )>,
 │              properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
 │              provenance: ::graph::types::knowledge::entity::EntityProvenance(
+│                  created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+│                  created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+│                  created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
 │                  edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+│                  edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
 │                  inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
 │              ),
+│              read_only: Boolean,
 │              record_id: ::graph::types::knowledge::entity::RecordId(
 │                  edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                  entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -728,9 +773,14 @@
                )>,
                properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
                provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+                   created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+                   created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                    edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+                   edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                    inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
                ),
+               read_only: Boolean,
                record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -804,9 +854,14 @@
        )>,
        properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
        provenance: ::graph::types::knowledge::entity::EntityProvenance(
+           created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+           created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+           created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
            edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+           edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
            inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
        ),
+       read_only: Boolean,
        record_id: ::graph::types::knowledge::entity::RecordId(
            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
            entity_id: ::graph::types::knowledge::entity::EntityId(
@@ -864,9 +919,14 @@
            )>,
            properties: ::graph::types::knowledge::entity::PropertyObjectMetadata(?),
            provenance: ::graph::types::knowledge::entity::EntityProvenance(
+               created_at_decision_time: ::graph::types::knowledge::entity::CreatedAtDecisionTime(::graph::temporal::Timestamp(Integer)),
+               created_at_transaction_time: ::graph::types::knowledge::entity::CreatedAtTransactionTime(::graph::temporal::Timestamp(Integer)),
+               created_by_id: ::graph::types::knowledge::entity::CreatedById(::core::uuid::Uuid(String)),
                edition: ::graph::types::knowledge::entity::EntityEditionProvenance(?),
+               edition_created_by_id: ::graph::types::knowledge::entity::EditionCreatedById(::core::uuid::Uuid(String)),
                inferred: ::graph::types::knowledge::entity::InferredEntityProvenance(?)
            ),
+           read_only: Boolean,
            record_id: ::graph::types::knowledge::entity::RecordId(
                edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                entity_id: ::graph::types::knowledge::entity::EntityId(

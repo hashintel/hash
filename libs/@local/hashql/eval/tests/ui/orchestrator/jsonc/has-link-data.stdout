@@ -29,21 +29,22 @@
         "value": {}
       },
       "provenance": {
+        "created_at_decision_time": <timestamp>,
+        "created_at_transaction_time": <timestamp>,
+        "created_by_id": "<uuid:1>",
         "edition": {
           "actorType": "user",
-          "createdById": "<uuid:1>",
           "origin": {
             "type": "api"
           }
         },
+        "edition_created_by_id": "<uuid:1>",
         "inferred": {
-          "createdAtDecisionTime": "<timestamp>",
-          "createdAtTransactionTime": "<timestamp>",
-          "createdById": "<uuid:1>",
           "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
           "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
         }
       },
+      "read_only": false,
       "record_id": {
         "edition_id": "<uuid:3>",
         "entity_id": {

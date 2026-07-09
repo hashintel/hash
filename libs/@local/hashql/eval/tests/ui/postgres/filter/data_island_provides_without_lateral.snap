@@ -84,7 +84,17 @@ SELECT
     ) AS "temporal_versioning",
     "entity_edition_cache_0_0_2"."entity_type_ids" AS "entity_type_ids",
     "entity_editions_0_0_1"."archived" AS "archived",
+    "entity_ids_0_0_3"."read_only" AS "read_only",
     "entity_editions_0_0_1"."confidence" AS "confidence",
+    "entity_ids_0_0_3"."created_by_id" AS "created_by_id",
+    (
+        extract(EPOCH FROM "entity_ids_0_0_3"."created_at_transaction_time")
+        * 1000
+    )::int8 AS "created_at_transaction_time",
+    (
+        extract(EPOCH FROM "entity_ids_0_0_3"."created_at_decision_time") * 1000
+    )::int8 AS "created_at_decision_time",
+    "entity_editions_0_0_1"."created_by_id" AS "edition_created_by_id",
     "entity_ids_0_0_3"."provenance" AS "provenance_inferred",
     "entity_editions_0_0_1"."provenance" AS "provenance_edition",
     "entity_editions_0_0_1"."property_metadata" AS "property_metadata",

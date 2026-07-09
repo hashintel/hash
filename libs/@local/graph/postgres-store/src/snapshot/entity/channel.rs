@@ -17,9 +17,12 @@ use type_system::{
 
 use crate::{
     snapshot::{SnapshotRestoreError, entity::EntityRowBatch},
-    store::postgres::query::rows::{
-        EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
-        EntityIsOfTypeRow, EntityTemporalMetadataRow,
+    store::postgres::{
+        knowledge::entity::provenance::SqlEntityProvenance,
+        query::rows::{
+            EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
+            EntityIsOfTypeRow, EntityTemporalMetadataRow,
+        },
     },
 };
 
@@ -68,22 +71,15 @@ impl Sink<Entity> for EntitySender {
 
     #[expect(clippy::too_many_lines)]
     fn start_send(mut self: Pin<&mut Self>, entity: Entity) -> Result<(), Self::Error> {
+        let stored_provenance = SqlEntityProvenance::from(entity.metadata.provenance);
         self.id
             .start_send_unpin(EntityIdRow {
                 web_id: entity.metadata.record_id.entity_id.web_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                created_by_id: entity.metadata.provenance.inferred.created_by_id,
-                created_at_transaction_time: entity
-                    .metadata
-                    .provenance
-                    .inferred
-                    .created_at_transaction_time,
-                created_at_decision_time: entity
-                    .metadata
-                    .provenance
-                    .inferred
-                    .created_at_decision_time,
-                provenance: entity.metadata.provenance.inferred,
+                created_by_id: stored_provenance.created_by_id,
+                created_at_transaction_time: stored_provenance.created_at_transaction_time,
+                created_at_decision_time: stored_provenance.created_at_decision_time,
+                provenance: stored_provenance.json,
                 read_only: entity.metadata.read_only,
             })
             .change_context(SnapshotRestoreError::Read)
@@ -106,8 +102,8 @@ impl Sink<Entity> for EntitySender {
                 properties: entity.properties,
                 archived: entity.metadata.archived,
                 confidence: entity.metadata.confidence,
-                created_by_id: entity.metadata.provenance.edition.created_by_id,
-                provenance: entity.metadata.provenance.edition,
+                created_by_id: stored_provenance.edition.created_by_id,
+                provenance: stored_provenance.edition.json,
                 property_metadata: entity.metadata.properties,
             })
             .change_context(SnapshotRestoreError::Read)

@@ -3,7 +3,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-mod created_by_fallback;
+mod created_by_columns;
 mod drafts;
 mod erase;
 mod links;
@@ -36,9 +36,7 @@ use type_system::{
         entity::{
             EntityId, LinkData,
             id::{DraftId, EntityUuid},
-            provenance::{
-                EntityDeletionProvenance, InferredEntityProvenance, ProvidedEntityEditionProvenance,
-            },
+            provenance::{EntityDeletionProvenance, ProvidedEntityEditionProvenance},
         },
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
@@ -50,7 +48,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorEntityUuid, ActorType, UserId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -182,11 +180,11 @@ pub(crate) async fn raw_count(
         .get(0)
 }
 
-/// Returns the [`EntityDeletionProvenance`] from the `entity_ids` provenance column, or `None`
-/// if the row is missing or the entity has not been deleted.
+/// Returns the [`EntityDeletionProvenance`] flattened into the `entity_ids` provenance JSONB, or
+/// `None` if the row is missing or the entity has not been deleted.
 ///
-/// Deserializes the full [`InferredEntityProvenance`] to validate the JSONB structure, then
-/// extracts only the `deletion` field.
+/// The deletion fields are extracted into their own object so they deserialize independently of
+/// the other JSONB-resident provenance fields.
 pub(crate) async fn get_deletion_provenance(
     api: &DatabaseApi<'_>,
     web_id: WebId,
@@ -195,32 +193,40 @@ pub(crate) async fn get_deletion_provenance(
     api.store
         .as_client()
         .query_opt(
-            "SELECT provenance FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2",
+            "SELECT jsonb_build_object(
+                 'deletedById', provenance -> 'deletedById',
+                 'deletedAtTransactionTime', provenance -> 'deletedAtTransactionTime',
+                 'deletedAtDecisionTime', provenance -> 'deletedAtDecisionTime'
+             ) FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2",
             &[&web_id, &entity_uuid],
         )
         .await
         .expect("provenance query failed")
-        .and_then(|row| {
-            let prov: InferredEntityProvenance = row.get(0);
-            prov.deletion
+        .map(|row| row.get::<_, serde_json::Value>(0))
+        .filter(|deletion| {
+            !(deletion["deletedById"].is_null()
+                && deletion["deletedAtTransactionTime"].is_null()
+                && deletion["deletedAtDecisionTime"].is_null())
+        })
+        .map(|deletion| {
+            serde_json::from_value(deletion).expect("deletion fields should deserialize")
         })
 }
 
-/// Returns the full [`InferredEntityProvenance`] from `entity_ids`, or `None` if the row is
-/// missing.
-pub(crate) async fn get_inferred_provenance(
+/// Returns the `created_by_id` column of an `entity_ids` row, or `None` if the row is missing.
+pub(crate) async fn get_created_by_id(
     api: &DatabaseApi<'_>,
     web_id: WebId,
     entity_uuid: EntityUuid,
-) -> Option<InferredEntityProvenance> {
+) -> Option<ActorEntityUuid> {
     api.store
         .as_client()
         .query_opt(
-            "SELECT provenance FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2",
+            "SELECT created_by_id FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2",
             &[&web_id, &entity_uuid],
         )
         .await
-        .expect("provenance query failed")
+        .expect("created_by_id query failed")
         .map(|row| row.get(0))
 }
 
@@ -384,7 +390,7 @@ pub(crate) async fn create_link(
         .expect("could not create link entity")
 }
 
-pub(crate) async fn create_second_user(api: &mut DatabaseApi<'_>) -> ActorEntityUuid {
+pub(crate) async fn create_second_user(api: &mut DatabaseApi<'_>) -> UserId {
     let system_account_id = api
         .store
         .get_or_create_system_machine("h")
@@ -402,7 +408,7 @@ pub(crate) async fn create_second_user(api: &mut DatabaseApi<'_>) -> ActorEntity
         )
         .await
         .expect("could not create second user");
-    response.user_id.into()
+    response.user_id
 }
 
 pub(crate) async fn raw_count_by_draft_id(

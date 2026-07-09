@@ -4803,22 +4803,42 @@
         }
       },
       "EntityProvenance": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/InferredEntityProvenance"
+        "type": "object",
+        "required": [
+          "createdById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime",
+          "edition"
+        ],
+        "properties": {
+          "createdAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           },
-          {
-            "type": "object",
-            "required": [
-              "edition"
-            ],
-            "properties": {
-              "edition": {
-                "$ref": "#/components/schemas/EntityEditionProvenance"
-              }
-            }
+          "createdAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "deletedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "deletedById": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "edition": {
+            "$ref": "#/components/schemas/EntityEditionProvenance"
+          },
+          "firstNonDraftCreatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "firstNonDraftCreatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           }
-        ]
+        }
       },
       "EntityQueryCursor": {
         "type": "array",
@@ -4887,6 +4907,10 @@
           "type",
           "properties",
           "label",
+          "createdById",
+          "editionCreatedById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime",
           "provenance",
           "editionProvenance",
           "embedding",
@@ -5755,40 +5779,6 @@
           "resolved",
           "resolvedWithDataTypeChildren"
         ]
-      },
-      "InferredEntityProvenance": {
-        "type": "object",
-        "required": [
-          "createdById",
-          "createdAtTransactionTime",
-          "createdAtDecisionTime"
-        ],
-        "properties": {
-          "createdAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "createdAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "createdById": {
-            "$ref": "#/components/schemas/ActorEntityUuid"
-          },
-          "deletedAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "deletedAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "deletedById": {
-            "$ref": "#/components/schemas/ActorEntityUuid"
-          },
-          "firstNonDraftCreatedAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "firstNonDraftCreatedAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          }
-        }
       },
       "JsonSchemaValueType": {
         "type": "string",

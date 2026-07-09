@@ -1268,7 +1268,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "all": [
       {
         "equal": [
-          { "path": ["provenance", "createdById"] },
+          { "path": ["createdById"] },
           { "parameter": "{{user_id}}" }
         ]
       }
