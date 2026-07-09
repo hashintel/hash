@@ -24,7 +24,7 @@ import {
 } from "../../util/overlay-parts";
 import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { skipEnterAnimationClass, styles } from "./drawer.recipe";
+import { settledClass, skipEnterAnimationClass, styles } from "./drawer.recipe";
 
 export type DrawerSize = "sm" | "md" | "lg" | "xl";
 
@@ -131,6 +131,19 @@ const computeDrawerStackTranslate = (id: string): string => {
   return "0 0";
 };
 
+const isTopDrawer = (id: string): boolean => {
+  const self = drawerStackEntries.get(id);
+  if (!self) {
+    return false;
+  }
+  for (const entry of drawerStackEntries.values()) {
+    if (entry.order > self.order) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const useDrawerStackTranslate = (
   position: DrawerPosition,
   open: boolean,
@@ -138,6 +151,7 @@ const useDrawerStackTranslate = (
 ): {
   ref: (node: HTMLDivElement | null) => void;
   translate: string;
+  isTop: boolean;
 } => {
   const id = useId();
   // The open order is captured once and kept stable across re-measures so a
@@ -198,7 +212,13 @@ const useDrawerStackTranslate = (
     () => "0 0",
   );
 
-  return { ref: setContentNode, translate };
+  const isTop = useSyncExternalStore(
+    subscribeToDrawerStack,
+    () => isTopDrawer(id),
+    () => false,
+  );
+
+  return { ref: setContentNode, translate, isTop };
 };
 
 /**
@@ -298,12 +318,21 @@ const DrawerRoot = ({
     };
   }, [takingOverFromSwapSibling]);
 
+  const [enterAnimationComplete, setEnterAnimationComplete] = useState(
+    takingOverFromSwapSibling,
+  );
+  const settled = open && enterAnimationComplete;
+
   // `open` is passed to the stack tracker so a drawer stops offsetting the
   // drawers beneath it the moment it starts closing, letting them un-nest in
   // step with its slide-out. `swapKey` is stored on the stack entry so a
-  // later sibling can detect a same-key swap from the top of the stack.
-  const { ref: stackContentRef, translate: stackTranslate } =
-    useDrawerStackTranslate(position, open, swapKey);
+  // later sibling can detect a same-key swap from the top of the stack. `isTop`
+  // is whether this is the frontmost drawer, so only it sheds its transform.
+  const {
+    ref: stackContentRef,
+    translate: stackTranslate,
+    isTop,
+  } = useDrawerStackTranslate(position, open, swapKey);
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";
@@ -360,11 +389,17 @@ const DrawerRoot = ({
               className={cx(
                 classes.content,
                 takingOverFromSwapSibling && skipEnterAnimationClass,
+                settled && isTop && settledClass,
                 className,
               )}
               style={{ translate: stackTranslate }}
               aria-busy={loading ?? undefined}
               onKeyDown={onKeyDown}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && open) {
+                  setEnterAnimationComplete(true);
+                }
+              }}
             >
               <OverlaySections
                 size={size}

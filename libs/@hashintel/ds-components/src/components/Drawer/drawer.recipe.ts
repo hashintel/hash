@@ -198,3 +198,16 @@ export const skipEnterAnimationClass = css({
     animationName: "[none !important]",
   },
 });
+
+/**
+ * Applied to the drawer panel once its enter animation has finished, to strip
+ * `transform`, `will-change`, and `translate` to support monaco's poorly designed
+ * fixed position autocomplete suggestions. Can be removed if monaco fixes this issue
+ * */
+export const settledClass = css({
+  "&:not([data-swiping])": {
+    transform: "[none !important]",
+    willChange: "[auto !important]",
+    translate: "[none !important]",
+  },
+});
