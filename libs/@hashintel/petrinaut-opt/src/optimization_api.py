@@ -113,7 +113,7 @@ async def optimize_stream_all(session_id: str, request: Request, n_trials:Union[
         raise HTTPException(404, "unknown session_id — call /init first")
 
     # Set default trials if no argument passed
-    n_trials = n_trials if n_trials else optimizer.n_trials
+    n_trials = n_trials if (n_trials is not None) else optimizer.n_trials
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
@@ -143,7 +143,7 @@ async def optimize_stream_best(session_id: str, request: Request, n_trials:Union
         raise HTTPException(404, "unknown session_id — call /init first")
 
     # Set default trials if no argument passed
-    n_trials = n_trials if n_trials else optimizer.n_trials
+    n_trials = n_trials if (n_trials is not None) else optimizer.n_trials
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
