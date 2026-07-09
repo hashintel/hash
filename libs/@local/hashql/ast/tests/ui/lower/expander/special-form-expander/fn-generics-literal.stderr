@@ -1,0 +1,6 @@
+error[expander::invalid-fn-generics]: Invalid generic parameter list
+  ╭▸ 
+5 │   { "#literal": 2 },
+  │   ━━━━━━━━━━━━━━━━━ expected a tuple or struct for generic parameters
+  │
+  ╰ help: use a tuple like `(T, U)` for unbounded generics or a struct like `(T: bound, U: _)` for bounded generics

@@ -13141,6 +13141,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-embeddings@workspace:libs/@local/graph/embeddings"
   dependencies:
+    "@rust/darwin-kperf-criterion": "workspace:*"
     "@rust/error-stack": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
   languageName: unknown
@@ -13168,6 +13169,7 @@ __metadata:
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-test-data": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-status": "workspace:*"
     "@rust/hash-telemetry": "workspace:*"
   languageName: unknown
@@ -13197,6 +13199,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-migrations": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"

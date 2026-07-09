@@ -1,8 +1,0 @@
-//@ run: pass
-//@ description: Generics with constraints should be properly lowered
-[
-  "::kernel::special_form::type",
-  "Foo<Bar: Baz>",
-  { "#struct": { "foo": "Bar" } },
-  "_"
-]

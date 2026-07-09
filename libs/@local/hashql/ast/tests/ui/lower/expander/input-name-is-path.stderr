@@ -1,0 +1,7 @@
+error[expander::invalid-binding-name]: Invalid binding name
+  ╭▸ 
+3 │ ["::kernel::special_form::input", "x::y", "Integer"]
+  │                                    ━━━━ expected a simple identifier for the `input` name
+  │
+  ├ help: write `(input name type)` with a plain name such as `user_id`
+  ╰ note: the first argument to `input` declares a named parameter and must be a plain identifier

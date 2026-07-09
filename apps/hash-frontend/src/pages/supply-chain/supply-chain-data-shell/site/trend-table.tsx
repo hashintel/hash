@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -10,13 +8,17 @@ import {
   MEASURE_LABELS,
   selectStat,
   useBaseMeasure,
-  type BaseMeasure,
 } from "../../shared/measure-context";
 import { siteNodeKey } from "../../shared/site-node-key";
-import { deriveStatusActionState, statusKey } from "../../shared/status";
-import { trackSupplyChainInteraction } from "../../shared/telemetry";
+import {
+  deriveStatusActionState,
+  statusKey,
+  type StatusActionLabel,
+  type StatusStore,
+} from "../../shared/status";
 import { trendToneFor } from "../../shared/trend-tone";
-import { siteNodeDisplayLabel } from "./shared/helpers";
+import { ColumnHeader } from "./shared/column-header";
+import { siteNodeDisplayLabel, sortTrendRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import {
@@ -25,11 +27,10 @@ import {
   type SortKey,
   type TrendRow,
 } from "./shared/row-types";
-import { SortHeader } from "./shared/sort-header";
 import * as threshold from "./shared/table-styles";
+import { useStepTableView } from "./shared/use-step-table-view";
 
-import type { StatusStore } from "../../shared/status";
-import type { SiteNode } from "../../shared/types";
+import type { SiteNode, StepType } from "../../shared/types";
 
 const prevValue = css({ color: "fg.subtle" });
 const trendWrap = css({
@@ -48,37 +49,6 @@ const sampleTooltip = css({
   gap: "0.5",
   textAlign: "left",
 });
-
-function sortTrendRows(
-  rows: TrendRow[],
-  sort: { key: SortKey; dir: SortDir },
-  measure: BaseMeasure,
-): TrendRow[] {
-  return [...rows].sort((left, right) => {
-    let va = 0;
-    let vb = 0;
-    if (sort.key === "median") {
-      va = selectStat(left.stats, measure) ?? 0;
-      vb = selectStat(right.stats, measure) ?? 0;
-    } else if (sort.key === "trend") {
-      va =
-        left.trendPct ??
-        (sort.dir === "desc"
-          ? Number.NEGATIVE_INFINITY
-          : Number.POSITIVE_INFINITY);
-      vb =
-        right.trendPct ??
-        (sort.dir === "desc"
-          ? Number.NEGATIVE_INFINITY
-          : Number.POSITIVE_INFINITY);
-    } else if (sort.key === "material") {
-      return sort.dir === "desc"
-        ? right.label.localeCompare(left.label)
-        : left.label.localeCompare(right.label);
-    }
-    return sort.dir === "desc" ? vb - va : va - vb;
-  });
-}
 
 const EqualsIcon = () => {
   return (
@@ -155,6 +125,12 @@ export const TrendTable = ({
   onRowClick,
   statusHistory = {},
   onStatus,
+  typeHidden,
+  onTypeHiddenChange,
+  productHidden,
+  onProductHiddenChange,
+  statusHidden,
+  onStatusHiddenChange,
 }: {
   rows: TrendRow[];
   /** Route site slug; scopes status keys to the global store. */
@@ -164,25 +140,33 @@ export const TrendTable = ({
   onRowClick: (node: SiteNode) => void;
   statusHistory?: StatusStore;
   onStatus: (node: SiteNode, title: string) => void;
+  typeHidden: Set<StepType>;
+  onTypeHiddenChange: (next: Set<StepType>) => void;
+  productHidden: Set<string>;
+  onProductHiddenChange: (next: Set<string>) => void;
+  statusHidden: Set<StatusActionLabel>;
+  onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
-  const sortedRows = useMemo(
-    () => sortTrendRows(rows, sort, measure),
-    [rows, sort, measure],
-  );
-  const toggleSort = (key: SortKey) => {
-    trackSupplyChainInteraction({
-      interaction: "table_sort_changed",
-      siteId: rows[0]?.plant ?? "",
+
+  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
+    useStepTableView<TrendRow>({
+      rows,
+      siteId,
+      sort,
+      onSort,
+      statusHistory,
+      typeHidden,
+      onTypeHiddenChange,
+      productHidden,
+      onProductHiddenChange,
+      statusHidden,
+      onStatusHiddenChange,
+      sortRows: sortTrendRows,
       source: "trend_table",
     });
-    if (sort.key === key) {
-      onSort({ key, dir: sort.dir === "desc" ? "asc" : "desc" });
-    } else {
-      onSort({ key, dir: "desc" });
-    }
-  };
+
   return (
     <div
       className={threshold.tableContainer}
@@ -192,37 +176,74 @@ export const TrendTable = ({
         <thead>
           <tr className={threshold.theadRow}>
             <th className={threshold.th}>
-              <SortHeader
+              <ColumnHeader
                 label="Step"
-                sortKey="material"
-                current={sort}
-                onToggle={toggleSort}
+                sort={{
+                  active: sort.key === "material",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("material"),
+                }}
+                filter={typeFilter}
               />
             </th>
-            <th className={threshold.th}>Products</th>
+            <th className={threshold.th}>
+              <ColumnHeader label="Products" filter={productFilter} />
+            </th>
             <th className={threshold.thRight}>
-              <SortHeader
+              <ColumnHeader
                 label={`Current ${measureLabel}`}
-                sortKey="median"
-                current={sort}
-                onToggle={toggleSort}
+                sort={{
+                  active: sort.key === "median",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("median"),
+                }}
               />
             </th>
-            <th className={threshold.thRight}>Previous {measureLabel}</th>
             <th className={threshold.thRight}>
-              <SortHeader
-                label="Trend"
-                sortKey="trend"
-                current={sort}
-                onToggle={toggleSort}
+              <ColumnHeader
+                label={`Previous ${measureLabel}`}
+                sort={{
+                  active: sort.key === "previous",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("previous"),
+                }}
               />
             </th>
-            <th className={threshold.thRight}>Samples</th>
-            <th className={threshold.thRight}>Status</th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Trend"
+                sort={{
+                  active: sort.key === "trend",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("trend"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Samples"
+                sort={{
+                  active: sort.key === "sample",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("sample"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Status"
+                sort={{
+                  active: sort.key === "status",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("status"),
+                }}
+                filter={statusFilter}
+              />
+            </th>
           </tr>
         </thead>
         <tbody className={threshold.tbodyDivide}>
-          {sortedRows.map((row) => (
+          {displayedRows.map((row) => (
             <tr
               key={siteNodeKey(row)}
               onClick={() => onRowClick(row)}
@@ -257,7 +278,9 @@ export const TrendTable = ({
               </td>
               <td className={cx(threshold.tdRight, prevValue)}>
                 {row.previousValue != null
-                  ? `${formatNumber(row.previousValue, { maximumFractionDigits: 1 })}d`
+                  ? `${formatNumber(row.previousValue, {
+                      maximumFractionDigits: 1,
+                    })}d`
                   : "-"}
               </td>
               <td className={threshold.tdRight}>
@@ -294,10 +317,12 @@ export const TrendTable = ({
               </td>
             </tr>
           ))}
-          {sortedRows.length === 0 && (
+          {displayedRows.length === 0 && (
             <tr>
               <td colSpan={7} className={threshold.emptyCell}>
-                No trend data in the selected period
+                {rows.length === 0
+                  ? "No trend data for this site."
+                  : "No trend data matches the current filters."}
               </td>
             </tr>
           )}

@@ -1,4 +1,4 @@
-import type { Color, Place } from "../../types/sdcpn";
+import type { Place } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
 import type { MetricState } from "../authoring/metric/compile-metric";
 
@@ -10,16 +10,13 @@ import type { MetricState } from "../authoring/metric/compile-metric";
 export function buildMetricState(
   frame: SimulationFrameReader,
   places: Place[],
-  types: Color[],
 ): MetricState {
-  const typeById = new Map(types.map((t) => [t.id, t]));
   const placesByName: Record<string, MetricState["places"][string]> = {};
 
   for (const place of places) {
-    const color = place.colorId ? typeById.get(place.colorId) : undefined;
     placesByName[place.name] = {
       count: frame.getPlaceTokenCount(place.id),
-      tokens: frame.getPlaceTokens(place, color),
+      tokens: frame.getPlaceTokens(place),
     };
   }
 

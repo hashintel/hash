@@ -1,0 +1,29 @@
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+8 │   "x"
+  │    ━ cannot find value `x` in this scope
+  │
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+8 -   "x"
+8 +   "~"
+  ├╴
+8 -   "x"
+8 +   "↑"
+  ├╴
+8 -   "x"
+8 +   "√"
+  ├╴
+8 -   "x"
+8 +   "∛"
+  ├╴
+8 │   "index"
+  ╰╴   ++++
+
+error[expander::invalid-use-imports]: Invalid use imports
+  ╭▸ 
+6 │   "X",
+  │    ━ expected `*`, a tuple of names, or a struct of aliases
+  │
+  ╰ help: use `*` to import everything, `(a, b)` to import specific names, or `(a: alias, b: _)` to import with aliases

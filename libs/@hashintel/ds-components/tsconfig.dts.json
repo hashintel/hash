@@ -1,0 +1,28 @@
+{
+  // Declaration-only emit for `build:lib`. Plain `tsc` stays under ~0.7 GB where
+  // tsup's rollup-dts bundling needed ~2.9 GB and OOM'd on constrained machines.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src/main.ts",
+    "src/preset.ts",
+    "src/tokens.ts",
+    "src/types.d.ts",
+    "src/components/**/*",
+    "src/preset/**/*",
+    "src/util/**/*"
+  ],
+  "exclude": [
+    "**/*.stories.tsx",
+    "**/*.story.tsx",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "src/preset/stories/**"
+  ]
+}

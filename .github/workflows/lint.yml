@@ -136,17 +136,29 @@ jobs:
 
       - name: Run clippy
         if: always() && steps.lints.outputs.clippy == 'true'
+        # `bash` gives us `pipefail`, so a failing `turbo`/`clippy` fails the step instead of
+        # being masked by a later pipeline stage exiting 0.
+        shell: bash
         run: |
           pushd ${{ matrix.path }}
           turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
+            | tee clippy-output.log \
             | clippy-sarif \
             | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
           cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
+          jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif > /dev/null
 
-          jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif> /dev/null
+          # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are plain text, not compiler
+          # JSON, so they bypass the SARIF gate above and were consumed by the pipeline. Re-print
+          # the human-readable output (dropping JSON) and fail on the package-level lint. The
+          # workspace-level variant is ignored: it false-positives in the pruned per-package repo.
+          if grep -qF "warning: unused dependency" ${{ matrix.path }}/clippy-output.log; then
+            grep -vF '{"reason":' ${{ matrix.path }}/clippy-output.log
+            exit 1
+          fi
 
       - name: Print clippy errors to summary
         if: failure() && steps.lints.outputs.clippy == 'true'

@@ -13,7 +13,7 @@ opentelemetry      = { workspace = true, public = true }
 opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic", "tls-ring", "tls-roots"] }
 
 # Public third-party dependencies
-clap_builder       = { workspace = true, public = true }
+clap_builder       = { workspace = true, public = true, optional = true }
 sentry-core        = { workspace = true, public = true }
 sentry-types       = { workspace = true, public = true }
 tokio              = { workspace = true, public = true }
@@ -36,7 +36,7 @@ tracing-flame                  = { workspace = true }
 tracing-opentelemetry          = { workspace = true }
 
 [features]
-clap = ["dep:clap"]
+clap = ["dep:clap", "dep:clap_builder"]
 
 [lints]
 workspace = true

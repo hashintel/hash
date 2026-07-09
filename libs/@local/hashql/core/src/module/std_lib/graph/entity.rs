@@ -1,5 +1,4 @@
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         locals::TypeDef,
@@ -9,7 +8,7 @@ use crate::{
             decl,
         },
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Entity {
@@ -22,8 +21,8 @@ pub(in crate::module::std_lib) struct Entity {
 impl<'heap> StandardLibraryModule<'heap> for Entity {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("entity")
+    fn name() -> Symbol<'heap> {
+        sym::entity
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -53,7 +52,12 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ) -> lib.ty.boolean()
         );
 
-        func(lib, &mut def, "::graph::entity::is_of_type", &[], decl);
+        func(
+            &mut def,
+            sym::path::graph::entity::is_of_type,
+            [sym::is_of_type],
+            decl,
+        );
 
         // `property<T>(entity: Entity<T>, path: JsonPath) -> Option<?>`
         let decl = decl!(lib;
@@ -62,7 +66,12 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ) -> option(&lib.ty, lib.ty.unknown())
         );
 
-        func(lib, &mut def, "::graph::entity::property", &[], decl);
+        func(
+            &mut def,
+            sym::path::graph::entity::property,
+            [sym::property],
+            decl,
+        );
 
         def
     }

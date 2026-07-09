@@ -3288,7 +3288,6 @@ name = "harpc-client"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive-where",
  "derive_more",
  "error-stack",
  "futures",
@@ -3527,6 +3526,7 @@ dependencies = [
  "jsonwebtoken",
  "mimalloc",
  "multiaddr",
+ "rayon",
  "regex",
  "reqwest",
  "simple-mermaid",
@@ -3587,7 +3587,6 @@ dependencies = [
  "mime",
  "opentelemetry 0.32.0",
  "opentelemetry-semantic-conventions 0.32.1",
- "opentelemetry_sdk 0.32.1",
  "reqwest",
  "sentry",
  "serde",
@@ -3615,15 +3614,12 @@ dependencies = [
  "derive_more",
  "enum-iterator",
  "error-stack",
- "futures",
- "futures-core",
  "hash-codec",
  "hash-codegen",
  "indoc",
  "insta",
  "postgres-types",
  "pretty_assertions",
- "reqwest",
  "serde",
  "serde_json",
  "serde_plain",
@@ -3677,9 +3673,14 @@ dependencies = [
 name = "hash-graph-embeddings"
 version = "0.0.0"
 dependencies = [
+ "codspeed-criterion-compat",
+ "darwin-kperf-criterion",
  "derive_more",
  "error-stack",
  "hash-graph-types",
+ "rand 0.10.1",
+ "rand_xoshiro",
+ "rayon",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
@@ -3700,6 +3701,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
+ "hash-graph-types",
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",
@@ -3742,7 +3744,6 @@ version = "0.0.0"
 dependencies = [
  "convert_case 0.11.0",
  "derive_more",
- "proc-macro-error2",
  "proc-macro2",
  "quote",
  "regex",
@@ -3770,6 +3771,7 @@ dependencies = [
  "futures-sink",
  "hash-codec",
  "hash-graph-authorization",
+ "hash-graph-embeddings",
  "hash-graph-migrations",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
@@ -3782,6 +3784,7 @@ dependencies = [
  "indoc",
  "postgres-types",
  "pretty_assertions",
+ "rayon",
  "refinery",
  "regex",
  "semver",
@@ -3807,6 +3810,7 @@ dependencies = [
  "derive_more",
  "error-stack",
  "futures",
+ "futures-core",
  "hash-codec",
  "hash-codegen",
  "hash-graph-authorization",
@@ -3952,7 +3956,6 @@ dependencies = [
  "tokio",
  "type-system",
  "url",
- "utoipa",
  "uuid",
 ]
 
@@ -4093,15 +4096,10 @@ dependencies = [
 name = "hashql-ast"
 version = "0.0.0"
 dependencies = [
- "derive_more",
- "enum-iterator",
- "foldhash 0.2.0",
- "hashbrown 0.17.1",
  "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",
  "simple-mermaid",
- "tracing",
 ]
 
 [[package]]
@@ -4160,7 +4158,6 @@ dependencies = [
  "proptest",
  "rapidfuzz",
  "roaring",
- "rpds",
  "rstest",
  "serde",
  "simple-mermaid",
@@ -4181,7 +4178,6 @@ dependencies = [
  "anstyle",
  "anstyle-lossy",
  "anstyle-svg",
- "derive_more",
  "rstest",
  "serde",
  "serde_core",
@@ -7632,27 +7628,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-error-attr2"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
-dependencies = [
- "proc-macro2",
- "quote",
-]
-
-[[package]]
-name = "proc-macro-error2"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
-dependencies = [
- "proc-macro-error-attr2",
- "proc-macro2",
- "quote",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8035,6 +8010,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "513962919efc330f829edb2535844d1b912b0fbe2ca165d613e4e8788bb05a5a"
 dependencies = [
  "rand_core 0.9.5",
+]
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "662effc7698e08ea324d3acccf8d9d7f7bf79b9785e270a174ea36e56900c91d"
+dependencies = [
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -10613,7 +10597,6 @@ dependencies = [
  "derive_more",
  "email_address",
  "error-stack",
- "futures",
  "hash-codec",
  "hash-codegen",
  "hash-graph-temporal-versioning",

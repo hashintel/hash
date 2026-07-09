@@ -68,7 +68,7 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: types,
             advisories,
-        } = hashql_ast::lowering::lower(sym::path::main, &mut ast, &env, &modules)
+        } = hashql_ast::lower::lower(sym::path::main, &mut ast, &env, &modules, &mut *scratch)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
             })

@@ -1,7 +1,7 @@
 //! # HASH Graph
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![forbid(unsafe_code)]
 #![expect(
     unreachable_pub,
@@ -30,9 +30,10 @@ fn main() -> Result<(), Report<GraphError>> {
     let Args {
         subcommand,
         tracing_config,
+        worker_threads,
     } = Args::parse_args();
 
     let _sentry_guard = init(&tracing_config.sentry, release_name!());
 
-    subcommand.execute(tracing_config)
+    subcommand.execute(tracing_config, worker_threads)
 }

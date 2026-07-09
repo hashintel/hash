@@ -1,8 +1,4 @@
-import {
-  CATEGORIES,
-  DWELL_TYPES,
-  getCategoryForType,
-} from "../../../shared/categories";
+import { DWELL_TYPES } from "../../../shared/categories";
 import { formatMonth } from "../../../shared/chart-format";
 import { computeMonthlyCost, formatNumber } from "../../../shared/cost";
 import { type BaseMeasure, selectStat } from "../../../shared/measure-context";
@@ -12,6 +8,7 @@ import {
   type PlanningRow,
   type SortKey,
   type SortDir,
+  type TrendRow,
 } from "./row-types";
 
 import type {
@@ -19,43 +16,6 @@ import type {
   StepType,
   VendorOtifStats,
 } from "../../../shared/types";
-
-// ── Category filter param helpers ─────────────────────────────────────────
-
-export const ALL_CATEGORY_KEYS = CATEGORIES.map((category) => category.key);
-
-export function parseCategoryParam(value: string | null): Set<string> {
-  if (!value) {
-    return new Set(ALL_CATEGORY_KEYS);
-  }
-  const keys = value
-    .split(",")
-    .map((step) => step.trim())
-    .filter((key) => ALL_CATEGORY_KEYS.includes(key));
-  if (keys.length === 0) {
-    return new Set(ALL_CATEGORY_KEYS);
-  }
-  return new Set(keys);
-}
-
-export function serializeCategoryParam(selected: Set<string>): string | null {
-  if (selected.size === ALL_CATEGORY_KEYS.length) {
-    return null;
-  }
-  return ALL_CATEGORY_KEYS.filter((key) => selected.has(key)).join(",");
-}
-
-export function categoryMatcher(
-  selected: Set<string>,
-): (type: StepType) => boolean {
-  if (selected.size === ALL_CATEGORY_KEYS.length) {
-    return () => true;
-  }
-  return (type: StepType) => {
-    const cat = getCategoryForType(type);
-    return cat != null && selected.has(cat.key);
-  };
-}
 
 // ── Sample / formatting helpers ────────────────────────────────────────────
 
@@ -114,7 +74,9 @@ export function subtitleForVendor(value: VendorOtifStats): string {
   const parts: string[] = [`${value.n_lines} lines`];
   if (value.n_late > 0 && value.mean_days_late_when_late != null) {
     parts.push(
-      `mean delay | late: ${formatNumber(value.mean_days_late_when_late, { maximumFractionDigits: 1 })}d`,
+      `mean delay | late: ${formatNumber(value.mean_days_late_when_late, {
+        maximumFractionDigits: 1,
+      })}d`,
     );
   } else if (value.n_late === 0) {
     parts.push("0 late");
@@ -138,6 +100,9 @@ export function sortRows(
     } else if (sort.key === "cost") {
       va = left.periodCost;
       vb = right.periodCost;
+    } else if (sort.key === "sample") {
+      va = left.stats.n;
+      vb = right.stats.n;
     } else if (sort.key === "costTrend") {
       va =
         left.costTrendPct ??
@@ -172,9 +137,68 @@ export function sortPlanningRows(
     } else if (sort.key === "exceeding") {
       va = left.pct_exceeding_plan ?? 0;
       vb = right.pct_exceeding_plan ?? 0;
+    } else if (sort.key === "planned") {
+      va =
+        left.plan ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+      vb =
+        right.plan ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
     } else if (sort.key === "median") {
       va = selectStat(left.stats, measure) ?? 0;
       vb = selectStat(right.stats, measure) ?? 0;
+    } else if (sort.key === "sample") {
+      va = left.stats.n;
+      vb = right.stats.n;
+    } else if (sort.key === "trend") {
+      va =
+        left.trendPct ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+      vb =
+        right.trendPct ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+    } else if (sort.key === "material") {
+      return sort.dir === "desc"
+        ? right.label.localeCompare(left.label)
+        : left.label.localeCompare(right.label);
+    }
+    return sort.dir === "desc" ? vb - va : va - vb;
+  });
+}
+
+export function sortTrendRows(
+  rows: TrendRow[],
+  sort: { key: SortKey; dir: SortDir },
+  measure: BaseMeasure = "median",
+): TrendRow[] {
+  return [...rows].sort((left, right) => {
+    let va = 0;
+    let vb = 0;
+    if (sort.key === "median") {
+      va = selectStat(left.stats, measure) ?? 0;
+      vb = selectStat(right.stats, measure) ?? 0;
+    } else if (sort.key === "sample") {
+      va = left.stats.n;
+      vb = right.stats.n;
+    } else if (sort.key === "previous") {
+      va =
+        left.previousValue ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
+      vb =
+        right.previousValue ??
+        (sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY);
     } else if (sort.key === "trend") {
       va =
         left.trendPct ??

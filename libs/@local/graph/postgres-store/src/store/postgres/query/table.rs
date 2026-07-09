@@ -1,5 +1,5 @@
 use core::{
-    fmt::{self, Debug, Formatter},
+    fmt::Debug,
     hash::Hash,
     iter::{Chain, Once, once},
 };
@@ -11,8 +11,11 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
-use super::expression::{ColumnName, ColumnReference, TableName, TableReference};
-use crate::store::postgres::query::{Constant, Expression, Transpile, expression::JoinType};
+use super::{
+    expression::{ColumnName, ColumnReference, TableName, TableReference},
+    postgres_type::PostgresType,
+};
+use crate::store::postgres::query::{Constant, Expression, expression::JoinType};
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -40,6 +43,18 @@ pub enum Table {
     EntityHasLeftEntity,
     EntityHasRightEntity,
     EntityEdge,
+    Action,
+    ActionHierarchy,
+    Policy,
+    PolicyEdition,
+    PolicyAction,
+    UserActor,
+    MachineActor,
+    AiActor,
+    Web,
+    Team,
+    Role,
+    ActorRole,
     Reference(ReferenceTable),
 }
 
@@ -324,6 +339,11 @@ impl Table {
     }
 
     #[must_use]
+    pub fn name(self) -> TableName<'static> {
+        TableName::from(self)
+    }
+
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::OntologyIds => "ontology_ids",
@@ -349,14 +369,20 @@ impl Table {
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
             Self::EntityEdge => "entity_edge",
+            Self::Action => "action",
+            Self::ActionHierarchy => "action_hierarchy",
+            Self::Policy => "policy",
+            Self::PolicyEdition => "policy_edition",
+            Self::PolicyAction => "policy_action",
+            Self::UserActor => "user_actor",
+            Self::MachineActor => "machine_actor",
+            Self::AiActor => "ai_actor",
+            Self::Web => "web",
+            Self::Team => "team",
+            Self::Role => "role",
+            Self::ActorRole => "actor_role",
             Self::Reference(table) => table.as_str(),
         }
-    }
-}
-
-impl Transpile for Table {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, r#""{}""#, self.as_str())
     }
 }
 
@@ -401,19 +427,18 @@ pub enum StaticJsonField {
     StaticJson(&'static str),
 }
 
-pub trait DatabaseColumn: Copy {
-    fn parameter_type(self) -> ParameterType;
-    fn nullable(self) -> bool;
-    fn as_str(self) -> &'static str;
+/// A column addressable in SQL: its name and storage type.
+pub trait DatabaseColumn<'name> {
+    fn name(&self) -> ColumnName<'name>;
+
+    /// The Postgres type of the column as stored in the database.
+    fn postgres_type(&self) -> PostgresType;
 }
 
-impl<C> Transpile for C
-where
-    C: DatabaseColumn + 'static,
-{
-    fn transpile(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, r#""{}""#, self.as_str())
-    }
+/// A column the query compiler accepts filter parameters for.
+pub trait FilterColumn<'name>: DatabaseColumn<'name> {
+    /// The logical type filter values compared against this column must have.
+    fn parameter_type(&self) -> ParameterType;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -424,25 +449,31 @@ pub enum OntologyIds {
     LatestVersion,
 }
 
-impl DatabaseColumn for OntologyIds {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OntologyIds {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::BaseUrl => "base_url".into(),
+            Self::Version => "version".into(),
+            Self::LatestVersion => "latest_version".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::BaseUrl => PostgresType::Text,
+            Self::Version | Self::LatestVersion => PostgresType::Int8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for OntologyIds {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::BaseUrl => ParameterType::Text,
             Self::Version | Self::LatestVersion => ParameterType::OntologyTypeVersion,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::BaseUrl => "base_url",
-            Self::Version => "version",
-            Self::LatestVersion => "latest_version",
         }
     }
 }
@@ -453,21 +484,25 @@ pub enum OntologyOwnedMetadata {
     WebId,
 }
 
-impl DatabaseColumn for OntologyOwnedMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OntologyOwnedMetadata {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::OntologyId | Self::WebId => ParameterType::Uuid,
+            Self::OntologyId => "ontology_id".into(),
+            Self::WebId => "web_id".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::OntologyId => "ontology_id",
-            Self::WebId => "web_id",
+            Self::OntologyId | Self::WebId => PostgresType::Uuid,
+        }
+    }
+}
+
+impl FilterColumn<'_> for OntologyOwnedMetadata {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::WebId => ParameterType::Uuid,
         }
     }
 }
@@ -478,22 +513,27 @@ pub enum OntologyExternalMetadata {
     FetchedAt,
 }
 
-impl DatabaseColumn for OntologyExternalMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OntologyExternalMetadata {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::OntologyId => ParameterType::Uuid,
-            Self::FetchedAt => ParameterType::Timestamp,
+            Self::OntologyId => "ontology_id".into(),
+            Self::FetchedAt => "fetched_at".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::OntologyId => "ontology_id",
-            Self::FetchedAt => "fetched_at",
+            Self::OntologyId => PostgresType::Uuid,
+            Self::FetchedAt => PostgresType::TimestampTz,
+        }
+    }
+}
+
+impl FilterColumn<'_> for OntologyExternalMetadata {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::FetchedAt => ParameterType::Timestamp,
         }
     }
 }
@@ -504,22 +544,27 @@ pub enum OntologyAdditionalMetadata {
     AdditionalMetadata,
 }
 
-impl DatabaseColumn for OntologyAdditionalMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OntologyAdditionalMetadata {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::OntologyId => ParameterType::Uuid,
-            Self::AdditionalMetadata => ParameterType::Object,
+            Self::OntologyId => "ontology_id".into(),
+            Self::AdditionalMetadata => "additional_metadata".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::OntologyId => "ontology_id",
-            Self::AdditionalMetadata => "additional_metadata",
+            Self::OntologyId => PostgresType::Uuid,
+            Self::AdditionalMetadata => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for OntologyAdditionalMetadata {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::AdditionalMetadata => ParameterType::Object,
         }
     }
 }
@@ -531,24 +576,30 @@ pub enum OntologyTemporalMetadata {
     Provenance,
 }
 
-impl DatabaseColumn for OntologyTemporalMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OntologyTemporalMetadata {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::TransactionTime => "transaction_time".into(),
+            Self::Provenance => "provenance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::TransactionTime => PostgresType::TstzRange,
+            Self::Provenance => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for OntologyTemporalMetadata {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Provenance => ParameterType::Any,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::TransactionTime => "transaction_time",
-            Self::Provenance => "provenance",
         }
     }
 }
@@ -559,21 +610,17 @@ pub enum OwnedOntologyMetadata {
     WebId,
 }
 
-impl DatabaseColumn for OwnedOntologyMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for OwnedOntologyMetadata {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::OntologyId | Self::WebId => ParameterType::Uuid,
+            Self::OntologyId => "ontology_id".into(),
+            Self::WebId => "web_id".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::OntologyId => "ontology_id",
-            Self::WebId => "web_id",
+            Self::OntologyId | Self::WebId => PostgresType::Uuid,
         }
     }
 }
@@ -582,27 +629,31 @@ impl DatabaseColumn for OwnedOntologyMetadata {
 pub enum DataTypes {
     OntologyId,
     Schema,
+    ClosedSchema,
 }
 
-impl DatabaseColumn for DataTypes {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for DataTypes {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Schema => "schema".into(),
+            Self::ClosedSchema => "closed_schema".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Schema | Self::ClosedSchema => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for DataTypes {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Schema => ParameterType::Any,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::OntologyId => false,
-            Self::Schema => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Schema => "schema",
+            Self::Schema | Self::ClosedSchema => ParameterType::Any,
         }
     }
 }
@@ -615,30 +666,31 @@ pub enum DataTypeConversions {
     From,
 }
 
-impl DatabaseColumn for DataTypeConversions {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for DataTypeConversions {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id".into(),
+            Self::TargetDataTypeBaseUrl => "target_data_type_base_url".into(),
+            Self::Into => "into".into(),
+            Self::From => "from".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceDataTypeOntologyId => PostgresType::Uuid,
+            Self::TargetDataTypeBaseUrl => PostgresType::Text,
+            Self::Into | Self::From => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for DataTypeConversions {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceDataTypeOntologyId => ParameterType::Uuid,
             Self::TargetDataTypeBaseUrl => ParameterType::BaseUrl,
             Self::Into | Self::From => ParameterType::Object,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::SourceDataTypeOntologyId
-            | Self::TargetDataTypeBaseUrl
-            | Self::Into
-            | Self::From => false,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
-            Self::TargetDataTypeBaseUrl => "target_data_type_base_url",
-            Self::Into => "into",
-            Self::From => "from",
         }
     }
 }
@@ -651,30 +703,31 @@ pub enum DataTypeConversionAggregation {
     Froms,
 }
 
-impl DatabaseColumn for DataTypeConversionAggregation {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for DataTypeConversionAggregation {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id".into(),
+            Self::TargetDataTypeBaseUrls => "target_data_type_base_urls".into(),
+            Self::Intos => "intos".into(),
+            Self::Froms => "froms".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceDataTypeOntologyId => PostgresType::Uuid,
+            Self::TargetDataTypeBaseUrls => PostgresType::Array(Box::new(PostgresType::Text)),
+            Self::Intos | Self::Froms => PostgresType::Array(Box::new(PostgresType::JsonB)),
+        }
+    }
+}
+
+impl FilterColumn<'_> for DataTypeConversionAggregation {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceDataTypeOntologyId => ParameterType::Uuid,
             Self::TargetDataTypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
             Self::Intos | Self::Froms => ParameterType::Vector(Box::new(ParameterType::Object)),
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::SourceDataTypeOntologyId
-            | Self::TargetDataTypeBaseUrls
-            | Self::Intos
-            | Self::Froms => false,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
-            Self::TargetDataTypeBaseUrls => "target_data_type_base_urls",
-            Self::Intos => "intos",
-            Self::Froms => "froms",
         }
     }
 }
@@ -685,25 +738,27 @@ pub enum PropertyTypes {
     Schema,
 }
 
-impl DatabaseColumn for PropertyTypes {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for PropertyTypes {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Schema => "schema".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Schema => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for PropertyTypes {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::OntologyId => false,
-            Self::Schema => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Schema => "schema",
         }
     }
 }
@@ -715,25 +770,28 @@ pub enum EntityTypes {
     ClosedSchema,
 }
 
-impl DatabaseColumn for EntityTypes {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypes {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Schema => "schema".into(),
+            Self::ClosedSchema => "closed_schema".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Schema | Self::ClosedSchema => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypes {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Schema | Self::ClosedSchema => ParameterType::Any,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::OntologyId | Self::Schema | Self::ClosedSchema => false,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Schema => "schema",
-            Self::ClosedSchema => "closed_schema",
         }
     }
 }
@@ -749,8 +807,33 @@ pub enum EntityEditionCache {
     VersionedUrls,
 }
 
-impl DatabaseColumn for EntityEditionCache {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityEditionCache {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::EntityEditionId => "entity_edition_id".into(),
+            Self::DirectTypes => "direct_types".into(),
+            Self::Labels => "labels".into(),
+            Self::TypeTitles => "type_titles".into(),
+            Self::BaseUrls => "base_urls".into(),
+            Self::Versions => "versions".into(),
+            Self::VersionedUrls => "versioned_urls".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::EntityEditionId => PostgresType::Uuid,
+            Self::DirectTypes => PostgresType::Int4,
+            Self::Labels | Self::TypeTitles | Self::BaseUrls | Self::VersionedUrls => {
+                PostgresType::Array(Box::new(PostgresType::Text))
+            }
+            Self::Versions => PostgresType::Array(Box::new(PostgresType::Int8)),
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityEditionCache {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::EntityEditionId => ParameterType::Uuid,
             Self::DirectTypes => ParameterType::Integer,
@@ -758,30 +841,6 @@ impl DatabaseColumn for EntityEditionCache {
             Self::BaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
             Self::Versions => ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion)),
             Self::VersionedUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::Labels => true,
-            Self::EntityEditionId
-            | Self::DirectTypes
-            | Self::TypeTitles
-            | Self::BaseUrls
-            | Self::Versions
-            | Self::VersionedUrls => false,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::EntityEditionId => "entity_edition_id",
-            Self::DirectTypes => "direct_types",
-            Self::Labels => "labels",
-            Self::TypeTitles => "type_titles",
-            Self::BaseUrls => "base_urls",
-            Self::Versions => "versions",
-            Self::VersionedUrls => "versioned_urls",
         }
     }
 }
@@ -794,25 +853,94 @@ pub enum EntityIds {
     ReadOnly,
 }
 
-impl DatabaseColumn for EntityIds {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityIds {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::Provenance => "provenance".into(),
+            Self::ReadOnly => "read_only".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid => PostgresType::Uuid,
+            Self::Provenance => PostgresType::JsonB,
+            Self::ReadOnly => PostgresType::Bool,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityIds {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Provenance => ParameterType::Any,
             Self::ReadOnly => ParameterType::Boolean,
         }
     }
+}
 
-    fn nullable(self) -> bool {
-        false
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityDrafts {
+    WebId,
+    EntityUuid,
+    DraftId,
+}
+
+impl DatabaseColumn<'_> for EntityDrafts {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::DraftId => "draft_id".into(),
+        }
     }
 
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::Provenance => "provenance",
-            Self::ReadOnly => "read_only",
+            Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityEdge {
+    SourceWebId,
+    SourceEntityUuid,
+    TargetWebId,
+    TargetEntityUuid,
+    Kind,
+    Direction,
+    Provenance,
+    Confidence,
+}
+
+impl DatabaseColumn<'_> for EntityEdge {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceWebId => "source_web_id".into(),
+            Self::SourceEntityUuid => "source_entity_uuid".into(),
+            Self::TargetWebId => "target_web_id".into(),
+            Self::TargetEntityUuid => "target_entity_uuid".into(),
+            Self::Kind => "kind".into(),
+            Self::Direction => "direction".into(),
+            Self::Provenance => "provenance".into(),
+            Self::Confidence => "confidence".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceWebId
+            | Self::SourceEntityUuid
+            | Self::TargetWebId
+            | Self::TargetEntityUuid => PostgresType::Uuid,
+            Self::Kind => PostgresType::EntityEdgeKind,
+            Self::Direction => PostgresType::EdgeDirection,
+            Self::Provenance => PostgresType::JsonB,
+            Self::Confidence => PostgresType::Float8,
         }
     }
 }
@@ -837,33 +965,31 @@ impl EntityTemporalMetadata {
     }
 }
 
-impl DatabaseColumn for EntityTemporalMetadata {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTemporalMetadata {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::DraftId => "draft_id".into(),
+            Self::EditionId => "entity_edition_id".into(),
+            Self::DecisionTime => "decision_time".into(),
+            Self::TransactionTime => "transaction_time".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId | Self::EditionId => PostgresType::Uuid,
+            Self::DecisionTime | Self::TransactionTime => PostgresType::TstzRange,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTemporalMetadata {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId | Self::EditionId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::WebId
-            | Self::EntityUuid
-            | Self::EditionId
-            | Self::DecisionTime
-            | Self::TransactionTime => false,
-            Self::DraftId => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::DraftId => "draft_id",
-            Self::EditionId => "entity_edition_id",
-            Self::DecisionTime => "decision_time",
-            Self::TransactionTime => "transaction_time",
         }
     }
 }
@@ -876,26 +1002,33 @@ pub enum DataTypeEmbeddings {
     Distance,
 }
 
-impl DatabaseColumn for DataTypeEmbeddings {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for DataTypeEmbeddings {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Embedding => "embedding".into(),
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
+            Self::Distance => "distance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Embedding => PostgresType::Vector,
+            Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
+            Self::Distance => PostgresType::Float8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for DataTypeEmbeddings {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Embedding => "embedding",
-            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
-            Self::Distance => "distance",
         }
     }
 }
@@ -907,23 +1040,28 @@ pub enum DataTypeInheritsFrom {
     Depth,
 }
 
-impl DatabaseColumn for DataTypeInheritsFrom {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for DataTypeInheritsFrom {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
-            Self::Depth => ParameterType::Integer,
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id".into(),
+            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id".into(),
+            Self::Depth => "depth".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
-            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
-            Self::Depth => "depth",
+            Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => PostgresType::Uuid,
+            Self::Depth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for DataTypeInheritsFrom {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
+            Self::Depth => ParameterType::Integer,
         }
     }
 }
@@ -936,26 +1074,33 @@ pub enum PropertyTypeEmbeddings {
     Distance,
 }
 
-impl DatabaseColumn for PropertyTypeEmbeddings {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Embedding => "embedding".into(),
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
+            Self::Distance => "distance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Embedding => PostgresType::Vector,
+            Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
+            Self::Distance => PostgresType::Float8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for PropertyTypeEmbeddings {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Embedding => "embedding",
-            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
-            Self::Distance => "distance",
         }
     }
 }
@@ -968,26 +1113,33 @@ pub enum EntityTypeEmbeddings {
     Distance,
 }
 
-impl DatabaseColumn for EntityTypeEmbeddings {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypeEmbeddings {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyId => "ontology_id".into(),
+            Self::Embedding => "embedding".into(),
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
+            Self::Distance => "distance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyId => PostgresType::Uuid,
+            Self::Embedding => PostgresType::Vector,
+            Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
+            Self::Distance => PostgresType::Float8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypeEmbeddings {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
             Self::Distance => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyId => "ontology_id",
-            Self::Embedding => "embedding",
-            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
-            Self::Distance => "distance",
         }
     }
 }
@@ -996,6 +1148,7 @@ impl DatabaseColumn for EntityTypeEmbeddings {
 pub enum EntityEmbeddings {
     WebId,
     EntityUuid,
+    DraftId,
     Embedding,
     Property,
     UpdatedAtTransactionTime,
@@ -1003,40 +1156,43 @@ pub enum EntityEmbeddings {
     Distance,
 }
 
-impl DatabaseColumn for EntityEmbeddings {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityEmbeddings {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::WebId | Self::EntityUuid => ParameterType::Uuid,
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::DraftId => "draft_id".into(),
+            Self::Embedding => "embedding".into(),
+            Self::Property => "property".into(),
+            Self::UpdatedAtDecisionTime => "updated_at_decision_time".into(),
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
+            Self::Distance => "distance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
+            Self::Embedding => PostgresType::Vector,
+            Self::Property => PostgresType::Text,
+            Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
+                PostgresType::TimestampTz
+            }
+            Self::Distance => PostgresType::Float8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityEmbeddings {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::DraftId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
             Self::Distance => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::WebId
-            | Self::EntityUuid
-            | Self::Embedding
-            | Self::UpdatedAtTransactionTime
-            | Self::UpdatedAtDecisionTime
-            | Self::Distance => false,
-            Self::Property => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::Embedding => "embedding",
-            Self::Property => "property",
-            Self::UpdatedAtDecisionTime => "updated_at_decision_time",
-            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
-            Self::Distance => "distance",
         }
     }
 }
@@ -1051,31 +1207,35 @@ pub enum EntityEditions {
     PropertyMetadata,
 }
 
-impl DatabaseColumn for EntityEditions {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityEditions {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::EditionId => "entity_edition_id".into(),
+            Self::Properties => "properties".into(),
+            Self::Provenance => "provenance".into(),
+            Self::Archived => "archived".into(),
+            Self::Confidence => "confidence".into(),
+            Self::PropertyMetadata => "property_metadata".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::EditionId => PostgresType::Uuid,
+            Self::Properties | Self::Provenance | Self::PropertyMetadata => PostgresType::JsonB,
+            Self::Archived => PostgresType::Bool,
+            Self::Confidence => PostgresType::Float8,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityEditions {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::EditionId => ParameterType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
             Self::Confidence => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::EditionId | Self::Archived | Self::Provenance => false,
-            Self::Properties | Self::Confidence | Self::PropertyMetadata => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::EditionId => "entity_edition_id",
-            Self::Properties => "properties",
-            Self::Provenance => "provenance",
-            Self::Archived => "archived",
-            Self::Confidence => "confidence",
-            Self::PropertyMetadata => "property_metadata",
         }
     }
 }
@@ -1087,23 +1247,28 @@ pub enum EntityIsOfType {
     InheritanceDepth,
 }
 
-impl DatabaseColumn for EntityIsOfType {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityIsOfType {
+    fn name(&self) -> ColumnName<'static> {
         match self {
-            Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
-            Self::InheritanceDepth => ParameterType::Integer,
+            Self::EntityEditionId => "entity_edition_id".into(),
+            Self::EntityTypeOntologyId => "entity_type_ontology_id".into(),
+            Self::InheritanceDepth => "inheritance_depth".into(),
         }
     }
 
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
+    fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::EntityEditionId => "entity_edition_id",
-            Self::EntityTypeOntologyId => "entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
+            Self::EntityEditionId | Self::EntityTypeOntologyId => PostgresType::Uuid,
+            Self::InheritanceDepth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityIsOfType {
+    fn parameter_type(&self) -> ParameterType {
+        match self {
+            Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
+            Self::InheritanceDepth => ParameterType::Integer,
         }
     }
 }
@@ -1118,32 +1283,37 @@ pub enum EntityHasLeftEntity {
     Provenance,
 }
 
-impl DatabaseColumn for EntityHasLeftEntity {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityHasLeftEntity {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::LeftEntityWebId => "left_web_id".into(),
+            Self::LeftEntityUuid => "left_entity_uuid".into(),
+            Self::Confidence => "confidence".into(),
+            Self::Provenance => "provenance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::LeftEntityWebId | Self::LeftEntityUuid => {
+                PostgresType::Uuid
+            }
+            Self::Confidence => PostgresType::Float8,
+            Self::Provenance => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityHasLeftEntity {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::LeftEntityWebId | Self::LeftEntityUuid => {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
             Self::Confidence => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::WebId | Self::EntityUuid | Self::LeftEntityWebId | Self::LeftEntityUuid => false,
-            Self::Provenance | Self::Confidence => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::LeftEntityWebId => "left_web_id",
-            Self::LeftEntityUuid => "left_entity_uuid",
-            Self::Confidence => "confidence",
-            Self::Provenance => "provenance",
         }
     }
 }
@@ -1158,34 +1328,37 @@ pub enum EntityHasRightEntity {
     Provenance,
 }
 
-impl DatabaseColumn for EntityHasRightEntity {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityHasRightEntity {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::WebId => "web_id".into(),
+            Self::EntityUuid => "entity_uuid".into(),
+            Self::RightEntityWebId => "right_web_id".into(),
+            Self::RightEntityUuid => "right_entity_uuid".into(),
+            Self::Confidence => "confidence".into(),
+            Self::Provenance => "provenance".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::RightEntityWebId | Self::RightEntityUuid => {
+                PostgresType::Uuid
+            }
+            Self::Confidence => PostgresType::Float8,
+            Self::Provenance => PostgresType::JsonB,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityHasRightEntity {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::RightEntityWebId | Self::RightEntityUuid => {
                 ParameterType::Uuid
             }
             Self::Provenance => ParameterType::Any,
             Self::Confidence => ParameterType::Decimal,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::WebId | Self::EntityUuid | Self::RightEntityWebId | Self::RightEntityUuid => {
-                false
-            }
-            Self::Provenance | Self::Confidence => true,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::WebId => "web_id",
-            Self::EntityUuid => "entity_uuid",
-            Self::RightEntityWebId => "right_web_id",
-            Self::RightEntityUuid => "right_entity_uuid",
-            Self::Confidence => "confidence",
-            Self::Provenance => "provenance",
         }
     }
 }
@@ -1196,23 +1369,29 @@ pub enum PropertyTypeConstrainsValuesOn {
     TargetDataTypeOntologyId,
 }
 
-impl DatabaseColumn for PropertyTypeConstrainsValuesOn {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for PropertyTypeConstrainsValuesOn {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id".into(),
+            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetDataTypeOntologyId => {
+                PostgresType::Uuid
+            }
+        }
+    }
+}
+
+impl FilterColumn<'_> for PropertyTypeConstrainsValuesOn {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourcePropertyTypeOntologyId | Self::TargetDataTypeOntologyId => {
                 ParameterType::Uuid
             }
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
-            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
         }
     }
 }
@@ -1223,23 +1402,29 @@ pub enum PropertyTypeConstrainsPropertiesOn {
     TargetPropertyTypeOntologyId,
 }
 
-impl DatabaseColumn for PropertyTypeConstrainsPropertiesOn {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for PropertyTypeConstrainsPropertiesOn {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id".into(),
+            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                PostgresType::Uuid
+            }
+        }
+    }
+}
+
+impl FilterColumn<'_> for PropertyTypeConstrainsPropertiesOn {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourcePropertyTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
                 ParameterType::Uuid
             }
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
-            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
         }
     }
 }
@@ -1251,25 +1436,32 @@ pub enum EntityTypeConstrainsPropertiesOn {
     InheritanceDepth,
 }
 
-impl DatabaseColumn for EntityTypeConstrainsPropertiesOn {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypeConstrainsPropertiesOn {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id".into(),
+            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id".into(),
+            Self::InheritanceDepth => "inheritance_depth".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                PostgresType::Uuid
+            }
+            Self::InheritanceDepth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypeConstrainsPropertiesOn {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
                 ParameterType::Uuid
             }
             Self::InheritanceDepth => ParameterType::Integer,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
         }
     }
 }
@@ -1281,25 +1473,32 @@ pub enum EntityTypeInheritsFrom {
     Depth,
 }
 
-impl DatabaseColumn for EntityTypeInheritsFrom {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypeInheritsFrom {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id".into(),
+            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id".into(),
+            Self::Depth => "depth".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                PostgresType::Uuid
+            }
+            Self::Depth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypeInheritsFrom {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
             Self::Depth => ParameterType::Integer,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::Depth => "depth",
         }
     }
 }
@@ -1311,25 +1510,32 @@ pub enum EntityTypeConstrainsLinksOn {
     InheritanceDepth,
 }
 
-impl DatabaseColumn for EntityTypeConstrainsLinksOn {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypeConstrainsLinksOn {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id".into(),
+            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id".into(),
+            Self::InheritanceDepth => "inheritance_depth".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                PostgresType::Uuid
+            }
+            Self::InheritanceDepth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypeConstrainsLinksOn {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
             Self::InheritanceDepth => ParameterType::Integer,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
         }
     }
 }
@@ -1341,25 +1547,32 @@ pub enum EntityTypeConstrainsLinkDestinationsOn {
     InheritanceDepth,
 }
 
-impl DatabaseColumn for EntityTypeConstrainsLinkDestinationsOn {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for EntityTypeConstrainsLinkDestinationsOn {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id".into(),
+            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id".into(),
+            Self::InheritanceDepth => "inheritance_depth".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                PostgresType::Uuid
+            }
+            Self::InheritanceDepth => PostgresType::Int4,
+        }
+    }
+}
+
+impl FilterColumn<'_> for EntityTypeConstrainsLinkDestinationsOn {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
             Self::InheritanceDepth => ParameterType::Integer,
-        }
-    }
-
-    fn nullable(self) -> bool {
-        false
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
         }
     }
 }
@@ -1649,8 +1862,76 @@ impl Column {
     }
 }
 
-impl DatabaseColumn for Column {
-    fn parameter_type(self) -> ParameterType {
+impl DatabaseColumn<'_> for Column {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::OntologyIds(column) => column.name(),
+            Self::OntologyTemporalMetadata(column) => column.name(),
+            Self::OntologyOwnedMetadata(column) => column.name(),
+            Self::OntologyExternalMetadata(column) => column.name(),
+            Self::OntologyAdditionalMetadata(column) => column.name(),
+            Self::DataTypes(column) => column.name(),
+            Self::DataTypeEmbeddings(column) => column.name(),
+            Self::DataTypeInheritsFrom(column, _) => column.name(),
+            Self::DataTypeConversions(column) => column.name(),
+            Self::DataTypeConversionAggregation(column) => column.name(),
+            Self::PropertyTypes(column) => column.name(),
+            Self::PropertyTypeEmbeddings(column) => column.name(),
+            Self::EntityTypes(column) => column.name(),
+            Self::EntityTypeEmbeddings(column) => column.name(),
+            Self::EntityIds(column) => column.name(),
+            Self::EntityTemporalMetadata(column) => column.name(),
+            Self::EntityEditions(column) => column.name(),
+            Self::EntityEditionCache(column) => column.name(),
+            Self::EntityEmbeddings(column) => column.name(),
+            Self::PropertyTypeConstrainsValuesOn(column) => column.name(),
+            Self::PropertyTypeConstrainsPropertiesOn(column) => column.name(),
+            Self::EntityTypeConstrainsPropertiesOn(column, _) => column.name(),
+            Self::EntityTypeInheritsFrom(column, _) => column.name(),
+            Self::EntityTypeConstrainsLinksOn(column, _) => column.name(),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.name(),
+            Self::EntityIsOfType(column, _) => column.name(),
+            Self::EntityHasLeftEntity(column) => column.name(),
+            Self::EntityHasRightEntity(column) => column.name(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::OntologyIds(column) => column.postgres_type(),
+            Self::OntologyTemporalMetadata(column) => column.postgres_type(),
+            Self::OntologyOwnedMetadata(column) => column.postgres_type(),
+            Self::OntologyExternalMetadata(column) => column.postgres_type(),
+            Self::OntologyAdditionalMetadata(column) => column.postgres_type(),
+            Self::DataTypes(column) => column.postgres_type(),
+            Self::DataTypeEmbeddings(column) => column.postgres_type(),
+            Self::DataTypeInheritsFrom(column, _) => column.postgres_type(),
+            Self::DataTypeConversions(column) => column.postgres_type(),
+            Self::DataTypeConversionAggregation(column) => column.postgres_type(),
+            Self::PropertyTypes(column) => column.postgres_type(),
+            Self::PropertyTypeEmbeddings(column) => column.postgres_type(),
+            Self::EntityTypes(column) => column.postgres_type(),
+            Self::EntityTypeEmbeddings(column) => column.postgres_type(),
+            Self::EntityIds(column) => column.postgres_type(),
+            Self::EntityTemporalMetadata(column) => column.postgres_type(),
+            Self::EntityEditions(column) => column.postgres_type(),
+            Self::EntityEditionCache(column) => column.postgres_type(),
+            Self::EntityEmbeddings(column) => column.postgres_type(),
+            Self::PropertyTypeConstrainsValuesOn(column) => column.postgres_type(),
+            Self::PropertyTypeConstrainsPropertiesOn(column) => column.postgres_type(),
+            Self::EntityTypeConstrainsPropertiesOn(column, _) => column.postgres_type(),
+            Self::EntityTypeInheritsFrom(column, _) => column.postgres_type(),
+            Self::EntityTypeConstrainsLinksOn(column, _) => column.postgres_type(),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.postgres_type(),
+            Self::EntityIsOfType(column, _) => column.postgres_type(),
+            Self::EntityHasLeftEntity(column) => column.postgres_type(),
+            Self::EntityHasRightEntity(column) => column.postgres_type(),
+        }
+    }
+}
+
+impl FilterColumn<'_> for Column {
+    fn parameter_type(&self) -> ParameterType {
         match self {
             Self::OntologyIds(column) => column.parameter_type(),
             Self::OntologyTemporalMetadata(column) => column.parameter_type(),
@@ -1680,72 +1961,6 @@ impl DatabaseColumn for Column {
             Self::EntityIsOfType(column, _) => column.parameter_type(),
             Self::EntityHasLeftEntity(column) => column.parameter_type(),
             Self::EntityHasRightEntity(column) => column.parameter_type(),
-        }
-    }
-
-    fn nullable(self) -> bool {
-        match self {
-            Self::OntologyIds(column) => column.nullable(),
-            Self::OntologyTemporalMetadata(column) => column.nullable(),
-            Self::OntologyOwnedMetadata(column) => column.nullable(),
-            Self::OntologyExternalMetadata(column) => column.nullable(),
-            Self::OntologyAdditionalMetadata(column) => column.nullable(),
-            Self::DataTypes(column) => column.nullable(),
-            Self::DataTypeEmbeddings(column) => column.nullable(),
-            Self::DataTypeInheritsFrom(column, _) => column.nullable(),
-            Self::DataTypeConversions(column) => column.nullable(),
-            Self::DataTypeConversionAggregation(column) => column.nullable(),
-            Self::PropertyTypes(column) => column.nullable(),
-            Self::PropertyTypeEmbeddings(column) => column.nullable(),
-            Self::EntityTypes(column) => column.nullable(),
-            Self::EntityTypeEmbeddings(column) => column.nullable(),
-            Self::EntityIds(column) => column.nullable(),
-            Self::EntityTemporalMetadata(column) => column.nullable(),
-            Self::EntityEditions(column) => column.nullable(),
-            Self::EntityEditionCache(column) => column.nullable(),
-            Self::EntityEmbeddings(column) => column.nullable(),
-            Self::PropertyTypeConstrainsValuesOn(column) => column.nullable(),
-            Self::PropertyTypeConstrainsPropertiesOn(column) => column.nullable(),
-            Self::EntityTypeConstrainsPropertiesOn(column, _) => column.nullable(),
-            Self::EntityTypeInheritsFrom(column, _) => column.nullable(),
-            Self::EntityTypeConstrainsLinksOn(column, _) => column.nullable(),
-            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.nullable(),
-            Self::EntityIsOfType(column, _) => column.nullable(),
-            Self::EntityHasLeftEntity(column) => column.nullable(),
-            Self::EntityHasRightEntity(column) => column.nullable(),
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::OntologyIds(column) => column.as_str(),
-            Self::OntologyTemporalMetadata(column) => column.as_str(),
-            Self::OntologyOwnedMetadata(column) => column.as_str(),
-            Self::OntologyExternalMetadata(column) => column.as_str(),
-            Self::OntologyAdditionalMetadata(column) => column.as_str(),
-            Self::DataTypes(column) => column.as_str(),
-            Self::DataTypeEmbeddings(column) => column.as_str(),
-            Self::DataTypeInheritsFrom(column, _) => column.as_str(),
-            Self::DataTypeConversions(column) => column.as_str(),
-            Self::DataTypeConversionAggregation(column) => column.as_str(),
-            Self::PropertyTypes(column) => column.as_str(),
-            Self::PropertyTypeEmbeddings(column) => column.as_str(),
-            Self::EntityTypes(column) => column.as_str(),
-            Self::EntityTypeEmbeddings(column) => column.as_str(),
-            Self::EntityIds(column) => column.as_str(),
-            Self::EntityTemporalMetadata(column) => column.as_str(),
-            Self::EntityEditions(column) => column.as_str(),
-            Self::EntityEditionCache(column) => column.as_str(),
-            Self::EntityEmbeddings(column) => column.as_str(),
-            Self::PropertyTypeConstrainsValuesOn(column) => column.as_str(),
-            Self::PropertyTypeConstrainsPropertiesOn(column) => column.as_str(),
-            Self::EntityTypeConstrainsPropertiesOn(column, _) => column.as_str(),
-            Self::EntityTypeInheritsFrom(column, _) => column.as_str(),
-            Self::EntityTypeConstrainsLinksOn(column, _) => column.as_str(),
-            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.as_str(),
-            Self::EntityIsOfType(column, _) => column.as_str(),
-            Self::EntityHasLeftEntity(column) => column.as_str(),
-            Self::EntityHasRightEntity(column) => column.as_str(),
         }
     }
 }
@@ -2141,15 +2356,18 @@ mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::PostgresQueryPath as _;
+    use crate::store::postgres::query::{PostgresQueryPath as _, Transpile as _};
 
     #[test]
     fn transpile_table() {
         assert_eq!(
-            Table::OntologyIds.transpile_to_string(),
+            Table::OntologyIds.name().transpile_to_string(),
             r#""ontology_ids""#
         );
-        assert_eq!(Table::DataTypes.transpile_to_string(), r#""data_types""#);
+        assert_eq!(
+            Table::DataTypes.name().transpile_to_string(),
+            r#""data_types""#
+        );
     }
 
     #[test]
@@ -2172,6 +2390,7 @@ mod tests {
             DataTypeQueryPath::OntologyId
                 .terminating_column()
                 .0
+                .name()
                 .transpile_to_string(),
             r#""ontology_id""#
         );
@@ -2179,6 +2398,7 @@ mod tests {
             DataTypeQueryPath::Title
                 .terminating_column()
                 .0
+                .name()
                 .transpile_to_string(),
             r#""schema""#
         );

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Spreadsheet } from "./spreadsheet";
 
-import type { SpreadsheetColumn } from "./spreadsheet";
+import type { SpreadsheetCellValue, SpreadsheetColumn } from "./spreadsheet";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -22,10 +22,24 @@ const COLUMNS_3: SpreadsheetColumn[] = [
   { id: "z", name: "z" },
 ];
 
-const SAMPLE_DATA: number[][] = [
+const SAMPLE_DATA: SpreadsheetCellValue[][] = [
   [1, 2, 3],
   [4, 5, 6],
   [7, 8, 9],
+];
+
+const TYPED_COLUMNS: SpreadsheetColumn[] = [
+  { id: "amount", name: "amount", type: "real" },
+  { id: "count", name: "count", type: "integer" },
+  { id: "active", name: "active", type: "boolean" },
+  { id: "id", name: "id", type: "uuid" },
+  { id: "label", name: "label", type: "string" },
+];
+
+const TYPED_DATA: SpreadsheetCellValue[][] = [
+  [1.25, 3, true, 0x45f588b605384fc992071ddfd7f65b64n, "alpha"],
+  [0.5, 1, false, 0xc0ffee0012344abc8defdeadbeef0042n, "beta"],
+  [9.75, 7, true, 0n, ""],
 ];
 
 const Container = ({ children }: { children: React.ReactNode }) => (
@@ -38,7 +52,7 @@ const InteractiveSpreadsheet = ({
   readOnly,
 }: {
   columns: SpreadsheetColumn[];
-  initialData: number[][];
+  initialData: SpreadsheetCellValue[][];
   readOnly?: boolean;
 }) => {
   const [data, setData] = useState(initialData);
@@ -68,6 +82,18 @@ export const ReadOnly: Story = {
       initialData={SAMPLE_DATA}
       readOnly
     />
+  ),
+};
+
+export const TypedColumns: Story = {
+  name: "Typed columns (real / integer / boolean / uuid / string)",
+  render: () => (
+    <div style={{ width: 640, height: 300 }}>
+      <InteractiveSpreadsheet
+        columns={TYPED_COLUMNS}
+        initialData={TYPED_DATA}
+      />
+    </div>
   ),
 };
 

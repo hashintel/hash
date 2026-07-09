@@ -32,7 +32,7 @@ use crate::node::id::NodeId;
 /// items[0]
 /// matrix[i][j]
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct IndexExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

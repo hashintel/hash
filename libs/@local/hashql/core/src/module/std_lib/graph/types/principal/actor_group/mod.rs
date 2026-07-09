@@ -1,3 +1,11 @@
+use crate::{
+    module::{
+        StandardLibrary,
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    },
+    symbol::{Symbol, sym},
+};
+
 pub mod web;
 
 pub mod types {
@@ -25,15 +33,6 @@ pub mod types {
     }
 }
 
-use crate::{
-    heap::Heap,
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
-    },
-    symbol::{Symbol, sym},
-};
-
 pub(in crate::module::std_lib) struct ActorGroup {
     _dependencies: (std_lib::core::uuid::Uuid,),
 }
@@ -41,8 +40,8 @@ pub(in crate::module::std_lib) struct ActorGroup {
 impl<'heap> StandardLibraryModule<'heap> for ActorGroup {
     type Children = (self::web::Web,);
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("actor_group")
+    fn name() -> Symbol<'heap> {
+        sym::actor_group
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

@@ -56,24 +56,51 @@ The frame does not contain place or transition IDs. `SimulationInstance` owns an
 `EngineFrameLayout` derived from the SDCPN and passes it to internal readers and
 writers.
 
-## Token Value Storage
+## Token Value Storage (packed token structs)
 
-Token values are stored in a packed `Float64Array` section inside the frame
-buffer. Place counts and value offsets are stored in separate `Uint32Array`
+Token values are stored as a byte region of packed structs inside the frame
+buffer (`FRAME_VERSION = 2`). Each colour has a `TokenSlotLayout` computed by
+`engine/token-layout.ts` — the single source of truth for the physical
+mapping:
+
+| Element type | Physical type                       | Size | Alignment |
+| ------------ | ----------------------------------- | ---- | --------- |
+| `real`       | `f64`                               | 8 B  | 8 B       |
+| `integer`    | `f64` (rounded via the value codec) | 8 B  | 8 B       |
+| `boolean`    | `u8` (0/1)                          | 1 B  | 1 B       |
+
+Per colour, fields are ordered by decreasing alignment (stable within equal
+alignment), each field's byte offset is aligned to its physical alignment, and
+the stride (`sizeof(token)`) is rounded up to 8 bytes. Because the token
+region starts at an 8-aligned offset and every stride is a multiple of 8, all
+f64 fields are addressable through a shared `Float64Array` view
+(`index = (placeByteOffset + token * strideBytes + fieldByteOffset) / 8`) and
+u8 fields through a `Uint8Array` view — no `DataView` in hot paths.
+
+Place counts and per-place byte offsets are stored in separate `Uint32Array`
 sections, so a place can be accessed in O(1) when the SDCPN layout is known.
 
 ```text
-Place p1: offset=0, count=2, dimensions=3
-Place p2: offset=6, count=1, dimensions=2
+Colour of p1: { x: real, n: integer, on: boolean } → stride 24 B
+  x @ 0 (f64) · n @ 8 (f64) · on @ 16 (u8) · padding 17..24
 
-buffer: [v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, v3.a, v3.b]
-         └──────── p1 tokens ────────────┘ └── p2 ──┘
+Place p1: byteOffset=0,  count=2, strideBytes=24
+Place p2: byteOffset=48, count=1, strideBytes=16
+
+bytes: [tok0: x n on pad][tok1: x n on pad][tok2: a b]
+        └──────── p1 tokens (48 B) ──────┘ └ p2 (16 B) ┘
 ```
 
 Access:
 
 ```typescript
 const frameView = readEngineFrame(simulation.frameLayout, frame);
-const place = frameView.getPlaceState("p1");
-const values = frameView.getPlaceTokenValues("p1");
+const place = frameView.getPlaceState("p1"); // { byteOffset, count, strideBytes }
+const layout = simulation.frameLayout.placeTokenLayouts[placeIndex];
+const token = readTokenRecord(
+  layout,
+  frameView.tokenF64,
+  frameView.tokenBytes,
+  place.byteOffset + tokenIndex * place.strideBytes,
+);
 ```

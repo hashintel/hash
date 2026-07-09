@@ -1,0 +1,28 @@
+Expr#4294967040@38
+  ExprKind (Closure)
+    ClosureExpr#4294967040@38
+      ClosureSignature#4294967040@38
+        Generics#4294967040@12
+          GenericParam#4294967040@7 (name: T:0)
+          GenericParam#4294967040@11 (name: U:0)
+        Type#4294967040@17
+          TypeKind (Infer)
+      Expr#4294967040@37
+        ExprKind (As)
+          AsExpr#4294967040@37
+            Expr#4294967040@32
+              ExprKind (As)
+                AsExpr#4294967040@32
+                  Expr#4294967040@27
+                    ExprKind (Literal)
+                      LiteralExpr#4294967040@26
+                        Primitive (Integer)
+                          Integer (0)
+                  Type#4294967040@31
+                    TypeKind (Path)
+                      Path#4294967040@31 (rooted: false)
+                        PathSegment#4294967040@30 (name: T:0)
+            Type#4294967040@36
+              TypeKind (Path)
+                Path#4294967040@36 (rooted: false)
+                  PathSegment#4294967040@35 (name: U:0)

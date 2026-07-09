@@ -1580,6 +1580,54 @@
         }
       }
     },
+    "/entities/embeddings/clusters": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "cluster_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterEntitiesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Clusters of entities by embedding similarity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterEntitiesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/permissions": {
       "post": {
         "tags": [
@@ -3742,6 +3790,77 @@
           "propertyName": "kind"
         }
       },
+      "ClusterEntitiesParams": {
+        "type": "object",
+        "required": [
+          "entityIds",
+          "clusterCount"
+        ],
+        "properties": {
+          "clusterCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Desired number of clusters.\n\nClamped to the number of entities with embeddings when that is smaller.",
+            "maximum": 64,
+            "minimum": 0
+          },
+          "dimension": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Embedding dimension after matryoshka truncation.\n\nMust be a positive multiple of 8; values above 512 are rejected. Defaults to 256.",
+            "default": 256,
+            "example": 256,
+            "multipleOf": 8,
+            "maximum": 512,
+            "minimum": 8
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seed for the random number generator used in clustering.\n\nIf not provided, a random seed will be used.",
+            "nullable": true,
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClusterEntitiesResponse": {
+        "type": "object",
+        "description": "Result of [`EntityStore::cluster_entities`].",
+        "required": [
+          "clusters",
+          "missingEmbeddings",
+          "inertia"
+        ],
+        "properties": {
+          "clusters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityCluster"
+            },
+            "description": "One entry per non-empty cluster. Empty clusters (no points assigned)\nare omitted."
+          },
+          "inertia": {
+            "type": "number",
+            "format": "float",
+            "description": "Sum of squared chord distances from every clustered entity to its\nassigned centroid. Lower is tighter; comparable across runs over the\nsame entities, e.g. to choose a cluster count. `0.0` when nothing was\nclustered."
+          },
+          "missingEmbeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            },
+            "description": "Entities from the request that were not clustered (either because no embedding exists, or\nbecause the actor lacks permission to view the entity).",
+            "uniqueItems": true
+          }
+        }
+      },
       "CommonQueryEntityTypesParams": {
         "type": "object",
         "required": [
@@ -4504,6 +4623,37 @@
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyObject"
+          }
+        }
+      },
+      "EntityCluster": {
+        "type": "object",
+        "description": "One cluster from a spherical k-means run over entity embeddings.",
+        "required": [
+          "clusterId",
+          "entityIds",
+          "centroid"
+        ],
+        "properties": {
+          "centroid": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Centroid with length equal to the requested dimension.\n\nTypically unit-normalized, but may be the all-zero vector if all assigned points have zero\nnorm."
+          },
+          "clusterId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Index in `0..min(cluster_count, n)`.",
+            "minimum": 0
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            }
           }
         }
       },

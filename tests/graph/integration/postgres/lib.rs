@@ -6,6 +6,7 @@
 
 extern crate alloc;
 
+mod clustering;
 mod data_type;
 mod drafts;
 mod email_filter_protection;
@@ -888,6 +889,17 @@ impl EntityStore for DatabaseApi<'_> {
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
+    }
+
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: hash_graph_store::entity::ClusterEntitiesParams,
+    ) -> Result<
+        hash_graph_store::entity::ClusterEntitiesResponse,
+        Report<hash_graph_store::error::ClusterError>,
+    > {
+        self.store.cluster_entities(actor_id, params).await
     }
 
     async fn has_permission_for_entities(

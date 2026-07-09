@@ -58,10 +58,16 @@ export const siteOverviewSection: DocSectionDef = {
           </UL>
           <P>
             Each row shows its impact, supporting evidence and a sample-size
-            confidence label. Clicking on a row opens that step&apos;s detail,
-            and the row actions at the end include <Term>Brief</Term>,{" "}
-            <Term>Mark read</Term>, <Term>Mark unread</Term> and the
-            investigation status action.
+            confidence label, and ends with the investigation status action.
+            Clicking a row opens that step&apos;s detail, where the full
+            evidence and printable brief are available.
+          </P>
+          <P>
+            Sort and filter the table from its column headers: <Term>Type</Term>{" "}
+            filters by opportunity kind (hiding a kind removes its whole
+            section), <Term>Opportunity</Term> sorts by title and filters by
+            product, and <Term>Status</Term> sorts and filters by the
+            investigation state.
           </P>
           <H4>Investigation workflow</H4>
           <UL>
@@ -78,19 +84,9 @@ export const siteOverviewSection: DocSectionDef = {
               detail panel, and viewable by anyone with access to the
               organisation.
             </LI>
-            <LI>
-              <Term>Mark read</Term> hides an opportunity from the default list
-              once it has been reviewed. <Term>Mark unread</Term> returns it to
-              the unread list. This is a personal setting not shared among users
-              – you can mark items as read without affecting other users.
-            </LI>
-            <LI>
-              The <Term>Show read</Term> checkbox brings reviewed opportunities
-              back into the table.
-            </LI>
           </UL>
           <P>
-            The <Term>Brief</Term> action opens a printable{" "}
+            Opening a row&apos;s step detail gives access to the printable{" "}
             <CrossRef to={{ section: "opportunity-brief" }}>
               Opportunity brief
             </CrossRef>{" "}
@@ -226,12 +222,23 @@ export const siteOverviewSection: DocSectionDef = {
       title: "Site filters & controls",
       render: () => (
         <>
-          <Lead>Two controls are specific to the site view.</Lead>
+          <Lead>
+            Every table is sortable and filterable from its column headers,
+            alongside one site-wide control.
+          </Lead>
           <UL>
             <LI>
-              <Term>Category filter</Term> &mdash; shown on the Planning
-              parameters and Trend tabs to restrict those tables to chosen step
-              categories.
+              <Term>Column sort</Term> &mdash; click a sortable column header to
+              sort by it, and click again to reverse the direction.
+            </LI>
+            <LI>
+              <Term>Column filters</Term> &mdash; the funnel on a column header
+              opens a searchable menu to include or exclude values. On the
+              detail tables the <Term>Step</Term> column filters by step type
+              (the available types depend on the active tab) and the{" "}
+              <Term>Status</Term> column filters by investigation state. Use{" "}
+              <Term>Only</Term> to isolate a single value, or <Term>Reset</Term>{" "}
+              to re-select everything.
             </LI>
             <LI>
               <Term>Exclude low samples</Term> &mdash; hide Planning and Trend

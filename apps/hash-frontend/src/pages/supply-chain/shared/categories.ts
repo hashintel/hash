@@ -59,6 +59,30 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
+/** Canonical display order for finer step types (used by the Step column filter). */
+export const STEP_TYPE_ORDER: StepType[] = [
+  "procurement",
+  "raw_material_dwell",
+  "production",
+  "intermediate_dwell",
+  "qa_hold",
+  "post_qa_ship",
+  "transit",
+  "destination_dwell",
+];
+
+/** Human-readable labels for each finer step type (used by the Step column filter). */
+export const STEP_TYPE_LABELS: Record<StepType, string> = {
+  procurement: "Procurement",
+  raw_material_dwell: "Raw material",
+  production: "Production",
+  intermediate_dwell: "Intermediate",
+  qa_hold: "QA hold",
+  post_qa_ship: "QA to Ship",
+  transit: "Transit",
+  destination_dwell: "Destination",
+};
+
 export const PIPELINE_COLORS: Record<string, string> = {
   procurement: "#64ade6",
   raw_material_dwell: "#989898",

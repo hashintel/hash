@@ -68,7 +68,6 @@ md-5                               = { workspace = true }
 mime                               = { workspace = true }
 opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
-opentelemetry_sdk                  = { workspace = true, features = ["rt-tokio"] }
 reqwest                            = { workspace = true }
 sentry                             = { workspace = true }
 serde                              = { workspace = true, features = ['derive'] }

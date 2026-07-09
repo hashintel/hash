@@ -30,8 +30,7 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
-use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::Embedding;
+use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
@@ -59,8 +58,8 @@ use crate::store::{
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
-            Distinctness, InsertStatementBuilder, PostgresRecord, PostgresSorting, ReferenceTable,
-            SelectCompiler, Table, rows::DataTypeConversionsRow,
+            Distinctness, PostgresRecord, PostgresSorting, ReferenceTable, SelectCompiler, Table,
+            bulk_insert, rows::DataTypeConversionsRow,
         },
     },
     validation::StoreProvider,
@@ -689,16 +688,17 @@ where
                 .await?;
         }
 
-        let (statement, parameters) = InsertStatementBuilder::from_rows(
-            Table::DataTypeConversions,
-            &data_type_conversions_rows,
-        )
-        .compile();
-        transaction
+        let (statement, parameters) = bulk_insert().rows(&data_type_conversions_rows).compile();
+        let inserted_rows = transaction
             .as_client()
-            .query(&statement, &parameters)
+            .execute_raw(
+                &statement,
+                parameters
+                    .iter()
+                    .map(|parameter| &**parameter as &(dyn ToSql + Sync)),
+            )
             .instrument(tracing::info_span!(
-                "SELECT",
+                "INSERT",
                 otel.kind = "client",
                 db.system = "postgresql",
                 peer.service = "Postgres",
@@ -706,6 +706,12 @@ where
             ))
             .await
             .change_context(InsertionError)?;
+        if inserted_rows != data_type_conversions_rows.len() as u64 {
+            return Err(Report::new(InsertionError).attach(format!(
+                "bulk insert affected {inserted_rows} rows but {} were provided",
+                data_type_conversions_rows.len()
+            )));
+        }
 
         transaction.commit().await.change_context(InsertionError)?;
 
@@ -1118,16 +1124,17 @@ where
                 .change_context(UpdateError)?;
         }
 
-        let (statement, parameters) = InsertStatementBuilder::from_rows(
-            Table::DataTypeConversions,
-            &data_type_conversions_rows,
-        )
-        .compile();
-        transaction
+        let (statement, parameters) = bulk_insert().rows(&data_type_conversions_rows).compile();
+        let inserted_rows = transaction
             .as_client()
-            .query(&statement, &parameters)
+            .execute_raw(
+                &statement,
+                parameters
+                    .iter()
+                    .map(|parameter| &**parameter as &(dyn ToSql + Sync)),
+            )
             .instrument(tracing::info_span!(
-                "SELECT",
+                "INSERT",
                 otel.kind = "client",
                 db.system = "postgresql",
                 peer.service = "Postgres",
@@ -1135,6 +1142,12 @@ where
             ))
             .await
             .change_context(UpdateError)?;
+        if inserted_rows != data_type_conversions_rows.len() as u64 {
+            return Err(Report::new(UpdateError).attach(format!(
+                "bulk insert affected {inserted_rows} rows but {} were provided",
+                data_type_conversions_rows.len()
+            )));
+        }
 
         transaction.commit().await.change_context(UpdateError)?;
 
@@ -1257,18 +1270,7 @@ where
         _: ActorEntityUuid,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
-        #[derive(Debug, ToSql)]
-        #[postgres(name = "data_type_embeddings")]
-        pub struct DataTypeEmbeddingsRow<'a> {
-            ontology_id: OntologyTypeUuid,
-            embedding: Embedding<'a>,
-            updated_at_transaction_time: Timestamp<TransactionTime>,
-        }
-        let data_type_embeddings = vec![DataTypeEmbeddingsRow {
-            ontology_id: OntologyTypeUuid::from(DataTypeUuid::from_url(&params.data_type_id)),
-            embedding: params.embedding,
-            updated_at_transaction_time: params.updated_at_transaction_time,
-        }];
+        let ontology_id = OntologyTypeUuid::from(DataTypeUuid::from_url(&params.data_type_id));
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -1283,7 +1285,11 @@ where
                     ),
                     provided_embeddings AS (
                         SELECT embeddings.*, base_url, max_version
-                        FROM UNNEST($1::data_type_embeddings[]) AS embeddings
+                        FROM (
+                            SELECT $1::uuid AS ontology_id,
+                                   $2::vector AS embedding,
+                                   $3::timestamptz AS updated_at_transaction_time
+                        ) AS embeddings
                         JOIN ontology_ids USING (ontology_id)
                         JOIN base_urls USING (base_url)
                         WHERE version = max_version
@@ -1295,7 +1301,7 @@ where
                         JOIN data_type_embeddings
                           ON ontology_ids.ontology_id = data_type_embeddings.ontology_id
                         WHERE version < max_version
-                           OR ($2 AND version = max_version
+                           OR ($4 AND version = max_version
                                   AND data_type_embeddings.updated_at_transaction_time
                                    <= provided_embeddings.updated_at_transaction_time)
                     ),
@@ -1303,7 +1309,11 @@ where
                         DELETE FROM data_type_embeddings
                         WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
                     )
-                INSERT INTO data_type_embeddings
+                INSERT INTO data_type_embeddings (
+                    ontology_id,
+                    embedding,
+                    updated_at_transaction_time
+                )
                 SELECT
                     ontology_id,
                     embedding,
@@ -1315,7 +1325,12 @@ where
                 WHERE data_type_embeddings.updated_at_transaction_time
                       <= EXCLUDED.updated_at_transaction_time;
                 ",
-                &[&data_type_embeddings, &params.reset],
+                &[
+                    &ontology_id,
+                    &params.embedding,
+                    &params.updated_at_transaction_time,
+                    &params.reset,
+                ],
             )
             .instrument(tracing::info_span!(
                 "INSERT",

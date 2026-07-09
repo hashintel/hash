@@ -4,12 +4,15 @@ use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 
 use crate::{
-    snapshot::WriteBatch,
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
         AsClient, PostgresStore,
-        postgres::query::rows::{
-            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
-            OntologyTemporalMetadataRow,
+        postgres::query::{
+            OnConflict,
+            rows::{
+                OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+                OntologyTemporalMetadataRow,
+            },
         },
     },
 };
@@ -67,94 +70,59 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ontology_ids) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO ontology_ids_tmp
-                            SELECT * FROM UNNEST($1::ontology_ids[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&ontology_ids],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} ontology ids", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ontology_ids,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} ontology ids");
                 }
             }
             Self::TemporalMetadata(ontology_temporal_metadata) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO ontology_temporal_metadata_tmp
-                            SELECT * FROM UNNEST($1::ontology_temporal_metadata[])
-                            RETURNING 1;
-                        ",
-                        &[&ontology_temporal_metadata],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} ontology temporal metadata", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ontology_temporal_metadata,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} ontology temporal metadata");
                 }
             }
             Self::OwnedMetadata(ontology_owned_metadata) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO ontology_owned_metadata_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::ontology_owned_metadata[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&ontology_owned_metadata],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} ontology owned metadata", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ontology_owned_metadata,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} ontology owned metadata");
                 }
             }
             Self::ExternalMetadata(ontology_external_metadata) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO ontology_external_metadata_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::ontology_external_metadata[])
-                            ON CONFLICT DO NOTHING
-                            RETURNING 1;
-                        ",
-                        &[&ontology_external_metadata],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} ontology external metadata", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &ontology_external_metadata,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::DoNothing,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} ontology external metadata");
                 }
             }
         }

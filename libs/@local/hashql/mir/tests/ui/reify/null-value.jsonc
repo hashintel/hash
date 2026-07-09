@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: null should be promoted to a unit constant
+["let", "foo", { "#literal": null }, "foo"]

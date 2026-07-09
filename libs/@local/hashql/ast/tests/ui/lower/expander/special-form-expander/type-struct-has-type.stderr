@@ -1,0 +1,12 @@
+error[expander::type-annotation-in-type-position]: Type annotation in type position
+   ╭▸ 
+ 6 │ ┌   {
+ 7 │ │     "#struct": { "name": "String" },
+ 8 │ │     "#type": "(name: String)"
+   │ │               ━━━━━━━━━━━━━━ type annotations are not allowed inside a type expression
+ 9 │ │     //~^ ERROR type annotations are not allowed inside a type expression
+10 │ │   },
+   │ └───┘ this struct is already being used as a type
+   │
+   ├ help: remove the type annotation
+   ╰ note: in type position, `(name: String)` already defines a struct type

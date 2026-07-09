@@ -35,7 +35,6 @@ uuid             = { workspace = true, public = true, features = ["v5", "serde",
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error", "from"] }
-futures        = { workspace = true }
 itertools      = { workspace = true, features = ["use_alloc"] }
 regex          = { workspace = true, features = ["std"] }
 serde          = { workspace = true, features = ["derive", "rc"] }

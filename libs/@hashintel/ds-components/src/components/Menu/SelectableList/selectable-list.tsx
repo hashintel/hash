@@ -256,7 +256,10 @@ export const SelectableList = ({
   emptyState?: React.ReactNode;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
-  const classes = styles({ size });
+  const classes = styles({
+    size,
+    component: as === "Menu" ? "menu" : "select",
+  });
 
   const isEmpty = items.length === 0;
 
