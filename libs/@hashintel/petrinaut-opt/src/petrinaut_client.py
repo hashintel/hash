@@ -53,7 +53,7 @@ class PetrinautModelSpec(BaseModel):
     seed: Optional[int] = Field(default=DEFAULT_SEED, description="Random number generator seed (fixed -> deterministic output)")
     store: Optional[Sequence[str]] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
     outpath: Optional[str] = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
-    command: Optional[str] = Field(default=DEFAULT_METRIC, description="Petrinaut CLI command to invoke")
+    command: Optional[str] = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
     eval_timeout: Optional[float] = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         format="%(asctime)s  %(message)s",
         datefmt="%H:%M:%S",
     )
-    
+
     p = argparse.ArgumentParser(description="Toy Petri-net execution function.")
     p.add_argument("--infection_rate", type=float, required=True,
                    help="infection rate in SIR Petri Net")
