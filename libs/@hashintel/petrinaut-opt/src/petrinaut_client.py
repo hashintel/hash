@@ -48,13 +48,13 @@ class PetrinautModelSpec(BaseModel):
     name: str = Field(default=DEFAULT_MODEL, description="Petri Net class name")
     structure: str = Field(default=DEFAULT_STRUCTURE, description="Filepath of Petri Net model structure (places, transitions, arcs etc.)")
     metric: str = Field(default=DEFAULT_METRIC, description="Metric name that will be computed at the end of execution")
-    steps: Optional[int] = Field(default=DEFAULT_STEPS, description="Number of steps in a single execution")
-    dt: Optional[float] = Field(default=DEFAULT_TIMESTEP, description="Step size for dynamics discretisation in a single execution")
-    seed: Optional[int] = Field(default=DEFAULT_SEED, description="Random number generator seed (fixed -> deterministic output)")
-    store: Optional[Sequence[str]] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
-    outpath: Optional[str] = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
-    command: Optional[str] = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
-    eval_timeout: Optional[float] = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
+    steps: int = Field(default=DEFAULT_STEPS, description="Number of steps in a single execution")
+    dt: float = Field(default=DEFAULT_TIMESTEP, description="Step size for dynamics discretisation in a single execution")
+    seed: int = Field(default=DEFAULT_SEED, description="Random number generator seed (fixed -> deterministic output)")
+    store: Sequence[str] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
+    outpath: str = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
+    command: str = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
+    eval_timeout: float = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -181,31 +181,15 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
 
-    p = argparse.ArgumentParser(description="Toy Petri-net execution function.")
-    p.add_argument("--infection_rate", type=float, required=True,
-                   help="infection rate in SIR Petri Net")
-    p.add_argument("--recovery_rate", type=float, required=True,
-                   help="recovery rate in SIR Petri Net")
-    p.add_argument("--susceptible", type=int, required=True,
-                   help="Number of susceptible individuals in SIR Petri Net")
-    p.add_argument("--infected", type=int, required=True,
-                   help="Number of infected individuals in SIR Petri Net")
-    p.add_argument("--recovered", type=int, required=True,
-                   help="Number of recovered individuals in SIR Petri Net")
-    p.add_argument("--steps", type=int, default=1000,
-                   help="simulation steps (fixed; not optimized)")
-    p.add_argument("--seed", type=int, default=0,
-                   help="RNG seed (fixed -> deterministic output)")
-    args = p.parse_args()
-
     # Create the petrinaut execution specification
     pn_spec = PetrinautModelSpec()
     # Build the Petri net from the client spec.
     petrinet_model = PetrinautModel(pn_spec)
     # Run petrinaut once to get metric value
     metric_value = petrinet_model.run(
-        params = {"infection_rate": args.infection_rate, "recovery_rate": args.recovery_rate},
-        init_states = {"Susceptible": args.susceptible}
+        params = {"infection_rate": 1.2, 
+                  "recovery_rate": 0.6},
+        init_states = {"Susceptible": 1000.0}
     )
     # Read metric value from petrinaut execution
     log.info(f'metric_value = {metric_value}')
