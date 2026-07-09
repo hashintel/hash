@@ -35,6 +35,7 @@ use hash_graph_authorization::policies::{
         },
     },
 };
+pub use hash_graph_migrations::{Context, IsolationLevel, Transaction, TransactionBuilder};
 use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
@@ -76,7 +77,7 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::{
-    pool::{AsClient, PostgresStorePool},
+    pool::{AsClient, PostgresStorePool, TransactionOptions},
     traversal_context::TraversalContext,
 };
 use crate::store::error::{
@@ -3159,21 +3160,112 @@ where
         Ok(())
     }
 
-    /// # Errors
+    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
     ///
-    /// - if the underlying client cannot start a transaction
-    pub async fn transaction(
-        &mut self,
-    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, Report<StoreError>> {
-        Ok(PostgresStore::new(
-            self.client
-                .as_mut_client()
-                .transaction()
-                .await
-                .change_context(StoreError)?,
-            self.temporal_client.clone(),
-            Arc::clone(&self.settings),
-        ))
+    /// By default the transaction is begun with the database's default characteristics. Options
+    /// can be configured on the builder before awaiting it:
+    ///
+    /// ```ignore
+    /// let transaction = store
+    ///     .transaction()
+    ///     .isolation_level(IsolationLevel::RepeatableRead)
+    ///     .read_only()
+    ///     .await?;
+    /// ```
+    #[expect(
+        clippy::same_name_method,
+        reason = "The `Context` implementation delegates to this method so call sites don't need \
+                  to import the trait"
+    )]
+    pub fn transaction(&mut self) -> PostgresStoreTransactionBuilder<'_, C> {
+        PostgresStoreTransactionBuilder {
+            store: self,
+            options: TransactionOptions::default(),
+        }
+    }
+}
+
+/// A [`TransactionBuilder`] for a [`PostgresStore`].
+///
+/// Created by [`PostgresStore::transaction`], this builder begins the transaction when awaited.
+/// For a [`Client`]-backed store the configured options are compiled into the single `BEGIN`
+/// statement issued to the database; see [`AsClient::begin_transaction`] for the exact semantics.
+pub struct PostgresStoreTransactionBuilder<'t, C> {
+    store: &'t mut PostgresStore<C>,
+    options: TransactionOptions,
+}
+
+impl<'t, C> IntoFuture for PostgresStoreTransactionBuilder<'t, C>
+where
+    C: AsClient,
+{
+    type Output = Result<PostgresStore<tokio_postgres::Transaction<'t>>, Report<StoreError>>;
+
+    type IntoFuture = impl Future<Output = Self::Output> + Send;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            Ok(PostgresStore::new(
+                self.store
+                    .client
+                    .begin_transaction(self.options)
+                    .await
+                    .change_context(StoreError)?,
+                self.store.temporal_client.clone(),
+                Arc::clone(&self.store.settings),
+            ))
+        }
+    }
+}
+
+impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>
+where
+    C: AsClient,
+{
+    type Error = StoreError;
+    type Transaction = PostgresStore<tokio_postgres::Transaction<'t>>;
+
+    fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
+        self.options.isolation_level = Some(isolation_level);
+        self
+    }
+
+    fn read_only(mut self) -> Self {
+        self.options.read_only = true;
+        self
+    }
+
+    fn deferrable(mut self) -> Self {
+        self.options.deferrable = true;
+        self
+    }
+}
+
+impl<C> Context for PostgresStore<C>
+where
+    C: AsClient,
+{
+    type Error = StoreError;
+    type TransactionBuilder<'t>
+        = PostgresStoreTransactionBuilder<'t, C>
+    where
+        Self: 't;
+
+    fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
+        // Delegates to the inherent method, which takes precedence in method resolution.
+        self.transaction()
+    }
+}
+
+impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
+    type Error = StoreError;
+
+    async fn commit(self) -> Result<(), Report<StoreError>> {
+        self.client.commit().await.change_context(StoreError)
+    }
+
+    async fn rollback(self) -> Result<(), Report<StoreError>> {
+        self.client.rollback().await.change_context(StoreError)
     }
 }
 
@@ -3343,6 +3435,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     /// # Errors
     ///
     /// - if the underlying client cannot commit the transaction
+    #[expect(
+        clippy::same_name_method,
+        reason = "The `Transaction` implementation delegates to this method so call sites don't \
+                  need to import the trait"
+    )]
     pub async fn commit(self) -> Result<(), Report<StoreError>> {
         self.client.commit().await.change_context(StoreError)
     }
@@ -3350,6 +3447,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     /// # Errors
     ///
     /// - if the underlying client cannot rollback the transaction
+    #[expect(
+        clippy::same_name_method,
+        reason = "The `Transaction` implementation delegates to this method so call sites don't \
+                  need to import the trait"
+    )]
     pub async fn rollback(self) -> Result<(), Report<StoreError>> {
         self.client.rollback().await.change_context(StoreError)
     }

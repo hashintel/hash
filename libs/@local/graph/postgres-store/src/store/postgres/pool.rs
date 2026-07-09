@@ -4,6 +4,7 @@ use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
 use error_stack::{Report, ResultExt as _};
+use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use tokio_postgres::{
@@ -108,11 +109,34 @@ impl StorePool for PostgresStorePool {
     }
 }
 
+/// Options used to begin a database transaction.
+///
+/// The options are collected by a transaction builder and applied when the transaction is begun,
+/// see [`AsClient::begin_transaction`].
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub struct TransactionOptions {
+    pub isolation_level: Option<IsolationLevel>,
+    pub read_only: bool,
+    pub deferrable: bool,
+}
+
 pub trait AsClient: Send + Sync {
     type Client: GenericClient + Send + Sync;
 
     fn as_client(&self) -> &Self::Client;
     fn as_mut_client(&mut self) -> &mut Self::Client;
+
+    /// Begins a database transaction configured with `options`.
+    ///
+    /// For a [`Client`]-backed store the options are compiled into the single `BEGIN` statement
+    /// issued to the database, e.g. `START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ
+    /// ONLY`. When called on an already-running [`Transaction`], a savepoint is created instead;
+    /// savepoints run within the enclosing transaction and therefore inherit its characteristics,
+    /// so the options are ignored.
+    fn begin_transaction(
+        &mut self,
+        options: TransactionOptions,
+    ) -> impl Future<Output = Result<Transaction<'_>, tokio_postgres::Error>> + Send;
 }
 
 impl AsClient for Object {
@@ -124,6 +148,13 @@ impl AsClient for Object {
 
     fn as_mut_client(&mut self) -> &mut Self::Client {
         self
+    }
+
+    async fn begin_transaction(
+        &mut self,
+        options: TransactionOptions,
+    ) -> Result<Transaction<'_>, tokio_postgres::Error> {
+        self.as_mut_client().begin_transaction(options).await
     }
 }
 
@@ -137,6 +168,23 @@ impl AsClient for Client {
     fn as_mut_client(&mut self) -> &mut Self::Client {
         self
     }
+
+    async fn begin_transaction(
+        &mut self,
+        options: TransactionOptions,
+    ) -> Result<Transaction<'_>, tokio_postgres::Error> {
+        let mut builder = self.build_transaction();
+        if let Some(isolation_level) = options.isolation_level {
+            builder = builder.isolation_level(isolation_level.into());
+        }
+        if options.read_only {
+            builder = builder.read_only(true);
+        }
+        if options.deferrable {
+            builder = builder.deferrable(true);
+        }
+        builder.start().await
+    }
 }
 
 impl AsClient for Transaction<'_> {
@@ -148,6 +196,20 @@ impl AsClient for Transaction<'_> {
 
     fn as_mut_client(&mut self) -> &mut Self::Client {
         self
+    }
+
+    async fn begin_transaction(
+        &mut self,
+        options: TransactionOptions,
+    ) -> Result<Transaction<'_>, tokio_postgres::Error> {
+        if options != TransactionOptions::default() {
+            tracing::debug!(
+                ?options,
+                "transaction options are ignored: a savepoint inherits the characteristics of the \
+                 enclosing transaction"
+            );
+        }
+        self.transaction().await
     }
 }
 
@@ -163,5 +225,12 @@ where
 
     fn as_mut_client(&mut self) -> &mut Self::Client {
         self.client.as_mut_client()
+    }
+
+    async fn begin_transaction(
+        &mut self,
+        options: TransactionOptions,
+    ) -> Result<Transaction<'_>, tokio_postgres::Error> {
+        self.client.begin_transaction(options).await
     }
 }
