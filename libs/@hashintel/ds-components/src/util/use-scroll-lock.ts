@@ -1,28 +1,16 @@
 import { useLayoutEffect } from "react";
 
-const parseIntFromPixelWidth = (pixelWidth: string) =>
-  parseInt(pixelWidth.replace("px", ""), 10);
+import {
+  getConsumedScrollbarWidth,
+  getDocumentScrollbarSize,
+} from "./scrollbar-size";
 
-/**
- * @see https://github.com/mui/material-ui/blob/master/packages/mui-utils/src/getScrollbarSize.ts
- */
-const getScrollbarSizeOfDocument = () => {
-  const documentWidth = document.documentElement.clientWidth;
-  return Math.abs(window.innerWidth - documentWidth);
-};
-
-const getScrollbarSize = (element: HTMLElement) => {
+const getScrollbarSize = (element: HTMLElement): number => {
   if (element === document.body) {
-    return getScrollbarSizeOfDocument();
+    return getDocumentScrollbarSize();
   }
 
-  const computedStyles = getComputedStyle(element);
-
-  const horizontalBorderWidth =
-    parseIntFromPixelWidth(computedStyles.borderLeftWidth) +
-    parseIntFromPixelWidth(computedStyles.borderRightWidth);
-
-  return element.offsetWidth - element.clientWidth - horizontalBorderWidth;
+  return getConsumedScrollbarWidth(element);
 };
 
 /**
@@ -44,7 +32,7 @@ const getScrollbarSize = (element: HTMLElement) => {
 export const useScrollLock = (
   active: boolean,
   elementToLock: HTMLElement = document.body,
-) => {
+): void => {
   useLayoutEffect(() => {
     if (!active) {
       return;

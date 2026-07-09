@@ -1,7 +1,8 @@
 import { Backdrop, Box, Portal, Slide } from "@mui/material";
 import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
-import { useScrollLock } from "../../shared/use-scroll-lock";
+import { useScrollLock } from "@hashintel/ds-components";
+
 import { SlideStackContext } from "./slide-stack/context";
 import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
