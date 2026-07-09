@@ -23,7 +23,7 @@ import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-ico
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
-import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
+import type { DocumentCallback } from "react-pdf/dist/esm/shared/types.js";
 
 type PositionInPage = {
   rowIndex: number;

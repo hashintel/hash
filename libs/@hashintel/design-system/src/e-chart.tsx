@@ -15,16 +15,20 @@ import type {
 } from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
 import type { TooltipComponentOption } from "echarts/components";
-import type {
-  GraphEdgeItemOption,
-  GraphNodeItemOption,
-} from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
 
 export type Chart = echarts.ECharts;
 
-export type GraphNode = GraphNodeItemOption;
-export type GraphEdge = GraphEdgeItemOption;
+/**
+ * echarts does not export `GraphNodeItemOption` / `GraphEdgeItemOption` from its
+ * public API, and its `exports` map blocks reaching into `echarts/types/src/*`,
+ * so derive the node/edge item types from the public `GraphSeriesOption` instead.
+ */
+export type GraphNode = Extract<
+  NonNullable<GraphSeriesOption["nodes"]>[number],
+  { id?: string }
+>;
+export type GraphEdge = NonNullable<GraphSeriesOption["edges"]>[number];
 
 export type SeriesOption =
   | LineSeriesOption

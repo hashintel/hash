@@ -101,6 +101,10 @@ export const typescript = (config: readonly ESConfig[]): readonly ESConfig[] =>
         // While a good idea, there are just too many places where this isn't the case yet
         // TODO: consider introducing this rule in the future
         "@typescript-eslint/explicit-module-boundary-types": "off",
+        // Temporarily disabled: typescript-eslint 8.62 mis-reports assertions as
+        // unnecessary under TypeScript 6.0 (removing them breaks `tsc`).
+        // Re-enable once typescript-eslint >= 8.63 (official TS 6.0 support) is in.
+        "@typescript-eslint/no-unnecessary-type-assertion": "off",
         // Allow unused variables that start with an underscore (goes hand in hand with
         // the naming convention)
         "@typescript-eslint/no-unused-vars": [

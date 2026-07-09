@@ -34,7 +34,7 @@ import type {
   CustomTextRenderer,
   DocumentCallback,
   OnDocumentLoadSuccess,
-} from "react-pdf/dist/cjs/shared/types";
+} from "react-pdf/dist/esm/shared/types.js";
 
 /**
  * Highlights search hits within the text representing a row/line on the page.
