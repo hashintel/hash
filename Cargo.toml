@@ -407,10 +407,6 @@ shadow_reuse                     = "allow"
 shadow_same                      = "allow"
 unneeded_field_pattern           = "allow" # Actually, the opposite would be a great lint
 
-[workspace.metadata.cargo-shear]
-# We use the `futures` crate but the dependencies are required for public dependencies
-ignored = ["futures-core", "futures-io", "futures-sink"]
-
 [patch.crates-io]
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }

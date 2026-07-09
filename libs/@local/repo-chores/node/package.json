@@ -24,7 +24,7 @@
     "fs-extra": "11.3.2",
     "globby": "15.0.0",
     "ignore": "7.0.5",
-    "js-yaml": "4.1.1",
+    "js-yaml": "4.2.0",
     "regex-parser": "2.3.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",

@@ -18,9 +18,9 @@ text-size  = { workspace = true, public = true }
 
 # Private third-party dependencies
 annotate-snippets = { workspace = true, optional = true, features = ["simd"] }
-anstream          = { workspace = true }
+anstream          = { workspace = true, optional = true }
 anstyle-lossy     = { workspace = true, optional = true }
-anstyle-svg       = { workspace = true }
+anstyle-svg       = { workspace = true, optional = true }
 serde             = { workspace = true, optional = true, features = ["derive", "alloc"] }
 simple-mermaid    = { workspace = true }
 
@@ -30,7 +30,7 @@ serde_json = { workspace = true }
 
 [features]
 serde  = ["dep:serde_core", "dep:serde", "dep:anstyle-lossy"]
-render = ["dep:annotate-snippets"]
+render = ["dep:annotate-snippets", "dep:anstream", "dep:anstyle-svg"]
 
 [lints]
 workspace = true

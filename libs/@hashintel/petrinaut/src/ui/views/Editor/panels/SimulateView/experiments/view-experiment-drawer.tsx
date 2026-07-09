@@ -1,27 +1,17 @@
 import { use, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Drawer, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
 import {
   ExperimentMetricTimeline,
   type MetricSize,
 } from "./experiment-metric-timeline";
-
-const bodyStyle = css({
-  overflowY: "auto",
-});
-
-const drawerStyle = css({
-  width: "[min(1080px, calc(90vw - 20px))]",
-  maxWidth: "[calc(90vw - 20px)]",
-});
 
 const summaryGridStyle = css({
   display: "grid",
@@ -91,10 +81,6 @@ const metricItemStyle = css({
 
 const metricItemLargeStyle = css({
   gridColumn: "[1 / -1]",
-});
-
-const footerSpacerStyle = css({
-  flex: "1",
 });
 
 type MetricFrame = ExperimentRecord["metricFrames"][number];
@@ -247,65 +233,68 @@ export const ViewExperimentDrawer = ({
 }) => {
   const { cancelExperiment, removeExperiment } = use(ExperimentsContext);
 
-  if (!experiment) {
-    return (
-      <Drawer.Root open={open} onClose={onClose}>
-        {null}
-      </Drawer.Root>
-    );
+  if (!open || !experiment) {
+    return null;
   }
 
   const canCancel =
     experiment.status === "initializing" || experiment.status === "running";
 
   return (
-    <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>
-      <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Monte Carlo experiment metrics">
-          {experiment.name}
-        </Drawer.Header>
-        <Drawer.Body className={bodyStyle}>
-          <SectionList>
-            <Section title="Summary" collapsible defaultOpen>
-              <ExperimentSummary experiment={experiment} />
+    <Drawer
+      size="xl"
+      showBackdrop={false}
+      onClose={onClose}
+      swapKey="experiment"
+    >
+      <Drawer.Header
+        title={experiment.name}
+        description="Monte Carlo experiment metrics"
+      />
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+        <SectionList>
+          <Section title="Summary" collapsible defaultOpen>
+            <ExperimentSummary experiment={experiment} />
+          </Section>
+          {experiment.metricFrames.length > 0 ? (
+            <Section title="Metrics" collapsible defaultOpen>
+              <ExperimentMetrics experiment={experiment} />
             </Section>
-            {experiment.metricFrames.length > 0 ? (
-              <Section title="Metrics" collapsible defaultOpen>
-                <ExperimentMetrics experiment={experiment} />
-              </Section>
+          ) : null}
+        </SectionList>
+      </Drawer.Body>
+      <Drawer.Footer
+        actions={
+          <>
+            <Button
+              variant="subtle"
+              tone="neutral"
+              size="sm"
+              prefix={<Icon name="trash" size="sm" />}
+              onClick={() => {
+                removeExperiment(experiment.id);
+                onClose();
+              }}
+            >
+              Remove
+            </Button>
+            {canCancel ? (
+              <Button
+                variant="subtle"
+                tone="neutral"
+                size="sm"
+                prefix={<Icon name="stop" size="sm" />}
+                onClick={() => cancelExperiment(experiment.id)}
+              >
+                Cancel
+              </Button>
             ) : null}
-          </SectionList>
-        </Drawer.Body>
-      </Drawer.Card>
-      <Drawer.Footer>
-        <div className={footerSpacerStyle} />
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="trash" size="sm" />}
-          onClick={() => {
-            removeExperiment(experiment.id);
-            onClose();
-          }}
-        >
-          Remove
-        </Button>
-        {canCancel ? (
-          <Button
-            variant="subtle"
-            tone="neutral"
-            size="sm"
-            prefix={<Icon name="stop" size="sm" />}
-            onClick={() => cancelExperiment(experiment.id)}
-          >
-            Cancel
-          </Button>
-        ) : null}
-        <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      </Drawer.Footer>
-    </Drawer.Root>
+            <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          </>
+        }
+      />
+    </Drawer>
   );
 };
