@@ -40,7 +40,7 @@ const STARTUP_RETRY_INTERVAL: Duration = Duration::from_secs(2);
 
 /// Server-side execution timeout for the test workflow, so failed test runs
 /// cannot leave workflow executions running forever on a local dev server.
-const WORKFLOW_EXECUTION_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const WORKFLOW_EXECUTION_TIMEOUT: Duration = Duration::from_mins(5);
 
 fn server_url() -> Url {
     let host = std::env::var("HASH_TEMPORAL_SERVER_HOST")
