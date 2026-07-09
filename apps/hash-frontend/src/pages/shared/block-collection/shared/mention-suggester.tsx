@@ -398,7 +398,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         ).map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
           ({
             linkEntity: linkEntityRevisions,
-            rightEntity: rightEntityRevisions,
+            rightEntity: rightEntityRevisions = [],
           }) => {
             const [linkEntity] = linkEntityRevisions;
             const [rightEntity] = rightEntityRevisions;

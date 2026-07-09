@@ -139,7 +139,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           ),
       );
 
-      const targetEntity = outgoingLinkAndTargetEntities?.rightEntity[0];
+      const targetEntity = outgoingLinkAndTargetEntities?.rightEntity?.[0];
 
       const targetEntityLabel = targetEntity
         ? generateEntityLabel(entitySubgraph, targetEntity)

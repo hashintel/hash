@@ -429,13 +429,13 @@ export const ClaimsTable = memo(
               systemLinkEntityTypes.hasObject.linkEntityTypeId,
             )
           ) {
-            objectEntityId = rightEntity[0]?.entityId;
+            objectEntityId = rightEntity?.[0]?.entityId;
           } else if (
             linkEntity[0]?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasSubject.linkEntityTypeId,
             )
           ) {
-            subjectEntityId = rightEntity[0]?.entityId;
+            subjectEntityId = rightEntity?.[0]?.entityId;
           }
         }
 

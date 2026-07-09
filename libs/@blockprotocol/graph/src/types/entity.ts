@@ -36,7 +36,12 @@ export type LinkEntityAndRightEntity<
   LinkEntityImpl extends LinkEntity = LinkEntity,
 > = {
   linkEntity: LinkEntityImpl[];
-  rightEntity: EntityImpl[];
+  /**
+   * The revisions of the link's target entity, or `undefined` if the link's
+   * `has-right-entity` edge was not resolved into the subgraph (e.g. because
+   * of resolve depths, or because the subgraph is only partially consistent).
+   */
+  rightEntity?: EntityImpl[];
 };
 
 export type LinkEntityAndLeftEntity<
@@ -44,7 +49,12 @@ export type LinkEntityAndLeftEntity<
   LinkEntityImpl extends LinkEntity = LinkEntity,
 > = {
   linkEntity: LinkEntityImpl[];
-  leftEntity: EntityImpl[];
+  /**
+   * The revisions of the link's source entity, or `undefined` if the link's
+   * `has-left-entity` edge was not resolved into the subgraph (e.g. because
+   * of resolve depths, or because the subgraph is only partially consistent).
+   */
+  leftEntity?: EntityImpl[];
 };
 
 export type CreateEntityData = {

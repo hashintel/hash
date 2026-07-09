@@ -48,7 +48,13 @@ const getServiceFeatureForUsage = ({
   }
 
   const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-    .rightEntity[0]! as HashEntity<ServiceFeature>;
+    .rightEntity?.[0] as HashEntity<ServiceFeature> | undefined;
+
+  if (!serviceFeatureEntity) {
+    throw new Error(
+      `Service feature entity missing from subgraph for service usage record ${usageRecord.metadata.recordId.entityId}.`,
+    );
+  }
 
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,

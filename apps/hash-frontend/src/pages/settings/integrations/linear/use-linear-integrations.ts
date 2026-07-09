@@ -120,12 +120,14 @@ export const useLinearIntegrations = (): {
               !linkEntity.metadata.archived &&
               linkEntity.metadata.entityTypeIds.includes(
                 systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-              )
+              ) &&
+              // the target web may be missing from the subgraph – skip the link
+              !!linkAndTarget.rightEntity?.[0]
             );
           })
           .map((linkAndTarget) => {
             const linkEntity = linkAndTarget.linkEntity[0]!;
-            const rightEntity = linkAndTarget.rightEntity[0]!;
+            const rightEntity = linkAndTarget.rightEntity![0]!;
 
             const { linearTeamId: linearTeamIds } = simplifyProperties(
               linkEntity.properties as SyncLinearDataWithProperties,

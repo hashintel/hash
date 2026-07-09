@@ -221,25 +221,25 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInText.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (
               !occurredInEntity ||
@@ -260,7 +260,7 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (occurredInComment) {
               return {
@@ -297,25 +297,25 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (
               !occurredInEntity ||
@@ -336,7 +336,7 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (repliedToComment) {
               return {

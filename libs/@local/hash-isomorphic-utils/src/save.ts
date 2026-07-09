@@ -463,7 +463,7 @@ const mapEntityToGqlBlock = (
       linkEntityRevisions[0].metadata.entityTypeIds.includes(
         systemLinkEntityTypes.hasData.linkEntityTypeId,
       ),
-  )?.rightEntity[0];
+  )?.rightEntity?.[0];
 
   if (!blockChildEntity) {
     throw new Error(

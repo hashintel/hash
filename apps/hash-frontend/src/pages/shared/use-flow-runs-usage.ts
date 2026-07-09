@@ -131,7 +131,7 @@ export const useFlowRunsUsage = ({
           );
         }
 
-        const incurredInEntity = incurredInLinkAndEntities[0]!.rightEntity[0];
+        const incurredInEntity = incurredInLinkAndEntities[0]!.rightEntity?.[0];
 
         if (!incurredInEntity) {
           return false;

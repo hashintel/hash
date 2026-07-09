@@ -82,7 +82,7 @@ export const getPendingOrgInvitationsFromSubgraph = async (
       );
     }
 
-    const orgEntity = linkAndOrgEntities[0]?.leftEntity[0];
+    const orgEntity = linkAndOrgEntities[0]?.leftEntity?.[0];
 
     if (!orgEntity) {
       throw new Error(

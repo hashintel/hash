@@ -171,7 +171,7 @@ export const getBlockCollectionContents = (params: {
           linkEntityRevisions[0].metadata.entityTypeIds.includes(
             systemLinkEntityTypes.hasData.linkEntityTypeId,
           ),
-      )?.rightEntity[0];
+      )?.rightEntity?.[0];
 
       if (!blockChildEntity) {
         throw new Error("Error fetching block data");

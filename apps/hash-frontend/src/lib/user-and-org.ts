@@ -194,7 +194,11 @@ export const constructOrg = (params: {
       continue;
     }
 
-    const rightEntityRevision = rightEntity[0];
+    /**
+     * The right entity may be missing from the subgraph (e.g. if it was not
+     * resolved when the subgraph was produced) – skip the link in that case.
+     */
+    const rightEntityRevision = rightEntity?.[0];
 
     if (!rightEntityRevision) {
       continue;
@@ -269,12 +273,15 @@ export const constructOrg = (params: {
       continue;
     }
 
-    const userEntityRevision = leftEntity[0];
+    /**
+     * The left entity may be missing from the subgraph (e.g. if it was not
+     * resolved when the subgraph was produced) – skip the membership in that
+     * case rather than crashing.
+     */
+    const userEntityRevision = leftEntity?.[0];
 
     if (!userEntityRevision) {
-      throw new Error(
-        `Failed to find the current user entity associated with the membership with entity ID: ${linkEntityRevision.metadata.recordId.entityId}`,
-      );
+      continue;
     }
 
     if (!isEntityUserEntity(userEntityRevision)) {
@@ -457,7 +464,7 @@ export const constructUser = (params: {
 
   for (const linkAndEntity of outgoingLinkAndTargetEntities) {
     const linkEntity = linkAndEntity.linkEntity[0];
-    const rightEntity = linkAndEntity.rightEntity[0];
+    const rightEntity = linkAndEntity.rightEntity?.[0];
 
     if (!linkEntity || !rightEntity) {
       continue;
@@ -491,7 +498,7 @@ export const constructUser = (params: {
         systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
       )
     ) {
-      const serviceAccountEntity = linkAndEntity.rightEntity[0]!;
+      const serviceAccountEntity = rightEntity;
 
       const { profileUrl } = simplifyProperties(
         serviceAccountEntity.properties as ServiceAccount["properties"],
@@ -510,12 +517,17 @@ export const constructUser = (params: {
     }
   }
 
+  /**
+   * Non-null assertions are safe below: entries are only pushed to these
+   * arrays after checking that both `linkEntity[0]` and `rightEntity[0]`
+   * are present.
+   */
   const hasAvatar = avatarLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
         imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ImageFile>,
+          .rightEntity![0]! as Entity<ImageFile>,
       }
     : undefined;
 
@@ -524,7 +536,7 @@ export const constructUser = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
         imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ImageFile>,
+          .rightEntity![0]! as Entity<ImageFile>,
       }
     : undefined;
 
@@ -534,7 +546,7 @@ export const constructUser = (params: {
         linkEntity: hasBioLinkAndEntities[0]
           .linkEntity[0]! as LinkEntity<HasBio>,
         profileBioEntity: hasBioLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ProfileBio>,
+          .rightEntity![0]! as Entity<ProfileBio>,
       }
     : undefined;
 

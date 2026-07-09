@@ -81,12 +81,15 @@ export const BlockSelectDataModal: FunctionComponent<
       blockSubgraph,
       blockDataEntity.metadata.recordId.entityId,
     )
-      .filter(({ linkEntity: linkEntityRevisions }) =>
-        linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
-          blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-        ),
+      .filter(
+        ({ linkEntity: linkEntityRevisions, rightEntity }) =>
+          linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
+            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+          ) &&
+          // the target entity may be missing from the subgraph – skip the link
+          !!rightEntity?.[0],
       )
-      .map(({ rightEntity }) => rightEntity[0] as HashEntity<Query>);
+      .map(({ rightEntity }) => rightEntity![0] as HashEntity<Query>);
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);

@@ -140,7 +140,7 @@ export const IncomingLinksSection = ({
         !draftLinksToArchive.includes(
           incomingLinkAndSource.linkEntity[0].entityId,
         ) &&
-        incomingLinkAndSource.leftEntity[0] &&
+        incomingLinkAndSource.leftEntity?.[0] &&
         !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
           systemEntityTypes.claim.entityTypeId,
         )

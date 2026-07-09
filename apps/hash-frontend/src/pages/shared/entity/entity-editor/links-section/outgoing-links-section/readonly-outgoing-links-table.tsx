@@ -341,9 +341,14 @@ export const OutgoingLinksTable = memo(
           linkEntityTypeIds.add(linkType.$id);
         }
 
-        const rightEntity = rightEntityRevisions[0];
+        const rightEntity = rightEntityRevisions?.[0];
         if (!rightEntity) {
-          throw new Error("Expected at least one right entity revision");
+          /**
+           * The target entity may be missing from the subgraph (e.g. if it
+           * was not resolved when the subgraph was produced) – skip the link
+           * rather than crashing.
+           */
+          continue;
         }
 
         const rightEntityClosedMultiType = getClosedMultiEntityTypeFromMap(

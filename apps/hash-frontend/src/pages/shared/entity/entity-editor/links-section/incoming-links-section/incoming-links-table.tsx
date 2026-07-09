@@ -362,9 +362,14 @@ export const IncomingLinksTable = memo(
           linkEntityTypeIds.add(linkType.$id);
         }
 
-        const leftEntity = leftEntityRevisions[0];
+        const leftEntity = leftEntityRevisions?.[0];
         if (!leftEntity) {
-          throw new Error("Expected at least one left entity revision");
+          /**
+           * The source entity may be missing from the subgraph (e.g. if it
+           * was not resolved when the subgraph was produced) – skip the link
+           * rather than crashing.
+           */
+          continue;
         }
 
         const leftEntityClosedMultiType = getClosedMultiEntityTypeFromMap(

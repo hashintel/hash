@@ -71,12 +71,17 @@ export const useAccountPages = (
       );
 
       const parentLink = pageOutgoingLinks.find(({ linkEntity }) =>
-        linkEntity[0]!.metadata.entityTypeIds.includes(
+        linkEntity[0]?.metadata.entityTypeIds.includes(
           systemLinkEntityTypes.hasParent.linkEntityTypeId,
         ),
       );
 
-      const parentPage = parentLink?.rightEntity[0] ?? null;
+      /**
+       * The right entity may be missing from the subgraph (e.g. if it was
+       * not resolved when the subgraph was produced) – treat the page as
+       * having no parent in that case.
+       */
+      const parentPage = parentLink?.rightEntity?.[0] ?? null;
 
       return {
         ...simplifyProperties(latestPage.properties as PageProperties),

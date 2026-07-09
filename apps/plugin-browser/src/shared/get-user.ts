@@ -44,7 +44,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
     ),
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as
+  return avatarLinkAndEntities[0]?.rightEntity?.[0] as
     | Entity<ImageFile>
     | undefined;
 };
@@ -88,10 +88,13 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-        ),
+      ).filter(
+        ({ linkEntity, rightEntity }) =>
+          linkEntity[0]?.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+          ) &&
+          // the org entity may be missing from the subgraph – skip the link
+          !!rightEntity?.[0],
       );
 
       const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
@@ -102,10 +105,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           linkEntity[0]?.metadata.entityTypeIds.includes(
             systemLinkEntityTypes.has.linkEntityTypeId,
           ) &&
-          rightEntity[0]?.metadata.entityTypeIds.includes(
+          rightEntity?.[0]?.metadata.entityTypeIds.includes(
             systemEntityTypes.browserPluginSettings.entityTypeId,
           ),
-      )[0]?.rightEntity[0];
+      )[0]?.rightEntity?.[0];
 
       let settingsEntityId: EntityId;
 
@@ -224,7 +227,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       }
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
-        const org = rightEntity[0]!;
+        const org = rightEntity![0]!;
         const orgAvatar = getAvatarForEntity(
           subgraph,
           org.metadata.recordId.entityId,
