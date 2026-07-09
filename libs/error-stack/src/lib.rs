@@ -494,6 +494,18 @@
 
 extern crate alloc;
 
+// The user-facing `tracing` and `futures` features pull in `tracing` respectively
+// `futures-core`/`pin-project-lite`, but their only consumers (`sink` and `ext::stream`) are
+// additionally gated on `unstable`. Anchor the dependencies for the combinations where they are
+// enabled without `unstable`, so `cargo::unused_dependencies` (checked across the merge-queue
+// feature powerset) stays quiet.
+#[cfg(all(feature = "futures", not(feature = "unstable")))]
+use futures_core as _;
+#[cfg(all(feature = "futures", not(feature = "unstable")))]
+use pin_project_lite as _;
+#[cfg(all(feature = "tracing", not(feature = "unstable")))]
+use tracing as _;
+
 pub mod future;
 pub mod iter;
 

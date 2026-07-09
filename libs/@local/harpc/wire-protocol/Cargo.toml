@@ -34,7 +34,7 @@ test-strategy   = { workspace = true }
 
 [features]
 test-utils = []
-serde      = ["dep:serde", "enumflags2/serde", "bytes/serde", "harpc-types/serde"]
+serde      = ["dep:serde_core", "dep:serde", "enumflags2/serde", "bytes/serde", "harpc-types/serde"]
 cli        = ["dep:serde_json", "dep:base64", "serde"]
 
 

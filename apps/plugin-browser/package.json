@@ -34,7 +34,7 @@
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@mui/material": "5.18.0",
-    "@sentry/browser": "10.54.0",
+    "@sentry/browser": "10.64.0",
     "bowser": "2.12.1",
     "date-fns": "4.1.0",
     "fractional-indexing": "3.2.0",

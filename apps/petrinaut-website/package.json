@@ -21,7 +21,7 @@
     "@hashintel/petrinaut-core": "workspace:*",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.11.1",
-    "@sentry/react": "10.54.0",
+    "@sentry/react": "10.64.0",
     "ai": "6.0.182",
     "immer": "10.1.3",
     "react": "19.2.6",
