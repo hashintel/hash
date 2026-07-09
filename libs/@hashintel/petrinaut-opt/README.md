@@ -18,11 +18,11 @@ on [there](../petrinaut-cli/README.md) first.
 
 ## Components
 
-| File | Role |
-|------|------|
-| [petrinaut_client.py](src/petrinaut_client.py) | `PetrinautModel` — connects to the Petrinaut CLI socket, builds each `run` request, and returns the metric. `PetrinautModelSpec` configures the execution. |
+| File                                                 | Role                                                                                                                                                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [petrinaut_client.py](src/petrinaut_client.py)       | `PetrinautModel` — connects to the Petrinaut CLI socket, builds each `run` request, and returns the metric. `PetrinautModelSpec` configures the execution.                                                                             |
 | [petrinaut_optimizer.py](src/petrinaut_optimizer.py) | `PetrinautOptimizer` — drives the Optuna study: proposes inputs, runs the model, and streams evaluations (`stream_all` / `stream_best`) as Server-Sent Events. `OptimizationSpec` configures a run; `BOUNDS` defines the search space. |
-| [optimization_api.py](src/optimization_api.py) | FastAPI service exposing `/init`, the two streaming endpoints, `/status`, and `/`. |
+| [optimization_api.py](src/optimization_api.py)       | FastAPI service exposing `/init`, the two streaming endpoints, `/status`, and `/`.                                                                                                                                                     |
 
 ## Setup
 
@@ -167,4 +167,4 @@ configures the execution sent to the CLI:
   `/init` sessions can exist and run at once.
 - **Leave one input free per group**: each group (`parameters`, `initial_states`)
   should leave at least one input unfixed so there is something to optimize.
-</content>
+  </content>
