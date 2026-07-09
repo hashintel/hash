@@ -342,6 +342,7 @@ pub(crate) async fn create_person(
                 draft,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -375,6 +376,7 @@ pub(crate) async fn create_link(
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await

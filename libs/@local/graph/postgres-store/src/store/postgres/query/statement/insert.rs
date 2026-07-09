@@ -1,179 +1,175 @@
 use core::{fmt, fmt::Formatter};
+use std::collections::HashSet;
 
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    Alias, Column, Expression, Function, SelectExpression, SelectStatement, Table, Transpile,
-    expression::{FromItem, PostgresType},
-    rows::PostgresRow,
+    PostgresType, TableName, Transpile, expression::ColumnName, rows::PostgresRow,
+    table::DatabaseColumn as _,
 };
 
-#[derive(Debug, PartialEq)]
-pub enum InsertValueItem {
-    Default,
-    Values(Vec<Expression>),
-    Query(Box<SelectStatement>),
+/// Conflict handling for a bulk insert.
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub enum OnConflict {
+    /// Fail the statement when a row conflicts with an existing one.
+    #[default]
+    Error,
+    /// Skip conflicting rows.
+    DoNothing,
 }
 
-impl Transpile for InsertValueItem {
+/// A bulk `INSERT` reading its rows from `unnest`ed parallel array parameters, transpiling
+/// to `INSERT INTO … SELECT * FROM UNNEST(…)`.
+///
+/// Only built by [`bulk_insert`] — the row type supplies the table and columns.
+/// See `PostgresRow` for why parallel arrays are used instead of the table's composite
+/// row type.
+#[derive(Debug)]
+struct BulkInsertStatement {
+    table: TableName<'static>,
+    columns: Vec<ColumnName<'static>>,
+    casts: Vec<PostgresType>,
+    distinct: bool,
+    on_conflict: OnConflict,
+}
+
+/// Compiles a bulk `INSERT` statement for `rows` along with its parameters.
+///
+/// Column names, `unnest` casts, and parameters are all derived from the same
+/// column-parameter pairs, so they cannot fall out of order.
+#[bon::builder(finish_fn = compile)]
+pub fn bulk_insert<'rows, R: PostgresRow>(
+    /// Rows to transpose into the statement's parallel array parameters.
+    rows: &'rows [R],
+    /// Target of the outer `INSERT INTO`, replacing the rows' own table.
+    table_name: Option<TableName<'static>>,
+    /// Deduplicate the unnested rows in the inner subquery with `SELECT DISTINCT`.
+    #[builder(default)]
+    distinct: bool,
+    /// How the outer `INSERT` handles rows conflicting with existing ones.
+    #[builder(default)]
+    on_conflict: OnConflict,
+) -> (String, Vec<Box<dyn ToSql + Send + Sync + 'rows>>) {
+    let ((columns, casts), parameters): ((Vec<_>, Vec<_>), Vec<_>) = R::columnar_parameters(rows)
+        .into_iter()
+        .map(|(column, parameters)| {
+            let name = column.name();
+            debug_assert_eq!(
+                parameters.len(),
+                rows.len(),
+                "column `{}` must contain one element per row",
+                name.as_str()
+            );
+            ((name, column.postgres_type()), parameters.into_values())
+        })
+        .collect();
+
+    debug_assert!(
+        columns.iter().collect::<HashSet<_>>().len() == columns.len(),
+        "bulk-insert columns must be unique"
+    );
+    debug_assert!(
+        !casts
+            .iter()
+            .any(|cast| matches!(cast, PostgresType::Array(_))),
+        "array-typed columns cannot be bulk-inserted: `unnest` expands arrays across all \
+         dimensions, losing the row boundaries"
+    );
+
+    let statement = BulkInsertStatement {
+        table: table_name.unwrap_or_else(R::table),
+        columns,
+        casts,
+        distinct,
+        on_conflict,
+    };
+
+    (statement.transpile_to_string(), parameters)
+}
+
+impl Transpile for BulkInsertStatement {
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::Default => fmt.write_str(" DEFAULT VALUES"),
-            Self::Values(values) => {
-                fmt.write_str(" VALUES (\n    ")?;
-                for (idx, value) in values.iter().enumerate() {
-                    if idx > 0 {
-                        fmt.write_str(",\n    ")?;
-                    }
-                    value.transpile(fmt)?;
-                }
-                fmt.write_str("\n)")
-            }
-            Self::Query(query) => {
-                fmt.write_str("(\n    ")?;
-                query.transpile(fmt)?;
-                fmt.write_str("\n)")
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct InsertStatement {
-    pub table: Table,
-    pub alias: Option<Alias>,
-    pub columns: Vec<Column>,
-    pub values: InsertValueItem,
-}
-
-impl Transpile for InsertStatement {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str("INSERT INTO ")?;
         self.table.transpile(fmt)?;
-
-        if let Some(alias) = self.alias {
-            fmt.write_str(" AS ")?;
-            self.table.aliased(alias).transpile(fmt)?;
-        }
-
-        if !self.columns.is_empty() {
-            fmt.write_str(" (\n    ")?;
-            for (idx, column) in self.columns.iter().enumerate() {
-                if idx > 0 {
-                    fmt.write_str(",\n    ")?;
-                }
-                column.transpile(fmt)?;
+        fmt.write_str(" (")?;
+        for (index, column) in self.columns.iter().enumerate() {
+            if index > 0 {
+                fmt.write_str(", ")?;
             }
-            fmt.write_str("\n)")?;
+            column.transpile(fmt)?;
         }
-
-        self.values.transpile(fmt)
+        fmt.write_str(")\nSELECT ")?;
+        if self.distinct {
+            fmt.write_str("DISTINCT ")?;
+        }
+        fmt.write_str("*\nFROM UNNEST(")?;
+        for (index, cast) in self.casts.iter().enumerate() {
+            if index > 0 {
+                fmt.write_str(", ")?;
+            }
+            write!(fmt, "(${}::", index + 1)?;
+            cast.transpile(fmt)?;
+            fmt.write_str("[])")?;
+        }
+        fmt.write_str(")")?;
+        match self.on_conflict {
+            OnConflict::Error => {}
+            OnConflict::DoNothing => fmt.write_str("\nON CONFLICT DO NOTHING")?,
+        }
+        Ok(())
     }
 }
 
-pub struct InsertStatementBuilder<'p> {
-    pub statement: InsertStatement,
-    pub parameters: Vec<&'p (dyn ToSql + Sync)>,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::postgres::query::{
+        rows::{EntityEdgeRow, EntityIdRow, EntityTemporalMetadataRow},
+        test_helper::trim_whitespace,
+    };
 
-struct SliceWrapper<'a, T>(&'a [T]);
-
-impl<'p> InsertStatementBuilder<'p> {
-    #[must_use]
-    pub fn new(table: Table) -> Self {
-        Self {
-            statement: InsertStatement {
-                table,
-                alias: None,
-                columns: Vec::new(),
-                values: InsertValueItem::Values(Vec::new()),
-            },
-            parameters: Vec::new(),
-        }
+    #[test]
+    fn transpile_entity_id_rows() {
+        assert_eq!(
+            trim_whitespace(&bulk_insert::<EntityIdRow>().rows(&[]).compile().0),
+            r#"INSERT INTO "entity_ids" ("web_id", "entity_uuid", "provenance", "read_only") SELECT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[]))"#
+        );
     }
 
-    #[must_use]
-    pub fn compile(self) -> (String, Vec<&'p (dyn ToSql + Sync)>) {
-        (self.statement.transpile_to_string(), self.parameters)
+    #[test]
+    fn transpile_entity_edge_rows() {
+        assert_eq!(
+            trim_whitespace(&bulk_insert::<EntityEdgeRow>().rows(&[]).compile().0),
+            r#"INSERT INTO "entity_edge" ("source_web_id", "source_entity_uuid", "target_web_id", "target_entity_uuid", "confidence", "provenance", "kind", "direction") SELECT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::uuid[]), ($4::uuid[]), ($5::float8[]), ($6::jsonb[]), ($7::entity_edge_kind[]), ($8::edge_direction[]))"#
+        );
     }
 
-    #[must_use]
-    pub fn with_expression(mut self, column: impl Into<Column>, expression: Expression) -> Self {
-        self.add_expression(column, expression);
-        self
+    #[test]
+    fn transpile_entity_temporal_metadata_rows() {
+        assert_eq!(
+            trim_whitespace(
+                &bulk_insert::<EntityTemporalMetadataRow>()
+                    .rows(&[])
+                    .compile()
+                    .0
+            ),
+            r#"INSERT INTO "entity_temporal_metadata" ("web_id", "entity_uuid", "draft_id", "entity_edition_id", "decision_time", "transaction_time") SELECT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::uuid[]), ($4::uuid[]), ($5::tstzrange[]), ($6::tstzrange[]))"#
+        );
     }
 
-    pub fn add_expression(
-        &mut self,
-        column: impl Into<Column>,
-        expression: Expression,
-    ) -> &mut Self {
-        self.statement.columns.push(column.into());
-        // TODO: Use a builder which knows `values` at compile time
-        let InsertValueItem::Values(values) = &mut self.statement.values else {
-            unreachable!()
-        };
-        values.push(expression);
-        self
-    }
-
-    #[must_use]
-    pub fn with_value(mut self, column: impl Into<Column>, value: &'p (impl ToSql + Sync)) -> Self {
-        self.add_value(column, value);
-        self
-    }
-
-    pub fn add_value(
-        &mut self,
-        column: impl Into<Column>,
-        value: &'p (impl ToSql + Sync),
-    ) -> &mut Self {
-        self.parameters.push(value);
-        self.add_expression(column, Expression::Parameter(self.parameters.len()))
-    }
-
-    #[must_use]
-    pub fn with_row(mut self, row: &'p (impl PostgresRow + Sync)) -> Self {
-        self.add_row(row);
-        self
-    }
-
-    pub fn add_row(&mut self, value: &'p (impl ToSql + Sync)) -> &mut Self {
-        self.parameters.push(value);
-        // TODO: Use a builder which knows `values` at compile time
-        let InsertValueItem::Values(values) = &mut self.statement.values else {
-            unreachable!()
-        };
-        values.push(Expression::RowExpansion(Box::new(Expression::Cast(
-            Box::new(Expression::Parameter(self.parameters.len())),
-            PostgresType::Row(self.statement.table),
-        ))));
-        self
-    }
-
-    #[must_use]
-    pub fn from_rows<R>(table: Table, rows: &'p Vec<R>) -> Self
-    where
-        R: ToSql + Sync,
-    {
-        Self {
-            statement: InsertStatement {
-                table,
-                alias: None,
-                columns: vec![],
-                values: InsertValueItem::Query(Box::new(
-                    SelectStatement::builder()
-                        .selects(vec![SelectExpression::Asterisk(None)])
-                        .from(FromItem::function(Function::Unnest(vec![
-                            Expression::Cast(
-                                Box::new(Expression::Parameter(1)),
-                                PostgresType::Array(Box::new(PostgresType::Row(table))),
-                            ),
-                        ])))
-                        .build(),
-                )),
-            },
-            parameters: vec![rows],
-        }
+    #[test]
+    fn transpile_snapshot_options() {
+        assert_eq!(
+            trim_whitespace(
+                &bulk_insert::<EntityIdRow>()
+                    .rows(&[])
+                    .table_name(TableName::from("entity_ids_tmp"))
+                    .distinct(true)
+                    .on_conflict(OnConflict::DoNothing)
+                    .compile()
+                    .0
+            ),
+            r#"INSERT INTO "entity_ids_tmp" ("web_id", "entity_uuid", "provenance", "read_only") SELECT DISTINCT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[])) ON CONFLICT DO NOTHING"#
+        );
     }
 }

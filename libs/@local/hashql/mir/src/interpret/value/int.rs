@@ -362,7 +362,7 @@ const impl From<bool> for Int {
 macro_rules! impl_from_int {
     ($($ty:ty),*) => {
         $(
-            impl const From<$ty> for Int {
+            const impl From<$ty> for Int {
                 #[inline]
                 fn from(value: $ty) -> Self {
                     Self::from_i128(i128::from(value))

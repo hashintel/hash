@@ -175,6 +175,7 @@ enum LockGuardInner<'lock, T, L: LockType> {
 ///
 /// assert_eq!(lock.lock().len(), 4);
 /// ```
+#[clippy::has_significant_drop]
 pub struct LockGuard<'lock, T, L: LockType> {
     inner: LockGuardInner<'lock, T, L>,
 }

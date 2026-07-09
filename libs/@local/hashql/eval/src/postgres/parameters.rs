@@ -36,6 +36,7 @@ impl Display for ParameterIndex {
 }
 
 impl From<ParameterIndex> for Expression {
+    #[inline]
     fn from(value: ParameterIndex) -> Self {
         Self::Parameter(value.as_usize() + 1)
     }
@@ -56,10 +57,10 @@ impl From<ParameterKind> for PostgresType {
         match value {
             ParameterKind::Value => Self::JsonB,
             ParameterKind::String => Self::Text,
-            ParameterKind::Integer => Self::BigInt,
-            ParameterKind::Boolean => Self::Boolean,
+            ParameterKind::Integer => Self::Int8,
+            ParameterKind::Boolean => Self::Bool,
             ParameterKind::Number => Self::Numeric,
-            ParameterKind::TimestampInterval => Self::TimestampTzRange,
+            ParameterKind::TimestampInterval => Self::TstzRange,
         }
     }
 }

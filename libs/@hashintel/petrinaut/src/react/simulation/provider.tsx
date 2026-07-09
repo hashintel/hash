@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createSimulation,
@@ -25,6 +25,11 @@ import {
   type SimulationFrameReader,
   type SimulationState,
 } from "./context";
+import {
+  migrateInitialMarkingForTypeChanges,
+  snapshotTypeElements,
+  type TypeElementsSnapshot,
+} from "./provider/migrate-initial-marking";
 
 /**
  * Internal state for the simulation provider.
@@ -182,7 +187,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const coreStatus = useStore(simulation?.status ?? EMPTY_STATUS_STORE);
   const frameSummary = useStore(simulation?.frames ?? EMPTY_FRAMES_STORE);
 
-  // When the simulation changes, wire up its events stream for errors and
+  // When the simulation changes, subscribe to its events stream for errors and
   // completion notifications.
   useEffect(() => {
     if (!simulation) {
@@ -208,6 +213,27 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       simulationRef.current?.dispose();
     };
   }, [simulationRef]);
+
+  // Keep the session initialMarking aligned with colour type schemas: when a
+  // type element is renamed, re-typed, or removed, migrate the name-keyed
+  // token records held in state (re-key renames, coerce re-typed values,
+  // drop stale keys) so stored/displayed values don't silently misalign.
+  const previousTypeElementsRef = useRef<TypeElementsSnapshot | null>(null);
+  useEffect(() => {
+    const previousTypeElements = previousTypeElementsRef.current;
+    previousTypeElementsRef.current = snapshotTypeElements(petriNetDefinition);
+    if (!previousTypeElements) {
+      return;
+    }
+    const migrated = migrateInitialMarkingForTypeChanges({
+      initialMarking: stateValuesRef.current.initialMarking,
+      previousTypeElements,
+      sdcpn: petriNetDefinition,
+    });
+    if (migrated) {
+      setStateValues((prev) => ({ ...prev, initialMarking: migrated }));
+    }
+  }, [petriNetDefinition, stateValuesRef]);
 
   //
   // Actions

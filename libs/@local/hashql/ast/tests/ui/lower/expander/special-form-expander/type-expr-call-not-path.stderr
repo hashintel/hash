@@ -1,0 +1,37 @@
+error[expander::invalid-type-constructor-call]: Invalid type constructor call
+   ╭▸ 
+ 6 │ ┌   [
+ 7 │ │     ["+", { "#literal": 1 }, { "#literal": 2 }],
+   │ │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ cannot use this as a type constructor
+   ‡ │
+11 │ │     "Number"
+12 │ │   ]
+   │ └───┘ this call appears in a type position
+   │
+   ├ help: use a type path directly, or use `(| ...)` / `(& ...)` for unions and intersections
+   ╰ note: generic type arguments belong on the type path itself, for example `Foo<T>`, not `(Foo T)`
+
+error[expander::unresolved-variable]: Unresolved variable
+  ╭▸ 
+7 │     ["+", { "#literal": 1 }, { "#literal": 2 }],
+  │       ━ cannot find type `+` in this scope
+  │
+  ├ help: `+` exists as a value, not type
+  ╰ note: this could be a typo, a name used outside its scope, or a missing declaration; if it is a function or type from another module, you may need to import it first
+help: a similar imported name exists
+  ╭╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["String", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Union", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Unknown", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["Url", { "#literal": 1 }, { "#literal": 2 }],
+  ├╴
+7 -     ["+", { "#literal": 1 }, { "#literal": 2 }],
+7 +     ["|", { "#literal": 1 }, { "#literal": 2 }],
+  ╰╴

@@ -93,6 +93,7 @@ async fn empty_entity() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -127,6 +128,7 @@ async fn initial_person() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -271,6 +273,7 @@ async fn create_multi() {
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
                     sources: Vec::new(),
                 },
+                read_only: false,
             },
         )
         .await
@@ -416,6 +419,7 @@ async fn summary_aggregations() {
             origin: OriginProvenance::from_empty_type(OriginType::Api),
             sources: Vec::new(),
         },
+        read_only: false,
     };
 
     api.create_entity(

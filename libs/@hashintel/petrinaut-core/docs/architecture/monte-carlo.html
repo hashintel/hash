@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simulation Architecture — Monte Carlo (Experiments)</title>
+    <link rel="stylesheet" href="./architecture.css" />
+  </head>
+  <body>
+    <nav class="docs">
+      <a href="./index.html">Overview</a>
+      <a class="tag-engine" href="./engine.html">Engine</a>
+      <a class="tag-authoring" href="./authoring.html">Compilation</a>
+      <a class="tag-worker" href="./worker.html">Worker</a>
+      <a class="tag-mc current" href="./monte-carlo.html">Monte Carlo</a>
+    </nav>
+
+    <h1 style="color: var(--mc)">Monte Carlo (Experiments)</h1>
+    <p class="subtitle">
+      <code>monte-carlo/</code> — runs many independent simulations of the same
+      net with bounded memory, aggregates metrics <em>inside the worker</em>,
+      and ships only small JSON metric frames to the UI. Frame buffers never
+      cross the thread boundary.
+    </p>
+
+    <dl class="glance">
+      <dt>Core</dt>
+      <dd>
+        <code>createMonteCarloSimulator(config)</code> →
+        <code>MonteCarloSimulator</code> (synchronous, thread-agnostic)
+      </dd>
+      <dt>Worker</dt>
+      <dd>
+        <code>monte-carlo.worker.ts</code> + <code>worker/messages.ts</code>
+      </dd>
+      <dt>Host handle</dt>
+      <dd>
+        <code>createMonteCarloExperiment()</code> → stores:
+        <code>status · progress · metrics</code> + events;
+        <code>start/cancel/dispose</code>
+      </dd>
+      <dt>Inputs</dt>
+      <dd>
+        SDCPN, marking, parameters, seed, dt,
+        <strong>maxTime (required)</strong>, runCount, metric specs
+      </dd>
+      <dt>Outputs</dt>
+      <dd>
+        <code>MonteCarloWorkerProgress</code> (run counters) +
+        <code>MonteCarloUserDefinedMetricFrame[]</code>
+      </dd>
+    </dl>
+
+    <h2>Layers</h2>
+
+    <div class="pipeline">
+      <div class="step box b-ui">
+        <strong>Host application</strong>
+        <small
+          >One experiment record per run of
+          <code>createMonteCarloExperiment()</code>; subscribes to the handle’s
+          status/progress/metrics stores and renders the metric frames.</small
+        >
+      </div>
+      <div class="step box b-mc" data-arrow="createMonteCarloExperiment()">
+        <strong>Experiment handle (main)</strong>
+        <small
+          ><code>runtime/experiment.ts</code> — worker mode
+          (<code>createWorker</code>/<code>transport</code>) or
+          <em>local mode</em> (runs the simulator on the calling thread, used by
+          tests/embedding).</small
+        >
+      </div>
+      <div class="step box b-worker" data-arrow="postMessage init/start">
+        <strong>monte-carlo.worker</strong>
+        <small
+          >Builds the simulator + compiles metric specs, then loops:
+          <code>advanceAll()</code> × batchSize (default 4), post
+          <code>progress</code> + pending <code>metricFrames</code>, yield,
+          repeat. <code>cancel</code> is honoured between batches.</small
+        >
+      </div>
+      <div class="step box b-mc">
+        <strong>MonteCarloSimulator</strong>
+        <small
+          >Owns N × <code>MonteCarloRun</code>; deterministic round-robin
+          <code>advanceAll()</code> advances every active run one frame per
+          call, so long runs don’t starve short ones.</small
+        >
+      </div>
+      <div class="step box b-engine">
+        <strong>Engine functions, reused</strong>
+        <small
+          >Same enablement/lambda/kernel/dynamics code as quick sim (<code
+            >transition-effect.ts</code
+          >
+          adapts them to the MC buffers).</small
+        >
+      </div>
+    </div>
+
+    <h2>Run model</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Per run</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>seed</code>, <code>parameterValues</code>,
+            <code>initialMarking</code>
+          </td>
+          <td>
+            Defaults derived from the experiment config; overridable per run
+            (<code>runs[]</code>), e.g. seed = base seed + index.
+          </td>
+        </tr>
+        <tr>
+          <td><code>status</code></td>
+          <td>
+            <code>ready → running → complete | error</code> — errors are per
+            run, other runs continue.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>frameNumber · currentTime · rngState · completionReason</code>
+          </td>
+          <td>
+            Progress; a run completes on its own deadlock or the shared
+            <code>maxTime</code>.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>tokenByteCount · tokenByteCapacity · reallocations</code>
+          </td>
+          <td>
+            Buffer telemetry, exposed in <code>MonteCarloRunSummary</code>.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Memory — two buffers per run, swapped every step</h2>
+
+    <div class="lanes two">
+      <div class="lane">
+        <h4>step k</h4>
+        <div class="box b-memory">
+          <strong>currentFrame (read)</strong> <small>state at frame k</small>
+        </div>
+        <div class="box b-memory">
+          <strong>nextFrame (write)</strong>
+          <small>dynamics + transitions write frame k+1 here</small>
+        </div>
+      </div>
+      <div class="lane">
+        <h4>after the step</h4>
+        <div class="box b-memory">
+          <strong>swap pointers</strong>
+          <small
+            ><code>current ⇄ next</code> — no allocation, no history. If the
+            next token count doesn’t fit, the target buffer alone reallocates:
+            <code>nextCapacityBytes = max(requiredBytes, capacity × 2, 64)</code
+            >.</small
+          >
+        </div>
+        <div class="box b-mc">
+          <strong>metrics observe frame k+1</strong>
+          <small
+            >then the data may be overwritten — readers are only valid during
+            <code>observeFrame</code>.</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <p>
+      The buffer layout (<code>frame-buffer.ts</code>) is a leaner sibling of
+      the quick-sim <code>EngineFrame</code>: same sections,
+      <strong>no 64-byte header</strong>, one extra
+      <code>transitionElapsedFrames</code> section, and a token region with
+      spare <em>capacity</em>:
+    </p>
+
+    <div class="bytes">
+      <div class="seg s-u32" style="flex: 1 1 12%">
+        place counts<em>u32 × P</em>
+      </div>
+      <div class="seg s-u32" style="flex: 1 1 12%">
+        place offsets<em>u32 × P</em>
+      </div>
+      <div class="seg s-f64" style="flex: 1 1 13%">
+        transition elapsed<em>f64 × T</em>
+      </div>
+      <div class="seg s-f64" style="flex: 1 1 13%">
+        elapsed frames<em>f64 × T</em>
+      </div>
+      <div class="seg s-u32" style="flex: 1 1 12%">
+        firing counts<em>u32 × T</em>
+      </div>
+      <div class="seg s-u8" style="flex: 1 1 9%">
+        fired flags<em>u8 × T</em>
+      </div>
+      <div class="seg s-tokens" style="flex: 2 1 22%">
+        token structs<em>bytes, used ≤ capacity</em>
+      </div>
+      <div class="seg s-header" style="flex: 0 0 7%">
+        spare<em>capacity</em>
+      </div>
+    </div>
+    <p class="bytes-caption">
+      All views
+      (<code>Uint32Array</code>/<code>Float64Array</code>/<code>Uint8Array</code>)
+      are created once per buffer over a single <code>ArrayBuffer</code>; IDs
+      resolve to dense indices through the shared <code>EngineFrameLayout</code>
+      (<code>layout.ts</code>).
+    </p>
+
+    <h2>Metrics pipeline — computed where the data is</h2>
+
+    <div class="hflow">
+      <div class="box b-mc">
+        <strong>Specs</strong>
+        <small
+          ><code>MonteCarloMetricSpec</code>: <code>expression</code> (metric
+          code body) · <code>placeTokenCountMean</code> ·
+          <code>transitionFiringCount</code> — serializable, sent in
+          <code>init</code>.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-authoring">
+        <strong>Compile (in worker)</strong>
+        <small
+          ><code>metrics/specs.ts</code> → a <code>measure(run)</code> fn per
+          spec; expressions reuse <code>compileMetric</code> +
+          <code>buildMetricState</code>.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-mc">
+        <strong>Sample per frame</strong>
+        <small
+          ><code>observeFrame(ctx)</code> visits every run’s current frame as a
+          <code>SimulationFrameReader</code> (<code>forEachRunFrame</code>);
+          <code>sampleRuns</code> filters active/completed/all.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-mc">
+        <strong>Aggregate</strong>
+        <small
+          >Across runs: <code>mean·sum·min·max·last</code> → scalar, or keep the
+          run axis and bin it → distribution (<code>exact</code> or bin
+          <code>width</code>). Optionally aggregate over time.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-worker">
+        <strong>Metric frames</strong>
+        <small
+          ><code>MonteCarloUserDefinedMetricFrame</code> — scalar
+          (<code>value/frameValue/timeValue</code>) or distribution (<code
+            >bins: [value, frequency][]</code
+          >) per frame. Small JSON.</small
+        >
+      </div>
+    </div>
+
+    <h2>Protocol (<code>monte-carlo/worker/messages.ts</code>)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Direction</th>
+          <th>Type</th>
+          <th>Payload</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="3">Host → Worker</td>
+          <td><code>init</code></td>
+          <td>
+            <code
+              >sdcpn, extensions?, initialMarking, parameterValues, seed, dt,
+              maxTime, runCount, batchSize?, metricSpecs?</code
+            >
+          </td>
+        </tr>
+        <tr>
+          <td><code>start</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>cancel</code></td>
+          <td>— (checked between batches)</td>
+        </tr>
+        <tr>
+          <td rowspan="5">Worker → Host</td>
+          <td><code>ready</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>progress</code></td>
+          <td>
+            <code>MonteCarloWorkerProgress</code> = advance counters (<code
+              >advancedRuns, completedRuns, erroredRuns, activeRuns,
+              allFinished</code
+            >) + <code>frameNumber, time, runCount</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>metricFrames</code></td>
+          <td>Pending <code>MonteCarloUserDefinedMetricFrame[]</code> batch</td>
+        </tr>
+        <tr>
+          <td><code>complete</code> / <code>cancelled</code></td>
+          <td>Final (or last-known) progress</td>
+        </tr>
+        <tr>
+          <td><code>error</code></td>
+          <td><code>message, itemId</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>Contrast with quick sim:</strong> no ack/backpressure — the worker
+      free-runs to completion in small batches; the only upstream control is
+      <code>cancel</code>. And the payloads are aggregates, not frames: the UI
+      never holds Monte Carlo simulation state.
+    </div>
+
+    <h2>What the host receives</h2>
+    <ul>
+      <li>
+        The handle exposes <code>status</code> / <code>progress</code> /
+        <code>metrics</code> stores (<code>frames</code> +
+        <code>latestByMetricId</code>); completion disposes the worker while the
+        accumulated metric frames remain available for display.
+      </li>
+      <li>
+        <strong>Scalar metric frames</strong> carry <code>value</code> /
+        <code>frameValue</code> / <code>timeValue</code> — directly plottable as
+        a per-frame series or a time-aggregated number.
+      </li>
+      <li>
+        <strong>Distribution metric frames</strong> keep the run axis as
+        <code>bins: [value, frequency][]</code> — hosts can paint a bins ×
+        frames heatmap and derive run aggregations (mean, median, percentiles)
+        from the bins, all without ever holding simulation state.
+      </li>
+      <li>
+        How Petrinaut’s React UI renders these is described in
+        <a href="../../../petrinaut/ARCHITECTURE.md"
+          ><code>@hashintel/petrinaut/ARCHITECTURE.md</code></a
+        >.
+      </li>
+    </ul>
+
+    <div class="note refactor">
+      <strong>Refactoring seams.</strong>
+      (1) Runs are round-robin on one worker thread; the run-state model was
+      designed so runs can shard across multiple workers later. (2) User code
+      still receives decoded <code>TokenRecord</code> objects per firing — the
+      README’s planned “IR compilation” would let lambdas/kernels operate
+      directly on the numeric buffers. (3) Buffer growth is a naive ×2 doubling;
+      arc-weight static analysis could size buffers up front and eliminate
+      reallocations.
+    </div>
+  </body>
+</html>

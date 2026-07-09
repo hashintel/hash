@@ -50,6 +50,25 @@ impl Num {
         self.value
     }
 
+    /// Returns `true` if this value is finite (i.e., not NaN or infinity).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::interpret::value::Num;
+    ///
+    /// let n = Num::from(2.5);
+    /// assert!(n.is_finite());
+    ///
+    /// let n = Num::from(f64::NAN);
+    /// assert!(!n.is_finite());
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn is_finite(self) -> bool {
+        self.value.is_finite()
+    }
+
     /// Attempts to convert this value to [`i128`] by truncation toward zero.
     ///
     /// Returns [`None`] for values outside the representable range, including

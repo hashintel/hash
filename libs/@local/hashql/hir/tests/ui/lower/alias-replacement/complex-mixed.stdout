@@ -4,7 +4,7 @@ let a:0 = 10,
     b:0 = ::core::math::add(a:0, 5),
     c:0 = a:0,
     d:0 = b:0,
-    e:0 = a:0
+    e:0 = c:0
 in
 ::core::math::add(::core::math::mul(d:0, e:0), ::core::math::sub(a:0, b:0))
 

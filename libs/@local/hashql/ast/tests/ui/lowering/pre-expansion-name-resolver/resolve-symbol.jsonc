@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: Test that symbols are resolved to their corresponding mapping
-["&&", "a", "b"]

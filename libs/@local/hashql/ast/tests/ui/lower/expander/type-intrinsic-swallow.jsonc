@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: rebinding Union intrinsic should be swallowed (body returned directly)
+[
+  "::kernel::special_form::type",
+  "MyUnion",
+  "|",
+  ["type", "Foo", ["MyUnion", "Integer", "String"], { "#literal": 0 }]
+]

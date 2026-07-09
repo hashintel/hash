@@ -7,7 +7,7 @@ FROM "entity_edition_cache" AS "eec"
 CROSS JOIN LATERAL UNNEST("eec"."base_urls", ("eec"."versions"::text[])) WITH ORDINALITY AS "u"("b", "v", "ordinality")
 WHERE "eec"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id" AND "u"."ordinality" <= "eec"."direct_types") AS "entity_edition_cache_0_0_1"
   ON TRUE
-CROSS JOIN LATERAL (SELECT (ROW(COALESCE(((to_jsonb("entity_edition_cache_0_0_1"."entity_type_ids") = to_jsonb(($3::jsonb)))::boolean), FALSE), NULL, NULL, NULL)::continuation) AS "row") AS "continuation_2_0"
+CROSS JOIN LATERAL (SELECT (ROW(COALESCE(((to_jsonb("entity_edition_cache_0_0_1"."entity_type_ids") = to_jsonb(($3::jsonb)))::bool), FALSE), NULL, NULL, NULL)::continuation) AS "row") AS "continuation_2_0"
 WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange) AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange) AND ("continuation_2_0"."row")."filter" IS NOT FALSE
 
 ════ Parameters ════════════════════════════════════════════════════════════════

@@ -1,7 +1,7 @@
 import type { AeroApiScheduledFlight } from "../types.js";
 import type { MappingFunction } from "./mapping-types.js";
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { ArrivesAt as HashArrivesAt } from "@local/hash-isomorphic-utils/system-types/flight";
+import type { LandsAt as HashLandsAt } from "@local/hash-isomorphic-utils/system-types/flight";
 
 /**
  * Input type for arrival link mapping from AeroAPI data.
@@ -24,15 +24,15 @@ export type AeroApiArrivalInput = Pick<
 /**
  * Maps AeroAPI arrival data to a HASH "Arrives At" link entity.
  */
-export const mapArrivesAt: MappingFunction<
+export const mapLandsAt: MappingFunction<
   AeroApiArrivalInput,
-  HashArrivesAt,
+  HashLandsAt,
   true
 > = (
   input: AeroApiArrivalInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
-  const properties: HashArrivesAt["propertiesWithMetadata"] = {
+  const properties: HashLandsAt["propertiesWithMetadata"] = {
     value: {
       ...(input.gate_destination && {
         "https://hash.ai/@h/types/property-type/gate/": {
@@ -145,7 +145,7 @@ export const mapArrivesAt: MappingFunction<
   return {
     primaryKey: null, // Links don't have primary keys
     typeIdsAndProperties: {
-      entityTypeIds: ["https://hash.ai/@h/types/entity-type/arrives-at/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/lands-at/v/1"],
       properties,
     },
   };

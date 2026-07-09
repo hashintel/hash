@@ -3,7 +3,7 @@ pub mod error;
 use core::mem;
 
 use hashql_ast::{
-    lowering::ExtractedTypes,
+    lower::ExtractedTypes,
     node::{
         expr::{
             AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
@@ -71,7 +71,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut arguments = SmallVec::with_capacity(args.len());
 
         for argument in args {
-            let Some(value) = self.expr(*argument.value) else {
+            let Some(value) = self.expr(argument.value) else {
                 incomplete = true;
                 continue;
             };
@@ -170,7 +170,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, element) in elements.into_iter().enumerate() {
-            let Some(field) = self.expr(*element.value) else {
+            let Some(field) = self.expr(element.value) else {
                 continue;
             };
 
@@ -244,7 +244,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let mut fields = SmallVec::with_capacity(len);
 
         for (index, entry) in entries.into_iter().enumerate() {
-            let Some(value) = self.expr(*entry.value) else {
+            let Some(value) = self.expr(entry.value) else {
                 continue;
             };
 
@@ -817,14 +817,6 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
                     "type extraction",
                 ));
 
-                return None;
-            }
-            ExprKind::Use(_) => {
-                self.diagnostics.push(unprocessed_expression(
-                    expr.span,
-                    "use declaration",
-                    "import resolution",
-                ));
                 return None;
             }
             ExprKind::Input(input) => (input.span, self.input_expr(hir_id, input)?),

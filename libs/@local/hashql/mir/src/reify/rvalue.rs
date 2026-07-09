@@ -1,7 +1,10 @@
+use core::alloc::Allocator;
+
 use hashql_core::{
     id::{Id as _, IdVec},
     symbol::sym,
     r#type::{TypeBuilder, Typed, builder},
+    value::Primitive,
 };
 use hashql_hir::node::{
     HirPtr, Node,
@@ -32,9 +35,10 @@ use crate::{
     interpret::value::{Int, TryFromPrimitiveError},
 };
 
-impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
+impl<'mir, 'heap, A: Allocator, S: Allocator> Reifier<'_, 'mir, '_, '_, 'heap, A, S> {
     fn rvalue_data(&mut self, data: Data<'heap>) -> RValue<'heap> {
         match data {
+            Data::Primitive(Primitive::Null) => RValue::Load(Operand::Constant(Constant::Unit)),
             Data::Primitive(primitive) => {
                 // First try if we can promote the primitive to a non-opaque constant:
                 let constant = match Int::try_from(primitive) {
@@ -74,6 +78,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     operands,
                 })
             }
+            Data::Tuple(Tuple { fields }) if fields.is_empty() => {
+                RValue::Load(Operand::Constant(Constant::Unit))
+            }
             Data::Tuple(Tuple { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len(), self.context.mir.heap);
                 for &field in fields {
@@ -112,15 +119,16 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 RValue::Load(Operand::Constant(Constant::Unit))
             }
             TypeOperation::Constructor(ctor @ TypeConstructor { name }) => {
-                if let Some(&ptr) = self.state.ctor.get(&name) {
-                    return RValue::Load(Operand::Constant(Constant::FnPtr(ptr)));
-                }
+                let def = if let Some(&ptr) = self.state.ctor.get(&name) {
+                    ptr
+                } else {
+                    let compiler = Reifier::new(self.context, self.state);
+                    let ptr = compiler.lower_ctor(hir, ctor);
+                    self.state.ctor.insert(name, ptr);
+                    ptr
+                };
 
-                let compiler = Reifier::new(self.context, self.state);
-                let ptr = compiler.lower_ctor(hir, ctor);
-                self.state.ctor.insert(name, ptr);
-
-                let ptr = Operand::Constant(Constant::FnPtr(ptr));
+                let ptr = Operand::Constant(Constant::FnPtr(def));
                 let env = Operand::Constant(Constant::Unit);
                 let mut operands = IdVec::with_capacity_in(2, self.context.mir.heap);
                 operands.push(ptr);

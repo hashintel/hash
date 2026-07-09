@@ -107,7 +107,7 @@ const PlaceInitialStateContent: React.FC = () => {
       return (
         <InitialStateEditor
           key={place.id}
-          placeId={place.id}
+          place={place}
           placeType={placeType}
           readOnly
         />
@@ -174,11 +174,7 @@ const PlaceInitialStateContent: React.FC = () => {
   }
 
   return (
-    <InitialStateEditor
-      key={place.id}
-      placeId={place.id}
-      placeType={placeType}
-    />
+    <InitialStateEditor key={place.id} place={place} placeType={placeType} />
   );
 };
 

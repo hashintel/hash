@@ -1,74 +1,37 @@
-use core::{
-    fmt::{self, Write as _},
-    hash::{Hash, Hasher},
-};
+use core::fmt::{self, Write as _};
 
 use super::{identifier::Identifier, table_reference::TableReference};
 use crate::store::postgres::query::{Column, Transpile, table::DatabaseColumn as _};
 
-#[derive(Clone, Eq)]
-enum ColumnNameImpl<'name> {
-    Static(Column),
-    Dynamic(Identifier<'name>),
-}
-
-impl ColumnNameImpl<'_> {
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        match self {
-            ColumnNameImpl::Static(column) => column.as_str(),
-            ColumnNameImpl::Dynamic(name) => name.as_ref(),
-        }
-    }
-}
-
-impl PartialEq for ColumnNameImpl<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        if let (ColumnNameImpl::Static(lhs), ColumnNameImpl::Static(rhs)) = (self, other) {
-            lhs == rhs
-        } else {
-            self.as_str() == other.as_str()
-        }
-    }
-}
-
-impl Hash for ColumnNameImpl<'_> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_str().hash(state);
-    }
-}
-
 /// A column name in a PostgreSQL query.
 ///
-/// Can represent either a schema-defined [`Column`] or a dynamically-provided identifier.
-/// The two variants are treated as equal if they represent the same column name string.
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ColumnName<'name>(ColumnNameImpl<'name>);
+/// Wraps an [`Identifier`], so transpiling always quotes and escapes the name regardless of
+/// whether it came from a schema-defined column or was provided dynamically.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ColumnName<'name>(Identifier<'name>);
 
-impl fmt::Debug for ColumnName<'_> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.transpile(fmt)
+impl ColumnName<'_> {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
 impl From<Column> for ColumnName<'_> {
     fn from(column: Column) -> Self {
-        Self(ColumnNameImpl::Static(column))
+        column.name()
     }
 }
 
-impl<'name> From<Identifier<'name>> for ColumnName<'name> {
-    fn from(identifier: Identifier<'name>) -> Self {
-        Self(ColumnNameImpl::Dynamic(identifier))
+impl<'name, I: Into<Identifier<'name>>> From<I> for ColumnName<'name> {
+    fn from(identifier: I) -> Self {
+        Self(identifier.into())
     }
 }
 
 impl Transpile for ColumnName<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            ColumnNameImpl::Static(column) => column.transpile(fmt),
-            ColumnNameImpl::Dynamic(name) => name.transpile(fmt),
-        }
+        self.0.transpile(fmt)
     }
 }
 

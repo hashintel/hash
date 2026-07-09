@@ -24,11 +24,7 @@ export function writeFrameAfterDynamics(
   const { simulation } = run;
   const { frameLayout } = simulation;
   const source = run.currentFrame;
-  const target = ensureFrameCapacity(
-    run,
-    run.nextFrame,
-    source.tokenValueCount,
-  );
+  const target = ensureFrameCapacity(run, run.nextFrame, source.tokenByteCount);
 
   copyMonteCarloFrameBuffer(source, target);
 
@@ -38,24 +34,29 @@ export function writeFrameAfterDynamics(
   ] of simulation.differentialEquationFns) {
     const placeIndex = getPlaceIndex(frameLayout, placeId);
     const count = source.placeCounts[placeIndex] ?? 0;
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
-    const placeSize = count * dimensions;
-    if (placeSize === 0) {
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
+    const tokenLayout = frameLayout.placeTokenLayouts[placeIndex];
+    const placeByteSize = count * strideBytes;
+    if (placeByteSize === 0 || !tokenLayout) {
       continue;
     }
 
-    const offset = source.placeOffsets[placeIndex] ?? 0;
-    const currentState = source.tokenValues.slice(offset, offset + placeSize);
+    const byteOffset = source.placeOffsets[placeIndex] ?? 0;
+    // `.slice` copies into a fresh, 8-aligned buffer.
+    const currentState = source.tokenBytes.slice(
+      byteOffset,
+      byteOffset + placeByteSize,
+    );
     const nextState = computePlaceNextState(
       currentState,
-      dimensions,
+      tokenLayout,
       count,
       differentialEquation,
       "euler",
       simulation.dt,
     );
 
-    target.tokenValues.set(nextState, offset);
+    target.tokenBytes.set(nextState, byteOffset);
   }
 
   return target;
@@ -76,9 +77,9 @@ export function applyTokenRemovals(
   for (const [placeId, tokenSelection] of Object.entries(tokensToRemove)) {
     const placeIndex = getPlaceIndex(frameLayout, placeId);
     const count = frame.placeCounts[placeIndex] ?? 0;
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
 
-    if (dimensions === 0) {
+    if (strideBytes === 0) {
       if (typeof tokenSelection !== "number") {
         throw new Error(
           `Expected token count removal for uncolored place ${placeId}`,
@@ -105,7 +106,7 @@ export function applyTokenRemovals(
     }
   }
 
-  let writeOffset = 0;
+  let writeByteOffset = 0;
   for (
     let placeIndex = 0;
     placeIndex < frameLayout.placeIds.length;
@@ -113,13 +114,13 @@ export function applyTokenRemovals(
   ) {
     const placeId = frameLayout.placeIds[placeIndex]!;
     const count = frame.placeCounts[placeIndex] ?? 0;
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
-    const oldOffset = frame.placeOffsets[placeIndex] ?? 0;
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
+    const oldByteOffset = frame.placeOffsets[placeIndex] ?? 0;
     const tokenSelection = tokensToRemove[placeId];
 
-    frame.placeOffsets[placeIndex] = writeOffset;
+    frame.placeOffsets[placeIndex] = writeByteOffset;
 
-    if (dimensions === 0) {
+    if (strideBytes === 0) {
       const removedCount =
         typeof tokenSelection === "number" ? tokenSelection : 0;
       frame.placeCounts[placeIndex] = count - removedCount;
@@ -134,22 +135,22 @@ export function applyTokenRemovals(
         continue;
       }
 
-      const sourceOffset = oldOffset + tokenIndex * dimensions;
-      if (writeOffset !== sourceOffset) {
-        frame.tokenValues.copyWithin(
-          writeOffset,
-          sourceOffset,
-          sourceOffset + dimensions,
+      const sourceByteOffset = oldByteOffset + tokenIndex * strideBytes;
+      if (writeByteOffset !== sourceByteOffset) {
+        frame.tokenBytes.copyWithin(
+          writeByteOffset,
+          sourceByteOffset,
+          sourceByteOffset + strideBytes,
         );
       }
-      writeOffset += dimensions;
+      writeByteOffset += strideBytes;
       nextCount++;
     }
 
     frame.placeCounts[placeIndex] = nextCount;
   }
 
-  frame.tokenValueCount = writeOffset;
+  frame.tokenByteCount = writeByteOffset;
 }
 
 /**
@@ -159,8 +160,8 @@ export function applyTokenRemovals(
  * multiple firings without repeatedly repacking the frame.
  */
 export function mergeTokenAdditions(
-  target: Map<PlaceID, number[][]>,
-  additions: Record<PlaceID, number[][]>,
+  target: Map<PlaceID, Uint8Array[]>,
+  additions: Record<PlaceID, Uint8Array[]>,
 ): void {
   for (const [placeId, tokens] of Object.entries(additions)) {
     const existingTokens = target.get(placeId);
@@ -175,14 +176,14 @@ export function mergeTokenAdditions(
 /**
  * Appends pending output tokens into the frame, resizing if needed.
  *
- * The function computes the required Float64 value count, repacks all places
- * into their new contiguous offsets, and writes added colored token values at
- * the end of each place segment.
+ * The function computes the required token byte count, repacks all places
+ * into their new contiguous byte offsets, and writes added colored token byte
+ * blocks at the end of each place segment.
  */
 export function applyTokenAdditions(
   run: MonteCarloRunState,
   frame: MonteCarloFrameBuffer,
-  tokensToAdd: ReadonlyMap<PlaceID, number[][]>,
+  tokensToAdd: ReadonlyMap<PlaceID, Uint8Array[]>,
 ): MonteCarloFrameBuffer {
   if (tokensToAdd.size === 0) {
     return frame;
@@ -190,43 +191,43 @@ export function applyTokenAdditions(
 
   const { frameLayout } = run.simulation;
   const additionalTokenCounts = new Uint32Array(frameLayout.placeIds.length);
-  let addedTokenValueCount = 0;
+  let addedTokenByteCount = 0;
 
   for (const [placeId, tokens] of tokensToAdd) {
     const placeIndex = getPlaceIndex(frameLayout, placeId);
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
     for (const token of tokens) {
-      if (token.length !== dimensions) {
+      if (token.byteLength !== strideBytes) {
         throw new Error(
-          `Token dimension mismatch for place ${placeId}. Expected ${dimensions}, got ${token.length}.`,
+          `Token byte size mismatch for place ${placeId}. Expected ${strideBytes}, got ${token.byteLength}.`,
         );
       }
     }
 
     additionalTokenCounts[placeIndex] =
       (additionalTokenCounts[placeIndex] ?? 0) + tokens.length;
-    addedTokenValueCount += tokens.length * dimensions;
+    addedTokenByteCount += tokens.length * strideBytes;
   }
 
-  const requiredTokenValueCount = frame.tokenValueCount + addedTokenValueCount;
-  const target = ensureFrameCapacity(run, frame, requiredTokenValueCount);
+  const requiredTokenByteCount = frame.tokenByteCount + addedTokenByteCount;
+  const target = ensureFrameCapacity(run, frame, requiredTokenByteCount);
   const newPlaceOffsets = new Uint32Array(frameLayout.placeIds.length);
   const newPlaceCounts = new Uint32Array(frameLayout.placeIds.length);
 
-  let offset = 0;
+  let byteOffset = 0;
   for (
     let placeIndex = 0;
     placeIndex < frameLayout.placeIds.length;
     placeIndex++
   ) {
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
     const count = target.placeCounts[placeIndex] ?? 0;
     const addedCount = additionalTokenCounts[placeIndex] ?? 0;
     const newCount = count + addedCount;
 
-    newPlaceOffsets[placeIndex] = offset;
+    newPlaceOffsets[placeIndex] = byteOffset;
     newPlaceCounts[placeIndex] = newCount;
-    offset += newCount * dimensions;
+    byteOffset += newCount * strideBytes;
   }
 
   for (
@@ -235,29 +236,33 @@ export function applyTokenAdditions(
     placeIndex--
   ) {
     const placeId = frameLayout.placeIds[placeIndex]!;
-    const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
+    const strideBytes = frameLayout.placeStrideBytes[placeIndex] ?? 0;
     const oldCount = target.placeCounts[placeIndex] ?? 0;
-    const oldOffset = target.placeOffsets[placeIndex] ?? 0;
-    const oldSize = oldCount * dimensions;
-    const newOffset = newPlaceOffsets[placeIndex] ?? 0;
+    const oldByteOffset = target.placeOffsets[placeIndex] ?? 0;
+    const oldByteSize = oldCount * strideBytes;
+    const newByteOffset = newPlaceOffsets[placeIndex] ?? 0;
 
-    if (oldSize > 0 && oldOffset !== newOffset) {
-      target.tokenValues.copyWithin(newOffset, oldOffset, oldOffset + oldSize);
+    if (oldByteSize > 0 && oldByteOffset !== newByteOffset) {
+      target.tokenBytes.copyWithin(
+        newByteOffset,
+        oldByteOffset,
+        oldByteOffset + oldByteSize,
+      );
     }
 
     const addedTokens = tokensToAdd.get(placeId);
-    if (addedTokens && dimensions > 0) {
-      let writeOffset = newOffset + oldSize;
+    if (addedTokens && strideBytes > 0) {
+      let writeByteOffset = newByteOffset + oldByteSize;
       for (const token of addedTokens) {
-        target.tokenValues.set(token, writeOffset);
-        writeOffset += dimensions;
+        target.tokenBytes.set(token, writeByteOffset);
+        writeByteOffset += strideBytes;
       }
     }
   }
 
   target.placeOffsets.set(newPlaceOffsets);
   target.placeCounts.set(newPlaceCounts);
-  target.tokenValueCount = requiredTokenValueCount;
+  target.tokenByteCount = requiredTokenByteCount;
 
   return target;
 }

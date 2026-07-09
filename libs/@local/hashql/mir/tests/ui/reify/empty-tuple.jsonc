@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: empty tuple should be reified as a unit constant
+{ "#tuple": [] }

@@ -40,7 +40,7 @@ use sqruff_lib::core::{config::FluffConfig, linter::core::Linter};
 use sqruff_lib_core::dialects::init::DialectKind;
 
 use crate::{
-    context::EvalContext,
+    context::CodeGenerationContext,
     postgres::{DatabaseContext, PostgresCompiler, filter::GraphReadFilterCompiler},
 };
 
@@ -48,6 +48,7 @@ use crate::{
 /// and returns everything needed for compilation.
 struct Fixture<'heap> {
     env: Environment<'heap>,
+    interner: crate::intern::Interner<'heap>,
     bodies: DefIdVec<Body<'heap>, &'heap Heap>,
     execution: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
 }
@@ -89,6 +90,7 @@ impl<'heap> Fixture<'heap> {
 
         Self {
             env,
+            interner: interner.into(),
             bodies,
             execution,
         }
@@ -151,11 +153,10 @@ fn format_body<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> String {
 fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
-    let interner = Interner::new(heap);
 
-    let context = EvalContext::new_in(
+    let context = CodeGenerationContext::new_in(
         &fixture.env,
-        &interner,
+        &fixture.interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -278,11 +279,10 @@ fn compile_full_query_with_mask<'heap>(
 ) -> QueryReport {
     let mut scratch = Scratch::new();
     let def = fixture.def();
-    let interner = Interner::new(heap);
 
-    let mut context = EvalContext::new_in(
+    let mut context = CodeGenerationContext::new_in(
         &fixture.env,
-        &interner,
+        &fixture.interner,
         &fixture.bodies,
         &fixture.execution,
         heap,
@@ -1083,7 +1083,7 @@ fn temporal_decision_time_interval() {
     assert_snapshot!("temporal_decision_time_interval", report.to_string());
 }
 
-/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::bigint` casts.
+/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::int8` casts.
 #[test]
 fn binary_bitand_bigint_cast() {
     let heap = Heap::new();
@@ -1110,7 +1110,7 @@ fn binary_bitand_bigint_cast() {
     assert_snapshot!("binary_bitand_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::boolean` casts.
+/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::bool` casts.
 #[test]
 fn binary_bitand_boolean_and() {
     let heap = Heap::new();
@@ -1137,7 +1137,7 @@ fn binary_bitand_boolean_and() {
     assert_snapshot!("binary_bitand_boolean_and", report.to_string());
 }
 
-/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::bigint` casts.
+/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::int8` casts.
 #[test]
 fn binary_bitor_bigint_cast() {
     let heap = Heap::new();
@@ -1164,7 +1164,7 @@ fn binary_bitor_bigint_cast() {
     assert_snapshot!("binary_bitor_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::boolean` casts.
+/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::bool` casts.
 #[test]
 fn binary_bitor_boolean_or() {
     let heap = Heap::new();

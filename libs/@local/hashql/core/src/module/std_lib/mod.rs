@@ -2,7 +2,7 @@ pub mod core;
 pub mod graph;
 mod kernel;
 
-use ::core::iter;
+use ::core::{iter, num::NonZero};
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
@@ -185,7 +185,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         &self.modules[index].1
     }
 
-    fn build<M>(&mut self, parent: ModuleId) -> ModuleId
+    fn build<M>(&mut self, depth: NonZero<u32>, parent: ModuleId) -> ModuleId
     where
         M: StandardLibraryModule<'heap>,
     {
@@ -214,8 +214,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }
 
             // create all the child modules
-            let children_names = M::Children::names(self.heap);
-            let children_modules = M::Children::modules(self, id.value());
+            let children_names = M::Children::names();
+            let children_modules = M::Children::modules(self, depth.saturating_add(1), id.value());
 
             for (name, module) in children_names.into_iter().zip(children_modules) {
                 output.push(Item {
@@ -226,8 +226,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }
 
             PartialModule {
-                name: M::name(self.heap),
+                name: M::name(),
                 parent,
+                depth,
                 items: self.registry.intern_items(&output),
             }
         })
@@ -235,9 +236,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     pub(super) fn register(&mut self) {
         type Root = (self::core::Core, self::kernel::Kernel, self::graph::Graph);
+        const ONE: NonZero<u32> = NonZero::new(1).unwrap();
 
-        let roots: smallvec::SmallVec<_, 3> =
-            Root::modules(self, ModuleId::ROOT).into_iter().collect();
+        let roots: smallvec::SmallVec<_, 3> = Root::modules(self, ONE, ModuleId::ROOT)
+            .into_iter()
+            .collect();
 
         for id in roots {
             self.registry.register(id);
@@ -248,10 +251,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 trait Submodules<'heap> {
     const LENGTH: usize;
 
-    fn names(heap: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>>;
+    fn names() -> impl IntoIterator<Item = Symbol<'heap>>;
 
     fn modules(
         lib: &mut StandardLibrary<'_, 'heap>,
+        depth: NonZero<u32>,
         parent: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId>;
 }
@@ -259,12 +263,13 @@ trait Submodules<'heap> {
 impl<'heap> Submodules<'heap> for () {
     const LENGTH: usize = 0;
 
-    fn names(_: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>> {
+    fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
         iter::empty()
     }
 
     fn modules(
         _: &mut StandardLibrary<'_, 'heap>,
+        _: NonZero<u32>,
         _: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId> {
         iter::empty()
@@ -291,17 +296,18 @@ macro_rules! impl_submodules {
         {
             const LENGTH: usize = ${count($item)};
 
-            fn names(heap: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>> {
-                $(let $item = $item::name(heap);)*
+            fn names() -> impl IntoIterator<Item = Symbol<'heap>> {
+                $(let $item = $item::name();)*
 
                 [$($item),*]
             }
 
             fn modules(
                 lib: &mut StandardLibrary<'_, 'heap>,
+                depth: NonZero<u32>,
                 parent: ModuleId,
             ) -> impl IntoIterator<Item = ModuleId> {
-                $(let $item = lib.build::<$item>(parent);)*
+                $(let $item = lib.build::<$item>(depth, parent);)*
 
                 [$($item),*]
             }
@@ -314,7 +320,7 @@ impl_submodules!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 trait StandardLibraryModule<'heap>: 'static {
     type Children: Submodules<'heap>;
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap>;
+    fn name() -> Symbol<'heap>;
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap>;
 }

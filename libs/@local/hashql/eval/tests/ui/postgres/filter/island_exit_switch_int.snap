@@ -38,19 +38,27 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
 
 CASE
     WHEN
-        ((($10::jsonb))::int) IS NULL
+        ((($10::jsonb))::int4) IS NULL
         THEN
             (
                 ROW(
-                    COALESCE(((FALSE)::boolean), FALSE), NULL, NULL, NULL
+                    COALESCE(((FALSE)::bool), FALSE), NULL, NULL, NULL
                 )::continuation
             )
     WHEN
-        ((($10::jsonb))::int) = 0
+        ((($10::jsonb))::int4) = 0
         THEN
-            (ROW(NULL, 2, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation)
+            (
+                ROW(
+                    NULL, 2, ARRAY[]::int4 [], ARRAY[]::jsonb []
+                )::continuation
+            )
     WHEN
-        ((($10::jsonb))::int) = 1
+        ((($10::jsonb))::int4) = 1
         THEN
-            (ROW(NULL, 1, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation)
+            (
+                ROW(
+                    NULL, 1, ARRAY[]::int4 [], ARRAY[]::jsonb []
+                )::continuation
+            )
 END

@@ -59,7 +59,7 @@ pub use self::{
     error::{OrchestratorDiagnostic, OrchestratorDiagnosticCategory},
     events::{AppendEventLog, Event, EventLog},
 };
-use crate::{context::EvalContext, postgres::PreparedQueries};
+use crate::{context::CodeExecutionContext, postgres::PreparedQueries};
 
 pub mod codec;
 pub mod error;
@@ -119,7 +119,7 @@ impl<T> Deref for Indexed<T> {
 pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: Allocator> {
     client: C,
     queries: &'env PreparedQueries<'heap, A>,
-    context: &'env EvalContext<'ctx, 'heap, A>,
+    context: &'env CodeExecutionContext<'ctx, 'heap, A>,
     /// Event sink for execution tracing. See [`EventLog`].
     pub event_log: E,
 }
@@ -128,7 +128,7 @@ impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, (), 
     pub const fn new(
         client: C,
         queries: &'env PreparedQueries<'heap, A>,
-        context: &'env EvalContext<'ctx, 'heap, A>,
+        context: &'env CodeExecutionContext<'ctx, 'heap, A>,
     ) -> Self {
         Self {
             client,

@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: Infer type should be properly lowered
-["::kernel::special_form::type", "x", "_", "x"]

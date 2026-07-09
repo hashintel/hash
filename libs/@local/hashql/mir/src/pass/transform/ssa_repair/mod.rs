@@ -156,6 +156,7 @@ impl<A: BumpAllocator> SsaRepair<A> {
 }
 
 impl Default for SsaRepair {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

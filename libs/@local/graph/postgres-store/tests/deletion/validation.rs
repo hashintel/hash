@@ -93,6 +93,7 @@ async fn decision_time_in_past_succeeds() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -273,6 +274,7 @@ async fn past_decision_time_deletes_all_editions() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await

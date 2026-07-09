@@ -465,6 +465,10 @@ mod default {
     #[cfg(feature = "std")]
     use std::sync::Once;
 
+    // `spin` is only referenced on no-std platforms; anchor it here so builds with both `std`
+    // and `hooks` enabled don't flag it as an unused dependency.
+    #[cfg(all(feature = "std", feature = "hooks"))]
+    use spin as _;
     #[cfg(all(not(feature = "std"), feature = "hooks"))]
     use spin::once::Once;
     #[cfg(feature = "spantrace")]

@@ -1,192 +1,106 @@
 import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
-const CHECK_ICON = (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 12 12"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path
-      d="M10 3L4.5 8.5L2 6"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import { styles } from "./checkbox.recipe";
 
-const INDETERMINATE_ICON = (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 12 12"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path
-      d="M3 6H9"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
+import type { SharedInputProps, Tone } from "../../util/form-shared";
 
-const checkboxRootStyles = (disabled: boolean) =>
-  css({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5",
-    cursor: disabled ? "not-allowed" : "pointer",
-  });
-
-const checkboxControlStyles = css({
-  position: "relative",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[16px]",
-  height: "[16px]",
-  borderRadius: "sm",
-  border: "1px solid",
-  borderColor: "bd.solid",
-  backgroundColor: "bg.subtle",
-  transition: "[all 0.2s ease]",
-  flexShrink: "0",
-
-  // Hover state (unchecked)
-  "&[data-state='unchecked']:hover:not([data-disabled])": {
-    borderColor: "bd.solid.hover",
-  },
-
-  // Focus state
-  _focusVisible: {
-    boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.15)]",
-  },
-
-  // Checked and indeterminate states
-  "&[data-state='checked'], &[data-state='indeterminate']": {
-    borderColor: "bd.solid.active",
-    backgroundColor: "bg.solid",
-    color: "fg.onSolid",
-  },
-
-  // Hover on checked/indeterminate states
-  "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
-    {
-      backgroundColor: "bg.solid.hover",
-      borderColor: "bg.solid.hover",
-    },
-
-  // Disabled state
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.5]",
-  },
-
-  // Invalid state
-  _invalid: {
-    borderColor: "status.error.bd.solid",
-  },
-});
-
-const checkboxIndicatorStyles = css({
-  position: "absolute",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[100%]",
-  height: "[100%]",
-});
-
-const checkboxLabelStyles = (disabled: boolean) =>
-  css({
-    fontSize: "[14px]",
-    fontWeight: "medium",
-    color: "fg.heading",
-    cursor: disabled ? "not-allowed" : "pointer",
-    userSelect: "none",
-    whiteSpace: "nowrap",
-
-    _disabled: {
-      opacity: "[0.5]",
-    },
-  });
-
-export interface CheckboxProps {
-  checked?: boolean | "indeterminate";
-  defaultChecked?: boolean | "indeterminate";
-  disabled?: boolean;
-  invalid?: boolean;
-  readOnly?: boolean;
-  required?: boolean;
-  name?: string;
-  value?: string;
-  form?: string;
-  onCheckedChange?: (checked: boolean | "indeterminate") => void;
-  label?: string;
-  id?: string;
-}
-
-export const Checkbox: React.FC<CheckboxProps> = ({
-  checked,
-  defaultChecked,
-  disabled = false,
-  invalid = false,
-  readOnly = false,
-  required = false,
+export const Checkbox = ({
+  className,
+  disabled,
+  required,
+  size = "md",
   name,
   value,
-  form,
-  onCheckedChange,
+  onChange,
+  onFocus,
+  onBlur,
+  invalid,
+  testId,
+  htmlForId,
+  htmlValue,
+  ref,
+  inputRef,
+  autoFocus,
+  indeterminate = false,
+  labelPlacement = "right",
+  labelAlign = "top",
   label,
-  id,
-}) => {
+  tone = "neutral",
+  ...ariaProps
+}: {
+  /** An optional label rendered alongside the box */
+  label?: React.ReactNode;
+  /** Which side of the box the label is rendered on */
+  labelPlacement?: "left" | "right";
+  /** Vertical alignment of the box against the label when it wraps over multiple lines */
+  labelAlign?: "top" | "center";
+  /** The tone applied when the checkbox is checked */
+  tone?: Exclude<Tone, "error"> | "success";
+  /** Render the box in the indeterminate ("partially checked") state */
+  indeterminate?: boolean;
+  /** An optional value used for native form submissions */
+  htmlValue?: string;
+} & SharedInputProps<HTMLInputElement, boolean> &
+  React.AriaAttributes) => {
+  const classes = styles({
+    size,
+    tone,
+    invalid: !!invalid,
+    labelPlacement,
+    labelAlign,
+  });
+
   return (
     <BaseCheckbox.Root
-      {...(checked !== undefined ? { checked } : { defaultChecked })}
+      checked={indeterminate ? "indeterminate" : value}
+      onCheckedChange={(details) => onChange(details.checked === true)}
+      name={name}
       disabled={disabled}
       invalid={invalid}
-      readOnly={readOnly}
       required={required}
-      name={name}
-      value={value}
-      form={form}
-      onCheckedChange={(details) => {
-        onCheckedChange?.(details.checked);
-      }}
-      id={id}
-      className={checkboxRootStyles(disabled)}
+      ids={htmlForId ? { hiddenInput: htmlForId } : undefined}
+      data-testid={testId}
+      ref={ref as React.Ref<HTMLLabelElement>}
+      className={cx(classes.root, className)}
+      value={htmlValue}
+      {...ariaProps}
     >
-      <BaseCheckbox.Control className={checkboxControlStyles}>
-        {/* Checked indicator */}
-        <BaseCheckbox.Indicator className={checkboxIndicatorStyles}>
-          {CHECK_ICON}
-        </BaseCheckbox.Indicator>
-
-        {/* Indeterminate indicator */}
+      <BaseCheckbox.Control className={classes.control}>
         <BaseCheckbox.Indicator
-          indeterminate
-          className={checkboxIndicatorStyles}
+          indeterminate={indeterminate}
+          className={classes.indicator}
+          asChild
         >
-          {INDETERMINATE_ICON}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3px"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <title>{indeterminate ? "Partially checked" : "Checked"}</title>
+            {indeterminate ? (
+              <path d="M5 12h14" />
+            ) : (
+              <path d="M20 6 9 17l-5-5" />
+            )}
+          </svg>
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
-
       {label && (
-        <BaseCheckbox.Label className={checkboxLabelStyles(disabled)}>
+        <BaseCheckbox.Label className={classes.label}>
           {label}
         </BaseCheckbox.Label>
       )}
-
-      <BaseCheckbox.HiddenInput />
+      <BaseCheckbox.HiddenInput
+        ref={inputRef}
+        autoFocus={autoFocus}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
     </BaseCheckbox.Root>
   );
 };

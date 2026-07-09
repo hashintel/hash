@@ -145,7 +145,7 @@ pub(super) fn expand_enum(
     output.extend(quote! {
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-        impl #konst #krate::id::Id for #name {
+        #konst impl #krate::id::Id for #name {
             const MIN: Self = Self::from_discriminant(0);
             const MAX: Self = Self::from_discriminant(#max);
 
@@ -198,7 +198,7 @@ pub(super) fn expand_enum(
     for int in [quote!(u32), quote!(u64), quote!(usize)] {
         output.extend(quote! {
             #[automatically_derived]
-            impl #konst ::core::convert::TryFrom<#int> for #name {
+            #konst impl ::core::convert::TryFrom<#int> for #name {
                 type Error = #krate::id::IdError;
 
                 #[inline]
@@ -220,7 +220,7 @@ pub(super) fn expand_enum(
     // 6. HasId impl
     output.extend(quote! {
         #[automatically_derived]
-        impl #konst #krate::id::HasId for #name {
+        #konst impl #krate::id::HasId for #name {
             type Id = Self;
 
             #[inline]

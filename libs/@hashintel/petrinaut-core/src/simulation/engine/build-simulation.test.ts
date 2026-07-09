@@ -1,11 +1,86 @@
 import { describe, expect, it } from "vitest";
 
+import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
+import { decodePlaceTokens } from "./token-layout.test-helpers";
 
 import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {
+  it("packs and decodes integer and boolean token attributes", () => {
+    const input: SimulationInput = {
+      sdcpn: {
+        types: [
+          {
+            id: "type1",
+            name: "Typed entity",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
+            elements: [
+              { elementId: "e1", name: "amount", type: "real" },
+              { elementId: "e2", name: "count", type: "integer" },
+              { elementId: "e3", name: "active", type: "boolean" },
+            ],
+          },
+        ],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "p1",
+            name: "Place 1",
+            colorId: "type1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [],
+      },
+      initialMarking: {
+        p1: [
+          {
+            amount: 1.25,
+            count: 2.7,
+            active: true,
+          },
+        ],
+      },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    };
+
+    const simulationInstance = buildSimulation(input);
+    const engineFrame = simulationInstance.frames[0]!;
+    const frame = materializeEngineFrame(
+      simulationInstance.frameLayout,
+      engineFrame,
+    );
+
+    // Packed struct layout: amount (f64) @ 0, count (f64) @ 8, active (u8)
+    // @ 16, stride rounded up to 24 bytes.
+    expect(frame.buffer).toBeInstanceOf(Uint8Array);
+    expect(frame.buffer.byteLength).toBe(24);
+    expect(
+      new Float64Array(frame.buffer.buffer, frame.buffer.byteOffset, 2),
+    ).toEqual(new Float64Array([1.25, 3]));
+    expect(frame.buffer[16]).toBe(1);
+
+    const reader = compileSimulationFrameReader(input.sdcpn)(engineFrame, 0, 0);
+
+    expect(reader.getPlaceTokens(input.sdcpn.places[0]!)).toEqual([
+      {
+        amount: 1.25,
+        count: 3,
+        active: true,
+      },
+    ]);
+  });
+
   it("does not compile Lambda code when transition lambdas are unavailable", () => {
     const simulation = buildSimulation({
       sdcpn: {
@@ -42,6 +117,7 @@ describe("buildSimulation", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       },
       initialMarking: { p1: 1 },
       parameterValues: {},
@@ -132,6 +208,7 @@ describe("buildSimulation", () => {
         stochasticity: true,
         dynamics: false,
         parameters: true,
+        subnets: true,
       },
       initialMarking: { p1: 1 },
       parameterValues: {},
@@ -188,6 +265,7 @@ describe("buildSimulation", () => {
           stochasticity: false,
           dynamics: true,
           parameters: true,
+          subnets: true,
         },
         initialMarking: {},
         parameterValues: {},
@@ -244,6 +322,7 @@ describe("buildSimulation", () => {
         stochasticity: false,
         dynamics: true,
         parameters: true,
+        subnets: true,
       },
       initialMarking: {},
       parameterValues: {},
@@ -279,6 +358,7 @@ describe("buildSimulation", () => {
         stochasticity: true,
         dynamics: true,
         parameters: false,
+        subnets: true,
       },
       initialMarking: {},
       parameterValues: { rate: "5" },
@@ -288,6 +368,169 @@ describe("buildSimulation", () => {
     });
 
     expect(simulation.parameterValues).toEqual({});
+  });
+
+  it("flattens component-port arcs to the instantiated subnet port places", () => {
+    const simulation = buildSimulation({
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "root-input",
+            name: "RootInput",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "send",
+            name: "Send",
+            inputArcs: [{ placeId: "root-input", weight: 1, type: "standard" }],
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "processor-1",
+                  portPlaceId: "port-in",
+                },
+                weight: 1,
+              },
+            ],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+          {
+            id: "receive",
+            name: "Receive",
+            inputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "processor-1",
+                  portPlaceId: "port-out",
+                },
+                weight: 1,
+                type: "standard",
+              },
+            ],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 200,
+            y: 0,
+          },
+        ],
+        componentInstances: [
+          {
+            id: "processor-1",
+            name: "Processor 1",
+            subnetId: "processor-subnet",
+            parameterValues: {},
+            x: 100,
+            y: 0,
+          },
+        ],
+        subnets: [
+          {
+            id: "processor-subnet",
+            name: "Processor",
+            places: [
+              {
+                id: "port-in",
+                name: "Port In",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+              {
+                id: "port-out",
+                name: "Port Out",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 100,
+                y: 0,
+              },
+            ],
+            transitions: [
+              {
+                id: "process",
+                name: "Process",
+                inputArcs: [
+                  { placeId: "port-in", weight: 1, type: "standard" },
+                ],
+                outputArcs: [{ placeId: "port-out", weight: 1 }],
+                lambdaType: "predicate",
+                lambdaCode: "",
+                transitionKernelCode: "",
+                x: 50,
+                y: 0,
+              },
+            ],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      },
+      initialMarking: { "root-input": 2 },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+    const frame = materializeEngineFrame(
+      simulation.frameLayout,
+      simulation.frames[0]!,
+    );
+
+    expect([...simulation.places.keys()].sort()).toEqual([
+      "processor-1::port-in",
+      "processor-1::port-out",
+      "root-input",
+    ]);
+    expect([...simulation.transitions.keys()].sort()).toEqual([
+      "processor-1::process",
+      "receive",
+      "send",
+    ]);
+    expect(simulation.compiledTransitions.get("send")?.outputPlaces).toEqual([
+      {
+        placeId: "processor-1::port-in",
+        placeName: "Processor 1::Port In",
+        weight: 1,
+        elements: null,
+        tokenLayout: null,
+      },
+    ]);
+    expect(simulation.compiledTransitions.get("receive")?.inputPlaces).toEqual([
+      {
+        placeId: "processor-1::port-out",
+        placeName: "Processor 1::Port Out",
+        weight: 1,
+        arcType: "standard",
+        elements: null,
+        tokenLayout: null,
+      },
+    ]);
+    expect(frame.places["root-input"]?.count).toBe(2);
+    expect(frame.places["processor-1::port-in"]?.count).toBe(0);
+    expect(frame.places["processor-1::port-out"]?.count).toBe(0);
   });
 
   it("builds a simulation with a single place and initial tokens", () => {
@@ -362,14 +605,19 @@ describe("buildSimulation", () => {
     const p1State = frame.places.p1;
     expect(p1State).toBeDefined();
     expect(p1State?.count).toBe(2);
-    expect(p1State?.offset).toBe(0);
+    expect(p1State?.byteOffset).toBe(0);
     const p1Type = simulationInstance.places.get("p1")?.colorId;
     expect(p1Type).toBe("type1");
     const typeDefinition = input.sdcpn.types.find((tp) => tp.id === p1Type);
     expect(typeDefinition?.elements.length).toBe(2);
 
     // Verify buffer contains the correct token values
-    expect(frame.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0, 4.0]));
+    expect(
+      decodePlaceTokens(simulationInstance.frameLayout, engineFrame, "p1"),
+    ).toEqual([
+      { x: 1.0, y: 2.0 },
+      { x: 3.0, y: 4.0 },
+    ]);
 
     // Verify compiled functions exist
     expect(simulationInstance.differentialEquationFns.has("p1")).toBe(true);
@@ -480,9 +728,10 @@ describe("buildSimulation", () => {
     };
 
     const simulationInstance = buildSimulation(input);
+    const engineFrame = simulationInstance.frames[0]!;
     const frame = materializeEngineFrame(
       simulationInstance.frameLayout,
-      simulationInstance.frames[0]!,
+      engineFrame,
     );
 
     // Verify simulation instance properties
@@ -495,7 +744,7 @@ describe("buildSimulation", () => {
     // Verify p1 state (places are sorted by ID, so p1 comes first)
     const p1State = frame.places.p1;
     expect(p1State?.count).toBe(3);
-    expect(p1State?.offset).toBe(0);
+    expect(p1State?.byteOffset).toBe(0);
     const p1Type = simulationInstance.places.get("p1")?.colorId;
     expect(p1Type).toBe("type1");
     const p1TypeDef = input.sdcpn.types.find((tp) => tp.id === p1Type);
@@ -504,7 +753,7 @@ describe("buildSimulation", () => {
     // Verify p2 state (comes after p1)
     const p2State = frame.places.p2;
     expect(p2State?.count).toBe(1);
-    expect(p2State?.offset).toBe(3); // After p1's 3 tokens
+    expect(p2State?.byteOffset).toBe(24); // After p1's 3 tokens × 8-byte stride
     const p2Type = simulationInstance.places.get("p2")?.colorId;
     expect(p2Type).toBe("type2");
     const p2TypeDef = input.sdcpn.types.find((tp) => tp.id === p2Type);
@@ -513,16 +762,22 @@ describe("buildSimulation", () => {
     // Verify p3 state (comes after p2, has no tokens)
     const p3State = frame.places.p3;
     expect(p3State?.count).toBe(0);
-    expect(p3State?.offset).toBe(5); // After p1's 3 values + p2's 2 values
+    expect(p3State?.byteOffset).toBe(40); // After p1's 24 bytes + p2's 16 bytes
     const p3Type = simulationInstance.places.get("p3")?.colorId;
     expect(p3Type).toBe("type1");
     const p3TypeDef = input.sdcpn.types.find((tp) => tp.id === p3Type);
     expect(p3TypeDef?.elements.length).toBe(1);
 
-    // Verify buffer layout: [p1: 10, 20, 30 | p2: 1, 2]
-    expect(frame.buffer).toEqual(
-      new Float64Array([10.0, 20.0, 30.0, 1.0, 2.0]),
-    );
+    // Verify buffer layout: [p1: {x:10}, {x:20}, {x:30} | p2: {x:1, y:2}]
+    expect(
+      decodePlaceTokens(simulationInstance.frameLayout, engineFrame, "p1"),
+    ).toEqual([{ x: 10 }, { x: 20 }, { x: 30 }]);
+    expect(
+      decodePlaceTokens(simulationInstance.frameLayout, engineFrame, "p2"),
+    ).toEqual([{ x: 1, y: 2 }]);
+    expect(
+      decodePlaceTokens(simulationInstance.frameLayout, engineFrame, "p3"),
+    ).toEqual([]);
 
     // Verify transitions exist with initial state
     expect(Object.keys(frame.transitions).length).toBe(2);

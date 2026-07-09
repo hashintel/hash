@@ -5,8 +5,8 @@ use tracing::Instrument as _;
 
 use super::table::{ActionHierarchyRow, ActionRow};
 use crate::{
-    snapshot::WriteBatch,
-    store::{AsClient, PostgresStore},
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
+    store::{AsClient, PostgresStore, postgres::query::OnConflict},
 };
 
 pub enum ActionRowBatch {
@@ -52,47 +52,31 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Name(actions) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO action_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::action[])
-                            RETURNING 1;
-                        ",
-                        &[&actions],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} actions", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &actions,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} actions");
                 }
             }
             Self::Hierarchy(hierarchy) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO action_hierarchy_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::action_hierarchy[])
-                            RETURNING 1;
-                        ",
-                        &[&hierarchy],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} action hierarchies", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &hierarchy,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} action hierarchies");
                 }
             }
         }

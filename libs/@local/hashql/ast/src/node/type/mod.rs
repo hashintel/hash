@@ -80,7 +80,7 @@ pub struct TupleField<'heap> {
 /// (Float, Float, Float)
 /// (User, List<Permission>)
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -110,7 +110,7 @@ pub struct TupleType<'heap> {
 /// String | Int | Boolean
 /// Error | Result<T>
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -130,7 +130,7 @@ pub struct UnionType<'heap> {
 /// Named & Serializable
 /// Printable & Comparable & Hashable
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntersectionType<'heap> {
     pub id: NodeId,
     pub span: SpanId,
@@ -142,7 +142,7 @@ pub struct IntersectionType<'heap> {
 ///
 /// This enum represents all possible type constructs in the HashQL language,
 /// from simple path references to complex composite types.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
     /// The infer type (`_`).
     ///
@@ -199,10 +199,21 @@ pub enum TypeKind<'heap> {
 /// Represents any type expression in the language, from simple type references
 /// to complex composite types. Types are used in variable declarations, function
 /// signatures, generic constraints, and other contexts where type information is needed.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Type<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
     pub kind: TypeKind<'heap>,
+}
+
+impl Type<'_> {
+    #[must_use]
+    pub const fn dummy() -> Self {
+        Self {
+            id: NodeId::PLACEHOLDER,
+            span: SpanId::SYNTHETIC,
+            kind: TypeKind::Dummy,
+        }
+    }
 }

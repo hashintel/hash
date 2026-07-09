@@ -3,6 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -96,15 +97,15 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
 
 function useEntityTreeItems(): EntityTreeItem[] {
   const {
-    petriNetDefinition: {
+    activeNet: {
       places,
       transitions,
       types,
       differentialEquations,
       parameters,
     },
-    extensions,
-  } = use(SDCPNContext);
+  } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
 
   return [
     {

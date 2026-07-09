@@ -1,7 +1,7 @@
 //! # HASH Graph Validation
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 extern crate alloc;
 
@@ -428,7 +428,7 @@ mod tests {
         data_type: &str,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyValueWithMetadata, ValueValidationReport> {
+    ) -> Result<PropertyValueWithMetadata, Box<ValueValidationReport>> {
         let mut value = serde_json::from_value(value).expect("failed to parse value");
         let mut provider = Provider::new(
             [],

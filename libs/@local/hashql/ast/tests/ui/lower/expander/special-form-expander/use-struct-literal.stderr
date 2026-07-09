@@ -1,0 +1,6 @@
+error[expander::invalid-use-alias]: Invalid use alias
+  ╭▸ 
+8 │       "sqrt": { "#literal": 1 }
+  │               ━━━━━━━━━━━━━━━━━ expected `_` or a simple identifier as the alias
+  │
+  ╰ help: use `_` to keep the original name or a simple identifier to rename: `(name: alias)` or `(name: _)`

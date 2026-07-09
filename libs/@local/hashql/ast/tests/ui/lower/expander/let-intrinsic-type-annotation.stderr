@@ -1,0 +1,10 @@
+error[expander::intrinsic-type-annotation]: Type annotation on intrinsic binding
+  ╭▸ 
+6 │   "Integer",
+  │    ━━━━━━━ type annotation on `my_if` is not allowed here
+7 │   //~^ ERROR type annotation on `my_if` is not allowed here
+8 │   "::kernel::special_form::if",
+  │    ────────────────────────── this resolves to a compiler intrinsic
+  │
+  ├ help: remove the type annotation: `(let my_if value body)`
+  ╰ note: compiler intrinsics cannot be given a type annotation because they are not ordinary values

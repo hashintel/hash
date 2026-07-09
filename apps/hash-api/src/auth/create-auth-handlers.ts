@@ -7,6 +7,7 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 
 import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
+import { telemetry } from "../telemetry/telemetry";
 import { hydraAdmin } from "./ory-hydra";
 import { kratosFrontendApi } from "./ory-kratos";
 
@@ -67,9 +68,24 @@ const kratosAfterRegistrationHookHandler =
           throw new Error("User registration is disabled.");
         }
 
-        await createUser(context, authentication, {
+        const user = await createUser(context, authentication, {
           emails,
           kratosIdentityId,
+        });
+
+        // This is a Kratos -> server webhook, so there is no `req.user` and
+        // `req.ip` is Kratos's, not the registrant's. Emit via the actor path
+        // keyed on the newly created user's accountId.
+        const actor = {
+          accountId: user.accountId,
+          shortname: user.shortname,
+        };
+        telemetry.identifyActor(actor, {
+          email: emails[0],
+          shortname: user.shortname,
+        });
+        telemetry.trackForActor(actor, "user_register", {
+          email: emails[0],
         });
 
         res.status(200).end();

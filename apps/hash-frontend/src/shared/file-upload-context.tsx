@@ -14,9 +14,7 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 
-import { AuthorizationSubjectKind } from "../graphql/api-types.gen";
 import {
-  addEntityViewerMutation,
   archiveEntityMutation,
   createEntityMutation,
   updateEntityMutation,
@@ -29,8 +27,6 @@ import { uploadFileToStorageProvider } from "./upload-to-storage-provider";
 
 import type { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import type {
-  AddEntityViewerMutation,
-  AddEntityViewerMutationVariables,
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
   CreateEntityMutation,
@@ -185,11 +181,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     {},
   );
 
-  const [addEntityViewer] = useMutation<
-    AddEntityViewerMutation,
-    AddEntityViewerMutationVariables
-  >(addEntityViewerMutation);
-
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
@@ -258,6 +249,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             variables: {
               description,
               displayName: name,
+              makePublic,
               url: fileData.url,
               ...("fileEntityUpdateInput" in fileData
                 ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
@@ -275,16 +267,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           }
 
           fileEntity = new HashEntity<FileEntity>(data.createFileFromUrl);
-
-          if (makePublic) {
-            /** @todo: make entity public as part of `createEntity` query once this is supported */
-            await addEntityViewer({
-              variables: {
-                entityId: fileEntity.metadata.recordId.entityId,
-                viewer: { kind: AuthorizationSubjectKind.Public },
-              },
-            });
-          }
         } catch (err) {
           // createFileFromUrlFn might itself throw rather than return errors, thus this catch
 
@@ -321,6 +303,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
                 displayName: name,
                 name: fileData.file.name,
                 size: fileData.file.size,
+                makePublic,
                 ...("fileEntityUpdateInput" in fileData
                   ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
                   : {
@@ -339,16 +322,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             fileEntity = new HashEntity<FileEntity>(
               data.requestFileUpload.entity,
             );
-
-            if (makePublic) {
-              /** @todo: make entity public as part of `createEntity` query once this is supported */
-              await addEntityViewer({
-                variables: {
-                  entityId: fileEntity.metadata.recordId.entityId,
-                  viewer: { kind: AuthorizationSubjectKind.Public },
-                },
-              });
-            }
 
             presignedPut = data.requestFileUpload.presignedPut;
 
@@ -519,6 +492,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             properties: linkProperties
               ? mergePropertyObjectAndMetadata(linkProperties, undefined)
               : { value: {} },
+            makePublic,
           },
         });
 
@@ -527,16 +501,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         }
 
         const linkEntity = new HashLinkEntity(data.createEntity);
-
-        if (makePublic) {
-          /** @todo: make entity public as part of `createEntity` query once this is supported */
-          await addEntityViewer({
-            variables: {
-              entityId: linkEntity.metadata.recordId.entityId,
-              viewer: { kind: AuthorizationSubjectKind.Public },
-            },
-          });
-        }
 
         const updatedUpload: FileUpload = {
           ...upload,
@@ -567,7 +531,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       }
     },
     [
-      addEntityViewer,
       archiveEntity,
       createEntity,
       createFileFromUrlFn,

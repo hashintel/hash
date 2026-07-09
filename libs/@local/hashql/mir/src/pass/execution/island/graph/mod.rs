@@ -23,6 +23,7 @@ pub(crate) mod tests;
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
+    fmt,
     ops::{Index, IndexMut},
 };
 
@@ -284,6 +285,16 @@ impl<A: Allocator> IslandGraph<A> {
         let id = self.lookup[block];
 
         (id, &self[id])
+    }
+}
+
+impl<A: Allocator> fmt::Debug for IslandGraph<A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IslandGraph")
+            .field("vertex", &self.vertex)
+            .field("inner", &self.inner)
+            .field("lookup", &self.lookup)
+            .finish()
     }
 }
 

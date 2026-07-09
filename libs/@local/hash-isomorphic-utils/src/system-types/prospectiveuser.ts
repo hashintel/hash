@@ -11,6 +11,8 @@ import type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
@@ -25,6 +27,8 @@ export type {
   TextDataTypeWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };

@@ -252,6 +252,7 @@ impl From<Cost> for ApproxCost {
 }
 
 impl From<InformationUnit> for ApproxCost {
+    #[inline]
     fn from(value: InformationUnit) -> Self {
         #[expect(clippy::cast_precision_loss)]
         Self(value.as_u32() as f32)

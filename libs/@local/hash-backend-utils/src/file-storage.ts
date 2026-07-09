@@ -56,6 +56,18 @@ export interface FileStorageProvider {
   presignDownload(params: PresignedDownloadRequest): Promise<Url>;
 
   /**
+   * Presigns a download URL for an object identified solely by its storage key,
+   * using the provider's own (default) storage configuration.
+   *
+   * Unlike {@link presignDownload}, this does not require a file entity – it is
+   * used for server-managed objects (e.g. precomputed analysis artifacts served
+   * by the query gateway) that are not represented as entities in the graph.
+   *
+   * @return The time-limited download URL to access the object.
+   */
+  presignDownloadByKey(params: PresignedDownloadByKeyRequest): Promise<Url>;
+
+  /**
    * Presigns a file upload request for a client to later upload a file
    * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage
    *   configuration used
@@ -138,6 +150,14 @@ export interface PresignedDownloadRequest {
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */
+  expiresInSeconds: number;
+}
+
+/** Parameters needed to presign the download of a server-managed object by key */
+export interface PresignedDownloadByKeyRequest {
+  /** Storage key of the object, relative to the provider's default location */
+  key: string;
+  /** Expiry delay (in seconds) for the download authorisation */
   expiresInSeconds: number;
 }
 

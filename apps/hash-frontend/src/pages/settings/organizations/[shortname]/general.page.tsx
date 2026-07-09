@@ -82,7 +82,9 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
             value,
             metadata: {
               dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                key === "websiteUrl"
+                  ? "https://hash.ai/@h/types/data-type/uri/v/1"
+                  : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         });

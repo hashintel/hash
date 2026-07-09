@@ -1,6 +1,7 @@
 mod parameter;
 mod path;
 pub mod protection;
+mod semantic_distance;
 
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, fmt, hash::Hash};
@@ -39,6 +40,7 @@ pub use self::{
         FilterExpressionList, Parameter, ParameterConversionError, ParameterList, ParameterType,
     },
     path::{JsonPath, PathToken},
+    semantic_distance::{InvalidSemanticDistanceError, SemanticDistance},
 };
 use crate::{
     data_type::DataTypeQueryPath,
@@ -135,6 +137,7 @@ pub enum Filter<'p, R: QueryRecord> {
     GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
     LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    #[serde(skip)]
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -965,6 +968,15 @@ impl<'p> Filter<'p, Entity> {
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
                             .to_string(),
                     )),
+                    convert: None,
+                },
+            ),
+            EntityResourceFilter::IsReadOnly => Self::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::ReadOnly,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(true),
                     convert: None,
                 },
             ),

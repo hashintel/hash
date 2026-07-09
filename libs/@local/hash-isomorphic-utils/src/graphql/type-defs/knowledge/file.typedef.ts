@@ -74,6 +74,10 @@ export const fileTypedef = gql`
       The entityId of the existing file entity, if this is replacing an existing file
       """
       fileEntityUpdateInput: FileEntityUpdateInput
+      """
+      Whether to make the file entity publicly visible
+      """
+      makePublic: Boolean = false
     ): RequestFileUploadResponse!
 
     """
@@ -101,6 +105,10 @@ export const fileTypedef = gql`
       The entityId of the existing file entity, if this is replacing an existing file
       """
       fileEntityUpdateInput: FileEntityUpdateInput
+      """
+      Whether to make the file entity publicly visible
+      """
+      makePublic: Boolean = false
     ): Entity!
   }
 `;

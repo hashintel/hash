@@ -201,6 +201,7 @@ impl TransMatrix {
 }
 
 impl Default for TransMatrix {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

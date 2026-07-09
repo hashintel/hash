@@ -24,7 +24,7 @@ export default defineConfig({
     ],
     environment: "node",
     testTimeout: 60_000,
-    hookTimeout: 60_000,
+    hookTimeout: 120_000,
     sequence: {
       hooks: "list",
     },

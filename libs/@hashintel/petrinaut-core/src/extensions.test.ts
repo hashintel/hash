@@ -14,6 +14,7 @@ const allEnabled: PetrinautExtensionSettings = {
   stochasticity: true,
   dynamics: true,
   parameters: true,
+  subnets: true,
 };
 
 const createSDCPN = (
@@ -57,6 +58,99 @@ const createSDCPN = (
   ],
   differentialEquations: [],
   parameters: [],
+});
+
+const createComponentPortSDCPN = (
+  transition: Partial<SDCPN["transitions"][number]> = {},
+): SDCPN => ({
+  places: [],
+  transitions: [
+    {
+      id: "transition-1",
+      name: "Fire",
+      inputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "instance-1",
+            portPlaceId: "port-in",
+          },
+          weight: 1,
+          type: "standard",
+        },
+      ],
+      outputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "instance-1",
+            portPlaceId: "port-out",
+          },
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 0,
+      y: 0,
+      ...transition,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+  componentInstances: [
+    {
+      id: "instance-1",
+      name: "Instance 1",
+      subnetId: "subnet-1",
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    },
+  ],
+  subnets: [
+    {
+      id: "subnet-1",
+      name: "Subnet 1",
+      places: [
+        {
+          id: "port-in",
+          name: "Port In",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          isPort: true,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "port-out",
+          name: "Port Out",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          isPort: true,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [
+        {
+          id: "type-1",
+          name: "Token",
+          iconSlug: "circle",
+          displayColor: "#808080",
+          elements: [{ elementId: "element-1", name: "x", type: "real" }],
+        },
+      ],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    },
+  ],
 });
 
 describe("transition logic availability", () => {
@@ -123,6 +217,51 @@ describe("transition logic availability", () => {
     });
   });
 
+  it("allows predicate lambda authoring for coloured component-port inputs", () => {
+    const sdcpn = createComponentPortSDCPN({ outputArcs: [] });
+
+    expect(
+      getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, {
+        ...allEnabled,
+        stochasticity: false,
+      }),
+    ).toMatchObject({
+      lambda: true,
+      predicateLambda: true,
+      stochasticLambda: false,
+    });
+  });
+
+  it("allows transition kernel authoring for coloured component-port outputs", () => {
+    const sdcpn = createComponentPortSDCPN({ inputArcs: [] });
+
+    expect(
+      getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, {
+        ...allEnabled,
+        stochasticity: false,
+      }),
+    ).toMatchObject({
+      transitionKernel: true,
+    });
+  });
+
+  it("ignores component-port arcs when subnets are disabled", () => {
+    const sdcpn = createComponentPortSDCPN();
+
+    expect(
+      getTransitionLogicAvailability(sdcpn.transitions[0]!, sdcpn, {
+        ...allEnabled,
+        stochasticity: false,
+        subnets: false,
+      }),
+    ).toMatchObject({
+      lambda: false,
+      predicateLambda: false,
+      stochasticLambda: false,
+      transitionKernel: false,
+    });
+  });
+
   it("clears unavailable lambda and kernel code while preserving core fields", () => {
     const sdcpn = createSDCPN(
       {
@@ -139,6 +278,7 @@ describe("transition logic availability", () => {
         stochasticity: false,
         dynamics: false,
         parameters: true,
+        subnets: true,
       },
     );
 
@@ -170,6 +310,23 @@ describe("transition logic availability", () => {
     });
   });
 
+  it("preserves lambda and kernel code for coloured component-port arcs", () => {
+    const sdcpn = createComponentPortSDCPN();
+    const transition = sanitizeTransitionForExtensions(
+      sdcpn.transitions[0]!,
+      sdcpn,
+      {
+        ...allEnabled,
+        stochasticity: false,
+      },
+    );
+
+    expect(transition).toMatchObject({
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+    });
+  });
+
   it("returns a sanitized SDCPN copy without mutating the source", () => {
     const sdcpn = createSDCPN(
       {
@@ -184,6 +341,7 @@ describe("transition logic availability", () => {
       stochasticity: false,
       dynamics: false,
       parameters: false,
+      subnets: true,
     });
 
     expect(sanitized.places[0]!.colorId).toBeNull();
@@ -194,6 +352,27 @@ describe("transition logic availability", () => {
     });
     expect(sdcpn.places[0]!.colorId).toBe("type-1");
     expect(sdcpn.transitions[0]!.lambdaCode).not.toBe("");
+  });
+
+  it("removes component-port arcs and code when subnets are disabled", () => {
+    const sdcpn = createComponentPortSDCPN();
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, {
+      ...allEnabled,
+      stochasticity: false,
+      subnets: false,
+    });
+
+    expect(sanitized.subnets).toBeUndefined();
+    expect(sanitized.componentInstances).toBeUndefined();
+    expect(sanitized.transitions[0]).toMatchObject({
+      inputArcs: [],
+      outputArcs: [],
+      lambdaCode: "",
+      transitionKernelCode: "",
+    });
+    expect(sdcpn.transitions[0]!.inputArcs).toHaveLength(1);
+    expect(sdcpn.transitions[0]!.outputArcs).toHaveLength(1);
   });
 
   it("converts coloured scenario initial-state rows to uncoloured counts when colours are disabled", () => {

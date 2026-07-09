@@ -9,8 +9,6 @@ import {
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";
-import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
-import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
@@ -84,17 +82,19 @@ export const createDraftLinkEntity = ({
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entity, draftLinksToCreate, setDraftLinksToCreate, readonly } =
-    useEntityEditor();
-  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
-
   const { value: cell, onFinishedEditing, onChange } = props;
   const {
+    draftLinksToCreate,
+    entity,
     expectedEntityTypes,
     linkAndTargetEntities,
     linkEntityTypeId,
     linkTitle,
+    markLinkAsArchived,
     maxItems,
+    onEntityClick,
+    readonly,
+    setDraftLinksToCreate,
   } = cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
@@ -174,6 +174,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
               <LinkedEntityListRow
                 key={linkEntityId}
                 closeEditor={onFinishedEditing}
+                onEntityClick={onEntityClick}
+                readonly={readonly}
                 entityId={
                   isUncreatedDraftLink
                     ? /**
@@ -200,7 +202,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                   onChange(newCell);
 
-                  markLinkEntityToArchive(linkEntityId);
+                  markLinkAsArchived(linkEntityId);
                 }}
               />
             );
@@ -212,6 +214,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         !readonly &&
         (addingLink ? (
           <LinkedEntitySelector
+            entity={entity}
             includeDrafts={
               !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
             }
@@ -220,6 +223,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
             linkEntityTypeId={linkEntityTypeId}
+            readonly={readonly}
           />
         ) : (
           <AddAnotherButton

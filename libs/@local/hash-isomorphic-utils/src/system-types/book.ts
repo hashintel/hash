@@ -59,6 +59,8 @@ import type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type {
   Confidence,
@@ -123,6 +125,8 @@ export type {
   TextDataTypeWithMetadata,
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

@@ -16,7 +16,7 @@ import type { PropsWithChildren } from "react";
 
 export type TableExpandStatus = Record<string, boolean>;
 
-interface Props extends EntityEditorProps {
+interface Props extends Omit<EntityEditorProps, "hasRootLinkDataBeenResolved"> {
   entity: HashEntity;
   isLocalDraftOnly: boolean;
   propertyExpandStatus: TableExpandStatus;

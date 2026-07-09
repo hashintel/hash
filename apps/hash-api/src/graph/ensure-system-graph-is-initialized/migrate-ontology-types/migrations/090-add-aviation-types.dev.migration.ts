@@ -825,16 +825,16 @@ const migrate: MigrationFunction = async ({
    * Step 3: Create link entity types
    */
 
-  const departsFromLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const takesOffFromLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Departs From",
+        title: "Takes Off From",
         icon: "/icons/types/plane-departure.svg",
         inverse: {
-          title: "Departure For",
+          title: "Takeoff For",
         },
         description:
           "Indicates the airport from which a flight departs, including departure-specific details.",
@@ -856,16 +856,16 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const arrivesAtLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const landsAtLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Arrives At",
+        title: "Lands At",
         icon: "/icons/types/plane-arrival.svg",
         inverse: {
-          title: "Arrival For",
+          title: "Landing For",
         },
         description:
           "Indicates the airport at which a flight arrives, including arrival-specific details.",
@@ -988,13 +988,13 @@ const migrate: MigrationFunction = async ({
         ],
         outgoingLinks: [
           {
-            linkEntityType: departsFromLinkEntityType,
+            linkEntityType: takesOffFromLinkEntityType,
             destinationEntityTypes: [airportEntityType.schema.$id],
             minItems: 1,
             maxItems: 1,
           },
           {
-            linkEntityType: arrivesAtLinkEntityType,
+            linkEntityType: landsAtLinkEntityType,
             destinationEntityTypes: [airportEntityType.schema.$id],
             minItems: 1,
             maxItems: 1,

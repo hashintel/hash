@@ -26,7 +26,6 @@ serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 thiserror      = { workspace = true }
 url            = { workspace = true }
-utoipa         = { workspace = true, optional = true }
 uuid           = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
@@ -34,9 +33,6 @@ hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-
-[features]
-utoipa = ["dep:utoipa"]
 
 [lints]
 workspace = true

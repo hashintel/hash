@@ -14,6 +14,8 @@ export const entityTypedef = gql`
   scalar EntityValidationReport
   scalar QueryEntitiesRequest
   scalar QueryEntitiesResponse
+  scalar SearchEntitiesRequest
+  scalar SearchEntitiesResponse
   scalar QueryEntitySubgraphRequest
   scalar QueryEntitySubgraphResponse
   scalar TypeIdsAndPropertiesForEntity
@@ -116,6 +118,8 @@ export const entityTypedef = gql`
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
 
+    searchEntities(request: SearchEntitiesRequest!): SearchEntitiesResponse!
+
     queryEntitySubgraph(
       request: QueryEntitySubgraphRequest!
     ): QueryEntitySubgraphResponse!
@@ -216,6 +220,10 @@ export const entityTypedef = gql`
       Whether the created entity should be a draft
       """
       draft: Boolean
+      """
+      Whether the created entity should be publicly visible
+      """
+      makePublic: Boolean = false
     ): Entity!
 
     """

@@ -61,10 +61,12 @@ import type {
   TextDataTypeWithMetadata,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
-  UploadCompletedAtPropertyValue,
-  UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  UploadCompletedAtPropertyValue,
+  UploadCompletedAtPropertyValueWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -131,6 +133,8 @@ export type {
   UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

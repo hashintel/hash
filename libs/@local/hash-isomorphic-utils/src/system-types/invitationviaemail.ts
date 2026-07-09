@@ -23,6 +23,8 @@ import type {
   InvitationViaEmailPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -46,4 +48,6 @@ export type {
   InvitationViaEmailPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

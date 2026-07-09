@@ -1,0 +1,6 @@
+error[expander::fn-params-type-annotation]: Type annotation on parameter list
+  ╭▸ 
+8 │     "#type": "Int"
+  │               ━━━ type annotation is not allowed on the parameter list
+  │
+  ╰ help: remove the type annotation; each parameter already declares its type individually as `(name: type)`

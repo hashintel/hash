@@ -494,7 +494,7 @@ describe("parseClipboardPayload", () => {
             name: "Token",
             iconSlug: "circle",
             displayColor: "#FF0000",
-            elements: [{ elementId: "e1", name: "val", type: "string" }],
+            elements: [{ elementId: "e1", name: "val", type: "complex" }],
           },
         ],
         differentialEquations: [],

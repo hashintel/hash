@@ -84,6 +84,7 @@ impl Island {
         self.members.is_empty()
     }
 
+    #[inline]
     #[must_use]
     pub const fn traversals(&self) -> TraversalPathBitSet {
         self.traversals
@@ -114,6 +115,7 @@ impl IslandPlacement<Global> {
 }
 
 impl Default for IslandPlacement<Global> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

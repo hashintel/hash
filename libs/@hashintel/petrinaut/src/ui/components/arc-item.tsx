@@ -84,6 +84,8 @@ const arcDotStyle = css({
 
 interface ArcItemProps {
   placeId: string;
+  label?: string;
+  color?: string;
   weight: number;
   disabled?: boolean;
   availablePlaces?: PlaceOption[];
@@ -94,6 +96,8 @@ interface ArcItemProps {
 
 export const ArcItem = ({
   placeId,
+  label,
+  color,
   weight,
   disabled = false,
   availablePlaces,
@@ -103,11 +107,17 @@ export const ArcItem = ({
 }: ArcItemProps) => {
   const selectOptions: SelectItem<string>[] = useMemo(
     () =>
-      availablePlaces?.map((pl) => ({
-        value: pl.id,
-        text: pl.name,
-      })) ?? [],
-    [availablePlaces],
+      availablePlaces
+        ?.map((pl) => ({
+          value: pl.id,
+          text: pl.name,
+        }))
+        .concat(
+          availablePlaces.some((pl) => pl.id === placeId)
+            ? []
+            : [{ value: placeId, text: label ?? placeId }],
+        ) ?? [{ value: placeId, text: label ?? placeId }],
+    [availablePlaces, label, placeId],
   );
 
   const hasSelect = availablePlaces && onPlaceChange && !disabled;
@@ -122,23 +132,23 @@ export const ArcItem = ({
         readonly={!hasSelect}
         disabled={disabled}
         value={placeId}
-        onChange={(newId) => {
+        onChange={(newId: string) => {
           if (newId !== placeId) {
             onPlaceChange?.(newId);
           }
         }}
         items={selectOptions}
-        renderItem={(value) => {
+        renderItem={(value: string) => {
           const place = availablePlaces?.find((pl) => pl.id === value);
           return (
             <div className={arcStyle}>
               <div
                 className={arcDotStyle}
                 style={{
-                  backgroundColor: place?.color ?? "#d4d4d4",
+                  backgroundColor: place?.color ?? color ?? "#d4d4d4",
                 }}
               />
-              {place?.name ?? value}
+              {place?.name ?? label ?? value}
             </div>
           );
         }}

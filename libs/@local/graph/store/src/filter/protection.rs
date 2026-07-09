@@ -870,6 +870,7 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::RightEntityConfidence
         | EntityQueryPath::RightEntityProvenance
         | EntityQueryPath::Archived
+        | EntityQueryPath::ReadOnly
         | EntityQueryPath::EntityTypeEdge {
             edge_kind: _,
             path: _,
