@@ -2389,6 +2389,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "dispatch2"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2876,6 +2897,16 @@ name = "fixedbitset"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
+
+[[package]]
+name = "flate2"
+version = "1.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+]
 
 [[package]]
 name = "fnv"
@@ -5954,6 +5985,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
+ "simd-adler32",
 ]
 
 [[package]]
@@ -6775,6 +6807,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "option-ext"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+
+[[package]]
 name = "ordered-float"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7176,6 +7214,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 dependencies = [
  "camino",
+]
+
+[[package]]
+name = "pbjson"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8edd1efdd8ab23ba9cb9ace3d9987a72663d5d7c9f74fa00b51d6213645cf6c"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
+name = "pbjson-build"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ed4d5c6ae95e08ac768883c8401cf0e8deb4e6e1d6a4e1fd3d2ec4f0ec63200"
+dependencies = [
+ "heck",
+ "itertools 0.14.0",
+ "prost",
+ "prost-types",
 ]
 
 [[package]]
@@ -8177,6 +8237,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
+dependencies = [
+ "getrandom 0.2.17",
+ "libredox",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "ref-cast"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9161,6 +9232,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "simd-adler32"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
+
+[[package]]
 name = "simd_cesu8"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9218,15 +9295,6 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
-
-[[package]]
-name = "slotmap"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdd58c3c93c3d278ca835519292445cb4b0d4dc59ccfdf7ceadaab3f8aeb4038"
-dependencies = [
- "version_check",
-]
 
 [[package]]
 name = "smallvec"
@@ -9705,8 +9773,9 @@ dependencies = [
 
 [[package]]
 name = "temporalio-client"
-version = "0.1.0"
-source = "git+https://github.com/temporalio/sdk-core?rev=231e21c#231e21cadb8004197a5b1dba2ecb1313596cc34c"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "257e69cdc823bfd0707d4daac7470451d59d31aefe519c4eb60d4ceeb77c443e"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9723,11 +9792,11 @@ dependencies = [
  "hyper",
  "hyper-util",
  "parking_lot",
- "rand 0.9.4",
- "slotmap",
+ "rand 0.10.1",
  "temporalio-common",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-rustls",
  "tonic",
  "tower",
  "tracing",
@@ -9737,16 +9806,74 @@ dependencies = [
 
 [[package]]
 name = "temporalio-common"
-version = "0.1.0"
-source = "git+https://github.com/temporalio/sdk-core?rev=231e21c#231e21cadb8004197a5b1dba2ecb1313596cc34c"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6988555678e6177c08553aece24312643b714d35983ad9bf383c9f9eb77ea6ec"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64",
  "bon",
+ "crc32fast",
  "derive_more",
+ "dirs",
+ "erased-serde",
+ "futures",
+ "parking_lot",
  "prost",
- "prost-wkt",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "temporalio-common-wasm",
+ "temporalio-protos",
+ "thiserror 2.0.18",
+ "toml",
+ "tonic",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "temporalio-common-wasm"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d5dba313ccb58da518e23f85557e7cb9d5a1298fd7d8935328521ca641a4b11"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bon",
+ "crc32fast",
+ "derive_more",
+ "erased-serde",
+ "futures",
+ "parking_lot",
+ "prost",
+ "serde",
+ "serde_json",
+ "temporalio-protos",
+ "thiserror 2.0.18",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "temporalio-protos"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bce29ee903d46edec16df756e78e5ab125e4d342957174d4ac8ee30290ef249a"
+dependencies = [
+ "anyhow",
+ "base64",
+ "derive_more",
+ "http 1.4.2",
+ "pbjson",
+ "pbjson-build",
+ "prost",
+ "prost-types",
  "prost-wkt-types",
  "serde",
  "serde_json",
@@ -9754,10 +9881,6 @@ dependencies = [
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
- "tracing",
- "tracing-core",
- "url",
- "uuid",
 ]
 
 [[package]]
@@ -10251,6 +10374,7 @@ dependencies = [
  "axum",
  "base64",
  "bytes",
+ "flate2",
  "h2",
  "http 1.4.2",
  "http-body 1.0.1",
@@ -10513,6 +10637,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
+ "parking_lot",
  "regex-automata",
  "serde",
  "serde_json",

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _};
 use opentelemetry::{global, propagation::Injector};
 use serde::Serialize;
-use temporalio_client::{NamespacedClient, WorkflowService, tonic::IntoRequest as _};
+use temporalio_client::{NamespacedClient, grpc::WorkflowService, tonic::IntoRequest as _};
 use temporalio_common::protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL,
     coresdk::IntoPayloadsExt as _,
@@ -106,7 +106,7 @@ impl TemporalClient {
     /// spans off the caller's trace.
     ///
     /// Goes via the low-level `WorkflowService::start_workflow_execution`
-    /// because `WorkflowClientTrait::start_workflow` does not expose the
+    /// because the high-level `Client::start_workflow` does not expose the
     /// proto `header` field. The span is annotated with `otel.kind =
     /// "producer"` for the asynchronous fire-and-forget shape (the value
     /// is case-sensitive; `tracing-opentelemetry` falls back to
@@ -121,12 +121,12 @@ impl TemporalClient {
         payload: &(impl Serialize + Sync),
     ) -> Result<String, Report<WorkflowError>> {
         let mut client = self.client.clone();
-        // `WorkflowClientTrait::start_workflow` auto-populates `identity` from
-        // `ClientOptions` (typically `pid@hostname`). The low-level
+        // The high-level start-workflow path auto-populates `identity` from
+        // the connection options (typically `pid@hostname`). The low-level
         // `StartWorkflowExecutionRequest` defaults it to an empty string,
         // which makes Temporal Server / UI unable to attribute starts to a
         // client. Read it back from the configured client.
-        let identity = client.get_client().identity();
+        let identity = client.identity();
         let request = StartWorkflowExecutionRequest {
             namespace: <_ as NamespacedClient>::namespace(&client),
             input: vec![Payload {

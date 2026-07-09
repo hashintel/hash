@@ -15,24 +15,26 @@ mod ai;
 mod error;
 
 use error_stack::{Report, ResultExt as _};
-use temporalio_client::{Client, ClientOptions, NamespacedClient as _, RetryClient};
+use temporalio_client::{
+    Client, ClientOptions, Connection, ConnectionOptions, NamespacedClient as _,
+};
 use url::Url;
 
 pub struct TemporalClient {
-    client: RetryClient<Client>,
+    client: Client,
 }
 
 impl fmt::Debug for TemporalClient {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("TemporalClient")
-            .field("namespace", &self.client.get_client().namespace())
-            .field("identity", &self.client.get_client().identity())
+            .field("namespace", &self.client.namespace())
+            .field("identity", &self.client.identity())
             .finish()
     }
 }
 
 pub struct TemporalClientConfig {
-    options: ClientOptions,
+    options: ConnectionOptions,
 }
 
 impl IntoFuture for TemporalClientConfig {
@@ -42,11 +44,11 @@ impl IntoFuture for TemporalClientConfig {
 
     fn into_future(self) -> Self::IntoFuture {
         async move {
+            let connection = Connection::connect(self.options)
+                .await
+                .change_context(ConnectionError)?;
             Ok(TemporalClient {
-                client: self
-                    .options
-                    .connect("HASH", None)
-                    .await
+                client: Client::new(connection, ClientOptions::new("HASH").build())
                     .change_context(ConnectionError)?,
             })
         }
@@ -56,10 +58,9 @@ impl IntoFuture for TemporalClientConfig {
 impl TemporalClientConfig {
     pub fn new(url: impl Into<Url>) -> Self {
         Self {
-            options: ClientOptions::builder()
+            options: ConnectionOptions::new(url)
                 .client_name("HASH Temporal client")
                 .client_version(env!("CARGO_PKG_VERSION"))
-                .target_url(url)
                 .build(),
         }
     }
