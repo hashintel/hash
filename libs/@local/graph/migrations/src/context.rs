@@ -1,4 +1,4 @@
-use core::{error::Error, future::IntoFuture};
+use core::error::Error;
 
 use error_stack::Report;
 

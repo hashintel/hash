@@ -1,4 +1,4 @@
-use core::{future::IntoFuture, iter};
+use core::iter;
 
 use error_stack::Report;
 use futures::{StreamExt as _, TryStreamExt as _};
