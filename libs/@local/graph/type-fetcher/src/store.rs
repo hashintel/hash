@@ -1651,7 +1651,7 @@ where
     }
 
     async fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {

@@ -20,6 +20,7 @@ mod property_metadata;
 mod property_type;
 mod read_only;
 mod sorting;
+mod transaction;
 
 use std::collections::{HashMap, HashSet};
 
@@ -836,7 +837,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {

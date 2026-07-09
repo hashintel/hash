@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::cell::RefCell;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use hash_graph_store::{
@@ -70,7 +71,7 @@ pub fn bench_get_entity_by_id(
 pub fn bench_query_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &RefCell<&mut Store>,
     actor_id: ActorEntityUuid,
     traversal_params: &SubgraphTraversalParams,
 ) {
@@ -91,6 +92,7 @@ pub fn bench_query_entities_by_property(
                 },
             );
             let response = store
+                .borrow_mut()
                 .query_entity_subgraph(
                     actor_id,
                     QueryEntitySubgraphParams::from_parts(
@@ -120,7 +122,7 @@ pub fn bench_query_entities_by_property(
 pub fn bench_get_link_by_target_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &RefCell<&mut Store>,
     actor_id: ActorEntityUuid,
     traversal_params: &SubgraphTraversalParams,
 ) {
@@ -145,6 +147,7 @@ pub fn bench_get_link_by_target_by_property(
                 },
             );
             let response = store
+                .borrow_mut()
                 .query_entity_subgraph(
                     actor_id,
                     QueryEntitySubgraphParams::from_parts(

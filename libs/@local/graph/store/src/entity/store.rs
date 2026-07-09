@@ -831,11 +831,18 @@ pub trait EntityStore {
 
     /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///
+    /// The whole subgraph read is expected to be evaluated against a single consistent snapshot
+    /// of the store, so a concurrent write cannot cause the returned subgraph to contain a link
+    /// entity without the edge to its endpoint. Implementations backed by a database should run
+    /// all statements of the read inside a single read-only transaction with an isolation level
+    /// of at least repeatable read. This requires mutable access to the store to begin the
+    /// transaction.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;

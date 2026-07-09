@@ -18,6 +18,7 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
+use hash_graph_migrations::{IsolationLevel, TransactionBuilder as _};
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
@@ -704,6 +705,220 @@ where
             // Populated later
             permissions: None,
         })
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
+    async fn query_entity_subgraph_impl(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        let actions = params.view_actions();
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_actions(actions, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+        let actor = policy_components.actor_id();
+
+        let provider = StoreProvider::new(self, &policy_components);
+
+        let (mut request, traversal_params) = params.into_parts();
+        request
+            .filter
+            .convert_parameters(&provider)
+            .await
+            .change_context(QueryError)?;
+
+        let temporal_axes = request.temporal_axes.resolve();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let QueryEntitiesResponse {
+            entities: root_entities,
+            cursor,
+            closed_multi_entity_types: _,
+            definitions: _,
+            permissions,
+        } = self
+            .query_entities_impl(&request, &temporal_axes, &policy_components)
+            .await?;
+
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
+
+        async move {
+            subgraph.roots.extend(
+                root_entities
+                    .iter()
+                    .map(|entity| entity.vertex_id(time_axis).into()),
+            );
+            subgraph.vertices.entities = root_entities
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
+
+            let mut traversal_context = TraversalContext::default();
+
+            // Iterate over each traversal path and call traverse_entities separately
+            match &traversal_params {
+                SubgraphTraversalParams::Paths { traversal_paths } => {
+                    for path in traversal_paths {
+                        let (entity_traversal_path, ontology_traversal_path) =
+                            path.split_entity_path();
+                        self.traverse_entities_with_path(
+                            &entity_traversal_path,
+                            ontology_traversal_path,
+                            &mut traversal_context,
+                            &provider,
+                            &mut subgraph,
+                        )
+                        .await?;
+                    }
+                }
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                } => {
+                    if traversal_paths.is_empty() {
+                        if graph_resolve_depths.is_of_type {
+                            // If no entity traversal paths are specified, still initialize
+                            // the traversal with ontology resolve depths to enable
+                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
+                            self.traverse_entities_with_resolve_depths(
+                                &[],
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        for path in traversal_paths {
+                            self.traverse_entities_with_resolve_depths(
+                                &path.edges,
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    }
+                }
+            }
+
+            traversal_context
+                .read_traversed_vertices(
+                    self,
+                    &mut subgraph,
+                    request.include_drafts,
+                    provider
+                        .policy_components
+                        .as_ref()
+                        .expect("Policy components should be set"),
+                )
+                .await?;
+
+            if !request.conversions.is_empty() {
+                for entity in subgraph.vertices.entities.values_mut() {
+                    self.convert_entity(&provider, entity, &request.conversions)
+                        .await
+                        .change_context(QueryError)?;
+                }
+            }
+
+            Ok(QueryEntitySubgraphResponse {
+                closed_multi_entity_types: if request.include_entity_types.is_some() {
+                    Some(
+                        self.get_closed_multi_entity_types(
+                            actor_id,
+                            subgraph
+                                .vertices
+                                .entities
+                                .values()
+                                .map(|entity| entity.metadata.entity_type_ids.clone()),
+                            QueryTemporalAxesUnresolved::live_only(),
+                            None,
+                        )
+                        .await?
+                        .entity_types,
+                    )
+                } else {
+                    None
+                },
+                definitions: match request.include_entity_types {
+                    Some(
+                        IncludeEntityTypeOption::Resolved
+                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
+                    ) => {
+                        let entity_type_uuids = subgraph
+                            .vertices
+                            .entities
+                            .values()
+                            .flat_map(|entity| {
+                                entity
+                                    .metadata
+                                    .entity_type_ids
+                                    .iter()
+                                    .map(EntityTypeUuid::from_url)
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect::<Vec<_>>();
+                        Some(
+                            self.get_entity_type_resolve_definitions(
+                                actor_id,
+                                &entity_type_uuids,
+                                request.include_entity_types
+                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
+                            )
+                            .await?,
+                        )
+                    }
+                    None | Some(IncludeEntityTypeOption::Closed) => None,
+                },
+                cursor,
+                entity_permissions: if request.include_permissions {
+                    debug_assert!(permissions.is_none(), "Should not be populated yet");
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
+                } else {
+                    None
+                },
+                subgraph,
+            })
+        }
+        .instrument(tracing::trace_span!("construct_subgraph"))
+        .await
     }
 }
 
@@ -1490,217 +1705,32 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let actions = params.view_actions();
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
-            .with_actions(actions, MergePolicies::Yes)
-            .await
-            .change_context(QueryError)?;
-        let actor = policy_components.actor_id();
-
-        let provider = StoreProvider::new(self, &policy_components);
-
-        let (mut request, traversal_params) = params.into_parts();
-        request
-            .filter
-            .convert_parameters(&provider)
+        // A subgraph read consists of multiple statements: the roots query, one recursive CTE
+        // per traversal path, the permission filtering of the traversed edges, and the final
+        // vertex read. Under `READ COMMITTED` each statement uses its own MVCC snapshot, so a
+        // write committing mid-read can retroactively evict an edge endpoint's edition at the
+        // pinned timestamp, yielding a subgraph containing a link vertex without the edge to
+        // its endpoint. Running the whole read in a single `REPEATABLE READ, READ ONLY`
+        // transaction gives all statements one shared snapshot.
+        let transaction = self
+            .transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only()
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
-        let time_axis = temporal_axes.variable_time_axis();
-
-        let QueryEntitiesResponse {
-            entities: root_entities,
-            cursor,
-            closed_multi_entity_types: _,
-            definitions: _,
-            permissions,
-        } = self
-            .query_entities_impl(&request, &temporal_axes, &policy_components)
+        let response = transaction
+            .query_entity_subgraph_impl(actor_id, params)
             .await?;
 
-        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
+        transaction.commit().await.change_context(QueryError)?;
 
-        async move {
-            subgraph.roots.extend(
-                root_entities
-                    .iter()
-                    .map(|entity| entity.vertex_id(time_axis).into()),
-            );
-            subgraph.vertices.entities = root_entities
-                .into_iter()
-                .map(|entity| (entity.vertex_id(time_axis), entity))
-                .collect();
-
-            let mut traversal_context = TraversalContext::default();
-
-            // Iterate over each traversal path and call traverse_entities separately
-            match &traversal_params {
-                SubgraphTraversalParams::Paths { traversal_paths } => {
-                    for path in traversal_paths {
-                        let (entity_traversal_path, ontology_traversal_path) =
-                            path.split_entity_path();
-                        self.traverse_entities_with_path(
-                            &entity_traversal_path,
-                            ontology_traversal_path,
-                            &mut traversal_context,
-                            &provider,
-                            &mut subgraph,
-                        )
-                        .await?;
-                    }
-                }
-                SubgraphTraversalParams::ResolveDepths {
-                    traversal_paths,
-                    graph_resolve_depths,
-                } => {
-                    if traversal_paths.is_empty() {
-                        if graph_resolve_depths.is_of_type {
-                            // If no entity traversal paths are specified, still initialize
-                            // the traversal with ontology resolve depths to enable
-                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
-                            self.traverse_entities_with_resolve_depths(
-                                &[],
-                                *graph_resolve_depths,
-                                &mut traversal_context,
-                                &provider,
-                                &mut subgraph,
-                            )
-                            .await?;
-                        }
-                    } else {
-                        for path in traversal_paths {
-                            self.traverse_entities_with_resolve_depths(
-                                &path.edges,
-                                *graph_resolve_depths,
-                                &mut traversal_context,
-                                &provider,
-                                &mut subgraph,
-                            )
-                            .await?;
-                        }
-                    }
-                }
-            }
-
-            traversal_context
-                .read_traversed_vertices(
-                    self,
-                    &mut subgraph,
-                    request.include_drafts,
-                    provider
-                        .policy_components
-                        .as_ref()
-                        .expect("Policy components should be set"),
-                )
-                .await?;
-
-            if !request.conversions.is_empty() {
-                for entity in subgraph.vertices.entities.values_mut() {
-                    self.convert_entity(&provider, entity, &request.conversions)
-                        .await
-                        .change_context(QueryError)?;
-                }
-            }
-
-            Ok(QueryEntitySubgraphResponse {
-                closed_multi_entity_types: if request.include_entity_types.is_some() {
-                    Some(
-                        self.get_closed_multi_entity_types(
-                            actor_id,
-                            subgraph
-                                .vertices
-                                .entities
-                                .values()
-                                .map(|entity| entity.metadata.entity_type_ids.clone()),
-                            QueryTemporalAxesUnresolved::live_only(),
-                            None,
-                        )
-                        .await?
-                        .entity_types,
-                    )
-                } else {
-                    None
-                },
-                definitions: match request.include_entity_types {
-                    Some(
-                        IncludeEntityTypeOption::Resolved
-                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
-                    ) => {
-                        let entity_type_uuids = subgraph
-                            .vertices
-                            .entities
-                            .values()
-                            .flat_map(|entity| {
-                                entity
-                                    .metadata
-                                    .entity_type_ids
-                                    .iter()
-                                    .map(EntityTypeUuid::from_url)
-                            })
-                            .collect::<HashSet<_>>()
-                            .into_iter()
-                            .collect::<Vec<_>>();
-                        Some(
-                            self.get_entity_type_resolve_definitions(
-                                actor_id,
-                                &entity_type_uuids,
-                                request.include_entity_types
-                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
-                            )
-                            .await?,
-                        )
-                    }
-                    None | Some(IncludeEntityTypeOption::Closed) => None,
-                },
-                cursor,
-                entity_permissions: if request.include_permissions {
-                    debug_assert!(permissions.is_none(), "Should not be populated yet");
-
-                    let entity_ids = subgraph
-                        .vertices
-                        .entities
-                        .keys()
-                        .map(|vertex_id| vertex_id.base_id)
-                        .collect::<Vec<_>>();
-
-                    let update_permissions = self
-                        .has_permission_for_entities(
-                            actor.into(),
-                            HasPermissionForEntitiesParams {
-                                action: ActionName::UpdateEntity,
-                                entity_ids: Cow::Borrowed(&entity_ids),
-                                temporal_axes: request.temporal_axes,
-                                include_drafts: request.include_drafts,
-                            },
-                        )
-                        .await
-                        .change_context(QueryError)?;
-
-                    let mut permissions: HashMap<EntityId, EntityPermissions> =
-                        HashMap::with_capacity(update_permissions.len());
-
-                    for (entity_id, editions) in update_permissions {
-                        permissions.entry(entity_id).or_default().update = editions;
-                    }
-
-                    Some(permissions)
-                } else {
-                    None
-                },
-                subgraph,
-            })
-        }
-        .instrument(tracing::trace_span!("construct_subgraph"))
-        .await
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip_all)]

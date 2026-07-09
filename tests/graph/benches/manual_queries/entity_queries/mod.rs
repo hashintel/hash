@@ -1,4 +1,4 @@
-use core::{fmt, iter, mem};
+use core::{cell::RefCell, fmt, iter, mem};
 use std::{collections::HashMap, env, ffi::OsStr, fs::File, io, path::Path};
 
 use criterion::{BatchSize, BenchmarkId, Criterion};
@@ -303,7 +303,7 @@ fn read_groups(path: impl AsRef<Path>) -> Result<Vec<(String, JsonValue)>, Repor
         .collect()
 }
 
-async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, request: GraphQuery<'q, 's, 'p>)
+async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &RefCell<S>, request: GraphQuery<'q, 's, 'p>)
 where
     S: EntityStore + Sync,
 {
@@ -315,6 +315,7 @@ where
     match request {
         GraphQuery::QueryEntities(request) => {
             let _response = store
+                .borrow()
                 .query_entities(
                     request.actor_id,
                     request.request.into_params_unchecked(config, None),
@@ -324,6 +325,7 @@ where
         }
         GraphQuery::QueryEntitySubgraph(request) => {
             let _response = store
+                .borrow_mut()
                 .query_entity_subgraph(
                     request.actor_id,
                     request.request.into_traversal_params_unchecked(config),
@@ -375,9 +377,13 @@ fn bench_json_queries(crit: &mut Criterion) {
         ))
         .expect("pool should be able to be created");
 
-    let store = runtime
-        .block_on(pool.acquire(None))
-        .expect("pool should be able to acquire store");
+    // `query_entity_subgraph` takes `&mut self` to run the read in a single transaction; the
+    // `RefCell` provides the mutable borrow from within the benchmark closures.
+    let store = RefCell::new(
+        runtime
+            .block_on(pool.acquire(None))
+            .expect("pool should be able to acquire store"),
+    );
 
     for (query_type, requests) in groups {
         let group_id = query_type.to_string();
