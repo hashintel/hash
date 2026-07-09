@@ -25,8 +25,8 @@ import optuna
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from petrinaut_client import PetrinautModelSpec, PetrinautModel
-from petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
+from src.petrinaut_client import PetrinautModelSpec, PetrinautModel
+from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
