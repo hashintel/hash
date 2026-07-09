@@ -29,6 +29,8 @@ const {
   ScatterplotLayer,
   LineLayer,
   TextLayer,
+  PolygonLayer,
+  BitmapLayer,
   DataFilterExtension,
   LinearInterpolator,
 } = deck;
@@ -51,6 +53,23 @@ const farfieldOpacity = (reveal) =>
     Math.min(
       0.9,
       FARFIELD_INTENSITY * Math.pow(2, 0.6 * (reveal - FARFIELD_REF_REVEAL)),
+    ),
+  );
+// vector far field: the first paint. Glow texture + flat region fills
+// + coastline strokes, strongest fully zoomed out and gone once the
+// point field has taken over (the speck layer above stays for texture
+// in between). Fills are neutral ink, NOT type colors: the specks
+// already carry type identity and a colored fill underneath would
+// read as a type claim the regions don't make.
+const FIELD_FADE_START = 1.5; // reveal where the field starts to yield
+const FIELD_FADE_END = 3.5; // reveal where it is fully gone
+const FIELD_GLOW = 0.45;
+const fieldOpacity = (reveal) =>
+  Math.max(
+    0,
+    Math.min(
+      1,
+      1 - (reveal - FIELD_FADE_START) / (FIELD_FADE_END - FIELD_FADE_START),
     ),
   );
 const AMBIENT_MIN_REVEAL = 6; // reveal level where ambient links fade in
@@ -115,6 +134,25 @@ async function main() {
       fetchBin(`data/nodes_weight_${t}.f32`, Float32Array, onBytes),
     ),
   );
+
+  // far-field vectors, already chain-aligned into the canonical frame
+  // by prepare_demo. Flattened to one datum per polygon; array order is
+  // painter's order (area desc), so nesting composites correctly.
+  const farfieldPolys = manifest.farfield
+    ? (
+        await Promise.all(
+          tags.map((t) =>
+            fetch(`data/farfield_${t}.json`, { cache: "no-store" }).then((r) =>
+              r.json(),
+            ),
+          ),
+        )
+      ).map((f) =>
+        f.regions.flatMap((r) =>
+          r.polygons.map((polygon) => ({ polygon, envelope: r.envelope })),
+        ),
+      )
+    : null;
 
   const n = manifest.count;
   const [[xmin, ymin], [xmax, ymax]] = manifest.extent;
@@ -439,7 +477,50 @@ async function main() {
     );
     const data = nodeData();
 
-    const out = [
+    const out = [];
+
+    // vector first paint: glow + region fills/strokes, bottom of the
+    // stack. Region trees don't correspond across alpha levels (no
+    // shared ids to lerp by), so the slider crossfades the two
+    // adjacent levels instead -- shapes dissolve rather than morph.
+    const fo = fieldOpacity(reveal);
+    if (farfieldPolys && fo > 0.02) {
+      const li = levelOf(sliderPos);
+      const t = sliderPos - li;
+      for (const [lvl, w] of [
+        [li, 1 - t],
+        [Math.min(li + 1, levels - 1), t],
+      ]) {
+        if (w < 0.02) continue;
+        out.push(
+          new BitmapLayer({
+            id: `glow-${lvl}`,
+            image: `data/glow_${tags[lvl]}.png`,
+            bounds: [xmin, ymin, xmax, ymax],
+            opacity: FIELD_GLOW * fo * w,
+            pickable: false,
+          }),
+          new PolygonLayer({
+            id: `farfield-regions-${lvl}`,
+            data: farfieldPolys[lvl],
+            getPolygon: (d) => d.polygon,
+            filled: true,
+            stroked: true,
+            // envelopes are coastline-only; their children carry the fill
+            getFillColor: (d) =>
+              d.envelope ? [140, 155, 190, 10] : [140, 155, 190, 34],
+            getLineColor: (d) =>
+              d.envelope ? [175, 185, 210, 70] : [175, 185, 210, 110],
+            getLineWidth: 1,
+            lineWidthUnits: "pixels",
+            opacity: fo * w,
+            pickable: false,
+          }),
+        );
+      }
+    }
+
+    out.push(
       // far field: every node as a speck of light; density-weighted
       // over-blending, see the constant block up top
       new ScatterplotLayer({
@@ -453,7 +534,7 @@ async function main() {
         antialiasing: true,
         updateTriggers: { getFillColor: colorVersion },
       }),
-    ];
+    );
 
     if (ambient.length && ambientOpacity > 0.02) {
       out.push(

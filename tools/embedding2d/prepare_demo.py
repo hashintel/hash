@@ -10,6 +10,8 @@ demo/data/:
 - nodes_degree.u16      -- (n,) uint16 link degree (clamped)
 - edges_offsets.u32     -- (n+1,) CSR offsets into edges_neighbors
 - edges_neighbors.u32   -- undirected adjacency, node indices
+- farfield_aXXX.json    -- region polygons for the vector first paint
+- glow_aXXX.png         -- ink-tinted density texture (alpha = density)
 - manifest.json         -- alphas, extent, palette, types, labels, reveals
 
 All per-alpha files share ONE row order (and one LOD assignment), both
@@ -33,6 +35,7 @@ import uuid
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 from scipy.ndimage import uniform_filter
 
 from app.fit import Layout
@@ -72,6 +75,15 @@ PER_CELL = 24
 # dimmed, keeping them clearly the brightest regions.
 WEIGHT_GAMMA = 0.7
 WEIGHT_MAX_RATIO = 150.0
+
+# Far-field first paint: which regions build feeds the viewer, and the
+# glow texture regenerated here (NOT farfield-aXXX-density.png: rings
+# rotate through the Procrustes chain below just fine, but an
+# axis-aligned raster cannot, so the glow is recomputed from the
+# aligned positions instead). INK matches the demo's text color.
+FARFIELD_SOURCE = "regions-layout"
+GLOW_RES = 512
+INK = (235, 235, 245)
 
 DEGREE_QUERY = """
     SELECT web_id, entity_uuid, count(*) AS degree
@@ -196,7 +208,7 @@ def build_csr(edges: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
     return offsets, neighbors
 
 
-def procrustes_align(target: np.ndarray, source: np.ndarray) -> np.ndarray:
+def procrustes_align(target: np.ndarray, source: np.ndarray):
     """Similarity-align `source` onto `target` (paired rows): optimal
     rotation/reflection + uniform scale + translation, least squares.
 
@@ -204,13 +216,107 @@ def procrustes_align(target: np.ndarray, source: np.ndarray) -> np.ndarray:
     so consecutive ladder levels differ by a similarity transform on top
     of real rearrangement; removing it keeps the slider from reading as
     a zoom/rotate and leaves only the movement that means something.
+
+    Returns (aligned, apply): `apply` maps any (m, 2) array in the
+    source frame into the target frame with the same similarity -- the
+    farfield ring geometry has to ride along with its points.
     """
     mu_t, mu_s = target.mean(axis=0), source.mean(axis=0)
     t, s = target - mu_t, source - mu_s
     u, sig, vt = np.linalg.svd(s.T @ t)
     rotation = u @ vt
     scale = sig.sum() / (s * s).sum()
-    return ((s @ rotation) * scale + mu_t).astype(np.float32)
+
+    def apply(pts: np.ndarray) -> np.ndarray:
+        return ((pts - mu_s) @ rotation) * scale + mu_t
+
+    return apply(source).astype(np.float32), apply
+
+
+def shoelace(ring: np.ndarray) -> float:
+    x, y = ring[:, 0], ring[:, 1]
+    return 0.5 * float(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
+
+
+def ring_contains(ring: np.ndarray, pt: np.ndarray) -> bool:
+    """Ray cast; rings come from mask tracing so they never cross, and a
+    single vertex test decides containment for a whole ring."""
+    x, y = ring[:-1, 0], ring[:-1, 1]
+    x2, y2 = np.roll(x, -1), np.roll(y, -1)
+    m = (y > pt[1]) != (y2 > pt[1])
+    xi = x[m] + (pt[1] - y[m]) * (x2[m] - x[m]) / (y2[m] - y[m])
+    return bool(np.count_nonzero(xi > pt[0]) % 2)
+
+
+def nest_rings(rings: list[np.ndarray]) -> list[list[np.ndarray]]:
+    """Group a region's flat ring list into [outer, hole, ...] polygons.
+
+    farfield emits rings unordered (render_farfield fills them even-odd,
+    which deck's PolygonLayer can't); containment depth recovers the
+    nesting: even depth = an exterior, odd = a hole in the smallest
+    exterior that contains it. Islands inside holes become their own
+    polygons again."""
+    order = sorted(range(len(rings)), key=lambda i: -abs(shoelace(rings[i])))
+    parent: dict[int, int | None] = {}
+    depth: dict[int, int] = {}
+    for pos, i in enumerate(order):
+        parent[i], depth[i] = None, 0
+        # candidates ascending by area: first hit = smallest container
+        for j in reversed(order[:pos]):
+            if ring_contains(rings[j], rings[i][0]):
+                parent[i], depth[i] = j, depth[j] + 1
+                break
+    return [
+        [rings[i]] + [rings[j] for j in parent if parent[j] == i]
+        for i in order
+        if depth[i] % 2 == 0
+    ]
+
+
+def ship_farfield(run: Path, tag: str, transform, out: Path) -> bool:
+    """Rewrite run/<source>/farfield-<tag>.json into the demo frame:
+    rings/anchors through the alignment chain, rings nested into
+    polygons. Painter's order (area desc) is preserved from the build."""
+    src = run / FARFIELD_SOURCE / f"farfield-{tag}.json"
+    if not src.exists():
+        return False
+    payload = json.loads(src.read_text())
+    regions = []
+    for r in payload["regions"]:
+        rings = [transform(np.asarray(ring, dtype=np.float64)) for ring in r["rings"]]
+        anchor = transform(np.asarray([r["anchor"]], dtype=np.float64))[0]
+        regions.append(
+            {
+                "envelope": r["envelope"],
+                "persistence": r["persistence"],
+                "nEntities": r["n_entities"],
+                "anchor": [round(float(v), 2) for v in anchor],
+                "polygons": [
+                    [np.round(ring, 2).tolist() for ring in poly]
+                    for poly in nest_rings(rings)
+                ],
+            }
+        )
+    (out / f"farfield_{tag}.json").write_text(json.dumps({"regions": regions}))
+    return True
+
+
+def glow_texture(xy: np.ndarray, extent: list[list[float]]) -> Image.Image:
+    """Ink-tinted RGBA glow, alpha = log-toned smoothed density. Row 0 =
+    extent top, matching BitmapLayer's image orientation."""
+    (xmin, ymin), (xmax, ymax) = extent
+    hist, _, _ = np.histogram2d(
+        xy[:, 0], xy[:, 1], bins=GLOW_RES, range=[[xmin, xmax], [ymin, ymax]]
+    )
+    # uniform_filter can dip a hair below zero by float rounding, and
+    # (negative)**0.7 is NaN -> speckled holes in the texture
+    dens = np.maximum(uniform_filter(hist, size=3), 0.0)
+    toned = (np.log1p(dens) / np.log1p(max(float(dens.max()), 1e-9))) ** 0.7
+    rgba = np.zeros((GLOW_RES, GLOW_RES, 4), dtype=np.uint8)
+    rgba[..., :3] = INK
+    # histogram2d axes are (x, y); transpose to rows=y, then flip to +y up
+    rgba[..., 3] = (toned.T[::-1] * 255).astype(np.uint8)
+    return Image.fromarray(rgba, mode="RGBA")
 
 
 def density_weights(xy: np.ndarray, extent: list[list[float]]) -> np.ndarray:
@@ -338,9 +444,11 @@ def main() -> None:
     xys = {alpha: layouts[alpha].xy[sort].astype(np.float32) for alpha in alphas}
 
     # Chain-align each level onto its aligned predecessor, so the whole
-    # ladder lives in the alpha=1.0 frame.
+    # ladder lives in the alpha=1.0 frame. Keep the per-level transforms:
+    # the farfield vectors live in the original layout frames too.
+    transforms = {alphas[0]: lambda pts: pts}
     for prev, cur in zip(alphas, alphas[1:]):
-        xys[cur] = procrustes_align(xys[prev], xys[cur])
+        xys[cur], transforms[cur] = procrustes_align(xys[prev], xys[cur])
 
     # Global extent (union over levels): the camera and density binning
     # stay fixed while the slider morphs between levels.
@@ -353,12 +461,20 @@ def main() -> None:
     type_names = [short_name(t) for t in all_types]
     type_counts = [int(c) for c in counts[order]]
 
+    has_farfield = True
     for alpha in alphas:
         tag = alpha_tag(alpha)
         xy = xys[alpha]
         xy.tofile(OUT / f"nodes_xy_{tag}.f32")
         density_weights(xy, extent).tofile(OUT / f"nodes_weight_{tag}.f32")
         labels[tag] = compute_labels(xy, cls, type_names, type_counts, extent)
+        glow_texture(xy, extent).save(OUT / f"glow_{tag}.png")
+        has_farfield &= ship_farfield(args.run, tag, transforms[alpha], OUT)
+    if not has_farfield:
+        print(
+            f"note: no farfield payloads in {args.run}/{FARFIELD_SOURCE} -- "
+            "run app.regions + app.farfield for the vector first paint"
+        )
 
     cls.tofile(OUT / "nodes_class.u8")
     min_zoom.tofile(OUT / "nodes_minzoom.u8")
@@ -386,6 +502,7 @@ def main() -> None:
         "typeCounts": type_counts,
         "labels": labels,
         "edgeCount": int(len(neighbors) // 2),
+        "farfield": has_farfield,
         "files": files,
     }
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2))

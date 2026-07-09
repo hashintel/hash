@@ -1,20 +1,20 @@
 """
-Render the fitted layout colored by entity type.
+Render a fitted layout colored by entity type.
 
-Reads run/layout.npz, joins each entity to its (first) direct entity
-type via the graph DB, and writes run/layout_types.png: a log-density
-map where each pixel blends the colors of the types landing on it.
+Reads a layout-aXXX.npz (default: run/layout-a100.npz), joins each
+entity to its (first) direct entity type via the graph DB, and writes a
+log-density map where each pixel blends the colors of the types landing
+on it.
 """
 
+import argparse
 import struct
+import uuid
 import zlib
 from pathlib import Path
 
 import numpy as np
 
-import app.fit as f
-
-RUN = Path("run")
 RES = 1200
 TOP_N = 12
 
@@ -74,17 +74,33 @@ def write_png(path: Path, img: np.ndarray) -> None:
 
 
 def main() -> None:
-    layout = f.Layout.load(RUN / "layout.npz")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "layout", type=Path, nargs="?", default=Path("run/layout-a100.npz")
+    )
+    args = parser.parse_args()
+
+    from app.fit import Layout  # lazy: fit pulls the full torch stack
+    from app.sample import connect
+
+    layout = Layout.load(args.layout)
+    ids = np.array(
+        [
+            f"{uuid.UUID(bytes=r['web_id'].tobytes())}"
+            f"~{uuid.UUID(bytes=r['entity_uuid'].tobytes())}".encode()
+            for r in layout.metadata
+        ]
+    )
 
     print("fetching entity types ...")
-    with f.connect() as conn, conn.cursor() as cur:
+    with connect() as conn, conn.cursor() as cur:
         cur.execute(TYPE_QUERY)
         type_by_id = {
             f"{web_id}~{entity_uuid}".encode(): base_url
             for web_id, entity_uuid, base_url in cur
         }
 
-    types = np.array([type_by_id.get(i, "unknown") for i in layout.ids])
+    types = np.array([type_by_id.get(i, "unknown") for i in ids])
     uniques, counts = np.unique(types, return_counts=True)
     order = np.argsort(-counts)
     top = uniques[order][:TOP_N]
@@ -111,7 +127,7 @@ def main() -> None:
     img = ((1 - alpha) * 255.0 + alpha * blend).astype(np.uint8)
     img = img[::-1]  # +y up
 
-    out = RUN / "layout_types.png"
+    out = args.layout.with_name(args.layout.stem + "-types.png")
     write_png(out, img)
     print(f"wrote {out}\n")
 

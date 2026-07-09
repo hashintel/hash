@@ -13755,6 +13755,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-authorization@workspace:*, @rust/hash-graph-authorization@workspace:libs/@local/graph/authorization":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-authorization@workspace:libs/@local/graph/authorization"

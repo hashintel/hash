@@ -100,6 +100,30 @@ Graph-construction and hub-trimming knobs (`ef_construction`, `M`,
 `hub_quantile`, `hub_min_ratio`, ...) have sensible defaults on the
 params dataclasses in `app/layout.py`, documented inline.
 
+## Demo viewer
+
+A static deck.gl map with an alpha slider, LOD point streaming, and a
+vector "far field" first paint (glow texture + region fills traced from
+the density merge tree — see `app/farfield.py`'s docstring):
+
+```sh
+uv run python -m app.regions --run run --source layout   # density -> merge tree -> label raster
+uv run python -m app.farfield --run run --source layout  # tree cut -> simplified ring vectors
+uv run python prepare_demo.py --run run                  # aligns + ships everything to demo/data/
+python -m http.server -d demo 8000                       # then open localhost:8000
+```
+
+`prepare_demo.py` chain-Procrustes-aligns every level into the `α=1.0`
+frame (inter-fit scale/rotation is arbitrary and would read as fake
+movement on the slider) and pushes the farfield ring geometry through
+the same transforms; the glow textures are regenerated from the aligned
+positions because an axis-aligned raster can't be rotated. If the
+farfield step was skipped, the demo still works — it just falls back to
+points-only.
+
+`render_farfield.py` / `render_regions.py` / `render_starfield.py` /
+`plot_types.py` produce standalone PNG previews of the same artifacts.
+
 ## Consuming an encoder
 
 Each `encoder-aXXX.safetensors` holds `w1,b1,w2,b2,w3,b3` (plus
