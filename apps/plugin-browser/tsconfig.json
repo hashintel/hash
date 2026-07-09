@@ -6,6 +6,7 @@
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "moduleResolution": "bundler",
     "noEmit": false,
     "target": "ES2021"
   },

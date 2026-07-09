@@ -2,6 +2,11 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["./src/", "./scripts/"],
   "compilerOptions": {
+    /**
+     * "DOM" is needed because the program pulls in `@blockprotocol/graph` sources
+     * (via the shared `paths` aliases), which reference DOM types such as `HTMLElement`.
+     */
+    "lib": ["ES2024", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

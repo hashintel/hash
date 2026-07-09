@@ -7,6 +7,8 @@
     "playwright.config.ts"
   ],
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "ESNext"]
+    "lib": ["dom", "dom.iterable", "ESNext"],
+    "moduleResolution": "bundler",
+    "types": ["node", "chrome"]
   }
 }

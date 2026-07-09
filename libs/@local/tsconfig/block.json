@@ -5,6 +5,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
+    "moduleResolution": "bundler",
     "noEmit": true,
     "paths": {},
     "target": "ES2021"

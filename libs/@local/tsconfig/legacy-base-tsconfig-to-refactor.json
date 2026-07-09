@@ -7,14 +7,27 @@
     "forceConsistentCasingInFileNames": true,
     "lib": ["es2024"],
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "noFallthroughCasesInSwitch": true,
+    /**
+     * TypeScript 6.0 defaults `noUncheckedSideEffectImports` to `true`, which rejects
+     * side-effect imports of assets without type declarations (e.g. `import "./styles.css"`).
+     * Keep the TypeScript 5.x behavior for now — bundlers handle these imports at runtime.
+     */
+    "noUncheckedSideEffectImports": false,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es2024",
-    "baseUrl": ".",
+    /**
+     * TypeScript 6.0 no longer contributes globals from every `node_modules/@types`
+     * package automatically. Most workspaces extending this config rely on Node.js
+     * globals (`process`, `Buffer`, `URL`, `import.meta.url`, ...), so include them
+     * explicitly. Workspaces needing further ambient globals (e.g. `chrome`,
+     * `google.maps`) add them in their own `types` array (which must repeat "node").
+     */
+    "types": ["node"],
     "paths": {
       "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
@@ -39,7 +52,7 @@
       "@local/hash-graph-sdk/*": ["../graph/sdk/typescript/src/*.ts"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
       "@local/status": ["../status/typescript/src/main.ts"],
-      "@local/status/type-defs/*": ["../status/typescript/src/type-defs/*.ts"],
+      "@local/status/type-defs/*": ["../status/typescript/type-defs/*.ts"],
       "@local/harpc-client": ["../harpc/client/typescript/src/index.ts"],
       "@local/harpc-client/*": ["../harpc/client/typescript/src/*/index.ts"],
       "@local/effect-dns": ["../effect-dns/core/src/index.ts"],
@@ -47,10 +60,6 @@
       "@local/effect-dns-hickory": ["../effect-dns/hickory/dist/index.ts"],
       "@local/eslint": ["../eslint/src/index.ts"],
       "@local/eslint/*": ["../eslint/src/*/index.ts"]
-    },
-    "outDir": "./dist"
-  },
-  "ts-node": {
-    "transpileOnly": true
+    }
   }
 }

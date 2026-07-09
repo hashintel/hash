@@ -3,6 +3,7 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
+    "moduleResolution": "bundler",
     "noEmit": true
   },
   "include": ["theme-override.d.ts", "./src/"]

@@ -5,6 +5,8 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "moduleResolution": "bundler",
+    "types": ["node", "gapi", "google.accounts", "google.picker"],
     "noEmit": true,
     "plugins": [
       {

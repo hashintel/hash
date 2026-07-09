@@ -3,6 +3,7 @@
   "include": ["scripts"],
   "exclude": ["scripts/create-block/**/*.d.ts"],
   "compilerOptions": {
-    "lib": ["ESNext"]
+    "lib": ["ESNext"],
+    "moduleResolution": "bundler"
   }
 }
