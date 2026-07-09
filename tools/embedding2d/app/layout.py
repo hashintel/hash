@@ -270,6 +270,14 @@ class RelationSetParams:
     shared_k: int = 10
     # Strength of co-neighbor edges relative to direct ones.
     shared_weight: float = 1.0
+    # Diffusion depth: hop t adds top-k(W^t) at weight
+    # shared_weight * hop_decay^(t-2). 2 is the deepest structure the
+    # serving encoder's depth-1 features can faithfully represent (a
+    # shared partner is visible in both entities' neighbor means;
+    # anything longer is not) -- deeper hops are an experiment knob, at
+    # the cost of encoder fidelity. See fit.py / features.py.
+    hops: int = 2
+    hop_decay: float = 0.5
 
 
 def sampled_clustering(adjacency: sp.csr_matrix, samples: int = 2000) -> float:
@@ -376,13 +384,12 @@ def relation_set(*, sample: Sample, params: RelationSetParams) -> RelationSet:
         inv_sqrt = np.where(degree > 0, 1.0 / np.sqrt(np.maximum(degree, 1e-12)), 0.0)
     d_inv = sp.diags(inv_sqrt.astype(np.float32))
 
-    w = (d_inv @ adjacency @ d_inv).tocsr()
+    direct = (d_inv @ adjacency @ d_inv).tocsr()
 
     # Self-diagnosis for new datasets: near-zero clustering + median
     # degree ~1 means the direct graph is quasi-bipartite/pendant-heavy
-    # and the co-neighbor projection below is doing the heavy lifting;
-    # a natively clustered graph (say, >0.1) may want shared_k lowered
-    # or disabled.
+    # and the diffusion below is doing the heavy lifting; a natively
+    # clustered graph (say, >0.1) may want shared_k lowered or disabled.
     logging.info(
         f"relation graph: {(degree > 0).sum():,} connected "
         f"({100 * (degree > 0).mean():.1f}%), median degree "
@@ -390,21 +397,28 @@ def relation_set(*, sample: Sample, params: RelationSetParams) -> RelationSet:
         f"clustering {sampled_clustering(adjacency):.3f}"
     )
 
+    combined = direct
     if params.shared_k:
-        # Two-step walk: the path i -> h -> j contributes
-        # 1 / (deg_h * sqrt(deg_i * deg_j)), so co-neighbor edges through
-        # popular intermediates are automatically discounted.
-        shared = (w @ w).tocsr()
-        # A node trivially co-occurs with itself through every partner;
-        # subtracting the diagonal (rather than setdiag on CSR) avoids a
-        # structure-change pass, eliminate_zeros sweeps the residue.
-        shared = (shared - sp.diags(shared.diagonal())).tocsr()
-        shared.eliminate_zeros()
-        shared = top_k_per_row(shared, params.shared_k)
-        shared = shared.maximum(shared.T)  # top-k selection breaks symmetry
-        w = w.maximum(shared * params.shared_weight)
+        # Sparsified diffusion: walk one step at a time, top-k'ing each
+        # power before the next multiply so cost stays bounded. The path
+        # i -> h -> j contributes 1 / (deg_h * sqrt(deg_i * deg_j)), so
+        # walks through popular intermediates are automatically
+        # discounted.
+        power = direct
+        for hop in range(2, params.hops + 1):
+            power = (direct @ power).tocsr()
+            # A node trivially co-occurs with itself through every
+            # partner; subtracting the diagonal (rather than setdiag on
+            # CSR) avoids a structure-change pass.
+            power = (power - sp.diags(power.diagonal())).tocsr()
+            power.eliminate_zeros()
+            power = top_k_per_row(power, params.shared_k)
 
-    relation = w.tocoo()
+            weight = params.shared_weight * params.hop_decay ** (hop - 2)
+            # top-k selection breaks symmetry; re-union for the blend
+            combined = combined.maximum(power.maximum(power.T) * weight)
+
+    relation = combined.tocoo()
     if relation.nnz:
         relation.data /= relation.data.max()  # same (0, 1] scale as the semantic set
 

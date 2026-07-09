@@ -25,6 +25,7 @@ at reveal level z is exactly the first cumulative[z] rows -- the viewer
 just adjusts how many rows it draws (GPU-side, via a rank filter).
 """
 
+import argparse
 import json
 import math
 import re
@@ -38,7 +39,6 @@ from app.fit import Layout
 from app.sample import connect
 from plot_types import TYPE_QUERY
 
-RUN = Path("run")
 OUT = Path("demo/data")
 
 # Golden-angle hue stepping in OKLCH: consecutive indices land maximally
@@ -272,9 +272,15 @@ def compute_labels(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--run", type=Path, default=Path("run"), help="fit output dir to visualize"
+    )
+    args = parser.parse_args()
+
     OUT.mkdir(parents=True, exist_ok=True)
 
-    layouts = load_ladder(RUN)
+    layouts = load_ladder(args.run)
     alphas = list(layouts)  # descending; alphas[0] (=1.0) is canonical
     canonical = layouts[alphas[0]]
     metadata = canonical.metadata
@@ -324,7 +330,7 @@ def main() -> None:
     # them through the inverse permutation into demo row order.
     inverse = np.empty(n, dtype=np.int64)
     inverse[sort] = np.arange(n)
-    sample_edges = np.load(RUN / "sample.edges.npy")
+    sample_edges = np.load(args.run / "sample.edges.npy")
     offsets, neighbors = build_csr(inverse[sample_edges], n)
 
     cumulative = np.searchsorted(min_zoom, np.arange(MAX_Z + 1), side="right")
