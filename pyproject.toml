@@ -1,0 +1,48 @@
+[project]
+name            = "hash-monorepo"
+version         = "0.0.0"
+description     = "Workspace root for Python packages in the HASH monorepo. Not a package itself; holds the shared tool configuration and the `dev` dependency group."
+license         = "AGPL-3.0-only"
+requires-python = ">=3.13"
+
+[dependency-groups]
+dev = [
+    "basedpyright",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/@local/python-example"]
+
+[tool.ruff]
+line-length = 100 # matches the Rust line width used in this repo
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", # trailing comma, conflicts with the formatter
+    "D203",   # incompatible with D211
+    "D213",   # incompatible with D212
+    "FIX002", # todos tracked in Linear
+    "TD003",  # todo links tracked in Linear
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = [
+    "INP001",  # test directories are not importable packages
+    "PLR2004", # magic values in assertions are expected
+    "S101",    # pytest tests use `assert`
+]
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+
+[tool.pytest.ini_options]
+addopts                            = ["--import-mode=importlib"]
+asyncio_mode                       = "auto"
+asyncio_default_fixture_loop_scope = "function"

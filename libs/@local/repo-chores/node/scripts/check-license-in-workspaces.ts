@@ -23,6 +23,7 @@ const script = async () => {
     cwd: monorepoRootDirPath,
     dot: true,
     ignore: [
+      "**/.venv/**",
       "**/dist/**",
       "**/node_modules/**",
       "**/runner_venv/**",

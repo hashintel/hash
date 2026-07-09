@@ -104,10 +104,15 @@
     "lint:tsc": {
       "dependsOn": ["codegen", "build:types"]
     },
+    "lint:ruff": {},
+    "lint:basedpyright": {},
     "fix:eslint": {
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "fix:clippy": {},
+    "fix:ruff": {
+      "cache": false
+    },
     "sentry:sourcemaps": {
       "dependsOn": ["build"]
     }

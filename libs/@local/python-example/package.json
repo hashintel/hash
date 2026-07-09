@@ -1,0 +1,13 @@
+{
+  "name": "@local/python-example",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Minimal example package demonstrating the Python monorepo infrastructure",
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:ruff": "uv run --frozen --all-packages ruff check --fix . && uv run --frozen --all-packages ruff format .",
+    "lint:basedpyright": "uv run --frozen --all-packages basedpyright --project ../../.. .",
+    "lint:ruff": "uv run --frozen --all-packages ruff check . && uv run --frozen --all-packages ruff format --check .",
+    "test:unit": "uv run --frozen --all-packages pytest"
+  }
+}

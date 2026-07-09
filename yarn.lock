@@ -8456,6 +8456,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/python-example@workspace:libs/@local/python-example":
+  version: 0.0.0-use.local
+  resolution: "@local/python-example@workspace:libs/@local/python-example"
+  languageName: unknown
+  linkType: soft
+
 "@local/repo-chores@workspace:libs/@local/repo-chores/node":
   version: 0.0.0-use.local
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
