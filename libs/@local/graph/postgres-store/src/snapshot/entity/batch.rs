@@ -296,6 +296,9 @@ where
 
             let mut preprocessor = EntityPreprocessor {
                 components: validation_components,
+                // Restored values are already converted to their target data type, so applying
+                // the `original_data_type_id` conversion again would corrupt them.
+                convert_values: false,
             };
 
             if let Err(property_validation) = preprocessor

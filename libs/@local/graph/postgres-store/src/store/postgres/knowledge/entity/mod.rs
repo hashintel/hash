@@ -899,6 +899,7 @@ where
                 } else {
                     ValidateEntityComponents::full()
                 },
+                convert_values: true,
             };
             preprocessor.components.link_validation = transaction.settings.validate_links;
 
@@ -1294,6 +1295,7 @@ where
 
             let mut preprocessor = EntityPreprocessor {
                 components: params.components,
+                convert_values: true,
             };
 
             if let Err(property_validation) = preprocessor
@@ -2129,6 +2131,7 @@ where
             if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
                 let mut preprocessor = EntityPreprocessor {
                     components: validation_components,
+                    convert_values: true,
                 };
                 if let Err(property_validation) = preprocessor
                     .visit_object(&entity_type, &mut object, &validator_provider)
