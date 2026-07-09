@@ -3,7 +3,7 @@ name            = "hash-python-example"
 version         = "0.0.0"
 description     = "Minimal example package demonstrating the Python monorepo infrastructure"
 license         = "AGPL-3.0-only"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies    = []
 
 [build-system]

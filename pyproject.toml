@@ -3,7 +3,7 @@ name            = "hash-monorepo"
 version         = "0.0.0"
 description     = "Workspace root for Python packages in the HASH monorepo. Not a package itself; holds the shared tool configuration and the `dev` dependency group."
 license         = "AGPL-3.0-only"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 
 [dependency-groups]
 dev = [
@@ -14,13 +14,15 @@ dev = [
 ]
 
 [tool.uv]
-package = false
+package       = false
+exclude-newer = "7 days" # dependency cooldown: ignore releases younger than a week
 
 [tool.uv.workspace]
 members = ["libs/@local/python-example"]
 
 [tool.ruff]
-line-length = 100 # matches the Rust line width used in this repo
+line-length    = 100     # matches the Rust line width used in this repo
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["ALL"]
