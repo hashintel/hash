@@ -1,3 +1,4 @@
+import "./dom-fallback.js";
 import { ModuleHandler } from "@blockprotocol/core";
 
 /**
