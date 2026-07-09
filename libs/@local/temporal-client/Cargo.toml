@@ -28,5 +28,9 @@ tracing-opentelemetry = { workspace = true }
 url                   = { workspace = true }
 uuid                  = { workspace = true, features = ["v4"] }
 
+[dev-dependencies]
+# Private third-party dependencies
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+
 [lints]
 workspace = true

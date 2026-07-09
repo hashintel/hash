@@ -9,10 +9,14 @@
 
 use core::fmt;
 
-pub use self::error::{ConnectionError, WorkflowError};
+pub use self::{
+    error::{ConnectionError, WorkflowError, WorkflowResultError},
+    workflow::WorkflowRun,
+};
 
 mod ai;
 mod error;
+mod workflow;
 
 use error_stack::{Report, ResultExt as _};
 use temporalio_client::{
