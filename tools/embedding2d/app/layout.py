@@ -223,6 +223,17 @@ def semantic_set(
 
 
 @dataclass(frozen=True)
+class RelationSet(LayoutGraph):
+    """
+    Relation graph plus the hub rows trimmed out of it. The hubs are
+    the frozen exclude set that the structure features must mirror and
+    serving must reuse as-is (see `app.features`).
+    """
+
+    hubs: np.ndarray
+
+
+@dataclass(frozen=True)
 class RelationSetParams:
     # A node is trimmed as a hub only if its degree clears *both* bars:
     # above this quantile of the (positive) degree distribution...
@@ -235,7 +246,7 @@ class RelationSetParams:
     hub_min_ratio: float = 4.0
 
 
-def relation_set(*, sample: Sample, params: RelationSetParams) -> LayoutGraph:
+def relation_set(*, sample: Sample, params: RelationSetParams) -> RelationSet:
     """
     Symmetrized, degree-normalized, hub-trimmed relation graph in [0, 1].
 
@@ -249,8 +260,10 @@ def relation_set(*, sample: Sample, params: RelationSetParams) -> LayoutGraph:
     between two sparsely connected ones.
     """
     n = len(sample.metadata)
+    hubs = np.empty(0, dtype=np.int64)
+
     if len(sample.edges) == 0:
-        return LayoutGraph(graph=sp.coo_matrix((n, n), dtype=np.float32))
+        return RelationSet(graph=sp.coo_matrix((n, n), dtype=np.float32), hubs=hubs)
 
     edges = np.asarray(sample.edges, dtype=np.int64)
     src, dst = edges[:, 0], edges[:, 1]
@@ -306,4 +319,4 @@ def relation_set(*, sample: Sample, params: RelationSetParams) -> LayoutGraph:
     if relation.nnz:
         relation.data /= relation.data.max()  # same (0, 1] scale as the semantic set
 
-    return LayoutGraph(graph=relation)
+    return RelationSet(graph=relation, hubs=hubs)

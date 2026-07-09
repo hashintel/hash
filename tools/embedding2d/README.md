@@ -1,32 +1,38 @@
 # embedding2d
 
-Fits a 2D map of HASH's entity embeddings, and distills the mapping into
-a tiny MLP encoder so that _any_ embedding — including entities created
-after the fit — can be placed on the same map with a couple of matmuls,
-no UMAP required.
+Fits an _alpha ladder_ of 2D maps over HASH's entity embeddings — from
+purely semantic (what entities mean) to purely relational (how they
+connect) — and distills each level into a tiny MLP encoder so that
+_any_ entity, including ones created after the fit, can be placed on
+the same maps without re-running UMAP.
 
 ```
-graph DB ──sample──▶ sample.f32 ──hnswlib──▶ kNN graph ──UMAP──▶ layout.npz
-                                                                    │
-                                              embeddings ──distill──┘
-                                                    │
-                                                    ▼
-                                          encoder.safetensors
+graph DB ──sample──▶ embeddings + metadata + edges
+                          │                │
+                     semantic set S   relation set R
+                          └──────┬─────────┘
+                    F(α) = α·S + (1−α)·R   per rung, warm-chained
+                                 │
+                          layout-aXXX.npz ──distill──▶ encoder-aXXX.safetensors
 ```
 
-1. **Sample** entity embeddings from the graph database
-   (`entity_embeddings` where `property IS NULL`, i.e. whole-entity
-   embeddings). Vectors are Matryoshka-truncated to `--dim` dimensions
-   and re-normalized in SQL, then streamed to a raw float32 file that is
-   memmapped from then on.
-2. **kNN graph** via hnswlib (approximate, cosine), shaped for UMAP's
-   `precomputed_knn`.
-3. **UMAP** to 2D. Warm-starts from the previous run's layout when one
-   exists, so successive maps stay visually stable.
-4. **Distill**: train an MLP (`dim → 512 → 512 → 2`, ReLU) to reproduce
-   the layout from the embeddings, and export it as safetensors. The
-   de-standardization is folded into the last layer, so consumers get
-   layout units directly.
+1. **Sample** whole-entity embeddings (`entity_embeddings` where
+   `property IS NULL`), Matryoshka-truncated to `--dim` and
+   re-normalized in SQL, streamed to a memmappable float32 file with an
+   identity sidecar — plus every **relation** (`entity_edge` left/right
+   pairs) whose endpoints both landed in the sample, as row-index pairs.
+2. **Two graphs** over the sample rows: `S`, UMAP's fuzzy simplicial
+   set on the semantic kNN graph (hnswlib, cosine), and `R`, the
+   symmetrized, degree-normalized, hub-trimmed relation graph.
+3. **The ladder**: for each `--alphas` level (descending), embed the
+   convex blend `α·S + (1−α)·R` with UMAP's optimizer, warm-starting
+   each rung from the previous one so the ladder reads as one coherent
+   deformation (clients can tween between levels). `α=1.0` is the pure
+   semantic map; `α=0.0` a pure graph layout.
+4. **Distill**: per level, train an MLP over _structure features_
+   (embedding ⊕ capped neighbor-mean ⊕ coherence ⊕ degree — see
+   `app/features.py` for the frozen train/serve contract) to reproduce
+   the layout, exported as safetensors with layout-unit output.
 
 ## Prerequisites
 
@@ -39,121 +45,85 @@ graph DB ──sample──▶ sample.f32 ──hnswlib──▶ kNN graph ─�
 
 ## Usage
 
-The intended production fit — 256 dimensions, up to 1.5M entities
-(currently more than the table holds, so effectively the full dataset):
-
 ```sh
 uv run python main.py --out-dir run --dim 256
 ```
 
-`--sample-size` defaults to 1,500,000. When it meets or exceeds the
-number of matching rows, the sampling percentage clamps to 100% and you
-simply get every whole-entity embedding. Below that, the row count
-jitters binomially around the target (~0.1% at 1M) rather than being
-capped exactly -- a `LIMIT` on a `TABLESAMPLE` scan would preferentially
-drop the most recently inserted entities, biasing the map against
-exactly the rows a refit exists to incorporate.
+`--sample-size` defaults to 1,500,000; when it meets or exceeds the
+matching rows the sampling percentage clamps to 100% and you get every
+whole-entity embedding. Below that, the row count jitters binomially
+around the target (~0.1% at 1M) rather than being capped exactly — a
+`LIMIT` on a `TABLESAMPLE` scan would preferentially drop the most
+recently inserted entities.
 
-Epoch counts default to sane values: UMAP picks its own (`200` for
-datasets this size) unless you pass `--n-epochs`, and the MLP trains for
-`--mlp-epochs 30` with early stopping (patience 5) on a 2% validation
-split.
+### Incremental refits
 
-Expect the HNSW build + UMAP to take tens of minutes at ~1M points; the
-MLP distillation is comparatively quick (runs on CUDA/MPS when
-available).
+Everything lands in `--out-dir`, and the `α=1.0` artifacts double as
+warm-start inputs for the next refit:
 
-### Incremental runs
+| artifact                                      | contents                                         | reused as                                |
+| --------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| `sample.f32` + `.metadata.npy` + `.edges.npy` | embeddings, identities, relation row-pairs       | cache; reused as-is until refreshed      |
+| `layout-aXXX.npz`                             | `metadata`, `xy` per alpha level                 | `a100` seeds the next refit's first rung |
+| `encoder-aXXX.safetensors`                    | MLP weights, layout-unit output                  | `a100` is fine-tuned by the next refit   |
+| `hubs.json`                                   | entity ids (`web~uuid`) of trimmed relation hubs | serving's frozen feature-exclusion set   |
 
-Everything lands in `--out-dir`, and each artifact doubles as the
-warm-start input for the next run:
-
-| artifact                  | contents                                    | reused as                                |
-| ------------------------- | ------------------------------------------- | ---------------------------------------- |
-| `sample.f32` + `.ids.npy` | raw float32 embeddings + aligned entity ids | cache; reused as-is until refreshed      |
-| `layout.npz`              | `ids`, `xy` — the fitted 2D positions       | UMAP init (carried-over points stay put) |
-| `encoder.safetensors`     | MLP weights, layout-unit output             | fine-tuning start for the next distill   |
-
-- `--refresh-sample` drops the cached sample and re-samples the
-  database (new entities enter the map; departed ones leave). Ids are
-  matched across runs, so surviving entities keep their positions as
-  the UMAP init and the map only drifts where the data did.
-- `--cold` ignores the previous layout and encoder for a from-scratch
-  fit.
-- `--seed` (default 42) makes sampling, kNN, and the training split
-  deterministic for a given database state. The UMAP layout itself is
-  deliberately _not_ seeded: fixing its `random_state` would force
-  umap-learn onto a single-threaded optimization path (hours instead of
-  minutes at ~1M points). Run-to-run layout stability comes from the
-  warm start instead.
+- `--refresh-sample` drops the cached sample and edges and re-samples
+  the database. Entities are matched across refits by identity, so
+  survivors keep their positions as the init and the maps only drift
+  where the data did.
+- `--cold` ignores previous layouts/encoders for a from-scratch fit.
+- `--seed` (default 42) fixes sampling, kNN, and training splits. The
+  layout optimization itself is deliberately _not_ deterministic
+  (seeding it would force umap onto a single-threaded path — hours
+  instead of minutes at ~1M points); stability comes from warm starts.
 
 ### All flags
 
 ```
---out-dir PATH        artifact directory (default: run)
---seed INT            master seed (default: 42)
---dim INT             Matryoshka truncation, must be <= stored dim (default: 512)
---sample-size INT     max rows to sample (default: 1500000)
---k INT               kNN neighbours, must be >= --n-neighbors (default: 15)
---n-neighbors INT     UMAP neighbourhood size (default: 15)
---min-dist FLOAT      UMAP min_dist (default: 0.1)
---n-epochs INT        UMAP epochs (default: let umap-learn choose)
---init CHOICE         cold-start init: pca|spectral|tswspectral|random
-                      (default: pca; ignored once a previous layout exists --
-                      spectral is minutes-to-hours of silent single-core
-                      ARPACK at 1M points, pca is seconds for near-par quality)
---mlp-epochs INT      distillation epochs (default: 30)
---refresh-sample      drop the cached sample and re-sample the DB
---cold                ignore previous layout/encoder
+--out-dir PATH             artifact directory (default: run)
+--seed INT                 master seed (default: 42)
+--dim INT                  Matryoshka truncation (default: 512)
+--sample-size INT          target rows to sample (default: 1500000)
+--k INT                    kNN neighbours for the semantic set (default: 15)
+--min-dist FLOAT           UMAP min_dist (default: 0.1)
+--alphas FLOAT...          ladder levels, e.g. --alphas 1.0 0.75 0.5 0.25
+--n-epochs-first INT       epochs for the first (coldest) rung (default: 200)
+--n-epochs-chained INT     epochs for warm-chained rungs (default: 100)
+--mlp-epochs-first INT     distillation epochs, first encoder (default: 30)
+--mlp-epochs-chained INT   distillation epochs, chained encoders (default: 8)
+--refresh-sample           drop the cached sample + edges and re-sample
+--cold                     ignore previous layouts/encoders
 ```
 
-## Consuming the encoder
+Graph-construction and hub-trimming knobs (`ef_construction`, `M`,
+`hub_quantile`, `hub_min_ratio`, ...) have sensible defaults on the
+params dataclasses in `app/layout.py`, documented inline.
 
-`encoder.safetensors` holds `w1,b1,w2,b2,w3,b3` (plus `scale`/`center`,
-which only the fitting tool itself needs). The forward pass is:
+## Consuming an encoder
 
-```python
-import numpy as np
-from safetensors.numpy import load_file
+Each `encoder-aXXX.safetensors` holds `w1,b1,w2,b2,w3,b3` (plus
+`scale`/`center`, needed only by the fitting tool). The forward pass is
+`x → relu(xW1ᵀ+b1) → relu(·W2ᵀ+b2) → ·W3ᵀ+b3`, yielding layout-unit
+coordinates directly.
 
-t = load_file("run/encoder.safetensors")
-
-def to_xy(embedding: np.ndarray) -> np.ndarray:
-    """L2-normalized, dim-truncated embedding(s) -> layout coordinates."""
-    h = np.maximum(embedding @ t["w1"].T + t["b1"], 0)
-    h = np.maximum(h @ t["w2"].T + t["b2"], 0)
-    return h @ t["w3"].T + t["b3"]
-```
-
-Inputs must be prepared exactly like the training data: truncate the
-stored embedding to `--dim` dimensions, then L2-normalize. Metadata on
-the file (`dim`, `n_points`, `fitted_at`, `umap`) records what the
-encoder was fitted on.
-
-## Map demo
-
-A standalone proof-of-concept viewer for the "zoomable entity map"
-idea lives in `demo/`: a quadtree-based level-of-detail scatter over
-the fitted layout, where zooming out shows type-colored density
-"continents" and zooming in progressively reveals nodes by importance
-(link degree), map-app style.
-
-```sh
-uv run python prepare_demo.py       # after a fit; writes demo/data/
-python3 -m http.server 8000 -d demo # then open http://localhost:8000
-```
-
-Nodes are exported pre-sorted by (reveal level, importance), so the
-viewer draws "the first N rows" for any zoom -- no spatial queries at
-runtime, and fractional zoom interpolates N for a smooth reveal. The
-viewer is a single `index.html` + `app.js` on deck.gl from a CDN; no
-build step.
+The input is **not** the raw embedding: it is the `(2d+2)`-wide
+structure feature vector — `[embedding ; neighbor_mean ; coherence ;
+deg_feat]`. The file's metadata carries the machine-readable
+`feature_spec`, plus `deg_norm`, `salt`, `mrl_dim`, and `alpha`; the
+authoritative serving contract (bottom-k neighbor selection by
+splitmix64, coherence semantics, re-projection policy) is the module
+docstring of `app/features.py`.
 
 ## Implementation notes
 
-See `app/fit.py` for the details worth knowing before changing things:
-the `TABLESAMPLE` percentage math (sampling happens _before_ the
-`WHERE` filter), why `dim` is spliced into the SQL as a literal, the
-hnswlib self-neighbour fix-up UMAP depends on, and the id-matching that
-makes warm starts work. `app/mlp.py` documents the scale/center
-folding contract between `export` and `import_`.
+- `app/sample.py` — DB access: embeddings subsample (TABLESAMPLE
+  percentage math, no-LIMIT rationale), relation fetching, and the
+  UUID-pair → row-index lookup.
+- `app/layout.py` — the two graphs, the convex `fuse`, and the
+  `simplicial_set_embedding` wrapper with per-knob guidance comments.
+- `app/features.py` — structure features; frozen train/serve contract.
+- `app/mlp.py` — the distillation MLP; scale/center folding contract
+  between `export` and `import_`.
+- `app/fit.py` — orchestration: warm-start matching, the ladder, and
+  the encoder chain.

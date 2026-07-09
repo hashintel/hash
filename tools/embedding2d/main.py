@@ -1,64 +1,66 @@
 """
-Fit a 2D map of HASH's entity embeddings.
+Fit an alpha ladder of 2D maps over HASH's entity embeddings.
 
-Pipeline: sample embeddings from the graph DB -> approximate kNN graph
-(hnswlib) -> UMAP layout -> distill the (embedding -> xy) mapping into a
-small MLP encoder (safetensors) that can place unseen entities on the
-same map without re-running UMAP.
+Pipeline: sample embeddings + relations from the graph DB -> semantic
+fuzzy set S (kNN over embeddings) and relation graph R -> for each
+alpha, embed F(alpha) = alpha*S + (1-alpha)*R with UMAP's optimizer,
+warm-chaining down the ladder -> distill each layout into a small MLP
+encoder over structure features (embedding + neighbor mean + coherence
++ degree) that can place unseen entities on the same maps.
 
 All artifacts live in --out-dir and double as warm-start inputs for the
-next run: the layout keeps successive maps visually stable, the encoder
-is fine-tuned instead of retrained, and the sample is reused until
---refresh-sample drops it.
+next refit: the alpha=1.0 layout keeps successive maps visually stable,
+the alpha=1.0 encoder is fine-tuned instead of retrained, and the
+sample is reused until --refresh-sample drops it.
 """
 
 import argparse
-import json
 import logging
 from pathlib import Path
 
 import numpy as np
 
-from app.fit import (
-    SAMPLE_SIZE,
-    TRUNCATED_DIM,
-    KnnParams,
-    MlpParams,
-    SampleParams,
-    UmapParams,
-    fit,
-    ids_path_for,
-    init,
-    load_sample,
-)
+from app.fit import EncoderParams, LadderParams, fit
+from app.layout import RelationSetParams, SemanticSetParams
+from app.sample import Sample, SampleParams
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=Path, default=Path("run"))
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--dim", type=int, default=TRUNCATED_DIM)
-    parser.add_argument("--sample-size", type=int, default=SAMPLE_SIZE)
+    parser.add_argument("--dim", type=int, default=512)
+    parser.add_argument("--sample-size", type=int, default=1_500_000)
     parser.add_argument("--k", type=int, default=15)
-    parser.add_argument("--n-neighbors", type=int, default=15)
     parser.add_argument("--min-dist", type=float, default=0.1)
-    parser.add_argument("--n-epochs", type=int, default=None)
     parser.add_argument(
-        "--init",
-        choices=["pca", "spectral", "tswspectral", "random"],
-        default="pca",
-        help="cold-start init; ignored when a previous layout exists",
+        "--alphas",
+        type=float,
+        nargs="+",
+        default=list(LadderParams.alphas),
+        help="ladder levels; fitted in descending order",
     )
-    parser.add_argument("--mlp-epochs", type=int, default=30)
+    parser.add_argument(
+        "--n-epochs-first", type=int, default=LadderParams.n_epochs_first
+    )
+    parser.add_argument(
+        "--n-epochs-chained", type=int, default=LadderParams.n_epochs_chained
+    )
+    parser.add_argument(
+        "--mlp-epochs-first", type=int, default=EncoderParams.epochs_first
+    )
+    parser.add_argument(
+        "--mlp-epochs-chained", type=int, default=EncoderParams.epochs_chained
+    )
     parser.add_argument(
         "--refresh-sample",
         action="store_true",
-        help="drop the cached sample and re-sample from the database",
+        help="drop the cached sample (and its edges) and re-sample the database",
     )
     parser.add_argument(
         "--cold",
         action="store_true",
-        help="ignore the previous layout/encoder even if present",
+        help="ignore the previous layouts/encoders even if present",
     )
     args = parser.parse_args()
 
@@ -68,49 +70,39 @@ def main() -> None:
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     sample_path = args.out_dir / "sample.f32"
-    layout_path = args.out_dir / "layout.npz"
-    encoder_path = args.out_dir / "encoder.safetensors"
 
     if args.refresh_sample:
-        sample_path.unlink(missing_ok=True)
-        ids_path_for(sample_path).unlink(missing_ok=True)
+        for suffix in (".f32", ".metadata.npy", ".edges.npy"):
+            sample_path.with_suffix(suffix).unlink(missing_ok=True)
 
     rng = np.random.default_rng(args.seed)
-    sample_params = SampleParams(dim=args.dim, size=args.sample_size)
-
-    layout = init(
-        rng=rng,
-        sample=sample_params,
-        knn=KnnParams(k=args.k),
-        umap=UmapParams(
-            n_neighbors=args.n_neighbors,
-            min_dist=args.min_dist,
-            n_epochs=args.n_epochs,
-            init=args.init,
-        ),
-        sample_path=sample_path,
-        previous=None if args.cold else layout_path,
-        out=layout_path,
+    sample = Sample.load(
+        embeddings=sample_path,
+        params=SampleParams(dim=args.dim, size=args.sample_size),
+        seed=args.seed,
     )
 
-    # init cached the sample on disk; this reload is a pure cache hit,
-    # and its ids are guaranteed to align with the layout's.
-    sample = load_sample(sample_path, params=sample_params, seed=args.seed)
-
-    fit(
-        params=sample_params,
-        seed=int(rng.integers(2**32)),
-        layout=layout,
+    rmses = fit(
         sample=sample,
-        mlp=MlpParams(epochs=args.mlp_epochs),
-        previous=None if args.cold else encoder_path,
-        out=encoder_path,
-        meta={
-            "umap": json.dumps(
-                {"n_neighbors": args.n_neighbors, "min_dist": args.min_dist}
-            ),
-        },
+        out_dir=args.out_dir,
+        rng=rng,
+        semantic=SemanticSetParams(k=args.k),
+        relation=RelationSetParams(),
+        ladder=LadderParams(
+            alphas=tuple(args.alphas),
+            min_dist=args.min_dist,
+            n_epochs_first=args.n_epochs_first,
+            n_epochs_chained=args.n_epochs_chained,
+        ),
+        encoder=EncoderParams(
+            epochs_first=args.mlp_epochs_first,
+            epochs_chained=args.mlp_epochs_chained,
+        ),
+        cold=args.cold,
     )
+
+    for alpha in sorted(rmses, reverse=True):
+        logging.info(f"alpha={alpha:.2f}: encoder val RMSE {rmses[alpha]:.4f}")
 
 
 if __name__ == "__main__":
