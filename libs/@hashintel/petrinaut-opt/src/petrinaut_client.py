@@ -33,6 +33,7 @@ DEFAULT_TIMESTEP = 0.1
 DEFAULT_SEED = 1234
 DEFAULT_STORE = ["metric"]
 DEFAULT_OUTPATH = ""
+DEFAULT_COMMAND = ""
 DEFAULT_EVAL_TIMEOUT = None
 
 # Regex for extracting number from Petrinaut CLI
@@ -50,8 +51,9 @@ class PetrinautModelSpec(BaseModel):
     steps: Optional[int] = Field(default=DEFAULT_STEPS, description="Number of steps in a single execution")
     dt: Optional[float] = Field(default=DEFAULT_TIMESTEP, description="Step size for dynamics discretisation in a single execution")
     seed: Optional[int] = Field(default=DEFAULT_SEED, description="Random number generator seed (fixed -> deterministic output)")
-    outpath: Optional[str] = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
     store: Optional[Sequence[str]] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
+    outpath: Optional[str] = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
+    command: Optional[str] = Field(default=DEFAULT_METRIC, description="Petrinaut CLI command to invoke")
     eval_timeout: Optional[float] = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
 
@@ -77,6 +79,7 @@ class PetrinautModel:
         # they are left here for future releases
         self.outpath = pn_spec.outpath
         self.store = pn_spec.store
+        self.command = pn_spec.command
         self.eval_timeout = pn_spec.eval_timeout
         
         # Connect to Petrinaut-cli socket
@@ -199,11 +202,10 @@ if __name__ == "__main__":
     pn_spec = PetrinautModelSpec()
     # Build the Petri net from the client spec.
     petrinet_model = PetrinautModel(pn_spec)
-    # Run petrinaut
-    result = petrinet_model.run(
+    # Run petrinaut once to get metric value
+    metric_value = petrinet_model.run(
         params = {"infection_rate": args.infection_rate, "recovery_rate": args.recovery_rate},
         init_states = {"Susceptible": args.susceptible}
     )
     # Read metric value from petrinaut execution
-    objective = result["metrics"]["Infected Fraction"]
-    log.info('objective',objective)
+    log.info('metric_value',metric_value)
