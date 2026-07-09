@@ -1,6 +1,7 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
+    "types": ["node"],
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
     "moduleResolution": "bundler",

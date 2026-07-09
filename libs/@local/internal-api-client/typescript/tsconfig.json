@@ -3,6 +3,7 @@
   "include": ["./"],
   "exclude": ["./dist"],
   "compilerOptions": {
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

@@ -5,7 +5,11 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "moduleResolution": "bundler",
+    /**
+     * TypeScript 6 only contributes globals from `@types` packages listed here
+     * (5.x auto-included every `node_modules/@types` package). These are all in
+     * this workspace's devDependencies.
+     */
     "types": ["node", "gapi", "google.accounts", "google.picker"],
     "noEmit": true,
     "plugins": [

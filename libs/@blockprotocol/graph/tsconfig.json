@@ -1,6 +1,7 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
+    "types": ["node"],
     "lib": ["dom", "dom.iterable", "ES2024"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
