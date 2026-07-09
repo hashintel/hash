@@ -68,6 +68,11 @@ pub fn bench_get_entity_by_id(
     );
 }
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_query_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
@@ -119,6 +124,11 @@ pub fn bench_query_entities_by_property(
     });
 }
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_get_link_by_target_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,

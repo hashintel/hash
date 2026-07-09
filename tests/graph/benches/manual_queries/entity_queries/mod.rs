@@ -303,6 +303,12 @@ fn read_groups(path: impl AsRef<Path>) -> Result<Vec<(String, JsonValue)>, Repor
         .collect()
 }
 
+#[expect(
+    clippy::future_not_send,
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended and the future never crosses threads"
+)]
 async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &RefCell<S>, request: GraphQuery<'q, 's, 'p>)
 where
     S: EntityStore + Sync,

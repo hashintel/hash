@@ -217,6 +217,11 @@ async fn seed_db(
     }
 }
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
