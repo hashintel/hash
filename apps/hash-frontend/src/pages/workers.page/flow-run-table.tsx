@@ -312,9 +312,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = goalFlowDefinitionIds.includes(
-          flowRun.flowDefinitionId as EntityUuid,
-        )
+        const type = goalFlowDefinitionIds.includes(flowRun.flowDefinitionId)
           ? "goal"
           : "flow";
 

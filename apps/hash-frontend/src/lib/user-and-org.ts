@@ -219,7 +219,7 @@ export const constructOrg = (params: {
     ) {
       hasBio = {
         linkEntity: linkEntityRevision,
-        profileBioEntity: rightEntityRevision as HashEntity<ProfileBio>,
+        profileBioEntity: rightEntityRevision,
       };
       continue;
     }

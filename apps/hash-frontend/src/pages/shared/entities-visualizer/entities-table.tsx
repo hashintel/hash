@@ -539,7 +539,7 @@ export const EntitiesTable: FunctionComponent<
             columnId === "sourceEntity" ||
             columnId === "targetEntity"
           ) {
-            const entity = row[columnId] as EntitiesTableRow["sourceEntity"];
+            const entity = row[columnId];
             if (!entity) {
               const data = "Does not apply";
               return {

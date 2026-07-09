@@ -146,8 +146,7 @@ describe("createHttpInstrumentation OTLP-port filter", () => {
     if (!hook) {
       throw new Error("ignoreOutgoingRequestHook should be set");
     }
-    return (port: number | string | undefined) =>
-      hook({ port } as Parameters<NonNullable<typeof hook>>[0]);
+    return (port: number | string | undefined) => hook({ port });
   };
 
   it("ignores outgoing requests to the configured OTLP gRPC port", () => {

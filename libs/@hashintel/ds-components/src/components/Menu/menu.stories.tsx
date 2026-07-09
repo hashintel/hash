@@ -61,7 +61,7 @@ function withSelection(
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {
-    return entry as MenuItem;
+    return entry;
   }
   return {
     ...entry,

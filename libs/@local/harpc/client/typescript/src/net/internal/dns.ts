@@ -104,7 +104,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -119,7 +119,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -175,6 +175,7 @@ export const lookup = Effect.fn("lookup")(function* (
   // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
   const aRecords = satisfying.map(
     (record) =>
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
       ({
         type: "A",
         address: record.address,
@@ -184,6 +185,7 @@ export const lookup = Effect.fn("lookup")(function* (
 
   const aaaaRecords = excluded.map(
     (record) =>
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
       ({
         type: "AAAA",
         address: record.address,

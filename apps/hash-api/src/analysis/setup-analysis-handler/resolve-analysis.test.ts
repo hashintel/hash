@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  ActorEntityUuid,
-  RoleName,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type Keyv from "keyv";
 
@@ -83,7 +79,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     clearAnalysisRegistry();
     registerAnalyses(supplyChainAnalyses);
     mockedGetRole.mockReset();
-    mockedGetRole.mockResolvedValue("member" as RoleName);
+    mockedGetRole.mockResolvedValue("member");
   });
 
   it("resolves productGraph to a presigned graph artifact", async () => {

@@ -52,7 +52,7 @@ class GraphApiError extends Error {
     if (axiosError.response) {
       if (isStatus(responseData)) {
         super(responseData.message);
-        this.status = responseData as GraphStatus;
+        this.status = responseData;
       } else if (typeof responseData === "string") {
         const message = `Error from Graph API: ${responseData}`;
         super(message);

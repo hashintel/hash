@@ -86,6 +86,7 @@ export const createApolloClient = (params?: {
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
     fetch: wrappedFetch as WindowOrWorkerGlobalScope["fetch"],
     headers,
   });

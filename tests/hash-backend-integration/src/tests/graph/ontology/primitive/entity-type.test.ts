@@ -51,7 +51,6 @@ import type {
   ClosedMultiEntityType,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type {
   ConstructEntityTypeParams,
@@ -104,7 +103,7 @@ beforeAll(async () => {
 
   await Promise.all([
     createEntityType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Worker",
         description: "A worker",
@@ -115,7 +114,7 @@ beforeAll(async () => {
       workerEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Address",
         description: "An address",
@@ -126,7 +125,7 @@ beforeAll(async () => {
       addressEntityType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Favorite Book",
         description: "Favorite book of the user",
@@ -136,7 +135,7 @@ beforeAll(async () => {
       favoriteBookPropertyType = val;
     }),
     createPropertyType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Name",
         description: "The name of the user",
@@ -146,7 +145,7 @@ beforeAll(async () => {
       namePropertyType = val;
     }),
     createEntityType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Knows",
         description: "Knows of someone",
@@ -159,7 +158,7 @@ beforeAll(async () => {
       knowsLinkEntityType = val;
     }),
     createEntityType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: {
         title: "Previous Address",
         description: "A previous address of something.",
@@ -382,15 +381,12 @@ describe("Entity type CRU", () => {
     }
 
     const allOf = atLeastOne(
-      closedEntityTypes!.map(
-        (closedEntityType) =>
-          ({
-            $id: closedEntityType.$id,
-            title: closedEntityType.title,
-            description: closedEntityType.description,
-            allOf: closedEntityType.allOf,
-          }) as ClosedMultiEntityType["allOf"][0],
-      ),
+      closedEntityTypes!.map((closedEntityType) => ({
+        $id: closedEntityType.$id,
+        title: closedEntityType.title,
+        description: closedEntityType.description,
+        allOf: closedEntityType.allOf,
+      })),
     );
     assert(allOf !== undefined);
     allOf.sort((a, b) => a.$id.localeCompare(b.$id));

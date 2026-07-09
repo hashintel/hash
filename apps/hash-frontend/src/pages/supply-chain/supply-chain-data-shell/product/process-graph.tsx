@@ -24,7 +24,7 @@ import { StepNode } from "./process-graph/step-node";
 import type { GraphData, GraphNode, GraphEdge } from "../../shared/types";
 
 const nodeTypes: NodeTypes = {
-  stepNode: StepNode as unknown as NodeTypes[string],
+  stepNode: StepNode,
 };
 
 const canvasShell = css({
@@ -242,9 +242,7 @@ export const ProcessGraph = ({
   const containerCallbackRef = useCallback(
     (el: HTMLDivElement | null) => {
       if (el) {
-        (
-          containerRef as React.MutableRefObject<HTMLDivElement | null>
-        ).current = el;
+        containerRef.current = el;
         el.addEventListener("fullscreenchange", onFullscreenChange);
       }
     },

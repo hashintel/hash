@@ -35,7 +35,7 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import type { Org, User } from "../../../lib/user-and-org";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { ModalProps } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import type {
@@ -102,7 +102,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   >(updateEntityMutation, { errorPolicy: "all" });
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    authenticatedUser.accountId as WebId,
+    authenticatedUser.accountId,
   );
 
   const { control, reset, handleSubmit, formState } =

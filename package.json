@@ -106,7 +106,6 @@
     "qs": "6.15.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "typescript-eslint@npm:^8.46.4": "8.62.1",
     "underscore": "1.13.8"
   },
   "engines": {

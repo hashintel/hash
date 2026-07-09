@@ -462,11 +462,6 @@ export const create = (projectDirectory: string) =>
         "no-constant-condition": "off",
         "@typescript-eslint/no-unnecessary-condition": "error",
 
-        // Temporarily disabled: typescript-eslint 8.62 mis-reports assertions as
-        // unnecessary under TypeScript 6.0 (removing them breaks `tsc`).
-        // Re-enable once typescript-eslint >= 8.63 (official TS 6.0 support) is in.
-        "@typescript-eslint/no-unnecessary-type-assertion": "off",
-
         "@typescript-eslint/no-unused-vars": [
           "error",
           {

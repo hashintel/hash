@@ -40372,7 +40372,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript-eslint@npm:8.62.1":
+"typescript-eslint@npm:^8.46.4":
   version: 8.62.1
   resolution: "typescript-eslint@npm:8.62.1"
   dependencies:

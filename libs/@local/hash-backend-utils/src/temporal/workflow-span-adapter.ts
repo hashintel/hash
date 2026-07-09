@@ -91,7 +91,7 @@ const normaliseSpan = (span: ReadableSpan): ReadableSpan => {
   // Spread is safe: `extractReadableSpan` produces a plain object with
   // `spanContext` as an own arrow-function property, not as a prototype
   // method, so we don't lose any callable surface.
-  return { ...span, instrumentationScope, parentSpanContext } as ReadableSpan;
+  return { ...span, instrumentationScope, parentSpanContext };
 };
 
 export const wrapWorkflowSpanExporter = (
@@ -123,5 +123,5 @@ export const makeV2WorkflowSink = (
     wrapWorkflowSpanExporter(setup.traceExporter) as unknown as Parameters<
       typeof makeWorkflowExporter
     >[0],
-    setup.resource as unknown as Parameters<typeof makeWorkflowExporter>[1],
+    setup.resource,
   );

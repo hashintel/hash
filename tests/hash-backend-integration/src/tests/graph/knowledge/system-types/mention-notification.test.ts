@@ -41,7 +41,6 @@ import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/sys
 import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
@@ -102,7 +101,7 @@ describe.skip("Page Mention Notification", () => {
 
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
-      webId: triggerUser.accountId as WebId,
+      webId: triggerUser.accountId,
       type: "document",
     });
 
@@ -133,7 +132,7 @@ describe.skip("Page Mention Notification", () => {
         occurredInEntity,
         occurredInText,
         occurredInBlock,
-        webId: recipientUser.accountId as WebId,
+        webId: recipientUser.accountId,
       },
     );
 
@@ -388,7 +387,7 @@ describe.skip("Page Mention Notification", () => {
       { actorId: triggerUser.accountId },
       {
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        webId: triggerUser.accountId as WebId,
+        webId: triggerUser.accountId,
         textualContent: [
           {
             mentionType: "user",

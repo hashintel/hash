@@ -286,8 +286,8 @@ class OpenTelemetryLogTransport extends Transport {
 
       const spanContext = trace.getActiveSpan()?.spanContext();
       if (spanContext) {
-        attributes.trace_id = spanContext.traceId as AnyValue;
-        attributes.span_id = spanContext.spanId as AnyValue;
+        attributes.trace_id = spanContext.traceId;
+        attributes.span_id = spanContext.spanId;
       }
 
       otelLogger.emit({

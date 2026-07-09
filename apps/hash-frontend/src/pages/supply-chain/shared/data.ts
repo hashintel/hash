@@ -75,9 +75,7 @@ const getActiveWebId = (): WebId => {
 };
 
 export function fetchProducts(): Promise<Product[]> {
-  productsCache =
-    productsCache ??
-    (fetchAnalysisProducts(getActiveWebId()) as Promise<Product[]>);
+  productsCache = productsCache ?? fetchAnalysisProducts(getActiveWebId());
   return productsCache;
 }
 

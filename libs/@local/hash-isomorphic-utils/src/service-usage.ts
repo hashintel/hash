@@ -190,9 +190,9 @@ export const getAggregateUsageRecordsByTask = ({
     const { inputUnitCount, outputUnitCount, customMetadata } =
       simplifyProperties(record.properties);
 
-    const taskName = (
-      customMetadata as FlowUsageRecordCustomMetadata | undefined
-    )?.taskName;
+    const taskName =
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
+      (customMetadata as FlowUsageRecordCustomMetadata | undefined)?.taskName;
     if (!taskName) {
       continue;
     }

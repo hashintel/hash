@@ -47,7 +47,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type {
   ArchivedPropertyValueWithMetadata,
@@ -124,7 +124,7 @@ export const EditableQuickNote: FunctionComponent<{
     useState(false);
 
   const { refetch: refetchPageTree } = useAccountPages(
-    authenticatedUser.accountId as WebId,
+    authenticatedUser.accountId,
   );
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
@@ -406,7 +406,7 @@ export const EditableQuickNote: FunctionComponent<{
       {contents && contents.length > 0 ? (
         <BlockCollection
           autoFocus={autoFocus}
-          webId={authenticatedUser.accountId as WebId}
+          webId={authenticatedUser.accountId}
           entityId={quickNoteEntity.metadata.recordId.entityId}
           contents={contents}
           readonly={false}

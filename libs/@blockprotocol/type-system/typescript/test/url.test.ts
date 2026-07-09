@@ -72,19 +72,16 @@ describe("validateVersionedUrl", () => {
 });
 
 const extractBaseUrlCases: [VersionedUrl, BaseUrl][] = [
-  ["http://example.com/v/0" as VersionedUrl, "http://example.com/" as BaseUrl],
+  ["http://example.com/v/0", "http://example.com/" as BaseUrl],
   [
-    "http://example.com/sandwich/v/1" as VersionedUrl,
+    "http://example.com/sandwich/v/1",
     "http://example.com/sandwich/" as BaseUrl,
   ],
   [
-    "file://localhost/documents/myfolder/v/10" as VersionedUrl,
+    "file://localhost/documents/myfolder/v/10",
     "file://localhost/documents/myfolder/" as BaseUrl,
   ],
-  [
-    "ftp://rms@example.com/foo/v/5" as VersionedUrl,
-    "ftp://rms@example.com/foo/" as BaseUrl,
-  ],
+  ["ftp://rms@example.com/foo/v/5", "ftp://rms@example.com/foo/" as BaseUrl],
 ];
 
 describe("extractBaseUrl", () => {
@@ -97,10 +94,10 @@ describe("extractBaseUrl", () => {
 });
 
 const extractVersionCases: [VersionedUrl, string][] = [
-  ["http://example.com/v/0" as VersionedUrl, "0"],
-  ["http://example.com/sandwich/v/1" as VersionedUrl, "1"],
-  ["file://localhost/documents/myfolder/v/10" as VersionedUrl, "10"],
-  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, "5"],
+  ["http://example.com/v/0", "0"],
+  ["http://example.com/sandwich/v/1", "1"],
+  ["file://localhost/documents/myfolder/v/10", "10"],
+  ["ftp://rms@example.com/foo/v/5", "5"],
 ];
 
 describe("extractVersion", () => {
@@ -137,10 +134,12 @@ describe("Draft version support", () => {
   describe("extractVersion with drafts", () => {
     test.each([
       [
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
         "http://example.com/v/1-draft.abc12345.1" as VersionedUrl,
         "1-draft.abc12345.1",
       ],
       [
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
         "http://example.com/v/2-draft.xyz98765.999" as VersionedUrl,
         "2-draft.xyz98765.999",
       ],

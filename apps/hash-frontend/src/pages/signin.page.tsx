@@ -27,7 +27,6 @@ import { WorkspaceContext } from "./shared/workspace-context";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
-import type { WebId } from "@blockprotocol/type-system";
 import type { LoginFlow } from "@ory/client";
 import type { AxiosError } from "axios";
 import type { FormEventHandler } from "react";
@@ -248,7 +247,7 @@ const SigninPage: NextPageWithLayout = () => {
       throw new Error("Could not fetch authenticated user after logging in.");
     }
 
-    updateActiveWorkspaceWebId(authenticatedUser.accountId as WebId);
+    updateActiveWorkspaceWebId(authenticatedUser.accountId);
     void router.push(
       returnTo ?? getSafeReturnToPath(activeFlow.return_to) ?? "/",
     );

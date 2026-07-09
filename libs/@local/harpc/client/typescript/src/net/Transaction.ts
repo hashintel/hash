@@ -31,8 +31,7 @@ export const makeUnchecked = (
   id: RequestId.RequestId,
   readQueue: Queue.Dequeue<WireResponse.Response>,
   drop: Deferred.Deferred<void>,
-): Transaction =>
-  createProto(TransactionProto, { id, read: readQueue, drop }) as Transaction;
+): Transaction => createProto(TransactionProto, { id, read: readQueue, drop });
 
 // eslint-disable-next-line fsecond/no-inline-interfaces
 export const registerDestructor: {

@@ -49,7 +49,6 @@ import type {
   ClosedMultiEntityType,
   EntityId,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type {
@@ -155,7 +154,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     () => {
       return [
         {
-          webId: authenticatedUser.accountId as WebId,
+          webId: authenticatedUser.accountId,
           name: `@${authenticatedUser.shortname}`,
         },
         ...authenticatedUser.memberOf.map(({ org }) => ({

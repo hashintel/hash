@@ -31,7 +31,6 @@ import type {
   BaseUrl,
   EntityId,
   PropertyObject,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -100,7 +99,7 @@ export const BlockSelectDataModal: FunctionComponent<
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as WebId,
+    authenticatedUser.accountId,
   );
 
   const [updateEntity] = useMutation<

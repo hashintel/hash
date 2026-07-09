@@ -194,6 +194,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
   const entityData = blockEntity?.blockChildEntity.properties as
     | JsonObject
     | undefined;

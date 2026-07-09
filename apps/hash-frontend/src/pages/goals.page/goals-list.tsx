@@ -9,7 +9,6 @@ import { flowRunStatusToStatusText } from "../shared/flow-tables";
 import { GoalListSection } from "./goals-list/goal-list-section";
 
 import type { GoalSummary } from "./goals-list/goal-list-section/goal-row";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const GoalsList = () => {
   const { flowRuns, loading } = useFlowRunsContext();
@@ -26,7 +25,7 @@ export const GoalsList = () => {
     const webByWebId: Record<string, GoalSummary["web"]> = {};
 
     for (const run of flowRuns) {
-      if (!goalFlowDefinitionIds.includes(run.flowDefinitionId as EntityUuid)) {
+      if (!goalFlowDefinitionIds.includes(run.flowDefinitionId)) {
         continue;
       }
 

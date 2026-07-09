@@ -340,18 +340,21 @@ export const ClaimsTable = memo(
         status: {
           header: "Status",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         subject: {
           header: "Subject",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         object: {
           header: "Relevant value",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive with typescript-eslint 8.62 under TS 6.0 (removing the assertion breaks tsc); remove once typescript-eslint >= 8.63 is in
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },

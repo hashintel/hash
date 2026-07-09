@@ -33,7 +33,6 @@ import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import type {
   EntityTypeWithMetadata,
   OntologyTemporalMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import type {
@@ -55,7 +54,7 @@ export const createEntityTypeResolver: ResolverFn<
   const { webId, entityType } = params;
 
   const createdEntityType = await createEntityType(context, authentication, {
-    webId: webId ?? (user.accountId as WebId),
+    webId: webId ?? user.accountId,
     schema: entityType,
   });
 
