@@ -579,11 +579,11 @@ __metadata:
     helmet: "npm:4.6.0"
     hot-shots: "npm:8.5.2"
     html-to-text: "npm:8.2.1"
-    http-proxy-middleware: "patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch"
+    http-proxy-middleware: "patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch"
     http-terminator: "npm:3.2.0"
     immer: "npm:10.1.3"
     install: "npm:0.13.0"
-    js-yaml: "npm:4.1.1"
+    js-yaml: "npm:4.2.0"
     jsonpath: "npm:1.3.0"
     keyv: "npm:5.6.0"
     lodash: "npm:4.18.1"
@@ -8456,7 +8456,7 @@ __metadata:
     fs-extra: "npm:11.3.2"
     globby: "npm:15.0.0"
     ignore: "npm:7.0.5"
-    js-yaml: "npm:4.1.1"
+    js-yaml: "npm:4.2.0"
     regex-parser: "npm:2.3.1"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -15625,7 +15625,7 @@ __metadata:
     eslint: "npm:9.39.4"
     execa: "npm:9.6.0"
     graphql: "npm:16.11.0"
-    js-yaml: "npm:4.1.1"
+    js-yaml: "npm:4.2.0"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -27950,9 +27950,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@npm:3.0.5":
-  version: 3.0.5
-  resolution: "http-proxy-middleware@npm:3.0.5"
+"http-proxy-middleware@npm:3.0.7":
+  version: 3.0.7
+  resolution: "http-proxy-middleware@npm:3.0.7"
   dependencies:
     "@types/http-proxy": "npm:^1.17.15"
     debug: "npm:^4.3.6"
@@ -27960,13 +27960,13 @@ __metadata:
     is-glob: "npm:^4.0.3"
     is-plain-object: "npm:^5.0.0"
     micromatch: "npm:^4.0.8"
-  checksum: 10c0/89ff3c8fe65b22b8042a6173ae1b8f77c5171f7eecf3c8b5d6dcffe3c9d688acae7bcf498cc08d1525f566dc0781efaec4e2ddc49224b1f16f020de7987a446b
+  checksum: 10c0/2308a09b1ae7682bb91bed45653d3b17379b87e2bb8cad4e7e71c68eeb2cedb8fd5506f80f6890178d8aa4132a3ce71eaf58979e7ef04cfefac923117da41817
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch":
-  version: 3.0.5
-  resolution: "http-proxy-middleware@patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch::version=3.0.5&hash=8ef5aa"
+"http-proxy-middleware@patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch":
+  version: 3.0.7
+  resolution: "http-proxy-middleware@patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch::version=3.0.7&hash=487f7e"
   dependencies:
     "@types/http-proxy": "npm:^1.17.15"
     debug: "npm:^4.3.6"
@@ -27974,7 +27974,7 @@ __metadata:
     is-glob: "npm:^4.0.3"
     is-plain-object: "npm:^5.0.0"
     micromatch: "npm:^4.0.8"
-  checksum: 10c0/7a0d32d4fa50246d1fdd3dd462930abf6dc95a53848582aa76333f61f1a8f83df60232f278d455a8d9638419a02b892b3641eb4c64a51bd0b17fef3205807e81
+  checksum: 10c0/ad34d706e8ea825cb5c704afc2908c5381d6c91384fbcf8af9ab769fbd98d96cedba082142d4fe092c72e119bc60b9dc4bd5e23724269338d73a80a7ea11df47
   languageName: node
   linkType: hard
 
@@ -29535,8 +29535,8 @@ __metadata:
   linkType: hard
 
 "joi@npm:^18.0.1":
-  version: 18.0.1
-  resolution: "joi@npm:18.0.1"
+  version: 18.2.3
+  resolution: "joi@npm:18.2.3"
   dependencies:
     "@hapi/address": "npm:^5.1.1"
     "@hapi/formula": "npm:^3.0.2"
@@ -29544,8 +29544,8 @@ __metadata:
     "@hapi/pinpoint": "npm:^2.0.1"
     "@hapi/tlds": "npm:^1.1.1"
     "@hapi/topo": "npm:^6.0.2"
-    "@standard-schema/spec": "npm:^1.0.0"
-  checksum: 10c0/b803dd46e31d90d7df92fd4cd62c2129624c9ee0ab289077ec0d8ff3959ea93216a592bf315927a73fafb19bd6eb2ad2ee58d0d8d9c56599bc23cf3de9bba8b6
+    "@standard-schema/spec": "npm:^1.1.0"
+  checksum: 10c0/ccf2cba791968330208d05ab2e4459d1f9532a31fd5323795734184dfa628a9373bca4252fc0b636a36656c5b7be4a28e986715737a8a779b8103a28d9988cd2
   languageName: node
   linkType: hard
 
@@ -29628,26 +29628,37 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:4.1.1, js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "js-yaml@npm:4.1.1"
+"js-yaml@npm:4.2.0":
+  version: 4.2.0
+  resolution: "js-yaml@npm:4.2.0"
   dependencies:
     argparse: "npm:^2.0.1"
   bin:
     js-yaml: bin/js-yaml.js
-  checksum: 10c0/561c7d7088c40a9bb53cc75becbfb1df6ae49b34b5e6e5a81744b14ae8667ec564ad2527709d1a6e7d5e5fa6d483aa0f373a50ad98d42fde368ec4a190d4fae7
+  checksum: 10c0/1916456c118746603b067d74bbcbb0445d9a1d5e474ad4ae775e7b20525bed902e01d9d97dd0c81fcd8d4f596162309d0eb057f4aa38f3e9647f14075e9dea45
   languageName: node
   linkType: hard
 
 "js-yaml@npm:^3.6.1":
-  version: 3.14.2
-  resolution: "js-yaml@npm:3.14.2"
+  version: 3.15.0
+  resolution: "js-yaml@npm:3.15.0"
   dependencies:
     argparse: "npm:^1.0.7"
     esprima: "npm:^4.0.0"
   bin:
     js-yaml: bin/js-yaml.js
-  checksum: 10c0/3261f25912f5dd76605e5993d0a126c2b6c346311885d3c483706cd722efe34f697ea0331f654ce27c00a42b426e524518ec89d65ed02ea47df8ad26dcc8ce69
+  checksum: 10c0/ca966bd354ac5b1b7a4694ebdba46526796aa3a6a99529fa540af2abf85918bd155a50ccc0166b413130a00622999973754458ec01e7095bc902177bfdbd5b64
+  languageName: node
+  linkType: hard
+
+"js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1":
+  version: 4.3.0
+  resolution: "js-yaml@npm:4.3.0"
+  dependencies:
+    argparse: "npm:^2.0.1"
+  bin:
+    js-yaml: bin/js-yaml.js
+  checksum: 10c0/058b30473d6915ca5b4feb11e2f7d4d97242f98d00a798ed48dd90b46b7c640398afe9128c5db22c5300f8c6528fe2a174b9a93f351a70ebc28c6203938d8bff
   languageName: node
   linkType: hard
 

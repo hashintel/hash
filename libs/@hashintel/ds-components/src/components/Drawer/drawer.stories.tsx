@@ -878,3 +878,113 @@ export const ShouldCloseOn: Story = () => (
     />
   </div>
 );
+
+const groupedPanels = [
+  { key: "account", title: "Account", iconName: "gear" },
+  { key: "notifications", title: "Notifications", iconName: "info" },
+  { key: "advanced", title: "Advanced", iconName: "sparkles" },
+] as const;
+
+/**
+ * A set of drawers that occupy the same slot. When `grouped`, they share a
+ * `swapKey`, so switching between them swaps the panel in place; when not, each
+ * switch slides the old panel out and the new one back in.
+ */
+const GroupedExample = ({ grouped }: { grouped: boolean }) => {
+  const [active, setActive] = useState<string | null>(null);
+
+  return (
+    <>
+      <div className={css({ display: "flex", gap: "2", flexWrap: "wrap" })}>
+        {groupedPanels.map((panel) => (
+          <Button key={panel.key} onClick={() => setActive(panel.key)}>
+            Open {panel.title}
+          </Button>
+        ))}
+      </div>
+      {groupedPanels.map((panel) =>
+        active === panel.key ? (
+          <Drawer
+            key={panel.key}
+            swapKey={grouped ? "settings-demo" : undefined}
+            onClose={() => setActive(null)}
+            showBackdrop={false}
+          >
+            <Drawer.Header
+              title={panel.title}
+              iconName={panel.iconName}
+              description={
+                grouped
+                  ? "Switching between these panels swaps in place — no slide."
+                  : "Each panel slides in and out independently."
+              }
+            />
+            <Drawer.Body>
+              <div
+                className={css({
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "3",
+                })}
+              >
+                <p>
+                  Switch to another panel in the {grouped ? "group" : "set"} — a
+                  grouped switch changes the panel in place, an ungrouped one
+                  replays the slide animation.
+                </p>
+                <div
+                  className={css({
+                    display: "flex",
+                    gap: "2",
+                    flexWrap: "wrap",
+                  })}
+                >
+                  {groupedPanels
+                    .filter((other) => other.key !== panel.key)
+                    .map((other) => (
+                      <Button
+                        key={other.key}
+                        variant="subtle"
+                        tone="neutral"
+                        onClick={() => setActive(other.key)}
+                      >
+                        Go to {other.title}
+                      </Button>
+                    ))}
+                </div>
+              </div>
+            </Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button
+                  variant="solid"
+                  tone="brand"
+                  onClick={() => setActive(null)}
+                >
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        ) : null,
+      )}
+    </>
+  );
+};
+
+export const Grouped: Story = () => (
+  <div className={css({ display: "flex", flexDirection: "column", gap: "6" })}>
+    <div>
+      <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
+        Grouped (shared swapKey) — switching swaps in place
+      </div>
+      <GroupedExample grouped />
+    </div>
+    <div>
+      <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
+        Ungrouped — each switch slides out and back in
+      </div>
+      <GroupedExample grouped={false} />
+    </div>
+  </div>
+);

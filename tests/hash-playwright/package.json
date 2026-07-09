@@ -21,7 +21,7 @@
     "@playwright/test": "1.58.2",
     "execa": "9.6.0",
     "graphql": "16.11.0",
-    "js-yaml": "4.1.1"
+    "js-yaml": "4.2.0"
   },
   "devDependencies": {
     "@apps/hash-api": "workspace:*",
