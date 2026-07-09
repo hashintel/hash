@@ -86,7 +86,3 @@ clap = ["dep:clap"]
 
 [lints]
 workspace = true
-
-[package.metadata.cargo-shear]
-# Used as public dependency
-ignored = ["axum-core"]
