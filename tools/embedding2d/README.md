@@ -130,6 +130,25 @@ stored embedding to `--dim` dimensions, then L2-normalize. Metadata on
 the file (`dim`, `n_points`, `fitted_at`, `umap`) records what the
 encoder was fitted on.
 
+## Map demo
+
+A standalone proof-of-concept viewer for the "zoomable entity map"
+idea lives in `demo/`: a quadtree-based level-of-detail scatter over
+the fitted layout, where zooming out shows type-colored density
+"continents" and zooming in progressively reveals nodes by importance
+(link degree), map-app style.
+
+```sh
+uv run python prepare_demo.py       # after a fit; writes demo/data/
+python3 -m http.server 8000 -d demo # then open http://localhost:8000
+```
+
+Nodes are exported pre-sorted by (reveal level, importance), so the
+viewer draws "the first N rows" for any zoom -- no spatial queries at
+runtime, and fractional zoom interpolates N for a smooth reveal. The
+viewer is a single `index.html` + `app.js` on deck.gl from a CDN; no
+build step.
+
 ## Implementation notes
 
 See `app/fit.py` for the details worth knowing before changing things:

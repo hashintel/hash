@@ -4,7 +4,6 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from string.templatelib import Template
 from typing import Literal, Self
 
 import hnswlib
@@ -30,15 +29,6 @@ COUNT_QUERY = """
     FROM entity_embeddings
     WHERE property IS NULL
 """
-
-
-@dataclass(frozen=True)
-class SampleParams:
-    """Knobs for the DB subsample (see `sample_query`)."""
-
-    dim: int = TRUNCATED_DIM
-    size: int = SAMPLE_SIZE
-    fetch_batch_size: int = FETCH_BATCH_SIZE
 
 
 @dataclass(frozen=True)
@@ -119,35 +109,6 @@ class Layout:
     def load(cls, path: Path) -> Self:
         with np.load(path) as data:
             return cls(ids=data["ids"], xy=data["xy"])
-
-
-def sample_query(matching_rows: int, *, params: SampleParams, seed: int) -> Template:
-    # Deliberately no LIMIT: BERNOULLI emits rows in heap (~insertion)
-    # order, so capping an oversampled scan would keep the head of the
-    # table and systematically drop the most recently inserted entities
-    # -- the very rows a refit exists to pick up. Instead the percentage
-    # targets `params.size` exactly and the row count is left to jitter
-    # around it (binomial: ~0.1% relative at 1M rows). Nothing
-    # downstream assumes an exact count.
-    pct = min(100.0, 100.0 * params.size / max(matching_rows, 1))
-
-    # The Matryoshka prefix is not unit-norm on its own; renormalize so
-    # cosine/dot are meaningful on the truncated vectors.
-    #
-    # `dim` is spliced as a literal (`:l`) rather than bound as a
-    # parameter: type modifiers (`::vector(n)`) must be simple
-    # constants.
-    return t"""
-        SELECT
-            e.entity_uuid,
-            e.web_id,
-            l2_normalize(
-                subvector(e.embedding, 1, {params.dim:l})
-            )::vector({params.dim:l}) AS embedding
-        FROM entity_embeddings e
-        TABLESAMPLE BERNOULLI ({pct}) REPEATABLE ({seed})
-        WHERE e.property IS NULL
-    """
 
 
 def connect() -> psycopg.Connection:
