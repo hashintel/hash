@@ -1,33 +1,34 @@
-import type {
-  ActorEntityUuid,
-  EntityId,
-  EntityUuid,
-  UserId,
-} from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   addActorGroupMember,
   removeActorGroupMember,
 } from "@local/hash-graph-sdk/principal/actor-group";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Org } from "./org";
 import { getOrgFromEntity } from "./org";
-import type { User } from "./user";
 import { getUserFromEntity } from "./user";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Org } from "./org";
+import type { User } from "./user";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  EntityUuid,
+  UserId,
+} from "@blockprotocol/type-system";
+import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type OrgMembership = {
   linkEntity: HashLinkEntity<IsMemberOf>;

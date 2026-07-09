@@ -1,27 +1,29 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
+import { useCallback, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { PropertyPatchOperation } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { GraphQLError } from "graphql";
-import { useCallback, useState } from "react";
+
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { meQuery } from "../../graphql/queries/user.queries";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 import type {
   MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
-import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import type { UserPreferences } from "../../shared/use-user-preferences";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type { PropertyPatchOperation } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { GraphQLError } from "graphql";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;

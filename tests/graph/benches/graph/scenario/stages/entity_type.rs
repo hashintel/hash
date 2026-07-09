@@ -567,7 +567,7 @@ impl BuildEntityTypeRegistryStage {
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::for_entity_type_uuids(&all_entity_types),
-                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::all(),
                         after: None,
                         limit: None,
                         include_count: false,

@@ -1,12 +1,13 @@
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { getLatestEntityById } from "../shared/graph-requests.js";
+
 import type { MultiFilter } from "@blockprotocol/graph";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-
-import { getLatestEntityById } from "../shared/graph-requests.js";
 
 export const getFilterFromBlockProtocolQueryEntity = async ({
   authentication,

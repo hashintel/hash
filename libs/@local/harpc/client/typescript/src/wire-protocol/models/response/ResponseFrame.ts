@@ -10,9 +10,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../../../binary/index.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Payload from "../Payload.js";
-import { MutableBuffer } from "../../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/response/ResponseFrame",
@@ -21,9 +21,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface ResponseFrame
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly payload: Payload.Payload;

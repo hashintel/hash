@@ -1,3 +1,5 @@
+import { boundIsAdjacentToBound, compareBounds } from "./bound.js";
+
 import type {
   ClosedTemporalBound,
   LimitedTemporalBound,
@@ -5,8 +7,6 @@ import type {
   TemporalInterval,
   Timestamp,
 } from "@blockprotocol/type-system";
-
-import { boundIsAdjacentToBound, compareBounds } from "./bound.js";
 
 /**
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"

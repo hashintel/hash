@@ -1,11 +1,5 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import {
-  CheckIcon,
-  CloseIcon,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
-import type { CircularProgressProps, LinearProgressProps } from "@mui/material";
-import {
   Box,
   CircularProgress,
   LinearProgress,
@@ -18,8 +12,13 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import type { ReactNode } from "react";
 import { useContext, useState } from "react";
+
+import {
+  CheckIcon,
+  CloseIcon,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 
 import {
   useFileUploads,
@@ -31,6 +30,9 @@ import { WorkspaceContext } from "../workspace-context";
 import { Action } from "./file-uploads-tab/action";
 import { ShowUploadFormButton } from "./file-uploads-tab/show-upload-form-button";
 import { useEntityType } from "./shared/entity-type-context";
+
+import type { CircularProgressProps, LinearProgressProps } from "@mui/material";
+import type { ReactNode } from "react";
 
 const HeaderCell = ({ children }: { children: ReactNode }) => (
   <TableCell>

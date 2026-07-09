@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: if given that `a = b`, then `a` should NOT be replaced with `b` in the body
+[
+  "newtype",
+  "b",
+  "Integer",
+  ["newtype", "a", "b", ["a", { "#literal": 1 }, { "#literal": 2 }]]
+]

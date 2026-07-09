@@ -1,5 +1,5 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -17,7 +17,9 @@ import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
 import { ReadonlyValueCellPopup } from "./value-cell/readonly-popup";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
+
 import type { ValueCell } from "./value-cell/types";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,

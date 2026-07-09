@@ -29,6 +29,33 @@ test("allowlisted user can verify email and complete signup", async ({
   await completeSignup(page, { shortname, displayName: "New User" });
 });
 
+test("user signing up with an uppercase email can verify and complete signup", async ({
+  page,
+}) => {
+  const { email } = testUsers.signupUppercase;
+  const uppercaseEmail = email.toUpperCase();
+
+  await deleteUserByEmail(email);
+
+  const { emailDispatchTimestamp } = await registerUser(page, {
+    email: uppercaseEmail,
+    password: defaultPassword,
+  });
+
+  // Registered with the uppercased address but look up the code by its
+  // lowercased form; the helper matches recipients case-insensitively, so the
+  // casing mismatch between registration and lookup doesn't lose the email.
+  await verifyEmailOnPage(page, {
+    email,
+    afterTimestamp: emailDispatchTimestamp,
+  });
+
+  const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
+  const shortname = `upper${uniqueSuffix}`.slice(0, 24);
+
+  await completeSignup(page, { shortname, displayName: "Uppercase User" });
+});
+
 test("waitlisted user is redirected to waitlist after signup", async ({
   page,
 }) => {

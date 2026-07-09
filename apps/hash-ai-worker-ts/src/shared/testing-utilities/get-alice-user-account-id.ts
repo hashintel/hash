@@ -1,20 +1,18 @@
-import type { UserId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
+
+import type { UserId } from "@blockprotocol/type-system";
 
 export const getAliceUserAccountId = async () => {
   const {
@@ -25,10 +23,16 @@ export const getAliceUserAccountId = async () => {
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemEntityTypes.user.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [
               {

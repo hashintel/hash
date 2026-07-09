@@ -1,6 +1,6 @@
-import type { SxProps, Theme } from "@mui/material";
-
 import { defaultCellSx } from "../../../../virtualized-table";
+
+import type { SxProps, Theme } from "@mui/material";
 
 export const maxLinksTableHeight = 300;
 

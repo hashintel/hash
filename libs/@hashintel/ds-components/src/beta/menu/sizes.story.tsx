@@ -1,7 +1,7 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
-import * as Menu from "./menu";
+import { Button } from "../button";
+import * as Menu from "../menu";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

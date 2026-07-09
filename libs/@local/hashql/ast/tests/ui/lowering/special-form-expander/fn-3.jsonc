@@ -1,4 +1,0 @@
-//@ run: fail
-//@ description: fn/3 should error out
-["::kernel::special_form::fn", { "#tuple": [] }, { "#struct": {} }, "_"]
-//~^ ERROR Add missing arguments

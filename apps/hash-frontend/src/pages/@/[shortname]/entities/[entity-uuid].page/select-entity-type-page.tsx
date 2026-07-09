@@ -1,16 +1,17 @@
 import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon, WhiteCard } from "@hashintel/design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
+import { Chip, FontAwesomeIcon, WhiteCard } from "@hashintel/design-system";
+
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import { Button } from "../../../../../shared/ui";
+import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { EntityEditorContainer } from "../../../../shared/entity/entity-editor-container";
 import { EntityHeader } from "../../../../shared/entity/entity-header";
 import { LinksSectionEmptyState } from "../../../../shared/entity/shared/links-section-empty-state";
 import { PropertiesSectionEmptyState } from "../../../../shared/entity/shared/properties-section-empty-state";
-import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 

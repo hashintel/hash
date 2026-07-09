@@ -1,22 +1,24 @@
-import type { MultiFilter } from "@blockprotocol/graph";
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import { Button } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
-import type { BoxProps } from "@mui/system";
 import { useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
+
+import { Button } from "@hashintel/design-system";
 
 import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
-import type {
-  FormValues,
-  QueryEntitiesFunc,
-} from "./entity-query-editor/types";
 import {
   mapFormValuesToMultiFilter,
   mapMultiFilterToFormValues,
 } from "./entity-query-editor/utils";
+
+import type {
+  FormValues,
+  QueryEntitiesFunc,
+} from "./entity-query-editor/types";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type { BoxProps } from "@mui/system";
 
 export interface EntityQueryEditorProps {
   onSave: (value: MultiFilter) => Promise<void>;

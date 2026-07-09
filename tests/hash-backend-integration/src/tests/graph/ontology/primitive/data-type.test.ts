@@ -1,7 +1,7 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveDataType,
@@ -9,21 +9,18 @@ import {
   unarchiveDataType,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   findDataTypeConversionTargets,
   getDataTypeById,
 } from "@local/hash-graph-sdk/data-type";
-import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -32,6 +29,11 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
+import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 
 const logger = new Logger({
   environment: "test",

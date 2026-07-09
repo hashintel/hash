@@ -1,4 +1,4 @@
-import * as PinInput from "./pin-input";
+import * as PinInput from "../pin-input";
 
 export const App = () => {
   return (

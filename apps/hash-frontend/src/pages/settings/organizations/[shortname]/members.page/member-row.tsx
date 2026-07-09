@@ -1,20 +1,22 @@
 import { useMutation } from "@apollo/client";
+import { TableCell, TableRow, Typography } from "@mui/material";
+
 import {
   type ActorGroupEntityUuid,
   type WebId,
 } from "@blockprotocol/type-system";
-import { TableCell, TableRow, Typography } from "@mui/material";
+
+import { removeUserFromOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
+import { Link } from "../../../../../shared/ui/link";
+import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import { SettingsTableCell } from "../../../shared/settings-table-cell";
+import { MemberContextMenu } from "./member-row/member-context-menu";
 
 import type {
   RemoveUserFromOrgMutation,
   RemoveUserFromOrgMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { removeUserFromOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
-import { Link } from "../../../../../shared/ui/link";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { SettingsTableCell } from "../../../shared/settings-table-cell";
-import { MemberContextMenu } from "./member-row/member-context-menu";
 
 export const MemberRow = ({
   accountGroupId,

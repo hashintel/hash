@@ -1,9 +1,9 @@
-import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 import type { ImpureGraphFunction } from "../../context-types";
+import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&

@@ -1,4 +1,4 @@
-import * as RadioGroup from "./radio-group";
+import * as RadioGroup from "../radio-group";
 
 const items = [
   { label: "React", value: "react" },

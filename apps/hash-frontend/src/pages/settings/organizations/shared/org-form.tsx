@@ -1,21 +1,23 @@
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+
 import { TextField } from "@hashintel/design-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { validateOrgName } from "@local/hash-isomorphic-utils/organization";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
-import type { Org } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { Button } from "../../../../shared/ui/button";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { UrlInput } from "../../../shared/url-input";
 import { ImageField } from "../../shared/image-field";
+
+import type { Org } from "../../../../lib/user-and-org";
+import type { PropsWithChildren } from "react";
 
 const Label = ({
   label,

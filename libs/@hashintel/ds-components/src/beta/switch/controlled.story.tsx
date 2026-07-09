@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import * as Switch from "./switch";
+import * as Switch from "../switch";
 
 export const App = () => {
   const [checked, setChecked] = useState(false);

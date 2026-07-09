@@ -1,3 +1,12 @@
+import {
+  ontologyTypeRecordIdToVersionedUrl,
+  PROPERTY_TYPE_META_SCHEMA,
+} from "@blockprotocol/type-system";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+
+import { getWebShortname } from "./util";
+
+import type { ImpureGraphFunction } from "../../context-types";
 import type {
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
@@ -7,20 +16,12 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  ontologyTypeRecordIdToVersionedUrl,
-  PROPERTY_TYPE_META_SCHEMA,
-} from "@blockprotocol/type-system";
 import type {
   ArchivePropertyTypeParams,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
 
 /**
  * Create a property type.

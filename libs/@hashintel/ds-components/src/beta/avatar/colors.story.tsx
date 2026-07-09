@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
 
 const colorPalette = [
   "red",

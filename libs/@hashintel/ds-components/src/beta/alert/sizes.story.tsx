@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Alert } from "./alert";
+import { Alert } from "../alert";
 
 export const App = () => {
   const sizes = ["md", "lg"] as const;

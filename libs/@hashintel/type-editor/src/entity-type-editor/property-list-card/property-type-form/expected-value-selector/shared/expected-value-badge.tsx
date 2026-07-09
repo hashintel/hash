@@ -1,6 +1,4 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   chipClasses,
@@ -9,11 +7,15 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import type { CustomExpectedValueTypeId } from "../../../../../shared/data-types-options-context";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
 import { useDataTypesOptions } from "../../../../../shared/data-types-options-context";
+
+import type { CustomExpectedValueTypeId } from "../../../../../shared/data-types-options-context";
+import type { ReactNode } from "react";
 
 interface ExpectedValueBadgeProps {
   typeId: CustomExpectedValueTypeId;

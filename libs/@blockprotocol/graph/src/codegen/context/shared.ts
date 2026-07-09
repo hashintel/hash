@@ -1,6 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 import { mustBeDefined } from "../../util/must-be-defined.js";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 type TypeDependencies = {
   typeId: VersionedUrl;

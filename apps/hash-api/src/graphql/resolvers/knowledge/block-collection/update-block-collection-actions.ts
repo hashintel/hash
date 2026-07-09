@@ -1,30 +1,25 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
-import type {
-  Entity,
-  EntityId,
-  PropertyPatchOperation,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { GraphQLError } from "graphql";
 import { produce } from "immer";
 
-import type { ImpureGraphContext } from "../../../../graph/context-types";
-import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
+
 import {
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import type { Block } from "../../../../graph/knowledge/system-types/block";
 import {
   createBlock,
   getBlockById,
   updateBlockDataEntity,
 } from "../../../../graph/knowledge/system-types/block";
+import * as Error from "../../../error";
+
+import type { ImpureGraphContext } from "../../../../graph/context-types";
+import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";
+import type { Block } from "../../../../graph/knowledge/system-types/block";
 import type { User } from "../../../../graph/knowledge/system-types/user";
 import type {
   CreateEntityAction,
@@ -34,7 +29,14 @@ import type {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
-import * as Error from "../../../error";
+import type {
+  Entity,
+  EntityId,
+  PropertyPatchOperation,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 export const createEntityWithPlaceholdersFn =
   (

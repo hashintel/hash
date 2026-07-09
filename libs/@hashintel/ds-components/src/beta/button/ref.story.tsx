@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Button } from "./button";
+import { Button } from "../button";
 
 export const App = () => {
   const ref = useRef<HTMLButtonElement>(null);

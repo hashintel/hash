@@ -7,9 +7,10 @@ import {
   DialogContent,
   DialogContentText,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { Button } from "../../../../shared/ui";
+
+import type { FunctionComponent } from "react";
 
 type CommentBlockDeleteConfirmationDialogProps = {
   container: HTMLDivElement | null;

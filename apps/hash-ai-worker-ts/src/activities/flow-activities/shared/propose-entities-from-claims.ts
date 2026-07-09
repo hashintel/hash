@@ -1,19 +1,19 @@
+import { logger } from "../../shared/activity-logger.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { logProgress } from "../../shared/log-progress.js";
+import { stringify } from "../../shared/stringify.js";
+import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
+
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import type { ExistingEntitySummary } from "../research-entities-action/coordinating-agent/summarize-existing-entities.js";
+import type { Claim } from "./claims.js";
+import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type {
   ProposedEntity,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
-
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
-import { logger } from "../../shared/activity-logger.js";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../shared/get-flow-context.js";
-import { logProgress } from "../../shared/log-progress.js";
-import { stringify } from "../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../research-entities-action/coordinating-agent/summarize-existing-entities.js";
-import type { Claim } from "./claims.js";
-import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
 
 export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];

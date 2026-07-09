@@ -1,8 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
+
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+
+import { PageType } from "../../graphql/api-types.gen";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { createPage, setParentPage } from "../../graphql/queries/page.queries";
+import { constructPageRelativeUrl } from "../../lib/routes";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 import type {
   CreatePageMutation,
@@ -10,11 +16,7 @@ import type {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { PageType } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { createPage, setParentPage } from "../../graphql/queries/page.queries";
-import { constructPageRelativeUrl } from "../../lib/routes";
-import { getAccountPagesVariables } from "../../shared/account-pages-variables";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 
 export const useCreateSubPage = ({
   shortname,

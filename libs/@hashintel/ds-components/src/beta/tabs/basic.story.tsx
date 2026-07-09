@@ -1,4 +1,4 @@
-import * as Tabs from "./tabs";
+import * as Tabs from "../tabs";
 
 export const App = () => {
   return (

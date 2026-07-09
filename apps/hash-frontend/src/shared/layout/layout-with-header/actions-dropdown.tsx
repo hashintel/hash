@@ -1,15 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
-  AsteriskRegularIcon,
-  BarcodeIcon,
-  FontAwesomeIcon,
-  LinkIcon,
-} from "@hashintel/design-system";
-import {
-  blockProtocolEntityTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
   Box,
   Divider,
   ListItemIcon,
@@ -26,8 +16,18 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useContext } from "react";
+
+import {
+  AsteriskRegularIcon,
+  BarcodeIcon,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
@@ -38,6 +38,8 @@ import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
 import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
 import { HeaderIconButton } from "./shared/header-icon-button";
+
+import type { FunctionComponent } from "react";
 
 const ActionsDropdownInner: FunctionComponent = () => {
   const theme = useTheme();

@@ -1,4 +1,8 @@
+import { Configuration, FrontendApi } from "@ory/client";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+
 import type {
   LoginFlow,
   RecoveryFlow,
@@ -13,8 +17,6 @@ import type {
   UpdateVerificationFlowBody,
   VerificationFlow,
 } from "@ory/client";
-import { Configuration, FrontendApi } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 export const oryKratosClient = new FrontendApi(
   new Configuration({
@@ -26,7 +28,7 @@ export const oryKratosClient = new FrontendApi(
 );
 
 /**
- * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`
+ * A helper type representing the traits defined by the kratos identity schema at `infra/compose/kratos/identity.schema.json`
  */
 export type IdentityTraits = {
   emails: string[];

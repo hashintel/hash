@@ -1,0 +1,8 @@
+error[expander::duplicate-fn-generic]: Duplicate generic parameter
+  ╭▸ 
+5 │   { "#tuple": ["T", "T"] },
+  │                 ┬    ━ duplicate generic parameter `T`
+  │                 │
+  │                 `T` was first declared here
+  │
+  ╰ help: remove the duplicate declaration or use a different name

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import { join } from "node:path";
+
 import { camelCase } from "case-anything";
 import { z } from "zod";
+
 import figmaVariables from "./figma-variables.json" with { type: "json" };
 import {
   formatTokensForOutput,

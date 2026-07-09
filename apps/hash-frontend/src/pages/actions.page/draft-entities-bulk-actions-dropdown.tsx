@@ -1,5 +1,13 @@
 import { useMutation } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
+import {
+  anchorRef,
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   getEntityRevision,
   getIncomingLinksForEntity,
@@ -10,23 +18,7 @@ import {
   extractDraftIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
-import {
-  anchorRef,
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
-import type {
-  ArchiveEntitiesMutation,
-  ArchiveEntitiesMutationVariables,
-  UpdateEntitiesMutation,
-  UpdateEntitiesMutationVariables,
-} from "../../graphql/api-types.gen";
 import {
   archiveEntitiesMutation,
   updateEntitiesMutation,
@@ -35,6 +27,16 @@ import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
 import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, MenuItem } from "../../shared/ui";
 import { useDraftEntities } from "./draft-entities-context";
+
+import type {
+  ArchiveEntitiesMutation,
+  ArchiveEntitiesMutationVariables,
+  UpdateEntitiesMutation,
+  UpdateEntitiesMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   selectedDraftEntityIds: EntityId[];

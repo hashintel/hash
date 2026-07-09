@@ -36,7 +36,7 @@ use crate::node::{generic::GenericConstraint, id::NodeId, r#type::Type};
 /// newtype AccountId = String in
 ///     AccountId("1234")
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct NewTypeExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,

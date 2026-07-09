@@ -27,6 +27,7 @@
     "@rust/hash-codec": "workspace:*",
     "@rust/hash-graph-api": "workspace:*",
     "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-embeddings": "workspace:*",
     "@rust/hash-graph-postgres-store": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
     "@rust/hash-graph-type-fetcher": "workspace:*",

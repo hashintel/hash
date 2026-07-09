@@ -1,9 +1,25 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import {
+  getLinearOrganizationQuery,
+  syncLinearIntegrationWithWebsMutation,
+} from "../../../../graphql/queries/integrations/linear.queries";
+import { Button } from "../../../../shared/ui";
+import { useAuthenticatedUser } from "../../../shared/auth-info-context";
+import { getSettingsLayout } from "../../../shared/settings-layout";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
+import { LinearHeader } from "./linear-header";
+import {
+  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
+  mapLinearOrganizationToSyncWithWebsInputVariable,
+  SelectLinearTeamsTable,
+} from "./select-linear-teams-table";
+import { useLinearIntegrations } from "./use-linear-integrations";
 
 import type {
   GetLinearOrganizationQuery,
@@ -11,23 +27,9 @@ import type {
   SyncLinearIntegrationWithWebsMutation,
   SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import {
-  getLinearOrganizationQuery,
-  syncLinearIntegrationWithWebsMutation,
-} from "../../../../graphql/queries/integrations/linear.queries";
 import type { NextPageWithLayout } from "../../../../shared/layout";
-import { Button } from "../../../../shared/ui";
-import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { getSettingsLayout } from "../../../shared/settings-layout";
-import { SettingsPageContainer } from "../../shared/settings-page-container";
-import { LinearHeader } from "./linear-header";
 import type { LinearOrganizationTeamsWithWebs } from "./select-linear-teams-table";
-import {
-  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
-  mapLinearOrganizationToSyncWithWebsInputVariable,
-  SelectLinearTeamsTable,
-} from "./select-linear-teams-table";
-import { useLinearIntegrations } from "./use-linear-integrations";
+import type { EntityId } from "@blockprotocol/type-system";
 
 const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const router = useRouter();

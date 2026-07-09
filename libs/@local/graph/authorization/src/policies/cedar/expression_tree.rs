@@ -29,6 +29,7 @@ pub enum PolicyExpressionTree {
     IsOfType(VersionedUrl),
     IsOfBaseType(BaseUrl),
     CreatedByPrincipal,
+    IsReadOnly,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -149,7 +150,8 @@ impl PolicyExpressionTree {
             | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
-            | Self::CreatedByPrincipal) => vec![expression],
+            | Self::CreatedByPrincipal
+            | Self::IsReadOnly) => vec![expression],
         };
 
         match rhs {
@@ -163,7 +165,8 @@ impl PolicyExpressionTree {
             | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
-            | Self::CreatedByPrincipal) => all.push(expression),
+            | Self::CreatedByPrincipal
+            | Self::IsReadOnly) => all.push(expression),
         }
 
         if all.len() == 1 {
@@ -192,7 +195,8 @@ impl PolicyExpressionTree {
             | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
-            | Self::CreatedByPrincipal) => vec![expression],
+            | Self::CreatedByPrincipal
+            | Self::IsReadOnly) => vec![expression],
         };
 
         match rhs {
@@ -206,7 +210,8 @@ impl PolicyExpressionTree {
             | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
-            | Self::CreatedByPrincipal) => any.push(expression),
+            | Self::CreatedByPrincipal
+            | Self::IsReadOnly) => any.push(expression),
         }
 
         if any.len() == 1 {
@@ -317,6 +322,7 @@ impl PolicyExpressionTree {
             OntologyTypeVersion,
             Resource,
             CreatedBy,
+            ReadOnly,
         }
 
         let attribute_type = match lhs.expr_kind() {
@@ -325,6 +331,7 @@ impl PolicyExpressionTree {
                     "base_url" => Ok(AttributeType::BaseUrl),
                     "ontology_type_version" => Ok(AttributeType::OntologyTypeVersion),
                     "created_by" => Ok(AttributeType::CreatedBy),
+                    "read_only" => Ok(AttributeType::ReadOnly),
                     _ => Err(Report::new(ParseGetAttrExpressionError::InvalidAttribute(
                         attr.clone(),
                     ))),
@@ -378,6 +385,9 @@ impl PolicyExpressionTree {
             (AttributeType::CreatedBy, _) => Self::expect_principal_id(rhs)
                 .change_context(ParseBinaryExpressionError::Right)
                 .map(|()| Self::CreatedByPrincipal),
+            (AttributeType::ReadOnly, ast::ExprKind::Lit(ast::Literal::Bool(true))) => {
+                Ok(Self::IsReadOnly)
+            }
             (AttributeType::Resource, ast::ExprKind::Lit(ast::Literal::EntityUID(euid))) => {
                 if *euid.entity_type() == **EntityTypeId::entity_type() {
                     EntityTypeId::from_eid(euid.eid())

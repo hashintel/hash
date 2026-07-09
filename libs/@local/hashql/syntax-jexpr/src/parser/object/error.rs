@@ -5,7 +5,7 @@ use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::Critical,
 };
 use winnow::error::ContextError;
 
@@ -14,7 +14,7 @@ use crate::{
     span::Span,
 };
 
-pub(crate) type ObjectDiagnostic = Diagnostic<ObjectDiagnosticCategory, SpanId>;
+pub(crate) type ObjectDiagnostic<K = Critical> = Diagnostic<ObjectDiagnosticCategory, SpanId, K>;
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
@@ -230,6 +230,7 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
 }
 
 impl From<LexerDiagnosticCategory> for ObjectDiagnosticCategory {
+    #[inline]
     fn from(value: LexerDiagnosticCategory) -> Self {
         Self::Lexer(value)
     }
@@ -249,7 +250,7 @@ Empty objects don't have semantic meaning in J-Expr.
 "##;
 
 pub(crate) fn empty(span: SpanId) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Critical::ERROR)
         .primary(Label::new(span, "Add required fields to this object"));
 
     diagnostic.add_message(Message::help(EMPTY_HELP));
@@ -263,7 +264,7 @@ const TRAILING_COMMA_HELP: &str = r#"J-Expr does not support trailing commas in 
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ObjectDiagnostic {
     let (&first, rest) = spans.split_first().expect("Should have at least one span");
 
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Critical::ERROR)
         .primary(Label::new(first, "Remove this trailing comma"));
 
     for &span in rest {
@@ -281,7 +282,7 @@ const LEADING_COMMA_HELP: &str = r#"J-Expr does not support leading commas in ob
 
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ObjectDiagnostic {
     let (&first, rest) = spans.split_first().expect("Should have at least one span");
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Critical::ERROR)
         .primary(Label::new(first, "Remove this leading comma"));
 
     for &span in rest {
@@ -300,7 +301,7 @@ const CONSECUTIVE_COMMA_HELP: &str = r#"J-Expr requires exactly one comma betwee
 pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ObjectDiagnostic {
     let (&first, rest) = spans.split_first().expect("Should have at least one span");
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Severity::Error)
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Critical::ERROR)
             .primary(Label::new(first, "Remove this extra comma"));
 
     for &span in rest {
@@ -319,7 +320,7 @@ const CONSECUTIVE_COLON_HELP: &str = r#"J-Expr requires exactly one colon betwee
 pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
     let (&first, rest) = spans.split_first().expect("Expected at least one span");
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Severity::Error)
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Critical::ERROR)
             .primary(Label::new(first, "Remove this extra colon"));
 
     for &span in rest {
@@ -337,8 +338,8 @@ pub(crate) fn unknown_key(
     span: SpanId,
     key: impl AsRef<str>,
     expected: &[&'static str],
-) -> Diagnostic<ObjectDiagnosticCategory, SpanId> {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Severity::Error)
+) -> ObjectDiagnostic {
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
         .primary(Label::new(
             span,
             if expected.is_empty() {
@@ -385,7 +386,7 @@ pub(crate) fn unknown_key(
 
 pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Severity::Error).primary(
+        Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Critical::ERROR).primary(
             Label::new(span, "Add a primary construct to use with #type"),
         );
 
@@ -416,7 +417,7 @@ pub(crate) fn duplicate_key(
     duplicate_span: SpanId,
     key: impl AsRef<str>,
 ) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Critical::ERROR)
         .primary(Label::new(duplicate_span, "Duplicate key"));
 
     diagnostic.labels.push(Label::new(
@@ -440,7 +441,7 @@ pub(crate) fn struct_key_expected_identifier(
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::StructKeyExpectedIdentifier,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(key_span, "Invalid struct field key"));
 
@@ -459,7 +460,7 @@ pub(crate) fn struct_key_expected_identifier(
 pub(crate) fn dict_entry_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryExpectedArray,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Expected an array for dictionary entry"));
 
@@ -482,7 +483,7 @@ const DICT_ENTRY_FORMAT_NOTE: &str =
 pub(crate) fn dict_entry_too_few_items(span: SpanId, found: usize) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooFewItems,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(
         span,
@@ -508,7 +509,7 @@ pub(crate) fn dict_entry_too_many_items(excess_element_spans: &[SpanId]) -> Obje
 
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooManyItems,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(first, "Remove this element"));
 
@@ -532,7 +533,7 @@ pub(crate) fn dict_entry_too_many_items(excess_element_spans: &[SpanId]) -> Obje
 pub(crate) fn tuple_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::TupleExpectedArray,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Expected an array here"));
 
@@ -553,7 +554,7 @@ pub(crate) fn tuple_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDia
 
 pub(crate) fn list_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ListExpectedArray, Severity::Error)
+        Diagnostic::new(ObjectDiagnosticCategory::ListExpectedArray, Critical::ERROR)
             .primary(Label::new(span, "Expected an array here"));
 
     // More specific help with clear guidance
@@ -574,7 +575,7 @@ pub(crate) fn list_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiag
 pub(crate) fn struct_expected_object(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::StructExpectedObject,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Expected an object here"));
 
@@ -596,7 +597,7 @@ pub(crate) fn struct_expected_object(span: SpanId, found: SyntaxKind) -> ObjectD
 pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictExpectedFormat,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(
         span,
@@ -622,7 +623,7 @@ pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDia
 pub(crate) fn type_expected_string(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::TypeExpectedString,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Invalid type specification"));
 
@@ -642,7 +643,7 @@ pub(crate) fn type_expected_string(span: SpanId, found: SyntaxKind) -> ObjectDia
 pub(crate) fn literal_expected_primitive(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::LiteralExpectedPrimitive,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Invalid literal value in this context"));
 

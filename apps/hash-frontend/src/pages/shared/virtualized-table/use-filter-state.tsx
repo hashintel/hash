@@ -1,6 +1,7 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type {
   VirtualizedTableFilterDefinitionsByFieldId,

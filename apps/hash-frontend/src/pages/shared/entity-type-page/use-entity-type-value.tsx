@@ -1,22 +1,4 @@
 import { useMutation } from "@apollo/client";
-import {
-  getEntityTypesByBaseUrl,
-  getPropertyTypesForEntityType,
-} from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  EntityType,
-  EntityTypeWithMetadata,
-  OntologyTypeVersion,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import {
-  compareOntologyTypeVersions,
-  extractBaseUrl,
-} from "@blockprotocol/type-system";
-import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -27,12 +9,15 @@ import {
   useState,
 } from "react";
 
-import type {
-  CreateEntityTypeMutation,
-  CreateEntityTypeMutationVariables,
-  UpdateEntityTypesMutation,
-  UpdateEntityTypesMutationVariables,
-} from "../../../graphql/api-types.gen";
+import {
+  getEntityTypesByBaseUrl,
+  getPropertyTypesForEntityType,
+} from "@blockprotocol/graph/stdlib";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
+
 import {
   createEntityTypeMutation,
   updateEntityTypesMutation,
@@ -42,6 +27,23 @@ import {
   useEntityTypesSubgraphOptional,
   useFetchEntityTypes,
 } from "../../../shared/entity-types-context/hooks";
+
+import type {
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
+  UpdateEntityTypesMutation,
+  UpdateEntityTypesMutationVariables,
+} from "../../../graphql/api-types.gen";
+import type {
+  BaseUrl,
+  EntityType,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 
 // @todo rethink this from scratch, it's probably more complicated than it needs to be
 export const useEntityTypeValue = (

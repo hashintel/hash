@@ -1,30 +1,29 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-  Entity,
-} from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { User } from "@local/hash-isomorphic-utils/system-types/user";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
-import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+  Entity,
+} from "@blockprotocol/type-system";
+import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 export const useUserOrOrg = (
   params: {
@@ -71,14 +70,21 @@ export const useUserOrOrg = (
                 : []),
             {
               any: [
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.user.entityTypeId,
-                  { ignoreParents: true },
-                ),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.organization.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+                  ],
+                },
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter:
+                        systemEntityTypes.organization.entityTypeBaseUrl,
+                    },
+                  ],
+                },
               ],
             },
           ],

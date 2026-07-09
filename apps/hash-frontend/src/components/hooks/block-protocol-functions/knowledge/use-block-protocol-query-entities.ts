@@ -1,14 +1,16 @@
 import { useLazyQuery } from "@apollo/client";
+import { useCallback } from "react";
+
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { useCallback } from "react";
+
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type { QueryEntitiesMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolQueryEntities = (): {

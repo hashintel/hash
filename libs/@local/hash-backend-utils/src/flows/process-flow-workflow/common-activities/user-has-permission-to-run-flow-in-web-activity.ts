@@ -1,6 +1,7 @@
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+
 import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 
 export type UserHasPermissionToRunFlowInWebActivityParams = {
   userAuthentication: { actorId: ActorEntityUuid };

@@ -11,9 +11,9 @@
     "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",
     "fix:eslint": "eslint --fix .",
     "inspector": "npx @modelcontextprotocol/inspector dist/main.js",
-    "postinstall": "[ \"${CI:-false}\" != \"true\" ] && yarn build || echo 'Skipping Notion MCP build in CI'",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "postinstall": "[ \"${CI:-false}\" != \"true\" ] && yarn build || echo 'Skipping Notion MCP build in CI'",
     "start": "node dist/main.js"
   },
   "dependencies": {
@@ -23,7 +23,7 @@
     "@notionhq/client": "5.3.0",
     "dotenv-flow": "3.3.0",
     "notion-to-md": "3.1.9",
-    "zod": "4.1.12",
+    "zod": "4.4.3",
     "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {

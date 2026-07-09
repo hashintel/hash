@@ -1,10 +1,12 @@
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { Context } from "@temporalio/activity";
+
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../shared/log-progress.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
+
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 
 export const getFileFromUrlAction: AiFlowActionActivity<
   "getFileFromUrl"

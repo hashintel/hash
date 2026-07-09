@@ -1,3 +1,4 @@
+#![expect(clippy::similar_names)]
 use hashql_diagnostics::Success;
 
 use super::{Constraint, InferenceSolver, VariableConstraint};
@@ -2361,6 +2362,55 @@ fn deferred_upper_constraint() {
         &env,
         substitution.infer(hole2).expect("should be resolved"),
         number,
+    );
+}
+
+// Regression test: W(A()) as W<AB> where AB = A | B.
+// The constraint system is: W<?1> <: W<A | B>, with ?1 having lower bound A from the
+// constructor call. The solver should decompose through the opaque covariantly and resolve
+// ?1 = A, since A <: A | B.
+#[test]
+fn opaque_covariant_subtype_through_union() {
+    scaffold!(heap, env, builder);
+
+    let hole = builder.fresh_hole();
+
+    let null = builder.null();
+    let integer = builder.integer();
+
+    // newtype A = Null
+    let type_a = builder.opaque("A", null);
+    // newtype B = Integer
+    let type_b = builder.opaque("B", integer);
+    // type AB = A | B
+    let type_ab = builder.union([type_a, type_b]);
+
+    // W<?1> (the value produced by the constructor call)
+    let w_hole = builder.opaque("W", builder.infer(hole));
+    // W<AB> (the target type from the `as` annotation)
+    let w_ab = builder.opaque("W", type_ab);
+
+    let mut inference = InferenceEnvironment::new(&env);
+    // ?1 has lower bound A (from the constructor argument A() flowing into W's parameter)
+    inference.add_constraint(Constraint::LowerBound {
+        variable: Variable::synthetic(VariableKind::Hole(hole)),
+        bound: type_a,
+    });
+    // W<?1> <: W<AB> (from the `as` expression)
+    inference.collect_constraints(Variance::Covariant, w_hole, w_ab);
+
+    let solver = inference.into_solver();
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
+
+    // ?1 should resolve to A
+    assert_equivalent(
+        &env,
+        substitution.infer(hole).expect("should be resolved"),
+        type_a,
     );
 }
 

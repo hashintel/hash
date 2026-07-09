@@ -1,24 +1,25 @@
-import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
+import { BarChart, GraphChart, LineChart, ScatterChart } from "echarts/charts";
+// eslint-disable-next-line no-restricted-imports
+import { GridComponent, TooltipComponent } from "echarts/components";
+import * as echarts from "echarts/core";
+import { SVGRenderer } from "echarts/renderers";
+import { useEffect, useRef, useState } from "react";
+
+import type { BoxProps } from "@mui/material";
 import type {
   BarSeriesOption,
   GraphSeriesOption,
   LineSeriesOption,
   ScatterSeriesOption,
 } from "echarts/charts";
-import { BarChart, GraphChart, LineChart, ScatterChart } from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
 import type { TooltipComponentOption } from "echarts/components";
-// eslint-disable-next-line no-restricted-imports
-import { GridComponent, TooltipComponent } from "echarts/components";
-import * as echarts from "echarts/core";
-import { SVGRenderer } from "echarts/renderers";
 import type {
   GraphEdgeItemOption,
   GraphNodeItemOption,
 } from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
 
 export type Chart = echarts.ECharts;
 

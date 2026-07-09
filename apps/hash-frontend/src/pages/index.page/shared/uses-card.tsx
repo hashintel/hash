@@ -1,5 +1,6 @@
-import { LightbulbOnRainbowIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+
+import { LightbulbOnRainbowIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../shared/ui/button";
 import { HomepageCard } from "./homepage-card";

@@ -1,4 +1,4 @@
-import * as Accordion from "./accordion";
+import * as Accordion from "../accordion";
 
 const faqItems = [
   {

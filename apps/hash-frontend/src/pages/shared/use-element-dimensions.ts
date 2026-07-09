@@ -1,5 +1,6 @@
-import type { RefCallback } from "react";
 import { useCallback, useEffect, useState } from "react";
+
+import type { RefCallback } from "react";
 
 /**
  * Adapted from https://github.com/imbhargav5/rooks/blob/main/packages/rooks/src/hooks/useResizeObserverRef.ts

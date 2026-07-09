@@ -6,6 +6,7 @@ import {
 } from "./after-update-entity-hooks/file-document-after-update-entity-hook-callback";
 import { textAfterUpdateEntityHookCallback } from "./after-update-entity-hooks/text-after-update-entity-hook-callback";
 import { userAfterUpdateEntityHookCallback } from "./after-update-entity-hooks/user-after-update-entity-hook";
+
 import type { AfterUpdateEntityHook } from "./update-entity-hooks";
 
 export const afterUpdateEntityHooks: AfterUpdateEntityHook[] = [

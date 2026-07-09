@@ -11,9 +11,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../../../binary/index.js";
 import * as ProcedureDescriptor from "../../../types/ProcedureDescriptor.js";
 import * as SubsystemDescriptor from "../../../types/SubsystemDescriptor.js";
-import { MutableBuffer } from "../../../binary/index.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Payload from "../Payload.js";
 
@@ -24,9 +24,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface RequestBegin
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly subsystem: SubsystemDescriptor.SubsystemDescriptor;

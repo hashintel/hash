@@ -1,24 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { useMemo } from "react";
+
 import {
   deserializeQueryEntitiesResponse,
   type SerializedQueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
-import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
+
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import type { MinimalUser } from "../lib/user-and-org";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 
 type MachineActor = {
   accountId: ActorEntityUuid;
@@ -59,10 +58,14 @@ export const useActors = (params: {
                     { parameter: accountId },
                   ],
                 },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.machine.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                    },
+                  ],
+                },
               ],
             }),
           ),

@@ -8,6 +8,7 @@ use hash_graph_store::{
     },
     error::DeletionError,
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{
     DecisionTime, TemporalTagged as _, Timestamp, TransactionTime,
@@ -18,7 +19,7 @@ use type_system::knowledge::property::{
 };
 
 use crate::{
-    DatabaseTestWrapper, alice, bob, count_entity, get_deletion_provenance, person_type_id,
+    DatabaseTestWrapper, alice, bob, count_entities, get_deletion_provenance, person_type_id,
     provenance, raw_count, seed,
 };
 
@@ -46,7 +47,7 @@ async fn decision_time_exceeds_transaction_time() {
             api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -92,6 +93,7 @@ async fn decision_time_in_past_succeeds() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -158,7 +160,7 @@ async fn decision_time_defaults_to_transaction_time() {
             api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -236,7 +238,7 @@ async fn decision_time_before_creation_finds_nothing() {
     );
 
     // Entity still exists
-    assert!(count_entity(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
 }
 
 /// Past `decision_time` still deletes ALL temporal editions, not just the one alive at that time.
@@ -272,6 +274,7 @@ async fn past_decision_time_deletes_all_editions() {
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -346,7 +349,7 @@ async fn past_decision_time_deletes_all_editions() {
         0,
         "all temporal editions must be deleted, not just the one alive at decision_time"
     );
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
 
     let deletion = get_deletion_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
         .await

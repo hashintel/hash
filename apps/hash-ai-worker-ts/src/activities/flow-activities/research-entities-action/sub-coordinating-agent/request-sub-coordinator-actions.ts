@@ -3,10 +3,8 @@ import dedent from "dedent";
 import { logger } from "../../../../shared/logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { ParsedSubCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import { mapPreviousCoordinatorCallsToLlmMessages } from "../shared/map-previous-coordinator-calls-to-llm-messages.js";
 import {
@@ -14,9 +12,12 @@ import {
   generateProgressReport,
   generateSystemPromptPrefix,
 } from "./generate-messages.js";
+import { generateToolDefinitions } from "./sub-coordinator-tools.js";
+
+import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type { ParsedSubCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
-import { generateToolDefinitions } from "./sub-coordinator-tools.js";
 
 /**
  * Given the input to and state of the sub-task agent, request the next actions to be taken.

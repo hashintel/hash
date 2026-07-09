@@ -1,8 +1,9 @@
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import type { Locator, Page } from "../shared/runtime";
 import { expect, test } from "../shared/runtime";
+
+import type { Locator, Page } from "../shared/runtime";
 
 /**
  * This gets the text for the requested cell in the hidden html table,
@@ -142,7 +143,7 @@ test("user can update values on property table", async ({ page }) => {
   expect(cell1Text).toBe(profileUrl);
 });
 
-test("both the link and properties tables renders some content", async ({
+test("both the link and properties tables render some content", async ({
   page,
 }) => {
   await page.goto("/");
@@ -154,12 +155,12 @@ test("both the link and properties tables renders some content", async ({
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
-  /**
-   * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document')
-   */
+  /** The search string is the description of the 'Book' entity type, which has both properties and outgoing links */
   await page
     .getByPlaceholder("Search for an entity type")
-    .fill("document format");
+    .fill(
+      "A written work, typically longer than an article, often published in print form.",
+    );
 
   await page.getByTestId("selector-autocomplete-option").first().click();
 

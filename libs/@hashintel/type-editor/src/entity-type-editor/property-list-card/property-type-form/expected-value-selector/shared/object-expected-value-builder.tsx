@@ -1,8 +1,5 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Checkbox,
@@ -14,16 +11,21 @@ import {
   Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
 import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
-import type { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
+
+import type { Property } from "../../../shared/expected-value-types";
 import type { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
+import type { FunctionComponent } from "react";
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",

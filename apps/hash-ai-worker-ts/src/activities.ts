@@ -1,24 +1,5 @@
 import { getPropertyTypes } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  DataTypeWithMetadata,
-  EntityId,
-  EntityTypeWithMetadata,
-  PropertyObject,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type {
-  Embedding,
-  EntityEmbedding,
-  GraphApi,
-} from "@local/hash-graph-client";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-graph-sdk/embeddings";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
@@ -26,8 +7,6 @@ import {
   generateEntityIdFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { OpenAI } from "openai";
 
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";
@@ -42,6 +21,28 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings.js";
+
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  DataTypeWithMetadata,
+  EntityId,
+  EntityTypeWithMetadata,
+  PropertyObject,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type {
+  Embedding,
+  EntityEmbedding,
+  GraphApi,
+} from "@local/hash-graph-client";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-graph-sdk/embeddings";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
+import type { OpenAI } from "openai";
 
 export { createGraphActivities } from "./activities/graph.js";
 

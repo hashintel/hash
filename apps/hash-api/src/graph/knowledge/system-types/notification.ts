@@ -2,20 +2,14 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
 import {
   HashLinkEntity,
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -24,6 +18,24 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { createEntity, updateEntity } from "../primitive/entity";
+import { createLinkEntity } from "../primitive/link-entity";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Block } from "./block";
+import type { Comment } from "./comment";
+import type { Page } from "./page";
+import type { Text } from "./text";
+import type { User } from "./user";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  CreateEntityParameters,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   ArchivedPropertyValueWithMetadata,
   CommentNotification as CommentNotificationEntity,
@@ -37,18 +49,6 @@ import type {
   OccurredInText,
 } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
-
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
-import { createEntity, updateEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
-import type { Block } from "./block";
-import type { Comment } from "./comment";
-import type { Page } from "./page";
-import type { Text } from "./text";
-import type { User } from "./user";
 
 type Notification = {
   archived?: boolean;
@@ -246,10 +246,15 @@ export const getMentionNotification: ImpureGraphFunction<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.mentionNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter:
+                  systemEntityTypes.mentionNotification.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
@@ -505,36 +510,17 @@ export const getCommentNotification: ImpureGraphFunction<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.commentNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
           {
-            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
-          },
-          /** @todo: enforce the type of these links somehow */
-          {
-            any: [
+            equal: [
+              { path: ["type", "baseUrl"] },
               {
-                exists: {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
-                },
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: false },
-                ],
+                parameter:
+                  systemEntityTypes.commentNotification.entityTypeBaseUrl,
               },
             ],
+          },
+          {
+            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
         ],
       },

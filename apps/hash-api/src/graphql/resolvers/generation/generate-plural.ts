@@ -1,9 +1,10 @@
 import { backOff } from "exponential-backoff";
 
-import type { QueryGeneratePluralArgs, ResolverFn } from "../../api-types.gen";
-import type { GraphQLContext } from "../../context";
 import * as Error from "../../error";
 import { getOpenAiClient } from "./shared/openai-client";
+
+import type { QueryGeneratePluralArgs, ResolverFn } from "../../api-types.gen";
+import type { GraphQLContext } from "../../context";
 
 const generatePrompt = (type: string): string => `
 You are building the ontology for a knowledge graph.

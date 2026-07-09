@@ -1,12 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
 import { Container, Paper, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, PropsWithChildren } from "react";
 import { useContext, useMemo } from "react";
 
+import { validateVersionedUrl } from "@blockprotocol/type-system";
+
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
@@ -14,6 +12,10 @@ import { CreateEntityPage } from "../@/[shortname]/entities/[entity-uuid].page/c
 import { SelectEntityTypePage } from "../@/[shortname]/entities/[entity-uuid].page/select-entity-type-page";
 import { EntityPageLoadingState } from "../shared/entity/entity-page-loading-state";
 import { WorkspaceContext } from "../shared/workspace-context";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 const CreateEntityError: FunctionComponent<
   PropsWithChildren<{

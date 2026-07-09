@@ -1,11 +1,3 @@
-import type {
-  BaseUrl,
-  DataType,
-  OntologyTypeVersion,
-  StringConstraints,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import {
   Box,
   outlinedInputClasses,
@@ -15,14 +7,24 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { MouseEventHandler, ReactNode, RefObject } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
 import { getIconForDataType } from "./data-type-selector/icons";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";
 import { CaretDownSolidIcon } from "./icon-caret-down-solid";
 import { CheckIcon } from "./icon-check";
+
+import type {
+  BaseUrl,
+  DataType,
+  OntologyTypeVersion,
+  StringConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { MouseEventHandler, ReactNode, RefObject } from "react";
 
 export {
   getIconForDataType,

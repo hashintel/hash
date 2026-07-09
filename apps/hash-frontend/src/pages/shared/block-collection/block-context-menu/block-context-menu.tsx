@@ -11,17 +11,14 @@ import {
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
-import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useHotkeys } from "@mantine/hooks";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { ForwardRefRenderFunction } from "react";
 import { forwardRef, useCallback, useMemo, useRef } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
+import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useUserBlocks } from "../../../../blocks/user-blocks";
@@ -35,6 +32,11 @@ import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";
 import { BlockSelectDataModal } from "./block-select-data-modal";
 import { LoadEntityMenuContent } from "./load-entity-menu-content";
+
+import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { ForwardRefRenderFunction } from "react";
 
 type BlockContextMenuProps = {
   blockEntity: DraftEntity | BlockEntity | null;

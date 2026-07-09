@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simulation Architecture — Compilation (Authoring)</title>
+    <link rel="stylesheet" href="./architecture.css" />
+  </head>
+  <body>
+    <nav class="docs">
+      <a href="./index.html">Overview</a>
+      <a class="tag-engine" href="./engine.html">Engine</a>
+      <a class="tag-authoring current" href="./authoring.html">Compilation</a>
+      <a class="tag-worker" href="./worker.html">Worker</a>
+      <a class="tag-mc" href="./monte-carlo.html">Monte Carlo</a>
+    </nav>
+
+    <h1 style="color: var(--authoring)">Compilation (Authoring)</h1>
+    <p class="subtitle">
+      <code>authoring/</code> — turns user-authored strings (TypeScript modules,
+      expressions, function bodies) into plain JS functions the engine can call.
+      Nothing here is a real security boundary: user code runs in the same
+      realm, hardened against <em>accidents</em>, not attackers.
+    </p>
+
+    <dl class="glance">
+      <dt>Inputs</dt>
+      <dd>
+        Code strings stored on the SDCPN document (lambda, kernel, dynamics,
+        metric, scenario)
+      </dd>
+      <dt>Outputs</dt>
+      <dd>
+        Plain JS closures + typed results (<code>InitialMarking</code> for
+        scenarios, <code>fn(state)</code> for metrics)
+      </dd>
+      <dt>Errors</dt>
+      <dd>
+        Thrown at compile time with the offending item’s ID
+        (<code>SDCPNItemError</code>) → surfaced as protocol
+        <code>error</code> messages / result objects
+      </dd>
+      <dt>Runs on</dt>
+      <dd>
+        Worker (lambda/kernel/dynamics, at <code>init</code>) · Main thread
+        (scenario, quick-sim metrics) · MC worker (experiment metrics)
+      </dd>
+    </dl>
+
+    <h2>The compilation pipeline (module-style code)</h2>
+    <p>
+      <code>user-code/compile-user-code.ts</code> handles the three engine
+      surfaces that are authored as modules (<code
+        >export default Wrapper(fn)</code
+      >):
+    </p>
+
+    <div class="hflow">
+      <div class="box b-authoring">
+        <strong>User source</strong>
+        <small
+          ><code>export default Lambda((input, parameters) =&gt; …)</code>
+          (TypeScript allowed)</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-authoring">
+        <strong>Babel</strong>
+        <small
+          ><code>@babel/standalone</code> strips type annotations (browser-safe,
+          no tsc)</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-authoring">
+        <strong>Validate</strong>
+        <small
+          >Regex checks: has <code>export default</code>, uses the expected
+          wrapper name (<code>Lambda</code> / <code>TransitionKernel</code> /
+          <code>Dynamics</code>)</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-authoring">
+        <strong>Assemble</strong>
+        <small
+          >Injects the <code>Distribution</code> runtime (unless disabled) + a
+          mock wrapper that just returns the inner fn; rewrites
+          <code>export default</code> to an assignment</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong><code>new Function(...)()</code></strong>
+        <small>Same-realm plain JS closure, handed to the engine</small>
+      </div>
+    </div>
+
+    <div class="note">
+      The
+      <strong>LSP virtual files</strong>
+      (<code>lsp/generate-virtual-files.ts</code>) are the type-level twin of
+      this pipeline: they generate the <code>Color_*</code>,
+      <code>Parameters</code>, <code>Dynamics</code>,
+      <code>TransitionKernel</code>… declarations that Monaco checks against, so
+      editor diagnostics and runtime behaviour must be kept in sync by hand.
+    </div>
+
+    <h2>What gets compiled, where it runs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Surface</th>
+          <th>Authored as</th>
+          <th>Compiled by</th>
+          <th>Executed in</th>
+          <th>Signature at runtime</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Transition lambda</strong></td>
+          <td>module, <code>Lambda(fn)</code></td>
+          <td><code>buildSimulation</code> → <code>compileUserCode</code></td>
+          <td>Worker, per enablement check</td>
+          <td>
+            <code
+              >(input: {PlaceName: TokenRecord[]}, params) → boolean |
+              rate</code
+            >
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Transition kernel</strong></td>
+          <td>module, <code>TransitionKernel(fn)</code></td>
+          <td><code>buildSimulation</code></td>
+          <td>Worker, per firing</td>
+          <td>
+            <code>(input, params) → {OutputPlace: token[]}</code> — values may
+            be <code>Distribution</code> objects, sampled later by the engine
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Dynamics</strong></td>
+          <td>module, <code>Dynamics(fn)</code></td>
+          <td>
+            <code>buildSimulation</code> (only for colours with a real element)
+          </td>
+          <td>Worker, per step per place</td>
+          <td>
+            <code>(tokens: TokenRecord[], params) → derivative[]</code> (real
+            elements only; others zeroed)
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Metric</strong></td>
+          <td>plain function body (no module)</td>
+          <td><code>authoring/metric/compile-metric.ts</code></td>
+          <td>Main thread (timeline) · MC worker (experiments)</td>
+          <td>
+            <code
+              >(state: {places: {[name]: {count, tokens}}}) → finite
+              number</code
+            >
+            — NaN/∞ throw
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Scenario</strong></td>
+          <td>per-place expressions <em>or</em> one code-mode body</td>
+          <td><code>authoring/scenario/compile-scenario.ts</code></td>
+          <td>Main thread, before <code>createSimulation</code></td>
+          <td>→ <code>InitialMarking</code> (+ scenario parameter values)</td>
+        </tr>
+        <tr>
+          <td><strong>Place visualizer</strong></td>
+          <td>module, <code>Visualization(fn)</code> returning JSX</td>
+          <td>
+            Host UI package (<code>@hashintel/petrinaut</code>,
+            <code>ui/lib/compile-visualizer.ts</code> — the one inherently
+            React-based surface, since visualizers author JSX)
+          </td>
+          <td>Main thread render</td>
+          <td><code>({tokens, parameters}) → ReactElement</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Scenario compilation → InitialMarking</h2>
+
+    <div class="lanes two">
+      <div class="lane">
+        <h4>per_place mode</h4>
+        <div class="box b-authoring">
+          <strong>Uncoloured place → expression string</strong>
+          <small
+            >Evaluated with <code>parameters</code> and <code>scenario</code> in
+            scope; result rounded and clamped &gt;= 0 (a token count).</small
+          >
+        </div>
+        <div class="box b-authoring">
+          <strong>Coloured place → row arrays</strong>
+          <small
+            >Rows in colour element order; each row coerced through
+            <code>coerceTokenRecord</code> (typed defaults for missing columns,
+            extra columns throw).</small
+          >
+        </div>
+      </div>
+      <div class="lane">
+        <h4>code mode</h4>
+        <div class="box b-authoring">
+          <strong>One function body</strong>
+          <small
+            >Returns <code>{ PlaceName: count | TokenRecord[] }</code> keyed by
+            place <em>name</em> (per_place uses place <em>IDs</em> — a known
+            asymmetry). Unknown names are silently dropped.</small
+          >
+        </div>
+        <div class="box b-memory">
+          <strong>Result: InitialMarking (JSON)</strong>
+          <small
+            >Keyed by place ID. Fed to <code>createSimulation</code>, packed to
+            binary in <code>buildSimulation</code>.</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <h2>Metric compilation and evaluation</h2>
+    <div class="hflow">
+      <div class="box b-authoring">
+        <strong>compileMetric(metric)</strong>
+        <small
+          >Wraps the body in <code>new Function("state", body)</code> with
+          shadowed globals; validates the result is a finite number.</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-engine">
+        <strong>buildMetricState(reader, places, types)</strong>
+        <small
+          >Reshapes a <code>SimulationFrameReader</code> into
+          <code>state.places[name] = {count, tokens}</code> (keyed by place
+          name, tokens decoded).</small
+        >
+      </div>
+      <span class="arr">→</span>
+      <div class="box b-ui">
+        <strong>Per-frame evaluation</strong>
+        <small
+          >Quick sim: evaluated on the main thread against stored frames.
+          Experiments: evaluated inside the MC worker per run per frame
+          (<code>metrics/specs.ts</code>).</small
+        >
+      </div>
+    </div>
+
+    <h2>Sandboxing (<code>authoring/sandbox.ts</code>)</h2>
+    <ul>
+      <li>
+        <strong>Shadowed globals:</strong> expression/metric bodies declare
+        <code
+          >var window, document, globalThis, self, fetch, XMLHttpRequest,
+          importScripts, Function, setTimeout, setInterval, queueMicrotask</code
+        >
+        — name lookups resolve to <code>undefined</code>.
+      </li>
+      <li>
+        <strong><code>runSandboxed(action)</code>:</strong> blocks the
+        constructor-chain escape (<code>({}).constructor.constructor</code> →
+        <code>Function</code>) for the duration of the call, since shadowing
+        only stops identifier lookup.
+      </li>
+      <li>
+        <strong>Same realm by design:</strong> user code executes with
+        <code>new Function</code> in the worker/main realm. Treat this as
+        robustness hardening (typos, accidental API use), not isolation.
+      </li>
+    </ul>
+
+    <h2>Distributions (deferred sampling)</h2>
+    <p>
+      <code>user-code/distribution.ts</code> injects a tiny runtime providing
+      <code>Distribution.Gaussian / Uniform / Lognormal</code>. Kernels don’t
+      sample — they return distribution <em>objects</em>; the engine samples
+      each one once per token with the seeded RNG
+      (<code>sample-distribution.ts</code>), so chained
+      <code>.map(fn)</code> transforms share a single draw and runs stay
+      reproducible. When stochasticity is disabled, the runtime isn’t injected
+      and plain values are required.
+    </p>
+
+    <div class="note refactor">
+      <strong>Refactoring seams.</strong>
+      (1) Validation is regex-based (<code>export default Wrapper(…)</code>) —
+      an AST check via the already-present Babel pass would be stricter. (2)
+      Compiled functions receive decoded <code>TokenRecord</code> objects;
+      compiling to buffer-level accessors (the “IR” idea in the Monte Carlo
+      README) would remove per-firing object churn. (3) The runtime/LSP contract
+      (shapes, availability rules) is duplicated between
+      <code>generate-virtual-files.ts</code>, <code>ai.ts</code> prose, and the
+      compilers — a single source of truth would prevent drift.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+error[expander::labeled-arguments-not-supported]: Labeled arguments not supported
+  ╭▸ 
+8 │   { ":extra": { "#literal": 0 } }
+  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━ labeled arguments are not allowed in `newtype`
+  │
+  ╰ help: pass the arguments positionally: `(newtype Name type-expr body)`

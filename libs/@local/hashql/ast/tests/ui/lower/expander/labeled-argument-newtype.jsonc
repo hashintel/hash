@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: labeled arguments are not allowed in `newtype`
+[
+  "::kernel::special_form::newtype",
+  "Foo",
+  "Integer",
+  "Foo",
+  { ":extra": { "#literal": 0 } }
+  //~^ ERROR labeled arguments are not allowed in `newtype`
+]

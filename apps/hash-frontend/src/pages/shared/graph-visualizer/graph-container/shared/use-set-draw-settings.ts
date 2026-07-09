@@ -3,12 +3,13 @@ import { useSigma } from "@react-sigma/core";
 import { useEffect } from "react";
 
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
+import { useFullScreen } from "./full-screen-context";
+
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   StaticNodeSizing,
 } from "./config-control";
-import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {

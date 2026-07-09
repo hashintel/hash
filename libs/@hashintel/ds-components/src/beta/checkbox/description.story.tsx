@@ -1,7 +1,7 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Text } from "../text/text";
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
+import { Text } from "../text";
 
 export const App = () => {
   return (

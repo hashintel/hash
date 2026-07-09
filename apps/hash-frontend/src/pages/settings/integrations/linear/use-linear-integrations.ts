@@ -1,9 +1,10 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
+import { useEffect, useMemo, useState } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { Entity } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -11,6 +12,18 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useAuthenticatedUser } from "../../../shared/auth-info-context";
+
+import type {
+  GetLinearOrganizationQuery,
+  GetLinearOrganizationQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import type { Entity } from "@blockprotocol/type-system";
 import type {
   LinearIntegration as LinearIntegrationType,
   SyncLinearDataWithProperties,
@@ -19,17 +32,6 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/user";
-import { useEffect, useMemo, useState } from "react";
-
-import type {
-  GetLinearOrganizationQuery,
-  GetLinearOrganizationQueryVariables,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
-import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
   entity: Entity<LinearIntegrationType>;

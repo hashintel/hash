@@ -1,8 +1,10 @@
-import { Skeleton } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack } from "@mui/material";
 
+import { Skeleton } from "@hashintel/design-system";
+
 import { a4Ratio, thumbnailWidth } from "./dimensions";
+
+import type { SxProps, Theme } from "@mui/material";
 
 export const PdfPreviewSkeleton = ({
   pageWidth,

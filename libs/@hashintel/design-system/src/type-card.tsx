@@ -1,4 +1,3 @@
-import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -8,7 +7,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { ElementType } from "react";
 import { useState } from "react";
 
 import { EntityOrTypeIcon } from "./entity-or-type-icon";
@@ -17,6 +15,9 @@ import { ArrowsRotateRegularIcon } from "./icon-arrows-rotate-regular";
 import { IconButton } from "./icon-button";
 import { CloseIcon } from "./icon-close";
 import { WhiteCard } from "./white-card";
+
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
+import type { ElementType } from "react";
 
 const deleteButtonSx: SxProps<Theme> = ({ palette }) => ({
   width: 11,

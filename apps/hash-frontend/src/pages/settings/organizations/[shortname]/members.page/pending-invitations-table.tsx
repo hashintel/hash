@@ -1,5 +1,4 @@
 import { useMutation } from "@apollo/client";
-import { isInvitationByShortname } from "@local/hash-isomorphic-utils/organization";
 import {
   Box,
   ListItemText,
@@ -16,17 +15,20 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
-import type {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-} from "../../../../../graphql/api-types.gen";
+import { isInvitationByShortname } from "@local/hash-isomorphic-utils/organization";
+
 import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
-import type { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
 import { SettingsTable } from "../../../shared/settings-table";
 import { SettingsTableCell } from "../../../shared/settings-table-cell";
+
+import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import type { Org } from "../../../../../lib/user-and-org";
 
 export const PendingInvitationContextMenu = ({
   revokeInvitation,

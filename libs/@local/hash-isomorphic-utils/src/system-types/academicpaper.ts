@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   AffiliatedWith,
   AffiliatedWithOutgoingLinkAndTarget,
@@ -17,6 +15,12 @@ import type {
   AuthoredByPropertiesWithMetadata,
   CalendarYearDataType,
   CalendarYearDataTypeWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   Doc,
@@ -25,12 +29,6 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
-  DOIDataType,
-  DOIDataTypeWithMetadata,
-  DOILinkPropertyValue,
-  DOILinkPropertyValueWithMetadata,
-  DOIPropertyValue,
-  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -71,7 +69,10 @@ import type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   AffiliatedWith,
@@ -140,6 +141,8 @@ export type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

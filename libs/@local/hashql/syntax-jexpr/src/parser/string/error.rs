@@ -6,14 +6,14 @@ use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::Critical,
 };
 use text_size::{TextRange, TextSize};
 use winnow::error::{ContextError, StrContext};
 
 use crate::span::Span;
 
-pub(crate) type StringDiagnostic = Diagnostic<StringDiagnosticCategory, SpanId>;
+pub(crate) type StringDiagnostic<K = Critical> = Diagnostic<StringDiagnosticCategory, SpanId, K>;
 
 const INVALID_EXPR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-expression",
@@ -117,7 +117,7 @@ pub(crate) fn invalid_expr(
     let (label, expected) = convert_parse_error(spans, parent, (offset, error));
 
     let mut diagnostic =
-        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error)
+        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Critical::ERROR)
             .primary(label);
 
     if let Some(expected) = expected {

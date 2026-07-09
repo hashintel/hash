@@ -1,18 +1,16 @@
+import { proxySinks, workflowInfo } from "@temporalio/workflow";
+
+import type { SentrySinks } from "../../sinks/sentry.js";
 import type {
   Next,
   WorkflowExecuteInput,
   WorkflowInboundCallsInterceptor,
   WorkflowInterceptors,
 } from "@temporalio/workflow";
-import { proxySinks, workflowInfo } from "@temporalio/workflow";
-
-import type { SentrySinks } from "../../sinks/sentry.js";
 
 const { sentry } = proxySinks<SentrySinks>();
 
-class SentryWorkflowInboundInterceptor
-  implements WorkflowInboundCallsInterceptor
-{
+class SentryWorkflowInboundInterceptor implements WorkflowInboundCallsInterceptor {
   constructor(public readonly workflowType: string) {}
 
   execute = async (

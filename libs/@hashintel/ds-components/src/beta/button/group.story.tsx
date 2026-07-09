@@ -1,4 +1,4 @@
-import { Button, ButtonGroup } from "./button";
+import { Button, ButtonGroup } from "../button";
 
 export const App = () => {
   return (

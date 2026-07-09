@@ -1,5 +1,6 @@
-import { ArrowRightRegularIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 
 import { Button } from "../../shared/ui/button";
 import { FollowUsButton } from "./shared/follow-us-button";

@@ -2,9 +2,9 @@ import { Effect, Function, Layer, type Scope } from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
-
 import * as Connection from "./Connection.js";
 import * as internalTransport from "./internal/transport.js";
+
 import type * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Client");

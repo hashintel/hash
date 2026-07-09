@@ -1,19 +1,21 @@
+import { useMemo } from "react";
+
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  generateChangedPropertyMetadataObject,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
+
+import { useEntityEditor } from "../../../entity-editor-context";
+import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
+
+import type { PropertyRow } from "../types";
 import type {
   BaseUrl,
   PropertyObjectMetadata,
   PropertyPath,
   PropertyValueMetadata,
 } from "@blockprotocol/type-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import {
-  generateChangedPropertyMetadataObject,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import { useMemo } from "react";
-
-import { useEntityEditor } from "../../../entity-editor-context";
-import type { PropertyRow } from "../types";
-import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   const {

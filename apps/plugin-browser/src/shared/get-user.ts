@@ -1,19 +1,28 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
-import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import { currentTimestamp } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { meQuery } from "../graphql/queries/user.queries";
+import { createDefaultSettings } from "./create-default-settings";
+import { createEntity } from "./create-entity";
+import { queryGraphQlApi } from "./query-graphql-api";
+import { getFromLocalStorage, setInLocalStorage } from "./storage";
+
+import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
+import type { LocalStorage } from "./storage";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   BrowserPluginSettingsProperties,
@@ -21,14 +30,6 @@ import type {
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-
-import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
-import { meQuery } from "../graphql/queries/user.queries";
-import { createDefaultSettings } from "./create-default-settings";
-import { createEntity } from "./create-entity";
-import { queryGraphQlApi } from "./query-graphql-api";
-import type { LocalStorage } from "./storage";
-import { getFromLocalStorage, setInLocalStorage } from "./storage";
 
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType<HashEntity>>,

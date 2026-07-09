@@ -1,3 +1,11 @@
+import {
+  deserializeGraphVertices,
+  mapGraphApiSubgraphToSubgraph,
+  serializeGraphVertices,
+} from "./subgraph.js";
+
+import type { AuthenticationContext } from "./authentication-context.js";
+import type { HashEntity, SerializedSubgraph } from "./entity.js";
 import type { PropertyTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   PropertyTypeWithMetadata,
@@ -19,14 +27,6 @@ import type {
   QueryPropertyTypeSubgraphResponse as QueryPropertyTypeSubgraphResponseGraphApi,
 } from "@local/hash-graph-client";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
-
-import type { AuthenticationContext } from "./authentication-context.js";
-import type { HashEntity, SerializedSubgraph } from "./entity.js";
-import {
-  deserializeGraphVertices,
-  mapGraphApiSubgraphToSubgraph,
-  serializeGraphVertices,
-} from "./subgraph.js";
 
 export const hasPermissionForPropertyTypes = (
   graphAPI: GraphApi,

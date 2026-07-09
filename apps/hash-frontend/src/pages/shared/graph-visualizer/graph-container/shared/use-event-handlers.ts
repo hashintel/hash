@@ -1,27 +1,25 @@
 import { useRegisterEvents, useSigma } from "@react-sigma/core";
-import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
+
+import { useFullScreen } from "./full-screen-context";
 
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   StaticNodeSizing,
 } from "./config-control";
-import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 import type { GraphVizEdge } from "./types";
+import type { RefObject } from "react";
 
 export type RegisterEventsArgs = {
   config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
   graphContainerRef: RefObject<HTMLDivElement | null>;
   graphState: GraphState;
-  onEdgeClick?: (params: {
-    edgeData: GraphVizEdge;
-  }) => void;
+  onEdgeClick?: (params: { edgeData: GraphVizEdge }) => void;
   onRender?: () => void;
-  onNodeSecondClick?: (params: {
-    nodeId: string;
-  }) => void;
+  onNodeSecondClick?: (params: { nodeId: string }) => void;
+  pathFinderPanelOpen: boolean;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
   setPathFinderPanelOpen: (open: boolean) => void;
@@ -42,6 +40,7 @@ export const useEventHandlers = ({
   onEdgeClick,
   onRender,
   onNodeSecondClick,
+  pathFinderPanelOpen,
   setConfigPanelOpen,
   setFilterPanelOpen,
   setPathFinderPanelOpen,
@@ -163,18 +162,28 @@ export const useEventHandlers = ({
       },
       clickStage: () => {
         /**
-         * If we click on the background (the 'stage'), deselect the selected node, and close any open panels.
+         * If we click on the background (the 'stage'), close any open panels.
          */
-        if (graphState.selectedNodeId ?? graphState.highlightedEdgePath) {
-          setGraphState("selectedNodeId", null);
-          setGraphState("highlightedEdgePath", null);
-          removeHighlights();
-        }
+        const pathFinderWasOpen = pathFinderPanelOpen;
 
         setConfigPanelOpen(false);
         setFilterPanelOpen(false);
         setPathFinderPanelOpen(false);
         setSearchPanelOpen(false);
+
+        /**
+         * Closing the path finder shouldn't also clear the highlighted path —
+         * that takes a second background click, once the panel is already closed.
+         */
+        if (pathFinderWasOpen) {
+          return;
+        }
+
+        if (graphState.selectedNodeId ?? graphState.highlightedEdgePath) {
+          setGraphState("selectedNodeId", null);
+          setGraphState("highlightedEdgePath", null);
+          removeHighlights();
+        }
       },
       enterNode: (event) => {
         setGraphState("hoveredNodeId", event.node);
@@ -234,6 +243,7 @@ export const useEventHandlers = ({
     onEdgeClick,
     onNodeSecondClick,
     onRender,
+    pathFinderPanelOpen,
     refreshGraphHighlights,
     registerEvents,
     setConfigPanelOpen,

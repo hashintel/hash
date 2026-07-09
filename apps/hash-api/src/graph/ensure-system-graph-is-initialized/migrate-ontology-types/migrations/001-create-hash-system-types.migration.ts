@@ -7,12 +7,13 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 /**
  * @todo H-4065 / H-4066: Support array and tuple data types (add /list/ here, which they should inherit from)

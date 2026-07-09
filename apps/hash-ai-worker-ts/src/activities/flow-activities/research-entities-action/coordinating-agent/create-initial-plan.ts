@@ -3,10 +3,6 @@ import dedent from "dedent";
 import { logger } from "../../../shared/activity-logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
@@ -15,15 +11,20 @@ import {
   type CoordinatorToolCallArguments,
   generateToolDefinitions,
 } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import {
   generateInitialUserMessage,
   generateSystemPromptPrefix,
 } from "./generate-messages.js";
+
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "../shared/coordinators.js";
 
 const maximumRetries = 3;
 

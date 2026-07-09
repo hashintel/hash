@@ -1,6 +1,6 @@
 import { forwardRef, type ReactElement, type ReactNode } from "react";
 
-import * as StyledRatingGroup from "./rating-group";
+import * as StyledRatingGroup from "../rating-group";
 
 export interface RatingProps extends StyledRatingGroup.RootProps {
   icon?: ReactElement;

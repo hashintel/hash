@@ -37,7 +37,7 @@ pub(crate) const CHIPS: &[ChipDef] = &[
     ChipDef {
         plist_name: "as5",
         label: "M5",
-        aliases: &["as5", "as5-2"],
+        aliases: &["as5", "as5-1", "as5-2"],
     },
 ];
 

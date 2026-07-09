@@ -1,20 +1,20 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Url } from "@blockprotocol/type-system";
 import dedent from "dedent";
 import { test } from "vitest";
 
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
-import type { LlmParams } from "../../../shared/get-llm-response/types.js";
 import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
-import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 import {
   chooseRelevantLinksFromContent,
   chooseRelevantLinksFromContentSystemPrompt,
 } from "./choose-relevant-links-from-content.js";
+
+import type { LlmParams } from "../../../shared/get-llm-response/types.js";
+import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
+import type { Url } from "@blockprotocol/type-system";
 
 const ftse350MetricPrompt = "Find all the FTSE350 stock market constituents.";
 
@@ -277,6 +277,9 @@ const baseDirectoryPath = path.join(
 
 test(
   "Extract links form text system prompt test",
+  {
+    timeout: 30 * 60 * 1000,
+  },
   async () => {
     const models: LlmParams["model"][] = ["claude-haiku-4-5-20251001"];
 
@@ -288,8 +291,5 @@ test(
       attemptsPerPrompt: 3,
       promptIterations: 4,
     });
-  },
-  {
-    timeout: 30 * 60 * 1000,
   },
 );

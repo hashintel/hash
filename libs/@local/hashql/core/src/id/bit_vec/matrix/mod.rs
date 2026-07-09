@@ -618,7 +618,7 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     /// Returns the underlying word buffer.
     #[inline]
     #[must_use]
-    pub fn words(&self) -> &[Word] {
+    pub const fn words(&self) -> &[Word] {
         &self.words
     }
 

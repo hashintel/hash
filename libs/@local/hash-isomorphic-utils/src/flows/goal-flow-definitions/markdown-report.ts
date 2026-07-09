@@ -1,11 +1,10 @@
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
-
 import type {
   AiFlowActionDefinitionId,
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "../action-definitions.js";
 import type { ActionStepDefinition, FlowDefinition } from "../types.js";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 export type ReportTriggerInput = "Report specification";
 

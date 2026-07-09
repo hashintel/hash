@@ -1,6 +1,6 @@
 import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Skeleton, SkeletonCircle, SkeletonText } from "./skeleton";
+import { Skeleton, SkeletonCircle, SkeletonText } from "../skeleton";
 
 export const App = () => {
   return (

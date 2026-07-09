@@ -1,7 +1,4 @@
-import type { MutationHookOptions } from "@apollo/client";
 import { useMutation } from "@apollo/client";
-import type { Entity } from "@blockprotocol/type-system";
-import { Avatar } from "@hashintel/design-system";
 import {
   Box,
   buttonClasses,
@@ -18,8 +15,30 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
+
+import { Avatar } from "@hashintel/design-system";
+
+import {
+  AuthorizationSubjectKind,
+  EntityAuthorizationRelation,
+} from "../../../../graphql/api-types.gen";
+import {
+  addEntityEditorMutation,
+  addEntityOwnerMutation,
+  addEntityViewerMutation,
+  getEntityAuthorizationRelationshipsQuery,
+  removeEntityEditorMutation,
+  removeEntityOwnerMutation,
+  removeEntityViewerMutation,
+} from "../../../../graphql/queries/knowledge/entity.queries";
+import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
+import { GlobeLightIcon } from "../../../../shared/icons/globe-light-icon";
+import { isEntityPageEntity } from "../../../../shared/is-of-type";
+import { Button } from "../../../../shared/ui";
+import { useAuthenticatedUser } from "../../auth-info-context";
+import { getImageUrlFromEntityProperties } from "../../get-file-properties";
+import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 
 import type {
   AddEntityEditorMutation,
@@ -35,28 +54,11 @@ import type {
   RemoveEntityViewerMutation,
   RemoveEntityViewerMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import {
-  AuthorizationSubjectKind,
-  EntityAuthorizationRelation,
-} from "../../../../graphql/api-types.gen";
-import {
-  addEntityEditorMutation,
-  addEntityOwnerMutation,
-  addEntityViewerMutation,
-  getEntityAuthorizationRelationshipsQuery,
-  removeEntityEditorMutation,
-  removeEntityOwnerMutation,
-  removeEntityViewerMutation,
-} from "../../../../graphql/queries/knowledge/entity.queries";
 import type { Org, User } from "../../../../lib/user-and-org";
-import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
-import { GlobeLightIcon } from "../../../../shared/icons/globe-light-icon";
-import { isEntityPageEntity } from "../../../../shared/is-of-type";
-import { Button } from "../../../../shared/ui";
-import { useAuthenticatedUser } from "../../auth-info-context";
-import { getImageUrlFromEntityProperties } from "../../get-file-properties";
-import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 import type { AuthorizationRelationship } from "./types";
+import type { MutationHookOptions } from "@apollo/client";
+import type { Entity } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 const relationHierarchy: Record<EntityAuthorizationRelation, number> = {
   Owner: 3,

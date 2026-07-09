@@ -1,16 +1,11 @@
+import { Type } from "@google/genai";
+import dedent from "dedent";
+import get from "lodash/get.js";
+import set from "lodash/set.js";
+import unset from "lodash/unset.js";
+
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityId,
-  PropertyObjectWithMetadata,
-  PropertyProvenance,
-  PropertyValue,
-  PropertyWithMetadata,
-  Url,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
   almostFullOntologyResolveDepths,
@@ -18,11 +13,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import dedent from "dedent";
-import get from "lodash/get.js";
-import set from "lodash/set.js";
-import unset from "lodash/unset.js";
 
 import { logger } from "../../shared/activity-logger.js";
 import {
@@ -39,12 +29,24 @@ import {
   type LlmMessageTextContent,
   type LlmUserMessage,
 } from "../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
+
 import type {
   LlmParams,
   LlmToolDefinition,
 } from "../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../shared/graph-api-client.js";
-import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
+import type {
+  EntityId,
+  PropertyObjectWithMetadata,
+  PropertyProvenance,
+  PropertyValue,
+  PropertyWithMetadata,
+  Url,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const generateOutputSchema = (
   dereferencedDocEntityTypes: DereferencedEntityType[],
@@ -67,7 +69,7 @@ const generateOutputSchema = (
               type: "object",
               title,
               properties: {
-                entityTypeId: { type: SchemaType.STRING, enum: [$id] },
+                entityTypeId: { type: Type.STRING, enum: [$id] },
                 ...properties,
               },
               required: [...(required ?? []), "entityTypeId"],
@@ -491,7 +493,7 @@ export const getLlmAnalysisOfDoc = async ({
 
   const response = await getLlmResponse(
     {
-      model: "gemini-1.5-pro-002",
+      model: "gemini-3.1-pro-preview",
       messages: [message],
       toolChoice: "required",
       tools,
@@ -552,7 +554,7 @@ export const getLlmAnalysisOfDoc = async ({
       messages: [message, response.message],
       tools,
     },
-    judgeModel: "gemini-1.5-pro-002",
+    judgeModel: "gemini-3.1-pro-preview",
   });
 
   for (const {

@@ -1,7 +1,6 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
+
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -10,6 +9,9 @@ import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Link } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { DraftEntityChip } from "./draft-entity-chip";
+
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const DraftEntityWeb: FunctionComponent<{ entity: HashEntity }> = ({
   entity,

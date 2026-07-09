@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: duplicate generic constraint names using the constraint syntax should error
+[
+  "::kernel::special_form::type",
+  "Foo<T: Integer, T: String>",
+  //~^ ERROR duplicate generic parameter `T`
+  { "#struct": { "foo": "T" } },
+  "_"
+]

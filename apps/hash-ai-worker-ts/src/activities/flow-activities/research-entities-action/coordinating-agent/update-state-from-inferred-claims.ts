@@ -1,19 +1,20 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 
-import type { Claim } from "../../shared/claims.js";
-import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { proposeEntitiesFromClaims } from "../../shared/propose-entities-from-claims.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
 import { deduplicateClaims } from "../shared/deduplicate-claims.js";
 import {
   deduplicateEntities,
   type DuplicateReport,
 } from "../shared/deduplicate-entities.js";
+
+import type { Claim } from "../../shared/claims.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "../shared/coordinators.js";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];

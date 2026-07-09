@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Spinner } from "./spinner";
+import { Spinner } from "../spinner";
 
 export const App = () => {
   return (

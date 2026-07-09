@@ -4,7 +4,7 @@
     let %0: String
 
     bb0(): {
-        switchInt(1) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {

@@ -1,14 +1,14 @@
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { getPendingOrgInvitationsFromSubgraph } from "./shared";
+
 import type {
   QueryGetPendingInvitationByEntityIdArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import { getPendingOrgInvitationsFromSubgraph } from "./shared";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 /**
  * This resolver is used specifically to get an invitation to an organization issued to a user not yet signed up for HASH.

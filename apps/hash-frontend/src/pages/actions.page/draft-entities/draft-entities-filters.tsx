@@ -1,44 +1,47 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { Box, Fade, Typography } from "@mui/material";
+import { subDays, subHours } from "date-fns";
+import { useCallback, useMemo } from "react";
+
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { WandMagicSparklesIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { Box, Fade, Typography } from "@mui/material";
-import { subDays, subHours } from "date-fns";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
-import { useCallback, useMemo } from "react";
+import {
+  EntityOrTypeIcon,
+  WandMagicSparklesIcon,
+} from "@hashintel/design-system";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
-import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
 import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
 import { CalendarDaysLightIcon } from "../../../shared/icons/calendar-days-light-icon";
 import { CalendarLightIcon } from "../../../shared/icons/calendar-light-icon";
 import { CalendarWeekLightIcon } from "../../../shared/icons/calendar-week-light-icon";
 import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
 import { HashSolidIcon } from "../../../shared/icons/hash-solid-icon";
-import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
-import type { MinimalActor } from "../../../shared/use-actors";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { FilterSection } from "./draft-entities-filters/filter-section";
+
+import type { MinimalActor } from "../../../shared/use-actors";
 import type { FilterSectionDefinition } from "./draft-entities-filters/types";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  Dispatch,
+  FunctionComponent,
+  ReactNode,
+  SetStateAction,
+} from "react";
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -351,14 +354,15 @@ export const DraftEntitiesFilters: FunctionComponent<{
             const { baseUrl, icon, isLink, title } = entityType;
 
             return {
-              icon: icon ? (
-                <Box marginRight={1.25} maxWidth={14} component="span">
-                  {icon}
-                </Box>
-              ) : isLink ? (
-                <LinkRegularIcon />
-              ) : (
-                <AsteriskLightIcon />
+              icon: (
+                <EntityOrTypeIcon
+                  entity={null}
+                  icon={icon}
+                  isLink={isLink}
+                  fontSize={14}
+                  fill={({ palette }) => palette.gray[50]}
+                  sx={{ mr: 1.25 }}
+                />
               ),
               label: title,
               value: baseUrl,

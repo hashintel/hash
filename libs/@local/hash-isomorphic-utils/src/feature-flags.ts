@@ -23,6 +23,10 @@ export const featureFlags = [
    * Whether AI-related features are enabled, e.g. embedding creation, AI-utilising flow steps
    */
   "ai",
+  /**
+   * Whether the supply chain dashboard views are accessible
+   */
+  "supplyChain",
 ] as const;
 
 export type FeatureFlag = (typeof featureFlags)[number];

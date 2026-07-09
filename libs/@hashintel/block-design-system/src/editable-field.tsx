@@ -1,4 +1,3 @@
-import type { InputBaseProps, SxProps, Theme } from "@mui/material";
 import {
   Box,
   Fade,
@@ -10,6 +9,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { PenIcon, PenToSquareIcon } from "./icons/icons";
+
+import type { InputBaseProps, SxProps, Theme } from "@mui/material";
 
 export const EditableField = ({
   editIconFontSize,

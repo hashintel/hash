@@ -1,15 +1,17 @@
 import { useQuery } from "@apollo/client";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
-import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
-} from "../graphql/api-types.gen";
-import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { summarizeEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { usePollInterval } from "./use-poll-interval";
+
+import type {
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
+} from "../graphql/api-types.gen";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type DraftEntitiesCountContextValue = {
   count?: number;
@@ -41,18 +43,16 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch,
     loading,
-  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
+  } = useQuery<SummarizeEntitiesQuery, SummarizeEntitiesQueryVariables>(
+    summarizeEntitiesQuery,
     {
       variables: {
         request: {
           filter: {
             all: [
               {
-                not: {
-                  exists: {
-                    path: ["draftId"],
-                  },
+                exists: {
+                  path: ["draftId"],
                 },
               },
               {
@@ -62,6 +62,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
+          includeCount: true,
         },
       },
       pollInterval,
@@ -72,7 +73,7 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
 
   const value = useMemo<DraftEntitiesCountContextValue>(
     () => ({
-      count: draftEntitiesData?.countEntities ?? undefined,
+      count: draftEntitiesData?.summarizeEntities.count ?? undefined,
       loading,
       refetch: async () => {
         await refetch();

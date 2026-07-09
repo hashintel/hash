@@ -112,7 +112,7 @@ impl QueryEntitiesByUserStage {
                 actor_uuid,
                 QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::all(),
                     sorting: EntityQuerySorting {
                         cursor: None,
                         paths: Vec::new(),
@@ -120,13 +120,7 @@ impl QueryEntitiesByUserStage {
                     conversions: Vec::new(),
                     limit: self.inputs.limit,
                     include_drafts: false,
-                    include_count: false,
                     include_entity_types: None,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                     include_permissions: false,
                 },
             )

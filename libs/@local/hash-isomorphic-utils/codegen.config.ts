@@ -1,6 +1,6 @@
-import type { CodegenConfig } from "@graphql-codegen/cli";
-
 import { _localRelativeScalars } from "./src/graphql/scalar-mapping.js";
+
+import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   overwrite: true,

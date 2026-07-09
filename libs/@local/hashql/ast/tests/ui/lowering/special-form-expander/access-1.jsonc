@@ -1,4 +1,0 @@
-//@ run: fail
-//@ description: access/1 should error out
-["::kernel::special_form::access", "x"]
-//~^ ERROR Add missing arguments

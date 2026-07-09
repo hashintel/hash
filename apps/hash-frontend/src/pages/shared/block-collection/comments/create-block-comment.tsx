@@ -1,15 +1,17 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useState } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
 import { usePageContext } from "../page-context";
 import { CommentTextField } from "./comment-text-field";
 import styles from "./style.module.css";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { FunctionComponent } from "react";
 
 type CreateBlockCommentProps = {
   blockEntityId: EntityId | null;

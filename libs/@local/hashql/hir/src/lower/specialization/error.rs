@@ -3,6 +3,7 @@ use alloc::borrow::Cow;
 use hashql_core::{
     pretty::{Formatter, RenderOptions},
     span::SpanId,
+    symbol::Symbol,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -76,7 +77,7 @@ impl DiagnosticCategory for SpecializationDiagnosticCategory {
 /// in the specialization phase.
 pub(crate) fn unsupported_intrinsic(
     span: SpanId,
-    intrinsic_name: &str,
+    intrinsic_name: Symbol<'_>,
     issue_url: &str,
 ) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
@@ -110,7 +111,10 @@ pub(crate) fn unsupported_intrinsic(
 ///
 /// This indicates a compiler bug where an intrinsic that should be mapped is missing.
 #[coverage(off)] // compiler bugs should never be hit
-pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecializationDiagnostic {
+pub(crate) fn unknown_intrinsic(
+    span: SpanId,
+    intrinsic_name: Symbol<'_>,
+) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::UnknownIntrinsic,
         Severity::Bug,
@@ -214,7 +218,10 @@ pub(crate) fn non_intrinsic_graph_operation<'heap>(
 ///
 /// This indicates a compiler bug where a graph intrinsic that should be mapped is missing.
 #[coverage(off)] // compiler bugs should never be hit
-pub(crate) fn non_graph_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecializationDiagnostic {
+pub(crate) fn non_graph_intrinsic(
+    span: SpanId,
+    intrinsic_name: Symbol<'_>,
+) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::NonGraphIntrinsic,
         Severity::Bug,

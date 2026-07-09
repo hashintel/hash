@@ -76,14 +76,14 @@ skill-name/
 
 Every SKILL.md must have YAML frontmatter with required and optional fields:
 
-| Field | Required | Description |
-| ----- | -------- | ----------- |
-| `name` | Yes | Max 64 chars. Lowercase letters, numbers, hyphens only. Must match directory name. |
-| `description` | Yes | Max 1024 chars. Describes what the skill does and when to use it. |
-| `license` | No | License name or reference to a bundled license file. |
-| `compatibility` | No | Max 500 chars. Environment requirements (intended product, system packages, etc.). |
-| `metadata` | No | Arbitrary key-value mapping for additional metadata. |
-| `allowed-tools` | No | Space-delimited list of pre-approved tools. (Experimental) |
+| Field           | Required | Description                                                                        |
+| --------------- | -------- | ---------------------------------------------------------------------------------- |
+| `name`          | Yes      | Max 64 chars. Lowercase letters, numbers, hyphens only. Must match directory name. |
+| `description`   | Yes      | Max 1024 chars. Describes what the skill does and when to use it.                  |
+| `license`       | No       | License name or reference to a bundled license file.                               |
+| `compatibility` | No       | Max 500 chars. Environment requirements (intended product, system packages, etc.). |
+| `metadata`      | No       | Arbitrary key-value mapping for additional metadata.                               |
+| `allowed-tools` | No       | Space-delimited list of pre-approved tools. (Experimental)                         |
 
 #### Trigger Configuration (metadata.triggers)
 
@@ -92,17 +92,17 @@ Skills can define auto-activation triggers in the `metadata.triggers` field:
 ```yaml
 metadata:
   triggers:
-    type: domain           # "domain" (advisory) or "guardrail" (enforced)
-    enforcement: suggest   # "suggest", "warn", or "block"
-    priority: high         # "critical", "high", "medium", or "low"
-    keywords:              # Exact substring matches (case-insensitive)
+    type: domain # "domain" (advisory) or "guardrail" (enforced)
+    enforcement: suggest # "suggest", "warn", or "block"
+    priority: high # "critical", "high", "medium", or "low"
+    keywords: # Exact substring matches (case-insensitive)
       - error
       - Result
       - error-stack
-    intent-patterns:        # Regex patterns for intent detection
+    intent-patterns: # Regex patterns for intent detection
       - "\\b(handle|create)\\b.*?\\berror\\b"
       - "\\berror\\b.*?\\bhandling\\b"
-    files:                  # Optional: file-based triggers
+    files: # Optional: file-based triggers
       include:
         - "**/src/**/*.rs"
       exclude:
@@ -166,9 +166,11 @@ Keep SKILL.md body under 500 lines. Split content into separate files when appro
 # PDF Processing
 
 ## Quick start
+
 Extract text with pdfplumber: [code example]
 
 ## Advanced features
+
 - **Form filling**: See [FORMS.md](references/FORMS.md) for complete guide
 - **API reference**: See [REFERENCE.md](references/REFERENCE.md) for all methods
 ```

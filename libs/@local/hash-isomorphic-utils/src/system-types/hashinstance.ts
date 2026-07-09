@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -11,7 +9,10 @@ import type {
   ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
+import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   BooleanDataType,
@@ -20,6 +21,8 @@ export type {
   ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

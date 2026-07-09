@@ -2,7 +2,7 @@
   "definitions": {
     "BaseUrl": {
       "title": "Base URL",
-      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should a valid URL, with a trailing slash.",
+      "description": "The base URL of a Block Protocol ontology type (the $id of the schema, without the versioned suffix). It should be a valid URL, with a trailing slash.",
       "type": "string",
       "format": "uri",
       "maxLength": 2048

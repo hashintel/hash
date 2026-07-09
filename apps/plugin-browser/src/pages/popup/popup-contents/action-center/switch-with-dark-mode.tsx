@@ -1,5 +1,6 @@
-import type { SwitchProps } from "@mui/material";
 import { Switch, switchClasses } from "@mui/material";
+
+import type { SwitchProps } from "@mui/material";
 
 export const SwitchWithDarkMode = ({ sx, ...props }: SwitchProps) => {
   return (

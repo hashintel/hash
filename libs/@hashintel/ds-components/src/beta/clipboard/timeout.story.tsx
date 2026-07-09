@@ -1,5 +1,5 @@
-import { IconButton } from "../icon-button/icon-button";
-import * as Clipboard from "./clipboard";
+import * as Clipboard from "../clipboard";
+import { IconButton } from "../icon-button";
 
 export const App = () => {
   return (

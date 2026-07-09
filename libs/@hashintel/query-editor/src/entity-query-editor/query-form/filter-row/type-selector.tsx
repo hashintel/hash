@@ -1,11 +1,13 @@
-import { FontAwesomeIcon, MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { FontAwesomeIcon, MenuItem } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
-import type { FilterType, FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
 import { fieldOperators, filterTypes } from "./utils";
+
+import type { FilterType, FormValues } from "../../types";
 
 export const TypeSelector = ({ index }: { index: number }) => {
   const { control, setValue } = useFormContext<FormValues>();

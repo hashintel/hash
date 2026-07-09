@@ -1,5 +1,7 @@
-import { WhiteCard } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
+
+import { WhiteCard } from "@hashintel/design-system";
+
 import type { ReactNode } from "react";
 
 interface SectionEmptyStateProps {

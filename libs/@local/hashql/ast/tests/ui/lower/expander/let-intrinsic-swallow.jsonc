@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: rebinding an intrinsic special form should be swallowed (body returned directly)
+[
+  "::kernel::special_form::let",
+  "my_if",
+  "::kernel::special_form::if",
+  ["my_if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
+]

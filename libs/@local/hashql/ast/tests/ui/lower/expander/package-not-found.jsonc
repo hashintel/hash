@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: referencing a nonexistent root package should error
+"::nonexistent::something"
+//~^ ERROR cannot find package `nonexistent`

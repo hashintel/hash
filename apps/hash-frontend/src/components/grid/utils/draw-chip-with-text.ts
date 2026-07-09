@@ -1,7 +1,7 @@
-import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
-
 import { getYCenter } from "../utils";
 import { drawChip } from "./draw-chip";
+
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 /**
  * @param args draw args of cell

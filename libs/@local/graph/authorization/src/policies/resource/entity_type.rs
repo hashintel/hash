@@ -165,7 +165,8 @@ impl TryFrom<PolicyExpressionTree> for EntityTypeResourceFilter {
             | PolicyExpressionTree::IsOfType(_)
             | PolicyExpressionTree::IsOfBaseType(_)
             | PolicyExpressionTree::HasAction(_)
-            | PolicyExpressionTree::CreatedByPrincipal) => {
+            | PolicyExpressionTree::CreatedByPrincipal
+            | PolicyExpressionTree::IsReadOnly) => {
                 Err(Report::new(InvalidEntityTypeResourceFilter(condition)))
             }
         }

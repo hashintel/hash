@@ -11,8 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, implDecode, implEncode } from "../../utils.js";
 import { MutableBuffer } from "../../binary/index.js";
+import { createProto, implDecode, implEncode } from "../../utils.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/ProtocolVersion",
@@ -31,9 +31,7 @@ export class InvalidProtocolVersionError extends Data.TaggedError(
 }
 
 export interface ProtocolVersion
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly value: number;
 }

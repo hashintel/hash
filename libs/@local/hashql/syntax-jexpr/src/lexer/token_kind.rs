@@ -4,14 +4,13 @@ use core::fmt::{self, Display, Write as _};
 use logos::Logos;
 
 use super::{Number, error::LexerError, syntax_kind::SyntaxKind};
-use crate::lexer::parse::{parse_number, parse_string};
+use crate::lexer::parse::{parse_comment, parse_number, parse_string};
 
-// https://github.com/maciejhirsz/logos/issues/133#issuecomment-619444615
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Logos)]
 #[logos(error = LexerError)]
 #[logos(utf8 = false)]
 #[logos(skip r"[ \t\r\n\f]+")]
-#[logos(skip r"//[^\n]*")]
+#[logos(skip("//", parse_comment))]
 #[logos(skip r"/\*(?:[^*]|\*[^/])*\*/")]
 pub(crate) enum TokenKind<'source> {
     #[token("false", |_| false)]

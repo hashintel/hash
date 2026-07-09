@@ -1,3 +1,5 @@
+import * as semver from "semver";
+
 import type {
   OntologyTypeRecordId,
   ParseBaseUrlError,
@@ -10,7 +12,6 @@ import type {
   OntologyTypeVersion,
 } from "@blockprotocol/type-system-rs/types";
 import type { SemVer } from "semver";
-import * as semver from "semver";
 
 /**
  * Checks if a given URL string is a valid base URL.

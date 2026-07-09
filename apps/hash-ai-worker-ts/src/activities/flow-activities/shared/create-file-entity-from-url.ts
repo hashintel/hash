@@ -11,14 +11,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
-import type { ReadableStream } from "node:stream/web";
 
-import type {
-  EntityUuid,
-  PropertyObjectMetadata,
-  ProvidedEntityEditionProvenance,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import mime from "mime-types";
+
 import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
@@ -34,16 +29,23 @@ import {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  File,
-  FileProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import mime from "mime-types";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
 import { logger } from "../../shared/activity-logger.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
+
+import type {
+  EntityUuid,
+  PropertyObjectMetadata,
+  ProvidedEntityEditionProvenance,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type {
+  File,
+  FileProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { ReadableStream } from "node:stream/web";
 
 const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
 

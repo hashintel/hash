@@ -1,10 +1,6 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { Logger } from "@local/hash-backend-utils/logger";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import type { RedisClient } from "@local/hash-backend-utils/redis";
-import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -13,6 +9,11 @@ import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
 } from "./linear/sync-back";
+
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { RedisClient } from "@local/hash-backend-utils/redis";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { GraphApi } from "@local/hash-graph-client";
 
 const sendEntityToRelevantProcessor = ({
   entity,

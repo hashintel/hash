@@ -6,18 +6,18 @@ Special forms are syntactic constructs with special evaluation semantics. Unlike
 
 HashQL has 10 special forms:
 
-| Form | Arity | Purpose |
-| ---- | ----- | ------- |
-| `if` | 2, 3 | Conditional branching |
-| `let` | 3, 4 | Variable binding |
-| `fn` | 4 | Function/closure definition |
-| `as` | 2 | Type assertion |
-| `type` | 3 | Type alias definition |
-| `newtype` | 3 | Nominal type wrapper |
-| `use` | 3 | Module imports |
-| `input` | 2, 3 | Host input declaration |
-| `access` | 2 | Field access (alias: `.`) |
-| `index` | 2 | Index access (alias: `[]`) |
+| Form      | Arity | Purpose                     |
+| --------- | ----- | --------------------------- |
+| `if`      | 2, 3  | Conditional branching       |
+| `let`     | 3, 4  | Variable binding            |
+| `fn`      | 4     | Function/closure definition |
+| `as`      | 2     | Type assertion              |
+| `type`    | 3     | Type alias definition       |
+| `newtype` | 3     | Nominal type wrapper        |
+| `use`     | 3     | Module imports              |
+| `input`   | 2, 3  | Host input declaration      |
+| `access`  | 2     | Field access (alias: `.`)   |
+| `index`   | 2     | Index access (alias: `[]`)  |
 
 ## if - Conditional
 
@@ -352,13 +352,13 @@ Accesses an element by index. Alias: `[]`
 
 Special forms bind names in different namespaces:
 
-| Form | Value Namespace | Type Namespace |
-| ---- | --------------- | -------------- |
-| `let` | ✓ | - |
-| `type` | - | ✓ |
-| `newtype` | ✓ (constructor) | ✓ (type) |
-| `use` | ✓ | ✓ |
-| `fn` | ✓ (parameters) | ✓ (generics) |
+| Form      | Value Namespace | Type Namespace |
+| --------- | --------------- | -------------- |
+| `let`     | ✓               | -              |
+| `type`    | -               | ✓              |
+| `newtype` | ✓ (constructor) | ✓ (type)       |
+| `use`     | ✓               | ✓              |
+| `fn`      | ✓ (parameters)  | ✓ (generics)   |
 
 ## Common Patterns
 
@@ -368,15 +368,34 @@ Create sum types by combining newtypes with union types:
 
 ```jsonc
 // Define enum variants as newtypes
-["newtype", "None", "Null",
-  ["newtype", "Some<T>", "T",
+[
+  "newtype",
+  "None",
+  "Null",
+  [
+    "newtype",
+    "Some<T>",
+    "T",
     // Define the Option type as a union
-    ["type", "Option<T>", "None | Some<T>",
+    [
+      "type",
+      "Option<T>",
+      "None | Some<T>",
       // Use the constructors
-      ["let", "value", ["Some", {"#literal": 42}],
-        ["if", ["==", "value", ["None"]],
-          {"#literal": "empty"},
-          {"#literal": "has value"}]]]]]
+      [
+        "let",
+        "value",
+        ["Some", { "#literal": 42 }],
+        [
+          "if",
+          ["==", "value", ["None"]],
+          { "#literal": "empty" },
+          { "#literal": "has value" },
+        ],
+      ],
+    ],
+  ],
+]
 ```
 
 ### Status Enum Pattern
@@ -392,27 +411,54 @@ Create sum types by combining newtypes with union types:
 ### Entity Query with Filter
 
 ```jsonc
-["let", "entities",
+[
+  "let",
+  "entities",
   ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-  ["filter", "entities",
-    ["fn", {"#tuple": []}, {"#struct": {"e": "_"}}, "_",
-      ["==", "e.archived", {"#literal": false}]]]]
+  [
+    "filter",
+    "entities",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "e": "_" } },
+      "_",
+      ["==", "e.archived", { "#literal": false }],
+    ],
+  ],
+]
 ```
 
 ### Type-safe Input Processing
 
 ```jsonc
-["let", "userId", ["input", "userId", "String"],
-  ["let", "limit", ["input", "limit", "Int", {"#literal": 50}],
-    ["fetch_user_items", "userId", "limit"]]]
+[
+  "let",
+  "userId",
+  ["input", "userId", "String"],
+  [
+    "let",
+    "limit",
+    ["input", "limit", "Int", { "#literal": 50 }],
+    ["fetch_user_items", "userId", "limit"],
+  ],
+]
 ```
 
 ### Module Import Pattern
 
 ```jsonc
-["use", "::graph::head", {"#struct": {"entities": "_"}},
-  ["use", "::graph::tmp", {"#struct": {"decision_time_now": "_"}},
-    ["entities", ["decision_time_now"]]]]
+[
+  "use",
+  "::graph::head",
+  { "#struct": { "entities": "_" } },
+  [
+    "use",
+    "::graph::tmp",
+    { "#struct": { "decision_time_now": "_" } },
+    ["entities", ["decision_time_now"]],
+  ],
+]
 ```
 
 ## Error Handling
@@ -425,7 +471,7 @@ Each special form has specific arity requirements:
 // ✗ Error - if needs 2 or 3 arguments
 ["if", "condition"]
 
-// ✗ Error - let needs 3 or 4 arguments  
+// ✗ Error - let needs 3 or 4 arguments
 ["let", "x", {"#literal": 1}]
 
 // ✗ Error - fn needs exactly 4 arguments
@@ -438,7 +484,7 @@ Special forms don't accept labeled arguments:
 
 ```jsonc
 // ✗ Error - labeled argument in special form
-["if", {":condition": "x"}, "then", "else"]
+["if", { ":condition": "x" }, "then", "else"]
 ```
 
 ### Binding Name Errors

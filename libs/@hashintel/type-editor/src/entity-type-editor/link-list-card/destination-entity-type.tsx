@@ -1,9 +1,10 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/design-system";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { useTypeVersions } from "../shared/use-type-versions";
 import { TypeChipLabel } from "./type-chip-label";
+
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 export const DestinationEntityType = ({
   updateVersion,

@@ -1,4 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import { useMemo } from "react";
+
 import {
   atLeastOne,
   compareOntologyTypeVersions,
@@ -6,11 +7,12 @@ import {
   extractBaseUrl,
   extractVersion,
 } from "@blockprotocol/type-system";
-import { useMemo } from "react";
+
+import { typedValues } from "./typed-values";
 
 import type { EntityTypesByVersionedUrl } from "../../shared/entity-types-options-context";
 import type { PropertyTypesByVersionedUrl } from "../../shared/property-types-options-context";
-import { typedValues } from "./typed-values";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const useTypeVersions = (
   typeId: VersionedUrl,

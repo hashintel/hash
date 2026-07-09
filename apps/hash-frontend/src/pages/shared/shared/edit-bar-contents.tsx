@@ -9,8 +9,9 @@ import {
 import { type ReactNode, useEffect, useRef } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
-import type { ButtonProps } from "../../../shared/ui/button";
 import { Button } from "../../../shared/ui/button";
+
+import type { ButtonProps } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
   hideConfirm,

@@ -4,22 +4,7 @@ import {
   getEntityTypes,
   getPropertyTypes,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  DataTypeWithMetadata,
-  EntityId,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  EntityQueryCursor,
-  GraphApi,
-  UpdateDataTypeEmbeddingParams,
-  UpdateEntityTypeEmbeddingParams,
-  UpdatePropertyTypeEmbeddingParams,
-} from "@local/hash-graph-client";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import {
   queryDataTypes,
   type QueryDataTypesParams,
@@ -29,16 +14,6 @@ import {
   type SerializedQueryDataTypeSubgraphResponse,
   serializeQueryDataTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/data-type";
-import type {
-  CreateEntityParameters,
-  QueryEntitiesRequest,
-  QueryEntitySubgraphRequest,
-  SerializedEntity,
-  SerializedEntityRootType,
-  SerializedQueryEntitiesResponse,
-  SerializedQueryEntitySubgraphResponse,
-  SerializedSubgraph,
-} from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
   queryEntities,
@@ -72,6 +47,32 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type {
+  ActorEntityUuid,
+  DataTypeWithMetadata,
+  EntityId,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type {
+  EntityQueryCursor,
+  GraphApi,
+  UpdateDataTypeEmbeddingParams,
+  UpdateEntityTypeEmbeddingParams,
+  UpdatePropertyTypeEmbeddingParams,
+} from "@local/hash-graph-client";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type {
+  CreateEntityParameters,
+  QueryEntitiesRequest,
+  QueryEntitySubgraphRequest,
+  SerializedEntity,
+  SerializedEntityRootType,
+  SerializedQueryEntitiesResponse,
+  SerializedQueryEntitySubgraphResponse,
+  SerializedSubgraph,
+} from "@local/hash-graph-sdk/entity";
 
 export type EntityQueryResponse = {
   subgraph: SerializedSubgraph<SerializedEntityRootType>;

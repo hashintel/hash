@@ -1,13 +1,15 @@
 import { AnthropicBedrock } from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
+import { Context } from "@temporalio/activity";
+
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+
 import type {
   Message,
   MessageCreateParamsBase,
   MessageCreateParamsNonStreaming,
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Context } from "@temporalio/activity";
 
 const anthropicApiKey = getRequiredEnv("ANTHROPIC_API_KEY");
 

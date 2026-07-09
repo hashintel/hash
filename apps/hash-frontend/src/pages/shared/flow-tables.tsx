@@ -1,16 +1,18 @@
+import { Stack, type SxProps, type Theme, Typography } from "@mui/material";
+
 import {
   Avatar,
   CheckIcon,
   CloseIcon,
   PersonRunningRegularIcon,
 } from "@hashintel/design-system";
-import { Stack, type SxProps, type Theme, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactElement } from "react";
 
-import type { FlowRun } from "../../graphql/api-types.gen";
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 import { Link } from "../../shared/ui/link";
 import { defaultCellSx } from "./virtualized-table";
+
+import type { FlowRun } from "../../graphql/api-types.gen";
+import type { PropsWithChildren, ReactElement } from "react";
 
 export const flowTableRowHeight = 58;
 

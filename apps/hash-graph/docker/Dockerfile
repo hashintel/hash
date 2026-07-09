@@ -15,7 +15,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.3.3 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    export MISE_VERSION=2026.4.22 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -93,8 +93,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     fi && \
     rustup target add "$(uname -m)-unknown-linux-musl" && \
     cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --profile $PROFILE --locked && \
-    mkdir -p /out/etc && \
+    mkdir -p /out/etc/ssl/certs && \
     cp /tmp/bin/hash-graph /out/hash-graph && \
+    cp /etc/ssl/certs/ca-certificates.crt /out/etc/ssl/certs/ca-certificates.crt && \
     echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd && \
     echo 'hash:x:60000:' > /out/etc/group && \
     install -d -m 0775 -o 61000 -g 60000 /out/logs

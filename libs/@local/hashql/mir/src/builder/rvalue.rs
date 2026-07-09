@@ -3,9 +3,10 @@ use core::ops::Deref;
 use hashql_core::{
     heap::{self, FromIteratorIn as _},
     id::IdVec,
+    symbol::Symbol,
     r#type::builder::IntoSymbol,
 };
-use hashql_hir::node::operation::{InputOp, UnOp};
+use hashql_hir::node::operation::InputOp;
 
 use super::base::BaseBuilder;
 use crate::{
@@ -13,7 +14,7 @@ use crate::{
         constant::Constant,
         operand::Operand,
         place::Place,
-        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, UnOp, Unary},
     },
     def::DefId,
 };
@@ -158,6 +159,16 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
         })
     }
 
+    pub fn opaque(self, id: Symbol<'heap>, value: impl Into<Operand<'heap>>) -> RValue<'heap> {
+        let mut operands = IdVec::with_capacity_in(1, self.interner.heap);
+        operands.push(value.into());
+
+        RValue::Aggregate(Aggregate {
+            kind: AggregateKind::Opaque(id),
+            operands,
+        })
+    }
+
     /// Creates a function application r-value.
     #[must_use]
     pub fn apply(
@@ -233,6 +244,12 @@ macro_rules! rvalue {
         $resume!(@rvalue |rv| {
             let members = [$($crate::builder::_private::operand!(rv; $members)),*];
             rv.tuple(members)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; opaque $name:tt, $value:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let inner = $crate::builder::_private::operand!(rv; $value);
+            rv.opaque($name, inner)
         }; $payload; $($rest)*)
     };
     ($resume:path; $payload:tt; list; $($rest:tt)*) => {

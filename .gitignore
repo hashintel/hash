@@ -182,3 +182,6 @@ out/
 
 # Jujutsu
 .jj/
+
+# napi
+libs/@local/effect-dns/hickory/npm

@@ -1,13 +1,15 @@
-import { ArrowUpRightIcon } from "@hashintel/design-system";
-import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
+
+import { ArrowUpRightIcon } from "@hashintel/design-system";
 
 import {
   darkModeBorderColor,
   darkModeInputColor,
   lightModeBorderColor,
 } from "../../../../shared/style-values";
+
+import type { SvgIconProps } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export const Section = ({
   children,

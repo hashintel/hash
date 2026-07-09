@@ -1,5 +1,4 @@
 import { faPerson } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -9,11 +8,14 @@ import {
   useMemo,
 } from "react";
 
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import type { SidebarItemData } from "../shared/settings-layout/settings-sidebar";
 import { SettingsSidebar } from "../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../shared/top-context-bar";
+
+import type { SidebarItemData } from "../shared/settings-layout/settings-sidebar";
 
 const containerSx = {
   maxWidth: { lg: 1240, xl: 1400 },

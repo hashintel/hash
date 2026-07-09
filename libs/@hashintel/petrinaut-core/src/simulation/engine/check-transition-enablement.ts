@@ -1,0 +1,144 @@
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { materializeEngineFrame } from "../frames/internal-frame";
+
+import type { Transition } from "../../types/sdcpn";
+import type {
+  EngineFrame,
+  EngineFrameLayout,
+  EngineFrameSnapshot,
+} from "./types";
+
+/**
+ * Result of checking transition enablement for a simulation frame.
+ */
+export type TransitionEnablementResult = {
+  /**
+   * Whether at least one transition has its input token requirements satisfied.
+   * If false, the simulation is in a terminal state (deadlock).
+   */
+  hasEnabledTransition: boolean;
+
+  /**
+   * Map from transition ID to whether that transition has sufficient input tokens.
+   */
+  transitionStatus: Map<string, boolean>;
+};
+
+/**
+ * Checks if a single transition has its input token requirements satisfied.
+ *
+ * A transition is structurally enabled when standard/read input places have at
+ * least as many tokens as required by their respective arc weights, and
+ * inhibitor input places have fewer tokens than their arc weights.
+ *
+ * Note: This only checks token counts, not lambda conditions. A transition may
+ * be structurally enabled but still not fire due to lambda returning 0 or false.
+ *
+ * @param frame - The current simulation frame
+ * @param transitions - Static transition definitions for the simulation run
+ * @param transitionId - The ID of the transition to check
+ * @returns true if the transition has sufficient input tokens, false otherwise
+ */
+function isTransitionStructurallyEnabledSnapshot(
+  snapshot: EngineFrameSnapshot,
+  transitions: ReadonlyMap<string, Transition>,
+  transitionId: string,
+): boolean {
+  if (!snapshot.transitions[transitionId]) {
+    throw new Error(`Transition with ID ${transitionId} not found.`);
+  }
+
+  const transition = transitions.get(transitionId);
+  if (!transition) {
+    throw new Error(
+      `Transition definition for transition ${transitionId} not found.`,
+    );
+  }
+
+  // Check if all input places satisfy the required arc conditions.
+  return transition.inputArcs.every((arc) => {
+    const placeId = getArcEndpointPlaceId(arc);
+    if (!placeId) {
+      throw new Error(
+        `Component port endpoint found in unflattened transition ${transition.id}.`,
+      );
+    }
+    const placeState = snapshot.places[placeId];
+    if (!placeState) {
+      throw new Error(`Place with ID ${placeId} not found in current marking.`);
+    }
+
+    return arc.type === "inhibitor"
+      ? placeState.count < arc.weight
+      : placeState.count >= arc.weight;
+  });
+}
+
+export const isTransitionStructurallyEnabled = (
+  frame: EngineFrame,
+  transitions: ReadonlyMap<string, Transition>,
+  layout: EngineFrameLayout,
+  transitionId: string,
+): boolean => {
+  return isTransitionStructurallyEnabledSnapshot(
+    materializeEngineFrame(layout, frame),
+    transitions,
+    transitionId,
+  );
+};
+
+/**
+ * Checks if the simulation has reached a terminal state (deadlock) where no
+ * transitions can fire due to insufficient tokens.
+ *
+ * This function only checks the structural enablement of transitions based on
+ * token counts. It does not evaluate lambda functions, so a transition that is
+ * structurally enabled may still not fire if its lambda condition prevents it.
+ *
+ * Use this function after a frame where no transitions fired to determine if
+ * the simulation has definitively reached a terminal state.
+ *
+ * @param frame - The current simulation frame to check
+ * @returns A result object containing:
+ *   - `hasEnabledTransition`: Whether at least one transition could potentially fire
+ *   - `transitionStatus`: Map showing which transitions are structurally enabled
+ *
+ * @example
+ * ```ts
+ * const result = checkTransitionEnablement(
+ *   currentFrame,
+ *   simulation.transitions,
+ *   simulation.frameLayout,
+ * );
+ * if (!result.hasEnabledTransition) {
+ *   console.log("Simulation reached a terminal state (deadlock)");
+ * }
+ * ```
+ */
+export const checkTransitionEnablement = (
+  frame: EngineFrame,
+  transitions: ReadonlyMap<string, Transition>,
+  layout: EngineFrameLayout,
+): TransitionEnablementResult => {
+  const snapshot = materializeEngineFrame(layout, frame);
+  const transitionStatus = new Map<string, boolean>();
+  let hasEnabledTransition = false;
+
+  for (const transitionId of Object.keys(snapshot.transitions)) {
+    const isEnabled = isTransitionStructurallyEnabledSnapshot(
+      snapshot,
+      transitions,
+      transitionId,
+    );
+    transitionStatus.set(transitionId, isEnabled);
+
+    if (isEnabled) {
+      hasEnabledTransition = true;
+    }
+  }
+
+  return {
+    hasEnabledTransition,
+    transitionStatus,
+  };
+};

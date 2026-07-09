@@ -10,9 +10,9 @@ import {
   Either,
 } from "effect";
 
+import { MutableBuffer } from "../../../binary/index.js";
 import { U32_MAX, U32_MIN } from "../../../constants.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import { MutableBuffer } from "../../../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestId",
@@ -24,9 +24,7 @@ export const MIN_VALUE = U32_MIN;
 export const MAX_VALUE = U32_MAX;
 
 export interface RequestId
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly value: number;
 }

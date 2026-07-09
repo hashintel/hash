@@ -1,0 +1,8 @@
+error[expander::item-not-found]: Item not found
+  ╭▸ 
+6 │   ["::core::math::headpat", "Integer", "Number"]
+  │             ┬───  ━━━━━━━ cannot find type `headpat` in module `::core::math`
+  │             │
+  │             looked in this module
+  │
+  ╰ help: check the spelling and ensure the item is exported

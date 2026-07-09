@@ -1,9 +1,9 @@
-import type { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
-import type { FunctionComponent, ReactElement } from "react";
-
 import { CustomElementLoader } from "./block-renderer/custom-element";
 import { HtmlLoader } from "./block-renderer/html";
+
 import type { UnknownBlock } from "./load-remote-block";
+import type { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
+import type { FunctionComponent, ReactElement } from "react";
 
 type BlockRendererProps = {
   blockSource: UnknownBlock;

@@ -1,13 +1,14 @@
 //! # HaRPC Tower
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
     never_type,
 
     // Library Features
+    core_io,
     error_generic_member_access,
 )]
 

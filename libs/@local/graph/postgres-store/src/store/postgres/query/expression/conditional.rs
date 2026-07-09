@@ -4,23 +4,26 @@ use core::fmt::{
 
 use hash_graph_store::filter::PathToken;
 
-use super::ColumnReference;
+use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{
-    SelectStatement, Table, Transpile, WindowStatement,
+    SelectStatement, Transpile, WindowStatement,
     expression::{
         BinaryExpression, BinaryOperator, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator,
     },
+    postgres_type::PostgresType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
+    JsonAgg(Box<Expression>),
     JsonExtractText(Box<Expression>),
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
+    JsonScalar(Box<Expression>),
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
@@ -31,9 +34,27 @@ pub enum Function {
         elements: Vec<Expression>,
         element_type: PostgresType,
     },
+    /// Converts any SQL value to jsonb.
+    ///
+    /// Transpiles to `to_jsonb(<expr>)` in PostgreSQL. Passes through jsonb
+    /// values unchanged; wraps text, uuid, integer, boolean, etc. as jsonb
+    /// scalars.
+    ToJson(Box<Expression>),
+    /// Returns the first non-NULL argument.
+    ///
+    /// Transpiles to `COALESCE(expr, fallback)`.
+    Coalesce(Box<Expression>, Box<Expression>),
     Lower(Box<Expression>),
     Upper(Box<Expression>),
-    Unnest(Box<Expression>),
+    LowerInc(Box<Expression>),
+    UpperInc(Box<Expression>),
+    LowerInf(Box<Expression>),
+    UpperInf(Box<Expression>),
+    /// Extracts the epoch as milliseconds since Unix epoch from a timestamp expression.
+    ///
+    /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
+    ExtractEpochMs(Box<Expression>),
+    Unnest(Vec<Expression>),
     Now,
 }
 
@@ -51,6 +72,16 @@ impl Transpile for Function {
             }
             Self::Max(expression) => {
                 fmt.write_str("MAX(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonAgg(expression) => {
+                fmt.write_str("jsonb_agg(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonScalar(expression) => {
+                fmt.write_str("json_scalar(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
@@ -106,6 +137,18 @@ impl Transpile for Function {
                 fmt.write_char(')')
             }
             Self::Now => fmt.write_str("now()"),
+            Self::ToJson(expression) => {
+                fmt.write_str("to_jsonb(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Coalesce(expression, fallback) => {
+                fmt.write_str("COALESCE(")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                fallback.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::Lower(expression) => {
                 fmt.write_str("lower(")?;
                 expression.transpile(fmt)?;
@@ -116,9 +159,42 @@ impl Transpile for Function {
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
+            Self::LowerInc(expression) => {
+                fmt.write_str("lower_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInc(expression) => {
+                fmt.write_str("upper_inc(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::LowerInf(expression) => {
+                fmt.write_str("lower_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::UpperInf(expression) => {
+                fmt.write_str("upper_inf(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::ExtractEpochMs(expression) => {
+                fmt.write_str("(extract(epoch from ")?;
+                expression.transpile(fmt)?;
+                fmt.write_str(") * 1000)::int8")
+            }
             Self::Unnest(expression) => {
                 fmt.write_str("UNNEST(")?;
-                expression.transpile(fmt)?;
+
+                for (index, element) in expression.iter().enumerate() {
+                    if index > 0 {
+                        fmt.write_str(", ")?;
+                    }
+
+                    element.transpile(fmt)?;
+                }
+
                 fmt.write_char(')')
             }
             Self::JsonPathQueryFirst(target, path) => {
@@ -149,8 +225,10 @@ impl Transpile for Function {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
+    Null,
     Boolean(bool),
-    UnsignedInteger(u32),
+    U32(u32),
+    U128(u128),
     /// The JSON `null` literal, distinct from SQL `NULL`.
     ///
     /// Transpiles to `'null'::jsonb`.
@@ -165,38 +243,18 @@ impl From<bool> for Constant {
 
 impl From<u32> for Constant {
     fn from(value: u32) -> Self {
-        Self::UnsignedInteger(value)
+        Self::U32(value)
     }
 }
 
 impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Null => write!(fmt, "NULL"),
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
-            Self::UnsignedInteger(number) => fmt::Display::fmt(number, fmt),
+            Self::U32(number) => fmt::Display::fmt(number, fmt),
+            Self::U128(number) => fmt::Display::fmt(number, fmt),
             Self::JsonNull => fmt.write_str("'null'::jsonb"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PostgresType {
-    Array(Box<Self>),
-    Row(Table),
-    Text,
-    JsonPath,
-}
-
-impl Transpile for PostgresType {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Array(inner) => {
-                inner.transpile(fmt)?;
-                fmt.write_str("[]")
-            }
-            Self::Row(table) => table.transpile(fmt),
-            Self::Text => fmt.write_str("text"),
-            Self::JsonPath => fmt.write_str("jsonpath"),
         }
     }
 }
@@ -223,17 +281,34 @@ pub enum Expression {
     Function(Function),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
-    /// Row expansion - expands a composite type into its constituent columns.
+    /// Composite field access - extracts a named field from a composite/row type value.
     ///
-    /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
-    /// composite/row types into individual columns. Commonly used in INSERT
-    /// statements to expand a row parameter into column values.
+    /// Transpiles to `(<expr>)."field"` in PostgreSQL. This is the SQL standard mechanism
+    /// for decomposing composite types (created via `ROW(...)::type` or returned from
+    /// subqueries) into individual field values.
+    ///
+    /// Distinct from [`ColumnReference`], which resolves a column name within a table's
+    /// namespace. `FieldAccess` operates on a runtime composite *value*.
+    ///
+    /// Corresponds to `A_Indirection` in PostgreSQL's parse tree and
+    /// `CompoundFieldAccess` in sqlparser-rs.
     ///
     /// # Example SQL
     /// ```sql
-    /// INSERT INTO users VALUES (($1::users).*)
+    /// (f0.c).filter
+    /// (ROW(1, 'hello')::my_type).name
     /// ```
-    RowExpansion(Box<Self>),
+    FieldAccess {
+        expr: Box<Self>,
+        field: ColumnName<'static>,
+    },
+    /// 1-based array subscript access.
+    ///
+    /// Transpiles to `(<expr>)[<index>]` in PostgreSQL.
+    ArrayElement {
+        expr: Box<Self>,
+        index: usize,
+    },
     /// Row constructor - builds a composite row value from individual expressions.
     ///
     /// Transpiles to `ROW(e1, e2, ...)` in PostgreSQL.
@@ -283,10 +358,11 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn not(inner: Self) -> Self {
+    #[expect(clippy::should_implement_trait)]
+    pub fn not(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::Not,
-            expr: Box::new(inner),
+            expr: Box::new(self),
         })
     }
 
@@ -309,11 +385,16 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn exists(expr: Self) -> Self {
+    pub fn is_null(expr: Self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::IsNull,
             expr: Box::new(expr),
         })
+    }
+
+    #[must_use]
+    pub fn is_not_null(expr: Self) -> Self {
+        Self::is_null(expr).not()
     }
 
     #[must_use]
@@ -380,6 +461,15 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn array_contains(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::ArrayContains,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    #[must_use]
     pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::CosineDistance,
@@ -389,6 +479,7 @@ impl Expression {
     }
 
     #[must_use]
+    #[expect(clippy::should_implement_trait)]
     pub fn add(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Add,
@@ -494,8 +585,13 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn grouped(inner: Self) -> Self {
-        Self::Grouped(Box::new(inner))
+    pub fn grouped(self) -> Self {
+        Self::Grouped(Box::new(self))
+    }
+
+    #[must_use]
+    pub fn coalesce(self, fallback: Self) -> Self {
+        Self::Function(Function::Coalesce(Box::new(self), Box::new(fallback)))
     }
 
     #[must_use]
@@ -512,12 +608,33 @@ impl Expression {
     pub fn contains_segment(lhs: Self, rhs: Self) -> Self {
         Self::ContainsSegment(Box::new(lhs), Box::new(rhs))
     }
+
+    #[must_use]
+    pub fn cast(self, r#type: PostgresType) -> Self {
+        Self::Cast(Box::new(self), r#type)
+    }
+
+    #[must_use]
+    pub fn json_scalar(self) -> Self {
+        Self::Function(Function::JsonScalar(Box::new(self)))
+    }
 }
 
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // --- Value expressions ---
+            Self::FieldAccess { expr, field } => {
+                fmt.write_char('(')?;
+                expr.transpile(fmt)?;
+                fmt.write_str(").")?;
+                field.transpile(fmt)
+            }
+            Self::ArrayElement { expr, index } => {
+                fmt.write_char('(')?;
+                expr.transpile(fmt)?;
+                write!(fmt, ")[{index}]")
+            }
             Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
@@ -534,10 +651,6 @@ impl Transpile for Expression {
                 fmt.write_str("::")?;
                 cast_type.transpile(fmt)?;
                 fmt.write_char(')')
-            }
-            Self::RowExpansion(expression) => {
-                expression.transpile(fmt)?;
-                fmt.write_str(".*")
             }
             Self::Row(exprs) => {
                 fmt.write_str("ROW(")?;
@@ -627,7 +740,8 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, SelectCompiler, test_helper::max_version_expression,
+        Alias, Identifier, PostgresQueryPath as _, SelectCompiler,
+        test_helper::max_version_expression,
     };
 
     #[test]
@@ -739,6 +853,97 @@ mod tests {
         assert_eq!(empty_array.transpile_to_string(), "ARRAY[]::text[]");
     }
 
+    #[test]
+    fn transpile_null_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::Null).transpile_to_string(),
+            "NULL"
+        );
+    }
+
+    #[test]
+    fn transpile_u128_constant() {
+        assert_eq!(
+            Expression::Constant(Constant::U128(0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF))
+                .transpile_to_string(),
+            "340282366920938463463374607431768211455"
+        );
+    }
+
+    #[test]
+    fn transpile_json_agg() {
+        assert_eq!(
+            Expression::Function(Function::JsonAgg(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "jsonb_agg($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_unnest_multiple() {
+        assert_eq!(
+            Expression::Function(Function::Unnest(vec![
+                Expression::Parameter(1),
+                Expression::Parameter(2),
+                Expression::Parameter(3),
+            ]))
+            .transpile_to_string(),
+            "UNNEST($1, $2, $3)"
+        );
+    }
+
+    #[test]
+    fn transpile_field_access() {
+        assert_eq!(
+            Expression::FieldAccess {
+                expr: Box::new(Expression::Parameter(1)),
+                field: ColumnName::from(Identifier::from("filter")),
+            }
+            .transpile_to_string(),
+            r#"($1)."filter""#
+        );
+    }
+
+    #[test]
+    fn transpile_is_not_false() {
+        assert_eq!(
+            Expression::Unary(UnaryExpression {
+                op: UnaryOperator::IsNotFalse,
+                expr: Box::new(Expression::Parameter(1)),
+            })
+            .transpile_to_string(),
+            "$1 IS NOT FALSE"
+        );
+    }
+
+    #[test]
+    fn transpile_cast_types() {
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::JsonB)
+                .transpile_to_string(),
+            "($1::jsonb)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Numeric)
+                .transpile_to_string(),
+            "($1::numeric)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Int4)
+                .transpile_to_string(),
+            "($1::int4)"
+        );
+        assert_eq!(
+            Expression::Parameter(1)
+                .cast(PostgresType::Int8)
+                .transpile_to_string(),
+            "($1::int8)"
+        );
+    }
+
     fn test_condition<'p, 'f: 'p>(
         filter: &'f Filter<'p, DataTypeWithMetadata>,
         rendered: &'static str,
@@ -794,7 +999,7 @@ mod tests {
             &Filter::Exists {
                 path: DataTypeQueryPath::Description,
             },
-            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -802,6 +1007,16 @@ mod tests {
             &Filter::Not(Box::new(Filter::Exists {
                 path: DataTypeQueryPath::Description,
             })),
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
+            &[],
+        );
+
+        // Double negation (e.g. `Not(IsRemote)`, where `IsRemote` is itself `Not(Exists)`):
+        // three nested `Not`s over `IsNull` must still resolve to `IS NOT NULL`.
+        test_condition(
+            &Filter::Not(Box::new(Filter::Not(Box::new(Filter::Exists {
+                path: DataTypeQueryPath::Description,
+            })))),
             r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );

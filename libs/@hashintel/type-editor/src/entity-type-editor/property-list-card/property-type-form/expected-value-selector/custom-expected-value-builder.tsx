@@ -1,13 +1,5 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faClose, faList } from "@fortawesome/free-solid-svg-icons";
-import type { ChipProps } from "@hashintel/design-system";
-import {
-  Button,
-  Chip,
-  faCube,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   buttonClasses,
@@ -17,14 +9,24 @@ import {
   Typography,
 } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
-import type { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+
+import {
+  Button,
+  Chip,
+  faCube,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useExpectedValueSelectorContext } from "./shared/expected-value-selector-context";
-import type { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
+
+import type { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
+import type { ChipProps } from "@hashintel/design-system";
+import type { FunctionComponent } from "react";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,

@@ -96,7 +96,6 @@ use hashql_core::{
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
-use hashql_hir::node::operation::UnOp;
 
 use super::copy_propagation::propagate_block_params;
 use crate::{
@@ -107,7 +106,7 @@ use crate::{
         location::Location,
         operand::Operand,
         place::Place,
-        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, UnOp, Unary},
         statement::Assign,
     },
     context::MirContext,
@@ -159,6 +158,7 @@ impl InstSimplify {
 }
 
 impl Default for InstSimplify {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -252,42 +252,32 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
 
     /// Evaluates a binary operation on two constant integers.
     fn eval_bin_op(lhs: Int, op: BinOp, rhs: Int) -> Option<Int> {
-        let lhs = lhs.as_int();
-        let rhs = rhs.as_int();
-
         let result = match op {
-            BinOp::Add => return lhs.checked_add(rhs).map(Int::from),
-            BinOp::Sub => return lhs.checked_sub(rhs).map(Int::from),
-            BinOp::BitAnd => lhs & rhs,
-            BinOp::BitOr => lhs | rhs,
-            BinOp::Eq => i128::from(lhs == rhs),
-            BinOp::Ne => i128::from(lhs != rhs),
-            BinOp::Lt => i128::from(lhs < rhs),
-            BinOp::Lte => i128::from(lhs <= rhs),
-            BinOp::Gt => i128::from(lhs > rhs),
-            BinOp::Gte => i128::from(lhs >= rhs),
+            BinOp::Add => return lhs.checked_add(rhs),
+            BinOp::Sub => return lhs.checked_sub(rhs),
+            // Bitwise ops preserve bool provenance via the Int operators
+            BinOp::BitAnd => return Some(lhs & rhs),
+            BinOp::BitOr => return Some(lhs | rhs),
+            // Comparisons produce booleans
+            BinOp::Eq => lhs == rhs,
+            BinOp::Ne => lhs != rhs,
+            BinOp::Lt => lhs.as_int() < rhs.as_int(),
+            BinOp::Lte => lhs.as_int() <= rhs.as_int(),
+            BinOp::Gt => lhs.as_int() > rhs.as_int(),
+            BinOp::Gte => lhs.as_int() >= rhs.as_int(),
         };
 
         Some(Int::from(result))
     }
 
     /// Evaluates a unary operation on a constant integer.
-    fn eval_un_op(op: UnOp, operand: Int) -> Int {
-        let value = operand.as_int();
-
-        let result = match op {
-            UnOp::Not => {
-                let Some(value) = operand.as_bool() else {
-                    unreachable!("only boolean values can be negated");
-                };
-
-                i128::from(!value)
-            }
-            UnOp::Neg => -value,
-            UnOp::BitNot => !value,
-        };
-
-        Int::from(result)
+    ///
+    /// Returns `None` if the operation overflows (only possible for negation of `i128::MIN`).
+    fn eval_un_op(op: UnOp, operand: Int) -> Option<Int> {
+        match op {
+            UnOp::BitNot => Some(!operand),
+            UnOp::Neg => operand.checked_neg(),
+        }
     }
 
     /// Attempts to simplify a binary operation with a constant left operand and place right
@@ -322,6 +312,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
+            // 0 & rhs => 0 (annihilator)
+            (BinOp::BitAnd, 0) => Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             (BinOp::BitAnd, _) => None,
             // 0 | rhs => rhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(rhs))),
@@ -331,20 +323,28 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             }
             (BinOp::BitOr, _) => None,
             // true == rhs => rhs (boolean equivalence)
-            (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // false == rhs => !rhs (boolean equivalence)
-            (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+            (BinOp::Eq, 1) if is_bool && lhs.is_bool() => Some(RValue::Load(Operand::Place(rhs))),
+            // false == rhs => !rhs == ~rhs (boolean equivalence)
+            (BinOp::Eq, 0) if is_bool && lhs.is_bool() => Some(RValue::Unary(Unary {
+                op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
+            // bool == int => false
+            (BinOp::Eq, _) if is_bool && !lhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::FALSE))))
+            }
             (BinOp::Eq, _) => None,
             // false != rhs => rhs (boolean equivalence)
-            (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // true != rhs => !rhs (boolean equivalence)
-            (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+            (BinOp::Ne, 0) if is_bool && lhs.is_bool() => Some(RValue::Load(Operand::Place(rhs))),
+            // true != rhs => !rhs == ~rhs (boolean equivalence)
+            (BinOp::Ne, 1) if is_bool && lhs.is_bool() => Some(RValue::Unary(Unary {
+                op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
+            // bool != int => true
+            (BinOp::Ne, _) if is_bool && !lhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::TRUE))))
+            }
             (BinOp::Ne, _) => None,
             (BinOp::Lt, _) => None,
             (BinOp::Lte, _) => None,
@@ -382,6 +382,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
+            // lhs & 0 => 0 (annihilator)
+            (BinOp::BitAnd, 0) => Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             (BinOp::BitAnd, _) => None,
             // lhs | 0 => lhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(lhs))),
@@ -391,20 +393,28 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             }
             (BinOp::BitOr, _) => None,
             // lhs == true => lhs (boolean equivalence)
-            (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs == false => !lhs (boolean equivalence)
-            (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+            (BinOp::Eq, 1) if is_bool && rhs.is_bool() => Some(RValue::Load(Operand::Place(lhs))),
+            // lhs == false => !lhs == ~lhs (boolean equivalence)
+            (BinOp::Eq, 0) if is_bool && rhs.is_bool() => Some(RValue::Unary(Unary {
+                op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
+            // bool == int => false
+            (BinOp::Eq, _) if is_bool && !rhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::FALSE))))
+            }
             (BinOp::Eq, _) => None,
             // lhs != false => lhs (boolean equivalence)
-            (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs != true => !lhs (boolean equivalence)
-            (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+            (BinOp::Ne, 0) if is_bool && rhs.is_bool() => Some(RValue::Load(Operand::Place(lhs))),
+            // lhs != true => !lhs == ~lhs (boolean equivalence)
+            (BinOp::Ne, 1) if is_bool && rhs.is_bool() => Some(RValue::Unary(Unary {
+                op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
+            // bool != int => true
+            (BinOp::Ne, _) if is_bool && !rhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::TRUE))))
+            }
             (BinOp::Ne, _) => None,
             (BinOp::Lt, _) => None,
             (BinOp::Lte, _) => None,
@@ -519,8 +529,9 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         _: Location,
         Unary { op, operand }: &mut Unary<'heap>,
     ) -> Self::Result<()> {
-        if let OperandKind::Int(value) = self.try_eval(*operand) {
-            let result = Self::eval_un_op(*op, value);
+        if let OperandKind::Int(value) = self.try_eval(*operand)
+            && let Some(result) = Self::eval_un_op(*op, value)
+        {
             self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Int(result))));
         }
 

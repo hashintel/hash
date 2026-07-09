@@ -1,6 +1,6 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-
 import { useAuthInfo } from "../pages/shared/auth-info-context";
+
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 type EntityFavorite = {
   type: "entity";

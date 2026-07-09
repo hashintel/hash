@@ -1,20 +1,19 @@
 import { Tooltip } from "@mui/material";
 import { unparse } from "papaparse";
-import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 
 import { TableHeaderButton } from "./table-header-button";
 
-type CsvFile = {
-  title: string;
-  content: string[][];
-};
+import type { CsvFile } from "./generate-csv-file";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export type GenerateCsvFileFunction = () => CsvFile | null;
 
 export const ExportToCsvButton: FunctionComponent<{
   generateCsvFile: GenerateCsvFileFunction;
-}> = ({ generateCsvFile }) => {
+  sx?: SxProps<Theme>;
+}> = ({ generateCsvFile, sx }) => {
   const handleExportToCsv = useCallback(() => {
     const generatedCsvFile = generateCsvFile();
 
@@ -46,7 +45,9 @@ export const ExportToCsvButton: FunctionComponent<{
 
   return (
     <Tooltip title="Export the visible rows to CSV" placement="top">
-      <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
+      <TableHeaderButton onClick={handleExportToCsv} sx={sx}>
+        Export
+      </TableHeaderButton>
     </Tooltip>
   );
 };

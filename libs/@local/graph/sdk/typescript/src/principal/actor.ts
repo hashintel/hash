@@ -1,7 +1,6 @@
+import type { AuthenticationContext } from "../authentication-context.js";
 import type { Ai, Machine } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-
-import type { AuthenticationContext } from "../authentication-context.js";
 
 export const getMachineByIdentifier = (
   graphAPI: GraphApi,

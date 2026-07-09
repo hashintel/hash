@@ -1,24 +1,27 @@
-import type { S3ClientConfig } from "@aws-sdk/client-s3";
 import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { Url } from "@blockprotocol/type-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
+
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { getSafeContentType } from "../file-storage.js";
 
 import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
   GetFlowOutputStorageKeyParams,
+  PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedStorageRequest,
   StorageType,
 } from "../file-storage.js";
-import { getSafeContentType } from "../file-storage.js";
+import type { S3ClientConfig } from "@aws-sdk/client-s3";
+import type { Url } from "@blockprotocol/type-system";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export interface AwsS3StorageProviderConstructorArgs {
   credentials: S3ClientConfig["credentials"];
@@ -192,6 +195,27 @@ export class AwsS3StorageProvider implements FileStorageProvider {
 
     return (await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
+    })) as Url;
+  }
+
+  async presignDownloadByKey({
+    key,
+    expiresInSeconds,
+  }: PresignedDownloadByKeyRequest): Promise<Url> {
+    const filename = key.split("/").pop() ?? key;
+    const mimeType = mime.lookup(filename) || "application/octet-stream";
+    const safeContentType = getSafeContentType(mimeType);
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ...(safeContentType && {
+        ResponseContentType: safeContentType,
+      }),
+    });
+
+    return (await getSignedUrl(this.client, command, {
+      expiresIn: expiresInSeconds,
     })) as Url;
   }
 

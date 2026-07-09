@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import * as Switch from "./switch";
+import * as Switch from "../switch";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

@@ -1,11 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { DataTypeSelector } from "@hashintel/design-system";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
-import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { useMemo } from "react";
 
+import { DataTypeSelector } from "@hashintel/design-system";
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
+
 import { useEntityEditor } from "../../../../entity-editor-context";
+
 import type { OnTypeChange } from "./types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 
 interface EditorTypePickerProps {
   expectedTypes: ClosedDataTypeDefinition[];

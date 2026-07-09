@@ -37,7 +37,7 @@ For Graph-specific development, you can run the service independently:
 
    ```shell
    # From repository root
-   yarn external-services up --wait
+   yarn compose up --wait
    ```
 
 2. **Run Database Migrations**
@@ -168,7 +168,7 @@ HASH_GRAPH_LOG_LEVEL=trace,h2=info,tokio_util=debug,tower=info,tonic=info,hyper=
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
-All telemetry data is automatically sent to the [OpenTelemetry Collector](../hash-external-services/) and can be viewed in Grafana at http://localhost:3001.
+All telemetry data is automatically sent to the [OpenTelemetry Collector](../../infra/compose/) and can be viewed in Grafana at http://localhost:3001.
 
 ## Features
 

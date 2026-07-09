@@ -1,16 +1,17 @@
 import { describe, expect, test } from "vitest";
 
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "../src/main.js";
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
   extractVersion,
   validateBaseUrl,
   validateVersionedUrl,
+} from "../src/main.js";
+
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+  VersionedUrl,
 } from "../src/main.js";
 
 const invalidBaseUrlCases: string[] = [

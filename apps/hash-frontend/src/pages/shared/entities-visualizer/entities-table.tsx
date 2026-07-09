@@ -1,17 +1,67 @@
 import { useQuery } from "@apollo/client";
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import { Box, Stack, useTheme } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  extractBaseUrl,
+  extractEntityUuidFromEntityId,
+  isBaseUrl,
+} from "@blockprotocol/type-system";
+import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import { Grid } from "../../../components/grid/grid";
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
+import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
+import { generateCsvFile as buildCsvFile } from "../../../shared/table-header/generate-csv-file";
+import { Button } from "../../../shared/ui/button";
+import {
+  isAiMachineActor,
+  type MinimalActor,
+  useActors,
+} from "../../../shared/use-actors";
+import { useMemoCompare } from "../../../shared/use-memo-compare";
+import { createRenderChipCell } from "../chip-cell";
+import { getReferencedDataTypeIds } from "../format-value";
+import { createRenderTextIconCell } from "../text-icon-cell";
+import { createRenderUrlCell } from "../url-cell";
+import {
+  createRenderEntitiesTableValueCell,
+  type EntitiesTableValueCellProps,
+} from "./entities-table/entities-table-value-cell";
+import { TableToolbar } from "./entities-table/table-toolbar";
+
+import type {
+  ConversionTargetsByColumnKey,
+  GridSort,
+} from "../../../components/grid/grid";
+import type { BlankCell } from "../../../components/grid/utils";
+import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
+import type {
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
+} from "../../../graphql/api-types.gen";
+import type { GenerateCsvFileFunction } from "../../../shared/table-header/export-to-csv-button";
+import type { ChipCellProps } from "../chip-cell";
+import type { TextIconCell } from "../text-icon-cell";
+import type { UrlCellProps } from "../url-cell";
+import type {
+  EntitiesTableData,
+  EntitiesTableRow,
+  SortableEntitiesTableColumnKey,
+} from "./entities-table-data";
+import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
   EntityId,
   VersionedUrl,
   WebId,
-} from "@blockprotocol/type-system";
-import {
-  extractBaseUrl,
-  extractEntityUuidFromEntityId,
-  extractVersion,
-  extractWebIdFromEntityId,
-  isBaseUrl,
 } from "@blockprotocol/type-system";
 import type {
   CustomCell,
@@ -20,13 +70,6 @@ import type {
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
-import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, Stack, useTheme } from "@mui/material";
-import { useRouter } from "next/router";
 import type {
   Dispatch,
   FunctionComponent,
@@ -34,83 +77,28 @@ import type {
   RefObject,
   SetStateAction,
 } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type {
-  ConversionTargetsByColumnKey,
-  GridSort,
-} from "../../../components/grid/grid";
-import { Grid } from "../../../components/grid/grid";
-import type { BlankCell } from "../../../components/grid/utils";
-import { blankCell } from "../../../components/grid/utils";
-import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
-import type { ColumnFilter } from "../../../components/grid/utils/filtering";
-import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type {
-  FindDataTypeConversionTargetsQuery,
-  FindDataTypeConversionTargetsQueryVariables,
-} from "../../../graphql/api-types.gen";
-import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
-import { Button } from "../../../shared/ui/button";
-import {
-  isAiMachineActor,
-  type MinimalActor,
-  useActors,
-} from "../../../shared/use-actors";
-import { useMemoCompare } from "../../../shared/use-memo-compare";
-import type { ChipCellProps } from "../chip-cell";
-import { createRenderChipCell } from "../chip-cell";
-import type { UrlCellProps } from "../url-cell";
-import { createRenderUrlCell } from "../url-cell";
-import {
-  createRenderEntitiesTableValueCell,
-  type EntitiesTableValueCellProps,
-} from "./entities-table/entities-table-value-cell";
-import type { TextIconCell } from "./entities-table/text-icon-cell";
-import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
-import type {
-  ActorTableFilterData,
-  EntitiesTableColumnKey,
-  EntitiesTableData,
-  EntitiesTableRow,
-  EntityTypeTableFilterData,
-  SortableEntitiesTableColumnKey,
-  WebTableFilterData,
-} from "./types";
-import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
+export { toolbarHeight } from "./entities-table/table-toolbar";
 
 const firstColumnLeftPadding = 16;
 
 const emptyTableData: EntitiesTableData = {
   columns: [],
+  dataTypeDefinitions: {},
   rows: [],
   entityTypesWithMultipleVersionsPresent: new Set(),
-  visibleRowsFilterData: {
-    noSourceCount: 0,
-    noTargetCount: 0,
-    sources: {},
-    targets: {},
-  },
   visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
 export const EntitiesTable: FunctionComponent<
-  Pick<
-    EntitiesVisualizerData,
-    | "createdByIds"
-    | "definitions"
-    | "editionCreatedByIds"
-    | "subgraph"
-    | "typeIds"
-    | "typeTitles"
-    | "webIds"
-  > & {
+  Pick<EntitiesVisualizerData, "subgraph"> & {
     activeConversions: {
       [columnBaseUrl: BaseUrl]: {
         dataTypeId: VersionedUrl;
         title: string;
       };
     } | null;
+    csvFileTitle: string;
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
     currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
@@ -118,8 +106,8 @@ export const EntitiesTable: FunctionComponent<
     loading: boolean;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
+    hasMoreRowsAvailable: boolean;
     loadMoreRows?: () => void;
-    readonly?: boolean;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
       SetStateAction<{
@@ -141,18 +129,16 @@ export const EntitiesTable: FunctionComponent<
   }
 > = ({
   activeConversions,
-  createdByIds,
+  csvFileTitle,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
-  definitions,
   disableTypeClick,
-  editionCreatedByIds,
   handleEntityClick,
   loading: entityDataLoading,
   isViewingOnlyPages,
   maxHeight,
+  hasMoreRowsAvailable,
   loadMoreRows,
-  readonly,
   selectedRows,
   setActiveConversions,
   setSelectedRows,
@@ -163,22 +149,27 @@ export const EntitiesTable: FunctionComponent<
   sort,
   tableData,
   totalResultCount,
-  typeIds,
-  typeTitles,
-  webIds,
 }) => {
   const router = useRouter();
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const editorActorIds = useMemo(() => {
-    const editorIds = new Set<ActorEntityUuid>([
-      ...typedKeys(editionCreatedByIds ?? {}),
-      ...typedKeys(createdByIds ?? {}),
-    ]);
+  const {
+    columns,
+    dataTypeDefinitions,
+    entityTypesWithMultipleVersionsPresent,
+    rows,
+    visibleDataTypeIdsByPropertyBaseUrl,
+  } = tableData ?? emptyTableData;
 
+  const editorActorIds = useMemo(() => {
+    const editorIds = new Set<ActorEntityUuid>();
+    for (const row of rows) {
+      editorIds.add(row.lastEditedById);
+      editorIds.add(row.createdById);
+    }
     return [...editorIds];
-  }, [createdByIds, editionCreatedByIds]);
+  }, [rows]);
 
   const { actors } = useActors({
     accountIds: editorActorIds,
@@ -200,26 +191,20 @@ export const EntitiesTable: FunctionComponent<
     }, [actors]);
 
   const webNameByWebId = useMemo(() => {
-    if (!webIds) {
+    if (!rows.length) {
       return {};
     }
 
     const webNameByOwner: Record<WebId, string> = {};
 
-    for (const webId of typedKeys(webIds)) {
+    const webIds = rows.map((row) => row.webId);
+    for (const webId of webIds) {
       const owner = getOwnerForEntity({ webId });
       webNameByOwner[webId] = owner.shortname;
     }
 
     return webNameByOwner;
-  }, [getOwnerForEntity, webIds]);
-
-  const {
-    columns,
-    entityTypesWithMultipleVersionsPresent,
-    rows,
-    visibleDataTypeIdsByPropertyBaseUrl,
-  } = tableData ?? emptyTableData;
+  }, [getOwnerForEntity, rows]);
 
   const visibleDataTypeIds = useMemoCompare(
     () => {
@@ -356,22 +341,24 @@ export const EntitiesTable: FunctionComponent<
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
 
+        const blankCell: TextCell = {
+          kind: GridCellKind.Text,
+          allowOverlay: false,
+          readonly: true,
+          displayData: "",
+          data: "",
+        };
+
         if (columnId) {
           const row = entityRows[rowIndex];
 
-          if (!row || !definitions?.dataTypes) {
+          if (!row) {
             /**
              * This can occur when `createGetCellContent` is called
              * for a row that has just been filtered out, so we handle
              * this by briefly not displaying anything in the cell.
              */
-            return {
-              kind: GridCellKind.Text,
-              allowOverlay: false,
-              readonly: true,
-              displayData: String("Not Found"),
-              data: "Not Found",
-            };
+            return blankCell;
           }
 
           if (isBaseUrl(columnId)) {
@@ -403,6 +390,26 @@ export const EntitiesTable: FunctionComponent<
                 };
               }
 
+              /**
+               * Belt-and-braces against `formatValue` throwing: if any data
+               * type the value depends on is missing from the pool, render the
+               * fallback rather than crashing the whole grid. With the pool now
+               * bundled into `tableData` this should not happen in normal flow,
+               * but it still guards against a genuinely inconsistent response.
+               */
+              const unresolvedDataTypeId = getReferencedDataTypeIds(
+                propertyMetadata,
+              ).find((dataTypeId) => !dataTypeDefinitions[dataTypeId]);
+
+              if (unresolvedDataTypeId) {
+                Sentry.captureException(
+                  new Error(
+                    `Data type not found for ${unresolvedDataTypeId} when rendering value`,
+                  ),
+                );
+                return blankCell;
+              }
+
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: true,
@@ -413,7 +420,7 @@ export const EntitiesTable: FunctionComponent<
                   isArray,
                   value,
                   propertyMetadata,
-                  dataTypeDefinitions: definitions.dataTypes,
+                  dataTypeDefinitions,
                 } satisfies EntitiesTableValueCellProps,
               };
             }
@@ -652,7 +659,7 @@ export const EntitiesTable: FunctionComponent<
     [
       actorsByAccountId,
       columns,
-      definitions?.dataTypes,
+      dataTypeDefinitions,
       disableTypeClick,
       entityTypesWithMultipleVersionsPresent,
       handleEntityClick,
@@ -665,203 +672,12 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } =
-    useMemo<{
-      createdByActors: ActorTableFilterData[];
-      lastEditedByActors: ActorTableFilterData[];
-      entityTypeFilters: EntityTypeTableFilterData[];
-      webs: WebTableFilterData[];
-    }>(() => {
-      const createdBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        createdBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
-      }
-
-      const editedBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        editedBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
-      }
-
-      const types: EntityTypeTableFilterData[] = [];
-      for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
-        const title = typeTitles?.[entityTypeId];
-
-        if (!title) {
-          throw new Error(
-            `Could not find title for entity type ${entityTypeId}`,
-          );
-        }
-
-        types.push({
-          count,
-          entityTypeId,
-          title,
-        });
-      }
-
-      const webCounts: WebTableFilterData[] = [];
-      for (const [webId, count] of typedEntries(webIds ?? {})) {
-        const webname = webNameByWebId[webId] ?? webId;
-        webCounts.push({
-          count,
-          shortname: `@${webname}`,
-          webId,
-        });
-      }
-
-      return {
-        createdByActors: createdBy,
-        entityTypeFilters: types,
-        lastEditedByActors: editedBy,
-        webs: webCounts,
-      };
-    }, [
-      actorsByAccountId,
-      createdByIds,
-      editionCreatedByIds,
-      typeIds,
-      typeTitles,
-      webIds,
-      webNameByWebId,
-    ]);
-
-  const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<
-    Set<string>
-  >(new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)));
-
-  useEffect(() => {
-    setSelectedEntityTypeIds(
-      new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)),
-    );
-  }, [entityTypeFilters]);
-
-  const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<Set<string>>(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
-
-  const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
-    useState<Set<string>>(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
-
-  useEffect(() => {
-    setSelectedLastEditedByAccountIds(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
-  }, [lastEditedByActors]);
-
-  useEffect(() => {
-    setSelectedCreatedByAccountIds(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
-  }, [createdByActors]);
-
-  const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
-    new Set(webs.map(({ webId }) => webId)),
-  );
-
-  useEffect(() => {
-    setSelectedWebs(new Set(webs.map(({ webId }) => webId)));
-  }, [webs]);
-
-  const columnFilters = useMemo<
-    ColumnFilter<EntitiesTableColumnKey, EntitiesTableRow>[]
-  >(
-    () => [
-      {
-        columnKey: "webId",
-        filterItems: webs.map(({ shortname, webId, count: _count }) => ({
-          id: webId,
-          label: shortname,
-          // @todo H-3841 –- rethink filtering
-          // count,
-        })),
-        selectedFilterItemIds: selectedWebs,
-        setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) =>
-          !selectedWebs.has(extractWebIdFromEntityId(row.entityId)),
-      },
-      {
-        columnKey: "entityTypes",
-        filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count: _count, title }) => ({
-            id: entityTypeId,
-            label: title,
-            // @todo H-3841 –- rethink filtering
-            // count,
-            labelSuffix: entityTypesWithMultipleVersionsPresent.has(
-              entityTypeId,
-            )
-              ? `v${extractVersion(entityTypeId).toString()}`
-              : undefined,
-          }),
-        ),
-        selectedFilterItemIds: selectedEntityTypeIds,
-        setSelectedFilterItemIds: setSelectedEntityTypeIds,
-        isRowFiltered: (row) => {
-          return !row.entityTypes.some(({ entityTypeId }) =>
-            selectedEntityTypeIds.has(entityTypeId),
-          );
-        },
-      },
-      {
-        columnKey: "lastEditedById",
-        filterItems: lastEditedByActors.map((actor) => ({
-          id: actor.actorId,
-          label: actor.displayName ?? "Unknown Actor",
-        })),
-        selectedFilterItemIds: selectedLastEditedByAccountIds,
-        setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
-        isRowFiltered: (row) =>
-          row.lastEditedById && row.lastEditedById !== "loading"
-            ? !selectedLastEditedByAccountIds.has(row.lastEditedById)
-            : false,
-      },
-      {
-        columnKey: "createdById",
-        filterItems: createdByActors.map((actor) => ({
-          id: actor.actorId,
-          label: actor.displayName ?? "Unknown Actor",
-        })),
-        selectedFilterItemIds: selectedCreatedByAccountIds,
-        setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
-        isRowFiltered: (row) =>
-          row.createdById && row.createdById !== "loading"
-            ? !selectedCreatedByAccountIds.has(row.createdById)
-            : false,
-      },
-    ],
-    [
-      createdByActors,
-      entityTypeFilters,
-      entityTypesWithMultipleVersionsPresent,
-      lastEditedByActors,
-      selectedEntityTypeIds,
-      selectedCreatedByAccountIds,
-      selectedLastEditedByAccountIds,
-      selectedWebs,
-      webs,
-    ],
-  );
-
   const sortableColumns: SortableEntitiesTableColumnKey[] = useMemo(() => {
     return [
       "archived",
       "created",
       "entityLabel",
       "entityTypes",
-      "entityLabel",
       "lastEdited",
       ...columns.map((column) => column.id).filter((key) => isBaseUrl(key)),
     ];
@@ -871,7 +687,10 @@ export const EntitiesTable: FunctionComponent<
     ({
       columnKey,
       dataTypeId,
-    }: { columnKey: BaseUrl; dataTypeId: VersionedUrl | null }) => {
+    }: {
+      columnKey: BaseUrl;
+      dataTypeId: VersionedUrl | null;
+    }) => {
       if (!dataTypeId) {
         if (!activeConversions) {
           return;
@@ -931,6 +750,44 @@ export const EntitiesTable: FunctionComponent<
     [conversionTargetsByColumnKey, setSort],
   );
 
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
+    const csvColumns = currentlyDisplayedColumnsRef.current;
+    const csvRows = currentlyDisplayedRowsRef.current;
+
+    if (!csvColumns || !csvRows) {
+      return null;
+    }
+
+    return buildCsvFile({
+      columns: csvColumns,
+      rows: csvRows,
+      title: csvFileTitle,
+      /**
+       * The entities table stores actor and web ids on the row, resolving them to
+       * display names elsewhere in the component. Translate them here so the export
+       * matches what's shown in the grid rather than emitting raw ids.
+       */
+      resolveCell: (key, row) => {
+        if (key === "createdById" || key === "lastEditedById") {
+          return actorsByAccountId[row[key]]?.displayName ?? "";
+        }
+
+        if (key === "webId") {
+          const shortname = webNameByWebId[row.webId];
+          return shortname ? `@${shortname}` : "";
+        }
+
+        return undefined;
+      },
+    });
+  }, [
+    actorsByAccountId,
+    csvFileTitle,
+    currentlyDisplayedColumnsRef,
+    currentlyDisplayedRowsRef,
+    webNameByWebId,
+  ]);
+
   const [
     { horizontalScrollbarHeight, verticalScrollbarWidth },
     setScrollbarSizes,
@@ -955,111 +812,119 @@ export const EntitiesTable: FunctionComponent<
     });
   }, [rows.length]);
 
-  const hasMoreRowsAvailable =
-    totalResultCount && totalResultCount > rows.length;
   const loadMoreRowHeight = 60;
 
   return (
-    <Stack gap={1} sx={{ position: "relative" }}>
-      <Grid
-        activeConversions={activeConversions}
-        columnFilters={columnFilters}
-        columns={columns}
-        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
-        createGetCellContent={createGetCellContent}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        customRenderers={customRenderers}
-        dataLoading={false}
-        enableCheckboxSelection={!readonly}
-        experimental={{
-          paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
-        }}
-        firstColumnLeftPadding={firstColumnLeftPadding}
-        freezeColumns={1}
-        height={`min(${maxHeight}, 600px)`}
-        onConversionTargetSelected={onConversionTargetSelected}
-        onSearchClose={() => setShowSearch(false)}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
-        rows={rows}
-        selectedRows={selectedRows}
+    <>
+      <TableToolbar
+        generateCsvFile={generateCsvFile}
+        displayedColumns={columns}
         showSearch={showSearch}
-        sortableColumns={sortableColumns}
+        setShowSearch={setShowSearch}
         sort={sort}
         setSort={setSortWithConversion}
       />
+      <Stack sx={{ gap: 1, position: "relative" }}>
+        <Grid
+          activeConversions={activeConversions}
+          columns={columns}
+          conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+          createGetCellContent={createGetCellContent}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          customRenderers={customRenderers}
+          dataLoading={false}
+          enableCheckboxSelection
+          experimental={{
+            paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
+          }}
+          firstColumnLeftPadding={firstColumnLeftPadding}
+          freezeColumns={1}
+          height={`min(${maxHeight}, 600px)`}
+          onConversionTargetSelected={onConversionTargetSelected}
+          onSearchClose={() => setShowSearch(false)}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            setSelectedRows(updatedSelectedRows)
+          }
+          rows={rows}
+          selectedRows={selectedRows}
+          showSearch={showSearch}
+          sortableColumns={sortableColumns}
+          sort={sort}
+          setSort={setSortWithConversion}
+        />
 
-      {hasMoreRowsAvailable && (
-        <Stack
-          alignItems="center"
-          justifyContent="center"
-          mt={1}
-          sx={({ palette }) => ({
-            background: palette.common.white,
-            borderTop: `1px solid ${palette.gray[20]}`,
-            height: loadMoreRowHeight,
-            position: "absolute",
-            bottom: horizontalScrollbarHeight,
-            p: 1,
-            width: `calc(100% - ${verticalScrollbarWidth}px)`,
-          })}
-        >
-          <Button
-            component="button"
-            onClick={loadMoreRows}
-            disabled={entityDataLoading}
-            size="small"
+        {hasMoreRowsAvailable && (
+          <Stack
             sx={({ palette }) => ({
-              background: palette.gray[10],
-              color: palette.gray[70],
-              fontSize: 14,
-              fontWeight: 500,
-              width: "100%",
-              height: "100%",
-              display: "flex",
               alignItems: "center",
-              "::before": {
-                background: "none",
-              },
-              "&:hover": {
-                background: palette.gray[15],
+              justifyContent: "center",
+              background: palette.common.white,
+              borderTop: `1px solid ${palette.gray[20]}`,
+              height: loadMoreRowHeight,
+              position: "absolute",
+              bottom: horizontalScrollbarHeight,
+              p: 1,
+              width: `calc(100% - ${verticalScrollbarWidth}px)`,
+            })}
+          >
+            <Button
+              component="button"
+              onClick={loadMoreRows}
+              disabled={entityDataLoading}
+              size="small"
+              sx={({ palette }) => ({
+                background: palette.gray[10],
+                color: palette.gray[70],
+                fontSize: 14,
+                fontWeight: 500,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
                 "::before": {
                   background: "none",
                 },
-              },
-            })}
-          >
-            {entityDataLoading ? (
-              <>
-                <Box component="span" mr={1}>
-                  Loading...
-                </Box>
-                <LoadingSpinner size={16} color={theme.palette.gray[60]} />
-              </>
-            ) : (
-              <>
-                Show more entities
-                <Box
-                  component="span"
-                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
-                >
-                  - {formatNumber(totalResultCount - rows.length)} remaining
-                </Box>
-                <ArrowDownRegularIcon
-                  sx={{
-                    fontSize: 11,
-                    ml: 0.8,
-                    position: "relative",
-                    top: 1,
-                    color: ({ palette }) => palette.gray[50],
-                  }}
-                />
-              </>
-            )}
-          </Button>
-        </Stack>
-      )}
-    </Stack>
+                "&:hover": {
+                  background: palette.gray[15],
+                  "::before": {
+                    background: "none",
+                  },
+                },
+              })}
+            >
+              {entityDataLoading ? (
+                <>
+                  <Box component="span" mr={1}>
+                    Loading...
+                  </Box>
+                  <LoadingSpinner size={16} color={theme.palette.gray[60]} />
+                </>
+              ) : (
+                <>
+                  Show more entities
+                  <Box
+                    component="span"
+                    sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
+                  >
+                    {totalResultCount != null
+                      ? `- ${formatNumber(totalResultCount - rows.length)} remaining`
+                      : ""}
+                  </Box>
+                  <ArrowDownRegularIcon
+                    sx={{
+                      fontSize: 11,
+                      ml: 0.8,
+                      position: "relative",
+                      top: 1,
+                      color: ({ palette }) => palette.gray[50],
+                    }}
+                  />
+                </>
+              )}
+            </Button>
+          </Stack>
+        )}
+      </Stack>
+    </>
   );
 };

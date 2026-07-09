@@ -40,7 +40,7 @@ keywords:
 
 ```yaml
 intent-patterns:
-  - "(create|add).*?(database.*?table)"  # Too specific
+  - "(create|add).*?(database.*?table)" # Too specific
 ```
 
 - "create a database table" → ✅ Matches
@@ -50,7 +50,7 @@ intent-patterns:
 
 ```yaml
 intent-patterns:
-  - "(create|add).*?(table|database)"  # Better
+  - "(create|add).*?(table|database)" # Better
 ```
 
 ### Name Mismatch
@@ -109,7 +109,7 @@ keywords:
 
 ```yaml
 intent-patterns:
-  - "(create)"  # Matches everything with "create"
+  - "(create)" # Matches everything with "create"
 ```
 
 **Solution:** Add context:
@@ -126,7 +126,7 @@ intent-patterns:
 ```yaml
 files:
   include:
-    - "src/**"  # Matches everything in src/
+    - "src/**" # Matches everything in src/
 ```
 
 **Solution:** Use narrower patterns:
@@ -167,7 +167,7 @@ The `name` field in SKILL.md must exactly match the directory name.
 ```yaml
 skill-creator/SKILL.md
 ---
-name: skill-creator  # Must match directory name
+name: skill-creator # Must match directory name
 ```
 
 ### "Invalid regex in intent-patterns"

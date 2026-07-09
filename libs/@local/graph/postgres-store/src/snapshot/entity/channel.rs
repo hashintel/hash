@@ -73,6 +73,7 @@ impl Sink<Entity> for EntitySender {
                 web_id: entity.metadata.record_id.entity_id.web_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                 provenance: entity.metadata.provenance.inferred,
+                read_only: entity.metadata.read_only,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send entity id")?;

@@ -1,7 +1,8 @@
-import { PenIcon } from "@hashintel/block-design-system";
-import { ArrowLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
+
+import { PenIcon } from "@hashintel/block-design-system";
+import { ArrowLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 
 import { GrayToBlueIconButton } from "../../shared/gray-to-blue-icon-button";
 import { FileUploadDropzone } from "./file-upload-dropzone";

@@ -1,3 +1,7 @@
 //@ run: pass
 //@ description: Verifies type checking for binding specific types (Number, Integer) to a generic function call.
-["`+`<Number, Integer>", { "#literal": 42.12 }, { "#literal": 42 }]
+[
+  "::core::math::add<Number, Integer>",
+  { "#literal": 42.12 },
+  { "#literal": 42 }
+]

@@ -1,20 +1,22 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { Stack, Typography } from "@mui/material";
+import { formatDistance } from "date-fns";
+import { memo } from "react";
+
 import {
   CircleOneRegularIcon,
   LightbulbOnRegularIcon,
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { Stack, Typography } from "@mui/material";
-import { formatDistance } from "date-fns";
-import { memo } from "react";
 
 import { Link } from "../../../../shared/ui/link";
-import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
 import {
   FlowStatusChip,
   flowTableCellSx,
   FlowTableChip,
 } from "../../../shared/flow-tables";
+
+import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 export type GoalSummary = {
   flowRunId: EntityUuid;

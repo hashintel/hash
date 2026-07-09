@@ -11,9 +11,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../binary/index.js";
 import { U16_MAX, U16_MIN } from "../constants.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
-import { MutableBuffer } from "../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/ProcedureId",
@@ -38,9 +38,7 @@ export class ProcedureIdTooSmallError extends Data.TaggedError(
 }
 
 export interface ProcedureId
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly value: number;

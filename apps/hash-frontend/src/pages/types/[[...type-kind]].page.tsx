@@ -1,26 +1,29 @@
-import type { DataTypeRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import type { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
+import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
 import {
   tabTitles,
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
+import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
   | "entity-type"
@@ -47,8 +50,6 @@ export const getServerSideProps: GetServerSideProps<
 
   return { props: { currentTab } };
 };
-
-const contentMaxWidth = 1000;
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const { latestEntityTypes } = useLatestEntityTypesOptional({
@@ -153,41 +154,38 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     ],
   );
 
-  const maxWidth = { lg: `max(${contentMaxWidth}, "70%")` } as const;
-
   return (
     <>
       <NextSeo title="Types" />
       <TopContextBar
         defaultCrumbIcon={null}
-        crumbs={[
-          {
-            title: "Types",
-            href: "/types",
-            id: "types",
-          },
-          ...(currentTab !== "all"
+        crumbs={
+          currentTab !== "all"
             ? [
+                {
+                  title: "Types",
+                  href: "/types",
+                  id: "types",
+                },
                 {
                   title: tabTitles[currentTab],
                   href: `/types/${currentTab}`,
                   id: currentTab,
                 },
               ]
-            : []),
-        ]}
+            : []
+        }
         scrollToTop={() => {}}
       />
       <Box
         sx={{
           borderBottom: 1,
           borderColor: ({ palette }) => palette.gray[20],
-          pt: 3.75,
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container sx={{ maxWidth }}>
-          <Typography variant="h1" fontWeight="bold" my={3}>
+        <Container sx={largePageMaxWidthCss}>
+          <Typography variant="h1" fontWeight="bold" py={3}>
             <Box display="inline-flex">
               <FilesLightIcon
                 sx={({ palette }) => ({
@@ -221,7 +219,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, maxWidth }}>
+      <Container sx={{ paddingTop: 5, ...largePageMaxWidthCss }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>

@@ -1,4 +1,10 @@
 import type {
+  EntityRootType,
+  QueryTemporalAxesUnresolved,
+  Subgraph,
+} from "../types.js";
+import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
+import type {
   Entity,
   EntityId,
   EntityRecordId,
@@ -9,13 +15,6 @@ import type {
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-
-import type {
-  EntityRootType,
-  QueryTemporalAxesUnresolved,
-  Subgraph,
-} from "../types.js";
-import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
 // used in a direct lookup and not a search in the vertices

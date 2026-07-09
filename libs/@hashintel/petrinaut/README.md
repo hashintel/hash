@@ -1,4 +1,3 @@
-
 # Petrinaut
 
 A component for editing [**Petri nets**](https://en.wikipedia.org/wiki/Petri_net), and progressive support for **SDCPN** (Stochastic Dynamic Coloured Petri Nets).

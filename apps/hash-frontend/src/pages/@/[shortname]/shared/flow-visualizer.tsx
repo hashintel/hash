@@ -1,37 +1,21 @@
 import "reactflow/dist/style.css";
-
 import { useApolloClient, useMutation, useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, Collapse, Fade, Stack } from "@mui/material";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
-import type { Filter } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-sdk/ontology";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition as FlowDefinitionType,
-  FlowInputs,
-  FlowTrigger,
-  PersistedEntityMetadata,
-} from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { Box, Collapse, Fade, Stack } from "@mui/material";
-import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import {
@@ -58,6 +42,12 @@ import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
 import { SectionLabel } from "./flow-visualizer/section-label";
 import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
 import { transitionOptions } from "./flow-visualizer/shared/styles";
+import {
+  getFlattenedSteps,
+  groupStepsByDependencyLayer,
+} from "./flow-visualizer/sort-graph";
+import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
+
 import type {
   CustomEdgeType,
   CustomNodeType,
@@ -68,11 +58,22 @@ import type {
   LogThread,
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
-import {
-  getFlattenedSteps,
-  groupStepsByDependencyLayer,
-} from "./flow-visualizer/sort-graph";
-import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
+import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition as FlowDefinitionType,
+  FlowInputs,
+  FlowTrigger,
+  PersistedEntityMetadata,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType<FlowActionDefinitionId>,

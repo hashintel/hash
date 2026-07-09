@@ -1,11 +1,10 @@
-import type { MultiFilter } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { Entity as EntityBp } from "@blockprotocol/type-system";
-import { EntityQueryEditor } from "@hashintel/query-editor";
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { EntityQueryEditor } from "@hashintel/query-editor";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useBlockProtocolQueryEntities } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import {
@@ -13,11 +12,14 @@ import {
   useLatestEntityTypesOptional,
 } from "../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../shared/property-types-context";
-import type { EntityEditorProps } from "./entity-editor";
+import { EntityEditorContainer } from "./entity-editor-container";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
-import { EntityEditorContainer } from "./entity-editor-container";
 import { EntityHeader } from "./entity-header";
+
+import type { EntityEditorProps } from "./entity-editor";
+import type { MultiFilter } from "@blockprotocol/graph";
+import type { Entity as EntityBp } from "@blockprotocol/type-system";
 
 interface QueryEditorProps extends EntityEditorProps {
   handleSaveQuery: (value: MultiFilter) => Promise<void>;

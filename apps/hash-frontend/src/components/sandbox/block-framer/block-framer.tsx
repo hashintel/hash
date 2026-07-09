@@ -1,13 +1,14 @@
-import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
-import type { PropertyObject } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
 import { memoizeFetchFunction } from "../../../lib/memoize";
-import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 import { ResizingIFrame } from "../resizing-iframe/resizing-iframe";
+
+import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 import type { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
+import type { PropertyObject } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 export type CrossFrameProxyProps = GraphEmbedderMessageCallbacks & {
   blockProperties: PropertyObject;

@@ -14,9 +14,9 @@ import {
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Protocol from "../Protocol.js";
 import { RequestId } from "../request/index.js";
+import * as ResponseFlags from "./ResponseFlags.js";
 
 import type * as ResponseBody from "./ResponseBody.js";
-import * as ResponseFlags from "./ResponseFlags.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/response/ResponseHeader",
@@ -25,9 +25,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface ResponseHeader
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly protocol: Protocol.Protocol;

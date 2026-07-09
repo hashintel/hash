@@ -1,7 +1,8 @@
-import type { EntityId, Url, VersionedUrl } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { EntityId, Url, VersionedUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
@@ -53,6 +54,18 @@ export interface FileStorageProvider {
    * @return {string} The download URL to access the file
    */
   presignDownload(params: PresignedDownloadRequest): Promise<Url>;
+
+  /**
+   * Presigns a download URL for an object identified solely by its storage key,
+   * using the provider's own (default) storage configuration.
+   *
+   * Unlike {@link presignDownload}, this does not require a file entity – it is
+   * used for server-managed objects (e.g. precomputed analysis artifacts served
+   * by the query gateway) that are not represented as entities in the graph.
+   *
+   * @return The time-limited download URL to access the object.
+   */
+  presignDownloadByKey(params: PresignedDownloadByKeyRequest): Promise<Url>;
 
   /**
    * Presigns a file upload request for a client to later upload a file
@@ -137,6 +150,14 @@ export interface PresignedDownloadRequest {
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */
+  expiresInSeconds: number;
+}
+
+/** Parameters needed to presign the download of a server-managed object by key */
+export interface PresignedDownloadByKeyRequest {
+  /** Storage key of the object, relative to the provider's default location */
+  key: string;
+  /** Expiry delay (in seconds) for the download authorisation */
   expiresInSeconds: number;
 }
 

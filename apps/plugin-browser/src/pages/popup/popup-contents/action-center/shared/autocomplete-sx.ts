@@ -1,4 +1,3 @@
-import type { SxProps, Theme } from "@mui/material";
 import {
   autocompleteClasses,
   menuItemClasses,
@@ -11,6 +10,8 @@ import {
   darkModeInputColor,
   darkModePlaceholderColor,
 } from "../../../../shared/style-values";
+
+import type { SxProps, Theme } from "@mui/material";
 
 export const inputPropsSx: (props: {
   inputHeight: number;

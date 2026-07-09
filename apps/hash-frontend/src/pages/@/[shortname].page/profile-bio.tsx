@@ -1,4 +1,7 @@
 import { useQuery } from "@apollo/client";
+import { Box, Skeleton, Typography } from "@mui/material";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   extractWebIdFromEntityId,
   splitEntityId,
@@ -6,31 +9,30 @@ import {
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, Skeleton, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { BlockLoadedProvider } from "../../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../../blocks/user-blocks";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import type { Org, User } from "../../../lib/user-and-org";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../../shared/icons/globe-regular-icon";
-import { BlockCollection } from "../../shared/block-collection/block-collection";
 import {
   blockCollectionContentsTraversalParams,
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
 } from "../../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { BlockCollection } from "../../shared/block-collection/block-collection";
 import { useCreateBlockCollection } from "../../shared/use-create-block-collection";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+
+import type { Org, User } from "../../../lib/user-and-org";
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { FunctionComponent } from "react";
 
 export const ProfileBio: FunctionComponent<{
   profile: User | Org;

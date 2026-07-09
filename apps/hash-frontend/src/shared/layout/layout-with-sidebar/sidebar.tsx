@@ -1,10 +1,4 @@
-import { faHome } from "@fortawesome/free-solid-svg-icons";
-import {
-  AsteriskRegularIcon,
-  FontAwesomeIcon,
-  IconButton,
-  ShapesRegularIcon,
-} from "@hashintel/design-system";
+import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -14,25 +8,35 @@ import {
   useMemo,
 } from "react";
 
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  IconButton,
+  ShapesRegularIcon,
+} from "@hashintel/design-system";
+
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
+import { getInboxHref } from "../../get-inbox-href";
 import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
+import { ChartNetworkRegularIcon } from "../../icons/chart-network-regular-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
+import { HEADER_HEIGHT } from "../layout-with-header/page-header";
+import { useSidebarContext } from "./sidebar-context";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";
 import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
 import { AccountPageList } from "./sidebar/account-page-list";
 import { FavoritesList } from "./sidebar/favorites-list";
 import { TopNavLink } from "./sidebar/top-nav-link";
 import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
-import { useSidebarContext } from "./sidebar-context";
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -135,10 +139,6 @@ export const PageSidebar: FunctionComponent = () => {
     const numberOfPendingActions = draftEntitiesCount ?? 0;
     const unreadNotifications = numberOfUnreadNotifications ?? 0;
 
-    const shouldInboxLinkToActions =
-      numberOfPendingActions > 0 ||
-      (unreadNotifications === 0 && pendingInvites.length === 0);
-
     return [
       {
         title: "Home",
@@ -149,12 +149,26 @@ export const PageSidebar: FunctionComponent = () => {
       ...workersSection,
       ...toggleableLinks,
       {
+        title: "Supply Chain",
+        path: "/supply-chain",
+        icon: <FontAwesomeIcon icon={faTruckFast} />,
+        activeIfPathMatches: /^\/supply-chain(\/|$)/,
+        tooltipTitle: "",
+      },
+      {
+        title: "Processes",
+        path: "/processes",
+        icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
+        activeIfPathMatches: /^\/processes(\/|$)/,
+      },
+      {
         title: "Inbox",
-        path: shouldInboxLinkToActions
-          ? "/actions"
-          : unreadNotifications > 0
-            ? "/notifications"
-            : "/invites",
+        path: getInboxHref({
+          fallbackHref: "/actions",
+          numberOfDraftEntityActions: numberOfPendingActions,
+          numberOfPendingInvites: pendingInvites.length,
+          numberOfUnreadNotifications: unreadNotifications,
+        }),
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count:
@@ -206,6 +220,7 @@ export const PageSidebar: FunctionComponent = () => {
       sx={{
         zIndex: 0,
         width: SIDEBAR_WIDTH,
+        maxHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
       }}
       PaperProps={{
         sx: (theme) => ({

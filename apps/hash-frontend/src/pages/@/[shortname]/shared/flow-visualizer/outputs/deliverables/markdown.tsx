@@ -1,6 +1,7 @@
-import { CopyRegularIcon } from "@hashintel/design-system";
 import { Box, Stack, Tab, Typography } from "@mui/material";
 import { useState } from "react";
+
+import { CopyRegularIcon } from "@hashintel/design-system";
 
 import { PageIcon } from "../../../../../../../components/page-icon";
 import { Modal } from "../../../../../../../shared/ui/modal";
@@ -8,6 +9,7 @@ import { Tabs } from "../../../../../../../shared/ui/tabs";
 import { useFlowRunsContext } from "../../../../../../shared/flow-runs-context";
 import { Markdown } from "../../../../../../shared/markdown";
 import { Pre } from "../../../../../../shared/markdown/elements";
+
 import type { DeliverableData } from "./shared/types";
 
 export const MarkdownDeliverable = ({

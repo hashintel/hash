@@ -32,7 +32,6 @@ Every service that exposes an API should provide a set of 'payload' definitions 
 They can do this by doing the following:
 
 - Create a `./type-defs/status-payloads.ts` file that **only** contains `exports` statements for the `type`s of payloads that are used by the service.
-
   - Services can, and should, re-export shared payload definitions that they consume from other places **and then expose through their API**, e.g.
 
     ```ts

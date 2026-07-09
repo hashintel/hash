@@ -3,9 +3,9 @@
 import { Portal } from "@ark-ui/react/portal";
 import { useState } from "react";
 
-import { Button } from "../button/button";
-import { CloseButton } from "../close-button/close-button";
-import * as Popover from "./popover";
+import { Button } from "../button";
+import { CloseButton } from "../close-button";
+import * as Popover from "../popover";
 
 export const App = () => {
   const [open, setOpen] = useState(false);

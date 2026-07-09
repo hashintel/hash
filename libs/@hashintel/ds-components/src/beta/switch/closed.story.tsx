@@ -5,7 +5,7 @@ import {
   type RefObject,
 } from "react";
 
-import * as ParkSwitch from "./switch";
+import * as ParkSwitch from "../switch";
 
 export interface SwitchProps extends ParkSwitch.RootProps {
   inputProps?: InputHTMLAttributes<HTMLInputElement>;

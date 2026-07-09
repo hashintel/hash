@@ -1,15 +1,5 @@
 import { useMutation } from "@apollo/client";
 import {
-  type DataTypeWithMetadata,
-  type EntityTypeWithMetadata,
-  extractWebIdFromEntityId,
-  type PropertyTypeWithMetadata,
-  type WebId,
-} from "@blockprotocol/type-system";
-import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
-import {
   Box,
   chipClasses,
   ListItemIcon,
@@ -22,22 +12,19 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
 
+import {
+  type DataTypeWithMetadata,
+  type EntityTypeWithMetadata,
+  extractWebIdFromEntityId,
+  type PropertyTypeWithMetadata,
+  type WebId,
+} from "@blockprotocol/type-system";
+import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
+import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
+
 import { useArchivePage } from "../../components/hooks/use-archive-page";
-import type {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  ArchiveEntityTypeMutation,
-  ArchiveEntityTypeMutationVariables,
-  ArchivePropertyTypeMutation,
-  ArchivePropertyTypeMutationVariables,
-  UnarchiveEntityTypeMutation,
-  UnarchiveEntityTypeMutationVariables,
-  UnarchivePropertyTypeMutation,
-  UnarchivePropertyTypeMutationVariables,
-} from "../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import {
   archiveEntityTypeMutation,
@@ -60,6 +47,21 @@ import {
 } from "../is-of-type";
 import { useRefetchPropertyTypes } from "../property-types-context";
 import { MenuItem } from "../ui";
+
+import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+  ArchiveEntityTypeMutation,
+  ArchiveEntityTypeMutationVariables,
+  ArchivePropertyTypeMutation,
+  ArchivePropertyTypeMutationVariables,
+  UnarchiveEntityTypeMutation,
+  UnarchiveEntityTypeMutationVariables,
+  UnarchivePropertyTypeMutation,
+  UnarchivePropertyTypeMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (

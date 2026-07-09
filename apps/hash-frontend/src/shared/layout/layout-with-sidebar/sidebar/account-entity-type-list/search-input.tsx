@@ -1,13 +1,15 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
+
 import {
   FontAwesomeIcon,
   IconButton,
   TextField,
 } from "@hashintel/design-system";
-import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { MagnifyingGlassLightIcon } from "../../../../icons/magnifying-glass-light";
+
+import type { FunctionComponent } from "react";
 
 type SearchInputProps = {
   searchVisible: boolean;

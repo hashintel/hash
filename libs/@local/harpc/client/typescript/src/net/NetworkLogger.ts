@@ -1,9 +1,9 @@
-import type { ComponentLogger, Logger } from "@libp2p/interface";
 import { Effect, LogLevel, Runtime } from "effect";
 
 import { createProto } from "../utils.js";
-
 import * as internal from "./internal/networkLogger.js";
+
+import type { ComponentLogger, Logger } from "@libp2p/interface";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Logger");
 

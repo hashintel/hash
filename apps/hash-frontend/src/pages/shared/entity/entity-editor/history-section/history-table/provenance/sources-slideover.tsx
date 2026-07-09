@@ -1,8 +1,4 @@
-import type { Subgraph } from "@blockprotocol/graph";
-import type { EntityId, SourceProvenance } from "@blockprotocol/type-system";
-import { splitEntityId } from "@blockprotocol/type-system";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Backdrop,
   Box,
@@ -18,12 +14,18 @@ import {
   Typography,
 } from "@mui/material";
 
+import { splitEntityId } from "@blockprotocol/type-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { useUserOrOrgShortnameByWebId } from "../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../shared/ui/link";
 import { SettingsTableCell } from "../../../../../../settings/shared/settings-table-cell";
 import { ValueChip } from "../../../../../value-chip";
-import type { HistoryEvent } from "../../shared/types";
 import { EventDetail } from "../shared/event-detail";
+
+import type { HistoryEvent } from "../../shared/types";
+import type { Subgraph } from "@blockprotocol/graph";
+import type { EntityId, SourceProvenance } from "@blockprotocol/type-system";
 
 const boxPadding = {
   px: 4,

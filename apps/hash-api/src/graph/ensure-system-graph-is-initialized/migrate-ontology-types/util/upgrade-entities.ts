@@ -2,12 +2,6 @@ import {
   getBreadthFirstEntityTypesAndParents,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  PropertyObjectWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   compareOntologyTypeVersions,
   componentsFromVersionedUrl,
@@ -29,9 +23,16 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { ImpureGraphContext } from "../../../context-types";
 import { updateEntity } from "../../../knowledge/primitive/entity";
+
+import type { ImpureGraphContext } from "../../../context-types";
 import type { MigrationState } from "../types";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  PropertyObjectWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
 
 export const upgradeWebEntities = async ({
   authentication,

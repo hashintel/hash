@@ -56,7 +56,6 @@ runs:
         sudo apt-get autoclean -y
         echo
 
-
     - name: Check disk space after cleanup
       shell: bash
       run: df -h

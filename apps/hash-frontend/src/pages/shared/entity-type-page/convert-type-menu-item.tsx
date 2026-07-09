@@ -1,6 +1,7 @@
-import { AlertModal, LinkIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
 import { useState } from "react";
+
+import { AlertModal, LinkIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../shared/ui/menu-item";
 import { useContextBarActionsContext } from "../top-context-bar";

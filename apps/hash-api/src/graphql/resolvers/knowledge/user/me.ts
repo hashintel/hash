@@ -5,9 +5,10 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { Query, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const meResolver: ResolverFn<
   Query["me"],

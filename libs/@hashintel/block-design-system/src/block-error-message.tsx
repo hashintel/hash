@@ -1,5 +1,6 @@
-import type { BoxProps } from "@mui/material";
 import { Box, Typography } from "@mui/material";
+
+import type { BoxProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export type BlockErrorMessageProps = {

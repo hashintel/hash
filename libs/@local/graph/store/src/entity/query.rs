@@ -101,25 +101,14 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: type_system::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: type_system::knowledge::entity::metadata::EntityTemporalMetadata
     TransactionTime,
-    /// The list of [`EntityType`]s' [`BaseUrl`]s belonging to the [`Entity`].
+    /// The number of direct (non-inherited) types of the [`Entity`].
     ///
-    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
-    /// instead.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    /// [`EntityTypeEdge`]: Self::EntityTypeEdge
-    TypeBaseUrls,
-    /// The list of [`EntityType`]s' versions belonging to the [`Entity`].
-    ///
-    /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
-    /// instead.
+    /// Type lists selected via [`EntityTypeEdge`] (without an inheritance depth) order
+    /// direct types first, so this is the length of the direct-type prefix.
     ///
     /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
-    TypeVersions,
+    DirectTypeCount,
     /// The confidence value for the [`Entity`].
     ///
     /// It's currently not possible to query for the entity confidence value directly.
@@ -163,6 +152,11 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     Archived,
+    /// Whether this [`Entity`] is read-only. Has no query token, only used by authorization
+    /// filters.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    ReadOnly,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -466,13 +460,6 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstTypeTitle,
-    /// Corresponds to the title of the [`Entity`]'s last [`EntityType`].
-    ///
-    /// It's currently not possible to query for the last title directly.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    LastTypeTitle,
     /// Corresponds to the first set label of the [`Entity`] as specified by it's [`EntityType`]s.
     ///
     /// It's currently not possible to query for the first label directly.
@@ -480,13 +467,6 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstLabel,
-    /// Corresponds to the last set label of the [`Entity`] as specified by it's [`EntityType`]s.
-    ///
-    /// It's currently not possible to query for the last label directly.
-    ///
-    /// [`Entity`]: type_system::knowledge::Entity
-    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    LastLabel,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -498,9 +478,9 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::TypeBaseUrls => fmt.write_str("typeBaseUrls"),
-            Self::TypeVersions => fmt.write_str("typeVersions"),
+            Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
+            Self::ReadOnly => fmt.write_str("readOnly"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
@@ -547,9 +527,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RightEntityConfidence => fmt.write_str("rightEntityConfidence"),
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
             Self::FirstTypeTitle => fmt.write_str("firstTypeTitle"),
-            Self::LastTypeTitle => fmt.write_str("lasttTypeTitle"),
             Self::FirstLabel => fmt.write_str("firstLabel"),
-            Self::LastLabel => fmt.write_str("lastLabel"),
         }
     }
 }
@@ -559,10 +537,7 @@ impl QueryPath for EntityQueryPath<'_> {
         match self {
             Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::TypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
-            Self::TypeVersions => {
-                ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
-            }
+            Self::DirectTypeCount => ParameterType::Integer,
             Self::Properties(_)
             | Self::Label { .. }
             | Self::Provenance(_)
@@ -574,12 +549,10 @@ impl QueryPath for EntityQueryPath<'_> {
                 ParameterType::Decimal
             }
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
-            Self::Archived => ParameterType::Boolean,
+            Self::Archived | Self::ReadOnly => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
-            Self::FirstTypeTitle | Self::LastTypeTitle | Self::FirstLabel | Self::LastLabel => {
-                ParameterType::Text
-            }
+            Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
         }
     }
 }
@@ -919,9 +892,9 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::EditionId => EntityQueryPath::EditionId,
             Self::DecisionTime => EntityQueryPath::DecisionTime,
             Self::TransactionTime => EntityQueryPath::TransactionTime,
-            Self::TypeBaseUrls => EntityQueryPath::TypeBaseUrls,
-            Self::TypeVersions => EntityQueryPath::TypeVersions,
+            Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
+            Self::ReadOnly => EntityQueryPath::ReadOnly,
             Self::EntityTypeEdge {
                 path,
                 edge_kind,
@@ -956,9 +929,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
             Self::FirstTypeTitle => EntityQueryPath::FirstTypeTitle,
-            Self::LastTypeTitle => EntityQueryPath::LastTypeTitle,
             Self::FirstLabel => EntityQueryPath::FirstLabel,
-            Self::LastLabel => EntityQueryPath::LastLabel,
         }
     }
 }
@@ -986,19 +957,7 @@ impl<'s, 'de: 's> Deserialize<'de> for EntityQuerySortingRecord<'s> {
             pub nulls: Option<NullOrdering>,
         }
 
-        let mut record = EntityQuerySortingRecord::deserialize(deserializer)?;
-        // If we sort in descending order, we use the last title/label instead of the first one.
-        // TODO: Change behavior when order is fixed
-        //   see https://linear.app/hash/issue/H-3997/make-ontology-type-ids-ordered-in-inheritance-and-entities
-        match (&record.path, record.ordering) {
-            (EntityQueryPath::FirstTypeTitle, Ordering::Descending) => {
-                record.path = EntityQueryPath::LastTypeTitle;
-            }
-            (EntityQueryPath::FirstLabel, Ordering::Descending) => {
-                record.path = EntityQueryPath::LastLabel;
-            }
-            _ => {}
-        }
+        let record = EntityQuerySortingRecord::deserialize(deserializer)?;
 
         Ok(Self {
             path: record.path,

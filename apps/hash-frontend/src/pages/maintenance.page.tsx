@@ -1,10 +1,11 @@
+import { Box, Stack, Typography } from "@mui/material";
+
 import {
   ArrowsRotateRegularIcon,
   // eslint-disable-next-line no-restricted-imports -- we don't want the in-project Button's link handling
   Button,
   UserPlusRegularIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
 
 import {
   getLayoutWithSidebar,

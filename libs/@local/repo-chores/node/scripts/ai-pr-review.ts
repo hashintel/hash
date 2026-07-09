@@ -5,7 +5,6 @@ import { LinearClient } from "@linear/sdk";
 import chalk from "chalk";
 import { config } from "dotenv-flow";
 import { execa } from "execa";
-import type { z } from "zod";
 
 import { addLineNumbersToDiff } from "./ai-pr-review/add-diff-line-numbers";
 import {
@@ -25,6 +24,8 @@ import {
   getPROverview,
 } from "./ai-pr-review/get-pr-info";
 import { sleep } from "./shared/time";
+
+import type { z } from "zod";
 
 config({ path: "../../../../.env.local", silent: true });
 

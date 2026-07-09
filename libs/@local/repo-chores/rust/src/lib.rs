@@ -3,9 +3,10 @@
 //! This crate contains a collection of utilities for managing and analyzing repositories.
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Library Features
+    core_io,
     exit_status_error
 )]
 

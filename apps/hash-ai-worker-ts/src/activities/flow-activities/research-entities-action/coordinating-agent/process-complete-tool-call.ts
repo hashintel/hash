@@ -1,6 +1,7 @@
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger.js";
+
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types.js";
 import type { ParsedCoordinatorToolCallMap } from "../shared/coordinator-tools.js";
 import type {

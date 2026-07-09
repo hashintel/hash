@@ -1,6 +1,8 @@
-import { EditableField } from "@hashintel/block-design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useController, useFormContext } from "react-hook-form";
+
+import { EditableField } from "@hashintel/block-design-system";
+
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypeDescriptionProps {
   readonly?: boolean;

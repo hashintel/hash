@@ -1,5 +1,31 @@
 import "@glideapps/glide-data-grid/dist/index.css";
+import {
+  CompactSelection,
+  DataEditor,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
+import { Box, useTheme } from "@mui/material";
+import { uniqueId } from "lodash";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
+
+import { getCellHorizontalPadding } from "./utils";
+import { ColumnFilterMenu } from "./utils/column-filter-menu";
+import {
+  ConversionMenu,
+  type ConversionTargetsByColumnKey,
+} from "./utils/conversion-menu";
+import { customGridIcons } from "./utils/custom-grid-icons";
+import { InteractableManager } from "./utils/interactable-manager";
+import { overrideCustomRenderers } from "./utils/override-custom-renderers";
+import { defaultSortRows } from "./utils/sorting";
+import { generateInteractableId, useDrawHeader } from "./utils/use-draw-header";
+import { useRenderGridPortal } from "./utils/use-render-grid-portal";
+
+import type { ColumnFilter } from "./utils/filtering";
+import type { ColumnHeaderPath } from "./utils/interactable-manager/types";
+import type { ColumnSort } from "./utils/sorting";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DataEditorProps,
@@ -13,37 +39,12 @@ import type {
   TextCell,
   Theme,
 } from "@glideapps/glide-data-grid";
-import {
-  CompactSelection,
-  DataEditor,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
-import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import type { PopperProps } from "@mui/material";
-import { Box, useTheme } from "@mui/material";
 import type {
   Instance as PopperInstance,
   VirtualElement,
 } from "@popperjs/core";
-import { uniqueId } from "lodash";
 import type { MutableRefObject, Ref } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import { getCellHorizontalPadding } from "./utils";
-import { ColumnFilterMenu } from "./utils/column-filter-menu";
-import {
-  ConversionMenu,
-  type ConversionTargetsByColumnKey,
-} from "./utils/conversion-menu";
-import { customGridIcons } from "./utils/custom-grid-icons";
-import type { ColumnFilter } from "./utils/filtering";
-import { InteractableManager } from "./utils/interactable-manager";
-import type { ColumnHeaderPath } from "./utils/interactable-manager/types";
-import { overrideCustomRenderers } from "./utils/override-custom-renderers";
-import type { ColumnSort } from "./utils/sorting";
-import { defaultSortRows } from "./utils/sorting";
-import { generateInteractableId, useDrawHeader } from "./utils/use-draw-header";
-import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
 export type { ConversionTargetsByColumnKey };
 
@@ -441,7 +442,9 @@ export const Grid = <
     });
   }, [columns, columnSizes]);
 
-  const emptyStateText = dataLoading ? "Loading..." : "No results";
+  const emptyStateText = dataLoading
+    ? "Loading..."
+    : "No results with the applied filters.";
 
   const getSkeletonCellContent = useCallback(
     ([colIndex]: Item): TextCell => ({
@@ -659,7 +662,8 @@ export const Grid = <
         drawFocusRing={false}
         drawHeader={drawHeader ?? defaultDrawHeader}
         getCellContent={
-          sortedAndFilteredRows?.length
+          typeof sortedAndFilteredRows?.length === "number" &&
+          sortedAndFilteredRows.length > 0
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
@@ -695,7 +699,12 @@ export const Grid = <
         rangeSelect="cell"
         ref={gridRef}
         rowHeight={gridRowHeight}
-        rows={sortedAndFilteredRows?.length ?? 1}
+        rows={
+          typeof sortedAndFilteredRows?.length === "number" &&
+          sortedAndFilteredRows.length > 0
+            ? sortedAndFilteredRows.length
+            : 1
+        }
         smoothScrollX
         smoothScrollY
         theme={gridTheme}

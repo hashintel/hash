@@ -1,7 +1,6 @@
+import type { ImpureGraphContext } from "../../context-types";
 import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-
-import type { ImpureGraphContext } from "../../context-types";
 
 export type MigrationState = {
   propertyTypeVersions: Record<BaseUrl, OntologyTypeVersion>;

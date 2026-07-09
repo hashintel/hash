@@ -66,7 +66,12 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         { "actor_entity_uuid" } = Empty,
     );
 
-    http_span.set_parent(extract_context_from_headers(request.headers()));
+    // `set_parent` returns an error if no OpenTelemetry layer is registered with the subscriber,
+    // e.g. when OTLP export is disabled. In that case the span simply has no remote parent, which
+    // matches the previous (pre `tracing-opentelemetry` 0.32) silent no-op behavior.
+    if let Err(error) = http_span.set_parent(extract_context_from_headers(request.headers())) {
+        tracing::debug!(%error, "could not set parent OpenTelemetry context on HTTP span");
+    }
 
     if let Some(schema) = request.uri().scheme_str() {
         http_span.record(trace::URL_SCHEME, schema);

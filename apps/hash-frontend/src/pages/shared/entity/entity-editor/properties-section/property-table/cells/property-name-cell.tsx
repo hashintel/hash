@@ -1,5 +1,5 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -8,8 +8,10 @@ import {
 } from "../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawVerticalIndentationLine } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
+
 import type { TableExpandStatus } from "../../../entity-editor-context";
 import type { PropertyRow } from "../types";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export interface PropertyNameCellProps {
   readonly kind: "property-name-cell";

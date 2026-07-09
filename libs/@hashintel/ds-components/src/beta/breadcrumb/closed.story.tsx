@@ -1,6 +1,6 @@
 import { forwardRef, Fragment, type ReactNode } from "react";
 
-import * as StyledBreadcrumb from "./breadcrumb";
+import * as StyledBreadcrumb from "../breadcrumb";
 
 export interface BreadcrumbProps extends StyledBreadcrumb.RootProps {
   items: Array<{ title: ReactNode; url?: string }>;

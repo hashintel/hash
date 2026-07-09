@@ -1,8 +1,3 @@
-import type {
-  EntityRootType,
-  LinkEntityAndLeftEntity,
-  Subgraph,
-} from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getRoots,
@@ -13,9 +8,6 @@ import {
   extractWebIdFromEntityId,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -24,13 +16,22 @@ import {
   isInvitationByEmail,
   isInvitationByShortname,
 } from "@local/hash-isomorphic-utils/organization";
-import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type { ImpureGraphContext } from "../../../../graph/context-types";
 import {
   getUser,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
+
+import type { ImpureGraphContext } from "../../../../graph/context-types";
+import type {
+  EntityRootType,
+  LinkEntityAndLeftEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const isOrgEntity = (entity: HashEntity): entity is HashEntity<Organization> =>
   entity.metadata.entityTypeIds.includes(

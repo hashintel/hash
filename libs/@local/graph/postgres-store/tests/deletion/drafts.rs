@@ -6,11 +6,12 @@ use hash_graph_store::{
         LinkDeletionBehavior, PatchEntityParams,
     },
     filter::Filter,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use type_system::knowledge::entity::EntityId;
 
 use crate::{
-    DatabaseTestWrapper, alice, bob, count_entity, create_person, get_deletion_provenance,
+    DatabaseTestWrapper, alice, bob, count_entities, create_person, get_deletion_provenance,
     provenance, raw_count_by_draft_id, raw_count_entity_edge, seed,
 };
 
@@ -36,8 +37,8 @@ async fn draft_only_entity_promoted_to_full_delete() {
         draft_id: None,
     };
 
-    assert!(count_entity(&api, base_id, true).await >= 1);
-    assert_eq!(count_entity(&api, base_id, false).await, 0);
+    assert!(count_entities(&api, base_id, true).await >= 1);
+    assert_eq!(count_entities(&api, base_id, false).await, 0);
 
     let summary = api
         .store
@@ -49,7 +50,7 @@ async fn draft_only_entity_promoted_to_full_delete() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -65,7 +66,7 @@ async fn draft_only_entity_promoted_to_full_delete() {
         }
     );
 
-    assert_eq!(count_entity(&api, base_id, true).await, 0);
+    assert_eq!(count_entities(&api, base_id, true).await, 0);
     assert!(
         get_deletion_provenance(&api, base_id.web_id, base_id.entity_uuid)
             .await
@@ -113,8 +114,8 @@ async fn draft_of_published_entity_preserves_published() {
         .draft_id
         .expect("patch should produce draft_id");
 
-    assert!(count_entity(&api, entity_id, false).await >= 1);
-    assert!(count_entity(&api, entity_id, true).await >= 2);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, true).await >= 2);
 
     // Delete filtering by the specific draft_id
     let summary = api
@@ -127,7 +128,7 @@ async fn draft_of_published_entity_preserves_published() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -144,10 +145,10 @@ async fn draft_of_published_entity_preserves_published() {
     );
 
     // Published survives
-    assert!(count_entity(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
     assert_eq!(
-        count_entity(&api, entity_id, true).await,
-        count_entity(&api, entity_id, false).await
+        count_entities(&api, entity_id, true).await,
+        count_entities(&api, entity_id, false).await
     );
 
     // Draft temporal metadata gone
@@ -183,8 +184,8 @@ async fn include_drafts_false_skips_drafts() {
         draft_id: None,
     };
 
-    assert!(count_entity(&api, base_id, true).await >= 1);
-    assert_eq!(count_entity(&api, base_id, false).await, 0);
+    assert!(count_entities(&api, base_id, true).await >= 1);
+    assert_eq!(count_entities(&api, base_id, false).await, 0);
 
     let summary = api
         .store
@@ -196,7 +197,7 @@ async fn include_drafts_false_skips_drafts() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -213,7 +214,7 @@ async fn include_drafts_false_skips_drafts() {
     );
 
     // Draft still exists
-    assert!(count_entity(&api, base_id, true).await >= 1);
+    assert!(count_entities(&api, base_id, true).await >= 1);
 }
 
 /// Does not promote when only some drafts of an entity are matched.
@@ -284,7 +285,7 @@ async fn partial_draft_match_not_promoted() {
 
     assert_ne!(draft_id_1, draft_id_2);
     // Published + 2 drafts
-    assert!(count_entity(&api, entity_id, true).await >= 3);
+    assert!(count_entities(&api, entity_id, true).await >= 3);
 
     // Delete only draft_id_1
     let summary = api
@@ -297,7 +298,7 @@ async fn partial_draft_match_not_promoted() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -320,8 +321,8 @@ async fn partial_draft_match_not_promoted() {
     assert!(raw_count_by_draft_id(&api, "entity_temporal_metadata", draft_id_2).await > 0);
 
     // Published version + unmatched draft survive
-    assert!(count_entity(&api, entity_id, false).await >= 1);
-    assert!(count_entity(&api, entity_id, true).await >= 2);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, true).await >= 2);
 
     // Not promoted → no tombstone
     assert!(
@@ -365,8 +366,8 @@ async fn published_and_draft_matched_becomes_full_delete() {
         .await
         .expect("could not create draft");
 
-    assert!(count_entity(&api, entity_id, false).await >= 1);
-    assert!(count_entity(&api, entity_id, true).await >= 2);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, true).await >= 2);
 
     // Delete with include_drafts=true, filter by entity UUID (no draft_id) → matches both
     let summary = api
@@ -379,7 +380,7 @@ async fn published_and_draft_matched_becomes_full_delete() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -395,8 +396,8 @@ async fn published_and_draft_matched_becomes_full_delete() {
         }
     );
 
-    assert_eq!(count_entity(&api, entity_id, true).await, 0);
-    assert_eq!(count_entity(&api, entity_id, false).await, 0);
+    assert_eq!(count_entities(&api, entity_id, true).await, 0);
+    assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert!(
         get_deletion_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
             .await
@@ -458,7 +459,7 @@ async fn mixed_full_and_draft_targets() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -475,7 +476,7 @@ async fn mixed_full_and_draft_targets() {
     );
 
     // A: fully deleted with tombstone
-    assert_eq!(count_entity(&api, id_a, false).await, 0);
+    assert_eq!(count_entities(&api, id_a, false).await, 0);
     assert!(
         get_deletion_provenance(&api, id_a.web_id, id_a.entity_uuid)
             .await
@@ -483,10 +484,10 @@ async fn mixed_full_and_draft_targets() {
     );
 
     // B: published survives, draft gone, no tombstone
-    assert!(count_entity(&api, id_b, false).await >= 1);
+    assert!(count_entities(&api, id_b, false).await >= 1);
     assert_eq!(
-        count_entity(&api, id_b, true).await,
-        count_entity(&api, id_b, false).await
+        count_entities(&api, id_b, true).await,
+        count_entities(&api, id_b, false).await
     );
     assert!(
         get_deletion_provenance(&api, id_b.web_id, id_b.entity_uuid)
@@ -543,7 +544,7 @@ async fn empty_target_guards() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -559,7 +560,7 @@ async fn empty_target_guards() {
         }
     );
 
-    assert!(count_entity(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
     assert_eq!(
         raw_count_by_draft_id(&api, "entity_temporal_metadata", draft_id).await,
         0
@@ -629,7 +630,7 @@ async fn draft_link_entity_edge_survives() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -649,7 +650,7 @@ async fn draft_link_entity_edge_survives() {
     assert!(
         raw_count_entity_edge(&api, link_entity_id.web_id, link_entity_id.entity_uuid).await > 0
     );
-    assert!(count_entity(&api, link_entity_id, false).await >= 1);
+    assert!(count_entities(&api, link_entity_id, false).await >= 1);
 
     // Step 2: Delete the published entity → full deletion, edge cleaned up
     let summary2 = api
@@ -662,7 +663,7 @@ async fn draft_link_entity_edge_survives() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -683,7 +684,7 @@ async fn draft_link_entity_edge_survives() {
         raw_count_entity_edge(&api, link_entity_id.web_id, link_entity_id.entity_uuid).await,
         0
     );
-    assert_eq!(count_entity(&api, link_entity_id, true).await, 0);
+    assert_eq!(count_entities(&api, link_entity_id, true).await, 0);
 }
 
 /// `DeletionSummary.draft_deletions` counts individual draft IDs, not entities.
@@ -750,7 +751,7 @@ async fn summary_counts_draft_ids_not_entities() {
 
     assert_ne!(draft_id_1, draft_id_2);
     // Published + 2 drafts
-    assert!(count_entity(&api, entity_id, true).await >= 3);
+    assert!(count_entities(&api, entity_id, true).await >= 3);
 
     // Delete both drafts (but not the published version)
     let summary = api
@@ -766,7 +767,7 @@ async fn summary_counts_draft_ids_not_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
-                temporal_axes: crate::live_only_axes(),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                 decision_time: None,
             },
         )
@@ -783,10 +784,10 @@ async fn summary_counts_draft_ids_not_entities() {
     );
 
     // Published version survives
-    assert!(count_entity(&api, entity_id, false).await >= 1);
+    assert!(count_entities(&api, entity_id, false).await >= 1);
     // No drafts remain
     assert_eq!(
-        count_entity(&api, entity_id, true).await,
-        count_entity(&api, entity_id, false).await
+        count_entities(&api, entity_id, true).await,
+        count_entities(&api, entity_id, false).await
     );
 }

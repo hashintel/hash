@@ -8,7 +8,7 @@ fn {closure@4294967040}() -> Null {
 
     bb0(): {
         %0 = 0
-        %1 = 1
+        %1 = true
 
         goto -> bb1()
     }
@@ -36,7 +36,7 @@ fn {closure@4294967040}() -> Null {
 
     bb0(): {
         %2 = 0
-        %4 = 1
+        %4 = true
 
         goto -> bb1(%2)
     }

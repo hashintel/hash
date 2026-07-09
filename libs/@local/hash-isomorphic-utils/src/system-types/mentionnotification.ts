@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   Actor,
   ActorOutgoingLinkAndTarget,
@@ -188,10 +186,10 @@ import type {
   LinkPropertiesWithMetadata,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
-  ManualInferenceConfigurationPropertyValue,
-  ManualInferenceConfigurationPropertyValueWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
+  ManualInferenceConfigurationPropertyValue,
+  ManualInferenceConfigurationPropertyValueWithMetadata,
   Notification,
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
@@ -275,10 +273,10 @@ import type {
   TriggeredByUserOutgoingLinksByLinkEntityTypeId,
   TriggeredByUserProperties,
   TriggeredByUserPropertiesWithMetadata,
-  UploadCompletedAtPropertyValue,
-  UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  UploadCompletedAtPropertyValue,
+  UploadCompletedAtPropertyValueWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -290,9 +288,12 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Actor,
@@ -580,6 +581,8 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };

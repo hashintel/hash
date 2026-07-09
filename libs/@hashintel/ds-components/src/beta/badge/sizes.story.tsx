@@ -1,7 +1,8 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { StarIcon } from "lucide-react";
 
-import { Badge } from "./badge";
+import { Wrap } from "@hashintel/ds-helpers/jsx";
+
+import { Badge } from "../badge";
 
 export const App = () => {
   const sizes = ["sm", "md", "lg", "xl"] as const;

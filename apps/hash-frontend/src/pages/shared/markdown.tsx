@@ -10,8 +10,6 @@ import {
   type Theme,
   Typography,
 } from "@mui/material";
-import type { LegacyRef } from "react";
-import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -24,6 +22,9 @@ import {
   Pre,
   UnorderedList,
 } from "./markdown/elements";
+
+import type { LegacyRef } from "react";
+import type { Components } from "react-markdown";
 
 type MarkdownProps = {
   markdown: string;

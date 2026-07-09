@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as Editable from "./editable";
+import * as Editable from "../editable";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

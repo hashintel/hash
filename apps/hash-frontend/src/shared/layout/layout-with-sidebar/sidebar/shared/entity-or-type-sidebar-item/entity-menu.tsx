@@ -1,20 +1,18 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import {
-  faAdd,
-  faAsterisk,
-  faChain,
-  faList,
-} from "@fortawesome/free-solid-svg-icons";
-import { Box, Menu } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
+import { faAdd, faList } from "@fortawesome/free-solid-svg-icons";
+import { Menu } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../../../../../generate-link-parameters";
 import { FavoriteMenuItem } from "./shared/favorite-menu-item";
 import { SidebarMenuItem } from "./shared/sidebar-menu-item";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;
@@ -60,13 +58,13 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
       <SidebarMenuItem
         title="View Type"
         icon={
-          entityTypeIcon ? (
-            <Box component="span">{entityTypeIcon}</Box>
-          ) : isLinkType ? (
-            faChain
-          ) : (
-            faAsterisk
-          )
+          <EntityOrTypeIcon
+            entity={null}
+            icon={entityTypeIcon}
+            isLink={!!isLinkType}
+            fontSize={16}
+            fill="currentColor"
+          />
         }
         href={generateLinkParameters(entityTypeId).href}
         popupState={popupState}

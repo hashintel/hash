@@ -1,18 +1,19 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+
+import { systemLinkEntityTypes } from "./ontology-type-ids.js";
+import { simplifyProperties } from "./simplify-properties.js";
+
+import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
+import type {
+  ServiceFeature,
+  UsageRecord,
+} from "./system-types/usagerecord.js";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ClosedTemporalBound,
   TemporalInterval,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-
-import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
-import { systemLinkEntityTypes } from "./ontology-type-ids.js";
-import { simplifyProperties } from "./simplify-properties.js";
-import type {
-  ServiceFeature,
-  UsageRecord,
-} from "./system-types/usagerecord.js";
 
 const generateAggregateUsageKey = ({
   serviceName,

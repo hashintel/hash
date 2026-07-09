@@ -6,7 +6,7 @@
   { "#struct": { "name": "T", "age": "U" } },
   [
     "Person<Number, String, Integer>",
-    //~^ ERROR Remove this argument
+    //~^ ERROR requires 2 generic arguments, but 3 were provided
     { "#literal": 30 }
   ]
 ]

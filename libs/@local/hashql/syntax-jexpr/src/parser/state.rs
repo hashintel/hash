@@ -182,12 +182,14 @@ impl Expected {
 }
 
 impl From<SyntaxKindSet> for Expected {
+    #[inline]
     fn from(value: SyntaxKindSet) -> Self {
         Self::Validate(value)
     }
 }
 
 impl From<SyntaxKind> for Expected {
+    #[inline]
     fn from(value: SyntaxKind) -> Self {
         Self::Validate(SyntaxKindSet::from(value))
     }

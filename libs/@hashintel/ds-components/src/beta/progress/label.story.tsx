@@ -1,6 +1,6 @@
 import { HStack } from "@hashintel/ds-helpers/jsx";
 
-import * as Progress from "./progress";
+import * as Progress from "../progress";
 
 export const App = () => {
   return (

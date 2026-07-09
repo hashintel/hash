@@ -1,3 +1,9 @@
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+
+import { getLatestEntityById } from "./entity";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
+
+import type { ImpureGraphFunction } from "../../context-types";
 import type {
   LinkData,
   PropertyPatchOperation,
@@ -7,11 +13,6 @@ import type {
   CreateEntityParameters,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import { getLatestEntityById } from "./entity";
-import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
 export const isEntityLinkEntity = (
   entity: HashEntity,

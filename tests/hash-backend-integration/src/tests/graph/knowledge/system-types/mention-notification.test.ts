@@ -1,40 +1,32 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getEntityOutgoingLinks,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import type { Comment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import {
   createComment,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
 } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import {
   createPage,
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -42,6 +34,16 @@ import {
   createTestUser,
   waitForAfterHookTriggerToComplete,
 } from "../../../util";
+
+import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type { Comment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
+import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
+import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
+import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { WebId } from "@blockprotocol/type-system";
+import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 const logger = new Logger({
   environment: "test",

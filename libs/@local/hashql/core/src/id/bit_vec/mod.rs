@@ -38,7 +38,7 @@
 use alloc::rc::Rc;
 use core::{
     fmt, iter,
-    marker::PhantomData,
+    marker::{Destruct, PhantomData},
     ops::{Bound, Range, RangeBounds},
     slice,
 };
@@ -78,30 +78,10 @@ const CHUNK_BITS: usize = CHUNK_WORDS * WORD_BITS; // 2048 bits
 type ChunkSize = u16;
 const _: () = assert!(CHUNK_BITS <= ChunkSize::MAX as usize);
 
-pub trait BitRelations<Rhs> {
+pub const trait BitRelations<Rhs> {
     fn union(&mut self, other: &Rhs) -> bool;
     fn subtract(&mut self, other: &Rhs) -> bool;
     fn intersect(&mut self, other: &Rhs) -> bool;
-}
-
-#[inline]
-fn inclusive_start_end<T: Id>(range: impl RangeBounds<T>, domain: usize) -> Option<(usize, usize)> {
-    // Both start and end are inclusive.
-    let start = match range.start_bound().cloned() {
-        Bound::Included(start) => start.as_usize(),
-        Bound::Excluded(start) => start.as_usize() + 1,
-        Bound::Unbounded => 0,
-    };
-    let end = match range.end_bound().cloned() {
-        Bound::Included(end) => end.as_usize(),
-        Bound::Excluded(end) => end.as_usize().checked_sub(1)?,
-        Bound::Unbounded => domain - 1,
-    };
-    assert!(end < domain);
-    if start > end {
-        return None;
-    }
-    Some((start, end))
 }
 
 /// A fixed-size bitset type with a dense representation.
@@ -128,6 +108,7 @@ pub struct DenseBitSet<T> {
 
 impl<T> DenseBitSet<T> {
     /// Gets the domain size.
+    #[inline]
     #[must_use]
     pub const fn domain_size(&self) -> usize {
         self.domain_size
@@ -601,6 +582,7 @@ enum Chunk {
 const _: () = assert!(size_of::<Chunk>() == 16);
 
 impl<T> ChunkedBitSet<T> {
+    #[inline]
     #[must_use]
     pub const fn domain_size(&self) -> usize {
         self.domain_size
@@ -1572,7 +1554,7 @@ const fn chunk_word_index_and_mask(elem: usize) -> (usize, Word) {
     word_index_and_mask(chunk_elem)
 }
 
-fn clear_excess_bits_in_final_word(domain_size: usize, words: &mut [Word]) {
+const fn clear_excess_bits_in_final_word(domain_size: usize, words: &mut [Word]) {
     let num_bits_in_final_word = domain_size % WORD_BITS;
     if num_bits_in_final_word > 0 {
         let mask = (1 << num_bits_in_final_word) - 1;
@@ -1588,4 +1570,33 @@ const fn max_bit(word: Word) -> usize {
 #[inline]
 fn count_ones(words: &[Word]) -> usize {
     words.iter().map(|word| word.count_ones() as usize).sum()
+}
+
+#[inline]
+const fn inclusive_start_end<T, R>(range: R, domain: usize) -> Option<(usize, usize)>
+where
+    T: [const] Id,
+    R: [const] RangeBounds<T> + [const] Destruct,
+{
+    // Both start and end are inclusive.
+    let start = match range.start_bound().copied() {
+        Bound::Included(start) => start.as_usize(),
+        Bound::Excluded(start) => start.as_usize() + 1,
+        Bound::Unbounded => 0,
+    };
+    let end = match range.end_bound().copied() {
+        Bound::Included(end) => end.as_usize(),
+        Bound::Excluded(end) => match end.as_usize().checked_sub(1) {
+            Some(end) => end,
+            None => return None,
+        },
+        Bound::Unbounded => domain - 1,
+    };
+
+    assert!(end < domain);
+    if start > end {
+        return None;
+    }
+
+    Some((start, end))
 }

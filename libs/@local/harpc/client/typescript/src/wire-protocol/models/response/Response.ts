@@ -12,7 +12,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-
 import * as ResponseBody from "./ResponseBody.js";
 import * as ResponseFlags from "./ResponseFlags.js";
 import * as ResponseHeader from "./ResponseHeader.js";
@@ -24,9 +23,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface Response
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly header: ResponseHeader.ResponseHeader;

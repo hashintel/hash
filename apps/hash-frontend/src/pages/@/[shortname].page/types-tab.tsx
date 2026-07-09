@@ -1,10 +1,10 @@
+import { TypesTable } from "../../shared/types-table";
+
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-
-import { TypesTable } from "../../shared/types-table";
 
 export const TypesTab = ({
   loading,

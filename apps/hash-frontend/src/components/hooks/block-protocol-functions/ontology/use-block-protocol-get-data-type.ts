@@ -1,16 +1,18 @@
 import { useLazyQuery } from "@apollo/client";
+import { useCallback } from "react";
+
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { useCallback } from "react";
+
+import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 
 import type {
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import type { GetDataTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetDataType = (): {

@@ -1,5 +1,6 @@
-import type { TableProps } from "@mui/material";
 import { Table } from "@mui/material";
+
+import type { TableProps } from "@mui/material";
 
 export const SettingsTable = ({ sx, ...props }: TableProps) => (
   <Table

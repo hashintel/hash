@@ -1,10 +1,9 @@
 import "../shared/common.scss";
-
-import { theme } from "@hashintel/design-system/theme";
 import { Box, Skeleton, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
-import type { Tabs } from "webextension-polyfill";
 import browser from "webextension-polyfill";
+
+import { theme } from "@hashintel/design-system/theme";
 
 import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";
@@ -15,6 +14,8 @@ import {
   useUserContext,
 } from "./popup-contents/shared/user-context";
 import { SignIn } from "./popup-contents/sign-in";
+
+import type { Tabs } from "webextension-polyfill";
 
 const getCurrentTab = async () => {
   const queryOptions = { active: true, lastFocusedWindow: true };

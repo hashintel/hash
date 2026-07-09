@@ -1,63 +1,54 @@
-import type { WebId } from "@blockprotocol/type-system";
-import { faImage } from "@fortawesome/free-regular-svg-icons";
-import {
-  Avatar,
-  FontAwesomeIcon,
-  IconButton,
-  RotateRegularIcon,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
+import { Box, styled } from "@mui/material";
+import Image from "next/image";
+import { useCallback, useRef } from "react";
+
+import { Avatar, IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, buttonClasses, styled } from "@mui/material";
-import Image from "next/image";
-import type { ChangeEventHandler, FunctionComponent } from "react";
-import { useCallback, useRef, useState } from "react";
 
-import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import type { User } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
-import { TrashRegularIcon } from "../../../../shared/icons/trash-regular-icon";
-import type { ButtonProps } from "../../../../shared/ui";
-import { Button } from "../../../../shared/ui";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../shared/get-file-properties";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { leftColumnWidth } from "../util";
 
-const AvatarButton = styled((props: ButtonProps) => (
-  <Button variant="tertiary" {...props} />
-))(({ theme }) => ({
-  background: "transparent",
-  borderWidth: 0,
-  padding: 0,
-  minHeight: "unset",
-  fontSize: 12,
-  [`.${buttonClasses.startIcon}`]: {
-    marginLeft: 0,
-    transition: theme.transitions.create("color"),
-    color: "#FFFFFF80",
-    padding: theme.spacing(0.75),
-    background: "#0E1114CC",
-    borderRadius: 4,
-  },
-  [`&.${buttonClasses.disabled}`]: {
-    background: "transparent",
-    color: theme.palette.common.white,
-    opacity: 0.5,
-  },
-  color: theme.palette.common.white,
-  "&:hover": {
-    background: "transparent",
-    color: theme.palette.common.white,
-    [`.${buttonClasses.startIcon}`]: {
-      color: theme.palette.common.white,
-      background: "#0E1114CC",
-    },
-  },
-}));
+import type { User } from "../../../../lib/user-and-org";
+import type { WebId } from "@blockprotocol/type-system";
+import type { ChangeEventHandler, FunctionComponent } from "react";
+
+// const AvatarButton = styled((props: ButtonProps) => (
+//   <Button variant="tertiary" {...props} />
+// ))(({ theme }) => ({
+//   background: "transparent",
+//   borderWidth: 0,
+//   padding: 0,
+//   minHeight: "unset",
+//   fontSize: 12,
+//   [`.${buttonClasses.startIcon}`]: {
+//     marginLeft: 0,
+//     transition: theme.transitions.create("color"),
+//     color: "#FFFFFF80",
+//     padding: theme.spacing(0.75),
+//     background: "#0E1114CC",
+//     borderRadius: 4,
+//   },
+//   [`&.${buttonClasses.disabled}`]: {
+//     background: "transparent",
+//     color: theme.palette.common.white,
+//     opacity: 0.5,
+//   },
+//   color: theme.palette.common.white,
+//   "&:hover": {
+//     background: "transparent",
+//     color: theme.palette.common.white,
+//     [`.${buttonClasses.startIcon}`]: {
+//       color: theme.palette.common.white,
+//       background: "#0E1114CC",
+//     },
+//   },
+// }));
 
 const CloseIconButton = styled(IconButton)(({ theme }) => ({
   background: theme.palette.common.black,
@@ -82,11 +73,11 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const { updateProfileAvatar, newAvatarImageUploading } =
     useUpdateProfileAvatar({ profile: userProfile });
 
-  const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
+  // const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
 
   const existingCoverImageEntity = userProfile.hasCoverImage?.imageEntity;
 
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  // const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
@@ -107,10 +98,10 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
     [],
   );
 
-  const handleChangeCoverImage = useCallback(
-    () => coverImageInputRef.current?.click(),
-    [],
-  );
+  // const handleChangeCoverImage = useCallback(
+  //   () => coverImageInputRef.current?.click(),
+  //   [],
+  // );
 
   const handleAvatarImageFileUpload = useCallback<
     ChangeEventHandler<HTMLInputElement>
@@ -143,7 +134,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         throw new Error("No file provided");
       }
 
-      setNewCoverImageUploading(true);
+      // setNewCoverImageUploading(true);
 
       await uploadFile({
         webId: userProfile.accountId as WebId,
@@ -181,7 +172,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       void refetchUserProfile();
       void refetchUserAndOrgs();
 
-      setNewCoverImageUploading(false);
+      // setNewCoverImageUploading(false);
     },
     [
       existingCoverImageEntity,
@@ -192,21 +183,21 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
     ],
   );
 
-  const handleRemoveCoverImage = useCallback(async () => {
-    if (userProfile.hasCoverImage) {
-      await archiveEntity({
-        data: {
-          entityId:
-            userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
-        },
-      });
+  // const handleRemoveCoverImage = useCallback(async () => {
+  //   if (userProfile.hasCoverImage) {
+  //     await archiveEntity({
+  //       data: {
+  //         entityId:
+  //           userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
+  //       },
+  //     });
 
-      /** @todo: consider also archiving image file entity */
+  //     /** @todo: consider also archiving image file entity */
 
-      void refetchUserProfile();
-      void refetchUserAndOrgs();
-    }
-  }, [userProfile, archiveEntity, refetchUserProfile, refetchUserAndOrgs]);
+  //     void refetchUserProfile();
+  //     void refetchUserAndOrgs();
+  //   }
+  // }, [userProfile, archiveEntity, refetchUserProfile, refetchUserAndOrgs]);
 
   return (
     <Box
@@ -263,7 +254,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           sx={{ display: "none" }}
           accept="image/*"
         />
-        {userProfile.hasCoverImage ? (
+        {/* @todo H-931: Make cover image appear on user profile page, uncomment handling */}
+        {/* {userProfile.hasCoverImage ? (
           <>
             <AvatarButton
               disabled={newCoverImageUploading}
@@ -289,7 +281,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           >
             Add cover image
           </AvatarButton>
-        )}
+        )} */}
       </Box>
       <Box>
         <CloseIconButton

@@ -255,7 +255,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 ///
 /// Binary (`bin.<op>`): `==`, `!=`, `<`, `<=`, `>`, `>=`, `&`, `|`, `+`, `-`, `*`, `/`.
 ///
-/// Unary (`un.<op>`): `!`, `neg`.
+/// Unary (`un.<op>`): `!`, `neg`, `~`.
 #[macro_export]
 macro_rules! body {
     (
@@ -364,7 +364,7 @@ macro_rules! body {
         $types.unknown()
     };
     (@type $types:ident; $other:expr) => {
-        $other($types)
+        $other(&$types)
     };
 
     (@source thunk) => {

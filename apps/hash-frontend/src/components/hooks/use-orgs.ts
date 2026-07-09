@@ -1,19 +1,21 @@
-import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructMinimalOrg, isEntityOrgEntity } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+import { useMemoCompare } from "../../shared/use-memo-compare";
+
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalOrg } from "../../lib/user-and-org";
-import { constructMinimalOrg, isEntityOrgEntity } from "../../lib/user-and-org";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
-import { useMemoCompare } from "../../shared/use-memo-compare";
+import type { ApolloQueryResult } from "@apollo/client";
 
 /**
  * Retrieves a list of organizations

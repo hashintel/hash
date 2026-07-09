@@ -1,11 +1,12 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context";
 import { FlowRunsContextProvider } from "../../../shared/flow-runs-context";
 import { FlowVisualizer } from "../shared/flow-visualizer";
+
+import type { NextPageWithLayout } from "../../../../shared/layout";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 const FlowDefinitionPage: NextPageWithLayout = () => {
   const { query } = useRouter();

@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   Actor,
   ActorOutgoingLinkAndTarget,
@@ -164,10 +162,10 @@ import type {
   LinkPropertiesWithMetadata,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
-  ManualInferenceConfigurationPropertyValue,
-  ManualInferenceConfigurationPropertyValueWithMetadata,
   MIMETypePropertyValue,
   MIMETypePropertyValueWithMetadata,
+  ManualInferenceConfigurationPropertyValue,
+  ManualInferenceConfigurationPropertyValueWithMetadata,
   NumberDataType,
   NumberDataTypeWithMetadata,
   ObjectDataType,
@@ -210,10 +208,10 @@ import type {
   ShortnamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-  UploadCompletedAtPropertyValue,
-  UploadCompletedAtPropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  UploadCompletedAtPropertyValue,
+  UploadCompletedAtPropertyValueWithMetadata,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -230,11 +228,14 @@ import type {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
+import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Actor,
@@ -462,6 +463,8 @@ export type {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
   WebsiteURLPropertyValue,

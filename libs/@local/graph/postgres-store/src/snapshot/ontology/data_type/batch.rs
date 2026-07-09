@@ -4,10 +4,13 @@ use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 
 use crate::{
-    snapshot::WriteBatch,
+    snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
         AsClient, PostgresStore,
-        postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
+        postgres::query::{
+            OnConflict,
+            rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
+        },
     },
 };
 
@@ -59,69 +62,45 @@ where
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(data_types) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO data_types_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::data_types[])
-                            RETURNING 1;
-                        ",
-                        &[&data_types],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} data type schemas", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &data_types,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} data type schemas");
                 }
             }
             Self::Conversions(conversions) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO data_type_conversions_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::data_type_conversions[])
-                            RETURNING 1;
-                        ",
-                        &[&conversions],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} data type schemas", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &conversions,
+                    SnapshotInsertOptions {
+                        distinct: true,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} data type schemas");
                 }
             }
             Self::Embeddings(embeddings) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO data_type_embeddings_tmp
-                            SELECT * FROM UNNEST($1::data_type_embeddings[])
-                            RETURNING 1;
-                        ",
-                        &[&embeddings],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} data type embeddings", rows.len());
+                let inserted_rows = insert_rows_batch(
+                    client,
+                    &embeddings,
+                    SnapshotInsertOptions {
+                        distinct: false,
+                        on_conflict: OnConflict::Error,
+                    },
+                )
+                .await?;
+                if inserted_rows > 0 {
+                    tracing::info!("Read {inserted_rows} data type embeddings");
                 }
             }
         }

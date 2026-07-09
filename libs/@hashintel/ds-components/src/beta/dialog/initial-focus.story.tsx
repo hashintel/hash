@@ -3,11 +3,11 @@
 import { Portal } from "@ark-ui/react/portal";
 import { useRef } from "react";
 
-import { Button } from "../button/button";
-import { CloseButton } from "../close-button/close-button";
-import * as Field from "../field/field";
-import { Input } from "../input/input";
-import * as Dialog from "./dialog";
+import { Button } from "../button";
+import { CloseButton } from "../close-button";
+import * as Dialog from "../dialog";
+import * as Field from "../field";
+import { Input } from "../input";
 
 export const App = () => {
   const ref = useRef<HTMLInputElement>(null);

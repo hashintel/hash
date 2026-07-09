@@ -1,10 +1,10 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import type { CancelInferEntitiesWebsocketRequestMessage } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Client } from "@temporalio/client";
 
 import type { GraphApi } from "../../graph/context-types";
 import type { User } from "../../graph/knowledge/system-types/user";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { CancelInferEntitiesWebsocketRequestMessage } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { Client } from "@temporalio/client";
 
 export const handleCancelInferEntitiesRequest = async ({
   graphApiClient,

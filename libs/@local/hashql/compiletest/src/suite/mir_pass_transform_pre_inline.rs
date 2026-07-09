@@ -41,6 +41,10 @@ pub(crate) trait MirRenderer {
     );
 }
 
+impl MirRenderer for () {
+    fn render<'heap>(&mut self, _: &mut RenderContext<'_, 'heap>, _: &DefIdSlice<Body<'heap>>) {}
+}
+
 impl<R> MirRenderer for &mut R
 where
     R: MirRenderer,
@@ -164,7 +168,7 @@ pub(crate) fn mir_pass_transform_pre_inline<'heap>(
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let (root, mut bodies) = mir_reify(heap, expr, interner, environment, diagnostics)?;
+    let (root, mut bodies, _) = mir_reify(heap, expr, interner, environment, diagnostics)?;
 
     render.render(
         &mut RenderContext {

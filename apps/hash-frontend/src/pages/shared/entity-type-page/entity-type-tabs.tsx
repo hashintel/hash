@@ -1,10 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
@@ -12,6 +11,9 @@ import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
 import { useSlideStack } from "../slide-stack";
 import { useEntityType } from "./shared/entity-type-context";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PropsWithChildren } from "react";
 
 const defaultTab = "definition";
 

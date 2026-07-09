@@ -1,7 +1,12 @@
 import { useMutation } from "@apollo/client";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import { Box, Typography, typographyClasses } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import { createPortal } from "react-dom";
+import { useFieldArray, useForm } from "react-hook-form";
+
 import {
-  AsteriskRegularIcon,
+  EntityOrTypeIcon,
   IconButton,
   XMarkRegularIcon,
 } from "@hashintel/design-system";
@@ -10,31 +15,12 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ModalProps } from "@mui/material";
-import { Box, Typography, typographyClasses } from "@mui/material";
-import type { FunctionComponent, ReactElement } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  DraggableProvided,
-  DraggingStyle,
-  NotDraggingStyle,
-  OnDragEndResponder,
-} from "react-beautiful-dnd";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { createPortal } from "react-dom";
-import { useFieldArray, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import type {
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import type { Org, User } from "../../../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
-import { CustomLinkIcon } from "../../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../../shared/icons/grip-dots-vertical-regular-icon";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { Button, Link, Modal } from "../../../shared/ui";
@@ -43,6 +29,21 @@ import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { EntityTypeSelector } from "../../shared/entity-type-selector";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import type { Org, User } from "../../../lib/user-and-org";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { ModalProps } from "@mui/material";
+import type { FunctionComponent, ReactElement } from "react";
+import type {
+  DraggableProvided,
+  DraggingStyle,
+  NotDraggingStyle,
+  OnDragEndResponder,
+} from "react-beautiful-dnd";
 
 /** @see https://github.com/atlassian/react-beautiful-dnd/issues/128#issuecomment-1010053365 */
 const useDraggableInPortal = () => {
@@ -326,23 +327,20 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                   justifyContent: "center",
                                 }}
                               >
-                                {field.schema.icon ??
-                                  (isSpecialEntityTypeLookup?.[field.schema.$id]
-                                    ?.isLink ? (
-                                    <CustomLinkIcon
-                                      sx={{
-                                        fontSize: 22,
-                                        marginLeft: -0.75,
-                                        marginRight: -0.75,
-                                      }}
-                                    />
-                                  ) : (
-                                    (entityTypeIcons[field.schema.$id] ?? (
-                                      <AsteriskRegularIcon
-                                        sx={{ fontSize: 12 }}
-                                      />
-                                    ))
-                                  ))}
+                                <EntityOrTypeIcon
+                                  entity={null}
+                                  icon={
+                                    field.schema.icon ??
+                                    entityTypeIcons[field.schema.$id]
+                                  }
+                                  isLink={
+                                    !!isSpecialEntityTypeLookup?.[
+                                      field.schema.$id
+                                    ]?.isLink
+                                  }
+                                  fontSize={14}
+                                  fill={({ palette }) => palette.blue[70]}
+                                />
                               </Box>
                               <Typography
                                 sx={{

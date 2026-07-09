@@ -1,7 +1,7 @@
-import type {
-  EntityType,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { useRef, useState } from "react";
+import { Controller } from "react-hook-form";
+
 import {
   extractBaseUrl,
   extractVersion,
@@ -11,14 +11,12 @@ import {
 import {
   ArrowUpRightFromSquareRegularIcon,
   ArrowUpRightIcon,
+  EntityOrTypeIcon,
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import { TextMark } from "@hashintel/ds-components";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useRef, useState } from "react";
-import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
@@ -30,6 +28,12 @@ import { useTextSize } from "../../use-text-size";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
+
+import type {
+  EntityType,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypeHeaderProps {
   currentVersion: OntologyTypeVersion;
@@ -103,40 +107,46 @@ export const EntityTypeHeader = ({
           direction="row"
           alignItems="center"
           justifyContent="space-between"
+          mb={3}
         >
-          <Stack direction="row" alignItems="center" gap={5}>
-            <Stack direction="row" alignItems="flex-start" mt={1} mb={3}>
+          <Stack direction="row" alignItems="center" gap={5} minWidth={0}>
+            <Stack direction="row" alignItems="flex-start" mt={1} minWidth={0}>
               {entityTypeNameSize !== null && (
                 <Controller
                   control={control}
                   name="icon"
                   render={({ field }) => {
-                    const iconImgUrl = field.value?.startsWith("/")
-                      ? new URL(field.value, window.location.origin).href
-                      : field.value;
+                    const iconValue = field.value;
 
                     /**
                      * @todo allow uploading new SVG icons
                      */
-                    if (iconImgUrl?.startsWith("http")) {
+                    if (
+                      typeof iconValue === "string" &&
+                      (iconValue.startsWith("http") ||
+                        iconValue.startsWith("/"))
+                    ) {
                       return (
                         <Box
-                          sx={({ palette }) => ({
-                            backgroundColor: palette.gray[50],
-                            webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
-                            mask: `url(${iconImgUrl}) no-repeat center / contain`,
-                            width: 40,
-                            height: 40,
+                          sx={{
                             position: "relative",
                             top: entityTypeNameSize.lineHeight / 2 - 20,
-                          })}
-                        />
+                          }}
+                        >
+                          <EntityOrTypeIcon
+                            entity={null}
+                            icon={iconValue}
+                            isLink={isLink}
+                            fontSize={40}
+                            fill={({ palette }) => palette.gray[50]}
+                          />
+                        </Box>
                       );
                     }
 
                     return (
                       <EditEmojiIconButton
-                        icon={field.value}
+                        icon={iconValue}
                         disabled={isReadonly}
                         onChange={(updatedIcon) => field.onChange(updatedIcon)}
                         defaultIcon={
@@ -156,14 +166,14 @@ export const EntityTypeHeader = ({
                         }
                         sx={{
                           position: "relative",
-                          top: entityTypeNameSize.lineHeight / 2 - 22,
+                          top: entityTypeNameSize.lineHeight / 2 - 25,
                         }}
                       />
                     );
                   }}
                 />
               )}
-              <Box sx={{ position: "relative", ml: 2.5 }}>
+              <Box sx={{ ml: 2.5, minWidth: 0 }}>
                 <Tooltip
                   placement="top-start"
                   componentsProps={{
@@ -193,39 +203,37 @@ export const EntityTypeHeader = ({
                     variant="h1"
                     fontWeight="bold"
                     ref={entityTypeNameTextRef}
-                    sx={{
-                      lineHeight: 1.2,
-                    }}
+                    sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     {entityTypeSchema.title}
+                    {isInSlide && (
+                      <TextMark>
+                        <Link
+                          href={
+                            generateLinkParameters(entityTypeSchema.$id).href
+                          }
+                          sx={{ ml: 2.5 }}
+                          target="_blank"
+                        >
+                          <ArrowUpRightFromSquareRegularIcon
+                            sx={{
+                              fill: ({ palette }) => palette.blue[50],
+                              fontSize: 24,
+                              verticalAlign: "middle",
+                              // Nudge the icon up slightly relative to the
+                              // text, without affecting line-box layout
+                              position: "relative",
+                              top: -8,
+                              "&:hover": {
+                                fill: ({ palette }) => palette.blue[60],
+                              },
+                            }}
+                          />
+                        </Link>
+                      </TextMark>
+                    )}
                   </Typography>
                 </Tooltip>
-                {isInSlide && entityTypeNameSize !== null && (
-                  <Link
-                    href={generateLinkParameters(entityTypeSchema.$id).href}
-                    sx={{
-                      position: "absolute",
-                      left: entityTypeNameSize.lastLineWidth + 20,
-                      /**
-                       * The vertical center of the text plus offset half the icon size
-                       */
-                      top:
-                        entityTypeNameSize.lastLineTop +
-                        (entityTypeNameSize.lineHeight / 2 - 12),
-                    }}
-                    target="_blank"
-                  >
-                    <ArrowUpRightFromSquareRegularIcon
-                      sx={{
-                        fill: ({ palette }) => palette.blue[50],
-                        fontSize: 24,
-                        "&:hover": {
-                          fill: ({ palette }) => palette.blue[70],
-                        },
-                      }}
-                    />
-                  </Link>
-                )}
               </Box>
             </Stack>
             <Stack
@@ -234,7 +242,7 @@ export const EntityTypeHeader = ({
               gap={1.5}
               sx={{ position: "relative", top: 5 }}
             >
-              <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
+              <EntityTypePlural readonly={isReadonly} />
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
@@ -243,6 +251,8 @@ export const EntityTypeHeader = ({
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
               size="small"
+              // Don't let the button get squeezed by long header content
+              sx={{ flexShrink: 0, ml: 2 }}
             >
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>

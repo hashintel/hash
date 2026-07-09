@@ -1,11 +1,4 @@
 import {
-  extractDraftIdFromEntityId,
-  extractEntityUuidFromEntityId,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
-import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
   Skeleton,
   styled,
   Table as MuiTable,
@@ -24,19 +17,28 @@ import {
   isThisYear,
   isToday,
 } from "date-fns";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
+
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { useUserOrOrgShortnameByWebId } from "../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, Link } from "../../shared/ui";
+import { useNotificationsWithLinks } from "./notifications-with-links-context";
+
 import type {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
 } from "./notifications-with-links-context";
-import { useNotificationsWithLinks } from "./notifications-with-links-context";
+import type { FunctionComponent } from "react";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",

@@ -1,4 +1,5 @@
 import { typedEntries } from "../../util/typed-entries.js";
+
 import type { CompileContext } from "../context/compile.js";
 import type { CompiledTsType } from "../shared.js";
 

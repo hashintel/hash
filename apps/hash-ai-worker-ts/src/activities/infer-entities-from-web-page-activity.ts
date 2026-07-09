@@ -1,18 +1,20 @@
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
+import { StatusCode } from "@local/status";
+
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page.js";
-import type {
-  DereferencedEntityTypesByTypeId,
-  InferenceState,
-} from "./infer-entities/inference-types.js";
 import { proposeEntities } from "./infer-entities/propose-entities.js";
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { graphApiClient } from "./shared/graph-api-client.js";
-import type { PermittedOpenAiModel } from "./shared/openai-client.js";
 import { stringify } from "./shared/stringify.js";
+
+import type {
+  DereferencedEntityTypesByTypeId,
+  InferenceState,
+} from "./infer-entities/inference-types.js";
+import type { PermittedOpenAiModel } from "./shared/openai-client.js";
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;

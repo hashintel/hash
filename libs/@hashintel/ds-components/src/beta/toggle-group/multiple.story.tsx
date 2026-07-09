@@ -1,8 +1,8 @@
 import { BoldIcon, ItalicIcon, UnderlineIcon } from "lucide-react";
 
-import { ButtonGroup } from "../button/button";
-import { IconButton } from "../icon-button/icon-button";
-import * as ToggleGroup from "./toggle-group";
+import { ButtonGroup } from "../button";
+import { IconButton } from "../icon-button";
+import * as ToggleGroup from "../toggle-group";
 
 export const App = () => {
   return (

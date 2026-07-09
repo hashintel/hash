@@ -5,13 +5,13 @@ use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
-    severity::Severity,
+    severity::Critical,
 };
 use winnow::error::ContextError;
 
 use crate::{lexer::error::LexerDiagnosticCategory, span::Span};
 
-pub(crate) type ArrayDiagnostic = Diagnostic<ArrayDiagnosticCategory, SpanId>;
+pub(crate) type ArrayDiagnostic<K = Critical> = Diagnostic<ArrayDiagnosticCategory, SpanId, K>;
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
@@ -118,6 +118,7 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
 }
 
 impl From<LexerDiagnosticCategory> for ArrayDiagnosticCategory {
+    #[inline]
     fn from(value: LexerDiagnosticCategory) -> Self {
         Self::Lexer(value)
     }
@@ -131,7 +132,7 @@ const EMPTY_NOTE: &str = r##"Valid examples:
 "##;
 
 pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Critical::ERROR)
         .primary(Label::new(span, "Empty array not allowed"));
 
     diagnostic.add_message(Message::help(EMPTY_HELP));
@@ -146,7 +147,7 @@ const TRAILING_COMMA_HELP: &str = "J-Expr does not support trailing commas in ar
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let (&first, rest) = spans.split_first().expect("spans must be non-empty");
 
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Critical::ERROR)
         .primary(Label::new(first, "Remove this trailing comma"));
 
     for &span in rest {
@@ -166,7 +167,7 @@ const LEADING_COMMA_HELP: &str =
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let (&first, rest) = spans.split_first().expect("spans must be non-empty");
 
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::Error)
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Critical::ERROR)
         .primary(Label::new(first, "Remove this leading comma"));
 
     for &span in rest {
@@ -187,7 +188,7 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let (&first, rest) = spans.split_first().expect("spans must be non-empty");
 
     let mut diagnostic =
-        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::Error)
+        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Critical::ERROR)
             .primary(Label::new(first, "Remove this extra comma"));
 
     for &span in rest {
@@ -214,7 +215,7 @@ pub(crate) fn labeled_argument_missing_prefix(
 ) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentMissingPrefix,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(span, "Missing ':' prefix"));
 
@@ -236,7 +237,7 @@ pub(crate) fn labeled_arguments_length_mismatch(
 ) -> ArrayDiagnostic {
     let diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentLengthMismatch,
-        Severity::Error,
+        Critical::ERROR,
     );
 
     let mut diagnostic = if count == 0 {
@@ -283,7 +284,7 @@ pub(crate) fn labeled_argument_invalid_identifier(
 ) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,
-        Severity::Error,
+        Critical::ERROR,
     )
     .primary(Label::new(label_span, "Invalid labeled argument name"));
 

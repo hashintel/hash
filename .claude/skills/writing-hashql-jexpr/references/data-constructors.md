@@ -298,9 +298,17 @@ Empty tuple for type params, struct for named params:
 ### Entity Filtering
 
 ```jsonc
-["filter", "entities",
-  ["fn", {"#tuple": []}, {"#struct": {"e": "_"}}, "_",
-    ["==", "e.archived", {"#literal": false}]]]
+[
+  "filter",
+  "entities",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "e": "_" } },
+    "_",
+    ["==", "e.archived", { "#literal": false }],
+  ],
+]
 ```
 
 ## Error Handling
@@ -311,7 +319,7 @@ Only one primary `#` key allowed:
 
 ```jsonc
 // ✗ Error - duplicate primary key
-{"#literal": 42, "#literal": 24}
+{ "#literal": 42, "#literal": 24 }
 ```
 
 ### Empty Object
@@ -329,7 +337,7 @@ Regular keys not allowed in special form objects:
 
 ```jsonc
 // ✗ Error - unknown key
-{"#literal": 42, "extra": "value"}
+{ "#literal": 42, "extra": "value" }
 ```
 
 ### Invalid Values

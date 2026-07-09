@@ -1,10 +1,12 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactElement, RefObject } from "react";
+
+import { IconButton } from "@hashintel/design-system";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 import { GraphVizTooltip } from "./graph-viz-tooltip";
+
+import type { PropsWithChildren, ReactElement, RefObject } from "react";
 
 export const InfoIconTooltip = ({
   tooltip,

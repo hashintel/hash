@@ -1,54 +1,62 @@
-import type { ApolloQueryResult } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type {
-  EntityQueryCursor,
-  EntityQuerySortingRecord,
-} from "@local/hash-graph-client";
+import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
+import { getLatestEntityVertices, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { useMemo } from "react";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import type { QueryEntitySubgraphQuery } from "../../../graphql/api-types.gen";
-import { useEntityTypeEntities } from "../../../shared/use-entity-type-entities";
+import {
+  queryEntitySubgraphQuery,
+  summarizeEntitiesQuery,
+} from "../../../graphql/queries/knowledge/entity.queries";
+import { apolloClient } from "../../../lib/apollo-client";
+import { buildEntitiesFilter } from "./shared/build-filter";
+import { traversalPathsForView } from "./shared/traversal-paths";
+import { useEntitiesTableData } from "./use-entities-table-data";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  SummarizeEntitiesQuery,
+  SummarizeEntitiesQueryVariables,
+} from "../../../graphql/api-types.gen";
 import type { VisualizerView } from "../visualizer-views";
 import type {
   EntitiesTableData,
   EntitiesTableRow,
   UpdateTableDataFn,
-} from "./types";
-import { useEntitiesTableData } from "./use-entities-table-data";
+} from "./entities-table-data";
+import type { EntitiesFilterState } from "./shared/filter-state";
+import type { ApolloQueryResult } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
 
 export type EntitiesVisualizerData = Partial<
   Pick<
     QueryEntitySubgraphQuery["queryEntitySubgraph"],
-    | "closedMultiEntityTypes"
-    | "count"
-    | "createdByIds"
-    | "definitions"
-    | "editionCreatedByIds"
-    | "cursor"
-    | "typeIds"
-    | "typeTitles"
-    | "webIds"
+    "closedMultiEntityTypes" | "definitions" | "cursor"
   >
 > & {
   entities?: HashEntity[];
-  // Whether or not cached content was available immediately for the context data
   hadCachedContent: boolean;
+  loading: boolean;
   /**
    * Whether or not a network request is in process.
    * Note that if is hasCachedContent is true, data for the given query is available before loading is complete.
    * The cached content will be replaced automatically and the value updated when the network request completes.
    */
-  loading: boolean;
   refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   tableData: EntitiesTableData | null;
+  totalResultCount: number | null;
   updateTableData: UpdateTableDataFn;
 };
 
@@ -57,10 +65,10 @@ export const useEntitiesVisualizerData = (params: {
   cursor?: EntityQueryCursor;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
+  filterState: EntitiesFilterState;
   hideColumns?: (keyof EntitiesTableRow)[];
-  includeArchived: boolean;
+  internalWebs: { webId: WebId }[];
   limit?: number;
-  webIds?: WebId[];
   sort?: EntityQuerySortingRecord;
   view: VisualizerView;
 }): EntitiesVisualizerData => {
@@ -69,123 +77,146 @@ export const useEntitiesVisualizerData = (params: {
     cursor,
     entityTypeBaseUrl,
     entityTypeIds,
-    includeArchived,
-    limit,
+    filterState,
     hideColumns,
-    webIds: webIdsParam,
+    internalWebs,
+    limit,
     sort,
     view,
   } = params;
 
   const { tableData, updateTableData } = useEntitiesTableData({
     hideColumns,
-    hideArchivedColumn: !includeArchived,
+    hideArchivedColumn: !filterState.includeArchived,
   });
 
-  const {
-    closedMultiEntityTypes,
-    count,
-    createdByIds,
-    cursor: nextCursor,
-    definitions,
-    editionCreatedByIds,
-    entities,
-    hadCachedContent,
-    loading,
-    refetch,
-    subgraph,
-    typeIds,
-    typeTitles,
-    webIds,
-  } = useEntityTypeEntities(
-    {
-      conversions,
-      cursor,
-      entityTypeBaseUrl,
-      entityTypeIds,
-      includeArchived,
-      limit,
-      webIds: webIdsParam,
-      traversalPaths:
-        view === "Graph"
-          ? /**
-             * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
-             * We skip asking the graph to resolve them.
-             * This does mean that links to entities outside the users' webs are not reflected in the graph view,
-             * unless they have clicked to include entities from other webs.
-             */
-            []
-          : /**
-             * The table view only needs outgoing: 1 for each, in order to be able to display the source and target of links.
-             */
-            [
-              {
-                edges: [
-                  { kind: "has-left-entity", direction: "outgoing" },
-                  { kind: "has-right-entity", direction: "outgoing" },
-                ],
-              },
-            ],
-      sort,
+  const internalWebIds = useMemo(
+    () => internalWebs.map(({ webId }) => webId),
+    [internalWebs],
+  );
+
+  const filter = useMemo(
+    () =>
+      buildEntitiesFilter({
+        filterState,
+        internalWebIds,
+        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeIds: entityTypeIds,
+      }),
+    [filterState, internalWebIds, entityTypeBaseUrl, entityTypeIds],
+  );
+
+  const variables = useMemo<QueryEntitySubgraphQueryVariables>(
+    () => ({
+      request: {
+        conversions,
+        cursor,
+        limit,
+        filter,
+        traversalPaths: traversalPathsForView(view),
+        sortingPaths: sort ? [sort] : undefined,
+        /**
+         * @todo H-2633 when we use entity archival via timestamp, this will
+         * need varying to include archived entities.
+         */
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includeEntityTypes: "resolvedWithDataTypeChildren",
+        includePermissions: false,
+      },
+    }),
+    [conversions, cursor, filter, limit, sort, view],
+  );
+
+  const { data: summaryData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    variables: {
+      request: {
+        filter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includeCount: true,
+      },
     },
-    (data) => {
+  });
+
+  const { data, loading, refetch } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+    onCompleted: (completedData) => {
       if (view === "Graph") {
         return;
       }
 
       const newSubgraph = deserializeQueryEntitySubgraphResponse(
-        data.queryEntitySubgraph,
+        completedData.queryEntitySubgraph,
       ).subgraph;
 
       const newEntities = getRoots(newSubgraph);
 
       updateTableData({
-        appliedPaginationCursor: cursor ?? null,
+        appendRows: !!cursor,
         closedMultiEntityTypesRootMap:
-          data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
-        definitions: data.queryEntitySubgraph.definitions,
+          completedData.queryEntitySubgraph.closedMultiEntityTypes ?? {},
+        definitions: completedData.queryEntitySubgraph.definitions,
         entities: newEntities,
         subgraph: newSubgraph,
       });
     },
+    variables,
+  });
+
+  const hadCachedContent = useMemo(
+    () =>
+      !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
+    [variables],
+  );
+
+  const subgraph = useMemo(
+    () =>
+      data?.queryEntitySubgraph
+        ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
+            .subgraph
+        : undefined,
+    [data?.queryEntitySubgraph],
+  );
+
+  const entities = useMemo(
+    () =>
+      subgraph
+        ? view === "Graph"
+          ? getLatestEntityVertices(subgraph).map((vertex) => vertex.inner)
+          : getRoots(subgraph)
+        : undefined,
+    [subgraph, view],
   );
 
   return useMemo(
     () => ({
-      closedMultiEntityTypes,
-      count,
-      createdByIds,
-      cursor: nextCursor,
-      definitions,
-      editionCreatedByIds,
+      ...data?.queryEntitySubgraph,
       entities,
       hadCachedContent,
       loading,
       refetch,
       subgraph,
       tableData,
+      totalResultCount: summaryData?.summarizeEntities.count ?? null,
       updateTableData,
-      typeIds,
-      typeTitles,
-      webIds,
     }),
     [
-      closedMultiEntityTypes,
-      count,
-      createdByIds,
-      nextCursor,
-      definitions,
-      editionCreatedByIds,
+      data?.queryEntitySubgraph,
+      summaryData?.summarizeEntities,
       entities,
       hadCachedContent,
       loading,
       refetch,
       subgraph,
       tableData,
-      typeIds,
-      typeTitles,
       updateTableData,
-      webIds,
     ],
   );
 };

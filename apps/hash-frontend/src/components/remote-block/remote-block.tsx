@@ -1,9 +1,7 @@
-import type { BlockMetadata } from "@blockprotocol/core";
-import type {
-  BlockGraphProperties,
-  EntityRootType,
-  GraphEmbedderMessageCallbacks,
-} from "@blockprotocol/graph";
+import { Skeleton } from "@mui/material";
+import { useEffect, useMemo, useRef } from "react";
+import { v4 as uuid } from "uuid";
+
 import { useGraphEmbedderModule } from "@blockprotocol/graph/react";
 import {
   getOutgoingLinksForEntity,
@@ -13,17 +11,21 @@ import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SkeletonProps } from "@mui/material";
-import { Skeleton } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useEffect, useMemo, useRef } from "react";
-import { v4 as uuid } from "uuid";
 
 import { useUserBlocks } from "../../blocks/user-blocks";
 import { AddLinkedQueryPrompt } from "./add-linked-query-prompt";
 import { BlockRenderer } from "./block-renderer";
 import { serviceModuleCallbacks } from "./construct-service-module-callbacks";
 import { useRemoteBlock } from "./use-remote-block";
+
+import type { BlockMetadata } from "@blockprotocol/core";
+import type {
+  BlockGraphProperties,
+  EntityRootType,
+  GraphEmbedderMessageCallbacks,
+} from "@blockprotocol/graph";
+import type { SkeletonProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export type RemoteBlockProps = {
   graphCallbacks: Omit<

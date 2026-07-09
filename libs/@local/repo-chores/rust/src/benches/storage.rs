@@ -120,7 +120,7 @@ impl S3Storage {
             self.put_file(
                 &format!(
                     "{name}/{}/tracing.folded",
-                    &analysis.measurement.info.directory_name
+                    analysis.measurement.info.directory_name
                 ),
                 stacks,
             )
@@ -132,7 +132,7 @@ impl S3Storage {
             self.put_file(
                 &format!(
                     "{name}/{}/flamegraph.svg",
-                    &analysis.measurement.info.directory_name
+                    analysis.measurement.info.directory_name
                 ),
                 flame_graph,
             )

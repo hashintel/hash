@@ -1,12 +1,13 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
 
-import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
 import { deduplicateEntities } from "./deduplicate-entities.js";
+
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 
 const webId = generateUuid();
 
@@ -134,6 +135,9 @@ const nonDuplicateEntitySummaries: LocalEntitySummary[] = [
 
 test.skip(
   "Test deduplicate entities with FTSE350 companies",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: [
@@ -169,9 +173,6 @@ test.skip(
         ),
       ).toBeUndefined();
     }
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );
 
@@ -342,6 +343,9 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 
 test.skip(
   "Test deduplicate LLM providers",
+  {
+    timeout: 5 * 60 * 1000,
+  },
   async () => {
     const { duplicates } = await deduplicateEntities({
       entities: llmProviderExistingEntitySummaries,
@@ -351,8 +355,5 @@ test.skip(
     console.log(JSON.stringify({ duplicates }, null, 2));
 
     expect(duplicates).toBeDefined();
-  },
-  {
-    timeout: 5 * 60 * 1000,
   },
 );

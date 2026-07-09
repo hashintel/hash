@@ -1,0 +1,21 @@
+//@ run: fail
+//@ description: The binding name must be a identifier
+[
+  "::kernel::special_form::let",
+  "Int<T>",
+  //~^ ERROR expected a simple identifier for the `let` binding name
+  { "#literal": true },
+  [
+    "::kernel::special_form::let",
+    "x::A",
+    //~^ ERROR expected a simple identifier for the `let` binding name
+    { "#literal": true },
+    [
+      "::kernel::special_form::let",
+      "::z",
+      //~^ ERROR expected a simple identifier for the `let` binding name
+      { "#literal": true },
+      ["+", { "#literal": true }, { "#literal": true }]
+    ]
+  ]
+]

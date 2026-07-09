@@ -1,8 +1,7 @@
-import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
-
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type { OutputDefinition, Payload, WebPage } from "./types.js";
+import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 export type AutomaticInferenceSettings = {
   createAs: "draft" | "live";

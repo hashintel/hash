@@ -1,9 +1,11 @@
-import type { PropertyTypeRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getRoots } from "@blockprotocol/graph/stdlib";
+
 import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
+
 import type { PropertyTypesContextValues } from "../property-types-context";
+import type { PropertyTypeRootType } from "@blockprotocol/graph";
 
 export const usePropertyTypesContextValue = (params?: {
   includeArchived?: boolean;

@@ -2,13 +2,14 @@ import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { convert } from "html-to-text";
 import nodemailer from "nodemailer";
-import type SESTransport from "nodemailer/lib/ses-transport";
 
 import { logger } from "../../logger";
+
 import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
 } from "./types";
+import type SESTransport from "nodemailer/lib/ses-transport";
 
 export interface AwsSesEmailTransporterConfig {
   from: string;

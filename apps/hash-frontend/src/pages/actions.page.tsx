@@ -1,19 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityId } from "@blockprotocol/type-system";
-import {
-  compareOntologyTypeVersions,
-  componentsFromVersionedUrl,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
-import { CheckRegularIcon } from "@hashintel/design-system";
-import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
-import type { Filter } from "@local/hash-graph-client";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  getClosedMultiEntityTypeFromMap,
-} from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Box,
   breadcrumbsClasses,
@@ -25,18 +10,25 @@ import {
 import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../graphql/api-types.gen";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import {
+  compareOntologyTypeVersions,
+  componentsFromVersionedUrl,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
+import { CheckRegularIcon } from "@hashintel/design-system";
+import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  getClosedMultiEntityTypeFromMap,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
 import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
-import type { SortOrder } from "./actions.page/draft-entities";
 import { DraftEntities } from "./actions.page/draft-entities";
-import type { EntityTypeDisplayInfoByBaseUrl } from "./actions.page/draft-entities/types";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
 import {
   DraftEntitiesContextProvider,
@@ -44,6 +36,16 @@ import {
 } from "./actions.page/draft-entities-context";
 import { InlineSelect } from "./shared/inline-select";
 import { TopContextBar } from "./shared/top-context-bar";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../shared/layout";
+import type { SortOrder } from "./actions.page/draft-entities";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./actions.page/draft-entities/types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
   "created-at-asc": "creation date/time (oldest first)",

@@ -1,3 +1,9 @@
+import { produce } from "immer";
+
+import { generateDraftIdForEntity } from "./entity-store-plugin.js";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
+
+import type { BlockEntity } from "./entity.js";
 import type {
   EntityId,
   EntityTemporalMetadata,
@@ -6,11 +12,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Draft } from "immer";
-import { produce } from "immer";
-
-import type { BlockEntity } from "./entity.js";
-import { generateDraftIdForEntity } from "./entity-store-plugin.js";
-import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 

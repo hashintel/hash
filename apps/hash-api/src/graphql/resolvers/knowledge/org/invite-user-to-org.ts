@@ -1,3 +1,6 @@
+import dedent from "dedent";
+import sanitizeHtml from "sanitize-html";
+
 import {
   type EntityId,
   entityIdFromComponents,
@@ -9,11 +12,8 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -21,15 +21,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  HasIssuedInvitation,
-  InvitationViaEmail,
-  InvitationViaShortname,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import dedent from "dedent";
-import sanitizeHtml from "sanitize-html";
 
-import type { EmailTransporter } from "../../../../email/transporters";
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
@@ -37,15 +29,24 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
+  checkEmailVerificationAndUsageStatus,
   getUser,
   isUserMemberOfOrg,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
+
+import type { EmailTransporter } from "../../../../email/transporters";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
+import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type {
+  HasIssuedInvitation,
+  InvitationViaEmail,
+  InvitationViaShortname,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 const invitationDurationInDays = 30;
 
@@ -104,11 +105,19 @@ const generateExistingInvitationFilter = (
 ) => {
   const filter = {
     all: [
-      generateVersionedUrlMatchingFilter(
-        invitation.type === "email"
-          ? systemEntityTypes.invitationViaEmail.entityTypeId
-          : systemEntityTypes.invitationViaShortname.entityTypeId,
-      ),
+      {
+        equal: [
+          {
+            path: ["type", "baseUrl"],
+          },
+          {
+            parameter:
+              invitation.type === "email"
+                ? systemEntityTypes.invitationViaEmail.entityTypeBaseUrl
+                : systemEntityTypes.invitationViaShortname.entityTypeBaseUrl,
+          },
+        ],
+      },
       {
         equal: [
           {
@@ -158,17 +167,36 @@ export const inviteUserToOrgResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationInviteUserToOrgArgs
-> = async (_, { userEmail, userShortname, orgWebId }, graphQLContext) => {
+> = async (
+  _,
+  { userEmail: unnormalisedUserEmail, userShortname, orgWebId },
+  graphQLContext,
+) => {
   const { authentication } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   let existingUserToInvite: User | null = null;
 
+  const userEmail = unnormalisedUserEmail
+    ? normalizeEmail(unnormalisedUserEmail)
+    : null;
+
   if (userEmail) {
-    existingUserToInvite = await getUser(context, authentication, {
-      emails: [userEmail],
-    });
+    const emailCheckResult =
+      await checkEmailVerificationAndUsageStatus(userEmail);
+
+    if (emailCheckResult.status !== "email-not-found") {
+      const existingUser = await getUser(context, authentication, {
+        kratosIdentityId: emailCheckResult.kratosIdentityId,
+      });
+
+      if (existingUser) {
+        existingUserToInvite = existingUser;
+      } else {
+        throw Error.notFound(`User with email ${userEmail} not found`);
+      }
+    }
   } else if (userShortname) {
     existingUserToInvite = await getUser(context, authentication, {
       shortname: userShortname,

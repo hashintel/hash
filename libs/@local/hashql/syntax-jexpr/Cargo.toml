@@ -22,12 +22,13 @@ text-size = { workspace = true, public = true }
 circular-buffer       = { workspace = true }
 hifijson              = { workspace = true, features = ["alloc"] }
 logos                 = { workspace = true, features = ["export_derive"] }
+memchr                = { workspace = true }
 simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }
 url                   = { workspace = true }
-winnow                = { workspace = true, features = ["std"] }
+winnow                = { workspace = true, features = ["std", "parser", "ascii"] }
 
 [dev-dependencies]
 hashql-diagnostics = { workspace = true, features = ["render"] }

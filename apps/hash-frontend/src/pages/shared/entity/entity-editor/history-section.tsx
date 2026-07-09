@@ -1,22 +1,15 @@
 import { useQuery } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
+import { useMemo } from "react";
+
 import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
-import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   almostFullOntologyResolveDepths,
   fullDecisionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { useMemo } from "react";
 
 import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import type {
-  GetEntityDiffsQuery,
-  GetEntityDiffsQueryVariables,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
 import {
   getEntityDiffsQuery,
   queryEntitySubgraphQuery,
@@ -24,7 +17,16 @@ import {
 import { SectionWrapper } from "../../section-wrapper";
 import { getHistoryEvents } from "./history-section/get-history-events";
 import { HistoryTable } from "./history-section/history-table";
+
+import type {
+  GetEntityDiffsQuery,
+  GetEntityDiffsQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./history-section/shared/types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);

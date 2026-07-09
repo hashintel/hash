@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Heading } from "./heading";
+import { Heading } from "../heading";
 
 export const App = () => {
   return (

@@ -1,11 +1,13 @@
-import { AlertModal, TextField } from "@hashintel/design-system";
-import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useState } from "react";
+
+import { AlertModal, TextField } from "@hashintel/design-system";
 
 import { Button } from "../../../../shared/ui/button";
 import { useGoogleAuth } from "./google-auth-context";
 import { GoogleFilePicker } from "./google-file-picker";
+
+import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";
 
 type SelectOrNameGoogleSheetProps = {
   googleAccountId?: string;

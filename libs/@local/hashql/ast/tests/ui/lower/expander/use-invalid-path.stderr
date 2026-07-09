@@ -1,0 +1,6 @@
+error[expander::invalid-use-path]: Invalid use path
+  ╭▸ 
+5 │   { "#literal": 1 },
+  │   ━━━━━━━━━━━━━━━━━ expected a module path
+  │
+  ╰ help: the first argument to `use` must be a path like `core::math` identifying the module to import from

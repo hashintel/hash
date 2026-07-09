@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // Override the root `build -> codegen` dependency for this generated
+    // artifact package. Without this, `ds-helpers#codegen ->
+    // ds-components#codegen -> ds-helpers#build -> ds-helpers#codegen`
+    // forms a cycle, because `ds-components#codegen` depends on `^build`.
+    "build": {
+      "dependsOn": []
+    },
+    "codegen": {
+      // `ds-helpers` owns no source codegen; `ds-components` is the source
+      // package whose Panda config writes `../ds-helpers/styled-system`.
+      // This edge makes `turbo run codegen --filter @hashintel/ds-helpers`
+      // materialize the publishable generated artifact before packing.
+      "dependsOn": ["@hashintel/ds-components#codegen"],
+      // Cache key inputs are the package metadata plus the source package files
+      // and scripts that control generated styled-system output. The generated
+      // output itself remains ignored by git and is restored by Turbo from
+      // `outputs` below.
+      "inputs": [
+        "package.json",
+        "turbo.json",
+        "../ds-components/package.json",
+        "../ds-components/panda.config.ts",
+        "../ds-components/scripts/**",
+        "../ds-components/src/**"
+      ],
+      // `styled-system/**` is the only publishable artifact this package needs
+      // to regenerate before `npm pack`/`npm publish`.
+      "outputs": ["styled-system/**"]
+    }
+  }
+}

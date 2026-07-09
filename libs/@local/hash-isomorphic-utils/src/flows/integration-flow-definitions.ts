@@ -1,11 +1,10 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
-
 import type {
   InputNameForIntegrationFlowAction,
   IntegrationFlowActionDefinitionId,
   OutputNameForIntegrationFlowAction,
 } from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 /**
  * Flow definition for fetching historical flight arrivals for an airport over a date range and persisting them to the graph.

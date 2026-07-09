@@ -1,12 +1,13 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
+import * as Error from "../../error";
+
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import * as Error from "../../error";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const cancelFlow: ResolverFn<
   Promise<boolean>,

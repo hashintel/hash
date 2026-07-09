@@ -17,7 +17,6 @@ export const embedTypeDef = gql`
       The URL of the embed
       """
       url: String!
-
       """
       The providerName of the embed
       """

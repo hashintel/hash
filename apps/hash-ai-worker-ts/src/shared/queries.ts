@@ -3,9 +3,10 @@
  * Queries that need to be sent from outside are in @local/hash-isomorphic-utils/src/flows/queries.ts
  */
 
+import { defineQuery } from "@temporalio/workflow";
+
 import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
 import type { QueryDefinition } from "@temporalio/workflow";
-import { defineQuery } from "@temporalio/workflow";
 
 export type ExternalInputQueryRequest = {
   requestId: string;

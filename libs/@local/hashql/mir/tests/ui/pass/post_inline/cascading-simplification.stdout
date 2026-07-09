@@ -354,18 +354,18 @@ thunk check_both:0() -> (Boolean, Boolean) -> Boolean {
 
 thunk {thunk#7}() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 
 thunk {thunk#8}() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 
 *thunk {thunk#9}() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }

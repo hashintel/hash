@@ -1,4 +1,6 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
+import { useMemo, useState } from "react";
+
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
@@ -9,15 +11,7 @@ import {
   goalFlowDefinitionIds,
   type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
 
-import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../../shared/use-flow-runs-usage";
@@ -25,7 +19,15 @@ import { GroupStatus } from "./flow-run-sidebar/group-status";
 import { Manager } from "./flow-run-sidebar/manager";
 import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
+
+import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import type { FlowMaybeGrouped } from "./shared/types";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
   <Box

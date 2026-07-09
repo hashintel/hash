@@ -1,11 +1,8 @@
 import { useQuery } from "@apollo/client";
-import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { Box, Stack } from "@mui/material";
+import { useMemo, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  Entity,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   compareOntologyTypeVersions,
   componentsFromVersionedUrl,
@@ -16,13 +13,7 @@ import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import { Box, Stack } from "@mui/material";
-import { useMemo, useState } from "react";
 
-import type {
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
 import { queryEntityTypeSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { Button } from "../../../../shared/ui/button";
@@ -30,11 +21,22 @@ import { Link } from "../../../../shared/ui/link";
 import { EntityTypeSelector } from "../../entity-type-selector";
 import { nonAssignableTypes } from "../../hidden-types";
 import { SectionWrapper } from "../../section-wrapper";
-import type { EntityEditorProps } from "../entity-editor";
 import { useEntityEditor } from "./entity-editor-context";
-import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
 import { useGetTypeChangeDetails } from "./types-section/use-get-type-change-details";
+
+import type {
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import type { EntityEditorProps } from "../entity-editor";
+import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
+import type {
+  Entity,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type MinimalTypeData = {
   entityTypeId: VersionedUrl;

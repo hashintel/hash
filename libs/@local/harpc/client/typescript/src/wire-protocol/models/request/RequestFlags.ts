@@ -11,8 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, implDecode, implEncode } from "../../../utils.js";
 import { MutableBuffer } from "../../../binary/index.js";
+import { createProto, implDecode, implEncode } from "../../../utils.js";
 
 import type * as RequestBody from "./RequestBody.js";
 
@@ -29,9 +29,7 @@ export type Flag =
   | "endOfRequest";
 
 export interface RequestFlags
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly flags: HashSet.HashSet<Flag>;

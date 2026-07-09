@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: Tests that unresolved nested type variables are handled by dummy replacement, allowing lowering to continue.
+//@ suite#continue: true
+[
+  "type",
+  "Foo<T: Bar>",
+  //~^ ERROR cannot find type `Bar` in this scope
+  "Number",
+  "_"
+]

@@ -1,9 +1,8 @@
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
-import type { OpenAI } from "openai";
-import { APIError, RateLimitError } from "openai/error";
 import { promptTokensEstimate } from "openai-chat-tokens";
+import { APIError, RateLimitError } from "openai/error";
 
 import { logger } from "../activity-logger.js";
 import { isActivityCancelled } from "../get-flow-context.js";
@@ -16,16 +15,21 @@ import {
   maxRetryCount,
   serverErrorRetryStartingDelay,
 } from "./constants.js";
-import type {
-  LlmAssistantMessage,
-  LlmMessageToolUseContent,
-  LlmUserMessage,
-} from "./llm-message.js";
 import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "./llm-message.js";
 import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
+import {
+  getInputValidationErrors,
+  sanitizeInputBeforeValidation,
+} from "./validation.js";
+
+import type {
+  LlmAssistantMessage,
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./llm-message.js";
 import type {
   LlmRequestMetadata,
   LlmResponse,
@@ -35,10 +39,7 @@ import type {
   OpenAiLlmParams,
   ParsedLlmToolCall,
 } from "./types.js";
-import {
-  getInputValidationErrors,
-  sanitizeInputBeforeValidation,
-} from "./validation.js";
+import type { OpenAI } from "openai";
 
 const mapLlmToolDefinitionToOpenAiToolDefinition = (
   tool: LlmToolDefinition,

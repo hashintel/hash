@@ -2,7 +2,6 @@ import { Effect, Layer, Ref } from "effect";
 import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
-
 import * as RequestId from "./models/request/RequestId.js";
 
 const TypeId: unique symbol = Symbol(

@@ -1,11 +1,11 @@
-import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
+
+import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
+import { IconButton } from "@hashintel/design-system";
 
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
@@ -18,9 +18,11 @@ import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { SearchInput } from "./account-entity-type-list/search-input";
 import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
 import { NavLink } from "./shared/nav-link";
-import type { SortType } from "./shared/sort-actions-dropdown";
 import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
 import { ViewAllLink } from "./shared/view-all-link";
+
+import type { SortType } from "./shared/sort-actions-dropdown";
+import type { FunctionComponent } from "react";
 
 type AccountEntityTypeListProps = {
   webId: string;

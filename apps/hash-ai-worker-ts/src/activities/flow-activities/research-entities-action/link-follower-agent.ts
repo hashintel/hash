@@ -1,25 +1,19 @@
-import type { SourceProvenance, Url } from "@blockprotocol/type-system";
-import { currentTimestamp } from "@blockprotocol/type-system";
-import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
-import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
+import { currentTimestamp } from "@blockprotocol/type-system";
+import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
+
 import { getWebPageActivity } from "../../get-web-page-activity.js";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import {
   getFlowContext,
   getProvidedFileByUrl,
 } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
-import type { Claim } from "../shared/claims.js";
 import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
-import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
@@ -27,6 +21,14 @@ import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.j
 import { areUrlsEqual } from "./shared/are-urls-equal.js";
 import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js";
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
+
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import type { Claim } from "../shared/claims.js";
+import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import type { SourceProvenance, Url } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 type ResourceToExplore = {
   url: Url;

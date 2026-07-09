@@ -3,13 +3,6 @@
  */
 
 import type {
-  ArrayMetadata,
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   AffiliatedWith,
   AffiliatedWithOutgoingLinkAndTarget,
   AffiliatedWithOutgoingLinksByLinkEntityTypeId,
@@ -22,6 +15,12 @@ import type {
   AuthoredByPropertiesWithMetadata,
   CalendarYearDataType,
   CalendarYearDataTypeWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   DateDataType,
   DateDataTypeWithMetadata,
   DescriptionPropertyValue,
@@ -32,12 +31,6 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
-  DOIDataType,
-  DOIDataTypeWithMetadata,
-  DOILinkPropertyValue,
-  DOILinkPropertyValueWithMetadata,
-  DOIPropertyValue,
-  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -72,6 +65,8 @@ import type {
   PersonPropertiesWithMetadata,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -80,7 +75,15 @@ import type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
+import type {
+  ArrayMetadata,
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   AffiliatedWith,
@@ -145,6 +148,8 @@ export type {
   PersonPropertiesWithMetadata,
   PublicationYearPropertyValue,
   PublicationYearPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -153,6 +158,8 @@ export type {
   TitlePropertyValueWithMetadata,
   URIDataType,
   URIDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**
@@ -388,13 +395,6 @@ export type SponsoredByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
-
-/**
- * The status of something.
- */
-export type StatusPropertyValue = TextDataType;
-
-export type StatusPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.

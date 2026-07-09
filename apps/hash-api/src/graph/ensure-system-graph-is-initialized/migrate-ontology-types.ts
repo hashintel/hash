@@ -4,19 +4,20 @@ import { fileURLToPath } from "node:url";
 
 import { extractVersion } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
-import type { Logger } from "@local/hash-backend-utils/logger";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { MigrationsCompletedPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
-import { isProdEnv } from "../../lib/env-config";
-import type { ImpureGraphContext } from "../context-types";
+import { isDevEnv, isTestEnv } from "../../lib/env-config";
 import { systemAccountId } from "../system-account";
+
+import type { ImpureGraphContext } from "../context-types";
 import type {
   MigrationFunction,
   MigrationState,
 } from "./migrate-ontology-types/types";
+import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { MigrationsCompletedPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,7 +137,10 @@ export const migrateOntologyTypes = async (params: {
        * If the migration file is marked with `.dev.migration.ts`, it
        * should only be seeded in non-production environments.
        */
-      if (isProdEnv && migrationFileName.endsWith(".dev.migration.ts")) {
+      if (
+        !(isDevEnv || isTestEnv) &&
+        migrationFileName.endsWith(".dev.migration.ts")
+      ) {
         params.logger.debug(`Skipping dev migration ${migrationFileName}`);
         continue;
       }

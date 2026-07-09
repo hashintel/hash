@@ -51,11 +51,11 @@ pub use self::{
     dict::Dict,
     int::{Int, TryFromIntegerError, TryFromPrimitiveError},
     list::List,
-    num::{Num, Numeric},
+    num::Num,
     opaque::Opaque,
     ptr::Ptr,
     str::Str,
-    r#struct::Struct,
+    r#struct::{Struct, StructBuilder},
     tuple::Tuple,
 };
 use super::error::{RuntimeError, TypeName};
@@ -125,7 +125,30 @@ pub enum Value<'heap, A: Allocator = Global> {
 impl<'heap, A: Allocator> Value<'heap, A> {
     const UNIT: Self = Self::Unit;
 
-    pub(crate) fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
+    /// Returns a displayable representation of this value's runtime type.
+    ///
+    /// Primitives produce their type name (`"Integer"`, `"String"`),
+    /// aggregates include their structure (`"(x: Integer, y: String)"`
+    /// for structs, `"(Integer, String)"` for tuples), and opaques
+    /// include their wrapper name (`"UserId(Integer)"`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::interpret::value::Value;
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    ///
+    /// assert_eq!(Value::<'_, Global>::Unit.type_name().to_string(), "()");
+    /// assert_eq!(
+    ///     Value::<'_, Global>::Integer(42.into())
+    ///         .type_name()
+    ///         .to_string(),
+    ///     "Integer"
+    /// );
+    /// ```
+    pub fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
         ValueTypeName::from(self)
     }
 
@@ -146,18 +169,50 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Indexes into this value using another value as the index.
     ///
-    /// For lists, the index must be an integer. For dicts, any value can be used as a key.
+    /// For lists, the index must be an integer (supports negative indexing).
+    /// For dicts, any value can be used as a key.
     /// Returns [`Value::Unit`] if the index is not found.
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not subscriptable (not a list or dict),
     /// or if the index type is invalid for the collection type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// use hashql_mir::interpret::value::{Dict, Int, List, Value};
+    ///
+    /// // List subscript with integer index
+    /// let mut list: List<'_, Global> = List::new();
+    /// list.push_back(Value::Integer(10.into()));
+    /// let list_val = Value::List(list);
+    ///
+    /// let result = list_val.subscript::<()>(&Value::Integer(0.into())).unwrap();
+    /// assert_eq!(result, &Value::Integer(10.into()));
+    ///
+    /// // Dict subscript with any key type
+    /// let mut dict: Dict<'_, Global> = Dict::new();
+    /// dict.insert(Value::Integer(1.into()), Value::Integer(100.into()));
+    /// let dict_val = Value::Dict(dict);
+    ///
+    /// let result = dict_val.subscript::<()>(&Value::Integer(1.into())).unwrap();
+    /// assert_eq!(result, &Value::Integer(100.into()));
+    ///
+    /// // Missing key returns Unit
+    /// let result = dict_val
+    ///     .subscript::<()>(&Value::Integer(99.into()))
+    ///     .unwrap();
+    /// assert_eq!(result, &Value::Unit);
+    /// ```
     #[inline]
-    pub fn subscript<'this, 'index>(
+    pub fn subscript<'this, 'index, E>(
         &'this self,
         index: &'index Self,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
         match self {
             Self::List(list) if let &Self::Integer(value) = index => {
                 Ok(list.get(value).unwrap_or(&Self::UNIT))
@@ -189,10 +244,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// Returns an error if this value is not subscriptable, if the index type
     /// is invalid, or if a list index is out of bounds.
-    pub fn subscript_mut<'this>(
+    pub fn subscript_mut<'this, E>(
         &'this mut self,
         index: &Self,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -226,17 +281,38 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Projects a field from this value by index.
     ///
-    /// Works on structs and tuples.
+    /// Works on structs, tuples, and opaques (projects through the wrapper).
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::{
+    ///     body::place::FieldIndex,
+    ///     interpret::value::{Tuple, Value},
+    /// };
+    /// # extern crate alloc;
+    /// # use alloc::rc::Rc;
+    ///
+    /// let values: Rc<[Value]> = Rc::from(vec![Value::Integer(10.into()), Value::Integer(20.into())]);
+    /// let tuple = Value::Tuple(Tuple::new(values).unwrap());
+    ///
+    /// let field = tuple.project::<()>(FieldIndex::new(1)).unwrap();
+    /// assert_eq!(field, &Value::Integer(20.into()));
+    ///
+    /// // Out-of-bounds index returns an error
+    /// assert!(tuple.project::<()>(FieldIndex::new(5)).is_err());
+    /// ```
     #[inline]
-    pub fn project<'this>(
+    pub fn project<'this, E>(
         &'this self,
         index: FieldIndex,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
         match self {
+            Self::Opaque(opaque) => opaque.value().project(index),
             Self::Struct(r#struct) => {
                 r#struct
                     .get_by_index(index)
@@ -254,7 +330,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -269,10 +344,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
-    pub fn project_mut<'this>(
+    pub fn project_mut<'this, E>(
         &'this mut self,
         index: FieldIndex,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -293,12 +368,12 @@ impl<'heap, A: Allocator> Value<'heap, A> {
                     base: TypeName::terse(terse_name),
                     field: index,
                 }),
+            Self::Opaque(opaque) => opaque.value_mut().project_mut(index),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -308,27 +383,62 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 
     /// Projects a field from this value by name.
     ///
-    /// Only works on structs.
+    /// Only works on structs and opaques (projects through the wrapper).
     ///
     /// # Errors
     ///
     /// Returns an error if this value is not a struct or the field name is not found.
-    pub fn project_by_name<'this>(
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # extern crate alloc;
+    /// # use alloc::alloc::Global;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_mir::intern::Interner;
+    /// use hashql_mir::interpret::value::{StructBuilder, Value};
+    ///
+    /// let heap = Heap::new();
+    /// let interner = Interner::new(&heap);
+    ///
+    /// let mut builder = StructBuilder::<'_, Global, 1>::new();
+    /// let name = heap.intern_symbol("x");
+    /// builder.push(name, Value::Integer(42.into()));
+    /// let s = Value::Struct(builder.finish(&interner.symbols, Global));
+    ///
+    /// let field = s.project_by_name::<()>(name).unwrap();
+    /// assert_eq!(field, &Value::Integer(42.into()));
+    ///
+    /// // Unknown field returns an error
+    /// let unknown = heap.intern_symbol("z");
+    /// assert!(s.project_by_name::<()>(unknown).is_err());
+    /// ```
+    pub fn project_by_name<'this, E>(
         &'this self,
         index: Symbol<'heap>,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
+        match self {
+            Value::Opaque(opaque) => opaque.value().project_by_name(index),
+            Value::Struct(r#struct) => {
+                r#struct
+                    .get_by_name(index)
+                    .ok_or_else(|| RuntimeError::UnknownFieldByName {
+                        base: self.type_name().into(),
+                        field: index,
+                    })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        r#struct
-            .get_by_name(index)
-            .ok_or_else(|| RuntimeError::UnknownFieldByName {
-                base: self.type_name().into(),
-                field: index,
-            })
+            }),
+        }
     }
 
     /// Mutably projects a field from this value by name.
@@ -338,28 +448,37 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not a struct or the field name is not found.
-    pub fn project_by_name_mut<'this>(
+    pub fn project_by_name_mut<'this, E>(
         &'this mut self,
         index: Symbol<'heap>,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
         let terse_name = self.type_name_terse();
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+        match self {
+            Value::Opaque(opaque) => opaque.value_mut().project_by_name_mut(index),
+            Value::Struct(r#struct) => {
+                if let Some(value) = r#struct.get_by_name_mut(index) {
+                    return Ok(value);
+                }
+
+                Err(RuntimeError::UnknownFieldByName {
+                    base: TypeName::terse(terse_name),
+                    field: index,
+                })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        if let Some(value) = r#struct.get_by_name_mut(index) {
-            return Ok(value);
+            }),
         }
-
-        Err(RuntimeError::UnknownFieldByName {
-            base: TypeName::terse(terse_name),
-            field: index,
-        })
     }
 }
 
@@ -413,16 +532,6 @@ impl<'heap, A: Allocator> From<&Constant<'heap>> for Value<'heap, A> {
     }
 }
 
-impl<A: Allocator> From<Numeric> for Value<'_, A> {
-    #[inline]
-    fn from(value: Numeric) -> Self {
-        match value {
-            Numeric::Int(int) => Self::Integer(int),
-            Numeric::Num(num) => Self::Number(num),
-        }
-    }
-}
-
 impl<A: Allocator> PartialEq for Value<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -464,8 +573,14 @@ impl<A: Allocator> Ord for Value<'_, A> {
             (Value::Integer(this), Value::Integer(other)) => this.cmp(other),
             (Value::Number(this), Value::Number(other)) => this.cmp(other),
 
-            (Value::Integer(this), Value::Number(other)) => other.cmp_int(this).reverse(),
-            (Value::Number(this), Value::Integer(other)) => this.cmp_int(other),
+            // Bool is a separate type from Int/Number in the subtype lattice, so
+            // cross-type numeric comparison only applies to integers. Booleans fall
+            // through to discriminant ordering (which is fine: no well-typed program
+            // can observe the ordering between Bool and Number).
+            (Value::Integer(this), Value::Number(other)) if !this.is_bool() => {
+                other.cmp_int(this).reverse()
+            }
+            (Value::Number(this), Value::Integer(other)) if !other.is_bool() => this.cmp_int(other),
 
             (Value::String(this), Value::String(other)) => this.cmp(other),
             (Value::Pointer(this), Value::Pointer(other)) => this.cmp(other),
@@ -537,5 +652,45 @@ impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
             Value::List(_) => Self(ValueTypeNameInner::Const("List")),
             Value::Dict(_) => Self(ValueTypeNameInner::Const("Dict")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::cmp::Ordering;
+
+    use super::{Int, Num, Value};
+
+    #[test]
+    fn value_eq_bool_num_int_are_distinct() {
+        let bool_val: Value = Value::Integer(Int::from(true));
+        let num_val: Value = Value::Number(Num::from(1.0));
+        let int_val: Value = Value::Integer(Int::from(1_i32));
+
+        // Number and Integer share a numeric domain.
+        assert_eq!(num_val, int_val);
+
+        // Boolean is a distinct type from both.
+        assert_ne!(bool_val, num_val);
+        assert_ne!(bool_val, int_val);
+    }
+
+    #[test]
+    fn value_ord_bool_num_int_consistent() {
+        let bool_val: Value = Value::Integer(Int::from(true));
+        let num_val: Value = Value::Number(Num::from(1.0));
+        let int_val: Value = Value::Integer(Int::from(1_i32));
+
+        // Number(1.0) == Integer(1) in ordering.
+        assert_eq!(num_val.cmp(&int_val), Ordering::Equal);
+
+        // Bool sorts before Number (discriminant: Integer < Number).
+        assert_eq!(bool_val.cmp(&num_val), Ordering::Less);
+
+        // Bool sorts before Int (size: 1 < 128).
+        assert_eq!(bool_val.cmp(&int_val), Ordering::Less);
+
+        // Transitivity: bool < num, num == int, therefore bool < int.
+        assert!(bool_val < int_val);
     }
 }

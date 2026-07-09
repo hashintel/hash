@@ -1,0 +1,8 @@
+error[expander::duplicate-fn-parameter]: Duplicate function parameter
+  ╭▸ 
+6 │   { "#struct": { "a": "Integer", "a": "Integer" } },
+  │                  ┬─────────────  ━━━━━━━━━━━━━━ duplicate parameter `a`
+  │                  │
+  │                  `a` was first declared here
+  │
+  ╰ help: remove the duplicate parameter or use a different name

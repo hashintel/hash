@@ -1,6 +1,6 @@
 import { HeartIcon } from "lucide-react";
 
-import * as RatingGroup from "./rating-group";
+import * as RatingGroup from "../rating-group";
 
 export const App = () => {
   return (

@@ -1,5 +1,11 @@
 # @blockprotocol/type-system
 
+## 0.2.2
+
+### Patch Changes
+
+- [#8818](https://github.com/hashintel/hash/pull/8818) [`0e52504`](https://github.com/hashintel/hash/commit/0e52504315a909befc9fe2c748edd765f183e15a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - update uuid dependency
+
 ## 0.2.1
 
 ### Patch Changes

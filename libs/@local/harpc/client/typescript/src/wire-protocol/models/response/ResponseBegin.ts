@@ -11,9 +11,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../../../binary/index.js";
 import * as ResponseKind from "../../../types/ResponseKind.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-import { MutableBuffer } from "../../../binary/index.js";
 import * as Payload from "../Payload.js";
 
 const TypeId: unique symbol = Symbol(
@@ -23,9 +23,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface ResponseBegin
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly kind: ResponseKind.ResponseKind;

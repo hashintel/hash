@@ -3,9 +3,10 @@ import {
   getGoogleAccountById,
   getTokensForGoogleAccount,
 } from "@local/hash-backend-utils/google";
-import type { Request, Response } from "express";
 
 import { enabledIntegrations } from "../../enabled-integrations";
+
+import type { Request, Response } from "express";
 
 /**
  * Shared function to retrieve a Google access token for an Express request,

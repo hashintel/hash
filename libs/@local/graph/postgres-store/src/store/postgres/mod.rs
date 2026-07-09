@@ -51,7 +51,7 @@ use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
-use tokio_postgres::{GenericClient as _, error::SqlState};
+use tokio_postgres::{Client, GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Valid,
@@ -110,6 +110,15 @@ pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: Arc<PostgresStoreSettings>,
+}
+
+impl<C> AsRef<Client> for PostgresStore<C>
+where
+    C: AsClient<Client = Client>,
+{
+    fn as_ref(&self) -> &Client {
+        self.client.as_client()
+    }
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
@@ -2319,8 +2328,12 @@ where
                         entity_temporal_metadata.draft_id,
                         created_by.id AS created_by_id,
                         created_by.principal_type AS created_by_type,
-                        array_agg(entity_types.schema ->> '$id') AS entity_types
+                        array_agg(entity_types.schema ->> '$id') AS entity_types,
+                        entity_ids.read_only
                     FROM entity_temporal_metadata
+                    INNER JOIN entity_ids
+                        ON entity_temporal_metadata.web_id = entity_ids.web_id
+                           AND entity_temporal_metadata.entity_uuid = entity_ids.entity_uuid
                     INNER JOIN entity_editions
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_editions.entity_edition_id
@@ -2339,7 +2352,8 @@ where
                         entity_temporal_metadata.entity_uuid,
                         entity_temporal_metadata.draft_id,
                         created_by.id,
-                        created_by.principal_type;
+                        created_by.principal_type,
+                        entity_ids.read_only;
                  ",
                 [&entity_edition_ids],
             )
@@ -2380,6 +2394,7 @@ where
                             ),
                         },
                     ),
+                    read_only: row.get(6),
                 }
             })
             .try_collect()

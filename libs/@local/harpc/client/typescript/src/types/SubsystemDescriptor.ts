@@ -12,7 +12,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
-
 import * as SubsystemId from "./SubsystemId.js";
 import * as Version from "./Version.js";
 
@@ -23,9 +22,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface SubsystemDescriptor
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly id: SubsystemId.SubsystemId;

@@ -1,5 +1,3 @@
-import { TextField } from "@hashintel/design-system";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import {
   Box,
   Checkbox,
@@ -16,13 +14,17 @@ import {
   type Theme,
   Typography,
 } from "@mui/material";
-import type { CSSProperties } from "react";
 import { memo, useMemo, useState } from "react";
 import { FixedSizeList } from "react-window";
 
+import { TextField } from "@hashintel/design-system";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
+
 import { MenuItem } from "../../../shared/ui";
+
 import type { GridRow } from "../grid";
 import type { ColumnFilter } from "./filtering";
+import type { CSSProperties } from "react";
 
 const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
   background: "transparent",

@@ -1,4 +1,5 @@
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import { generateKeyBetween } from "fractional-indexing";
+
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
   type CreateEntityParameters,
@@ -15,25 +16,11 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   includesPageEntityTypeId,
-  pageEntityTypeFilter,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Canvas,
-  FractionalIndexPropertyValueWithMetadata,
-  HasParent,
-  HasSpatiallyPositionedContent,
-} from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
-import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { generateKeyBetween } from "fractional-indexing";
 
 import * as GraphQlError from "../../../graphql/error";
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import {
   createEntity,
   getEntityOutgoingLinks,
@@ -44,10 +31,24 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
 import { getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Block } from "./block";
 import type { Comment } from "./comment";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type {
+  Canvas,
+  FractionalIndexPropertyValueWithMetadata,
+  HasParent,
+  HasSpatiallyPositionedContent,
+} from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type Page = {
   title: string;
@@ -276,7 +277,14 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const { entities: pageEntities } = await queryEntities(ctx, authentication, {
     filter: {
       all: [
-        pageEntityTypeFilter,
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.page.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [{ path: ["webId"] }, { parameter: webId }],
         },

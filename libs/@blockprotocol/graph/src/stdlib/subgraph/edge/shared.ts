@@ -1,8 +1,3 @@
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
 import type {
@@ -12,6 +7,11 @@ import type {
   OutwardEdge,
   Subgraph,
 } from "../../../types/subgraph.js";
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * This is a helper function to extract ontology edges given an `outwardEdgePredicate` function.

@@ -1,18 +1,3 @@
-import type {
-  Entity,
-  EntityId,
-  TemporalBound,
-  TemporalInterval,
-} from "@blockprotocol/type-system";
-
-import type {
-  LinkEntityAndLeftEntity,
-  LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
-import type {
-  KnowledgeGraphRootedEdges,
-  Subgraph,
-} from "../../../types/subgraph.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
@@ -27,6 +12,21 @@ import {
 } from "../../interval.js";
 import { getEntityRevisionsByEntityId } from "../element/entity.js";
 import { getLatestInstantIntervalForSubgraph } from "../temporal-axes.js";
+
+import type {
+  LinkEntityAndLeftEntity,
+  LinkEntityAndRightEntity,
+} from "../../../types/entity.js";
+import type {
+  KnowledgeGraphRootedEdges,
+  Subgraph,
+} from "../../../types/subgraph.js";
+import type {
+  Entity,
+  EntityId,
+  TemporalBound,
+  TemporalInterval,
+} from "@blockprotocol/type-system";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
@@ -298,8 +298,8 @@ export const getRightEntityForLinkEntity = (
  *   of time in the {@link Subgraph}
  */
 export const getOutgoingLinkAndTargetEntities = <
-  LinkAndRightEntities extends
-    LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
+  LinkAndRightEntities extends LinkEntityAndRightEntity[] =
+    LinkEntityAndRightEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,
@@ -351,8 +351,8 @@ export const getOutgoingLinkAndTargetEntities = <
  *   of time in the {@link Subgraph}
  */
 export const getIncomingLinkAndSourceEntities = <
-  LinkAndLeftEntities extends
-    LinkEntityAndLeftEntity[] = LinkEntityAndLeftEntity[],
+  LinkAndLeftEntities extends LinkEntityAndLeftEntity[] =
+    LinkEntityAndLeftEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,

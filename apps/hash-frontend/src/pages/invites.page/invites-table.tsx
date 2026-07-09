@@ -1,5 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   Skeleton,
   styled,
@@ -13,14 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import type { FunctionComponent } from "react";
 
-import type {
-  AcceptOrgInvitationMutation,
-  AcceptOrgInvitationMutationVariables,
-  DeclineOrgInvitationMutation,
-  DeclineOrgInvitationMutationVariables,
-} from "../../graphql/api-types.gen";
 import {
   acceptOrgInvitationMutation,
   declineOrgInvitationMutation,
@@ -28,6 +20,15 @@ import {
 import { useInvites } from "../../shared/invites-context";
 import { Button, Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
+
+import type {
+  AcceptOrgInvitationMutation,
+  AcceptOrgInvitationMutationVariables,
+  DeclineOrgInvitationMutation,
+  DeclineOrgInvitationMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { FunctionComponent } from "react";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",

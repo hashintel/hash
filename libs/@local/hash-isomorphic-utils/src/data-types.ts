@@ -1,3 +1,12 @@
+import Big from "big.js";
+
+import {
+  componentsFromVersionedUrl,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
+
+import { add, divide, multiply, subtract } from "./numbers.js";
+
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   BaseUrl,
@@ -14,14 +23,7 @@ import type {
   ValueLabel,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  componentsFromVersionedUrl,
-  mustHaveAtLeastOne,
-} from "@blockprotocol/type-system";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
-import Big from "big.js";
-
-import { add, divide, multiply, subtract } from "./numbers.js";
 
 type MergedNumberSchema = {
   type: "number";

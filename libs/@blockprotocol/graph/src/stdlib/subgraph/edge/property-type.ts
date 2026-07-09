@@ -1,14 +1,14 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
-import type {
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../types/subgraph.js";
 import {
   isConstrainsPropertiesOnEdge,
   isConstrainsValuesOnEdge,
 } from "../../../types/subgraph.js";
 import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
+
+import type {
+  OntologyTypeVertexId,
+  Subgraph,
+} from "../../../types/subgraph.js";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `PropertyType` schema by searching for

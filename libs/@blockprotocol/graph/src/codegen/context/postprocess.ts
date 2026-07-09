@@ -1,10 +1,3 @@
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-
 import type { ProcessedCodegenParameters } from "../parameters.js";
 import type {
   CompiledTsType,
@@ -14,6 +7,12 @@ import type {
 } from "../shared.js";
 import type { CompileContext } from "./compile.js";
 import type { TypeDependencyMap } from "./shared.js";
+import type {
+  DataType,
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type IdentifierSource = { definingPath: string } & (
   | {

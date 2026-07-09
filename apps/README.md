@@ -24,14 +24,15 @@ The ["Getting Started"](/README.md#--getting-started) section of the repository'
 
 The application depends on a suite of constituent services, which are briefly described below. Please note that these are not designed or guaranteed to be useful when run independently.
 
-| Subdirectory                                         | Description                                                                                                                                                                  |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`hash-ai-worker-ts`](hash-ai-worker-ts)             | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows                                                                                |
-| [`hash-api`](hash-api)                               | The main entrypoint for the Node.js server that serves the core of the backend API of HASH.                                                                                  |
-| [`hash-external-services`](hash-external-services)   | Defines the running configurations of external (not internally-developed) services that HASH depends on, such as Postgres, Ory Kratos, and Temporal. _(pending refactoring)_ |
-| [`hash-frontend`](hash-frontend)                     | The main entrypoint for the Next.js frontend (graphical user interface) of the HASH workspace application.                                                                   |
-| [`hash-graph`](hash-graph)                           | The query layer over the main datastore of HASH, its strongly-typed graph.                                                                                                   |
-| [`hash-integration-worker`](hash-integration-worker) | The integration worker manages the two-way synchronization of external data with HASH.                                                                                       |
+| Subdirectory                                         | Description                                                                                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [`hash-ai-worker-ts`](hash-ai-worker-ts)             | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows              |
+| [`hash-api`](hash-api)                               | The main entrypoint for the Node.js server that serves the core of the backend API of HASH.                |
+| [`hash-frontend`](hash-frontend)                     | The main entrypoint for the Next.js frontend (graphical user interface) of the HASH workspace application. |
+| [`hash-graph`](hash-graph)                           | The query layer over the main datastore of HASH, its strongly-typed graph.                                 |
+| [`hash-integration-worker`](hash-integration-worker) | The integration worker manages the two-way synchronization of external data with HASH.                     |
+
+External-service compose configs live under [`infra/compose`](../infra/compose).
 
 ### Plugins
 

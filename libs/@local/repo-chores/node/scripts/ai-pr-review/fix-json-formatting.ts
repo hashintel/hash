@@ -1,5 +1,6 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import chalk from "chalk";
+
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
 /**
  * Preprocesses the AI review response to fix a common formatting issue (arrays being returned as strings)

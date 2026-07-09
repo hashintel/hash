@@ -1,3 +1,5 @@
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+
 import type {
   ActionStep,
   ActionStepWithParallelInput,
@@ -6,7 +8,6 @@ import type {
   FlowStep,
   ParallelGroupStepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 
 /**
  * @todo: consider a more ergonomic way from mapping a step to its
