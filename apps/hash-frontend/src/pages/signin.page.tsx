@@ -571,6 +571,9 @@ const SigninPage: NextPageWithLayout = () => {
                       <Button
                         type="submit"
                         variant="tertiary_quiet"
+                        // The login flow is fetched asynchronously – submitting
+                        // before it has loaded cannot succeed.
+                        disabled={!flow}
                         sx={{
                           /** @todo: replace this with a blue from the design system */
                           color: "#2482FF",

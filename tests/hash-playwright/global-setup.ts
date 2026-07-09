@@ -12,9 +12,22 @@ const signInAndSaveState = async (
   const context = await browser.newContext({ baseURL });
   const page = await context.newPage();
 
+  /**
+   * The signin page fetches a Kratos login flow asynchronously after mount
+   * (`createBrowserLoginFlow` hits `/self-service/login/browser`). Submitting
+   * before the flow has loaded throws "No sign in flow available" and no
+   * navigation ever happens. Register the wait before navigating so the
+   * response can't be missed, and await it before clicking Submit.
+   */
+  const loginFlowResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/self-service/login") && response.ok(),
+  );
+
   await page.goto("/signin");
   await page.fill('[placeholder="Enter your email address"]', email);
   await page.fill('[type="password"]', "password");
+  await loginFlowResponse;
   await page.click("text=Submit");
   await page.waitForURL("/", { timeout: 30_000 });
 
