@@ -1,6 +1,5 @@
--- Backfill rows missing a value and drop the redundant keys from the provenance JSONB in one
--- pass. The SET expressions read the pre-update row, so the backfill sees the keys before they
--- are removed.
+-- Backfill rows missing a value from the provenance JSONB, make the columns mandatory, and
+-- index the creation timestamps.
 UPDATE entity_ids
     SET created_by_id = COALESCE(created_by_id, (provenance ->> 'createdById')::uuid),
         created_at_transaction_time = COALESCE(
@@ -8,13 +7,14 @@ UPDATE entity_ids
         ),
         created_at_decision_time = COALESCE(
             created_at_decision_time, (provenance ->> 'createdAtDecisionTime')::timestamptz
-        ),
-        provenance = provenance
-            - 'createdById' - 'createdAtTransactionTime' - 'createdAtDecisionTime';
+        )
+    WHERE created_by_id IS NULL
+       OR created_at_transaction_time IS NULL
+       OR created_at_decision_time IS NULL;
 
 UPDATE entity_editions
-    SET created_by_id = COALESCE(created_by_id, (provenance ->> 'createdById')::uuid),
-        provenance = provenance - 'createdById';
+    SET created_by_id = (provenance ->> 'createdById')::uuid
+    WHERE created_by_id IS NULL;
 
 ALTER TABLE entity_ids
     ALTER COLUMN created_by_id SET NOT NULL,
