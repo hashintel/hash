@@ -3342,18 +3342,10 @@ where
         &mut self,
     ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, InTransaction>, Report<StoreError>>
     {
-        Ok(PostgresStore::new(
-            self.client
-                .as_mut_client()
-                .build_transaction()
-                .isolation_level(tokio_postgres::IsolationLevel::RepeatableRead)
-                .read_only(true)
-                .start()
-                .await
-                .change_context(StoreError)?,
-            self.temporal_client.clone(),
-            Arc::clone(&self.settings),
-        ))
+        self.transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only()
+            .await
     }
 }
 

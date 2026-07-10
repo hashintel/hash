@@ -707,16 +707,20 @@ where
             permissions: None,
         })
     }
+}
 
+/// Read implementations which run inside the snapshot-consistent read transaction begun by
+/// [`BeginReadOnlyTransaction::begin_read_only_transaction`].
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entities_impl(
         &self,
         actor_id: ActorEntityUuid,
         mut params: QueryEntitiesParams<'_>,
-    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>>
-    where
-        Self: BeginReadOnlyTransaction,
-    {
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -788,10 +792,7 @@ where
         &self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
-    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>
-    where
-        Self: BeginReadOnlyTransaction,
-    {
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
