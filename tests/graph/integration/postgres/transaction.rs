@@ -62,11 +62,13 @@ async fn transaction_builder_defaults_to_session_characteristics() {
         .expect("should be able to roll back the transaction");
 }
 
-/// Beginning a transaction on a store which is already backed by a transaction creates a
-/// savepoint. Savepoints inherit the characteristics of the enclosing transaction, so the
-/// options are ignored instead of failing.
+/// Beginning a transaction on a store which is already inside a transaction creates a
+/// savepoint. A savepoint has no configurable characteristics of its own: it runs within the
+/// enclosing transaction and inherits its characteristics. Requesting an isolation level or
+/// read-only access on a nested transaction is a compile error, as those options only exist on
+/// stores in the `NoTransaction` state.
 #[tokio::test]
-async fn transaction_options_are_ignored_for_savepoints() {
+async fn nested_transactions_are_savepoints() {
     let mut database = DatabaseTestWrapper::new().await;
 
     let mut outer = database
@@ -76,9 +78,7 @@ async fn transaction_options_are_ignored_for_savepoints() {
         .expect("should be able to begin a transaction");
 
     let inner = outer
-        .transaction()
-        .isolation_level(IsolationLevel::RepeatableRead)
-        .read_only()
+        .begin_transaction()
         .await
         .expect("should be able to begin a nested transaction");
 

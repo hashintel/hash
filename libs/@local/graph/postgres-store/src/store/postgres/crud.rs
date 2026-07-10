@@ -12,7 +12,7 @@ use tokio_postgres::{GenericClient as _, Row};
 use tracing::Instrument as _;
 
 use crate::store::{
-    AsClient, PostgresStore,
+    AsClient, PostgresStore, TransactionState,
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
 };
 
@@ -61,9 +61,10 @@ where
     }
 }
 
-impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
+impl<Cl, R, S, St> ReadPaginated<R, S> for PostgresStore<Cl, St>
 where
     Cl: AsClient,
+    St: TransactionState,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
     for<'s> S: PostgresSorting<'s, R> + Sync,
     S::Cursor: Send,
@@ -134,9 +135,10 @@ where
     }
 }
 
-impl<Cl, R> Read<R> for PostgresStore<Cl>
+impl<Cl, R, St> Read<R> for PostgresStore<Cl, St>
 where
     Cl: AsClient,
+    St: TransactionState,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;

@@ -13,7 +13,7 @@ use crate::{
         policy::PolicyRowBatch,
         principal::PrincipalRowBatch,
     },
-    store::{AsClient, PostgresStore},
+    store::{AsClient, InTransaction, PostgresStore},
 };
 
 pub enum SnapshotRecordBatch {
@@ -31,7 +31,9 @@ impl<C> WriteBatch<C> for SnapshotRecordBatch
 where
     C: AsClient,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, InTransaction>,
+    ) -> Result<(), Report<InsertionError>> {
         PrincipalRowBatch::begin(postgres_client).await?;
         OntologyTypeMetadataRowBatch::begin(postgres_client).await?;
         DataTypeRowBatch::begin(postgres_client).await?;
@@ -45,7 +47,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> Result<(), Report<InsertionError>> {
         match self {
             Self::Principals(principals) => principals.write(postgres_client).await,
@@ -60,7 +62,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
         ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         PrincipalRowBatch::commit(postgres_client, ignore_validation_errors).await?;

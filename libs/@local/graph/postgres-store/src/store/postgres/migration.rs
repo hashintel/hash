@@ -2,7 +2,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_store::migration::{Migration, MigrationError, MigrationState, StoreMigration};
 use tokio_postgres::Client;
 
-use super::{AsClient, PostgresStore};
+use super::{AsClient, PostgresStore, TransactionState};
 
 mod embedded {
     use refinery::embed_migrations;
@@ -25,9 +25,10 @@ fn create_postgres_migration(value: &refinery::Migration) -> Migration {
     Migration::new(name, state, value.checksum())
 }
 
-impl<C> StoreMigration for PostgresStore<C>
+impl<C, S> StoreMigration for PostgresStore<C, S>
 where
     C: AsClient<Client = Client>,
+    S: TransactionState,
 {
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         Ok(embedded::migrations::runner()

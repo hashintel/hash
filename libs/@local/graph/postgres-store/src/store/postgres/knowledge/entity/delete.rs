@@ -29,7 +29,7 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient as _, PostgresStore,
+    AsClient as _, InTransaction, PostgresStore,
     postgres::query::{Distinctness, SelectCompiler},
 };
 
@@ -81,7 +81,7 @@ enum DeletionTarget<'a> {
 /// Without a transaction these locks would be released immediately, defeating the purpose.
 ///
 /// [`patch_entity`]: hash_graph_store::entity::EntityStore::patch_entity
-impl PostgresStore<Transaction<'_>> {
+impl PostgresStore<Transaction<'_>, InTransaction> {
     /// Finds entities matching `filter` and partitions them into full vs draft-only deletions.
     ///
     /// A published match (or a match that subsumes all drafts of a draft-only entity) produces

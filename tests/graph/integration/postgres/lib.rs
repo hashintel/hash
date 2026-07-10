@@ -32,8 +32,8 @@ use hash_graph_authorization::policies::{
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings,
+        Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, InTransaction,
+        PostgresStore, PostgresStorePool, PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
@@ -100,7 +100,7 @@ pub struct DatabaseTestWrapper {
 }
 
 pub struct DatabaseApi<'pool> {
-    store: PostgresStore<Transaction<'pool>>,
+    store: PostgresStore<Transaction<'pool>, InTransaction>,
     account_id: ActorEntityUuid,
 }
 

@@ -31,13 +31,13 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient as _, PostgresStore,
+        AsClient as _, InTransaction, PostgresStore,
         crud::QueryRecordDecode,
         query::{Distinctness, PostgresSorting, SelectCompiler, SelectCompilerError},
     },
 };
 
-impl PostgresStore<Transaction<'_>> {
+impl PostgresStore<Transaction<'_>, InTransaction> {
     /// Deletes ontology metadata for the specified ontology type UUIDs.
     ///
     /// This function removes ontology ownership metadata, temporal metadata,

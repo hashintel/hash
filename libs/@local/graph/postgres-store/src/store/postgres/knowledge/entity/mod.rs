@@ -18,9 +18,7 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
-use hash_graph_migrations::{
-    Context as _, IsolationLevel, Transaction as _, TransactionBuilder as _,
-};
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
@@ -101,7 +99,7 @@ use crate::store::{
     AsClient, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
-        TraversalContext,
+        BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
             read::EntityEdgeTraversalData,
@@ -183,9 +181,10 @@ impl fmt::Display for JoinError {
 
 impl core::error::Error for JoinError {}
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     /// Resolves `is-of-type` edges from entities to their entity types.
     ///
@@ -714,7 +713,10 @@ where
         &self,
         actor_id: ActorEntityUuid,
         mut params: QueryEntitiesParams<'_>,
-    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>>
+    where
+        Self: BeginReadOnlyTransaction,
+    {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -786,7 +788,10 @@ where
         &self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
-    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>
+    where
+        Self: BeginReadOnlyTransaction,
+    {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -995,9 +1000,11 @@ where
     }
 }
 
-impl<C> EntityStore for PostgresStore<C>
+impl<C, S> EntityStore for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
+    Self: BeginReadOnlyTransaction,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
@@ -1023,7 +1030,10 @@ where
         //       multi-type entity types. We need a way to speed this up.
         let mut validation_params = Vec::with_capacity(params.len());
 
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(InsertionError)?;
 
         let actor_id = transaction
             .determine_actor(actor_uuid)
@@ -1628,9 +1638,7 @@ where
         // states of the store. Running the whole read in a single `REPEATABLE READ, READ ONLY`
         // transaction gives all statements one shared snapshot.
         let transaction = self
-            .transaction()
-            .isolation_level(IsolationLevel::RepeatableRead)
-            .read_only()
+            .begin_read_only_transaction()
             .await
             .change_context(QueryError)?;
 
@@ -1752,9 +1760,7 @@ where
         // its endpoint. Running the whole read in a single `REPEATABLE READ, READ ONLY`
         // transaction gives all statements one shared snapshot.
         let transaction = self
-            .transaction()
-            .isolation_level(IsolationLevel::RepeatableRead)
-            .read_only()
+            .begin_read_only_transaction()
             .await
             .change_context(QueryError)?;
 
@@ -1926,7 +1932,7 @@ where
             .decision_time
             .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         let locked_row = transaction
             .lock_entity_edition(params.entity_id, transaction_time, decision_time)
@@ -2435,7 +2441,7 @@ where
         // TODO: Authorization — check delete permission via PolicyComponents
 
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(DeletionError::Store)?;
         let summary = transaction
@@ -2598,7 +2604,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity cache");
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         // We remove the data from the reference tables first
         transaction
@@ -3045,7 +3051,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     )
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,

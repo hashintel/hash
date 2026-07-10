@@ -24,7 +24,7 @@ use type_system::ontology::{
 
 use super::PostgresOntologyOwnership;
 use crate::store::postgres::{
-    AsClient, PostgresStore,
+    AsClient, PostgresStore, TransactionState,
     query::{
         Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile as _,
         table::DatabaseColumn as _,
@@ -59,7 +59,7 @@ pub struct OntologyEdgeTraversal<'edges, L, R> {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient> PostgresStore<C> {
+impl<C: AsClient, S: TransactionState> PostgresStore<C, S> {
     #[tracing::instrument(level = "info", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
