@@ -77,8 +77,8 @@ async fn query_count(client: impl AsRef<Client>) -> Result<i64, SampleError> {
     Ok(count)
 }
 
-struct RawEmbedding(Vec<u8>);
-impl<'v> FromSql<'v> for RawEmbedding {
+struct RawEmbedding<'v>(&'v [u8]);
+impl<'v> FromSql<'v> for RawEmbedding<'v> {
     #[expect(
         clippy::big_endian_bytes,
         clippy::host_endian_bytes,
@@ -99,17 +99,7 @@ impl<'v> FromSql<'v> for RawEmbedding {
             return Err("the dimensions exceed the available data".into());
         }
 
-        // f32 is in big-endian, but we consume it in native endian. Therefore we must first detect
-        // our native endianess.
-        let mut floats = rest[..(size_of::<f32>() * dim)].to_vec();
-        let (floats_mut, tail) = floats.as_chunks_mut::<4>();
-        debug_assert!(tail.is_empty());
-
-        for float in floats_mut {
-            *float = f32::from_be_bytes(*float).to_ne_bytes();
-        }
-
-        Ok(Self(floats))
+        Ok(Self(&rest[..(size_of::<f32>() * dim)]))
     }
 
     fn accepts(ty: &Type) -> bool {
@@ -117,22 +107,24 @@ impl<'v> FromSql<'v> for RawEmbedding {
     }
 }
 
-async fn query_embeddings<W1, W2>(
+async fn query_embeddings<W1, W2, W3>(
     client: impl AsRef<Client>,
     seed: u64,
     total_rows: i64,
     options: SampleOptions,
     embeddings_output: W1,
     metadata_output: W2,
+    reverse_output: W3,
 ) -> Result<(), SampleError>
 where
     W1: AsyncWrite,
     W2: AsyncWrite,
+    W3: AsyncWrite,
 {
     let client = client.as_ref();
     let pct = f64::min(
         100.0,
-        (options.size as f64) / f64::max(total_rows as f64, 1.0),
+        100.0 * (options.size as f64) / f64::max(total_rows as f64, 1.0),
     );
 
     let stream = client
@@ -158,15 +150,34 @@ where
         )
         .await?;
 
-    let metadata_writer = core::pin::pin!(metadata_output);
-    let embeddings_writer = core::pin::pin!(embeddings_output);
+    let mut metadata_writer = core::pin::pin!(metadata_output);
+    let mut embeddings_writer = core::pin::pin!(embeddings_output);
+
+    let mut lookup = Vec::<([u8; 32], u64)>::with_capacity(options.size);
 
     let sink = sink::unfold(
-        (metadata_writer, embeddings_writer),
-        async move |(mut metadata_writer, mut embeddings_writer), row: Row| {
+        (
+            0_u64,
+            &mut lookup,
+            vec![0_u8; options.dim.get() as usize],
+            &mut metadata_writer,
+            &mut embeddings_writer,
+        ),
+        async |(index, lookup, mut embedding, metadata_writer, embeddings_writer), row: Row| {
             let web_id: WebId = row.get(0);
             let entity_uuid: EntityUuid = row.get(1);
-            let embedding: RawEmbedding = row.get(2);
+            let raw_embedding_bytes: RawEmbedding<'_> = row.get(2);
+
+            embedding.copy_from_slice(raw_embedding_bytes.0);
+
+            // Copy over the embedding into the buffer, then reverse the bytes to be native endian
+            // as they're in big endian right now f32 is in big-endian, but we consume
+            // it in native endian. Therefore we must first detect our native endianess.
+            let (floats_mut, tail) = embedding.as_chunks_mut::<4>();
+            debug_assert!(tail.is_empty());
+            for float in floats_mut {
+                *float = f32::from_be_bytes(*float).to_ne_bytes();
+            }
 
             let mut buffer = [0_u8; 32];
             buffer[..16].copy_from_slice(Uuid::from(web_id).as_bytes());
@@ -174,22 +185,40 @@ where
 
             let (metadata_result, embeddings_result) = join(
                 metadata_writer.write_all(&buffer),
-                embeddings_writer.write_all(&embedding.0),
+                embeddings_writer.write_all(&embedding),
             )
             .await;
 
             metadata_result?;
             embeddings_result?;
 
-            Ok::<_, SampleError>((metadata_writer, embeddings_writer))
+            lookup.push((buffer, index));
+
+            Ok::<_, SampleError>((
+                index + 1,
+                lookup,
+                embedding,
+                metadata_writer,
+                embeddings_writer,
+            ))
         },
     );
 
-    let mut stream = pin!(stream.map_err(SampleError::from));
-    let mut sink = pin!(sink);
+    {
+        let mut stream = pin!(stream.map_err(SampleError::from));
+        let mut sink = pin!(sink);
 
-    sink.send_all(&mut stream).await?;
-    sink.close().await?;
+        sink.send_all(&mut stream).await?;
+        sink.close().await?;
+    }
+
+    lookup.sort_unstable_by_key(|(key, _)| *key);
+
+    let mut reverse_writer = core::pin::pin!(reverse_output);
+    for (key, index) in lookup {
+        reverse_writer.write_all(&key).await?;
+        reverse_writer.write_all(&u64::to_ne_bytes(index)).await?;
+    }
 
     Ok(())
 }
