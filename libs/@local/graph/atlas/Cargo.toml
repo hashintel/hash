@@ -15,6 +15,7 @@ authors.workspace = true
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
+sprs           = { version = "0.11.4", default-features = false }
 # candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
 # backend and our direct candle usage share a single candle build.
 burn                                = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
@@ -22,23 +23,32 @@ bytes.workspace                     = true
 camino.workspace                    = true
 candle-core                         = { version = "0.10.2" }
 candle-nn                           = { version = "0.10.2" }
+cxx                                 = "1.0.194"
 error-stack.workspace               = true
+faer                                = "0.24.4"
 futures.workspace                   = true
 hash-graph-embeddings.workspace     = true
 hash-graph-postgres-store.workspace = true
 hash-graph-store.workspace          = true
 hash-graph-types.workspace          = true
+levenberg-marquardt                 = "0.15.0"
 memmap2                             = "0.9.11"
+nalgebra                            = "0.34.1"
 pin-project-lite.workspace          = true
 rand                                = { workspace = true }
 rand_xoshiro                        = { workspace = true }
+rayon                               = { workspace = true }
 tempfile                            = "3.27.0"
 tokio.workspace                     = true
 tokio-postgres.workspace            = true
 tokio-util.workspace                = true
 type-system.workspace               = true
+usearch                             = "2.25.3"
 uuid.workspace                      = true
 zerocopy                            = "0.8.54"
+
+[dev-dependencies]
+npyz = "0.9.1"
 
 # Opt-in only: these need the CUDA toolkit (nvcc) at build time, so they must not be
 # enabled by default or via `--all-features` runs on machines without it.

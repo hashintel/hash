@@ -8,7 +8,14 @@
 //! Once distilled, [`Projector::forward`] places entities on the existing
 //! map, including entities the layout was never fitted on.
 
+mod features;
+mod graph;
+mod initialization;
+mod layout;
 mod mlp;
+mod pipeline;
+mod relation;
 mod sample;
+mod umap;
 
 pub(crate) use self::mlp::{Projector, TrainingConfig};

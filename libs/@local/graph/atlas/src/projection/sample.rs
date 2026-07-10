@@ -24,6 +24,10 @@ use tokio_postgres::{
     Client, GenericClient, IsolationLevel, Row, RowStream, Transaction,
     types::{FromSql, ToSql, Type},
 };
+use type_system::{
+    knowledge::entity::id::{EntityId, EntityUuid},
+    principal::actor_group::WebId,
+};
 
 use crate::float::FloatBytes;
 
@@ -162,9 +166,13 @@ impl<'client> Sample<'client> {
         &self.embeddings
     }
 
-    /// Returns sampled relation edges as a stream without retaining an edge file.
-    pub(super) async fn visit_edges(&self) -> Result<QueryEdges<'_>, SampleError> {
-        query_edges(&self.transaction).await
+    /// Preprocesses sampled relations in PostgreSQL and returns their stable hubs and adjacency.
+    pub(super) async fn relations(
+        &self,
+        hub_quantile: f64,
+        hub_min_ratio: f64,
+    ) -> Result<Relations<'_>, SampleError> {
+        prepare_relations(&self.transaction, hub_quantile, hub_min_ratio).await
     }
 
     /// Commits the short-lived database snapshot and returns the embeddings used for training.
@@ -180,6 +188,9 @@ impl<'client> Sample<'client> {
 }
 
 const SAMPLE_TABLE: &str = "atlas_sample";
+const RELATION_TABLE: &str = "atlas_relation";
+const RELATION_DEGREE_TABLE: &str = "atlas_relation_degree";
+const HUB_TABLE: &str = "atlas_relation_hub";
 const OUTPUT_BUFFER_SIZE: usize = 1024 * 1024;
 
 async fn create_sample_table(client: &(impl GenericClient + Sync)) -> Result<(), SampleError> {
@@ -484,6 +495,11 @@ async fn write_sample(
     Ok(rows)
 }
 
+pub(super) struct Relations<'sample> {
+    pub(super) hubs: Vec<EntityId>,
+    pub(super) edges: QueryEdges<'sample>,
+}
+
 pin_project_lite::pin_project! {
     pub(super) struct QueryEdges<'sample> {
         #[pin]
@@ -493,7 +509,7 @@ pin_project_lite::pin_project! {
 }
 
 impl Stream for QueryEdges<'_> {
-    type Item = Result<(u64, u64), SampleError>;
+    type Item = Result<(u32, u32), SampleError>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
@@ -502,19 +518,25 @@ impl Stream for QueryEdges<'_> {
         };
 
         let source: i64 = row.try_get(0)?;
-        let source = u64::try_from(source).map_err(|_error| SampleError::InvalidIndex(source))?;
+        let source = u32::try_from(source).map_err(|_error| SampleError::InvalidIndex(source))?;
         let target: i64 = row.try_get(1)?;
-        let target = u64::try_from(target).map_err(|_error| SampleError::InvalidIndex(target))?;
+        let target = u32::try_from(target).map_err(|_error| SampleError::InvalidIndex(target))?;
 
         Poll::Ready(Some(Ok((source, target))))
     }
 }
 
-async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges<'_>, SampleError> {
-    let stream = client
-        .query_raw(
-            &format!(
-                "SELECT source_sample.sample_index, target_sample.sample_index
+async fn prepare_relations(
+    client: &(impl GenericClient + Sync),
+    hub_quantile: f64,
+    hub_min_ratio: f64,
+) -> Result<Relations<'_>, SampleError> {
+    client
+        .batch_execute(&format!(
+            "CREATE TEMPORARY TABLE {RELATION_TABLE} ON COMMIT DROP AS
+                 SELECT DISTINCT
+                     LEAST(source_sample.sample_index, target_sample.sample_index) AS source,
+                     GREATEST(source_sample.sample_index, target_sample.sample_index) AS target
                  FROM {entity_edge} left_edge
                  JOIN {entity_edge} right_edge
                    ON left_edge.source_web_id = right_edge.source_web_id
@@ -528,15 +550,105 @@ async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges<
                  WHERE left_edge.kind = 'has-left-entity'
                    AND left_edge.direction = 'outgoing'
                    AND right_edge.kind = 'has-right-entity'
-                   AND right_edge.direction = 'outgoing'",
-                entity_edge = Table::EntityEdge.as_str(),
+                   AND right_edge.direction = 'outgoing'
+                   AND source_sample.sample_index <> target_sample.sample_index;
+             ALTER TABLE {RELATION_TABLE} ADD PRIMARY KEY (source, target);
+
+             CREATE TEMPORARY TABLE {RELATION_DEGREE_TABLE} ON COMMIT DROP AS
+                 SELECT sample_index, COUNT(*) AS degree
+                 FROM (
+                     SELECT source AS sample_index FROM {RELATION_TABLE}
+                     UNION ALL
+                     SELECT target AS sample_index FROM {RELATION_TABLE}
+                 ) endpoints
+                 GROUP BY sample_index;
+             ALTER TABLE {RELATION_DEGREE_TABLE} ADD PRIMARY KEY (sample_index);
+             ANALYZE {RELATION_TABLE};
+             ANALYZE {RELATION_DEGREE_TABLE};",
+            entity_edge = Table::EntityEdge.as_str(),
+        ))
+        .await?;
+
+    let hub_cut = client
+        .query_one(
+            &format!(
+                "SELECT GREATEST(
+                     percentile_cont($1::DOUBLE PRECISION) WITHIN GROUP (ORDER BY degree),
+                     $2::DOUBLE PRECISION * percentile_cont(0.5) WITHIN GROUP (ORDER BY degree)
+                 )::DOUBLE PRECISION
+                 FROM {RELATION_DEGREE_TABLE}"
+            ),
+            &[&hub_quantile, &hub_min_ratio],
+        )
+        .await?
+        .try_get::<_, Option<f64>>(0)?
+        .unwrap_or(f64::INFINITY);
+
+    client
+        .execute(
+            &format!(
+                "CREATE TEMPORARY TABLE {HUB_TABLE} ON COMMIT DROP AS
+                     SELECT degree.sample_index, sample.web_id, sample.entity_uuid
+                     FROM {RELATION_DEGREE_TABLE} degree
+                     JOIN {SAMPLE_TABLE} sample USING (sample_index)
+                     WHERE degree.degree > $1"
+            ),
+            &[&hub_cut],
+        )
+        .await?;
+    client
+        .batch_execute(&format!(
+            "ALTER TABLE {HUB_TABLE} ADD PRIMARY KEY (sample_index);
+             DELETE FROM {RELATION_TABLE} relation
+                 USING {HUB_TABLE} hub
+                 WHERE relation.source = hub.sample_index;
+             DELETE FROM {RELATION_TABLE} relation
+                 USING {HUB_TABLE} hub
+                 WHERE relation.target = hub.sample_index;
+             ANALYZE {RELATION_TABLE};"
+        ))
+        .await?;
+
+    let hubs = client
+        .query(
+            &format!(
+                "SELECT web_id, entity_uuid
+                 FROM {HUB_TABLE}
+                 ORDER BY sample_index"
+            ),
+            &[],
+        )
+        .await?
+        .into_iter()
+        .map(|row| {
+            Ok(EntityId {
+                web_id: row.try_get::<_, WebId>(0)?,
+                entity_uuid: row.try_get::<_, EntityUuid>(1)?,
+                draft_id: None,
+            })
+        })
+        .collect::<Result<Vec<_>, tokio_postgres::Error>>()?;
+
+    let stream = client
+        .query_raw(
+            &format!(
+                "SELECT source, target
+                 FROM (
+                     SELECT source, target FROM {RELATION_TABLE}
+                     UNION ALL
+                     SELECT target AS source, source AS target FROM {RELATION_TABLE}
+                 ) adjacency
+                 ORDER BY source, target"
             ),
             iter::empty::<&(dyn ToSql + Sync)>(),
         )
         .await?;
 
-    Ok(QueryEdges {
-        stream,
-        marker: PhantomData,
+    Ok(Relations {
+        hubs,
+        edges: QueryEdges {
+            stream,
+            marker: PhantomData,
+        },
     })
 }

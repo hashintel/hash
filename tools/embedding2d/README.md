@@ -100,6 +100,32 @@ Graph-construction and hub-trimming knobs (`ef_construction`, `M`,
 `hub_quantile`, `hub_min_ratio`, ...) have sensible defaults on the
 params dataclasses in `app/layout.py`, documented inline.
 
+## Evaluating densMAP
+
+The layout runs plain UMAP (`densmap=False`). To decide whether densMAP's
+density-preservation term is worth turning on, `evaluate.py` fits both
+variants on the _same_ fused graph per alpha (identical subsample, init,
+and seed; single-threaded so the pair is reproducible) and scores each:
+
+```sh
+uv run python evaluate.py --run run --dim 256 --alphas 1.0 0.5
+```
+
+It reuses the cached `sample.f32` (never touches the DB), works on a row
+subsample (`--subsample`, default 20k) so a sweep runs in minutes, prints
+a per-alpha table, and writes `<run>/densmap-eval.json`. The metrics span
+four buckets — topology (trustworthiness, continuity, kNN recall),
+density (source-vs-2D radius correlation, plus a graph-structural
+variant), global structure (Shepard correlation, relation-edge AUC), and
+cost (fit seconds; `--distil` adds the serving-MLP val RMSE). densMAP is
+a _trade_: expect it to win density and lose some topology/runtime, so
+read the deltas, not a single number. `app/evaluation.py` documents what
+each metric means and the one nontrivial choice — a fuzzy graph has no
+native distances, so densMAP's per-edge "source distance" is synthesized
+from the membership weights, making it preserve _graph-structural_
+density. The optional community-separation metric needs
+`uv add leidenalg python-igraph`; it is skipped with a hint otherwise.
+
 ## Demo viewer
 
 A static deck.gl map with an alpha slider, LOD point streaming, and a
@@ -151,3 +177,5 @@ docstring of `app/features.py`.
   between `export` and `import_`.
 - `app/fit.py` — orchestration: warm-start matching, the ladder, and
   the encoder chain.
+- `app/evaluation.py` — the densMAP A/B: controlled fit pair, the metric
+  suite, and the reporting table (driven by `evaluate.py`).

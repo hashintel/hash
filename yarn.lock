@@ -13758,6 +13758,13 @@ __metadata:
 "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas"
+  dependencies:
+    "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/error-stack": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
+    "@rust/hash-graph-postgres-store": "workspace:*"
+    "@rust/hash-graph-store": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
   languageName: unknown
   linkType: soft
 

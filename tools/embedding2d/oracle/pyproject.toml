@@ -1,0 +1,13 @@
+[project]
+name = "atlas-projection-oracle"
+version = "0.1.0"
+description = "Pinned umap-learn oracle for the Atlas projection pipeline"
+requires-python = "==3.14.6"
+dependencies = [
+    "numpy==2.4.6",
+    "scipy==1.18.0",
+    "umap-learn==0.5.12",
+]
+
+[tool.uv]
+package = false

@@ -1,10 +1,10 @@
-//! Zero-copy row access to `f32` matrices stored in files.
+//! Zero-copy row access to `f32` matrices backed by files or owned memory.
 //!
 //! The sampling pipeline persists embeddings and layout coordinates as flat
 //! files of raw `f32` values, row-major with a fixed number of values per
-//! row. Those matrices are much larger than the rows any single training
-//! step touches, so this module reads them through a shared, page-on-demand
-//! mapping instead of loading them up front.
+//! row. Those matrices are read through a shared, page-on-demand mapping.
+//! Intermediate matrices can instead transfer an owned `Vec<f32>` into the
+//! same shared [`Bytes`] storage without writing them to disk.
 //!
 //! The primary type is [`FloatBytes`], which opens such a file and hands out
 //! individual rows as [`Sample`]s. Both are cheap to clone and share one
@@ -32,18 +32,31 @@ impl AsRef<[u8]> for LockedBytes {
     }
 }
 
-/// A read-only matrix of `f32` rows stored in a file.
+#[derive(Debug)]
+struct OwnedFloats(Vec<f32>);
+
+impl AsRef<[u8]> for OwnedFloats {
+    fn as_ref(&self) -> &[u8] {
+        let values = self.0.as_slice();
+        // SAFETY: `u8` has alignment one, every initialized `f32` consists of exactly
+        // `size_of::<f32>()` initialized bytes, and the byte slice shares the lifetime of `values`.
+        unsafe { core::slice::from_raw_parts(values.as_ptr().cast::<u8>(), size_of_val(values)) }
+    }
+}
+
+/// A read-only matrix of `f32` rows backed by shared bytes.
 ///
 /// Opening a file with [`FloatBytes::from_file`] maps it into memory instead
 /// of reading it, so construction costs the same regardless of file size and
-/// rows are only paged in when they are accessed. Values are interpreted in
-/// native byte order, matching how the sampling pipeline writes them.
+/// rows are only paged in when they are accessed. [`FloatBytes::from_vec`]
+/// instead retains an existing allocation directly. Values use native byte
+/// order in both cases.
 ///
-/// The file is shared-locked for the lifetime of the value, every clone, and
-/// every [`Sample`] taken from it. The lock is advisory: cooperating writers
-/// know not to touch the file while it is locked, but nothing stops an
-/// unrelated process from modifying it. Cloning is cheap and shares the
-/// underlying mapping.
+/// File-backed storage is shared-locked for the lifetime of the value, every
+/// clone, and every [`Sample`] taken from it. The lock is advisory: cooperating
+/// writers know not to touch the file while it is locked, but nothing stops an
+/// unrelated process from modifying it. Cloning either backing is cheap and
+/// shares the underlying bytes.
 #[derive(Debug, Clone)]
 pub struct FloatBytes {
     data: Bytes,
@@ -52,6 +65,34 @@ pub struct FloatBytes {
 }
 
 impl FloatBytes {
+    /// Copies native-endian floats into shared owned storage.
+    ///
+    /// Prefer [`Self::from_vec`] when the caller already owns the allocation.
+    pub fn from_slice(values: &[f32], dim: NonZero<usize>) -> io::Result<Self> {
+        Self::from_vec(values.to_vec(), dim)
+    }
+
+    /// Transfers a vector of native-endian floats into shared storage without copying it.
+    pub fn from_vec(values: Vec<f32>, dim: NonZero<usize>) -> io::Result<Self> {
+        let dimensions = dim.get();
+        if !values.len().is_multiple_of(dimensions) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "buffer holds {} f32 values, which is not a whole number of {dim}-value rows",
+                    values.len()
+                ),
+            ));
+        }
+        let stride = dimensions.checked_mul(size_of::<f32>()).ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "f32 row stride exceeds usize")
+        })?;
+        let len = values.len() / dimensions;
+        let data = Bytes::from_owner(OwnedFloats(values));
+
+        Ok(Self { data, stride, len })
+    }
+
     /// Maps a file of raw `f32` values as a matrix with `dim` values per row.
     ///
     /// The file must contain nothing but whole rows: its size has to be a
@@ -120,15 +161,28 @@ impl FloatBytes {
         self.len == 0
     }
 
-    /// Returns the row at `index`.
+    /// Borrows the row at `index` as native-endian floats.
     ///
-    /// This takes no copy: the returned [`Sample`] reads straight from the
-    /// shared mapping, and the page is faulted in on first access.
+    /// This takes no copy and does not clone the shared mapping handle, which makes it suitable for
+    /// tight numerical loops that already borrow the matrix.
     ///
     /// # Panics
     ///
-    /// Panics when `index` is out of bounds, that is when
-    /// `index >= self.len()`.
+    /// Panics when `index` is out of bounds, that is when `index >= self.len()`.
+    pub fn row(&self, index: usize) -> &[f32] {
+        let start = index * self.stride;
+        native_floats(&self.data[start..start + self.stride])
+    }
+
+    /// Returns the row at `index` while retaining the mapping independently.
+    ///
+    /// This takes no copy: the returned [`Sample`] reads straight from the shared mapping, and the
+    /// page is faulted in on first access. Prefer [`FloatBytes::row`] when the row does not need to
+    /// outlive the matrix borrow.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `index` is out of bounds, that is when `index >= self.len()`.
     pub fn sample(&self, index: usize) -> Sample {
         let bytes = self
             .data
@@ -141,31 +195,51 @@ impl FloatBytes {
 /// One row of a [`FloatBytes`] matrix.
 ///
 /// A sample behaves like a `&[f32]` of length [`FloatBytes::dim`]. Cloning
-/// is cheap and shares the mapping; the row is only copied when the caller
-/// copies it, for example when collating a training batch.
+/// is cheap and shares the backing storage; the row is only copied when the
+/// caller copies it, for example when collating a training batch.
 #[derive(Debug, Clone)]
 pub struct Sample(Bytes);
 
 impl Deref for Sample {
     type Target = [f32];
 
-    #[expect(
-        clippy::cast_ptr_alignment,
-        reason = "see safety comment and debug asserts"
-    )]
     fn deref(&self) -> &Self::Target {
-        let ptr = self.0.as_ptr().cast::<f32>();
-        debug_assert!(
-            ptr.is_aligned_to(align_of::<f32>()),
-            "The data has been initially aligned for f32, and it's only f32 data, therefore any \
-             subslice is trivially aligned for f32 as well"
-        );
-        debug_assert!(self.0.len().is_multiple_of(size_of::<f32>()));
+        native_floats(&self.0)
+    }
+}
 
-        let len = self.0.len() / size_of::<f32>();
-        // SAFETY: The mapping is aligned for `f32` at construction, every row stride is
-        // a whole multiple of `size_of::<f32>()`, and `Bytes` slicing never rebases the
-        // buffer, so `ptr` is aligned and `len * 4` bytes are initialized and in bounds.
-        unsafe { core::slice::from_raw_parts(ptr, len) }
+#[expect(
+    clippy::cast_ptr_alignment,
+    reason = "see safety comment and debug assertions"
+)]
+fn native_floats(bytes: &[u8]) -> &[f32] {
+    let ptr = bytes.as_ptr().cast::<f32>();
+    debug_assert!(
+        ptr.is_aligned_to(align_of::<f32>()),
+        "The data was initially aligned for f32 and row offsets are whole f32 values"
+    );
+    debug_assert!(bytes.len().is_multiple_of(size_of::<f32>()));
+
+    let len = bytes.len() / size_of::<f32>();
+    // SAFETY: The mapping is aligned for `f32` at construction, every row stride is a whole
+    // multiple of `size_of::<f32>()`, and both borrowed and owned row slices preserve that
+    // alignment. Therefore `ptr` is aligned and `len * 4` bytes are initialized and in bounds.
+    unsafe { core::slice::from_raw_parts(ptr, len) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn retains_owned_float_allocation_without_copying() {
+        let values = vec![1.0, 2.0, 3.0, 4.0];
+        let pointer = values.as_ptr();
+        let matrix = FloatBytes::from_vec(values, NonZero::new(2).unwrap())
+            .expect("values contain whole rows");
+
+        assert_eq!(matrix.row(0).as_ptr(), pointer);
+        assert_eq!(matrix.row(0), [1.0, 2.0]);
+        assert_eq!(matrix.row(1), [3.0, 4.0]);
     }
 }

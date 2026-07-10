@@ -49,6 +49,45 @@ class LayoutGraphParams:
     # Cold-start placement; an (n, 2) array warm-starts instead (umap
     # jitters exact duplicates so coincident starts can separate).
     init: Literal["pca", "random", "spectral", "tswspectral"] | np.ndarray = "pca"
+    # Run the SGD single-threaded. The default (parallel, True) matches
+    # the pipeline's throughput choice; the evaluation harness flips it
+    # off so an A/B pair is reproducible -- parallel SGD is
+    # non-deterministic even when seeded.
+    parallel: bool = True
+
+    # densMAP: augment the objective so local *density* -- not just
+    # neighbourhoods -- is preserved in 2D. Off by default: the pipeline
+    # runs plain UMAP. `app.evaluation` flips it on for one side of its A/B
+    # comparison; flip it on here too if that comparison says it wins.
+    # The three knobs are umap's own densMAP defaults.
+    densmap: bool = False
+    dens_lambda: float = 2.0
+    dens_frac: float = 0.3
+    dens_var_shift: float = 0.1
+
+
+def graph_dists_from_membership(graph: sp.coo_matrix) -> sp.csr_matrix:
+    """
+    A per-edge pseudo-distance for densMAP, derived from fuzzy membership.
+
+    densMAP estimates each node's source-space radius as a
+    membership-weighted mean of squared edge distances -- but this tool
+    embeds a fuzzy graph (weights in (0, 1], strong = near), not a metric
+    space, so there is no literal distance to feed it. Invert the
+    membership with the same monotone shape UMAP's own low-dim kernel
+    uses -- w ~ exp(-d^2), hence d^2 ~ -log(w) -- so a node bound by
+    strong edges reads as dense (small radius) and one on weak edges as
+    sparse. Squared internally by densMAP, so each node's radius becomes
+    a weight-weighted mean of -log(w).
+
+    The consequence worth remembering when reading the eval: densMAP here
+    preserves *graph-structural* density -- the density implied by the
+    fused F(alpha) it is handed -- which at alpha < 1 is increasingly the
+    relation graph's density, not the embedding's.
+    """
+    w = np.clip(graph.data.astype(np.float64), 1e-12, 1.0)
+    d = np.sqrt(-np.log(w)).astype(np.float32)
+    return sp.csr_matrix((d, (graph.row, graph.col)), shape=graph.shape)
 
 
 @dataclass(frozen=True)
@@ -61,12 +100,32 @@ class LayoutGraph:
         self, *, xs: np.ndarray, params: LayoutGraphParams, rng: np.random.Generator
     ) -> np.ndarray:
         a, b = find_ab_params(spread=params.spread, min_dist=params.min_dist)
+
+        # simplicial_set_embedding prunes weak edges *in place* (and
+        # coo.tocoo() returns self, not a copy), which would corrupt this
+        # graph for any later embed at different params.
+        graph = self.graph.copy()
+
+        # densMAP needs a per-edge source distance to estimate each
+        # node's radius; synthesize one from the membership weights (see
+        # graph_dists_from_membership). Left empty when densmap is off, in
+        # which case this whole block is inert and the call is identical
+        # to the plain-UMAP path.
+        densmap_kwds: dict = {}
+        if params.densmap:
+            densmap_kwds = {
+                "lambda": params.dens_lambda,
+                "frac": params.dens_frac,
+                "var_shift": params.dens_var_shift,
+                # Consulted only when output_dens is on (we keep it off);
+                # supplied so a future output_dens flip doesn't KeyError.
+                "n_neighbors": 15,
+                "graph_dists": graph_dists_from_membership(graph),
+            }
+
         xy, _aux = simplicial_set_embedding(
             data=xs,
-            # simplicial_set_embedding prunes weak edges *in place* (and
-            # coo.tocoo() returns self, not a copy), which would corrupt
-            # this graph for any later embed at different params.
-            graph=self.graph.copy(),
+            graph=graph,
             n_components=2,
             initial_alpha=params.sgd_learning_rate,
             a=a,
@@ -83,12 +142,14 @@ class LayoutGraph:
             # unit-norm embeddings.
             metric="cosine",
             metric_kwds={},
-            densmap=False,
-            densmap_kwds={},
+            densmap=params.densmap,
+            densmap_kwds=densmap_kwds,
             output_dens=False,
             # Parallel SGD is non-deterministic even when seeded; warm
             # starts bound the run-to-run drift we actually care about.
-            parallel=True,
+            # The eval harness sets this False so its A/B pair is exactly
+            # reproducible.
+            parallel=params.parallel,
             verbose=True,
         )
 

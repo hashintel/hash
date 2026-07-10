@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "hnswlib>=0.8.0",
+    "matplotlib>=3.11.0",
     "numpy>=2.1,<2.5",
     "pgvector>=0.5.0",
     "psycopg[binary]>=3.3.4",
