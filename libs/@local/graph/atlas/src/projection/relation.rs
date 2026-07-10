@@ -20,7 +20,7 @@ use super::{
 
 /// A failure while streaming relations or assembling relation graphs.
 #[derive(Debug)]
-pub(crate) enum RelationGraphError {
+pub enum RelationGraphError {
     /// Relational preprocessing or streaming failed in the database.
     Sample(SampleError),
     /// Sparse graph construction failed.
@@ -99,23 +99,23 @@ impl From<GraphError> for RelationGraphError {
 
 /// Configuration for [`relation_graph`].
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct RelationGraphOptions {
+pub struct RelationGraphOptions {
     /// Positive-degree quantile above which a row is a hub candidate.
-    pub(crate) hub_quantile: f64 = 0.9995,
+    pub hub_quantile: f64 = 0.9995,
     /// Minimum hub degree as a multiple of the median positive degree. A row
     /// must exceed both this and the quantile threshold to become a hub.
-    pub(crate) hub_min_ratio: f64 = 4.0,
+    pub hub_min_ratio: f64 = 4.0,
     /// Number of diffusion candidates kept per row and hop. Zero disables
     /// diffusion entirely.
-    pub(crate) shared_neighbors: usize = 10,
+    pub shared_neighbors: usize = 10,
     /// Weight applied to the two-hop shared-neighbor graph. Zero disables
     /// diffusion entirely.
-    pub(crate) shared_weight: f32 = 1.0,
+    pub shared_weight: f32 = 1.0,
     /// Deepest diffusion hop. `2` adds shared neighbors of neighbors, `3`
     /// adds one further step, and so on.
-    pub(crate) hops: usize = 2,
+    pub hops: usize = 2,
     /// Multiplicative decay applied to each hop beyond the second.
-    pub(crate) hop_decay: f32 = 0.5,
+    pub hop_decay: f32 = 0.5,
 }
 
 impl RelationGraphOptions {
@@ -327,6 +327,11 @@ fn build_relation_graph(
             for value in shared.data_mut() {
                 *value *= weight;
             }
+            tracing::debug!(
+                hop,
+                retained = shared.nnz(),
+                "bounded diffusion hop pruned and symmetrized"
+            );
             shared_hops = Some(match shared_hops {
                 None => shared,
                 Some(accumulated) => elementwise_max(&accumulated, &shared)?,

@@ -15,7 +15,7 @@ use crate::float::FloatBytes;
 
 /// A failure while computing the PCA initialization.
 #[derive(Debug)]
-pub(crate) enum InitializationError {
+pub enum InitializationError {
     /// The sample has fewer than two rows.
     TooFewRows(usize),
     /// The sketch size option is below two.
@@ -59,9 +59,9 @@ impl Error for InitializationError {}
 
 /// Configuration for [`pca_initialization`].
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct PcaOptions {
+pub struct PcaOptions {
     /// Number of rows used to fit the principal basis. Projection still covers every row.
-    pub(crate) sketch_rows: usize = 2_048,
+    pub sketch_rows: usize = 2_048,
 }
 
 /// Projects every embedding onto the sample's two dominant principal axes.
@@ -118,6 +118,11 @@ pub(crate) fn pca_initialization(
         .collect::<Vec<_>>();
 
     let sketch_rows = options.sketch_rows.min(rows);
+    tracing::debug!(
+        sketch_rows,
+        dimensions,
+        "fitting PCA basis on strided sketch"
+    );
     let sketch = Mat::from_fn(sketch_rows, dimensions, |sample, dimension| {
         let row = sample * rows / sketch_rows;
         embeddings.row(row)[dimension] - mean[dimension]

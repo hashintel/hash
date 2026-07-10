@@ -32,7 +32,7 @@ use super::graph::{GraphError, SparseGraph};
 
 /// An invalid UMAP configuration, graph, or initial layout.
 #[derive(Debug)]
-pub(crate) enum UmapError {
+pub enum UmapError {
     /// The input graph failed structural validation.
     Graph(GraphError),
     /// The `spread` option is not finite and positive.

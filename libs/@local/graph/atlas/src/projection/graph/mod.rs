@@ -24,11 +24,8 @@ mod tests;
 
 use sprs::CsMatI;
 
-pub(crate) use self::{
-    error::GraphError,
-    fuzzy::blend_and_reset,
-    knn::{SemanticGraphOptions, semantic_graph},
-};
+pub use self::{error::GraphError, knn::SemanticGraphOptions};
+pub(crate) use self::{fuzzy::blend_and_reset, knn::semantic_graph};
 
 /// A square CSR matrix of `f32` edge weights indexed by `u32` sampled rows.
 pub(crate) type SparseGraph = CsMatI<f32, u32, u32>;

@@ -25,14 +25,14 @@ use tempfile::NamedTempFile;
 
 use super::{
     graph::{GraphError, SparseGraph, blend_and_reset},
-    mlp::{Projector, TrainingConfig},
+    mlp::{FittedProjector, Projector, ProjectorError, TrainingConfig},
     umap::{ParallelOptimizer, UmapError, UmapOptions, fit_curve_parameters},
 };
 use crate::float::FloatBytes;
 
 /// A failure while fitting or publishing the layout ladder.
 #[derive(Debug)]
-pub(crate) enum LayoutError {
+pub enum LayoutError {
     /// Blending the semantic and relation graphs failed.
     Graph(GraphError),
     /// The UMAP optimizer rejected its inputs or configuration.
@@ -122,29 +122,29 @@ impl From<tempfile::PersistError> for LayoutError {
 /// rate; every later rung warm-starts from the previous coordinates and uses
 /// the smaller chained budget and rate.
 #[derive(Debug, Clone)]
-pub(crate) struct LayoutLadderOptions {
+pub struct LayoutLadderOptions {
     /// Alpha levels to fit. Sorted descending before fitting, so the ladder
     /// always starts from the most semantic blend regardless of input order.
-    pub(crate) alphas: Vec<f32>,
+    pub alphas: Vec<f32>,
     /// Epoch budget for the first (cold) rung.
-    pub(crate) first_epochs: usize,
+    pub first_epochs: usize,
     /// Epoch budget for every warm-started rung after the first.
-    pub(crate) chained_epochs: usize,
+    pub chained_epochs: usize,
     /// Initial learning rate for the cold rung.
-    pub(crate) cold_learning_rate: f64,
+    pub cold_learning_rate: f64,
     /// Initial learning rate for warm-started rungs.
-    pub(crate) warm_learning_rate: f64,
+    pub warm_learning_rate: f64,
     /// Distance below which layout points are considered ideally close; see
     /// [`fit_curve_parameters`].
-    pub(crate) min_distance: f64,
+    pub min_distance: f64,
     /// Scale of distances in the fitted layout; see [`fit_curve_parameters`].
-    pub(crate) spread: f64,
+    pub spread: f64,
     /// Weight of repulsive negative-sample updates.
-    pub(crate) repulsion_strength: f64,
+    pub repulsion_strength: f64,
     /// Negative samples drawn per attractive update.
-    pub(crate) negative_sample_rate: usize,
+    pub negative_sample_rate: usize,
     /// Seed for the per-rung optimizer RNG states.
-    pub(crate) seed: u64,
+    pub seed: u64,
 }
 
 impl Default for LayoutLadderOptions {
@@ -187,12 +187,7 @@ impl LayoutLadderOptions {
         let mut tags = Vec::with_capacity(self.alphas.len());
         let mut unique = HashSet::with_capacity(self.alphas.len());
         for &alpha in &self.alphas {
-            #[expect(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                reason = "validated alpha percentages are within 0..=100"
-            )]
-            let tag = (alpha * 100.0).round() as u16;
+            let tag = alpha_tag(alpha);
             if !unique.insert(tag) {
                 return Err(LayoutError::DuplicateAlphaTag(tag));
             }
@@ -202,14 +197,30 @@ impl LayoutLadderOptions {
     }
 }
 
+/// The file tag of an alpha level: its percentage, rounded to the nearest
+/// whole number.
+///
+/// Tags name layout and encoder files (`layout-a075.f32`, `encoder-a075`),
+/// so two alphas within half a percent of each other collide; the ladder
+/// validation rejects such ladders up front.
+pub(super) fn alpha_tag(alpha: f32) -> u16 {
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "validated alpha percentages are within 0..=100"
+    )]
+    let tag = (alpha * 100.0).round() as u16;
+    tag
+}
+
 /// One fitted and persisted rung of the alpha ladder.
-pub(crate) struct LayoutLevel {
+pub struct LayoutLevel {
     /// The blend level this layout was fitted at.
-    pub(crate) alpha: f32,
+    pub alpha: f32,
     /// The published `layout-aXXX.f32` file.
-    pub(crate) path: Utf8PathBuf,
+    pub path: Utf8PathBuf,
     /// The persisted coordinates, mmap-backed with two values per row.
-    pub(crate) coordinates: FloatBytes,
+    pub coordinates: FloatBytes,
 }
 
 /// Fits one layout per alpha level and publishes each as a native-endian
@@ -246,6 +257,7 @@ pub(crate) fn fit_layout_ladder(
     let mut initialization = initial_coordinates;
 
     for (rung, (&alpha, tag)) in options.alphas.iter().zip(tags).enumerate() {
+        let rung_start = std::time::Instant::now();
         let graph = blend_and_reset(semantic, relation, alpha)?;
         let first = rung == 0;
         let optimizer_options = UmapOptions {
@@ -262,6 +274,7 @@ pub(crate) fn fit_layout_ladder(
             repulsion_strength: options.repulsion_strength,
             negative_sample_rate: options.negative_sample_rate,
         };
+        let fused_entries = graph.nnz();
         let mut optimizer = ParallelOptimizer::new(
             &graph,
             initialization,
@@ -274,6 +287,14 @@ pub(crate) fn fit_layout_ladder(
 
         let path = out.as_ref().join(format!("layout-a{tag:03}.f32"));
         persist_layout(&path, &initialization)?;
+        tracing::info!(
+            alpha,
+            fused_entries,
+            epochs = optimizer_options.epochs,
+            duration_ms = u64::try_from(rung_start.elapsed().as_millis()).unwrap_or(u64::MAX),
+            layout = %path,
+            "layout rung fitted and published"
+        );
         let file = File::open(&path)?;
         let coordinates = FloatBytes::from_file(
             file,
@@ -334,44 +355,58 @@ fn rung_random_state(seed: u64, rung: usize) -> [i64; 3] {
 /// Distills each fitted layout level into a [`Projector`], chaining weights
 /// between rungs.
 ///
-/// The first level trains from fresh weights with the caller's full epoch
-/// budget; every later level starts from the previous level's trained
-/// weights and uses `chained_epochs`, mirroring how the layouts themselves
-/// warm-start. The returned projectors pair each alpha with its trained
-/// encoder on the inference backend, in ladder order.
+/// The first level trains with the caller's full epoch budget, starting
+/// either from fresh weights or, when `initial` carries a previous refit's
+/// encoder, from those weights. Every later level starts from the previous
+/// level's trained standardized weights and uses `chained_epochs`, mirroring
+/// how the layouts themselves warm-start. The returned projectors pair each
+/// alpha with its fitted encoder on the inference backend, in ladder order.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics when the features and a level's coordinates disagree on row count
-/// or when the training configuration is invalid; see [`Projector::fit`].
+/// Returns an error when a level's training inputs or the configuration are
+/// invalid, or when the best checkpoint cannot be restored; see
+/// [`Projector::fit`].
 pub(crate) fn fit_projectors<B: AutodiffBackend>(
-    features: FloatBytes,
+    features: &FloatBytes,
     levels: &[LayoutLevel],
+    initial: Option<Projector<B::InnerBackend>>,
     mut config: TrainingConfig,
     chained_epochs: usize,
     artifact_root: impl AsRef<Path>,
     device: &B::Device,
-) -> Vec<(f32, Projector<B::InnerBackend>)> {
-    let mut training_projector = Projector::<B>::new(features.dim(), device);
+) -> Result<Vec<(f32, FittedProjector<B::InnerBackend>)>, ProjectorError> {
+    let mut training_projector = initial.map_or_else(
+        || Projector::<B>::new(features.dim(), device),
+        |previous| previous.train::<B>(),
+    );
     let mut projectors = Vec::with_capacity(levels.len());
 
     for level in levels {
+        let rung_start = std::time::Instant::now();
         let artifact_dir = artifact_root
             .as_ref()
-            .join(format!("a{:03}", (level.alpha * 100.0).round() as u16));
-        let projector = training_projector.fit(
+            .join(format!("a{:03}", alpha_tag(level.alpha)));
+        let fitted = training_projector.fit(
             features.clone(),
             level.coordinates.clone(),
             config,
             artifact_dir,
             device,
+        )?;
+        tracing::info!(
+            alpha = level.alpha,
+            validation_rmse = fitted.validation_rmse,
+            epochs = config.epochs,
+            duration_ms = u64::try_from(rung_start.elapsed().as_millis()).unwrap_or(u64::MAX),
+            "projector distilled; validation RMSE is in layout units"
         );
-        training_projector = projector.clone().train::<B>();
-        projectors.push((level.alpha, projector));
+        training_projector = fitted.standardized.clone().train::<B>();
+        projectors.push((level.alpha, fitted));
         config.epochs = chained_epochs;
     }
 
-    projectors
+    Ok(projectors)
 }
 
 #[cfg(test)]

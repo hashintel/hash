@@ -110,7 +110,7 @@ async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, Sample
 /// identity index (and the one-row-per-index embedding export).
 #[expect(
     clippy::cast_precision_loss,
-    reason = "PostgreSQL's TABLESAMPLE percentage is an f64"
+    reason = "PostgreSQL's TABLESAMPLE percentage and seed are double precision"
 )]
 async fn materialize_sample(
     client: &(impl GenericClient + Sync),
@@ -120,7 +120,10 @@ async fn materialize_sample(
 ) -> Result<u64, SampleError> {
     create_sample_table(client).await?;
 
-    let seed = seed.cast_signed();
+    // TABLESAMPLE types its percentage parameter as `real` and REPEATABLE
+    // accepts any numeric expression; bind both as double precision and cast
+    // in SQL so the wire types line up.
+    let seed = seed.cast_signed() as f64;
     let pct = f64::min(
         100.0,
         100.0 * (options.size as f64) / f64::max(total_rows as f64, 1.0),
@@ -135,7 +138,8 @@ async fn materialize_sample(
                      embeddings.web_id,
                      embeddings.entity_uuid
                  FROM {entity_embeddings} embeddings
-                 TABLESAMPLE BERNOULLI($1) REPEATABLE ($2)
+                 TABLESAMPLE BERNOULLI($1::DOUBLE PRECISION)
+                 REPEATABLE ($2::DOUBLE PRECISION)
                  WHERE embeddings.{property} IS NULL
                    AND embeddings.{draft_id} IS NULL",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),

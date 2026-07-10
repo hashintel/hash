@@ -23,7 +23,7 @@ use crate::float::FloatBytes;
 
 /// An invalid structure-feature input or a non-finite feature value.
 #[derive(Debug)]
-pub(crate) enum StructureFeatureError {
+pub enum StructureFeatureError {
     /// The embedding matrix has no rows.
     EmptyEmbeddings,
     /// The embeddings and adjacency disagree on the row count.
@@ -79,14 +79,14 @@ impl Error for StructureFeatureError {}
 
 /// Configuration for [`structure_features`].
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct StructureFeatureOptions {
+pub struct StructureFeatureOptions {
     /// Maximum number of neighbors averaged per row. Rows above the cap keep
     /// the neighbors with the smallest salted hashes, a selection that is
     /// stable across runs and independent of adjacency order.
-    pub(crate) neighbor_cap: usize = 256,
+    pub neighbor_cap: usize = 256,
     /// Salt mixed into the neighbor-selection hash. Serving must reuse the
     /// fit-time salt to reproduce the same capped neighbor sets.
-    pub(crate) salt: u64 = 0x5EED_00D5,
+    pub salt: u64 = 0x5EED_00D5,
 }
 
 /// The generated feature matrix plus the fit-time state serving must reuse.
@@ -99,9 +99,9 @@ pub(crate) struct StructureFeatures {
     /// The embedding dimension `d` the features were generated from.
     pub(crate) embedding_dimensions: usize,
     /// The neighbor cap used for the capped neighbor mean.
-    pub(crate) neighbor_cap: usize,
+    pub neighbor_cap: usize,
     /// The neighbor-selection salt used at fit time.
-    pub(crate) salt: u64,
+    pub salt: u64,
 }
 
 /// Generates the `2d + 2`-wide structure-feature matrix for every sampled

@@ -1,5 +1,7 @@
 //! Approximate cosine k-NN over mmap-backed embeddings via USearch/HNSW.
 
+use core::num::NonZero;
+
 use rayon::prelude::*;
 use usearch::{Index, IndexOptions, MetricKind, ScalarKind};
 
@@ -7,46 +9,24 @@ use super::{
     GraphError, SparseGraph,
     fuzzy::{fuzzy_graph, smooth_knn_distances},
 };
-use crate::float::FloatBytes;
+use crate::{float::FloatBytes, macros::nz};
 
 /// Configuration for [`semantic_knn`] and [`semantic_graph`].
 ///
 /// The defaults match the pipeline's production settings: 15 neighbors and
 /// `USearch`'s cosine HNSW with moderate build effort.
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct SemanticGraphOptions {
+pub struct SemanticGraphOptions {
     /// Number of nearest neighbors requested per row, including the row
     /// itself. Clamped to the row count for tiny samples.
-    pub(crate) neighbors: usize = 15,
+    pub neighbors: NonZero<usize> = nz!(15),
     /// HNSW graph connectivity (`M`): the number of links kept per node.
-    pub(crate) connectivity: usize = 16,
+    pub connectivity: NonZero<usize> = nz!(16),
     /// HNSW build-time candidate list size (`efConstruction`).
-    pub(crate) expansion_add: usize = 200,
+    pub expansion_add: NonZero<usize> = nz!(200),
     /// HNSW query-time candidate list size (`ef`). Raised to at least the
     /// neighbor count automatically.
-    pub(crate) expansion_search: usize = 64,
-}
-
-impl SemanticGraphOptions {
-    /// Rejects zero-valued options, which `USearch` would misconfigure on.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`GraphError::InvalidSemanticOption`] naming the first
-    /// zero-valued option.
-    fn validate(self) -> Result<Self, GraphError> {
-        for (name, value) in [
-            ("neighbors", self.neighbors),
-            ("connectivity", self.connectivity),
-            ("expansion_add", self.expansion_add),
-            ("expansion_search", self.expansion_search),
-        ] {
-            if value == 0 {
-                return Err(GraphError::InvalidSemanticOption { name, value });
-            }
-        }
-        Ok(self)
-    }
+    pub expansion_search: NonZero<usize> = nz!(64),
 }
 
 /// A validated k-nearest-neighbor table over the sampled rows.
@@ -206,41 +186,49 @@ pub(crate) fn semantic_knn(
     embeddings: &FloatBytes,
     options: SemanticGraphOptions,
 ) -> Result<Knn, GraphError> {
-    let options = options.validate()?;
     let rows = embeddings.len();
     if rows == 0 {
         return Err(GraphError::InvalidKnnShape {
             rows,
-            neighbors: options.neighbors,
+            neighbors: options.neighbors.get(),
         });
     }
-    if rows > u32::MAX as usize {
+
+    let Ok(rows) = u32::try_from(rows) else {
         return Err(GraphError::TooManyRows(rows));
-    }
-    let neighbors = options.neighbors.min(rows);
-    let entries = rows
+    };
+
+    let neighbors = options.neighbors.get().min(rows as usize);
+    let entries = (rows as usize)
         .checked_mul(neighbors)
         .ok_or(GraphError::TooManyEdges(usize::MAX))?;
 
+    let build_start = std::time::Instant::now();
     let index = Index::new(&IndexOptions {
         dimensions: embeddings.dim(),
         metric: MetricKind::Cos,
         quantization: ScalarKind::F32,
-        connectivity: options.connectivity,
-        expansion_add: options.expansion_add,
-        expansion_search: options.expansion_search.max(neighbors),
+        connectivity: options.connectivity.get(),
+        expansion_add: options.expansion_add.get(),
+        expansion_search: options.expansion_search.get().max(neighbors),
         multi: false,
     })?;
-    index.reserve_capacity_and_threads(rows, rayon::current_num_threads())?;
+    index.reserve_capacity_and_threads(rows as usize, rayon::current_num_threads())?;
 
-    (0..rows).into_par_iter().try_for_each(|row| {
-        index
-            .add(row as u64, embeddings.row(row))
-            .map_err(GraphError::from)
-    })?;
+    (0..rows)
+        .into_par_iter()
+        .map(|row| (row, embeddings.row(row as usize)))
+        .try_for_each(|(row, embedding)| {
+            index
+                .add(u64::from(row), embedding)
+                .map_err(GraphError::from)
+        })?;
+    let build_duration = build_start.elapsed();
 
+    let search_start = std::time::Instant::now();
     let mut indices = vec![0; entries];
     let mut distances = vec![0.0; entries];
+
     indices
         .par_chunks_mut(neighbors)
         .zip(distances.par_chunks_mut(neighbors))
@@ -261,15 +249,26 @@ pub(crate) fn semantic_knn(
             {
                 let key = u32::try_from(key)
                     .ok()
-                    .filter(|&key| key < rows as u32)
+                    .filter(|&key| key < rows)
                     .ok_or(GraphError::IndexKeyOutOfBounds { row, key, rows })?;
                 row_indices[offset] = key;
                 row_distances[offset] = distance;
             }
             Ok::<_, GraphError>(())
         })?;
+    tracing::debug!(
+        rows,
+        neighbors,
+        connectivity = options.connectivity.get(),
+        expansion_add = options.expansion_add.get(),
+        expansion_search = options.expansion_search.get(),
+        build_ms = u64::try_from(build_duration.as_millis()).unwrap_or(u64::MAX),
+        search_ms = u64::try_from(search_start.elapsed().as_millis()).unwrap_or(u64::MAX),
+        entries,
+        "HNSW k-NN extracted"
+    );
 
-    Knn::new(rows, neighbors, indices, distances)
+    Knn::new(rows as usize, neighbors, indices, distances)
 }
 
 /// Builds the symmetric fuzzy semantic graph over sampled embeddings.

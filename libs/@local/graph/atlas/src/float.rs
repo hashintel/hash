@@ -85,6 +85,7 @@ impl FloatBytes {
     /// rows.
     pub fn from_vec(values: Vec<f32>, dim: NonZero<usize>) -> io::Result<Self> {
         let dimensions = dim.get();
+
         if !values.len().is_multiple_of(dimensions) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -94,9 +95,11 @@ impl FloatBytes {
                 ),
             ));
         }
+
         let stride = dimensions.checked_mul(size_of::<f32>()).ok_or_else(|| {
             io::Error::new(io::ErrorKind::InvalidInput, "f32 row stride exceeds usize")
         })?;
+
         let len = values.len() / dimensions;
         let data = Bytes::from_owner(OwnedFloats(values));
 
@@ -116,8 +119,10 @@ impl FloatBytes {
     /// size is not a whole number of rows. The size check catches truncated
     /// files and files written with a different `dim` before they can feed
     /// garbage rows into training.
+    #[expect(clippy::missing_panics_doc, clippy::panic_in_result_fn)]
     pub fn from_file(file: File, dim: NonZero<usize>) -> io::Result<Self> {
         file.try_lock_shared()?;
+
         // SAFETY: The file is shared-locked above, so cooperating processes won't
         // truncate or rewrite it while mapped. The lock is advisory, so this is a
         // convention we rely on, not a guarantee the OS enforces.
@@ -245,7 +250,7 @@ mod tests {
     fn retains_owned_float_allocation_without_copying() {
         let values = vec![1.0, 2.0, 3.0, 4.0];
         let pointer = values.as_ptr();
-        let matrix = FloatBytes::from_vec(values, NonZero::new(2).unwrap())
+        let matrix = FloatBytes::from_vec(values, const { NonZero::new(2).unwrap() })
             .expect("values contain whole rows");
 
         assert_eq!(matrix.row(0).as_ptr(), pointer);

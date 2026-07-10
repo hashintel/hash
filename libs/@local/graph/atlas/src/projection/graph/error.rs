@@ -8,7 +8,7 @@ use core::{error::Error, fmt};
 /// whose data is invalid and `offset` is the position within that row (for
 /// k-NN errors) or within the CSR value storage (for graph weight errors).
 #[derive(Debug)]
-pub(crate) enum GraphError {
+pub enum GraphError {
     /// The k-NN shape is empty or has more neighbors than rows.
     InvalidKnnShape { rows: usize, neighbors: usize },
     /// The flat k-NN storage does not hold `rows * neighbors` entries.
@@ -67,7 +67,7 @@ pub(crate) enum GraphError {
         distances: usize,
     },
     /// `USearch` returned a key outside the sampled rows.
-    IndexKeyOutOfBounds { row: usize, key: u64, rows: usize },
+    IndexKeyOutOfBounds { row: usize, key: u64, rows: u32 },
 }
 
 impl fmt::Display for GraphError {

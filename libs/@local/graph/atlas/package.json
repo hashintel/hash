@@ -7,6 +7,7 @@
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-atlas --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
+    "test:integration": "cargo nextest run --package hash-graph-atlas --test postgres",
     "test:unit": "mise run test:unit @rust/hash-graph-atlas"
   },
   "dependencies": {

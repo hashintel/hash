@@ -8,26 +8,35 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hash-graph-embeddings = { workspace = true, public = true }
+type-system           = { workspace = true, public = true }
 
 # Public third-party dependencies
+# candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
+# backend and our direct candle usage share a single candle build.
+burn = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"], public = true }
+# The burn facade re-exports these; the types appearing in our public API are
+# defined in the sub-crates, so the public-dependency contract names them too.
+burn-backend = { version = "0.21.0", default-features = false, public = true }
+burn-core    = { version = "0.21.0", default-features = false, public = true }
+burn-tensor  = { version = "0.21.0", default-features = false, public = true }
+burn-train   = { version = "0.21.0", default-features = false, public = true }
+bytes        = { workspace = true, public = true }
+camino       = { workspace = true, public = true }
+# Error sources surfaced through public error enums.
+cxx            = { version = "1.0.194", public = true }
+tempfile       = { version = "3.27.0", public = true }
+tokio          = { workspace = true, public = true }
+tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-simple-mermaid = { workspace = true }
-sprs           = { version = "0.11.4", default-features = false }
-# candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
-# backend and our direct candle usage share a single candle build.
-burn                                = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
-bytes.workspace                     = true
-camino.workspace                    = true
 candle-core                         = { version = "0.10.2" }
 candle-nn                           = { version = "0.10.2" }
-cxx                                 = "1.0.194"
 error-stack.workspace               = true
 faer                                = "0.24.4"
 futures.workspace                   = true
-hash-graph-embeddings.workspace     = true
 hash-graph-postgres-store.workspace = true
 hash-graph-store.workspace          = true
 hash-graph-types.workspace          = true
@@ -40,18 +49,25 @@ rand_xoshiro                        = { workspace = true }
 rayon                               = { workspace = true }
 serde                               = { workspace = true, features = ["derive"] }
 serde_json                          = { workspace = true }
-tempfile                            = "3.27.0"
-tokio.workspace                     = true
-tokio-postgres.workspace            = true
+simple-mermaid                      = { workspace = true }
+sprs                                = { version = "0.11.4", default-features = false }
 tokio-util.workspace                = true
 tracing                             = { workspace = true }
-type-system.workspace               = true
 usearch                             = "2.25.3"
 uuid.workspace                      = true
 zerocopy                            = "0.8.54"
 
 [dev-dependencies]
-npyz = "0.9.1"
+burn                  = { version = "0.21.0", features = ["candle"] }
+camino                = { workspace = true }
+futures               = { workspace = true }
+hash-graph-embeddings = { workspace = true }
+npyz                  = "0.9.1"
+tempfile              = "3.27.0"
+tokio                 = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-postgres        = { workspace = true }
+tracing-subscriber    = { workspace = true }
+uuid                  = { workspace = true, features = ["v4"] }
 
 # Opt-in only: these need the CUDA toolkit (nvcc) at build time, so they must not be
 # enabled by default or via `--all-features` runs on machines without it.

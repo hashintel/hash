@@ -22,6 +22,7 @@
 //! numerical stages are checked against a pinned Python oracle; see the
 //! conformance tests in each module.
 
+mod artifact;
 mod features;
 mod graph;
 mod initialization;
@@ -31,5 +32,23 @@ mod pipeline;
 mod relation;
 mod sample;
 mod umap;
+mod warm;
 
-pub(crate) use self::mlp::{Projector, TrainingConfig};
+pub use self::{
+    artifact::{
+        ARTIFACT_FORMAT_REVISION, ArtifactError, EncoderMetadata, LoadedEncoder, LoadedProjection,
+        ProjectionMetadata, load_projection,
+    },
+    features::{StructureFeatureError, StructureFeatureOptions},
+    graph::{GraphError, SemanticGraphOptions},
+    initialization::{InitializationError, PcaOptions},
+    layout::{LayoutError, LayoutLadderOptions, LayoutLevel},
+    mlp::{FittedProjector, Projector, ProjectorError, TrainingConfig},
+    pipeline::{
+        FitMetrics, InitializationKind, ProjectionError, ProjectionOptions, ProjectionOutcome,
+        ProjectorLadderOptions, fit_projection,
+    },
+    relation::{RelationGraphError, RelationGraphOptions},
+    sample::{QueryEdges, Relations, Sample, SampleError, SampleOptions},
+    umap::UmapError,
+};

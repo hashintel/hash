@@ -1,6 +1,6 @@
 # Atlas Projection Completion Plan
 
-- **Status:** Baseline implementation in progress
+- **Status:** Baseline implemented; production-scale evaluation (section 8) outstanding
 - **Last updated:** 2026-07-10
 - **Scope:** `libs/@local/graph/atlas/src/projection`
 - **Design source of truth:** [`PRD.md`](./PRD.md)
@@ -60,35 +60,41 @@ Complete these sections in order unless a discovered correctness issue requires 
 
 The relation SQL currently compiles as Rust but still needs live PostgreSQL coverage.
 
-- [ ] Add Atlas PostgreSQL integration coverage using the repository's established database test harness.
-- [ ] Verify the cold sample path creates matching embedding and mapping rows.
-- [ ] Verify the hot path restores the same sampled identity mapping from binary COPY.
-- [ ] Verify self-relations are removed.
-- [ ] Verify directional and parallel duplicates collapse to one canonical undirected pair.
-- [ ] Verify degree statistics are calculated after deduplication.
-- [ ] Verify the quantile and median-ratio hub thresholds against a small known graph.
-- [ ] Verify hub identities are returned as stable `EntityId` values in sampled-row order.
-- [ ] Verify every streamed endpoint is a valid `u32` sampled row.
-- [ ] Verify streamed adjacency is strictly ordered and symmetric.
-- [ ] Verify `Sample::finish` commits and releases the transaction before local numerical work.
-- [ ] Verify a transaction or relation-extraction failure does not publish layout artifacts.
-- [ ] Fix any SQL behavior discovered by these tests rather than mocking around it.
+- [x] Add Atlas PostgreSQL integration coverage using the repository's established database test harness.
+- [x] Verify the cold sample path creates matching embedding and mapping rows.
+- [x] Verify the hot path restores the same sampled identity mapping from binary COPY.
+- [x] Verify self-relations are removed.
+- [x] Verify directional and parallel duplicates collapse to one canonical undirected pair.
+- [x] Verify degree statistics are calculated after deduplication.
+- [x] Verify the quantile and median-ratio hub thresholds against a small known graph.
+- [x] Verify hub identities are returned as stable `EntityId` values in sampled-row order.
+- [x] Verify every streamed endpoint is a valid `u32` sampled row.
+- [x] Verify streamed adjacency is strictly ordered and symmetric.
+- [x] Verify `Sample::finish` commits and releases the transaction before local numerical work.
+- [x] Verify a transaction or relation-extraction failure does not publish layout artifacts.
+- [x] Fix any SQL behavior discovered by these tests rather than mocking around it.
 
 **Acceptance:** cold and hot paths produce equivalent relation behavior on a known fixture, and transaction release is observable before HNSW/PCA/UMAP work begins.
+
+_Delivered by `tests/postgres.rs`, which runs against the live development server using
+session-temporary mirrors of `entity_embeddings`/`entity_edge` (real graph data is shadowed,
+never read or written). The suite immediately caught three real SQL bugs, all fixed: missing
+`draft_id IS NULL` filters (duplicate sampled identities), `TABLESAMPLE`/`REPEATABLE`
+parameter type mismatches, and an `int8`-inferred hub-degree comparison._
 
 ### 2. Finish projector-training correctness
 
 The projector is connected to the right feature matrix and warm-chains weights, but its training contract still needs to match the prototype's stable behavior.
 
-- [ ] Compute per-axis layout center and scale for each alpha level.
-- [ ] Train against standardized coordinates.
-- [ ] Fold de-standardization into the final linear layer, or preserve an equivalent serialized output transform.
-- [ ] Report validation RMSE in layout units for each alpha.
-- [ ] Confirm the first projector uses the full epoch budget and later rungs use the chained budget.
-- [ ] Confirm rung-to-rung weight initialization actually preserves the previous fitted weights on the selected Burn backend.
-- [ ] Replace user/configuration-dependent projector panics with a manual `ProjectorError` and explicit validation.
-- [ ] Handle invalid batch size, epoch count, validation split, learning rates, row counts, and target dimensions.
-- [ ] Ensure early stopping returns or restores the best validation model rather than an arbitrarily later epoch.
+- [x] Compute per-axis layout center and scale for each alpha level.
+- [x] Train against standardized coordinates.
+- [x] Fold de-standardization into the final linear layer, or preserve an equivalent serialized output transform.
+- [x] Report validation RMSE in layout units for each alpha.
+- [x] Confirm the first projector uses the full epoch budget and later rungs use the chained budget.
+- [x] Confirm rung-to-rung weight initialization actually preserves the previous fitted weights on the selected Burn backend.
+- [x] Replace user/configuration-dependent projector panics with a manual `ProjectorError` and explicit validation.
+- [x] Handle invalid batch size, epoch count, validation split, learning rates, row counts, and target dimensions.
+- [x] Ensure early stopping returns or restores the best validation model rather than an arbitrarily later epoch.
 
 **Acceptance:** a small deterministic training test reduces validation error, returns finite raw-layout coordinates, and demonstrates that chained initialization starts from the previous rung's weights.
 
@@ -96,11 +102,11 @@ The projector is connected to the right feature matrix and warm-chains weights, 
 
 Layouts are persisted, but trained models and their fit-time serving state are not yet durably published.
 
-- [ ] Select the Burn model record format compatible with the intended serving backend.
-- [ ] Persist one model per alpha using stable names such as `encoder-a100`, `encoder-a075`, and so on.
-- [ ] Publish models through temporary-file hotswapping without deleting the existing destination first.
-- [ ] Persist stable hub identities; never persist sample-local hub row indices as serving identity.
-- [ ] Persist and validate feature metadata:
+- [x] Select the Burn model record format compatible with the intended serving backend.
+- [x] Persist one model per alpha using stable names such as `encoder-a100`, `encoder-a075`, and so on.
+- [x] Publish models through temporary-file hotswapping without deleting the existing destination first.
+- [x] Persist stable hub identities; never persist sample-local hub row indices as serving identity.
+- [x] Persist and validate feature metadata:
   - feature specification and ordering;
   - embedding/MRL dimension;
   - neighbor cap;
@@ -109,9 +115,9 @@ Layouts are persisted, but trained models and their fit-time serving state are n
   - alpha level;
   - model/input dimensions;
   - artifact-format revision.
-- [ ] Add a loader that validates metadata before accepting a model.
-- [ ] Add a model serialization round-trip test that compares inference before and after loading.
-- [ ] Verify publication failure leaves the previous model or metadata file intact.
+- [x] Add a loader that validates metadata before accepting a model.
+- [x] Add a model serialization round-trip test that compares inference before and after loading.
+- [x] Verify publication failure leaves the previous model or metadata file intact.
 
 **Acceptance:** a fresh process can load hubs, metadata, and every alpha projector and reproduce the in-memory projector output within the backend's numerical tolerance.
 
@@ -119,14 +125,16 @@ Layouts are persisted, but trained models and their fit-time serving state are n
 
 Warm starts currently work within one alpha ladder. Warm starts between separate refits remain incomplete.
 
-- [ ] Define the production input for a previous alpha-1.0 layout and projector generation.
-- [ ] Reuse prior coordinates directly when the sampled row ordering is unchanged.
-- [ ] For a changed sample, implement one measured strategy from the PRD priority order:
+- [x] Define the production input for a previous alpha-1.0 layout and projector generation.
+- [x] Reuse prior coordinates directly when the sampled row ordering is unchanged.
+- [x] For a changed sample, implement one measured strategy from the PRD priority order:
   - stable identity matching plus semantic-neighbor placement for new rows; or
   - previous-projector inference for the new sample.
-- [ ] Load the previous alpha-1.0 projector as the first projector's initial weights when compatible.
-- [ ] Fall back cleanly to PCA/new projector initialization when previous artifacts are absent or incompatible.
-- [ ] Measure carried-over entity drift and new-entity placement quality.
+- [x] Load the previous alpha-1.0 projector as the first projector's initial weights when compatible.
+- [x] Fall back cleanly to PCA/new projector initialization when previous artifacts are absent or incompatible.
+- [ ] Measure carried-over entity drift and new-entity placement quality. _(Blocked on a
+      production-scale sample; the mechanisms are implemented and unit-tested, the measurement
+      belongs to the section 8 evaluation run.)_
 
 **Acceptance:** repeated fitting with compatible prior artifacts is visibly stable, while stale or incompatible artifacts produce an explicit fallback rather than corrupt initialization.
 
@@ -134,8 +142,8 @@ Warm starts currently work within one alpha ladder. Warm starts between separate
 
 The implemented pieces are currently crate-private and have no production call site.
 
-- [ ] Define the minimal public entry point and option types needed by the Atlas caller.
-- [ ] Orchestrate:
+- [x] Define the minimal public entry point and option types needed by the Atlas caller.
+- [x] Orchestrate:
   1. sample load;
   2. PostgreSQL relation extraction;
   3. transaction finish;
@@ -145,21 +153,21 @@ The implemented pieces are currently crate-private and have no production call s
   7. transient structure-feature generation;
   8. projector fitting;
   9. hub, metadata, model, and layout publication.
-- [ ] Return useful per-stage artifacts and metrics without retaining unnecessary sparse graphs or training buffers.
-- [ ] Drop the transient structure-feature `Bytes` once projector fitting completes.
-- [ ] Ensure no API permits accidentally carrying `Sample`'s transaction into numerical work.
+- [x] Return useful per-stage artifacts and metrics without retaining unnecessary sparse graphs or training buffers.
+- [x] Drop the transient structure-feature `Bytes` once projector fitting completes.
+- [x] Ensure no API permits accidentally carrying `Sample`'s transaction into numerical work.
 
 **Acceptance:** one caller can run the complete fit without reaching into private stage modules, and resource lifetimes follow the intended database/memory boundaries.
 
 ### 6. Close baseline test coverage
 
-- [ ] Keep the pinned oracle differential tests for semantic graph, relation graph, feature generation, fusion, and serial UMAP.
-- [ ] Add projector normalization and serialization tests.
-- [ ] Add a small end-to-end pipeline smoke test.
-- [ ] Add malformed-shape/index/configuration tests for every manual error boundary.
-- [ ] Add output hotswap failure tests where failure can be induced deterministically.
-- [ ] Run the live PostgreSQL integration suite.
-- [ ] Run full crate formatting, checking, clippy, unit tests, and doc tests.
+- [x] Keep the pinned oracle differential tests for semantic graph, relation graph, feature generation, fusion, and serial UMAP.
+- [x] Add projector normalization and serialization tests.
+- [x] Add a small end-to-end pipeline smoke test.
+- [x] Add malformed-shape/index/configuration tests for every manual error boundary.
+- [x] Add output hotswap failure tests where failure can be induced deterministically.
+- [x] Run the live PostgreSQL integration suite.
+- [x] Run full crate formatting, checking, clippy, unit tests, and doc tests.
 
 **Acceptance:** all baseline stages have either a deterministic unit/oracle test or a live integration test, and the full crate validation is green apart from explicitly documented pre-existing warnings.
 
@@ -167,20 +175,24 @@ The implemented pieces are currently crate-private and have no production call s
 
 Use the repository's established tracing conventions rather than progress bars embedded in numerical code.
 
-- [ ] Sample rows, dimensions, cache path, and hot/cold status.
-- [ ] Relation rows before/after deduplication and hub removal.
-- [ ] Degree median, quantile cutoff, and hub count.
-- [ ] HNSW configuration, build/query duration, and resulting graph size.
-- [ ] Relation diffusion candidates/retained counts and graph size.
-- [ ] PCA sketch size and duration.
-- [ ] Per-alpha fused graph size, epochs, duration, and final objective diagnostic.
-- [ ] Structure-feature duration, dimensions, and memory size.
-- [ ] Per-alpha projector duration and validation RMSE in layout units.
-- [ ] Artifact paths and byte sizes.
+- [x] Sample rows, dimensions, cache path, and hot/cold status.
+- [x] Relation rows before/after deduplication and hub removal.
+- [x] Degree median, quantile cutoff, and hub count.
+- [x] HNSW configuration, build/query duration, and resulting graph size.
+- [x] Relation diffusion candidates/retained counts and graph size.
+- [x] PCA sketch size and duration.
+- [x] Per-alpha fused graph size, epochs, duration, and final objective diagnostic.
+- [x] Structure-feature duration, dimensions, and memory size.
+- [x] Per-alpha projector duration and validation RMSE in layout units.
+- [x] Artifact paths and byte sizes.
 
 **Acceptance:** a production run identifies which stage dominates time or fails without logging individual embeddings or high-volume row data.
 
 ### 8. Run and record a representative production-scale evaluation
+
+_Outstanding: this section needs a production-scale database and a dedicated evaluation run;
+it cannot be produced from unit or fixture-scale integration tests. The tracing added in
+section 7 and the returned `FitMetrics` provide the stage timings and sizes this run records._
 
 - [ ] Run the default configuration, or the largest operationally representative sample available.
 - [ ] Record peak RSS separately for sampling, HNSW, graph construction, UMAP, feature generation, and projector training.

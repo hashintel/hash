@@ -9,6 +9,38 @@
 //! tool: sampling embeddings and relations, building the semantic and relational graphs, fitting
 //! the alpha ladder of layouts, and distilling the per-level encoders.
 //!
+//! ## Running a fit
+//!
+//! The entry point is [`projection::fit_projection`]: load a sample with
+//! [`projection::Sample::load`], then fit and publish in one call.
+//!
+//! ```rust,no_run
+//! use burn::backend::{Autodiff, Wgpu};
+//! use hash_graph_atlas::projection::{ProjectionOptions, Sample, SampleOptions, fit_projection};
+//!
+//! # async fn example(client: &mut tokio_postgres::Client) -> Result<(), Box<dyn core::error::Error>> {
+//! let out = camino::Utf8Path::new("/var/lib/atlas");
+//! let sample = Sample::load(client, out, 42, SampleOptions::default()).await?;
+//! let outcome = fit_projection::<Autodiff<Wgpu>>(
+//!     sample,
+//!     out,
+//!     ProjectionOptions {
+//!         // Warm-start from the previous generation when it exists.
+//!         warm_start: Some(out.to_owned()),
+//!         ..ProjectionOptions::default()
+//!     },
+//!     &Default::default(),
+//! )
+//! .await?;
+//! println!("published {} encoders", outcome.metadata.encoders.len());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! The fit publishes `layout-aXXX.f32`, `encoder-aXXX.mpk`, `hubs.json`, and
+//! `projection-metadata.json` into the output directory; a serving process
+//! restores them with [`projection::load_projection`].
+//!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
@@ -27,4 +59,5 @@
     clippy::indexing_slicing
 )]
 pub mod float;
+pub(crate) mod macros;
 pub mod projection;

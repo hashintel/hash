@@ -6260,6 +6260,10 @@ name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
  "burn",
+ "burn-backend",
+ "burn-core",
+ "burn-tensor",
+ "burn-train",
  "bytes",
  "camino",
  "candle-core",
@@ -6289,6 +6293,7 @@ dependencies = [
  "tokio-postgres",
  "tokio-util",
  "tracing",
+ "tracing-subscriber",
  "type-system",
  "usearch",
  "uuid",

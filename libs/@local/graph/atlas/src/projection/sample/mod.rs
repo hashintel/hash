@@ -23,7 +23,7 @@ use hash_graph_embeddings::{D512, Dimension};
 use tokio::fs;
 use tokio_postgres::{Client, IsolationLevel, Transaction};
 
-pub(super) use self::relations::{QueryEdges, Relations};
+pub use self::relations::{QueryEdges, Relations};
 use self::{
     cache::{embeddings_path, load_mapping, mappings_path, write_sample},
     relations::prepare_relations,
@@ -43,7 +43,7 @@ const OUTPUT_BUFFER_SIZE: usize = 1024 * 1024;
 
 /// A failure while sampling embeddings or preparing their relational view.
 #[derive(Debug)]
-pub(super) enum SampleError {
+pub enum SampleError {
     /// The cached embedding and mapping files disagree on the row count.
     CacheRowCount { embeddings: usize, mappings: u64 },
     /// The database returned an embedding with the wrong dimension.
@@ -126,7 +126,7 @@ impl From<tokio_postgres::Error> for SampleError {
 
 /// Configuration for [`Sample::load`].
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct SampleOptions {
+pub struct SampleOptions {
     /// Number of leading embedding values kept per entity (the MRL
     /// truncation). Rows are re-normalized to unit length after truncation.
     pub dim: Dimension = D512,
@@ -140,9 +140,10 @@ pub(crate) struct SampleOptions {
 /// The repeatable-read transaction remains open so callers can build relational inputs through
 /// [`Self::relations`]. Call [`Self::finish`] before long-running fitting or training to release
 /// the database snapshot and connection while retaining the mmap-backed embeddings.
-pub(crate) struct Sample<'client> {
+pub struct Sample<'client> {
     embeddings: FloatBytes,
     transaction: Transaction<'client>,
+    from_cache: bool,
 }
 
 impl<'client> Sample<'client> {
@@ -164,7 +165,7 @@ impl<'client> Sample<'client> {
     /// Returns an error when the cache files cannot be read or written, when
     /// a database operation fails, or when the cached embedding and mapping
     /// row counts disagree (for example after a partial cache write).
-    pub(crate) async fn load(
+    pub async fn load(
         client: &'client mut Client,
         out: impl AsRef<Utf8Path>,
         seed: u64,
@@ -188,9 +189,11 @@ impl<'client> Sample<'client> {
             .await?;
 
         let mapping_rows = if cache_exists {
+            tracing::info!(cache = %out, "restoring sampled identities from the cache");
             let mut file = fs::File::open(&mappings_path).await?;
             load_mapping(&transaction, &mut file).await?
         } else {
+            tracing::info!(cache = %out, seed, "drawing a fresh sample");
             write_sample(&transaction, out, seed, options).await?
         };
 
@@ -207,16 +210,26 @@ impl<'client> Sample<'client> {
         Ok(Self {
             embeddings,
             transaction,
+            from_cache: cache_exists,
         })
     }
 
     /// The sampled embeddings, one row per sample index.
-    pub(super) const fn embeddings(&self) -> &FloatBytes {
+    pub const fn embeddings(&self) -> &FloatBytes {
         &self.embeddings
     }
 
+    /// Whether this sample was restored from the on-disk cache.
+    ///
+    /// A cached sample restores the exact identity mapping of the previous
+    /// run, so its row ordering is guaranteed to match any layout fitted
+    /// from the same cache.
+    pub const fn from_cache(&self) -> bool {
+        self.from_cache
+    }
+
     /// Preprocesses sampled relations in PostgreSQL and returns their stable hubs and adjacency.
-    pub(super) async fn relations(
+    pub async fn relations(
         &self,
         hub_quantile: f64,
         hub_min_ratio: f64,
@@ -225,10 +238,11 @@ impl<'client> Sample<'client> {
     }
 
     /// Commits the short-lived database snapshot and returns the embeddings used for training.
-    pub(super) async fn finish(self) -> Result<FloatBytes, SampleError> {
+    pub async fn finish(self) -> Result<FloatBytes, SampleError> {
         let Self {
             embeddings,
             transaction,
+            from_cache: _,
         } = self;
 
         transaction.commit().await?;

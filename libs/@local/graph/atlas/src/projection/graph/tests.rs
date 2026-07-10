@@ -1,7 +1,7 @@
+use core::num::NonZero;
 use std::{
     fs::File,
     io::{BufReader, Write as _},
-    num::NonZero,
     path::{Path, PathBuf},
 };
 
@@ -12,7 +12,7 @@ use super::{
     fuzzy::{fuzzy_graph, membership_strengths, smooth_knn_distances},
     knn::{Knn, SemanticGraphOptions, semantic_graph, semantic_knn},
 };
-use crate::float::FloatBytes;
+use crate::{float::FloatBytes, macros::nz};
 
 const FLOAT_TOLERANCE: f32 = 2.0e-5;
 
@@ -113,9 +113,9 @@ fn builds_knn_from_mmap_with_usearch() {
     let knn = semantic_knn(
         &embeddings,
         SemanticGraphOptions {
-            neighbors: 3,
-            expansion_search: 8,
-            ..SemanticGraphOptions::default()
+            neighbors: nz!(3),
+            expansion_search: nz!(8),
+            ..
         },
     )
     .expect("USearch should build a k-NN result");
@@ -138,9 +138,9 @@ fn builds_knn_from_mmap_with_usearch() {
     let graph = semantic_graph(
         &embeddings,
         SemanticGraphOptions {
-            neighbors: 3,
-            expansion_search: 8,
-            ..SemanticGraphOptions::default()
+            neighbors: nz!(3),
+            expansion_search: nz!(8),
+            ..
         },
     )
     .expect("semantic graph should build");

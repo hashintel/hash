@@ -34,12 +34,12 @@ use type_system::{
 use super::{HUB_TABLE, RELATION_DEGREE_TABLE, RELATION_TABLE, SAMPLE_TABLE, SampleError};
 
 /// The relational inputs extracted from one sample snapshot.
-pub(in crate::projection) struct Relations<'sample> {
+pub struct Relations<'sample> {
     /// Stable identities of the removed hub rows, in sample-index order.
-    pub(in crate::projection) hubs: Vec<EntityId>,
+    pub hubs: Vec<EntityId>,
     /// The symmetric hub-free adjacency, streamed in strict `(source,
     /// target)` order.
-    pub(in crate::projection) edges: QueryEdges<'sample>,
+    pub edges: QueryEdges<'sample>,
 }
 
 pin_project_lite::pin_project! {
@@ -49,7 +49,7 @@ pin_project_lite::pin_project! {
     /// stream is strictly ordered by `(source, target)`, which is exactly the
     /// order a CSR adjacency is assembled in. The lifetime ties the stream to
     /// the sample's open transaction.
-    pub(in crate::projection) struct QueryEdges<'sample> {
+    pub struct QueryEdges<'sample> {
         #[pin]
         stream: RowStream,
         marker: PhantomData<&'sample ()>,
@@ -170,7 +170,7 @@ async fn select_hubs(
                      SELECT degree.sample_index, sample.web_id, sample.entity_uuid
                      FROM {RELATION_DEGREE_TABLE} degree
                      JOIN {SAMPLE_TABLE} sample USING (sample_index)
-                     WHERE degree.degree > $1"
+                     WHERE degree.degree > $1::DOUBLE PRECISION"
             ),
             &[&hub_cut],
         )
