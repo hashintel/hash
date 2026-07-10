@@ -7,6 +7,7 @@ use hash_graph_authorization::policies::{
     action::ActionName,
     store::{RoleAssignmentStatus, RoleUnassignmentStatus},
 };
+use hash_graph_migrations::{Context as _, Transaction as _};
 use hash_graph_store::account::{AccountStore as _, GetActorError};
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;

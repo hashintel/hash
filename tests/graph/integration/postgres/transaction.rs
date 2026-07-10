@@ -1,4 +1,6 @@
-use hash_graph_postgres_store::store::{AsClient as _, IsolationLevel, TransactionBuilder as _};
+use hash_graph_postgres_store::store::{
+    AsClient as _, Context as _, IsolationLevel, Transaction as _, TransactionBuilder as _,
+};
 
 use crate::DatabaseTestWrapper;
 

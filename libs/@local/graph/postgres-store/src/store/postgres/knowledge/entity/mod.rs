@@ -18,7 +18,9 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
-use hash_graph_migrations::{IsolationLevel, TransactionBuilder as _};
+use hash_graph_migrations::{
+    Context as _, IsolationLevel, Transaction as _, TransactionBuilder as _,
+};
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,

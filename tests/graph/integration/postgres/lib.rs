@@ -32,8 +32,8 @@ use hash_graph_authorization::policies::{
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
-        PostgresStoreSettings,
+        Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
+        PostgresStorePool, PostgresStoreSettings,
     },
 };
 use hash_graph_store::{

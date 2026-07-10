@@ -21,7 +21,7 @@ use hash_graph_authorization::policies::{
     principal::PrincipalConstraint,
     store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
 };
-use hash_graph_postgres_store::store::{PostgresStore, error::StoreError};
+use hash_graph_postgres_store::store::{Context as _, PostgresStore, error::StoreError};
 use tokio_postgres::Transaction;
 use type_system::principal::actor::ActorId;
 

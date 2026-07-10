@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
-use hash_graph_postgres_store::store::{AsClient as _, PostgresStore};
+use hash_graph_postgres_store::store::{AsClient as _, Context as _, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{CreateDataTypeParams, DataTypeStore as _},

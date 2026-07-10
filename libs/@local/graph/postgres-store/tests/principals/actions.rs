@@ -1,7 +1,7 @@
 use core::{assert_matches, error::Error};
 
 use hash_graph_authorization::policies::action::ActionName;
-use hash_graph_postgres_store::permissions::ActionError;
+use hash_graph_postgres_store::{permissions::ActionError, store::Context as _};
 
 use crate::DatabaseTestWrapper;
 

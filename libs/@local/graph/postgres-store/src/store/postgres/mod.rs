@@ -3159,35 +3159,11 @@ where
 
         Ok(())
     }
-
-    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
-    ///
-    /// By default the transaction is begun with the database's default characteristics. Options
-    /// can be configured on the builder before awaiting it:
-    ///
-    /// ```ignore
-    /// let transaction = store
-    ///     .transaction()
-    ///     .isolation_level(IsolationLevel::RepeatableRead)
-    ///     .read_only()
-    ///     .await?;
-    /// ```
-    #[expect(
-        clippy::same_name_method,
-        reason = "The `Context` implementation delegates to this method so call sites don't need \
-                  to import the trait"
-    )]
-    pub fn transaction(&mut self) -> PostgresStoreTransactionBuilder<'_, C> {
-        PostgresStoreTransactionBuilder {
-            store: self,
-            options: TransactionOptions::default(),
-        }
-    }
 }
 
 /// A [`TransactionBuilder`] for a [`PostgresStore`].
 ///
-/// Created by [`PostgresStore::transaction`], this builder begins the transaction when awaited.
+/// Created by [`Context::transaction`], this builder begins the transaction when awaited.
 /// For a [`Client`]-backed store the configured options are compiled into the single `BEGIN`
 /// statement issued to the database; see [`AsClient::begin_transaction`] for the exact semantics.
 pub struct PostgresStoreTransactionBuilder<'t, C> {
@@ -3251,9 +3227,23 @@ where
     where
         Self: 't;
 
+    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
+    ///
+    /// By default the transaction is begun with the database's default characteristics. Options
+    /// can be configured on the builder before awaiting it:
+    ///
+    /// ```ignore
+    /// let transaction = store
+    ///     .transaction()
+    ///     .isolation_level(IsolationLevel::RepeatableRead)
+    ///     .read_only()
+    ///     .await?;
+    /// ```
     fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
-        // Delegates to the inherent method, which takes precedence in method resolution.
-        self.transaction()
+        PostgresStoreTransactionBuilder {
+            store: self,
+            options: TransactionOptions::default(),
+        }
     }
 }
 
@@ -3430,30 +3420,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             web_id,
             OntologyTemporalMetadata { transaction_time },
         ))
-    }
-
-    /// # Errors
-    ///
-    /// - if the underlying client cannot commit the transaction
-    #[expect(
-        clippy::same_name_method,
-        reason = "The `Transaction` implementation delegates to this method so call sites don't \
-                  need to import the trait"
-    )]
-    pub async fn commit(self) -> Result<(), Report<StoreError>> {
-        self.client.commit().await.change_context(StoreError)
-    }
-
-    /// # Errors
-    ///
-    /// - if the underlying client cannot rollback the transaction
-    #[expect(
-        clippy::same_name_method,
-        reason = "The `Transaction` implementation delegates to this method so call sites don't \
-                  need to import the trait"
-    )]
-    pub async fn rollback(self) -> Result<(), Report<StoreError>> {
-        self.client.rollback().await.change_context(StoreError)
     }
 }
 

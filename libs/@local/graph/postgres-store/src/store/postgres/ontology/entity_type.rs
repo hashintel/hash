@@ -9,6 +9,7 @@ use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
 };
+use hash_graph_migrations::{Context as _, Transaction as _};
 use hash_graph_store::{
     entity::{ClosedMultiEntityTypeMap, EntityStore},
     entity_type::{
