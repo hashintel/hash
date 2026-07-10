@@ -2,11 +2,11 @@ import { Box, Container, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { getEntityTypes, getRoots } from "@blockprotocol/graph/stdlib";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
-import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
-import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useBlockProtocolQueryEntityTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
+import { isSpecialEntityType } from "../../shared/entity-types-context/shared/is-special-entity-type";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../../shared/layout";
@@ -22,7 +22,10 @@ import {
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DataTypeRootType } from "@blockprotocol/graph";
-import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
@@ -52,33 +55,73 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
-  const { latestEntityTypes } = useLatestEntityTypesOptional({
-    includeArchived: true,
-  });
+  const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const [latestEntityTypesByKind, setLatestEntityTypesByKind] = useState<{
+    nonLink: EntityTypeWithMetadata[];
+    link: EntityTypeWithMetadata[];
+  }>();
 
-  const latestNonLinkEntityTypes = useMemo(
-    () =>
-      isSpecialEntityTypeLookup
-        ? latestEntityTypes?.filter(
-            (entityType) =>
-              !isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
-          )
-        : undefined,
-    [isSpecialEntityTypeLookup, latestEntityTypes],
-  );
+  /**
+   * This page only lists the latest version of each entity type, so it runs
+   * its own `latestOnly` query rather than waiting on the entity types
+   * context, which fetches all versions of all entity types (including
+   * archived ones) – a much heavier query.
+   *
+   * Constraint resolve depths are zeroed because only the inheritance chain
+   * (`inheritsFrom`, kept at its default depth) is needed to decide whether a
+   * type is a link type.
+   */
+  const fetchEntityTypes = useCallback(async () => {
+    const { data: subgraph } = await queryEntityTypes({
+      data: {
+        latestOnly: true,
+        includeArchived: true,
+        graphResolveDepths: {
+          constrainsValuesOn: 0,
+          constrainsPropertiesOn: 0,
+          constrainsLinksOn: 0,
+          constrainsLinkDestinationsOn: 0,
+        },
+      },
+    });
 
-  const latestLinkEntityTypes = useMemo(
-    () =>
-      isSpecialEntityTypeLookup
-        ? latestEntityTypes?.filter(
-            (entityType) =>
-              isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
-          )
-        : undefined,
-    [isSpecialEntityTypeLookup, latestEntityTypes],
-  );
+    if (!subgraph) {
+      return;
+    }
+
+    const latestEntityTypes = getRoots(subgraph);
+
+    /**
+     * All (transitive) parents of the latest entity types are resolved into
+     * the subgraph via its `inheritsFrom` depth, so the lookup by versioned
+     * URL contains everything `isSpecialEntityType` needs to walk each
+     * type's inheritance chain.
+     */
+    const typesByVersion = Object.fromEntries(
+      getEntityTypes(subgraph).map((type) => [type.schema.$id, type]),
+    );
+
+    const nonLink: EntityTypeWithMetadata[] = [];
+    const link: EntityTypeWithMetadata[] = [];
+
+    for (const entityType of latestEntityTypes) {
+      if (isSpecialEntityType(entityType.schema, typesByVersion).isLink) {
+        link.push(entityType);
+      } else {
+        nonLink.push(entityType);
+      }
+    }
+
+    setLatestEntityTypesByKind({ nonLink, link });
+  }, [queryEntityTypes]);
+
+  useEffect(() => {
+    void fetchEntityTypes();
+  }, [fetchEntityTypes]);
+
+  const latestNonLinkEntityTypes = latestEntityTypesByKind?.nonLink;
+  const latestLinkEntityTypes = latestEntityTypesByKind?.link;
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 

@@ -19,18 +19,10 @@ test("/types page renders and loads types", async ({ page }) => {
     "Data Types": `${pathPrefix}data-type`,
   };
 
-  /**
-   * Check that all tabs have a non-zero type count.
-   *
-   * The counts render only once the types contexts have finished loading all
-   * types (a heavy all-versions query) – until then the tabs show just their
-   * title alongside a loading spinner, so allow a generous timeout rather
-   * than the default 5s.
-   */
+  // Check that all tabs have a non-zero type count
   for (const [tabTitle, href] of Object.entries(hrefByTabTitle)) {
     await expect(page.locator(`[href*="${href}"]`)).toHaveText(
       new RegExp(`^${tabTitle}[1-9]\\d*$`),
-      { timeout: 30_000 },
     );
   }
 });
