@@ -19,10 +19,7 @@ import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import {
   blockProtocolDataTypes,
@@ -924,10 +921,11 @@ export const getEntitiesByType: ImpureGraphFunction<
 > = async (context, authentication, { entityTypeId }) =>
   queryEntities(context, authentication, {
     filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(entityTypeId, {
-          ignoreParents: true,
-        }),
+      equal: [
+        { path: ["type", "versionedUrl"] },
+        {
+          parameter: entityTypeId,
+        },
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,

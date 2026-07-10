@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use harpc_wire_protocol::request::{Request, id::RequestId};
-use scc::{HashIndex, ebr::Guard, hash_index::Entry};
+use scc::{Guard, HashIndex, hash_index::Entry};
 use tachyonix::SendTimeoutError;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 use tokio_util::sync::CancellationToken;
@@ -116,7 +116,7 @@ impl TransactionCollection {
 
         let entry = self.storage.entry_async(id).await;
         match entry {
-            Entry::Occupied(entry) => {
+            Entry::Occupied(mut entry) => {
                 // We need to cancel the previous transaction immediately, as we have received
                 // another request for the same transaction id, if we would drop the handle, instead
                 // of cancelling it, we would send an error that transmission was incomplete.

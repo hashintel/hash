@@ -62,7 +62,8 @@ export interface OpenTelemetrySetup {
   shutdown: () => Promise<void>;
   /**
    * The trace exporter, exposed so callers can build worker-side sinks
-   * (e.g. Temporal's `makeWorkflowExporter`) that share this connection.
+   * (e.g. a span processor feeding Temporal's `makeWorkflowExporter`)
+   * that share this connection.
    */
   traceExporter: SpanExporter;
   /** The resource used for traces / logs / metrics, shared with sinks. */
@@ -284,7 +285,7 @@ export const registerOpenTelemetry = ({
   const logExporter = new OTLPLogExporter(collectorOptions);
   const logProvider = new LoggerProvider({
     resource,
-    processors: [new BatchLogRecordProcessor(logExporter)],
+    processors: [new BatchLogRecordProcessor({ exporter: logExporter })],
   });
   logs.setGlobalLoggerProvider(logProvider);
 

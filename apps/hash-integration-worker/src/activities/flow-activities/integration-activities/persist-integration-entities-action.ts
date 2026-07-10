@@ -26,10 +26,7 @@ import {
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
@@ -70,9 +67,12 @@ const findExistingEntity = async (params: {
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            ignoreParents: true,
-          }),
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              { parameter: entityTypeId },
+            ],
+          },
           { equal: [{ path: ["webId"] }, { parameter: webId }] },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           propertyFilter,
@@ -158,9 +158,12 @@ const findExistingLink = async (params: {
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(linkEntityTypeId, {
-            ignoreParents: true,
-          }),
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              { parameter: linkEntityTypeId },
+            ],
+          },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           { equal: [{ path: ["webId"] }, { parameter: webId }] },
           linkFilter,

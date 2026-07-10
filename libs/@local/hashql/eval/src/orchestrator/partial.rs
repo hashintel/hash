@@ -31,7 +31,6 @@ use hashql_core::{
     r#type::{TypeId, environment::Environment},
 };
 use hashql_mir::{
-    intern::Interner,
     interpret::value::{Int, Num, Opaque, StructBuilder, Value},
     pass::execution::{
         VertexType,
@@ -46,7 +45,7 @@ use super::{
     codec::{JsonValueRef, decode::Decoder},
     error::BridgeError,
 };
-use crate::postgres::ColumnDescriptor;
+use crate::{intern::Interner, postgres::ColumnDescriptor};
 
 macro_rules! hydrate {
     ($this:ident -> $entry:ident $(-> $field:ident)+ = $value:expr) => {

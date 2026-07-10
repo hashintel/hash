@@ -2,12 +2,14 @@ mod delete;
 mod query;
 mod read;
 mod summary;
+
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, mem};
+use core::{any::Any, borrow::Borrow as _, fmt, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
@@ -15,18 +17,23 @@ use hash_graph_authorization::policies::{
     resource::{EntityResourceConstraint, ResourceConstraint},
     store::{PolicyCreationParams, PrincipalStore as _},
 };
+use hash_graph_embeddings::{Dimension, clustering::Clustering};
 use hash_graph_store::{
     entity::{
-        CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EmptyEntityTypes,
-        EntityPermissions, EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore,
-        EntityTypeRetrieval, EntityTypesError, EntityValidationReport, EntityValidationType,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
-        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
-        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
+        DeletionSummary, EmptyEntityTypes, EntityCluster, EntityPermissions, EntityQueryCursor,
+        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesFilter,
+        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
+        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
     entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+    },
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
         protection::transform_filter,
@@ -53,12 +60,13 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_types::{
     Embedding,
-    knowledge::{entity::EntityEmbedding, property::visitor::EntityVisitor as _},
+    knowledge::property::visitor::EntityVisitor as _,
     ontology::{DataTypeLookup, OntologyTypeProvider},
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
+use tokio::sync::oneshot;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
@@ -92,18 +100,85 @@ use crate::store::{
     postgres::{
         TraversalContext,
         crud::{QueryIndices, TypedRow},
-        knowledge::entity::{read::EntityEdgeTraversalData, summary::EntitySummaryQuery},
+        knowledge::entity::{
+            read::EntityEdgeTraversalData,
+            summary::{Deduplication, EntitySummaryQuery},
+        },
         query::{
-            Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
-            SelectCompiler, Table,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
-                EntityTemporalMetadataRow,
+                EntityTemporalMetadataRow, PostgresRow as _,
             },
         },
     },
     validation::StoreProvider,
 };
+
+/// The panic that happened during a spawned task.
+///
+/// Opaque to fulfil the `Sync` contract, which has the safety requirement that it must be sound for
+/// `&JoinError`, to cross thread boundaries. By design, a `&JoinError` has no API whatsoever,
+/// making it useless, thus harmless, thus memory safe.
+///
+/// This use has precedent, see the nightly `SyncView`, the `SyncWrapper` inside tokio, and
+/// `SyncWrapper` of the `sync_wrapper` crate.
+struct JoinError(Box<dyn Any + Send>);
+
+// SAFETY: An immutable reference to a `JoinError` is useless, as the value can only be interacted
+// with by getting the inner value. This mirrors the design of `SyncView`, see the rationale behind
+// it. We choose to implement a custom wrapper instead, to be able to downcast, as long as the
+// actual value hidden behind is `Sync`, making the wrapper a no-op, mirroring the internal
+// `SyncWrapper` type of tokio, used for it's `JoinError`.
+// See: https://github.com/tokio-rs/tokio/blob/c4c6265a0746a79d4a2f3852f726aa0101f29fd3/tokio/src/util/sync_wrapper.rs#L8
+// and: https://github.com/rust-lang/rust/blob/f10db292a3733b5c67c8da8c7661195ff4b05774/library/core/src/sync/sync_view.rs#L90
+#[expect(unsafe_code)]
+unsafe impl Sync for JoinError {}
+
+impl JoinError {
+    // Adapted from: https://github.com/rust-lang/rust/blob/6c8138de8f1c96b2f66adbbc0e37c73525444750/library/std/src/panicking.rs#L779-L787
+    fn message(&self) -> Option<&str> {
+        if let Some(value) = self.downcast_ref_sync::<&'static str>() {
+            return Some(*value);
+        }
+
+        if let Some(value) = self.downcast_ref_sync::<String>() {
+            return Some(&**value);
+        }
+
+        None
+    }
+
+    fn downcast_ref_sync<T: Any + Sync>(&self) -> Option<&T> {
+        // If the downcast fails, the inner value is not touched, so no thread-safety violation can
+        // occur.
+        self.0.downcast_ref()
+    }
+}
+
+impl fmt::Debug for JoinError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = fmt.debug_tuple("JoinError");
+
+        if let Some(message) = self.message() {
+            return debug.field(&message).finish();
+        }
+
+        debug.finish_non_exhaustive()
+    }
+}
+
+impl fmt::Display for JoinError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(message) = self.message() {
+            return write!(fmt, "task panicked with message: {message}");
+        }
+
+        fmt.write_str("task panicked")
+    }
+}
+
+impl core::error::Error for JoinError {}
 
 impl<C> PostgresStore<C>
 where
@@ -824,6 +899,7 @@ where
                 } else {
                     ValidateEntityComponents::full()
                 },
+                convert_values: true,
             };
             preprocessor.components.link_validation = transaction.settings.validate_links;
 
@@ -865,6 +941,10 @@ where
             entity_id_rows.push(EntityIdRow {
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
+                read_only: params.read_only,
+                created_by_id: entity_provenance.inferred.created_by_id,
+                created_at_transaction_time: entity_provenance.inferred.created_at_transaction_time,
+                created_at_decision_time: entity_provenance.inferred.created_at_decision_time,
                 provenance: entity_provenance.inferred.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {
@@ -883,6 +963,7 @@ where
                 confidence: params.confidence,
                 provenance: entity_provenance.edition.clone(),
                 property_metadata: property_metadata.clone(),
+                created_by_id: entity_provenance.edition.created_by_id,
             });
             entity_edition_ids.push(entity_edition_id);
 
@@ -970,6 +1051,7 @@ where
                     temporal_versioning,
                     entity_type_ids: params.entity_type_ids,
                     archived: false,
+                    read_only: params.read_only,
                     provenance: entity_provenance,
                     confidence: params.confidence,
                     properties: property_metadata,
@@ -997,22 +1079,47 @@ where
         }
 
         let insertions = [
-            InsertStatementBuilder::from_rows(Table::EntityIds, &entity_id_rows),
-            InsertStatementBuilder::from_rows(Table::EntityDrafts, &entity_draft_rows),
-            InsertStatementBuilder::from_rows(Table::EntityEditions, &entity_edition_rows),
-            InsertStatementBuilder::from_rows(
-                Table::EntityTemporalMetadata,
-                &entity_temporal_metadata_rows,
+            (
+                EntityIdRow::table(),
+                bulk_insert().rows(&entity_id_rows).compile(),
+                entity_id_rows.len(),
             ),
-            InsertStatementBuilder::from_rows(Table::EntityIsOfType, &entity_is_of_type_rows),
-            InsertStatementBuilder::from_rows(Table::EntityEdge, &entity_edge_rows),
+            (
+                EntityDraftRow::table(),
+                bulk_insert().rows(&entity_draft_rows).compile(),
+                entity_draft_rows.len(),
+            ),
+            (
+                EntityEditionRow::table(),
+                bulk_insert().rows(&entity_edition_rows).compile(),
+                entity_edition_rows.len(),
+            ),
+            (
+                EntityTemporalMetadataRow::table(),
+                bulk_insert().rows(&entity_temporal_metadata_rows).compile(),
+                entity_temporal_metadata_rows.len(),
+            ),
+            (
+                EntityIsOfTypeRow::table(),
+                bulk_insert().rows(&entity_is_of_type_rows).compile(),
+                entity_is_of_type_rows.len(),
+            ),
+            (
+                EntityEdgeRow::table(),
+                bulk_insert().rows(&entity_edge_rows).compile(),
+                entity_edge_rows.len(),
+            ),
         ];
 
-        for statement in insertions {
-            let (statement, parameters) = statement.compile();
-            transaction
+        for (table, (statement, parameters), expected_rows) in &insertions {
+            let inserted_rows = transaction
                 .as_client()
-                .query(&statement, &parameters)
+                .execute_raw(
+                    statement,
+                    parameters
+                        .iter()
+                        .map(|parameter| &**parameter as &(dyn ToSql + Sync)),
+                )
                 .instrument(tracing::info_span!(
                     "INSERT",
                     otel.kind = "client",
@@ -1022,13 +1129,24 @@ where
                 ))
                 .await
                 .change_context(InsertionError)?;
+            if inserted_rows != *expected_rows as u64 {
+                return Err(Report::new(InsertionError).attach(format!(
+                    "bulk insert into `{table}` affected {inserted_rows} rows but {expected_rows} \
+                     were provided",
+                    table = table.as_str(),
+                )));
+            }
         }
 
         transaction
             .as_client()
             .query(
                 "
-                    INSERT INTO entity_is_of_type
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    )
                     SELECT entity_edition_id,
                         target_entity_type_ontology_id AS entity_type_ontology_id,
                         MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
@@ -1181,6 +1299,7 @@ where
 
             let mut preprocessor = EntityPreprocessor {
                 components: params.components,
+                convert_values: true,
             };
 
             if let Err(property_validation) = preprocessor
@@ -1277,6 +1396,103 @@ where
         }
 
         Ok(response)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn search_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: SearchEntitiesParams,
+    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
+        let SearchEntitiesParams {
+            embedding,
+            maximum_semantic_distance,
+            limit,
+            include_entity_types,
+            filter:
+                SearchEntitiesFilter {
+                    entity_type_ids,
+                    web_ids,
+                    include_drafts,
+                },
+        } = params;
+
+        // TODO(BE-618): optimize the query — it scans embeddings without a vector index. A
+        //   halfvec/HNSW index needs an ANN-friendly query shape to be usable (the current
+        //   `MIN(<=>) GROUP BY` defeats it). The returned entities can also be trimmed to the
+        //   fields the search bar and inference actually use, but the query is the bottleneck.
+        let maximum_distance =
+            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+
+        // The search always runs against the current time and never returns archived entities.
+        let mut filters = vec![
+            Filter::CosineDistance(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Embedding,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Vector(embedding),
+                    convert: None,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Decimal(maximum_distance),
+                    convert: None,
+                },
+            ),
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Archived,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(false),
+                    convert: None,
+                },
+            ),
+        ];
+
+        if !entity_type_ids.is_empty() {
+            filters.push(Filter::Any(
+                entity_type_ids
+                    .iter()
+                    .map(Filter::for_entity_by_type_id)
+                    .collect(),
+            ));
+        }
+        if !web_ids.is_empty() {
+            filters.push(Filter::In(
+                FilterExpression::Path {
+                    path: EntityQueryPath::WebId,
+                },
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::WebIds(&web_ids),
+                },
+            ));
+        }
+
+        let response = self
+            .query_entities(
+                actor_id,
+                QueryEntitiesParams {
+                    filter: Filter::All(filters),
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                    sorting: EntityQuerySorting {
+                        paths: vec![],
+                        cursor: None,
+                    },
+                    conversions: Vec::new(),
+                    limit,
+                    include_drafts,
+                    include_entity_types: include_entity_types
+                        .then_some(IncludeEntityTypeOption::Closed),
+                    include_permissions: false,
+                },
+            )
+            .await?;
+
+        Ok(SearchEntitiesResponse {
+            entities: response.entities,
+            closed_multi_entity_types: response.closed_multi_entity_types,
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -1552,7 +1768,24 @@ where
             return Ok(SummarizeEntitiesResponse::default());
         };
         let (statement, parameters) = compiler.compile();
-        let statement = summary_query.statement(&statement);
+
+        // The `hits` CTE only needs to deduplicate editions when the query can emit more than
+        // one row per edition: either a fan-out (to-many) filter join, or a range variable
+        // temporal axis matching the same edition across several decision-time slices. A
+        // collapsed point interval (`[t, t]`) matches at most one slice per entity, so when no
+        // to-many join was added the dedup can be dropped, unlocking a parallel aggregate.
+        let variable_interval = temporal_axes.variable_interval();
+        let temporal_axis_is_point = matches!(
+            (variable_interval.start(), variable_interval.end()),
+            (TemporalBound::Inclusive(start), LimitedTemporalBound::Inclusive(end))
+                if start == end
+        );
+        let dedup = if compiler.has_to_many_join() || !temporal_axis_is_point {
+            Deduplication::Required
+        } else {
+            Deduplication::Skip
+        };
+        let statement = summary_query.statement(&statement, dedup);
 
         let rows = self
             .as_client()
@@ -1902,6 +2135,7 @@ where
             if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
                 let mut preprocessor = EntityPreprocessor {
                     components: validation_components,
+                    convert_values: true,
                 };
                 if let Err(property_validation) = preprocessor
                     .visit_object(&entity_type, &mut object, &validator_provider)
@@ -1938,6 +2172,7 @@ where
                     entity_type_ids,
                     provenance: previous_entity.metadata.provenance,
                     archived,
+                    read_only: previous_entity.metadata.read_only,
                     confidence: previous_entity.metadata.confidence,
                     properties: property_metadata,
                 },
@@ -2092,6 +2327,7 @@ where
             confidence: params.confidence,
             properties: property_metadata,
             archived,
+            read_only: previous_entity.metadata.read_only,
         };
         let entities = [Entity {
             properties,
@@ -2162,30 +2398,12 @@ where
         _: ActorEntityUuid,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
-        #[derive(Debug, ToSql)]
-        #[postgres(name = "entity_embeddings")]
-        pub struct EntityEmbeddingsRow<'a> {
-            web_id: WebId,
-            entity_uuid: EntityUuid,
-            draft_id: Option<DraftId>,
-            property: Option<String>,
-            embedding: Embedding<'a>,
-            updated_at_transaction_time: Timestamp<TransactionTime>,
-            updated_at_decision_time: Timestamp<DecisionTime>,
+        let mut properties = Vec::with_capacity(params.embeddings.len());
+        let mut embeddings = Vec::with_capacity(params.embeddings.len());
+        for embedding in params.embeddings {
+            properties.push(embedding.property.as_ref().map(ToString::to_string));
+            embeddings.push(embedding.embedding);
         }
-        let entity_embeddings = params
-            .embeddings
-            .into_iter()
-            .map(|embedding: EntityEmbedding<'_>| EntityEmbeddingsRow {
-                web_id: params.entity_id.web_id,
-                entity_uuid: params.entity_id.entity_uuid,
-                draft_id: params.entity_id.draft_id,
-                property: embedding.property.as_ref().map(ToString::to_string),
-                embedding: embedding.embedding,
-                updated_at_transaction_time: params.updated_at_transaction_time,
-                updated_at_decision_time: params.updated_at_decision_time,
-            })
-            .collect::<Vec<_>>();
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -2269,8 +2487,24 @@ where
         self.as_client()
             .query(
                 "
-                    INSERT INTO entity_embeddings
-                    SELECT * FROM UNNEST($1::entity_embeddings[])
+                    INSERT INTO entity_embeddings (
+                        web_id,
+                        entity_uuid,
+                        draft_id,
+                        property,
+                        embedding,
+                        updated_at_transaction_time,
+                        updated_at_decision_time
+                    )
+                    SELECT
+                        $1::uuid,
+                        $2::uuid,
+                        $3::uuid,
+                        property,
+                        embedding,
+                        $6::timestamptz,
+                        $7::timestamptz
+                    FROM unnest($4::text[], $5::vector[]) AS embeddings(property, embedding)
                     ON CONFLICT (web_id, entity_uuid, property) DO UPDATE
                     SET
                         embedding = EXCLUDED.embedding,
@@ -2281,7 +2515,15 @@ where
                     AND entity_embeddings.updated_at_decision_time <= \
                  EXCLUDED.updated_at_decision_time;
                 ",
-                &[&entity_embeddings],
+                &[
+                    &params.entity_id.web_id,
+                    &params.entity_id.entity_uuid,
+                    &params.entity_id.draft_id,
+                    &properties,
+                    &embeddings,
+                    &params.updated_at_transaction_time,
+                    &params.updated_at_decision_time,
+                ],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -2307,7 +2549,11 @@ where
                 "
                     DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
 
-                    INSERT INTO entity_is_of_type
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    )
                     SELECT entity_edition_id,
                            target_entity_type_ontology_id AS entity_type_ontology_id,
                            MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
@@ -2425,6 +2671,208 @@ where
             .change_context(CheckPermissionError::StoreError)?;
 
         Ok(permitted_ids)
+    }
+
+    #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(skip(self, params))]
+    async fn cluster_entities(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: ClusterEntitiesParams,
+    ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
+        const MAX_ALLOWED_DIM: u16 = 512;
+        const MAX_ALLOWED_K: u16 = 64;
+        const { assert!(Embedding::DIM <= u16::MAX as usize) };
+
+        let dimension = Dimension::new(params.dimension.get()).ok_or_else(|| {
+            Report::new(ClusterError::InvalidDimension {
+                dimension: params.dimension,
+            })
+            .attach(StatusCode::InvalidArgument)
+        })?;
+
+        if dimension.get() > MAX_ALLOWED_DIM {
+            return Err(Report::new(ClusterError::DimensionTooLarge {
+                dimension: dimension.value(),
+                max: MAX_ALLOWED_DIM,
+            })
+            .attach(StatusCode::InvalidArgument));
+        }
+
+        if params.cluster_count > MAX_ALLOWED_K {
+            return Err(Report::new(ClusterError::KTooLarge {
+                count: params.cluster_count,
+                max: MAX_ALLOWED_K,
+            })
+            .attach(StatusCode::InvalidArgument));
+        }
+
+        let truncated_dim = usize::from(dimension.get());
+
+        // Filter to entities the actor is allowed to view.
+        let permitted = self
+            .has_permission_for_entities(
+                AuthenticatedActor::from(actor_id),
+                HasPermissionForEntitiesParams {
+                    action: ActionName::ViewEntity,
+                    entity_ids: Cow::Borrowed(&params.entity_ids),
+                    temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+            )
+            .await
+            .change_context(ClusterError::Store)?;
+
+        let permitted_ids: Vec<_> = params
+            .entity_ids
+            .iter()
+            .filter(|&id| permitted.contains_key(id))
+            .copied()
+            .collect();
+
+        let entity_uuids: Vec<_> = permitted_ids.iter().map(|id| id.entity_uuid).collect();
+        let web_ids: Vec<_> = permitted_ids.iter().map(|id| id.web_id).collect();
+
+        // Truncate server-side via `subvector` so postgres only sends
+        // `truncated_dim`-dimensional vectors over the wire.
+        //
+        // Matryoshka truncation shortens the vectors without re-normalizing;
+        // that is fine here because spherical k-means normalizes internally
+        // (it works with inverse norms), so no `l2_normalize` is needed.
+        let row_stream = self
+            .as_client()
+            .query_raw(
+                &format!(
+                    "SELECT
+                        u.web_id,
+                        u.entity_uuid,
+                        subvector(e.embedding, 1, {truncated_dim})::vector({truncated_dim}) AS \
+                     embedding
+                    FROM (
+                        SELECT DISTINCT ON (t.web_id, t.entity_uuid)
+                            t.web_id,
+                            t.entity_uuid,
+                            t.ord
+                        FROM unnest($1::uuid[], $2::uuid[])
+                            WITH ORDINALITY AS t(web_id, entity_uuid, ord)
+                        ORDER BY t.web_id, t.entity_uuid, t.ord
+                    ) u
+                    JOIN entity_embeddings e
+                        ON e.web_id = u.web_id
+                            AND e.entity_uuid = u.entity_uuid
+                    WHERE e.property IS NULL
+                    ORDER BY u.ord"
+                ),
+                [
+                    &web_ids as &(dyn ToSql + Sync),
+                    &entity_uuids as &(dyn ToSql + Sync),
+                ],
+            )
+            .instrument(tracing::info_span!(
+                "cluster_entities.embeddings",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(ClusterError::Store)?;
+
+        let mut row_stream = core::pin::pin!(row_stream);
+
+        let mut flat: Vec<_> = Vec::with_capacity(permitted_ids.len() * truncated_dim);
+        let mut found_ids: Vec<_> = Vec::with_capacity(permitted_ids.len());
+
+        // Every requested entity not in a cluster goes into `missing_embeddings`, whether due to
+        // permissions or no embedding. Distinguishing the two would leak permission information.
+        let mut missing_ids: HashSet<_> = params.entity_ids.iter().copied().collect();
+
+        while let Some(row) = row_stream
+            .try_next()
+            .await
+            .change_context(ClusterError::Store)?
+        {
+            let web_id: WebId = row.get(0);
+            let entity_uuid: EntityUuid = row.get(1);
+            let embedding: Embedding<'_> = row.get(2);
+
+            flat.extend(embedding.iter());
+
+            let id = EntityId {
+                web_id,
+                entity_uuid,
+                draft_id: None,
+            };
+            found_ids.push(id);
+            missing_ids.remove(&id);
+        }
+
+        if found_ids.is_empty() || params.cluster_count == 0 {
+            return Ok(ClusterEntitiesResponse {
+                clusters: Vec::new(),
+                missing_embeddings: missing_ids,
+                inertia: 0.0,
+            });
+        }
+
+        let config = hash_graph_embeddings::clustering::Config::for_k_with_seed(
+            params.cluster_count,
+            params.seed.unwrap_or_else(|| {
+                std::time::SystemTime::UNIX_EPOCH
+                    .elapsed()
+                    .map_or(0, |elapsed| {
+                        #[expect(
+                            clippy::cast_possible_truncation,
+                            reason = "seed only needs entropy, truncation is fine"
+                        )]
+                        let seed = elapsed.as_nanos() as u64;
+                        seed
+                    })
+            }),
+        );
+
+        let (tx, rx) = oneshot::channel();
+        rayon::spawn(move || {
+            let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
+                hash_graph_embeddings::clustering::cluster(&flat, dimension, &config)
+            }));
+
+            let result = result.map_err(JoinError);
+
+            let _: Result<(), Result<Clustering, JoinError>> = tx.send(result);
+        });
+
+        let clustering = rx
+            .await
+            .change_context(ClusterError::Store)?
+            .change_context(ClusterError::Store)?;
+
+        let mut groups = vec![Vec::new(); config.k as usize];
+
+        #[expect(clippy::indexing_slicing, reason = "we only ever have k groups")]
+        for (index, &id) in found_ids.iter().enumerate() {
+            let label = clustering.label(index) as usize;
+            groups[label].push(id);
+        }
+
+        let clusters = groups
+            .into_iter()
+            .zip(0_u16..)
+            .filter(|(entity_ids, _)| !entity_ids.is_empty())
+            .map(|(entity_ids, cluster_id)| EntityCluster {
+                cluster_id,
+                entity_ids,
+                centroid: clustering.centroid(cluster_id).to_vec(),
+            })
+            .collect();
+
+        Ok(ClusterEntitiesResponse {
+            clusters,
+            missing_embeddings: missing_ids,
+            inertia: clustering.inertia,
+        })
     }
 }
 
@@ -2560,11 +3008,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         properties,
                         confidence,
                         provenance,
-                        property_metadata
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                        property_metadata,
+                        created_by_id
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
                     RETURNING entity_edition_id;
                 ",
-                &[&archived, &properties, &confidence, provenance, metadata],
+                &[
+                    &archived,
+                    &properties,
+                    &confidence,
+                    provenance,
+                    metadata,
+                    &provenance.created_by_id,
+                ],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -2603,7 +3059,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.as_client()
             .query(
                 "
-                    INSERT INTO entity_is_of_type
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    )
                     SELECT entity_edition_id,
                            target_entity_type_ontology_id AS entity_type_ontology_id,
                            MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth

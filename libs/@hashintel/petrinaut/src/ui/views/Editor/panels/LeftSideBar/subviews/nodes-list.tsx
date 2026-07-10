@@ -1,13 +1,11 @@
 import { use } from "react";
 
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import {
   PlaceFilledIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { createFilterableListSubView } from "./filterable-list-sub-view";
-
-import type { SubView } from "../../../../../components/sub-view/types";
 
 interface NodeItem {
   id: string;
@@ -18,7 +16,7 @@ interface NodeItem {
 /**
  * SubView definition for Nodes list.
  */
-export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
+export const nodesListSubView = createFilterableListSubView<NodeItem>({
   id: "nodes-list",
   title: "Nodes",
   tooltip:
@@ -30,8 +28,8 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { places, transitions },
-    } = use(SDCPNContext);
+      activeNet: { places, transitions },
+    } = use(ActiveNetContext);
 
     return [
       ...places.map((place) => ({

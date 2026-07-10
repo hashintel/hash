@@ -105,7 +105,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
-      <NextSeo title={`${entityLabel ? `${entityLabel} | ` : ""}HASH`} />
+      <NextSeo title={entityLabel} />
 
       <Entity
         entityId={entityId}

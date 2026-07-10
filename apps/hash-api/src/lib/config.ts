@@ -1,3 +1,6 @@
+import os from "node:os";
+import path from "node:path";
+
 import { storageTypes } from "@local/hash-backend-utils/file-storage";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
@@ -19,7 +22,10 @@ export function getEnvStorageType(): StorageType {
 }
 
 export const LOCAL_FILE_UPLOAD_PATH =
-  process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
+  process.env.LOCAL_FILE_UPLOAD_PATH ??
+  (process.env.NODE_ENV === "test"
+    ? path.join(os.tmpdir(), `hash-test-uploads-${process.pid}`)
+    : "var/uploads/");
 
 export const GRAPHQL_PATH = "/graphql";
 

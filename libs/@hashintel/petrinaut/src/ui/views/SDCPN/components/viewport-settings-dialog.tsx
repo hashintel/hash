@@ -3,6 +3,7 @@ import { use } from "react";
 import { Button, Dialog, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
 import type { ArcRendering } from "../../../../react/state/user-settings-context";
@@ -112,7 +113,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setPartialSelection,
     useEntitiesTreeView,
     setUseEntitiesTreeView,
+    enableNetComponents,
+    setEnableNetComponents,
   } = use(UserSettingsContext);
+  const { extensions } = use(SDCPNContext);
 
   if (!open) {
     return null;
@@ -203,6 +207,22 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
+        {extensions.subnets && (
+          <SettingRow
+            label={
+              <>
+                Net Components <span className={badgeStyle}>Experimental</span>
+              </>
+            }
+            description="Enable subnet definitions and component instances for hierarchical net composition"
+          >
+            <Toggle
+              value={enableNetComponents}
+              onChange={setEnableNetComponents}
+              size="sm"
+            />
+          </SettingRow>
+        )}
       </Dialog.Body>
       <Dialog.Footer
         actions={

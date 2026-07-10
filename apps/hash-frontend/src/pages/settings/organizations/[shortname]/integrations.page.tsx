@@ -13,10 +13,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
@@ -58,9 +55,16 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
         request: {
           filter: {
             all: [
-              generateVersionedUrlMatchingFilter(
-                systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-              ),
+              {
+                equal: [
+                  { path: ["type", "baseUrl"] },
+                  {
+                    parameter:
+                      systemLinkEntityTypes.syncLinearDataWith
+                        .linkEntityTypeBaseUrl,
+                  },
+                ],
+              },
               {
                 equal: [
                   {

@@ -338,7 +338,14 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entityTypeIds, properties, linkedEntities, ...createParams } = params;
+  const {
+    entityTypeIds,
+    properties,
+    linkedEntities,
+    entityUuid,
+    policies,
+    ...createParams
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -381,12 +388,15 @@ export const createEntityWithLinks = async <
        * draft entities, but would need changing if we change this. H-2430 which would introduce draft/live versions of
        * pages which may affect this.
        */
+      const isRootEntity = definition.parentIndex === -1;
+
       const entity = existingEntityId
         ? await getLatestEntityById<Properties>(context, authentication, {
             entityId: existingEntityId,
           })
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
+            ...(isRootEntity ? { entityUuid, policies } : {}),
             properties: definition.entityProperties!,
             entityTypeIds:
               definition.entityTypeIds as Properties["entityTypeIds"],

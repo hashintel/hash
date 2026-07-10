@@ -12,6 +12,8 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -25,6 +27,8 @@ export type {
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

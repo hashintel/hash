@@ -4,12 +4,11 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { queryEntities, searchEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 
@@ -28,11 +27,8 @@ import type {
   LinkData,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  AllFilter,
-  CosineDistanceFilter,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 export const findExistingEntity = async ({
@@ -111,23 +107,6 @@ export const findExistingEntity = async ({
     ),
   });
 
-  const existingEntityBaseAllFilter = [
-    { equal: [{ path: ["archived"] }, { parameter: false }] },
-    {
-      equal: [
-        { path: ["webId"] },
-        {
-          parameter: webId,
-        },
-      ],
-    },
-    {
-      any: proposedEntity.entityTypeIds.map((entityTypeId) =>
-        generateVersionedUrlMatchingFilter(entityTypeId),
-      ),
-    },
-  ] satisfies AllFilter["all"];
-
   // starting point for a threshold that will get only values which are a semantic match
   const maximumSemanticDistance = 0.3;
 
@@ -166,27 +145,14 @@ export const findExistingEntity = async ({
     }
   }
 
-  /**
-   * Create a semantic distance filter from the first label/name-like property
-   * The Graph API currently only supports one cosine distance filter per query.
-   */
-  let semanticDistanceFilter: CosineDistanceFilter | undefined;
-
+  let foundEmbedding: number[] | undefined;
   const firstPropertyBaseUrl = propertyBaseUrlsToMatchOn[0];
   if (firstPropertyBaseUrl) {
-    const foundEmbedding = embeddings.find(
+    foundEmbedding = embeddings.find(
       (embedding) => embedding.property === firstPropertyBaseUrl,
     )?.embedding;
 
-    if (foundEmbedding) {
-      semanticDistanceFilter = {
-        cosineDistance: [
-          { path: ["embedding"] },
-          { parameter: foundEmbedding },
-          { parameter: maximumSemanticDistance },
-        ],
-      };
-    } else {
+    if (!foundEmbedding) {
       logger.error(
         `Could not find embedding for property ${firstPropertyBaseUrl} – skipping`,
       );
@@ -195,21 +161,21 @@ export const findExistingEntity = async ({
 
   let potentialMatches: HashEntity[] | undefined;
 
-  if (semanticDistanceFilter) {
-    potentialMatches = await queryEntities(
+  if (foundEmbedding) {
+    potentialMatches = await searchEntities(
       { graphApi: graphApiClient },
       { actorId },
       {
+        embedding: foundEmbedding,
+        maximumSemanticDistance,
+        limit: 3,
         filter: {
-          all: [...existingEntityBaseAllFilter, semanticDistanceFilter],
+          entityTypeIds: proposedEntity.entityTypeIds,
+          webIds: [webId],
+          includeDrafts,
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
-        includePermissions: false,
       },
-    ).then(({ entities }) =>
-      entities.slice(0, 3).map((entity) => new HashEntity(entity)),
-    );
+    ).then(({ entities }) => entities);
   }
 
   if (!potentialMatches?.length) {
@@ -221,31 +187,20 @@ export const findExistingEntity = async ({
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
-      potentialMatches = await queryEntities(
+      potentialMatches = await searchEntities(
         { graphApi: graphApiClient },
         { actorId },
         {
+          embedding: propertyObjectEmbedding.embedding,
+          maximumSemanticDistance,
+          limit: 3,
           filter: {
-            all: [
-              ...existingEntityBaseAllFilter,
-              {
-                cosineDistance: [
-                  { path: ["embedding"] },
-                  {
-                    parameter: propertyObjectEmbedding.embedding,
-                  },
-                  { parameter: maximumSemanticDistance },
-                ],
-              },
-            ],
+            entityTypeIds: proposedEntity.entityTypeIds,
+            webIds: [webId],
+            includeDrafts,
           },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts,
-          includePermissions: false,
         },
-      ).then(({ entities }) =>
-        entities.slice(0, 3).map((entity) => new HashEntity(entity)),
-      );
+      ).then(({ entities }) => entities);
     }
   }
 

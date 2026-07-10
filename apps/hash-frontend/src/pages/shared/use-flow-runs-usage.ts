@@ -7,10 +7,7 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -68,12 +65,12 @@ export const useFlowRunsUsage = ({
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.usageRecord.entityTypeBaseUrl },
+              ],
+            },
             {
               any: flowRunIds.map((flowRunId) => ({
                 equal: [

@@ -12,6 +12,7 @@ import {
 import {
   getOutgoingLinksForEntity,
   getRoots,
+  intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import {
@@ -53,6 +54,29 @@ export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
   undefined,
 );
 
+/**
+ * Returns `true` if `candidate` contains a newer edition of the user (by
+ * transaction time) than `existing`.
+ */
+const subgraphHasNewerUser = (
+  candidate: Subgraph<EntityRootType<HashEntity>>,
+  existing: Subgraph<EntityRootType<HashEntity>>,
+): boolean => {
+  const candidateUser = getRoots(candidate)[0];
+  const existingUser = getRoots(existing)[0];
+
+  if (!candidateUser || !existingUser) {
+    return true;
+  }
+
+  return (
+    intervalCompareWithInterval(
+      existingUser.metadata.temporalVersioning.transactionTime,
+      candidateUser.metadata.temporalVersioning.transactionTime,
+    ) < 0
+  );
+};
+
 type AuthInfoProviderProps = {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
   children: ReactElement;
@@ -71,6 +95,24 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   const [aal2Required, setAal2Required] = useState(false);
   const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] =
     useState(false);
+
+  /**
+   * `getInitialProps` re-fetches the authenticated user on every navigation and
+   * passes it as `initialAuthenticatedUserSubgraph`. Adopt that server-provided
+   * data whenever it is newer than what the client currently holds.
+   */
+  useEffect(() => {
+    if (!initialAuthenticatedUserSubgraph) {
+      return;
+    }
+
+    setAuthenticatedUserSubgraph((current) =>
+      !current ||
+      subgraphHasNewerUser(initialAuthenticatedUserSubgraph, current)
+        ? initialAuthenticatedUserSubgraph
+        : current,
+    );
+  }, [initialAuthenticatedUserSubgraph]);
 
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {

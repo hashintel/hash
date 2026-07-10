@@ -221,6 +221,7 @@ impl<
             draft: false,
             policies: Vec::new(),
             provenance: self.provenance.sample(&mut provenance_gid.rng()),
+            read_only: false,
         })
     }
 }

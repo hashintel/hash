@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "3.0.184",
-    "@ark-ui/react": "5.26.2",
+    "@ark-ui/react": "5.37.2",
     "@babel/standalone": "7.28.5",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",

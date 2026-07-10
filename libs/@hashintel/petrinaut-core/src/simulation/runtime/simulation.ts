@@ -2,6 +2,11 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../parameter-values";
+import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createInMemorySimulationFrameStore } from "./frame-store";
 import { createWorkerTransport } from "./transport";
 
@@ -85,11 +90,28 @@ export function createSimulation(
   });
   const events = createEventStream<SimulationEvent>();
   const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
-  const simulationSdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
+  const sanitizedSdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
+
+  // Flatten component instances so the frame store layout matches what the
+  // worker produces. Without this, frames from a hierarchical SDCPN have more
+  // places than the unflattened layout, causing a place-count mismatch error.
+  const defaultParameterValues = deriveDefaultParameterValues(
+    sanitizedSdcpn.parameters,
+  );
+  const rootParameterValues = extensions.parameters
+    ? mergeParameterValues(config.parameterValues, defaultParameterValues)
+    : {};
+  const { sdcpn: flattenedSdcpn } = flattenComponentInstancesForSimulation({
+    sdcpn: sanitizedSdcpn,
+    initialMarking: config.initialMarking,
+    rootParameterValues,
+    parametersEnabled: extensions.parameters,
+  });
+
   let disposed = false;
 
   return new Promise<Simulation>((resolve, reject) => {
-    const frameStore = createInMemorySimulationFrameStore(simulationSdcpn);
+    const frameStore = createInMemorySimulationFrameStore(flattenedSdcpn);
     let settled = false;
     let handle: Simulation;
 
@@ -232,7 +254,7 @@ export function createSimulation(
 
     transport.send({
       type: "init",
-      sdcpn: simulationSdcpn,
+      sdcpn: sanitizedSdcpn,
       extensions,
       initialMarking: config.initialMarking,
       parameterValues: config.parameterValues,

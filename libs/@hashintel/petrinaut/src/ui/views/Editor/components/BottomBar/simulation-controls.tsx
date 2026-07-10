@@ -69,10 +69,12 @@ const sliderStyle = css({
 
 interface SimulationControlsProps {
   disabled?: boolean;
+  inSubnet?: boolean;
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
+  inSubnet = false,
 }) => {
   const { dt, state: simulationState, reset } = use(SimulationContext);
 
@@ -106,9 +108,13 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
   const isPlayDisabled =
     isDisabled ||
+    inSubnet ||
     ((isSimulationComplete || isSimulationErrored) && isAtLastFrame);
 
   const getPlayPauseTooltip = () => {
+    if (inSubnet) {
+      return "Return to the root net to run simulation";
+    }
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
@@ -125,6 +131,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   };
 
   const getPlayPauseAriaLabel = () => {
+    if (inSubnet) {
+      return "Return to root net to run simulation";
+    }
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
@@ -142,7 +151,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
 
   const handlePlayPause = () => {
     // If disabled due to errors, open diagnostics panel instead
-    if (isDisabled) {
+    if (isDisabled && !inSubnet) {
       openDiagnosticsPanel();
       return;
     }

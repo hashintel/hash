@@ -2,7 +2,10 @@ import { use } from "react";
 
 import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core";
+import {
+  generateDefaultTransitionKernelCode,
+  getArcEndpoint,
+} from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -11,6 +14,13 @@ import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { useTransitionPropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
+import type {
+  Color,
+  InputArc,
+  OutputArc,
+  Place,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const aiMenuItemStyle = css({
   display: "flex",
@@ -25,8 +35,50 @@ const contentStyle = css({
   minHeight: "[0]",
 });
 
+const getTypeById = ({ sdcpn, types }: { sdcpn: SDCPN; types: Color[] }) =>
+  new Map(
+    [
+      ...sdcpn.types,
+      ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...types,
+    ].map((type) => [type.id, type]),
+  );
+
+const createTransitionArcPlaceResolver = (
+  sdcpn: SDCPN,
+  net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
+): ((
+  arc: InputArc | OutputArc,
+) => { place: Place; placeName: string } | undefined) => {
+  const placeById = new Map(net.places.map((place) => [place.id, place]));
+  const subnetById = new Map(
+    (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
+  );
+  const instanceById = new Map(
+    (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
+  );
+
+  return (arc) => {
+    const endpoint = getArcEndpoint(arc);
+
+    if (endpoint.kind === "place") {
+      const place = placeById.get(endpoint.placeId);
+      return place ? { place, placeName: place.name } : undefined;
+    }
+
+    const instance = instanceById.get(endpoint.componentInstanceId);
+    const subnet = instance ? subnetById.get(instance.subnetId) : undefined;
+    const place = subnet?.places.find(
+      (p) => p.id === endpoint.portPlaceId && p.isPort,
+    );
+
+    if (!instance || !place) return undefined;
+    return { place, placeName: `${instance.name}::${place.name}` };
+  };
+};
+
 const ResultsHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, places, types, updateTransition } =
+  const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
     useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
@@ -50,18 +102,26 @@ const ResultsHeaderAction: React.FC = () => {
           id: "load-default",
           text: "Load default template",
           onClick: () => {
+            const resolveArcPlace = createTransitionArcPlaceResolver(
+              sdcpn,
+              net,
+            );
+            const typeById = getTypeById({ sdcpn, types });
+
             const inputs = transition.inputArcs
+              .filter((arc) => arc.type !== "inhibitor")
               .map((arc) => {
-                const place = places.find((p) => p.id === arc.placeId);
-                if (!place || !place.colorId) {
+                const resolved = resolveArcPlace(arc);
+                const type = resolved?.place.colorId
+                  ? typeById.get(resolved.place.colorId)
+                  : undefined;
+
+                if (!resolved || !type) {
                   return null;
                 }
-                const type = types.find((t) => t.id === place.colorId);
-                if (!type) {
-                  return null;
-                }
+
                 return {
-                  placeName: place.name,
+                  placeName: resolved.placeName,
                   type,
                   weight: arc.weight,
                 };
@@ -70,16 +130,17 @@ const ResultsHeaderAction: React.FC = () => {
 
             const outputs = transition.outputArcs
               .map((arc) => {
-                const place = places.find((p) => p.id === arc.placeId);
-                if (!place || !place.colorId) {
+                const resolved = resolveArcPlace(arc);
+                const type = resolved?.place.colorId
+                  ? typeById.get(resolved.place.colorId)
+                  : undefined;
+
+                if (!resolved || !type) {
                   return null;
                 }
-                const type = types.find((t) => t.id === place.colorId);
-                if (!type) {
-                  return null;
-                }
+
                 return {
-                  placeName: place.name,
+                  placeName: resolved.placeName,
                   type,
                   weight: arc.weight,
                 };
@@ -132,9 +193,13 @@ const TransitionResultsContent: React.FC = () => {
         value={transition.transitionKernelCode || ""}
         height="100%"
         onChange={(value) => {
+          if (value === undefined) {
+            return;
+          }
+
           updateTransition({
             transitionId: transition.id,
-            update: { transitionKernelCode: value ?? "" },
+            update: { transitionKernelCode: value },
           });
         }}
         options={{ readOnly: isReadOnly }}

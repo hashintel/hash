@@ -6,18 +6,19 @@ import {
   extractBaseUrl,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { WandMagicSparklesIcon } from "@hashintel/design-system";
+import {
+  EntityOrTypeIcon,
+  WandMagicSparklesIcon,
+} from "@hashintel/design-system";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
-import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
 import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
 import { CalendarDaysLightIcon } from "../../../shared/icons/calendar-days-light-icon";
 import { CalendarLightIcon } from "../../../shared/icons/calendar-light-icon";
 import { CalendarWeekLightIcon } from "../../../shared/icons/calendar-week-light-icon";
 import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
 import { HashSolidIcon } from "../../../shared/icons/hash-solid-icon";
-import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
@@ -353,14 +354,15 @@ export const DraftEntitiesFilters: FunctionComponent<{
             const { baseUrl, icon, isLink, title } = entityType;
 
             return {
-              icon: icon ? (
-                <Box marginRight={1.25} maxWidth={14} component="span">
-                  {icon}
-                </Box>
-              ) : isLink ? (
-                <LinkRegularIcon />
-              ) : (
-                <AsteriskLightIcon />
+              icon: (
+                <EntityOrTypeIcon
+                  entity={null}
+                  icon={icon}
+                  isLink={isLink}
+                  fontSize={14}
+                  fill={({ palette }) => palette.gray[50]}
+                  sx={{ mr: 1.25 }}
+                />
               ),
               label: title,
               value: baseUrl,

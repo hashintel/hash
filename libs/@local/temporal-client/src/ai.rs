@@ -27,7 +27,7 @@ use uuid::Uuid;
 
 use crate::{TemporalClient, WorkflowError};
 
-/// Header key used by `@temporalio/interceptors-opentelemetry` to carry the
+/// Header key used by `@temporalio/interceptors-opentelemetry-v2` to carry the
 /// trace-context payload across workflow boundaries. Must stay in sync with
 /// `TRACE_HEADER` in that package's `instrumentation.ts`; if it drifts,
 /// workflows started from Rust will ship correct headers that the TypeScript

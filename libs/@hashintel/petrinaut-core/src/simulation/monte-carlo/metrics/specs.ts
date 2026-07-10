@@ -43,7 +43,7 @@ function createExpressionMetricConfig(
   }
 
   return applyMetricSpecBase(spec, ({ frame }) =>
-    compiled.fn(buildMetricState(frame, sdcpn.places, sdcpn.types)),
+    compiled.fn(buildMetricState(frame, sdcpn.places)),
   );
 }
 

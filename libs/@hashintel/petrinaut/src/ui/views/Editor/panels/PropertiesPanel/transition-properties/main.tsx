@@ -6,7 +6,10 @@ import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { TransitionPropertiesProvider } from "./context";
+import {
+  TransitionPropertiesProvider,
+  type TransitionLogicNet,
+} from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
 import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";
 import { transitionResultsSubView } from "./subviews/transition-results/subview";
@@ -24,6 +27,7 @@ const containerStyle = css({
 
 interface TransitionPropertiesProps {
   transition: Transition;
+  net: TransitionLogicNet;
   places: Place[];
   types: Color[];
   updateTransition: PetrinautMutations["updateTransition"];
@@ -34,6 +38,7 @@ interface TransitionPropertiesProps {
 
 export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   transition,
+  net,
   places,
   types,
   updateTransition,
@@ -47,6 +52,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     transition,
     petriNetDefinition,
     extensions,
+    net,
   );
 
   const subViews: SubView[] = [
@@ -59,6 +65,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     <div className={containerStyle}>
       <TransitionPropertiesProvider
         transition={transition}
+        sdcpn={petriNetDefinition}
+        net={net}
         places={places}
         types={types}
         logicAvailability={logicAvailability}

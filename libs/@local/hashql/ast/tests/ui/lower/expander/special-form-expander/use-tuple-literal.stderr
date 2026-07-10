@@ -1,0 +1,6 @@
+error[expander::invalid-use-import-binding]: Invalid use import binding
+  ╭▸ 
+6 │   { "#tuple": [{ "#literal": 1 }] },
+  │                ━━━━━━━━━━━━━━━━━ expected a simple name to import
+  │
+  ╰ help: each import must be a plain identifier like `foo`, not a qualified path or expression

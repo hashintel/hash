@@ -3,6 +3,7 @@ import { use } from "react";
 import { Button } from "@hashintel/ds-components";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
@@ -64,9 +65,9 @@ function getNextTypeNumber(existingNames: string[]): number {
  */
 export const TypesSectionHeaderAction: React.FC = () => {
   const {
-    petriNetDefinition: { types },
-    extensions,
-  } = use(SDCPNContext);
+    activeNet: { types },
+  } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
   const { addType } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
@@ -152,8 +153,8 @@ export const typesListSubView: SubView = createFilterableListSubView({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { types },
-    } = use(SDCPNContext);
+      activeNet: { types },
+    } = use(ActiveNetContext);
     return types.map((type) => ({
       ...type,
       icon: TokenTypeIcon,

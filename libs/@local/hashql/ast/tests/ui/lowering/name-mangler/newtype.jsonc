@@ -1,3 +1,0 @@
-//@ run: pass
-//@ description: mangle the name of a simple type expression
-["newtype", "T", "X", ["as", "T", "T"]]

@@ -47,6 +47,7 @@ import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
 import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
+import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -91,7 +92,8 @@ import {
   setupFileDownloadProxyHandler,
   setupStorageProviders,
 } from "./storage";
-import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { telemetry } from "./telemetry/telemetry";
+import { setupTelemetryHandler } from "./telemetry/telemetry-endpoint";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { ErrorRequestHandler, Request, Response } from "express";
@@ -189,7 +191,7 @@ const kratosProxyReadRateLimiter = rateLimit({
  */
 const graphqlRateLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 60, // 1 minute
-  limit: (req) => (req.user ? 300 : 60),
+  limit: (req) => (req.user ? 1_000 : 120),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -343,17 +345,6 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
 
 const main = async () => {
   logger.info("Type System initialized");
-
-  if (process.env.HASH_TELEMETRY_ENABLED === "true") {
-    logger.info("Starting [Snowplow] telemetry");
-
-    const snowplowTracker = await setupTelemetry();
-
-    shutdown.addCleanup("Snowplow Telemetry", async () => {
-      logger.info("Flushing [Snowplow] telemetry");
-      await snowplowTracker.flush();
-    });
-  }
 
   // Request ID generator
   const nanoid = customAlphabet(
@@ -746,6 +737,11 @@ const main = async () => {
   });
 
   setupFileDownloadProxyHandler(app, keyv);
+
+  setupAnalysisHandler(app, keyv);
+
+  setupTelemetryHandler(app);
+  shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 

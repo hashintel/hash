@@ -30,27 +30,27 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 
 CASE
     WHEN
-        ((($1::jsonb))::int) IS NULL
+        ((($1::jsonb))::int4) IS NULL
         THEN
             (
                 ROW(
-                    COALESCE(((FALSE)::boolean), FALSE), NULL, NULL, NULL
+                    COALESCE(((FALSE)::bool), FALSE), NULL, NULL, NULL
                 )::continuation
             )
     WHEN
-        ((($1::jsonb))::int) = 0
+        ((($1::jsonb))::int4) = 0
         THEN
             (
                 ROW(
-                    COALESCE(((0)::boolean), FALSE), NULL, NULL, NULL
+                    COALESCE(((0)::bool), FALSE), NULL, NULL, NULL
                 )::continuation
             )
     WHEN
-        ((($1::jsonb))::int) = 1
+        ((($1::jsonb))::int4) = 1
         THEN
             (
                 ROW(
-                    COALESCE(((1)::boolean), FALSE), NULL, NULL, NULL
+                    COALESCE(((1)::bool), FALSE), NULL, NULL, NULL
                 )::continuation
             )
 END

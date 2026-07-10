@@ -1,0 +1,6 @@
+//@ run: fail
+//@ description: We should collect all errors when lowering type/3, and not only report the first one.
+["::kernel::special_form::type", "::x", { "#literal": 1 }, "x"]
+//~^ ERROR expected a type name for the `type` binding
+//~| ERROR cannot use a literal value as a type
+//~| ERROR cannot find value `x` in this scope

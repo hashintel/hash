@@ -1,7 +1,4 @@
-import {
-  componentsFromVersionedUrl,
-  splitEntityId,
-} from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
 import {
@@ -16,19 +13,8 @@ import type {
   QueryTemporalAxesUnresolved,
   SubgraphRootType,
 } from "@blockprotocol/graph";
-import type {
-  EntityId,
-  Timestamp,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type {
-  DataTypeQueryToken,
-  EntityQueryToken,
-  EntityTypeQueryToken,
-  Filter,
-  PropertyTypeQueryToken,
-  Selector,
-} from "@local/hash-graph-client";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
@@ -142,57 +128,6 @@ export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
       end: null,
     },
   },
-};
-
-/**
- * Generates a query filter to match a type, given its versionedUrl.
- *
- * @param versionedUrl
- * @param [options] configuration of the returned filter
- * @param [options.forEntityType] if this filter is targeting Entity Type roots rather than Entity roots
- * @param [options.ignoreParents] don't check the type's parents for a match against the versionedUrl
- * @param [options.pathPrefix] the path to the thing to match the type of, if it's not the root of the query
- *     @example ["outgoingLinks", "rightEntity"] to filter query results to things with a linked entity of the given
- *   type
- */
-export const generateVersionedUrlMatchingFilter = (
-  versionedUrl: VersionedUrl,
-  options?: {
-    forEntityType?: boolean;
-    ignoreParents?: boolean;
-    pathPrefix?: (
-      | DataTypeQueryToken
-      | EntityQueryToken
-      | EntityTypeQueryToken
-      | PropertyTypeQueryToken
-      | Selector
-    )[];
-  },
-): Filter => {
-  const {
-    forEntityType,
-    ignoreParents = false,
-    pathPrefix = [],
-  } = options ?? {};
-
-  const { baseUrl, version } = componentsFromVersionedUrl(versionedUrl);
-
-  const basePath: string[] = pathPrefix;
-
-  if (!forEntityType) {
-    basePath.push(ignoreParents ? "type(inheritanceDepth = 0)" : "type");
-  }
-
-  return {
-    all: [
-      {
-        equal: [{ path: [...basePath, "baseUrl"] }, { parameter: baseUrl }],
-      },
-      {
-        equal: [{ path: [...basePath, "version"] }, { parameter: version }],
-      },
-    ],
-  };
 };
 
 /**

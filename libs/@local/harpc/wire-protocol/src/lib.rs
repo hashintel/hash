@@ -11,7 +11,7 @@
 //! An illustration of the protocol can be seen in the `docs/` folder of the project.
 //!
 //! ## Workspace dependencies
-#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![cfg_attr(test, feature(async_fn_track_caller))]
 #![feature(
     // Language Features

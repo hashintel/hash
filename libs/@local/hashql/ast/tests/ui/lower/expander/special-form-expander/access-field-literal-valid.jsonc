@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Field access with valid integer literal should compile
+[
+  "fn",
+  { "#tuple": [] },
+  { "#struct": { "x": "Integer" } },
+  "_",
+  ["::kernel::special_form::access", "x", { "#literal": 0 }]
+]

@@ -6,6 +6,12 @@ export const queryEntitiesQuery = gql`
   }
 `;
 
+export const searchEntitiesQuery = gql`
+  query searchEntities($request: SearchEntitiesRequest!) {
+    searchEntities(request: $request)
+  }
+`;
+
 export const queryEntitySubgraphQuery = gql`
   query queryEntitySubgraph($request: QueryEntitySubgraphRequest!) {
     queryEntitySubgraph(request: $request)

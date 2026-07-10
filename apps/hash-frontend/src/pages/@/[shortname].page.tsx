@@ -11,7 +11,6 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
@@ -276,11 +275,14 @@ const ProfilePage: NextPageWithLayout = () => {
           all: [
             {
               any:
-                includeEntityTypeIds?.map((entityTypeId) =>
-                  generateVersionedUrlMatchingFilter(entityTypeId, {
-                    ignoreParents: false,
-                  }),
-                ) ?? [],
+                includeEntityTypeIds?.map((entityTypeId) => ({
+                  equal: [
+                    { path: ["type", "versionedUrl"] },
+                    {
+                      parameter: entityTypeId,
+                    },
+                  ],
+                })) ?? [],
             },
             ...(profile
               ? [

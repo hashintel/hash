@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: tuple type expression that has a type annotation is invalid
+[
+  "::kernel::special_form::type",
+  "x",
+  {
+    "#tuple": ["Integer"],
+    "#type": "(Integer)"
+    //~^ ERROR type annotations are not allowed inside a type expression
+  },
+  { "#literal": 1 }
+]

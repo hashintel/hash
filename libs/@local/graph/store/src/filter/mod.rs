@@ -1,6 +1,7 @@
 mod parameter;
 mod path;
 pub mod protection;
+mod semantic_distance;
 
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, fmt, hash::Hash};
@@ -19,10 +20,7 @@ use hash_graph_authorization::policies::{
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::{
-        PropertyValue,
-        entity::{Entity, EntityId, id::EntityEditionId},
-    },
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -39,6 +37,7 @@ pub use self::{
         FilterExpressionList, Parameter, ParameterConversionError, ParameterList, ParameterType,
     },
     path::{JsonPath, PathToken},
+    semantic_distance::{InvalidSemanticDistanceError, SemanticDistance},
 };
 use crate::{
     data_type::DataTypeQueryPath,
@@ -135,6 +134,7 @@ pub enum Filter<'p, R: QueryRecord> {
     GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
     LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    #[serde(skip)]
     CosineDistance(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -955,16 +955,23 @@ impl<'p> Filter<'p, Entity> {
             }
             EntityResourceFilter::CreatedByPrincipal => Self::Equal(
                 FilterExpression::Path {
-                    path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                        PathToken::Field(Cow::Borrowed("createdById")),
-                    ]))),
+                    path: EntityQueryPath::CreatedById,
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::Any(PropertyValue::String(
+                    parameter: Parameter::Uuid(
                         actor_id
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
-                            .to_string(),
-                    )),
+                            .into(),
+                    ),
+                    convert: None,
+                },
+            ),
+            EntityResourceFilter::IsReadOnly => Self::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::ReadOnly,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Boolean(true),
                     convert: None,
                 },
             ),

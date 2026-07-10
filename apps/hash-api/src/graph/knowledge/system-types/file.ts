@@ -28,6 +28,7 @@ import type {
 import type {
   BaseUrl,
   Entity,
+  EntityUuid,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -152,6 +153,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     description,
     displayName: providedDisplayName,
     name: unnormalizedFilename,
+    makePublic,
     size,
   } = params;
 
@@ -235,10 +237,23 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   let fileEntity = existingEntity;
   if (!fileEntity) {
+    const entityUuid = generateUuid() as EntityUuid;
+
     fileEntity = await createEntity<File>(ctx, authentication, {
       webId,
+      entityUuid,
       properties: initialProperties,
       entityTypeIds: entityTypeIds as File["entityTypeIds"],
+      policies: makePublic
+        ? [
+            {
+              name: `public-view-entity-${entityUuid}`,
+              effect: "permit",
+              actions: ["viewEntity"],
+              principal: null,
+            },
+          ]
+        : undefined,
     });
   }
 
@@ -302,7 +317,12 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   false,
   true
 > = async (ctx, authentication, params) => {
-  const { description, displayName: providedDisplayName, url } = params;
+  const {
+    description,
+    displayName: providedDisplayName,
+    makePublic,
+    url,
+  } = params;
 
   const urlValidation = validateExternalUrl(url);
   if (!urlValidation.valid) {
@@ -390,6 +410,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
       },
     };
 
+    const entityUuid = generateUuid() as EntityUuid;
+
     return existingEntity
       ? await updateEntity<File>(ctx, authentication, {
           entity: existingEntity,
@@ -407,8 +429,19 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         })
       : await createEntity<File>(ctx, authentication, {
           webId,
+          entityUuid,
           properties,
           entityTypeIds: entityTypeIds as File["entityTypeIds"],
+          policies: makePublic
+            ? [
+                {
+                  name: `public-view-entity-${entityUuid}`,
+                  effect: "permit",
+                  actions: ["viewEntity"],
+                  principal: null,
+                },
+              ]
+            : undefined,
         });
   } catch (error) {
     throw new Error(

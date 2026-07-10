@@ -2,7 +2,6 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -93,6 +92,11 @@ const pdfOptions = {
   withCredentials: false,
 };
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
+
 type PdfViewerProps = {
   showSearch: boolean;
   setShowSearch: (showSearch: boolean) => void;
@@ -106,15 +110,6 @@ export const PdfPreview = ({
   showThumbnails,
   url: initialUrl,
 }: PdfViewerProps) => {
-  useEffect(() => {
-    pdfjs.GlobalWorkerOptions.workerSrc = dynamic(
-      // @ts-expect-error -- no types for this import
-      // eslint-disable-next-line import/no-extraneous-dependencies
-      import("pdfjs-dist/build/pdf.worker.min.mjs"),
-      { ssr: false },
-    ).toString();
-  });
-
   const [url, setUrl] = useState("");
 
   useEffect(() => {

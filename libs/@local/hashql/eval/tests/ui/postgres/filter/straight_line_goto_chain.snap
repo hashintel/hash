@@ -27,6 +27,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 
 (
     ROW(
-        COALESCE(((($1::jsonb))::boolean), FALSE), NULL, NULL, NULL
+        COALESCE(((($1::jsonb))::bool), FALSE), NULL, NULL, NULL
     )::continuation
 )

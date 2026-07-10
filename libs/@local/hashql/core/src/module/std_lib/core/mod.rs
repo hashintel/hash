@@ -1,10 +1,7 @@
-use core::iter;
-
 use super::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule};
 use crate::{
-    heap::Heap,
     module::{item::IntrinsicValueItem, locals::TypeDef},
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) mod bits;
@@ -18,24 +15,16 @@ pub mod url;
 pub mod uuid;
 
 pub(in crate::module::std_lib) fn func<'heap>(
-    lib: &StandardLibrary<'_, 'heap>,
     def: &mut ModuleDef<'heap>,
 
-    name: &'static str,
-    alias: &[&'static str],
+    path: Symbol<'heap>,
+    names: impl IntoIterator<Item = Symbol<'heap>>,
 
     r#type: TypeDef<'heap>,
 ) {
-    let value = IntrinsicValueItem { name, r#type };
+    let value = IntrinsicValueItem { name: path, r#type };
 
-    let ident = name.rsplit_once("::").expect("path should be non-empty").1;
-
-    def.push_aliased(
-        iter::once(ident)
-            .chain(alias.iter().copied())
-            .map(|name| lib.heap.intern_symbol(name)),
-        ItemDef::intrinsic(value),
-    );
+    def.push_aliased(names, ItemDef::intrinsic(value));
 }
 
 pub(in crate::module::std_lib) struct Core;
@@ -53,8 +42,8 @@ impl<'heap> StandardLibraryModule<'heap> for Core {
         self::uuid::Uuid,
     );
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("core")
+    fn name() -> Symbol<'heap> {
+        sym::core
     }
 
     fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

@@ -4,10 +4,7 @@ import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitySubgraphQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
@@ -42,12 +39,12 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.claim.entityTypeBaseUrl },
+              ],
+            },
             {
               equal: [
                 {

@@ -1,12 +1,11 @@
 pub mod actor_group;
 
 use crate::{
-    heap::Heap,
     module::{
         StandardLibrary,
         std_lib::{ModuleDef, StandardLibraryModule},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Principal {
@@ -16,8 +15,8 @@ pub(in crate::module::std_lib) struct Principal {
 impl<'heap> StandardLibraryModule<'heap> for Principal {
     type Children = (self::actor_group::ActorGroup,);
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("principal")
+    fn name() -> Symbol<'heap> {
+        sym::principal
     }
 
     fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {

@@ -4,6 +4,7 @@ import {
   usePetrinautMutations,
   usePetrinautCommands,
 } from "../../../../../react";
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
@@ -37,7 +38,8 @@ export function useKeyboardShortcuts(
     setSearchOpen,
     searchInputRef,
   } = use(EditorContext);
-  const { petriNetDefinition, petriNetId } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
   const isReadonly = useIsReadOnly();
@@ -103,11 +105,7 @@ export function useKeyboardShortcuts(
 
       if (key === "c" && hasSelection) {
         event.preventDefault();
-        void copySelectionToClipboard(
-          petriNetDefinition,
-          selection,
-          petriNetId,
-        );
+        void copySelectionToClipboard(activeNet, selection, petriNetId);
         return;
       }
 
@@ -128,13 +126,19 @@ export function useKeyboardShortcuts(
       if (key === "a") {
         event.preventDefault();
         const items = new Map<string, SelectionItem>();
-        for (const place of petriNetDefinition.places) {
+        for (const place of activeNet.places) {
           items.set(place.id, { type: "place", id: place.id });
         }
-        for (const transition of petriNetDefinition.transitions) {
+        for (const transition of activeNet.transitions) {
           items.set(transition.id, {
             type: "transition",
             id: transition.id,
+          });
+        }
+        for (const instance of activeNet.componentInstances) {
+          items.set(instance.id, {
+            type: "componentInstance",
+            id: instance.id,
           });
         }
         setSelection(items);

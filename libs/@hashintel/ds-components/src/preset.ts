@@ -116,13 +116,45 @@ export function createPreset(options?: PresetOptions) {
             from: { opacity: "1" },
             to: { opacity: "0" },
           },
+          drawerSlideInRight: {
+            from: { transform: "translateX(100%)" },
+            to: { transform: "translateX(0)" },
+          },
+          drawerSlideOutRight: {
+            from: { transform: "translateX(0)" },
+            to: { transform: "translateX(100%)" },
+          },
+          drawerSlideInLeft: {
+            from: { transform: "translateX(-100%)" },
+            to: { transform: "translateX(0)" },
+          },
+          drawerSlideOutLeft: {
+            from: { transform: "translateX(0)" },
+            to: { transform: "translateX(-100%)" },
+          },
+          drawerSlideInTop: {
+            from: { transform: "translateY(-100%)" },
+            to: { transform: "translateY(0)" },
+          },
+          drawerSlideOutTop: {
+            from: { transform: "translateY(0)" },
+            to: { transform: "translateY(-100%)" },
+          },
+          drawerSlideInBottom: {
+            from: { transform: "translateY(100%)" },
+            to: { transform: "translateY(0)" },
+          },
+          drawerSlideOutBottom: {
+            from: { transform: "translateY(0)" },
+            to: { transform: "translateY(100%)" },
+          },
           popoverIn: {
-            from: { opacity: "0", transform: "scale(0.96)" },
+            from: { opacity: "0", transform: "scale(0.98)" },
             to: { opacity: "1", transform: "scale(1)" },
           },
           popoverOut: {
             from: { opacity: "1", transform: "scale(1)" },
-            to: { opacity: "0", transform: "scale(0.96)" },
+            to: { opacity: "0", transform: "scale(0.98)" },
           },
           rotateRight: {
             from: { transform: "rotate(0deg)" },

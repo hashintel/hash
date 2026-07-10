@@ -1,0 +1,13 @@
+error[expander::invalid-use-import-binding]: Invalid use import binding
+  ╭▸ 
+6 │   { "#tuple": ["::core::math::sub"], "#type": "Number" },
+  │                 ━━━━━━━━━━━━━━━━━ expected a simple name to import
+  │
+  ╰ help: each import must be a plain identifier like `foo`, not a qualified path or expression
+
+error[expander::use-imports-type-annotation]: Type annotation on use imports
+  ╭▸ 
+6 │   { "#tuple": ["::core::math::sub"], "#type": "Number" },
+  │                                                ━━━━━━ type annotations are not allowed on the import list
+  │
+  ╰ help: remove the type annotation; the import list declares which names to bring into scope, not a typed value

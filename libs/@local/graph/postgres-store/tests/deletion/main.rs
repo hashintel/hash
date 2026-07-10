@@ -3,6 +3,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod created_by_fallback;
 mod drafts;
 mod erase;
 mod links;
@@ -342,6 +343,7 @@ pub(crate) async fn create_person(
                 draft,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await
@@ -375,6 +377,7 @@ pub(crate) async fn create_link(
                 draft: false,
                 policies: Vec::new(),
                 provenance: provenance(),
+                read_only: false,
             },
         )
         .await

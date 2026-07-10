@@ -442,7 +442,9 @@ export const Grid = <
     });
   }, [columns, columnSizes]);
 
-  const emptyStateText = dataLoading ? "Loading..." : "No results";
+  const emptyStateText = dataLoading
+    ? "Loading..."
+    : "No results with the applied filters.";
 
   const getSkeletonCellContent = useCallback(
     ([colIndex]: Item): TextCell => ({
@@ -660,7 +662,8 @@ export const Grid = <
         drawFocusRing={false}
         drawHeader={drawHeader ?? defaultDrawHeader}
         getCellContent={
-          sortedAndFilteredRows?.length
+          typeof sortedAndFilteredRows?.length === "number" &&
+          sortedAndFilteredRows.length > 0
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
@@ -696,7 +699,12 @@ export const Grid = <
         rangeSelect="cell"
         ref={gridRef}
         rowHeight={gridRowHeight}
-        rows={sortedAndFilteredRows?.length ?? 1}
+        rows={
+          typeof sortedAndFilteredRows?.length === "number" &&
+          sortedAndFilteredRows.length > 0
+            ? sortedAndFilteredRows.length
+            : 1
+        }
         smoothScrollX
         smoothScrollY
         theme={gridTheme}

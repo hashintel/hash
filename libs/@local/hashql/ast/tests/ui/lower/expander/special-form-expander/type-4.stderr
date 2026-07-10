@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::type",
+ 5 │ ┃   "x",
+ 6 │ ┃   "Boolean",
+ 7 │ ┃   ["+", "x", "x"],
+ 8 │ ┃   { "#literal": true }
+   │ ┃   ──────────────────── unexpected argument
+ 9 │ ┃   //~^ ERROR unexpected argument
+10 │ ┃ ]
+   │ ┗━┛ expected 3 arguments to `type`, found 4
+   │
+   ├ help: use `(type Name type-expr body)`
+   ╰ note: the arguments are, in order: the type name (optionally with generic parameters), the type definition, and the body where the name is in scope

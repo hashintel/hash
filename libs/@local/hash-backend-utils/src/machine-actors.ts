@@ -78,7 +78,7 @@ export const getMachineEntityByIdentifier = async (
             {
               equal: [
                 {
-                  path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                  path: ["type", "baseUrl"],
                 },
                 {
                   parameter: systemEntityTypes.machine.entityTypeBaseUrl,

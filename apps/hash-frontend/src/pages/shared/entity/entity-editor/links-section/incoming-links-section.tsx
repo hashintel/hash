@@ -1,23 +1,266 @@
-import { Stack } from "@mui/material";
+import { Box, CircularProgress, Stack } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 
-import { Chip } from "@hashintel/design-system";
+import {
+  getIncomingLinkAndSourceEntities,
+  getLeftEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
+import { Callout, Chip } from "@hashintel/design-system";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { SectionWrapper } from "../../../section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
+import { useEntityLinks } from "./use-entity-links";
+import { useLinkTypeFilter } from "./use-link-type-filter";
 
+import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
+import type { EntityEditorProps } from "../../entity-editor";
+import type { IncomingLinksFieldId } from "./incoming-links-section/incoming-links-table";
 import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-interface IncomingLinksSectionProps {
-  incomingLinksAndSources: LinkEntityAndLeftEntity[];
+type IncomingLinksSectionProps = Pick<
+  EntityEditorProps,
+  | "closedMultiEntityTypesDefinitions"
+  | "customEntityLinksColumns"
+  | "draftLinksToArchive"
+  | "entityLabel"
+  | "entitySubgraph"
+  | "hasRootLinkDataBeenResolved"
+  | "linkAndDestinationEntitiesClosedMultiEntityTypesMap"
+  | "onEntityClick"
+  | "onTypeClick"
+  | "slideContainerRef"
+  | "readonly"
+> & {
+  entity: HashEntity;
   isLinkEntity: boolean;
-}
+};
 
 export const IncomingLinksSection = ({
-  incomingLinksAndSources,
+  closedMultiEntityTypesDefinitions: editorDefinitions,
+  customEntityLinksColumns,
+  draftLinksToArchive,
+  entity,
+  entityLabel,
+  entitySubgraph: editorSubgraph,
   isLinkEntity,
+  hasRootLinkDataBeenResolved,
+  linkAndDestinationEntitiesClosedMultiEntityTypesMap: editorTypesMap,
+  onEntityClick,
+  onTypeClick,
+  readonly,
+  slideContainerRef,
 }: IncomingLinksSectionProps) => {
-  if (incomingLinksAndSources.length === 0 && isLinkEntity) {
+  const [sort, setSort] = useState<VirtualizedTableSort<IncomingLinksFieldId>>({
+    fieldId: "link",
+    direction: "asc",
+  });
+
+  const {
+    captureLinkTypeOptions,
+    filterDefinitions,
+    filterValues,
+    setFilterValues,
+    filterTypeIds,
+  } = useLinkTypeFilter();
+
+  /**
+   * When the entity is readonly we fetch the link data here (paginated), so it
+   * does not need to be part of the main entity query. When editable, the link
+   * data is part of the editor subgraph and is not paginated.
+   */
+  const {
+    initialLoading,
+    loadingMore,
+    loadMore,
+    hasMore,
+    count: totalCount,
+    error,
+    linkEntities,
+    subgraph: fetchedSubgraph,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap: fetchedTypesMap,
+    closedMultiEntityTypesDefinitions: fetchedDefinitions,
+    typeIds,
+    typeTitles,
+  } = useEntityLinks({
+    direction: "incoming",
+    entityId: entity.metadata.recordId.entityId,
+    filterTypeIds,
+    skip: !readonly,
+  });
+
+  /**
+   * The links/sources passed to the readonly table. In the self-fetch path the
+   * source entities come from the merged multi-page subgraph; in the editor path
+   * they come from the editor subgraph. Memoised so the new array identity does
+   * not defeat the `memo()`-wrapped table on every parent render.
+   */
+  const incomingLinksAndSources = useMemo<LinkEntityAndLeftEntity[]>(() => {
+    if (readonly) {
+      if (!linkEntities || !fetchedSubgraph) {
+        return [];
+      }
+
+      return linkEntities
+        .map((linkEntity) => {
+          let leftEntity: LinkEntityAndLeftEntity["leftEntity"];
+          try {
+            leftEntity =
+              getLeftEntityForLinkEntity(
+                fetchedSubgraph,
+                linkEntity.metadata.recordId.entityId,
+              ) ?? [];
+          } catch {
+            // `getLeftEntityForLinkEntity` throws if no source revision overlaps
+            // the resolved instant of the merged multi-page subgraph
+            leftEntity = [];
+          }
+
+          return { linkEntity: [linkEntity], leftEntity };
+        })
+        .filter(
+          // Drop links whose source entity is missing, mirroring the guard the editor path applies
+          (incomingLinkAndSource) => !!incomingLinkAndSource.leftEntity[0],
+        );
+    }
+
+    return getIncomingLinkAndSourceEntities(
+      editorSubgraph,
+      entity.metadata.recordId.entityId,
+      entity.metadata.temporalVersioning[
+        editorSubgraph.temporalAxes.resolved.variable.axis
+      ],
+    ).filter((incomingLinkAndSource) => {
+      return (
+        incomingLinkAndSource.linkEntity[0] &&
+        !draftLinksToArchive.includes(
+          incomingLinkAndSource.linkEntity[0].entityId,
+        ) &&
+        incomingLinkAndSource.leftEntity[0] &&
+        !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
+          systemEntityTypes.claim.entityTypeId,
+        )
+      );
+    });
+  }, [
+    readonly,
+    linkEntities,
+    fetchedSubgraph,
+    editorSubgraph,
+    entity,
+    draftLinksToArchive,
+  ]);
+
+  // In the editable case the filter options are derived from the (unfiltered) editor links here.
+  const editableLinkTypeBreakdown = useMemo(() => {
+    if (readonly || !editorTypesMap) {
+      return undefined;
+    }
+
+    const typeIdCounts: Record<VersionedUrl, number> = {};
+    const linkTypeTitles: Record<VersionedUrl, string> = {};
+
+    for (const { linkEntity } of incomingLinksAndSources) {
+      const link = linkEntity[0];
+      if (!link) {
+        continue;
+      }
+
+      let closedType;
+      try {
+        closedType = getClosedMultiEntityTypeFromMap(
+          editorTypesMap,
+          link.metadata.entityTypeIds,
+        );
+      } catch {
+        continue;
+      }
+
+      for (const type of closedType.allOf) {
+        typeIdCounts[type.$id] = (typeIdCounts[type.$id] ?? 0) + 1;
+        linkTypeTitles[type.$id] ??= type.title;
+      }
+    }
+
+    return { typeIds: typeIdCounts, typeTitles: linkTypeTitles };
+  }, [readonly, editorTypesMap, incomingLinksAndSources]);
+
+  useEffect(() => {
+    captureLinkTypeOptions(
+      readonly ? typeIds : editableLinkTypeBreakdown?.typeIds,
+      readonly ? typeTitles : editableLinkTypeBreakdown?.typeTitles,
+    );
+  }, [
+    readonly,
+    captureLinkTypeOptions,
+    typeIds,
+    typeTitles,
+    editableLinkTypeBreakdown,
+  ]);
+
+  /**
+   * The rows shown in the table. In the readonly case the fetched links are
+   * already filtered server-side; in the editable case the full editor links are
+   * filtered here by the selected link types
+   */
+  const displayedIncomingLinksAndSources = useMemo(() => {
+    if (readonly || !filterTypeIds) {
+      return incomingLinksAndSources;
+    }
+
+    const selectedTypeIds = new Set<string>(filterTypeIds);
+
+    return incomingLinksAndSources.filter(({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeIds.some((typeId) =>
+        selectedTypeIds.has(typeId),
+      ),
+    );
+  }, [readonly, filterTypeIds, incomingLinksAndSources]);
+
+  if (readonly && error) {
+    return (
+      <SectionWrapper title="Incoming Links">
+        <Callout type="error">
+          Could not load incoming links. Please try again later.
+        </Callout>
+      </SectionWrapper>
+    );
+  }
+
+  if (
+    (!readonly && !hasRootLinkDataBeenResolved) ||
+    (readonly &&
+      (initialLoading ||
+        !linkEntities ||
+        !fetchedSubgraph ||
+        !fetchedDefinitions))
+  ) {
+    return (
+      <SectionWrapper title="Incoming Links">
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress size={24} />
+        </Box>
+      </SectionWrapper>
+    );
+  }
+
+  const entitySubgraph = readonly ? fetchedSubgraph! : editorSubgraph;
+  const closedMultiEntityTypesMap = readonly
+    ? (fetchedTypesMap ?? null)
+    : editorTypesMap;
+  const closedMultiEntityTypesDefinitions = readonly
+    ? fetchedDefinitions!
+    : editorDefinitions;
+
+  const linkCount = readonly
+    ? (totalCount ?? incomingLinksAndSources.length)
+    : incomingLinksAndSources.length;
+
+  if (linkCount === 0 && isLinkEntity) {
     /**
      * We don't show the links tables for link entities unless they have some links already set,
      * because we don't yet fully support linking to/from links in the UI.
@@ -34,13 +277,31 @@ export const IncomingLinksSection = ({
         <Stack direction="row" spacing={1.5}>
           <Chip
             size="xs"
-            label={`${incomingLinksAndSources.length} ${incomingLinksAndSources.length === 1 ? "link" : "links"}`}
+            label={`${linkCount} ${linkCount === 1 ? "link" : "links"}`}
           />
         </Stack>
       }
     >
-      {incomingLinksAndSources.length ? (
-        <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
+      {linkCount > 0 || (readonly && filterTypeIds !== undefined) ? (
+        <IncomingLinksTable
+          closedMultiEntityTypesDefinitions={closedMultiEntityTypesDefinitions}
+          closedMultiEntityTypesMap={closedMultiEntityTypesMap}
+          customEntityLinksColumns={customEntityLinksColumns}
+          entityLabel={entityLabel}
+          entitySubgraph={entitySubgraph}
+          filterDefinitions={filterDefinitions}
+          filterValues={filterValues}
+          incomingLinksAndSources={displayedIncomingLinksAndSources}
+          loadingMore={readonly ? loadingMore : undefined}
+          onEndReached={readonly && hasMore ? loadMore : undefined}
+          onEntityClick={onEntityClick}
+          onTypeClick={onTypeClick}
+          readonly={readonly}
+          setFilterValues={setFilterValues}
+          setSort={setSort}
+          slideContainerRef={slideContainerRef}
+          sort={sort}
+        />
       ) : (
         <LinksSectionEmptyState direction="Incoming" />
       )}

@@ -1,15 +1,20 @@
 import { z } from "zod";
 
+import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
 import { variableNameSchema } from "../validation/variable-name";
 
 import type {
+  ArcEndpoint,
   Color,
+  ComponentInstance,
   DifferentialEquation,
   InputArc,
+  OutputArc,
   Parameter,
   Place,
+  Subnet,
   Transition,
 } from "../types/sdcpn";
 
@@ -34,8 +39,9 @@ export const positionSchema = z
 export const nodePositionCommitSchema = z
   .strictObject({
     id: idSchema,
-    itemType: z.enum(["place", "transition"]).meta({
-      description: "Whether the positioned node is a place or transition.",
+    itemType: z.enum(["place", "transition", "componentInstance"]).meta({
+      description:
+        "Whether the positioned node is a place, transition, or component instance.",
     }),
     position: positionSchema,
   })
@@ -43,10 +49,62 @@ export const nodePositionCommitSchema = z
     description: "A pending canvas-position update for one node.",
   });
 
+export const arcEndpointSchema = z
+  .discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z.literal("place"),
+      placeId: idSchema.meta({
+        description: "ID of a place in the same net as the transition.",
+      }),
+    }),
+    z.strictObject({
+      kind: z.literal("componentPort"),
+      componentInstanceId: idSchema.meta({
+        description:
+          "ID of a component instance in the same net as the transition.",
+      }),
+      portPlaceId: idSchema.meta({
+        description:
+          "ID of a place marked `isPort: true` in the component instance's referenced subnet.",
+      }),
+    }),
+  ])
+  .meta({
+    description:
+      "Arc endpoint. Normal arcs reference a place in the same net; component-port arcs reference a port place on a subnet instance.",
+  }) satisfies z.ZodType<ArcEndpoint>;
+
+const assertSingleArcEndpoint = (ctx: {
+  value: { placeId?: string; endpoint?: ArcEndpoint };
+  issues: {
+    push(issue: {
+      code: "custom";
+      path: string[];
+      message: string;
+      input: unknown;
+    }): void;
+  };
+}) => {
+  const { placeId, endpoint } = ctx.value;
+  if ((placeId === undefined) === (endpoint === undefined)) {
+    ctx.issues.push({
+      code: "custom",
+      path: ["endpoint"],
+      message: "Provide exactly one of `placeId` or `endpoint`.",
+      input: ctx.value,
+    });
+  }
+};
+
 export const inputArcSchema = z
   .strictObject({
-    placeId: idSchema.meta({
-      description: "ID of the input place connected to the transition.",
+    placeId: idSchema.optional().meta({
+      description:
+        "Legacy shorthand for a normal input place endpoint. Prefer `endpoint` for new data.",
+    }),
+    endpoint: arcEndpointSchema.optional().meta({
+      description:
+        'Input endpoint. Use `kind: "componentPort"` to consume/read/inhibit tokens from a component instance port.',
     }),
     weight: z.number().positive().meta({
       description:
@@ -57,22 +115,29 @@ export const inputArcSchema = z
         "Standard arcs consume tokens from the input place; read arcs require and expose tokens to the lambda/kernel but do NOT consume them; inhibitor arcs prevent firing when the source place has at least the weight indicated and are NOT present in the lambda or kernel `input`.",
     }),
   })
+  .check(assertSingleArcEndpoint)
   .meta({
-    description: "Input arc from a place into a transition.",
+    description: "Input arc from a place or component port into a transition.",
   }) satisfies z.ZodType<InputArc>;
 
 export const outputArcSchema = z
   .strictObject({
-    placeId: idSchema.meta({
-      description: "ID of the output place connected from the transition.",
+    placeId: idSchema.optional().meta({
+      description:
+        "Legacy shorthand for a normal output place endpoint. Prefer `endpoint` for new data.",
+    }),
+    endpoint: arcEndpointSchema.optional().meta({
+      description:
+        'Output endpoint. Use `kind: "componentPort"` to produce tokens into a component instance port.',
     }),
     weight: z.number().positive().meta({
       description: "Number of tokens produced into the output place.",
     }),
   })
+  .check(assertSingleArcEndpoint)
   .meta({
-    description: "Output arc from a transition into a place.",
-  });
+    description: "Output arc from a transition into a place or component port.",
+  }) satisfies z.ZodType<OutputArc>;
 
 export const arcDirectionSchema = z.enum(["input", "output"]).meta({
   description:
@@ -95,9 +160,9 @@ export const colorElementSchema = z
         description:
           "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.",
       }),
-    type: z.enum(["real", "integer", "boolean"]).meta({
+    type: z.enum(COLOR_ELEMENT_TYPES).meta({
       description:
-        "Primitive token attribute type. Note: the simulation buffer stores all values as Float64; `integer`/`boolean` are documentation/type-hints only, not enforced at runtime.",
+        "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them.",
     }),
   })
   .meta({
@@ -122,6 +187,10 @@ export const placeSchema = z
     differentialEquationId: idSchema.nullable().meta({
       description:
         "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
+    }),
+    isPort: z.boolean().optional().meta({
+      description:
+        "When true, this place is exposed as a component port on instances of the subnet that contains it.",
     }),
     visualizerCode: z.string().optional().meta({
       description:
@@ -182,7 +251,7 @@ export const transitionSchema = z
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
-        "Token attribute values can be plain numbers/booleans. When stochasticity is enabled, values can also be `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)`; each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample (useful for deriving multiple attributes from one draw).",
+        "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
         "Leave empty when no coloured outputs exist.",
       ].join(" "),
     }),
@@ -214,7 +283,7 @@ export const colorSchema = z
     }),
     elements: z.array(colorElementSchema).meta({
       description:
-        "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies `number[][]` rows in this order.",
+        "Typed token attributes available on tokens of this colour/type. Element order matters: coloured initial state in scenario per_place mode supplies rows in this order.",
     }),
   })
   .meta({
@@ -235,16 +304,16 @@ export const differentialEquationSchema = z
     code: z.string().meta({
       description: [
         "Module: `export default Dynamics((tokens, parameters) => …)`.",
-        "`tokens` is THIS place's current tokens only — `Array<{ [elementName]: number }>` — NOT all places' tokens.",
-        "MUST return an array of the SAME LENGTH where each entry is `{ [elementName]: derivative }` (i.e. dx/dt, NOT the new value).",
-        "Missing keys default to 0 silently, so return every element your colour type declares.",
+        "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
+        "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
+        "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
   })
   .meta({
     description:
-      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and the returned derivative keys MUST cover that colour's elements.",
+      "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterSchema = z
@@ -271,8 +340,66 @@ export const parameterSchema = z
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
+export const componentInstanceSchema = z
+  .strictObject({
+    id: idSchema,
+    name: entityNameSchema.meta({
+      description:
+        "PascalCase name for the component instance (e.g. MainProcessor, Ward2). Used as a code-level identifier.",
+    }),
+    subnetId: idSchema.meta({
+      description: "ID of the subnet definition this component instantiates.",
+    }),
+    parameterValues: z.record(idSchema, z.string()).meta({
+      description:
+        "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
+    }),
+    x: z.number().meta({
+      description: "Horizontal canvas position.",
+    }),
+    y: z.number().meta({
+      description: "Vertical canvas position.",
+    }),
+  })
+  .meta({
+    description:
+      "A placed instance of a subnet. Parent nets connect to exposed subnet ports with transition arcs.",
+  }) satisfies z.ZodType<ComponentInstance>;
+
+export const subnetSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.meta({
+      description: "Human-readable subnet name.",
+    }),
+    places: z.array(placeSchema).meta({
+      description: "Places local to this subnet.",
+    }),
+    transitions: z.array(transitionSchema).meta({
+      description: "Transitions local to this subnet.",
+    }),
+    types: z.array(colorSchema).meta({
+      description: "Token types local to this subnet.",
+    }),
+    differentialEquations: z.array(differentialEquationSchema).meta({
+      description: "Differential equations local to this subnet.",
+    }),
+    parameters: z.array(parameterSchema).meta({
+      description: "Parameters local to this subnet.",
+    }),
+    componentInstances: z.array(componentInstanceSchema).optional().meta({
+      description: "Nested component instances local to this subnet.",
+    }),
+  })
+  .meta({
+    description:
+      "A reusable subnet definition that can be instantiated as a component.",
+  }) satisfies z.ZodType<Subnet>;
+
 export type PlaceSchema = typeof placeSchema;
 export type TransitionSchema = typeof transitionSchema;
 export type ColorSchema = typeof colorSchema;
 export type DifferentialEquationSchema = typeof differentialEquationSchema;
 export type ParameterSchema = typeof parameterSchema;
+export type ComponentInstanceSchema = typeof componentInstanceSchema;
+export type SubnetSchema = typeof subnetSchema;

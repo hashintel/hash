@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2026-06-08&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2026-07-06&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -493,6 +493,18 @@
 #![allow(clippy::missing_errors_doc)]
 
 extern crate alloc;
+
+// The user-facing `tracing` and `futures` features pull in `tracing` respectively
+// `futures-core`/`pin-project-lite`, but their only consumers (`sink` and `ext::stream`) are
+// additionally gated on `unstable`. Anchor the dependencies for the combinations where they are
+// enabled without `unstable`, so `cargo::unused_dependencies` (checked across the merge-queue
+// feature powerset) stays quiet.
+#[cfg(all(feature = "futures", not(feature = "unstable")))]
+use futures_core as _;
+#[cfg(all(feature = "futures", not(feature = "unstable")))]
+use pin_project_lite as _;
+#[cfg(all(feature = "tracing", not(feature = "unstable")))]
+use tracing as _;
 
 pub mod future;
 pub mod iter;

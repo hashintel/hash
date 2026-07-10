@@ -7,13 +7,22 @@ use hash_graph_store::entity::ValidateEntityComponents;
 use serde_json::json;
 use type_system::{
     knowledge::{
-        property::metadata::{PropertyMetadata, PropertyValueMetadata},
-        value::{ValueMetadata, metadata::ValueProvenance},
+        property::{
+            PropertyWithMetadata,
+            metadata::{PropertyMetadata, PropertyValueMetadata},
+        },
+        value::{PropertyValue, ValueMetadata, metadata::ValueProvenance},
     },
-    ontology::VersionedUrl,
+    ontology::{
+        VersionedUrl,
+        data_type::{ConversionExpression, ConversionValue, Operator, Variable},
+    },
 };
 
-use crate::tests::validate_property;
+use crate::{
+    EntityPreprocessor,
+    tests::{validate_property, validate_property_with},
+};
 
 #[tokio::test]
 async fn address_line_1() {
@@ -53,6 +62,82 @@ async fn age() {
     )
     .await
     .expect("validation failed");
+}
+
+#[tokio::test]
+async fn age_original_data_type_conversion() {
+    let property_types = [];
+    let data_types = [
+        hash_graph_test_data::data_type::VALUE_V1,
+        hash_graph_test_data::data_type::NUMBER_V1,
+    ];
+
+    let number_data_type_id = VersionedUrl::from_str(
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    )
+    .expect("invalid data type ID");
+    let meter_data_type_id =
+        VersionedUrl::from_str("https://localhost:4000/@alice/types/data-type/meter/v/1")
+            .expect("invalid data type ID");
+
+    let metadata = PropertyMetadata::Value(PropertyValueMetadata {
+        metadata: ValueMetadata {
+            provenance: ValueProvenance::default(),
+            confidence: None,
+            data_type_id: Some(number_data_type_id.clone()),
+            original_data_type_id: Some(meter_data_type_id.clone()),
+            canonical: HashMap::default(),
+        },
+    });
+    let conversions = [(
+        (meter_data_type_id, number_data_type_id),
+        vec![ConversionExpression {
+            lhs: ConversionValue::Variable(Variable::This),
+            operator: Operator::Multiply,
+            rhs: ConversionValue::Constant(1000_i32.into()),
+        }],
+    )];
+
+    // Fresh input is converted from the original to the target data type
+    let converted = validate_property_with(
+        EntityPreprocessor {
+            components: ValidateEntityComponents::full(),
+            convert_values: true,
+        },
+        conversions.clone(),
+        json!(2),
+        Some(metadata.clone()),
+        hash_graph_test_data::property_type::AGE_V1,
+        property_types,
+        data_types,
+    )
+    .await
+    .expect("validation failed");
+    let PropertyWithMetadata::Value(converted) = converted else {
+        panic!("expected value property");
+    };
+    assert_eq!(converted.value, PropertyValue::Number(2000_i32.into()));
+
+    // Stored values are already converted, so re-processing them with conversion disabled (as
+    // done on snapshot restore) must leave them unchanged
+    let unchanged = validate_property_with(
+        EntityPreprocessor {
+            components: ValidateEntityComponents::full(),
+            convert_values: false,
+        },
+        conversions,
+        json!(2000),
+        Some(metadata),
+        hash_graph_test_data::property_type::AGE_V1,
+        property_types,
+        data_types,
+    )
+    .await
+    .expect("validation failed");
+    let PropertyWithMetadata::Value(unchanged) = unchanged else {
+        panic!("expected value property");
+    };
+    assert_eq!(unchanged.value, PropertyValue::Number(2000_i32.into()));
 }
 
 #[tokio::test]

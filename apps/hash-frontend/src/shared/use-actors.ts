@@ -5,10 +5,7 @@ import {
   deserializeQueryEntitiesResponse,
   type SerializedQueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -61,10 +58,14 @@ export const useActors = (params: {
                     { parameter: accountId },
                   ],
                 },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.machine.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                {
+                  equal: [
+                    { path: ["type", "baseUrl"] },
+                    {
+                      parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                    },
+                  ],
+                },
               ],
             }),
           ),

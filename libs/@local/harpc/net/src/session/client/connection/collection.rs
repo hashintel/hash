@@ -73,7 +73,7 @@ impl TransactionCollection {
             Entry::Vacant(entry) => {
                 entry.insert_entry(state);
             }
-            Entry::Occupied(entry) => {
+            Entry::Occupied(mut entry) => {
                 // This should never happen, as the permit is unique and should not be shared
                 // between multiple transactions.
                 // This can only happen in the case that we overflow the u32 RequestId and we have a

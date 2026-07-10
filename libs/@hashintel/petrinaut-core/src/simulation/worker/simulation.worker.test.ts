@@ -130,6 +130,75 @@ describe("simulation.worker", () => {
       expect(readyMessages[0]?.initialFrameCount).toBe(1);
     });
 
+    it("ships initial-marking strings as an append-only pool delta", () => {
+      clearMessages();
+
+      const sdcpn = createMinimalSDCPN();
+      sdcpn.types[0]!.elements.push({
+        elementId: "e2",
+        name: "label",
+        type: "string",
+      });
+      sendToWorker({
+        type: "init",
+        sdcpn,
+        initialMarking: {
+          p1: [
+            { x: 1.0, label: "alpha" },
+            { x: 2.0, label: "beta" },
+            { x: 3.0, label: "alpha" },
+          ],
+        },
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      });
+
+      const frameMessages = getMessages("frame");
+      expect(frameMessages).toHaveLength(1);
+      // baseId 1: "" (id 0) is pre-seeded on both sides; equal strings share
+      // one entry.
+      expect(frameMessages[0]?.frame.newStrings).toEqual({
+        baseId: 1,
+        values: ["alpha", "beta"],
+      });
+
+      // Re-init starts a fresh pool: the delta counter resets too.
+      clearMessages();
+      sendToWorker({
+        type: "init",
+        sdcpn,
+        initialMarking: { p1: [{ x: 1.0, label: "gamma" }] },
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      });
+      expect(getMessages("frame")[0]?.frame.newStrings).toEqual({
+        baseId: 1,
+        values: ["gamma"],
+      });
+    });
+
+    it("omits the pool delta when the net has no string elements", () => {
+      clearMessages();
+
+      sendToWorker({
+        type: "init",
+        sdcpn: createMinimalSDCPN(),
+        initialMarking: { p1: [{ x: 1.0 }] },
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      });
+
+      const frameMessages = getMessages("frame");
+      expect(frameMessages).toHaveLength(1);
+      expect(frameMessages[0]?.frame.newStrings).toBeUndefined();
+    });
+
     it("posts error message for invalid SDCPN", () => {
       clearMessages();
 

@@ -152,6 +152,29 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     Archived,
+    /// Whether this [`Entity`] is read-only. Has no query token, only used by authorization
+    /// filters.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    ReadOnly,
+    /// The [`ActorEntityUuid`] that created this [`Entity`].
+    ///
+    /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
+    /// [`Entity`]: type_system::knowledge::Entity
+    CreatedById,
+    /// The [`ActorEntityUuid`] that created this [`Entity`]'s current edition.
+    ///
+    /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
+    /// [`Entity`]: type_system::knowledge::Entity
+    EditionCreatedById,
+    /// The transaction time at which this [`Entity`] was created. Only used as a sort key.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    CreatedAtTransactionTime,
+    /// The decision time at which this [`Entity`] was created. Only used as a sort key.
+    ///
+    /// [`Entity`]: type_system::knowledge::Entity
+    CreatedAtDecisionTime,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -475,6 +498,11 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::DirectTypeCount => fmt.write_str("directTypeCount"),
             Self::Archived => fmt.write_str("archived"),
+            Self::ReadOnly => fmt.write_str("readOnly"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
+            Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
+            Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
@@ -529,8 +557,16 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::WebId | Self::DraftId => ParameterType::Uuid,
+            Self::EditionId
+            | Self::Uuid
+            | Self::WebId
+            | Self::DraftId
+            | Self::CreatedById
+            | Self::EditionCreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                ParameterType::Timestamp
+            }
             Self::DirectTypeCount => ParameterType::Integer,
             Self::Properties(_)
             | Self::Label { .. }
@@ -543,7 +579,7 @@ impl QueryPath for EntityQueryPath<'_> {
                 ParameterType::Decimal
             }
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
-            Self::Archived => ParameterType::Boolean,
+            Self::Archived | Self::ReadOnly => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
             Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
@@ -843,14 +879,10 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
             }
             EntityQuerySortingToken::EditionCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
             EntityQuerySortingToken::CreatedAtTransactionTime => {
-                EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                    PathToken::Field(Cow::Borrowed("createdAtTransactionTime")),
-                ])))
+                EntityQueryPath::CreatedAtTransactionTime
             }
             EntityQuerySortingToken::CreatedAtDecisionTime => {
-                EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                    PathToken::Field(Cow::Borrowed("createdAtDecisionTime")),
-                ])))
+                EntityQueryPath::CreatedAtDecisionTime
             }
             // We don't know the ordering, yet. This will be set later
             EntityQuerySortingToken::TypeTitle => EntityQueryPath::FirstTypeTitle,
@@ -888,6 +920,11 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::TransactionTime => EntityQueryPath::TransactionTime,
             Self::DirectTypeCount => EntityQueryPath::DirectTypeCount,
             Self::Archived => EntityQueryPath::Archived,
+            Self::ReadOnly => EntityQueryPath::ReadOnly,
+            Self::CreatedById => EntityQueryPath::CreatedById,
+            Self::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            Self::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
+            Self::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
             Self::EntityTypeEdge {
                 path,
                 edge_kind,

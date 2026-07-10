@@ -10,7 +10,6 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -247,10 +246,15 @@ export const getMentionNotification: ImpureGraphFunction<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.mentionNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter:
+                  systemEntityTypes.mentionNotification.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },
@@ -506,10 +510,15 @@ export const getCommentNotification: ImpureGraphFunction<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.commentNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              {
+                parameter:
+                  systemEntityTypes.commentNotification.entityTypeBaseUrl,
+              },
+            ],
+          },
           {
             equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
           },

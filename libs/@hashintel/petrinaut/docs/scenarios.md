@@ -51,7 +51,7 @@ You see a row per place. Which places appear depends on the **Show all places** 
 What you enter per place depends on whether it has a type:
 
 - **Uncoloured places**: a single-line TypeScript expression that evaluates to the token count. The result is rounded down and clamped to `>= 0`. You can reference `parameters.<variable_name>` and `scenario.<identifier>`. Empty/missing means zero tokens.
-- **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal numbers; expressions are not supported in the spreadsheet.
+- **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal values matching each column's type — numbers for Real/Integer, true/false for Boolean, free text for String, and identifiers for UUID; expressions are not supported in the spreadsheet. UUID columns accept any text: a UUID string is used as-is, and any other text (e.g. `order-1`) is converted deterministically to a UUID, so the same text always produces the same identifier. If you later edit the type itself, existing rows follow along: added elements get a default column, removed elements' columns are dropped, reordered elements keep their values, and changing an element's type converts each stored value (falling back to the new type's default when a value can't be converted).
 
 ### Code mode (Define as code)
 

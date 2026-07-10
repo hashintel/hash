@@ -8,10 +8,7 @@ import {
   HashLinkEntity,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
@@ -34,9 +31,14 @@ export const getEntitiesByLinearId = async (params: {
     filter: {
       all: [
         params.entityTypeId
-          ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
-              ignoreParents: true,
-            })
+          ? {
+              equal: [
+                { path: ["type", "versionedUrl"] },
+                {
+                  parameter: params.entityTypeId,
+                },
+              ],
+            }
           : [],
         {
           equal: [

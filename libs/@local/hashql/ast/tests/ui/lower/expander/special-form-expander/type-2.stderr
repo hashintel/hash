@@ -1,0 +1,7 @@
+error[expander::invalid-argument-count]: Invalid argument count
+  ╭▸ 
+3 │ ["::kernel::special_form::type", "x", "Integer"]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected 3 arguments to `type`, found 2
+  │
+  ├ help: use `(type Name type-expr body)`
+  ╰ note: the arguments are, in order: the type name (optionally with generic parameters), the type definition, and the body where the name is in scope

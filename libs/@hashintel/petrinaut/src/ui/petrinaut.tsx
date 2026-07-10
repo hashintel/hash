@@ -99,7 +99,7 @@ const noop = () => {};
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
- * handle, mounts {@link PetrinautProvider} to wire every bridge, and renders
+ * handle, mounts {@link PetrinautProvider} to connect every bridge, and renders
  * the editor.
  *
  * Net-management concerns (title, switching) are passed alongside the handle

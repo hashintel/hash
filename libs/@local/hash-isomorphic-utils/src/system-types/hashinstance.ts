@@ -9,6 +9,8 @@ import type {
   ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
@@ -19,6 +21,8 @@ export type {
   ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };
 
 /**

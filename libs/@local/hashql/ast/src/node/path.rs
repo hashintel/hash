@@ -163,6 +163,17 @@ impl<'heap> Path<'heap> {
         Some((segment.name, &segment.arguments))
     }
 
+    pub fn as_generic_ident_mut(
+        &mut self,
+    ) -> Option<(Ident<'heap>, &mut [PathSegmentArgument<'heap>])> {
+        if !self.is_generic_ident() {
+            return None;
+        }
+
+        let segment = &mut self.segments[0];
+        Some((segment.name, &mut segment.arguments))
+    }
+
     pub(crate) fn into_ident(mut self) -> Option<Ident<'heap>> {
         if !self.is_ident() {
             return None;
@@ -186,35 +197,6 @@ impl<'heap> Path<'heap> {
 
         let segment = self.segments.pop().unwrap_or_else(|| unreachable!());
         Ok((segment.name, segment.arguments))
-    }
-
-    /// Checks if this path is an absolute path that matches the provided sequence of identifiers.
-    ///
-    /// A path matches when:
-    /// - The path is absolute (rooted with `::`)
-    /// - It has the same number of segments as provided identifiers
-    /// - Each segment name matches the corresponding identifier
-    /// - None of the path segments have generic arguments
-    pub(crate) fn matches_absolute_path<T>(
-        &self,
-        path: impl IntoIterator<Item = T, IntoIter: ExactSizeIterator>,
-    ) -> bool
-    where
-        T: AsRef<str>,
-    {
-        if !self.rooted {
-            return false;
-        }
-
-        let path = path.into_iter();
-
-        if self.segments.len() != path.len() {
-            return false;
-        }
-
-        self.segments.iter().zip(path).all(|(segment, ident)| {
-            segment.name.value.as_str() == ident.as_ref() && segment.arguments.is_empty()
-        })
     }
 
     pub(crate) fn starts_with_absolute_path<T>(

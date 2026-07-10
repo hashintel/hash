@@ -1,9 +1,6 @@
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
@@ -67,10 +64,16 @@ export const persistFlowActivity = async (
               { parameter: temporalWorkflowId },
             ],
           },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
+          {
+            equal: [
+              {
+                path: ["type", "baseUrl"],
+              },
+              {
+                parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
+              },
+            ],
+          },
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,

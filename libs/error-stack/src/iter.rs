@@ -3,15 +3,14 @@
 use alloc::{vec, vec::Vec};
 #[cfg(nightly)]
 use core::marker::PhantomData;
-use core::{
-    fmt,
-    iter::FusedIterator,
-    slice::{Iter, IterMut},
-};
+use core::{fmt, iter::FusedIterator, slice::Iter};
 
 use crate::Frame;
 
-/// Helper function, which is used in both [`Frames`] and [`FramesMut`].
+/// Helper function, which is used in both [`Frames`] and the mutable frame traversals on
+/// [`Report`].
+///
+/// [`Report`]: crate::Report
 ///
 /// To traverse the frames, the following algorithm is used:
 /// Given a list of iterators, take the last iterator, and use items from it until the iterator has
@@ -31,7 +30,7 @@ use crate::Frame;
 /// 7) Out: G Stack: [H]
 /// 8) Out: H Stack: -
 /// ```
-fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
+pub(crate) fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
     let out;
     loop {
         let last = iter.last_mut()?;
@@ -107,49 +106,6 @@ impl fmt::Debug for Frames<'_> {
         fmt.debug_list().entries(self.clone()).finish()
     }
 }
-
-/// Iterator over the mutable [`Frame`] stack of a [`Report`].
-///
-/// Use [`Report::frames_mut()`] to create this iterator.
-///
-/// [`Report`]: crate::Report
-/// [`Report::frames_mut()`]: crate::Report::frames_mut
-#[must_use]
-pub struct FramesMut<'r> {
-    stack: Vec<IterMut<'r, Frame>>,
-}
-
-impl<'r> FramesMut<'r> {
-    pub(crate) fn new(frames: &'r mut [Frame]) -> Self {
-        Self {
-            stack: vec![frames.iter_mut()],
-        }
-    }
-}
-
-impl<'r> Iterator for FramesMut<'r> {
-    type Item = &'r mut Frame;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let frame = next(&mut self.stack)?;
-        let frame: *mut Frame = frame;
-
-        // SAFETY:
-        // We require both mutable access to the frame for all sources (as a mutable iterator) and
-        // we need to return the mutable frame itself. We will never access the same value twice,
-        // and only store their mutable iterator until the next `next()` call. This function acts
-        // like a dynamic chain of multiple `IterMut`. The borrow checker is unable to prove that
-        // subsequent calls to `next()` won't access the same data.
-        // NB: It's almost never possible to implement a mutable iterator without `unsafe`.
-        unsafe {
-            self.stack.push((*frame).sources_mut().iter_mut());
-
-            Some(&mut *frame)
-        }
-    }
-}
-
-impl FusedIterator for FramesMut<'_> {}
 
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///

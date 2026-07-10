@@ -43,7 +43,7 @@ impl Transpile for WithExpression {
             if idx > 0 {
                 fmt.write_str(", ")?;
             }
-            expression.table.transpile(fmt)?;
+            expression.table.name().transpile(fmt)?;
             fmt.write_str(" AS (")?;
             expression.statement.transpile(fmt)?;
             fmt.write_char(')')?;

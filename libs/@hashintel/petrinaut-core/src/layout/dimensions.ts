@@ -12,4 +12,5 @@ import type { LayoutDimensions } from "./calculate-graph-layout";
 export const layoutNodeDimensions: LayoutDimensions = {
   place: { width: 180, height: 130 },
   transition: { width: 180, height: 80 },
+  componentInstance: { width: 180, height: 120 },
 };

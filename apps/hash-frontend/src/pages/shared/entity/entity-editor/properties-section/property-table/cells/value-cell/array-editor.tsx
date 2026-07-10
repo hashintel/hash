@@ -28,6 +28,7 @@ import { SortableRow } from "./array-editor/sortable-row";
 import { getEditorSpecs } from "./editor-specs";
 import { isBlankStringOrNullish } from "./utils";
 
+import type { PropertyRow } from "../../types";
 import type { SortableItem } from "./array-editor/types";
 import type { ValueCellEditorComponent } from "./types";
 import type {
@@ -174,7 +175,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         value,
       ];
 
-      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata =
+        propertyMetadata;
     });
     onChange(newCell);
 
@@ -198,7 +200,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
 
-      draftCell.data.propertyRow.valueMetadata = propertyMetadata;
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata =
+        propertyMetadata;
     });
 
     onChange(newCell);
@@ -237,7 +240,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       const newMetadata = arrayMove(valueMetadata.value, oldIndex, newIndex);
 
-      draftCell.data.propertyRow.valueMetadata = {
+      (draftCell.data.propertyRow as PropertyRow).valueMetadata = {
         ...valueMetadata,
         value: newMetadata,
       };

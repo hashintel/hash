@@ -3,10 +3,7 @@ import { expect, test } from "vitest";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { graphApiClient } from "../../../shared/graph-api-client.js";
@@ -24,10 +21,14 @@ test.skip(
       {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                {
+                  parameter: systemEntityTypes.user.entityTypeBaseUrl,
+                },
+              ],
+            },
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,

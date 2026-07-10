@@ -1,0 +1,15 @@
+error[expander::invalid-argument-count]: Invalid argument count
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::newtype",
+ 5 │ ┃   "x",
+ 6 │ ┃   "Boolean",
+ 7 │ ┃   ["+", { "#literal": true }, { "#literal": false }],
+ 8 │ ┃   { "#literal": true }
+   │ ┃   ──────────────────── unexpected argument
+ 9 │ ┃   //~^ ERROR unexpected argument
+10 │ ┃ ]
+   │ ┗━┛ expected 3 arguments to `newtype`, found 4
+   │
+   ├ help: use `(newtype Name type-expr body)`
+   ╰ note: the arguments are, in order: the type name (optionally with generic parameters), the underlying type, and the body where the name is in scope

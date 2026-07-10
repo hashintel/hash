@@ -19,15 +19,26 @@
 
 use core::{
     alloc::Allocator,
+    mem,
     ops::{BitOr, BitOrAssign},
 };
 
-use hashql_core::heap::BumpAllocator;
+use hashql_core::{
+    heap::{BumpAllocator, Heap, ResetAllocator as _, Scratch},
+    span::SpanId,
+};
+use hashql_diagnostics::Status;
 
+use self::{
+    analysis::SizeEstimationAnalysis,
+    execution::{ExecutionAnalysis, ExecutionAnalysisResidual},
+    transform::{Inline, InlineConfig, PostInline, PreInline},
+};
 use crate::{
     body::Body,
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
+    error::MirDiagnosticCategory,
 };
 
 pub mod analysis;
@@ -159,6 +170,7 @@ impl BitOrAssign for Changed {
 }
 
 impl From<bool> for Changed {
+    #[inline]
     fn from(value: bool) -> Self {
         if value { Self::Yes } else { Self::No }
     }
@@ -465,6 +477,104 @@ pub trait GlobalAnalysisPass<'env, 'heap> {
     fn name(&self) -> &'static str {
         const { simplify_type_name(core::any::type_name::<Self>()) }
     }
+}
+
+/// Configuration for the MIR lowering pipeline.
+#[derive(Debug, Clone, Default)]
+pub struct LowerConfig {
+    pub inline: InlineConfig,
+}
+
+/// Runs the MIR lowering pipeline over all bodies.
+///
+/// Produces optimized, fully inlined MIR ready for execution placement. The
+/// pipeline runs three phases:
+///
+/// 1. **Pre-inline canonicalization**: simplifies each body in isolation (constant folding, dead
+///    code elimination, CFG cleanup) so that the inliner sees clean callees and makes better
+///    decisions.
+/// 2. **Inlining**: inter-procedural pass that substitutes callees into call sites based on cost
+///    heuristics, with aggressive inlining for filter bodies.
+/// 3. **Post-inline canonicalization**: cleans up redundancy introduced by inlining (duplicate
+///    code, dead stores, unreachable blocks).
+///
+/// # Errors
+///
+/// Returns `Err` if any pass emits a critical diagnostic (`Error` or `Bug`
+/// severity). This indicates a compiler invariant violation, since transform
+/// passes operate on well-typed, well-formed MIR.
+pub fn lower<'heap>(
+    context: &mut MirContext<'_, 'heap>,
+    scratch: &mut Scratch,
+    bodies: &mut DefIdSlice<Body<'heap>>,
+    config: &LowerConfig,
+) -> Status<(), MirDiagnosticCategory, SpanId> {
+    scratch.reset();
+
+    let mut state = GlobalTransformState::new_in(&*bodies, context.heap);
+
+    let mut pass = PreInline::new_in(&mut *scratch);
+    let _: Changed = pass.run(context, &mut state, bodies);
+    scratch.reset();
+
+    let mut pass = Inline::new_in(config.inline, &mut *scratch);
+    let _: Changed = pass.run(context, &mut state, bodies);
+    scratch.reset();
+
+    let mut pass = PostInline::new_in(&mut *scratch);
+    let _: Changed = pass.run(context, &mut state, bodies);
+    scratch.reset();
+
+    let issues = mem::take(&mut context.diagnostics);
+    issues.into_status(())
+}
+
+/// Determines which execution backend each basic block runs on.
+///
+/// Only [`GraphReadFilter`] bodies are analyzed; all other bodies receive
+/// `None` in the result. The pipeline runs two phases:
+///
+/// 1. **Size estimation**: computes per-body footprints used to estimate data transfer costs at
+///    island boundaries.
+/// 2. **Execution analysis**: for each filter body, computes per-target statement and terminator
+///    costs, solves the placement problem, fuses adjacent same-backend blocks, and builds the
+///    island graph.
+///
+/// # Errors
+///
+/// Returns `Err` if the placement solver emits a critical diagnostic. The
+/// interpreter is a universal execution target, so a valid assignment
+/// should always exist; a solver failure indicates a bug in domain pruning
+/// or target construction.
+///
+/// [`GraphReadFilter`]: crate::body::Source::GraphReadFilter
+pub fn place<'heap>(
+    context: &mut MirContext<'_, 'heap>,
+    scratch: &mut Scratch,
+    bodies: &mut DefIdSlice<Body<'heap>>,
+) -> Status<
+    DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
+    MirDiagnosticCategory,
+    SpanId,
+> {
+    scratch.reset();
+
+    let heap = context.heap;
+
+    let mut pass = SizeEstimationAnalysis::new_in(&*scratch);
+    pass.run(context, bodies);
+    let footprints = pass.finish();
+    scratch.reset();
+
+    let pass = ExecutionAnalysis {
+        footprints: &footprints,
+        scratch: &mut *scratch,
+    };
+    let residual = pass.run_all_in(context, bodies, heap);
+    scratch.reset();
+
+    let issues = mem::take(&mut context.diagnostics);
+    issues.into_status(residual)
 }
 
 #[cfg(test)]

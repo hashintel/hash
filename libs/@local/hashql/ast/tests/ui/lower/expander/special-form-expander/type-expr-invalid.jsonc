@@ -1,0 +1,24 @@
+//@ run: fail
+//@ description: every expression, except for struct, tuple and paths are not valid type expressions
+[
+  "::kernel::special_form::as",
+  [
+    "::kernel::special_form::as",
+    [
+      "::kernel::special_form::as",
+      [
+        "::kernel::special_form::as",
+        { "#literal": 1 },
+        // ensure that we properly resolve nested is expressions as errors
+        ["::kernel::special_form::as", { "#literal": 1 }, "Integer"]
+        //~^ ERROR cannot find type `as` in module `::kernel::special_form`
+      ],
+      { "#literal": 1 }
+      //~^ ERROR cannot use a literal value as a type
+    ],
+    { "#list": [{ "#literal": 1 }, { "#literal": 2 }] }
+    //~^ ERROR cannot use a list expression as a type
+  ],
+  { "#dict": { "a": { "#literal": 1 } } }
+  //~^ ERROR cannot use a dictionary expression as a type
+]

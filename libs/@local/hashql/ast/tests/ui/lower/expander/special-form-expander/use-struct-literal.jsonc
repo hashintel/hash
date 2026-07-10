@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: any value that isn't an identifier should fail
+[
+  "::kernel::special_form::use",
+  "::core::math",
+  {
+    "#struct": {
+      "sqrt": { "#literal": 1 }
+      //~^ ERROR expected `_` or a simple identifier as the alias
+    }
+  },
+  { "#literal": 1 }
+]

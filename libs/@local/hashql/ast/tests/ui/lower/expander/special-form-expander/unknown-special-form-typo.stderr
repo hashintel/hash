@@ -1,0 +1,12 @@
+error[expander::item-not-found]: Item not found
+  ╭▸ 
+3 │ ["::kernel::special_form::nuwtype"]
+  │             ┬───────────  ━━━━━━━ cannot find value `nuwtype` in module `::kernel::special_form`
+  │             │
+  │             looked in this module
+  ╰╴
+help: a similar item exists in this module
+  ╭╴
+3 - ["::kernel::special_form::nuwtype"]
+3 + ["::kernel::special_form::newtype"]
+  ╰╴

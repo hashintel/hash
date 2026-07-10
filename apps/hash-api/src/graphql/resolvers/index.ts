@@ -41,6 +41,7 @@ import {
   createEntityResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
+  searchEntitiesResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
@@ -93,6 +94,7 @@ import {
   createEntityTypeResolver,
   getClosedMultiEntityTypesResolver,
   queryEntityTypesResolver,
+  searchEntityTypesResolver,
   queryEntityTypeSubgraphResolver,
   unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
@@ -134,12 +136,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryPropertyTypes: queryPropertyTypesResolver,
     queryPropertyTypeSubgraph: queryPropertyTypeSubgraphResolver,
     queryEntityTypes: queryEntityTypesResolver,
+    searchEntityTypes: searchEntityTypesResolver,
     queryEntityTypeSubgraph: queryEntityTypeSubgraphResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,
 
     /** Logged in users (who may not have completed signup) */
     me: loggedInMiddleware(meResolver),
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
+    getMyPendingInvitations: loggedInMiddleware(
+      getMyPendingInvitationsResolver,
+    ),
 
     /** Logged in and signed up users */
     getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(
@@ -159,13 +165,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     }),
     summarizeEntities: loggedInAndSignedUpMiddleware(summarizeEntitiesResolver),
     queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
+    searchEntities: loggedInAndSignedUpMiddleware(searchEntitiesResolver),
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
     ),
-    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
-      getMyPendingInvitationsResolver,
-    ),
-
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),

@@ -9,10 +9,7 @@ import {
   ClockRegularIcon,
 } from "@hashintel/design-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
@@ -56,10 +53,14 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                {
+                  parameter: systemEntityTypes.usageRecord.entityTypeBaseUrl,
+                },
+              ],
+            },
             {
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "uuid"] },

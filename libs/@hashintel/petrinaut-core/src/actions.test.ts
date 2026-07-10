@@ -123,6 +123,44 @@ describe("Petrinaut core actions", () => {
   test("updates arc endpoints granularly", () => {
     const instance = createInstance({
       ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "Output",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-3",
+          name: "NewInput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 100,
+        },
+        {
+          id: "place-4",
+          name: "NewOutput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 100,
+        },
+      ],
       transitions: [
         {
           id: "transition-1",
@@ -160,6 +198,35 @@ describe("Petrinaut core actions", () => {
   test("adds and updates read input arcs", () => {
     const instance = createInstance({
       ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "Output",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-3",
+          name: "RejectedOutput",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 200,
+          y: 0,
+        },
+      ],
       transitions: [
         {
           id: "transition-1",
@@ -212,6 +279,332 @@ describe("Petrinaut core actions", () => {
     expect(instance.definition.get().transitions[0]).toMatchObject({
       inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
       outputArcs: [{ placeId: "place-2", weight: 3 }],
+    });
+  });
+
+  test("loads default transition kernel code when adding a typed output arc", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+        },
+      ],
+      places: [
+        {
+          id: "place-1",
+          name: "Output",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-1",
+      weight: 2,
+    });
+
+    const transitionKernelCode =
+      instance.definition.get().transitions[0]!.transitionKernelCode;
+
+    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).toContain("Output: [");
+    expect(transitionKernelCode.match(/Mass: 0/g)).toHaveLength(2);
+  });
+
+  test("loads default transition kernel code for typed component-port outputs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+      componentInstances: [
+        {
+          id: "instance-1",
+          name: "Reusable instance",
+          subnetId: "subnet-1",
+          parameterValues: {},
+          x: 100,
+          y: 100,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-output-port",
+              name: "PortOutput",
+              colorId: "type-1",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 100,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [
+            {
+              id: "type-1",
+              name: "Particle",
+              iconSlug: "circle",
+              displayColor: "#34a0fa",
+              elements: [
+                { elementId: "element-1", name: "Mass", type: "real" },
+              ],
+            },
+          ],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      endpoint: {
+        kind: "componentPort",
+        componentInstanceId: "instance-1",
+        portPlaceId: "place-output-port",
+      },
+      weight: 1,
+    });
+
+    const transitionKernelCode =
+      instance.definition.get().transitions[0]!.transitionKernelCode;
+
+    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).toContain("PortOutput: [");
+    expect(transitionKernelCode).toContain("Mass: 0");
+  });
+
+  test("does not replace existing transition kernel code when adding a typed output arc", () => {
+    const existingKernelCode =
+      "export default TransitionKernel(() => ({ Output: [{ Mass: 42 }] }));";
+    const instance = createInstance({
+      ...emptySDCPN,
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+        },
+      ],
+      places: [
+        {
+          id: "place-1",
+          name: "Output",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "OtherOutput",
+          colorId: "type-1",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 200,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [{ placeId: "place-1", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: existingKernelCode,
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      placeId: "place-2",
+      weight: 1,
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      transitionKernelCode: existingKernelCode,
+    });
+  });
+
+  test("adds, validates, and cleans up component-port arcs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+      componentInstances: [
+        {
+          id: "instance-1",
+          name: "Reusable instance",
+          subnetId: "subnet-1",
+          parameterValues: {},
+          x: 100,
+          y: 100,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-input-port",
+              name: "InputPort",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 0,
+              y: 0,
+            },
+            {
+              id: "place-output-port",
+              name: "OutputPort",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 100,
+              y: 0,
+            },
+            {
+              id: "place-internal",
+              name: "Internal",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 200,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    const inputEndpoint = {
+      kind: "componentPort" as const,
+      componentInstanceId: "instance-1",
+      portPlaceId: "place-output-port",
+    };
+    const outputEndpoint = {
+      kind: "componentPort" as const,
+      componentInstanceId: "instance-1",
+      portPlaceId: "place-input-port",
+    };
+
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      endpoint: outputEndpoint,
+      weight: 2,
+    });
+    instance.mutations.addArc({
+      transitionId: "transition-1",
+      arcDirection: "input",
+      endpoint: inputEndpoint,
+      weight: 1,
+      type: "read",
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ endpoint: inputEndpoint, weight: 1, type: "read" }],
+      outputArcs: [{ endpoint: outputEndpoint, weight: 2 }],
+    });
+
+    expect(() =>
+      instance.mutations.addArc({
+        transitionId: "transition-1",
+        arcDirection: "output",
+        endpoint: {
+          kind: "componentPort",
+          componentInstanceId: "instance-1",
+          portPlaceId: "place-internal",
+        },
+        weight: 1,
+      }),
+    ).toThrow("only places marked `isPort` can be used as component ports");
+
+    instance.mutations.removePlace({
+      targetSubnetId: "subnet-1",
+      placeId: "place-input-port",
+    });
+
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ endpoint: inputEndpoint, weight: 1, type: "read" }],
+      outputArcs: [],
+    });
+
+    instance.mutations.removeComponentInstance({ instanceId: "instance-1" });
+
+    expect(instance.definition.get().componentInstances).toEqual([]);
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [],
+      outputArcs: [],
     });
   });
 
@@ -714,5 +1107,106 @@ describe("Petrinaut core actions", () => {
         initialState: { type: "per_place", content: {} },
       }),
     ).toThrow();
+  });
+
+  test("adds optional root collections when they are initially absent", () => {
+    const instance = createInstance();
+
+    instance.mutations.addScenario({
+      id: "scenario-1",
+      name: "Scenario",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "per_place", content: {} },
+    });
+    instance.mutations.addMetric({
+      id: "metric-1",
+      name: "Metric",
+      code: "return 0;",
+    });
+    instance.mutations.addSubnet({
+      id: "subnet-1",
+      name: "Reusable subnet",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    });
+
+    expect(instance.definition.get().scenarios).toEqual([
+      {
+        id: "scenario-1",
+        name: "Scenario",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      },
+    ]);
+    expect(instance.definition.get().metrics).toEqual([
+      {
+        id: "metric-1",
+        name: "Metric",
+        code: "return 0;",
+      },
+    ]);
+    expect(instance.definition.get().subnets).toEqual([
+      {
+        id: "subnet-1",
+        name: "Reusable subnet",
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        componentInstances: [],
+      },
+    ]);
+  });
+
+  test("targets place mutations at a subnet when targetSubnetId is provided", () => {
+    const instance = createInstance();
+
+    instance.mutations.addSubnet({
+      id: "subnet-1",
+      name: "Reusable subnet",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    });
+    instance.mutations.addPlace({
+      targetSubnetId: "subnet-1",
+      id: "place-1",
+      name: "Input",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.updatePlace({
+      targetSubnetId: "subnet-1",
+      placeId: "place-1",
+      update: { isPort: true },
+    });
+
+    const definition = instance.definition.get();
+    expect(definition.places).toEqual([]);
+    expect(definition.subnets?.[0]?.places).toEqual([
+      {
+        id: "place-1",
+        name: "Input",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        isPort: true,
+        x: 0,
+        y: 0,
+      },
+    ]);
   });
 });

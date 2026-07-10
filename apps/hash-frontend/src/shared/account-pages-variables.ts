@@ -2,7 +2,7 @@ import {
   currentTimeInstantTemporalAxes,
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { WebId } from "@blockprotocol/type-system";
 import type { QueryEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
@@ -17,7 +17,14 @@ export const getAccountPagesVariables = ({
   request: {
     filter: {
       all: [
-        pageEntityTypeFilter,
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.page.entityTypeBaseUrl,
+            },
+          ],
+        },
         {
           equal: [{ path: ["webId"] }, { parameter: webId }],
         },

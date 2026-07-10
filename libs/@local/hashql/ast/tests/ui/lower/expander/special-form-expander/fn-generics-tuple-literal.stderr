@@ -1,0 +1,6 @@
+error[expander::invalid-fn-generic-param]: Invalid generic parameter
+  ╭▸ 
+7 │       { "#literal": 1 }
+  │       ━━━━━━━━━━━━━━━━━ expected a simple type parameter name
+  │
+  ╰ help: each generic parameter must be a plain identifier like `T`, not a qualified path or expression
