@@ -24,21 +24,22 @@
         }
       },
       "provenance": {
+        "created_at_decision_time": <timestamp>,
+        "created_at_transaction_time": <timestamp>,
+        "created_by_id": "<uuid:0>",
         "edition": {
           "actorType": "user",
-          "createdById": "<uuid:0>",
           "origin": {
             "type": "api"
           }
         },
+        "edition_created_by_id": "<uuid:0>",
         "inferred": {
-          "createdAtDecisionTime": "<timestamp>",
-          "createdAtTransactionTime": "<timestamp>",
-          "createdById": "<uuid:0>",
           "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
           "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
         }
       },
+      "read_only": false,
       "record_id": {
         "edition_id": "<uuid:1>",
         "entity_id": {
@@ -96,21 +97,22 @@
         }
       },
       "provenance": {
+        "created_at_decision_time": <timestamp>,
+        "created_at_transaction_time": <timestamp>,
+        "created_by_id": "<uuid:0>",
         "edition": {
           "actorType": "user",
-          "createdById": "<uuid:0>",
           "origin": {
             "type": "api"
           }
         },
+        "edition_created_by_id": "<uuid:0>",
         "inferred": {
-          "createdAtDecisionTime": "<timestamp>",
-          "createdAtTransactionTime": "<timestamp>",
-          "createdById": "<uuid:0>",
           "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
           "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
         }
       },
+      "read_only": false,
       "record_id": {
         "edition_id": "<uuid:3>",
         "entity_id": {
@@ -160,21 +162,22 @@
         }
       },
       "provenance": {
+        "created_at_decision_time": <timestamp>,
+        "created_at_transaction_time": <timestamp>,
+        "created_by_id": "<uuid:0>",
         "edition": {
           "actorType": "user",
-          "createdById": "<uuid:0>",
           "origin": {
             "type": "api"
           }
         },
+        "edition_created_by_id": "<uuid:0>",
         "inferred": {
-          "createdAtDecisionTime": "<timestamp>",
-          "createdAtTransactionTime": "<timestamp>",
-          "createdById": "<uuid:0>",
           "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
           "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
         }
       },
+      "read_only": false,
       "record_id": {
         "edition_id": "<uuid:5>",
         "entity_id": {
@@ -223,19 +226,19 @@
         }
       },
       "provenance": {
+        "created_at_decision_time": <timestamp>,
+        "created_at_transaction_time": <timestamp>,
+        "created_by_id": "<uuid:0>",
         "edition": {
           "actorType": "user",
-          "createdById": "<uuid:0>",
           "origin": {
             "type": "api"
           }
         },
-        "inferred": {
-          "createdAtDecisionTime": "<timestamp>",
-          "createdAtTransactionTime": "<timestamp>",
-          "createdById": "<uuid:0>"
-        }
+        "edition_created_by_id": "<uuid:0>",
+        "inferred": {}
       },
+      "read_only": false,
       "record_id": {
         "edition_id": "<uuid:7>",
         "entity_id": {

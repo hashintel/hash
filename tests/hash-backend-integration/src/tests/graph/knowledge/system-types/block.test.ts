@@ -14,7 +14,6 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
@@ -80,8 +79,6 @@ describe("Block", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

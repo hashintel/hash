@@ -75,8 +75,19 @@ pub enum EntityPath {
     EntityTypeIds,
     /// `metadata.archived` — `entity_editions.archived`.
     Archived,
+    /// `metadata.read_only` — `entity_ids.read_only`.
+    ReadOnly,
     /// `metadata.confidence` — `entity_editions.confidence`.
     Confidence,
+    /// `metadata.provenance.created_by_id` — `entity_ids.created_by_id`.
+    CreatedById,
+    /// `metadata.provenance.created_at_transaction_time` —
+    /// `entity_ids.created_at_transaction_time`.
+    CreatedAtTransactionTime,
+    /// `metadata.provenance.created_at_decision_time` — `entity_ids.created_at_decision_time`.
+    CreatedAtDecisionTime,
+    /// `metadata.provenance.edition_created_by_id` — `entity_editions.created_by_id`.
+    EditionCreatedById,
 
     /// `metadata.provenance.inferred` — JSONB in `entity_ids.provenance`.
     ProvenanceInferred,
@@ -123,11 +134,11 @@ pub(crate) struct TransferCostConfig {
     pub properties_size: InformationRange,
     /// Size of a single embedding vector.
     pub embedding_size: InformationRange,
-    /// Size of `EntityEditionProvenance` JSONB (`entity_editions.provenance`).
+    /// Size of the `entity_editions.provenance` JSONB.
     ///
-    /// Variable structure: `created_by_id` + optional `archived_by_id` + `actor_type` +
-    /// `OriginProvenance` (tag + optional strings) + `Vec<SourceProvenance>` (typically 0-2
-    /// items, each with optional entity ID, authors, location, and timestamps).
+    /// Variable structure: optional `archived_by_id` + `actor_type` + `OriginProvenance` (tag +
+    /// optional strings) + `Vec<SourceProvenance>` (typically 0-2 items, each with optional
+    /// entity ID, authors, location, and timestamps).
     pub edition_provenance_size: InformationRange,
     /// Size of `PropertyProvenance` JSONB on entity edges (`entity_edge.provenance`).
     ///
@@ -215,7 +226,12 @@ impl EntityPath {
             Self::TransactionTime => sym::transaction_time,
             Self::EntityTypeIds => sym::entity_type_ids,
             Self::Archived => sym::archived,
+            Self::ReadOnly => sym::read_only,
             Self::Confidence => sym::confidence,
+            Self::CreatedById => sym::created_by_id,
+            Self::CreatedAtTransactionTime => sym::created_at_transaction_time,
+            Self::CreatedAtDecisionTime => sym::created_at_decision_time,
+            Self::EditionCreatedById => sym::edition_created_by_id,
             Self::ProvenanceInferred => sym::provenance_inferred,
             Self::ProvenanceEdition => sym::provenance_edition,
             Self::PropertyMetadata => sym::property_metadata,
@@ -264,7 +280,22 @@ impl EntityPath {
             ],
             Self::EntityTypeIds => &[sym::metadata, sym::entity_type_ids],
             Self::Archived => &[sym::metadata, sym::archived],
+            Self::ReadOnly => &[sym::metadata, sym::read_only],
             Self::Confidence => &[sym::metadata, sym::confidence],
+            Self::CreatedById => &[sym::metadata, sym::provenance, sym::created_by_id],
+            Self::CreatedAtTransactionTime => &[
+                sym::metadata,
+                sym::provenance,
+                sym::created_at_transaction_time,
+            ],
+            Self::CreatedAtDecisionTime => &[
+                sym::metadata,
+                sym::provenance,
+                sym::created_at_decision_time,
+            ],
+            Self::EditionCreatedById => {
+                &[sym::metadata, sym::provenance, sym::edition_created_by_id]
+            }
             Self::ProvenanceInferred => &[sym::metadata, sym::provenance, sym::inferred],
             Self::ProvenanceEdition => &[sym::metadata, sym::provenance, sym::edition],
             Self::PropertyMetadata => &[sym::metadata, sym::properties],
@@ -336,10 +367,14 @@ impl EntityPath {
                 temporal::transaction_time(&ty, interval)
             }
             Self::EntityTypeIds => ty.list(ontology::versioned_url(&ty, None)),
-            Self::Archived => ty.boolean(),
+            Self::Archived | Self::ReadOnly => ty.boolean(),
             Self::Confidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
                 option::option(&ty, entity::confidence(&ty))
             }
+            Self::CreatedById => entity::created_by_id(&ty, None),
+            Self::CreatedAtTransactionTime => entity::created_at_transaction_time(&ty),
+            Self::CreatedAtDecisionTime => entity::created_at_decision_time(&ty),
+            Self::EditionCreatedById => entity::edition_created_by_id(&ty, None),
             Self::ProvenanceInferred => entity::inferred_entity_provenance(&ty),
             Self::ProvenanceEdition => entity::entity_edition_provenance(&ty),
             Self::PropertyMetadata => entity::property_object_metadata(&ty),
@@ -381,7 +416,12 @@ impl EntityPath {
             | Self::TransactionTime
             | Self::EntityTypeIds
             | Self::Archived
+            | Self::ReadOnly
             | Self::Confidence
+            | Self::CreatedById
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::EditionCreatedById
             | Self::ProvenanceInferred
             | Self::ProvenanceEdition
             | Self::PropertyMetadata
@@ -422,7 +462,12 @@ impl EntityPath {
             | Self::TransactionTime
             | Self::EntityTypeIds
             | Self::Archived
+            | Self::ReadOnly
             | Self::Confidence
+            | Self::CreatedById
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::EditionCreatedById
             | Self::ProvenanceInferred
             | Self::ProvenanceEdition
             | Self::PropertyMetadata
@@ -453,7 +498,12 @@ impl EntityPath {
             | Self::TemporalVersioning
             | Self::EntityTypeIds
             | Self::Archived
+            | Self::ReadOnly
             | Self::Confidence
+            | Self::CreatedById
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::EditionCreatedById
             | Self::ProvenanceInferred
             | Self::ProvenanceEdition
             | Self::PropertyMetadata
@@ -508,7 +558,9 @@ impl EntityPath {
             | Self::LeftEntityWebId
             | Self::LeftEntityUuid
             | Self::RightEntityWebId
-            | Self::RightEntityUuid => InformationRange::one(),
+            | Self::RightEntityUuid
+            | Self::CreatedById
+            | Self::EditionCreatedById => InformationRange::one(),
 
             // Temporal intervals (start + end timestamps)
             Self::DecisionTime | Self::TransactionTime => {
@@ -520,13 +572,17 @@ impl EntityPath {
 
             // Scalar metadata
             Self::Archived
+            | Self::ReadOnly
             | Self::Confidence
             | Self::LeftEntityConfidence
-            | Self::RightEntityConfidence => InformationRange::one(),
+            | Self::RightEntityConfidence
+            | Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime => InformationRange::one(),
 
-            // Provenance: inferred is a fixed structure (3 required + 2 optional scalars)
+            // Provenance: inferred holds only optional scalars — two first-non-draft timestamps
+            // and three deletion fields. The creator and creation timestamps are dedicated paths.
             Self::ProvenanceInferred => InformationRange::new(
-                InformationUnit::new(3),
+                InformationUnit::new(0),
                 Bound::Included(InformationUnit::new(5)),
             ),
             // Provenance: edition and edge have Vec<SourceProvenance>, sized from config
@@ -592,7 +648,7 @@ const HAS_ANCESTOR_COUNT: usize = {
 ///
 /// Insertions respect the composite hierarchy: inserting a composite removes its children,
 /// and inserting a child when its ancestor is already present is a no-op. The lattice top
-/// contains exactly the root-level and childless paths (18 of 25 variants).
+/// contains exactly the root-level and childless paths.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EntityPathBitSet(FiniteBitSet<EntityPath, FiniteBitSetWidth>);
 
@@ -798,8 +854,13 @@ fn resolve(projections: &[Projection<'_>]) -> Option<(EntityPath, usize)> {
             },
             sym!(entity_type_ids) => EntityTypeIds,
             sym!(archived) => Archived,
+            sym!(read_only) => ReadOnly,
             sym!(confidence) => Confidence,
             sym!(provenance) => match next!()? {
+                sym!(created_by_id) => CreatedById,
+                sym!(created_at_transaction_time) => CreatedAtTransactionTime,
+                sym!(created_at_decision_time) => CreatedAtDecisionTime,
+                sym!(edition_created_by_id) => EditionCreatedById,
                 sym!(inferred) => ProvenanceInferred,
                 sym!(edition) => ProvenanceEdition,
                 _ => return None,

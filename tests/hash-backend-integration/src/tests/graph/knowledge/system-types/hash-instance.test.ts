@@ -14,7 +14,6 @@ import {
 import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 
-import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -37,10 +36,6 @@ describe("Hash Instance", () => {
       context: graphContext,
       seedSystemPolicies: true,
     });
-
-    return async () => {
-      await resetGraph();
-    };
   });
 
   let hashInstance: HashInstance;

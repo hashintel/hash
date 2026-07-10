@@ -1236,7 +1236,7 @@ mod tests {
     fn unit_random(k: NonZero<usize>, seed: u64) -> Vec<f32> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
         let mut c = vec![0.0_f32; k.get() * D];
-        for row in c.chunks_exact_mut(D) {
+        for row in c.as_chunks_mut::<D>().0 {
             for v in row.iter_mut() {
                 *v = rng.random_range(-1.0..1.0);
             }
@@ -1648,7 +1648,7 @@ mod tests {
         // which triggers the uniform fallback path.
         let n = 100;
         let mut data = vec![0.0_f32; n * 8];
-        for row in data.chunks_exact_mut(8) {
+        for row in data.as_chunks_mut::<8>().0 {
             row[0] = 1.0;
         }
         let result = cluster(&data, dim(8), &Config::for_k_with_seed(4, 1));
@@ -1708,7 +1708,7 @@ mod tests {
         let n = 120;
         let mut data = vec![0.0_f32; n * 8];
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
-        for (i, row) in data.chunks_exact_mut(8).enumerate() {
+        for (i, row) in data.as_chunks_mut::<8>().0.iter_mut().enumerate() {
             if i % 10 == 0 {
                 continue; // leave all-zero
             }

@@ -12,6 +12,8 @@
 import * as http from "node:http";
 import { createRequire } from "node:module";
 
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry-v2";
 import {
   DefaultLogger,
   defaultSinks,
@@ -26,7 +28,6 @@ import {
 } from "./interceptors/activities/opentelemetry.js";
 import { SentryActivityInboundInterceptor } from "./interceptors/activities/sentry.js";
 import { sentrySinks } from "./sinks/sentry.js";
-import { makeV2WorkflowSink } from "./workflow-span-adapter.js";
 
 import type { Logger } from "../logger.js";
 import type { OpenTelemetrySetup } from "../opentelemetry.js";
@@ -258,6 +259,16 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     inbound: new SentryActivityInboundInterceptor(ctx),
   }));
 
+  // Workflow-sandbox spans reach the worker through the `exporter` sink
+  // and are fed into this processor. It shares the application's OTLP
+  // trace exporter but batches independently of the worker-side trace
+  // provider, so it must be flushed explicitly during shutdown — the
+  // sink never flushes it, and `otelSetup.shutdown()` only flushes the
+  // provider's own processors.
+  const workflowSpanProcessor = otelSetup
+    ? new BatchSpanProcessor(otelSetup.traceExporter)
+    : undefined;
+
   worker = await Worker.create({
     ...opts.workerOptions,
     ...expandWorkflowSource(opts.workflowSource),
@@ -268,7 +279,14 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     sinks: {
       ...defaultSinks(),
       ...sentrySinks(),
-      ...(otelSetup ? { exporter: makeV2WorkflowSink(otelSetup) } : {}),
+      ...(otelSetup && workflowSpanProcessor
+        ? {
+            exporter: makeWorkflowExporter(
+              workflowSpanProcessor,
+              otelSetup.resource,
+            ),
+          }
+        : {}),
     },
     interceptors: {
       workflowModules: [
@@ -328,6 +346,18 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
       logger.error("Health-check server close failed", { error });
     }
   });
+
+  // Flush the workflow-span sink processor before the providers shut
+  // down: provider shutdown also shuts down the shared OTLP exporter,
+  // after which any spans still buffered here would be dropped.
+  // `forceFlush` (not `shutdown`) so the shared exporter is left for
+  // `otelSetup.shutdown()` to close.
+  try {
+    await workflowSpanProcessor?.forceFlush();
+  } catch (error) {
+    logger.error("Failed to flush workflow spans", { error });
+    exitCode = 1;
+  }
   try {
     await otelSetup?.shutdown();
   } catch (error) {

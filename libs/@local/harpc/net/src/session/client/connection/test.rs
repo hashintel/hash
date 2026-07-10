@@ -69,7 +69,7 @@ async fn transaction_collection_acquire() {
 
     let entry = collection
         .storage()
-        .first_entry_async()
+        .begin_async()
         .await
         .expect("should have a single entry");
 

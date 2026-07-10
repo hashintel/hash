@@ -17,7 +17,6 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestUser,
@@ -94,8 +93,6 @@ describe("Comment", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

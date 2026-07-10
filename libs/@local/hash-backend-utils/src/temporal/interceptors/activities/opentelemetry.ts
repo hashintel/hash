@@ -13,4 +13,4 @@
 export {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
-} from "@temporalio/interceptors-opentelemetry";
+} from "@temporalio/interceptors-opentelemetry-v2";

@@ -10,7 +10,7 @@ use error_stack::Report;
 use futures::{Sink, Stream, StreamExt as _, prelude::future::FutureExt as _};
 use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
 use harpc_wire_protocol::{request::Request, response::Response};
-use scc::ebr::Guard;
+use scc::Guard;
 use tachyonix::SendTimeoutError;
 use tokio::{
     io, pin, select,

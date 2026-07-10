@@ -88,8 +88,8 @@ pub(crate) enum Deduplication {
 pub(crate) struct EntitySummaryQuery {
     edition_id_column: usize,
     web_id_column: usize,
-    provenance_column: Option<usize>,
-    edition_provenance_column: Option<usize>,
+    created_by_column: Option<usize>,
+    edition_created_by_column: Option<usize>,
     type_columns: Option<TypeColumns>,
     include_count: bool,
     include_web_ids: bool,
@@ -128,12 +128,12 @@ impl EntitySummaryQuery {
         Some(Self {
             edition_id_column: compiler.add_selection_path(&EntityQueryPath::EditionId),
             web_id_column: compiler.add_selection_path(&EntityQueryPath::WebId),
-            provenance_column: params
+            created_by_column: params
                 .include_created_by_ids
-                .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None))),
-            edition_provenance_column: params
+                .then(|| compiler.add_selection_path(&EntityQueryPath::CreatedById)),
+            edition_created_by_column: params
                 .include_edition_created_by_ids
-                .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))),
+                .then(|| compiler.add_selection_path(&EntityQueryPath::EditionCreatedById)),
             type_columns: (params.include_type_ids || params.include_type_titles).then(|| {
                 TypeColumns {
                     versioned_urls: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
@@ -171,13 +171,11 @@ impl EntitySummaryQuery {
         };
 
         let mut hit_columns = vec![format!("c{} AS web_id", self.web_id_column)];
-        if let Some(column) = self.provenance_column {
-            hit_columns.push(format!("(c{column} ->> 'createdById')::uuid AS created_by"));
+        if let Some(column) = self.created_by_column {
+            hit_columns.push(format!("c{column} AS created_by"));
         }
-        if let Some(column) = self.edition_provenance_column {
-            hit_columns.push(format!(
-                "(c{column} ->> 'createdById')::uuid AS edition_created_by"
-            ));
+        if let Some(column) = self.edition_created_by_column {
+            hit_columns.push(format!("c{column} AS edition_created_by"));
         }
         if let Some(columns) = self.type_columns {
             hit_columns.push(format!("c{} AS versioned_urls", columns.versioned_urls));
@@ -201,14 +199,14 @@ impl EntitySummaryQuery {
                 Dimension::WebIds as i32
             ));
         }
-        if self.provenance_column.is_some() {
+        if self.created_by_column.is_some() {
             branches.push(format!(
                 "SELECT {}::int4, created_by, NULL::text, count(*), NULL::text FROM hits GROUP BY \
                  created_by",
                 Dimension::CreatedByIds as i32
             ));
         }
-        if self.edition_provenance_column.is_some() {
+        if self.edition_created_by_column.is_some() {
             branches.push(format!(
                 "SELECT {}::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits \
                  GROUP BY edition_created_by",
@@ -242,8 +240,8 @@ impl EntitySummaryQuery {
         let mut summaries = EntitySummaries {
             count: self.include_count.then_some(0),
             web_ids: self.include_web_ids.then(HashMap::new),
-            created_by_ids: self.provenance_column.is_some().then(HashMap::new),
-            edition_created_by_ids: self.edition_provenance_column.is_some().then(HashMap::new),
+            created_by_ids: self.created_by_column.is_some().then(HashMap::new),
+            edition_created_by_ids: self.edition_created_by_column.is_some().then(HashMap::new),
             type_ids: self.type_columns.is_some().then(HashMap::new),
             type_titles: self.type_columns.is_some().then(HashMap::new),
         };
@@ -311,8 +309,8 @@ impl EntitySummaryQuery {
         [
             Some(self.edition_id_column),
             Some(self.web_id_column),
-            self.provenance_column,
-            self.edition_provenance_column,
+            self.created_by_column,
+            self.edition_created_by_column,
             self.type_columns.map(|columns| columns.versioned_urls),
             self.type_columns.map(|columns| columns.direct_types),
             self.type_columns.map(|columns| columns.type_titles),
@@ -352,8 +350,8 @@ mod tests {
         let summary_query = EntitySummaryQuery {
             edition_id_column: 0,
             web_id_column: 1,
-            provenance_column: Some(2),
-            edition_provenance_column: Some(3),
+            created_by_column: Some(2),
+            edition_created_by_column: Some(3),
             type_columns: Some(TypeColumns {
                 versioned_urls: 4,
                 direct_types: 5,
@@ -368,8 +366,8 @@ mod tests {
             trim_whitespace(
                 "WITH hits AS (SELECT DISTINCT ON (c0)
                     c1 AS web_id,
-                    (c2 ->> 'createdById')::uuid AS created_by,
-                    (c3 ->> 'createdById')::uuid AS edition_created_by,
+                    c2 AS created_by,
+                    c3 AS edition_created_by,
                     c4 AS versioned_urls,
                     c5 AS direct_types,
                     c6 AS type_titles
@@ -399,8 +397,8 @@ mod tests {
         let summary_query = EntitySummaryQuery {
             edition_id_column: 0,
             web_id_column: 1,
-            provenance_column: None,
-            edition_provenance_column: None,
+            created_by_column: None,
+            edition_created_by_column: None,
             type_columns: None,
             include_count: true,
             include_web_ids: false,
@@ -424,8 +422,8 @@ mod tests {
         let summary_query = EntitySummaryQuery {
             edition_id_column: 0,
             web_id_column: 1,
-            provenance_column: None,
-            edition_provenance_column: None,
+            created_by_column: None,
+            edition_created_by_column: None,
             type_columns: Some(TypeColumns {
                 versioned_urls: 2,
                 direct_types: 3,

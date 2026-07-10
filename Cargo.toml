@@ -164,6 +164,7 @@ globset                            = { version = "0.4.18", default-features = fa
 guppy                              = { version = "0.17.20", default-features = false }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 hifijson                           = { version = "0.4.0", default-features = false }
+hostname                           = { version = "0.4.2", default-features = false }
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }
 hyper                              = { version = "1.7.0", default-features = false }
@@ -237,11 +238,11 @@ roaring                            = { version = "0.11.2", default-features = fa
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
-scc                                = { version = "2.4.0", default-features = false }
+scc                                = { version = "3.8.4", default-features = false }
 semver                             = { version = "1.0.27", default-features = false }
-sentry                             = { version = "0.47.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-core                        = { version = "0.47.0", default-features = false }
-sentry-types                       = { version = "0.47.0", default-features = false }
+sentry                             = { version = "0.48.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-core                        = { version = "0.48.0", default-features = false }
+sentry-types                       = { version = "0.48.0", default-features = false }
 serde                              = { version = "1.0.228", default-features = false }
 serde_core                         = { version = "1.0.228", default-features = false }
 serde_json                         = { version = "1.0.145" }
@@ -261,8 +262,8 @@ supports-unicode                   = { version = "3.0.0", default-features = fal
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
 tarpc                              = { version = "0.36.0", default-features = false, git = "https://github.com/google/tarpc", rev = "f55f36d2d876b1868cfcf52f41d0456a60cf726c" }
-temporalio-client                  = { git = "https://github.com/temporalio/sdk-core", rev = "231e21c" }
-temporalio-common                  = { git = "https://github.com/temporalio/sdk-core", rev = "231e21c" }
+temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
+temporalio-common                  = { version = "0.5.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }
 test-strategy                      = { version = "0.4.3", default-features = false }
 testcontainers                     = { version = "0.27.1", default-features = false }
@@ -406,10 +407,6 @@ separated_literal_suffix         = "allow" # Opposite of `clippy::unseparated_li
 shadow_reuse                     = "allow"
 shadow_same                      = "allow"
 unneeded_field_pattern           = "allow" # Actually, the opposite would be a great lint
-
-[workspace.metadata.cargo-shear]
-# We use the `futures` crate but the dependencies are required for public dependencies
-ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }

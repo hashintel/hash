@@ -851,6 +851,9 @@ pub enum EntityIds {
     EntityUuid,
     Provenance,
     ReadOnly,
+    CreatedById,
+    CreatedAtTransactionTime,
+    CreatedAtDecisionTime,
 }
 
 impl DatabaseColumn<'_> for EntityIds {
@@ -860,14 +863,20 @@ impl DatabaseColumn<'_> for EntityIds {
             Self::EntityUuid => "entity_uuid".into(),
             Self::Provenance => "provenance".into(),
             Self::ReadOnly => "read_only".into(),
+            Self::CreatedById => "created_by_id".into(),
+            Self::CreatedAtTransactionTime => "created_at_transaction_time".into(),
+            Self::CreatedAtDecisionTime => "created_at_decision_time".into(),
         }
     }
 
     fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::WebId | Self::EntityUuid => PostgresType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById => PostgresType::Uuid,
             Self::Provenance => PostgresType::JsonB,
             Self::ReadOnly => PostgresType::Bool,
+            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                PostgresType::TimestampTz
+            }
         }
     }
 }
@@ -875,9 +884,12 @@ impl DatabaseColumn<'_> for EntityIds {
 impl FilterColumn<'_> for EntityIds {
     fn parameter_type(&self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
             Self::Provenance => ParameterType::Any,
             Self::ReadOnly => ParameterType::Boolean,
+            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                ParameterType::Timestamp
+            }
         }
     }
 }
@@ -1205,6 +1217,7 @@ pub enum EntityEditions {
     Confidence,
     Provenance,
     PropertyMetadata,
+    CreatedById,
 }
 
 impl DatabaseColumn<'_> for EntityEditions {
@@ -1216,12 +1229,13 @@ impl DatabaseColumn<'_> for EntityEditions {
             Self::Archived => "archived".into(),
             Self::Confidence => "confidence".into(),
             Self::PropertyMetadata => "property_metadata".into(),
+            Self::CreatedById => "created_by_id".into(),
         }
     }
 
     fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::EditionId => PostgresType::Uuid,
+            Self::EditionId | Self::CreatedById => PostgresType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => PostgresType::JsonB,
             Self::Archived => PostgresType::Bool,
             Self::Confidence => PostgresType::Float8,
@@ -1232,7 +1246,7 @@ impl DatabaseColumn<'_> for EntityEditions {
 impl FilterColumn<'_> for EntityEditions {
     fn parameter_type(&self) -> ParameterType {
         match self {
-            Self::EditionId => ParameterType::Uuid,
+            Self::EditionId | Self::CreatedById => ParameterType::Uuid,
             Self::Properties | Self::Provenance | Self::PropertyMetadata => ParameterType::Any,
             Self::Archived => ParameterType::Boolean,
             Self::Confidence => ParameterType::Decimal,

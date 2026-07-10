@@ -132,6 +132,7 @@ mod tests {
         entity_types: HashMap<VersionedUrl, Arc<ClosedEntityType>>,
         property_types: HashMap<VersionedUrl, Arc<PropertyType>>,
         data_types: HashMap<DataTypeUuid, Arc<DataTypeWithMetadata>>,
+        conversions: HashMap<(VersionedUrl, VersionedUrl), Vec<ConversionExpression>>,
     }
     impl Provider {
         fn new(
@@ -162,6 +163,7 @@ mod tests {
                         )
                     })
                     .collect(),
+                conversions: HashMap::default(),
             }
         }
 
@@ -310,11 +312,15 @@ mod tests {
         #[expect(refining_impl_trait)]
         fn find_conversion(
             &self,
-            _: &DataTypeReference,
-            _: &DataTypeReference,
+            source: &DataTypeReference,
+            target: &DataTypeReference,
         ) -> impl Future<Output = Result<Vec<ConversionExpression>, Report<InvalidDataType>>>
         {
-            core::future::ready(Ok(Vec::new()))
+            core::future::ready(Ok(self
+                .conversions
+                .get(&(source.url.clone(), target.url.clone()))
+                .cloned()
+                .unwrap_or_default()))
         }
     }
 
@@ -383,9 +389,12 @@ mod tests {
         )
         .expect("failed to create property with metadata");
 
-        EntityPreprocessor { components }
-            .visit_object(&closed_multi_entity_type, &mut properties, &provider)
-            .await?;
+        EntityPreprocessor {
+            components,
+            convert_values: true,
+        }
+        .visit_object(&closed_multi_entity_type, &mut properties, &provider)
+        .await?;
 
         Ok(properties)
     }
@@ -398,9 +407,34 @@ mod tests {
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
+        validate_property_with(
+            EntityPreprocessor {
+                components,
+                convert_values: true,
+            },
+            [],
+            property,
+            metadata,
+            property_type,
+            property_types,
+            data_types,
+        )
+        .await
+    }
+
+    pub(crate) async fn validate_property_with(
+        mut preprocessor: EntityPreprocessor,
+        conversions: impl IntoIterator<Item = ((VersionedUrl, VersionedUrl), Vec<ConversionExpression>)>
+        + Send,
+        property: JsonValue,
+        metadata: Option<PropertyMetadata>,
+        property_type: &'static str,
+        property_types: impl IntoIterator<Item = &'static str> + Send,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
+    ) -> Result<PropertyWithMetadata, PropertyValidationReport> {
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
-        let provider = Provider::new(
+        let mut provider = Provider::new(
             [],
             [],
             property_types.into_iter().map(|property_type| {
@@ -410,13 +444,14 @@ mod tests {
                 serde_json::from_str(data_type).expect("failed to parse data type")
             }),
         );
+        provider.conversions.extend(conversions);
 
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
         let mut property = PropertyWithMetadata::from_parts(property, metadata)
             .expect("failed to create property with metadata");
-        EntityPreprocessor { components }
+        preprocessor
             .visit_property(&property_type, &mut property, &provider)
             .await?;
 
@@ -460,9 +495,12 @@ mod tests {
             canonical: HashMap::default(),
         };
 
-        EntityPreprocessor { components }
-            .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
-            .await?;
+        EntityPreprocessor {
+            components,
+            convert_values: true,
+        }
+        .visit_value(&data_type_ref, &mut value, &mut metadata, &provider)
+        .await?;
         Ok(PropertyValueWithMetadata { value, metadata })
     }
 }

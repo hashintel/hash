@@ -56,20 +56,24 @@ fn render_warnings(source: &str, pipeline: &Pipeline<'_>) -> Option<String> {
 
 static UUID_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
-        .expect("UUID regex is valid")
+        .expect("UUID regex should be valid")
 });
 
 static TIMESTAMP_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
-        .expect("timestamp regex is valid")
+        .expect("timestamp regex should be valid")
 });
 
 static EPOCH_MS_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"("(?:start|end)":\s*)\d{13}"#).expect("epoch millis regex is valid")
+    Regex::new(
+        r#"("(?:start|end|created_at_transaction_time|created_at_decision_time)":\s*)\d{13}"#,
+    )
+    .expect("epoch millis regex should be valid")
 });
 
 /// Replaces UUIDs with positional placeholders (`<uuid:0>`, `<uuid:1>`, ...)
-/// and ISO timestamps with `<timestamp>`.
+/// and ISO timestamps with `<timestamp>`. Epoch-millisecond values under the
+/// `start`, `end`, and `created_at_*` keys also become `<timestamp>`.
 ///
 /// The same UUID always maps to the same placeholder within a single output,
 /// preserving structural assertions (e.g. two fields referencing the same

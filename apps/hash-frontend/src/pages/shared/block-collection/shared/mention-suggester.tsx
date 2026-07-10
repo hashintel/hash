@@ -20,6 +20,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { useScrollLock } from "@hashintel/ds-components";
 import {
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
@@ -39,7 +40,6 @@ import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
-import { useScrollLock } from "../../../../shared/use-scroll-lock";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { hiddenEntityTypeIds } from "../../hidden-types";
 import { fuzzySearchBy } from "./fuzzy-search-by";

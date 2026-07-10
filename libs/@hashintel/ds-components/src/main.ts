@@ -39,3 +39,4 @@ export {
   usePortalContainerRef,
 } from "./util/portal-container-context";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
+export { useScrollLock } from "./util/use-scroll-lock";

@@ -1,4 +1,5 @@
 mod delete;
+pub(crate) mod provenance;
 mod query;
 mod read;
 mod summary;
@@ -76,7 +77,7 @@ use type_system::{
             EntityMetadata, EntityProvenance,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::EntityTemporalMetadata,
-            provenance::{EntityEditionProvenance, InferredEntityProvenance},
+            provenance::EntityEditionProvenance,
         },
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
@@ -101,6 +102,7 @@ use crate::store::{
         TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
+            provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
             read::EntityEdgeTraversalData,
             summary::{Deduplication, EntitySummaryQuery},
         },
@@ -899,6 +901,7 @@ where
                 } else {
                     ValidateEntityComponents::full()
                 },
+                convert_values: true,
             };
             preprocessor.components.link_validation = transaction.settings.validate_links;
 
@@ -916,32 +919,33 @@ where
                 .decision_time
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
-            let entity_provenance = EntityProvenance {
-                inferred: InferredEntityProvenance {
-                    created_by_id: actor_uuid,
-                    created_at_transaction_time: transaction_time,
-                    created_at_decision_time: decision_time,
-                    first_non_draft_created_at_transaction_time: entity_id
-                        .draft_id
-                        .is_none()
-                        .then_some(transaction_time),
-                    first_non_draft_created_at_decision_time: entity_id
-                        .draft_id
-                        .is_none()
-                        .then_some(decision_time),
-                    deletion: None,
-                },
+            let stored_provenance = SqlEntityProvenance::from(EntityProvenance {
+                created_by_id: actor_uuid,
+                created_at_transaction_time: transaction_time,
+                created_at_decision_time: decision_time,
+                first_non_draft_created_at_transaction_time: entity_id
+                    .draft_id
+                    .is_none()
+                    .then_some(transaction_time),
+                first_non_draft_created_at_decision_time: entity_id
+                    .draft_id
+                    .is_none()
+                    .then_some(decision_time),
+                deletion: None,
                 edition: EntityEditionProvenance {
                     created_by_id: actor_uuid,
                     archived_by_id: None,
                     provided: params.provenance,
                 },
-            };
+            });
             entity_id_rows.push(EntityIdRow {
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
-                provenance: entity_provenance.inferred.clone(),
                 read_only: params.read_only,
+                created_by_id: stored_provenance.created_by_id,
+                created_at_transaction_time: stored_provenance.created_at_transaction_time,
+                created_at_decision_time: stored_provenance.created_at_decision_time,
+                provenance: stored_provenance.json.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {
                 entity_draft_rows.push(EntityDraftRow {
@@ -957,10 +961,13 @@ where
                 properties: properties.clone(),
                 archived: false,
                 confidence: params.confidence,
-                provenance: entity_provenance.edition.clone(),
+                provenance: stored_provenance.edition.json.clone(),
                 property_metadata: property_metadata.clone(),
+                created_by_id: stored_provenance.edition.created_by_id,
             });
             entity_edition_ids.push(entity_edition_id);
+
+            let entity_provenance = EntityProvenance::from(stored_provenance);
 
             let temporal_versioning = EntityTemporalMetadata {
                 decision_time: LeftClosedTemporalInterval::new(
@@ -1294,6 +1301,7 @@ where
 
             let mut preprocessor = EntityPreprocessor {
                 components: params.components,
+                convert_values: true,
             };
 
             if let Err(property_validation) = preprocessor
@@ -1995,12 +2003,10 @@ where
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_decision_time;
         let mut first_non_draft_created_at_transaction_time = previous_entity
             .metadata
             .provenance
-            .inferred
             .first_non_draft_created_at_transaction_time;
 
         let was_draft_before = previous_entity
@@ -2129,6 +2135,7 @@ where
             if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
                 let mut preprocessor = EntityPreprocessor {
                     components: validation_components,
+                    convert_values: true,
                 };
                 if let Err(property_validation) = preprocessor
                     .visit_object(&entity_type, &mut object, &validator_provider)
@@ -2179,17 +2186,19 @@ where
             archived_by_id: None,
             provided: params.provenance,
         };
+        let stored_provenance = SqlEntityEditionProvenance::from(edition_provenance);
         let edition_id = transaction
             .insert_entity_edition(
                 archived,
                 &entity_type_ids,
                 &properties,
                 params.confidence,
-                &edition_provenance,
+                &stored_provenance,
                 &property_metadata,
             )
             .await
             .change_context(UpdateError)?;
+        let edition_provenance = EntityEditionProvenance::from(stored_provenance);
 
         let temporal_versioning = match (was_draft_before, draft) {
             (true, true) | (false, false) => {
@@ -2310,12 +2319,10 @@ where
             temporal_versioning,
             entity_type_ids,
             provenance: EntityProvenance {
-                inferred: InferredEntityProvenance {
-                    first_non_draft_created_at_transaction_time,
-                    first_non_draft_created_at_decision_time,
-                    ..previous_entity.metadata.provenance.inferred
-                },
+                first_non_draft_created_at_transaction_time,
+                first_non_draft_created_at_decision_time,
                 edition: edition_provenance,
+                ..previous_entity.metadata.provenance
             },
             confidence: params.confidence,
             properties: property_metadata,
@@ -2988,7 +2995,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         entity_type_ids: impl IntoIterator<Item = &VersionedUrl> + Send,
         properties: &PropertyObject,
         confidence: Option<Confidence>,
-        provenance: &EntityEditionProvenance,
+        provenance: &SqlEntityEditionProvenance,
         metadata: &PropertyObjectMetadata,
     ) -> Result<EntityEditionId, Report<InsertionError>> {
         let edition_id: EntityEditionId = self
@@ -3001,11 +3008,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         properties,
                         confidence,
                         provenance,
-                        property_metadata
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                        property_metadata,
+                        created_by_id
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
                     RETURNING entity_edition_id;
                 ",
-                &[&archived, &properties, &confidence, provenance, metadata],
+                &[
+                    &archived,
+                    &properties,
+                    &confidence,
+                    &provenance.json,
+                    metadata,
+                    &provenance.created_by_id,
+                ],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
