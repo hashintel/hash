@@ -8,11 +8,9 @@ require("setimmediate");
 // React Grid Layout CSS for dashboard drag-and-drop
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-
 import "./globals.scss";
 import "./prism.css";
 import "./ds-components-styles.gen.css";
-
 import { ApolloProvider } from "@apollo/client/react";
 import { CacheProvider } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -357,6 +355,7 @@ const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
   workers: ["/goals", "/flows", "/workers", "/agents"],
   ai: ["/goals"],
   supplyChain: [],
+  dashboards: ["/dashboards", "/dashboard/[dashboard-id]"],
 };
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {

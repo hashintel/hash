@@ -14,9 +14,8 @@
  *   yarn workspace @apps/hash-api dev:seed-crm-data
  *   yarn workspace @apps/hash-api dev:seed-dashboard-demo
  *
- * The script is idempotent: if the demo dashboard already exists it only
- * cleans up broken (partially-configured) dashboard items in the web, without
- * creating anything new.
+ * The script is idempotent: existing demo items are synchronized with the
+ * definitions below, while missing items are created.
  */
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -26,6 +25,7 @@ import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-acto
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { outgoingHopEdges } from "@local/hash-isomorphic-utils/dashboard-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
@@ -47,6 +47,8 @@ import { logger } from "../logger";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type {
+  BaseUrl,
+  PropertyPatchOperation,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
@@ -79,6 +81,8 @@ const crmEntityTypeBaseUrl = (title: string) =>
 
 const crmDealBaseUrl = crmEntityTypeBaseUrl("Deal");
 const crmAccountBaseUrl = crmEntityTypeBaseUrl("Account");
+/** Link entity types share the CRM slug convention (see `makeLinkType`). */
+const crmForAccountLinkBaseUrl = crmEntityTypeBaseUrl("For Account");
 
 /** A structural query matching all non-archived entities of a CRM type. */
 const queryForType = (entityTypeBaseUrl: string) => ({
@@ -154,7 +158,7 @@ print(json.dumps(result))
       showGrid: true,
       showTooltip: true,
     },
-    gridPosition: { x: 0, y: 0, w: 6, h: 4 },
+    gridPosition: { x: 0, y: 0, w: 6, h: 8 },
   },
   {
     name: "Accounts by industry",
@@ -189,7 +193,7 @@ print(json.dumps(result))
       showGrid: true,
       showTooltip: true,
     },
-    gridPosition: { x: 6, y: 0, w: 6, h: 4 },
+    gridPosition: { x: 6, y: 0, w: 6, h: 8 },
   },
   {
     name: "Deal value closing by month",
@@ -235,7 +239,84 @@ print(json.dumps(result))
       showGrid: true,
       showTooltip: true,
     },
-    gridPosition: { x: 0, y: 4, w: 12, h: 4 },
+    gridPosition: { x: 0, y: 8, w: 12, h: 8 },
+  },
+  {
+    /*
+     * Demonstrates traversal paths: the query matches deals and pulls in the
+     * accounts they link to (via "For Account"), so the script can group deal
+     * value by a property that lives on the *account*, not the deal.
+     */
+    name: "Open pipeline by account industry",
+    goal: "Show the total value of open deals grouped by the industry of the account they are with",
+    chartType: "bar",
+    structuralQuery: {
+      filter: queryForType(crmDealBaseUrl),
+      traversalPaths: [
+        {
+          edges: outgoingHopEdges,
+          label: "For Account → Account",
+          hops: [
+            {
+              direction: "outgoing",
+              linkTypeBaseUrl: crmForAccountLinkBaseUrl,
+              entityTypeBaseUrl: crmAccountBaseUrl,
+            },
+          ],
+        },
+      ],
+    },
+    pythonScript: `import json
+from collections import defaultdict
+
+with open(DATA_FILE_PATH) as f:
+    data = json.load(f)
+
+entities = data["entities"]
+
+# Accounts arrive via the traversal hop; index their industry by entityId.
+industry_by_entity_id = {
+    entity["entityId"]: entity["properties"].get("Industry")
+    for entity in entities
+    if "Account" in entity["entityTypes"]
+}
+
+totals = defaultdict(float)
+for entity in entities:
+    if "Deal" not in entity["entityTypes"]:
+        continue
+    props = entity["properties"]
+    if props.get("Is Closed"):
+        continue
+    amount = props.get("Amount")
+    if not isinstance(amount, (int, float)):
+        continue
+    industry = None
+    for link in entity.get("links", []):
+        if "For Account" in link["entityTypes"]:
+            industry = industry_by_entity_id.get(link["targetEntityId"])
+            break
+    totals[industry or "Unknown"] += amount
+
+result = [
+    {"industry": industry, "openDealValue": round(total)}
+    for industry, total in sorted(totals.items(), key=lambda kv: -kv[1])
+]
+
+print(json.dumps(result))
+`,
+    chartConfig: {
+      categoryKey: "industry",
+      series: [
+        { type: "bar", name: "Open deal value", dataKey: "openDealValue" },
+      ],
+      xAxisLabel: "Account industry",
+      yAxisLabel: "Value (USD)",
+      showLegend: false,
+      showGrid: true,
+      showTooltip: true,
+    },
+    gridPosition: { x: 0, y: 16, w: 12, h: 8 },
   },
 ];
 
@@ -247,6 +328,29 @@ const textValue = (value: string): PropertyWithMetadata => ({
 const objectValue = (value: unknown): PropertyWithMetadata => ({
   value: value as PropertyValueWithMetadata["value"],
   metadata: { dataTypeId: objectDataTypeId },
+});
+
+const propertiesForDemoItem = (item: DemoItem, index: number) => ({
+  [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: textValue(item.name),
+  [systemPropertyTypes.goal.propertyTypeBaseUrl]: textValue(item.goal),
+  [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl]:
+    textValue("ready"),
+  [systemPropertyTypes.chartType.propertyTypeBaseUrl]: textValue(
+    item.chartType,
+  ),
+  [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl]: objectValue(
+    item.structuralQuery,
+  ),
+  [systemPropertyTypes.pythonScript.propertyTypeBaseUrl]: textValue(
+    item.pythonScript,
+  ),
+  [systemPropertyTypes.chartConfiguration.propertyTypeBaseUrl]: objectValue(
+    item.chartConfig,
+  ),
+  [systemPropertyTypes.gridPosition.propertyTypeBaseUrl]: objectValue({
+    i: `demo-item-${index + 1}`,
+    ...item.gridPosition,
+  }),
 });
 
 /**
@@ -283,12 +387,21 @@ const cleanUpBrokenItems = async (
 
   const brokenItems = items.filter((item) => {
     const props = item.properties as Record<string, unknown>;
+    const configurationStatus =
+      props[systemPropertyTypes.configurationStatus.propertyTypeBaseUrl];
+    /**
+     * A pending item may be an intentionally blank card saved by a user.
+     * Only clean up items whose configuration process progressed but left an
+     * incomplete result.
+     */
+    if (configurationStatus === "pending") {
+      return false;
+    }
     const isConfigured =
       props[systemPropertyTypes.structuralQuery.propertyTypeBaseUrl] &&
       props[systemPropertyTypes.pythonScript.propertyTypeBaseUrl] &&
       props[systemPropertyTypes.chartConfiguration.propertyTypeBaseUrl] &&
-      props[systemPropertyTypes.configurationStatus.propertyTypeBaseUrl] ===
-        "ready";
+      configurationStatus === "ready";
     return !isConfigured;
   });
 
@@ -418,7 +531,10 @@ const seedDashboardDemo = async () => {
     );
   }
 
-  /* Idempotency: skip if the demo dashboard already exists. */
+  /*
+   * Idempotency: reuse the demo dashboard if it already exists, synchronize
+   * existing demo items by name, and create any missing items.
+   */
   const { entities: existingDashboards } = await queryEntities(
     { graphApi },
     authentication,
@@ -451,58 +567,100 @@ const seedDashboardDemo = async () => {
       limit: 1,
     },
   );
-  if (existingDashboards.length > 0) {
-    logger.info(
-      `Demo dashboard "${DASHBOARD_NAME}" already exists — nothing further to do.`,
-    );
-    return;
+
+  let dashboard = existingDashboards[0];
+  if (dashboard) {
+    logger.info(`Demo dashboard "${DASHBOARD_NAME}" already exists.`);
+  } else {
+    logger.info(`Creating demo dashboard "${DASHBOARD_NAME}"…`);
+
+    dashboard = await createEntity(context, authentication, {
+      webId,
+      entityTypeIds: [systemEntityTypes.dashboard.entityTypeId],
+      properties: {
+        value: {
+          [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]:
+            textValue(DASHBOARD_NAME),
+          [blockProtocolPropertyTypes.description.propertyTypeBaseUrl]:
+            textValue(
+              "Demo dashboard over the seeded CRM dataset. Each widget's data is computed server-side from its structural query and Python script.",
+            ),
+        },
+      },
+    });
   }
 
-  logger.info(`Creating demo dashboard "${DASHBOARD_NAME}"…`);
-
-  const dashboard = await createEntity(context, authentication, {
-    webId,
-    entityTypeIds: [systemEntityTypes.dashboard.entityTypeId],
-    properties: {
-      value: {
-        [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]:
-          textValue(DASHBOARD_NAME),
-        [blockProtocolPropertyTypes.description.propertyTypeBaseUrl]: textValue(
-          "Demo dashboard over the seeded CRM dataset. Each widget's data is computed server-side from its structural query and Python script.",
-        ),
+  const { entities: existingItems } = await queryEntities(
+    { graphApi },
+    authentication,
+    {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: systemEntityTypes.dashboardItem.entityTypeBaseUrl },
+            ],
+          },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-  });
+  );
+  const existingItemsByName = new Map(
+    existingItems.map((item) => [
+      item.properties[
+        blockProtocolPropertyTypes.name.propertyTypeBaseUrl
+      ] as string,
+      item,
+    ]),
+  );
 
+  let createdCount = 0;
+  let updatedCount = 0;
   for (const [index, item] of demoItems.entries()) {
+    const properties = propertiesForDemoItem(item, index);
+    const existingItem = existingItemsByName.get(item.name);
+
+    if (existingItem) {
+      logger.info(`Synchronizing dashboard item "${item.name}"…`);
+      await updateEntity(context, authentication, {
+        entity: existingItem,
+        propertyPatches: Object.entries(properties)
+          /**
+           * Preserve any layout changes made interactively. The taller
+           * seeded default applies when creating items, not when re-seeding
+           * an existing dashboard.
+           */
+          .filter(
+            ([propertyBaseUrl]) =>
+              propertyBaseUrl !==
+              systemPropertyTypes.gridPosition.propertyTypeBaseUrl,
+          )
+          .map(
+            ([propertyBaseUrl, property]) =>
+              ({
+                op: "add",
+                path: [propertyBaseUrl as BaseUrl],
+                property,
+              }) satisfies PropertyPatchOperation,
+          ),
+      });
+      updatedCount += 1;
+      continue;
+    }
     logger.info(`Creating dashboard item "${item.name}"…`);
+    createdCount += 1;
 
     const itemEntity = await createEntity(context, authentication, {
       webId,
       entityTypeIds: [systemEntityTypes.dashboardItem.entityTypeId],
       properties: {
-        value: {
-          [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: textValue(
-            item.name,
-          ),
-          [systemPropertyTypes.goal.propertyTypeBaseUrl]: textValue(item.goal),
-          [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl]:
-            textValue("ready"),
-          [systemPropertyTypes.chartType.propertyTypeBaseUrl]: textValue(
-            item.chartType,
-          ),
-          [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl]:
-            objectValue(item.structuralQuery),
-          [systemPropertyTypes.pythonScript.propertyTypeBaseUrl]: textValue(
-            item.pythonScript,
-          ),
-          [systemPropertyTypes.chartConfiguration.propertyTypeBaseUrl]:
-            objectValue(item.chartConfig),
-          [systemPropertyTypes.gridPosition.propertyTypeBaseUrl]: objectValue({
-            i: `demo-item-${index + 1}`,
-            ...item.gridPosition,
-          }),
-        },
+        value: properties,
       },
     });
 
@@ -518,7 +676,7 @@ const seedDashboardDemo = async () => {
   }
 
   logger.info(
-    `✅ Demo dashboard seeded with ${demoItems.length} items. Open /dashboards in the app to view it.`,
+    `✅ Demo dashboard seeded (${createdCount} new item(s), ${updatedCount} synchronized). Open /dashboards in the app to view it.`,
   );
 };
 

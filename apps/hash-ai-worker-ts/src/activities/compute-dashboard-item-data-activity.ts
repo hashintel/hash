@@ -3,6 +3,10 @@ import { Context } from "@temporalio/activity";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
+  normalizeStructuralQuery,
+  toApiTraversalPaths,
+} from "@local/hash-isomorphic-utils/dashboard-types";
+import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -14,7 +18,8 @@ import type {
   ComputeDashboardItemDataWorkflowResult,
 } from "@local/hash-backend-utils/dashboards";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type { Filter, GraphApi } from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { StructuralQueryDefinition } from "@local/hash-isomorphic-utils/dashboard-types";
 
 /**
  * Cap the number of entities loaded for a dashboard item, to bound memory
@@ -49,21 +54,24 @@ export const computeDashboardItemDataActivity = async (
   }, SECONDS_BETWEEN_HEARTBEATS * 1000);
 
   try {
-    let filter: Filter;
+    let queryDefinition: StructuralQueryDefinition | null;
     try {
-      filter = JSON.parse(structuralQuery) as Filter;
+      queryDefinition = normalizeStructuralQuery(JSON.parse(structuralQuery));
     } catch {
       throw new Error("Could not parse structuralQuery as JSON");
+    }
+    if (!queryDefinition) {
+      throw new Error("structuralQuery is not a filter or query definition");
     }
 
     const { subgraph } = await queryEntitySubgraph(
       { graphApi: graphApiClient },
       authentication,
       {
-        filter,
+        filter: queryDefinition.filter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: almostFullOntologyResolveDepths,
-        traversalPaths: [],
+        traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
         includeDrafts: false,
         includePermissions: false,
         limit: MAXIMUM_ENTITY_COUNT,

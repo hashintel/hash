@@ -3,9 +3,10 @@ import { CodeInterpreter } from "e2b";
 /**
  * Execute a Python script in an E2B sandbox against a JSON dataset.
  *
- * The dataset is written to a file in the sandbox, and its path is exposed to
- * the script via a `DATA_FILE_PATH` variable prepended to the code. The script
- * is expected to print its result (JSON) to stdout.
+ * The dataset is written to a file in the sandbox. Its absolute path is
+ * exposed both as a Python `DATA_FILE_PATH` global and as an environment
+ * variable of the same name, and the working directory is set to the file's
+ * directory. The script is expected to print its result (JSON) to stdout.
  */
 export const runPythonCode = async (params: {
   code: string;
@@ -21,7 +22,17 @@ export const runPythonCode = async (params: {
     const dataFilePath = `/home/user/${requestId}_data.json`;
     await sandbox.filesystem.write(dataFilePath, dataJson);
 
-    const codeWithDataPath = `DATA_FILE_PATH = "${dataFilePath}"\n${code}`;
+    /**
+     * Prefer the injected Python global, which is the documented contract.
+     * Also populate the environment variable and use a stable working
+     * directory so otherwise-correct model-generated scripts remain portable
+     * if they use `os.environ` or take the path's basename.
+     */
+    const codeWithDataPath = `import os as __hash_runtime_os
+DATA_FILE_PATH = ${JSON.stringify(dataFilePath)}
+__hash_runtime_os.environ["DATA_FILE_PATH"] = DATA_FILE_PATH
+__hash_runtime_os.chdir(__hash_runtime_os.path.dirname(DATA_FILE_PATH))
+${code}`;
     const response = await sandbox.runPython(codeWithDataPath);
 
     return {

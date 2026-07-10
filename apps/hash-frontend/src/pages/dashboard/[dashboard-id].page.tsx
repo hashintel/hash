@@ -13,6 +13,13 @@ import {
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
+import {
+  type ChartConfig,
+  type ChartType,
+  type DashboardGridLayout,
+  type GridPosition,
+  normalizeStructuralQuery,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
@@ -48,13 +55,6 @@ import type {
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DashboardData, DashboardItemData } from "./shared/types";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
-import type {
-  ChartConfig,
-  ChartType,
-  DashboardGridLayout,
-  GridPosition,
-} from "@local/hash-isomorphic-utils/dashboard-types";
 import type { Dashboard } from "@local/hash-isomorphic-utils/system-types/dashboard";
 import type { DashboardItem as DashboardItemEntity } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
 
@@ -239,8 +239,7 @@ const DashboardPage: NextPageWithLayout = () => {
         linkEntityId,
         title: itemProps.name,
         userGoal: itemProps.goal,
-        structuralQuery:
-          (itemProps.structuralQuery as Filter | undefined) ?? null,
+        structuralQuery: normalizeStructuralQuery(itemProps.structuralQuery),
         pythonScript: itemProps.pythonScript ?? null,
         chartType: (itemProps.chartType as ChartType | undefined) ?? null,
         chartConfig:
@@ -250,7 +249,7 @@ const DashboardPage: NextPageWithLayout = () => {
           x: 0,
           y: 0,
           w: 6,
-          h: 4,
+          h: 8,
         },
         configurationStatus:
           itemProps.configurationStatus as DashboardItemData["configurationStatus"],
@@ -442,7 +441,7 @@ const DashboardPage: NextPageWithLayout = () => {
               x: 0,
               y: Infinity, // Place at bottom
               w: 6,
-              h: 4,
+              h: 8,
             },
           },
           undefined,

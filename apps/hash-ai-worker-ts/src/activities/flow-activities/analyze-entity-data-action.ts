@@ -15,6 +15,9 @@ import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   type ChartType,
   chartTypes,
+  normalizeStructuralQuery,
+  type StructuralQueryDefinition,
+  toApiTraversalPaths,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
@@ -24,9 +27,8 @@ import {
 import { StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
+import { runAgenticToolLoop } from "../shared/agentic-tool-loop.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
-import { getLlmResponse } from "../shared/get-llm-response.js";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { runPythonCode } from "../shared/run-python-code.js";
 import { stringify } from "../shared/stringify.js";
@@ -34,7 +36,6 @@ import { stringify } from "../shared/stringify.js";
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { Filter } from "@local/hash-graph-client";
 import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
@@ -52,11 +53,21 @@ const systemPrompt = dedent(`
   3. A target chart type (or you'll suggest one)
 
   Your task is to write Python code that:
-  1. Loads the entity data from the JSON file at the path in the DATA_FILE_PATH variable.
+  1. Loads the entity data from the JSON file at the absolute path in the pre-defined Python
+     string variable DATA_FILE_PATH. Use it directly:
+       with open(DATA_FILE_PATH, encoding="utf-8") as data_file:
+           data = json.load(data_file)
+     Do not read DATA_FILE_PATH from os.environ, take its basename, remove its directory, replace
+     it with a relative path, or hardcode a filename.
      The file contains {"entities": [...], "entityTypes": [...]} — entity properties are keyed
      by property *title* (e.g. "Annual Revenue"), and each entity's outgoing links are under
-     "links" (link type titles, link properties, and the target entity's id only — linked
-     entities' own properties are NOT included).
+     "links" (link type titles, link properties, and the target entity's "targetEntityId").
+     When the query includes traversal paths, connected entities appear as additional
+     top-level entries in "entities" (distinguishable by their "entityTypes"). "links" sit on
+     the SOURCE side of each relationship: to join A → B, match A's links[].targetEntityId
+     against B's entityId. For relationships pointing INTO the queried entities, the connected
+     entity is the one whose links reference them. Without traversal, linked entities' own
+     properties are NOT included, only their ids.
   2. Processes, aggregates, or transforms it as needed (group, sum, count, bucket, sort).
   3. Prints a single JSON array of flat objects to stdout — nothing else on stdout.
 
@@ -79,15 +90,13 @@ const systemPrompt = dedent(`
 
   ## Choosing a chart type
 
-  Strongly prefer bar and line charts — they are easier to read and compare than pie charts.
-  Use line for trends over time, bar for comparisons and distributions across categories.
   Only suggest a pie chart if the user's goal explicitly asks for one (e.g. "pie chart",
   "donut"); for part-of-whole questions a bar chart sorted by value is the better default.
 
   ## Rules
 
   - Handle missing/null property values defensively — skip or default them, never crash.
-  - Round monetary/large values to whole numbers.
+  - Round monetary/large values to an appropriate number of significant figures.
   - Keep the output small: aggregate rather than emitting thousands of raw rows (aim for < 500).
   - Include comments explaining non-obvious transformation logic.
   - Warnings on stderr are fine; what matters is that stdout is exactly one valid JSON array.
@@ -99,7 +108,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "run_python",
     description:
-      "Execute Python code to transform the entity data. The code should print JSON to stdout.",
+      'Execute Python code to transform the entity data. Load the input with `with open(DATA_FILE_PATH, encoding="utf-8") as data_file:` — DATA_FILE_PATH is a pre-defined Python string containing the absolute path; use it directly, not via os.environ or basename. The code should print JSON to stdout.',
     inputSchema: {
       type: "object",
       properties: {
@@ -120,7 +129,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "submit_result",
     description:
-      "Submit the final Python script and chart data once you're satisfied with the transformation.",
+      "Submit the final Python script and chart data once you're satisfied with the transformation. The script must use the pre-defined absolute DATA_FILE_PATH Python variable directly (not os.environ, basename, or a relative/hardcoded path).",
     inputSchema: {
       type: "object",
       properties: {
@@ -130,7 +139,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         },
         suggestedChartType: {
           type: "string",
-          enum: chartTypes,
+          enum: [...chartTypes],
           description: "The recommended chart type for this data",
         },
         explanation: {
@@ -236,14 +245,17 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
     };
   }
 
-  // Parse the structured query from JSON
-  let filter: Filter;
+  // Parse the structured query (bare filter or { filter, traversalPaths })
+  let queryDefinition: StructuralQueryDefinition | null;
   try {
-    filter = JSON.parse(structuralQuery) as Filter;
+    queryDefinition = normalizeStructuralQuery(JSON.parse(structuralQuery));
   } catch {
+    queryDefinition = null;
+  }
+  if (!queryDefinition) {
     return {
       code: StatusCode.InvalidArgument,
-      message: "Could not parse structuralQuery as JSON",
+      message: "Could not parse structuralQuery as a filter or definition",
       contents: [],
     };
   }
@@ -253,10 +265,10 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
     { graphApi: graphApiClient },
     userAuthentication,
     {
-      filter,
+      filter: queryDefinition.filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: almostFullOntologyResolveDepths,
-      traversalPaths: [],
+      traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
       includeDrafts: false,
       includePermissions: false,
     },
@@ -281,249 +293,201 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
         ? (parsed as ChartType[])
         : [parsed as ChartType];
     } catch {
-      targetChartTypes = [targetChartType];
+      targetChartTypes = [targetChartType as ChartType];
     }
   }
 
   let lastSuccessfulScript: string | null = null;
   let lastSuccessfulOutput: unknown[] | null = null;
-  let pythonScript: string | null = null;
-  let chartData: unknown[] = [];
-  let suggestedChartType: ChartType = targetChartTypes[0] ?? "bar";
-  let explanation = "";
 
-  type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
+  /**
+   * The chart type from the most recent submit_result attempt (initially the
+   * caller's preference), used when auto-submitting the last successful run
+   * at the iteration limit.
+   */
+  let fallbackChartType: ChartType = targetChartTypes[0] ?? "bar";
 
-  const callModel = async (
-    messages: MessageType,
-    iteration: number,
-  ): Promise<void> => {
-    if (iteration > maximumIterations) {
-      // Use last successful result if available
-      if (lastSuccessfulScript && lastSuccessfulOutput) {
-        pythonScript = lastSuccessfulScript;
-        chartData = lastSuccessfulOutput;
-        explanation = "Auto-submitted after reaching iteration limit";
-        return;
-      }
-      throw new Error(
-        `Exceeded maximum iterations (${maximumIterations}) for data analysis`,
-      );
-    }
-
-    const llmResponse = await getLlmResponse(
-      {
-        model,
-        systemPrompt,
-        messages,
-        tools,
-      },
-      {
-        customMetadata: {
-          stepId,
-          taskName: "analyze-entity-data",
-        },
-        userAccountId: userAuthentication.actorId,
-        graphApiClient,
-        incurredInEntities: [{ entityId: flowEntityId }],
-        webId,
-      },
-    );
-
-    if (llmResponse.status !== "ok") {
-      throw new Error(`LLM error: ${llmResponse.status}`);
-    }
-
-    const { message } = llmResponse;
-    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-    /**
-     * The model may make multiple tool calls in a single message. Every
-     * tool_use block must receive a matching tool_result in the next user
-     * message, otherwise the Anthropic API rejects the conversation.
-     */
-    const toolResults: { tool_use_id: string; content: string }[] = [];
-
-    for (const toolCall of toolCalls) {
-      const args = toolCall.input as Record<string, unknown>;
-
-      switch (toolCall.name) {
-        case "run_python": {
-          const code = args.code as string;
-          const codeExplanation = args.explanation as string;
-
-          logger.debug(
-            `Running Python code:\n${code}\nExplanation: ${codeExplanation}`,
-          );
-
-          try {
-            const { stdout, stderr } = await runPythonCodeForCurrentActivity(
-              code,
-              entityDataJson,
-            );
-
-            /**
-             * Python warnings also land on stderr, so success is judged by
-             * whether stdout parses as JSON — stderr alone is not a failure.
-             */
-            let parsedData: unknown;
-            try {
-              parsedData = JSON.parse(stdout.trim());
-            } catch {
-              toolResults.push({
-                tool_use_id: toolCall.id,
-                content: dedent(`
-                  stdout is not valid JSON.
-
-                  stdout: ${stdout || "(empty)"}
-                  ${stderr ? `stderr: ${stderr}` : ""}
-
-                  Please ensure your code prints exactly one JSON array to stdout.
-                `),
-              });
-              break;
-            }
-
-            if (!Array.isArray(parsedData)) {
-              toolResults.push({
-                tool_use_id: toolCall.id,
-                content: `Output is valid JSON but not an array. Print a JSON *array* of flat row objects to stdout.`,
-              });
-              break;
-            }
-
-            lastSuccessfulScript = code;
-            lastSuccessfulOutput = parsedData;
-
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content: dedent(`
-                Code executed successfully!
-
-                Output (first 5 items):
-                ${stringify(parsedData.slice(0, 5))}
-
-                Total items: ${parsedData.length}
-                ${
-                  stderr
-                    ? `\nWarnings on stderr (informational): ${stderr}`
-                    : ""
-                }
-
-                If this looks correct for the visualization goal, submit your final result.
-                Otherwise, adjust your code and run again.
-              `),
-            });
-          } catch (error) {
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content: `Execution error: ${
-                error instanceof Error ? error.message : "Unknown"
-              }`,
-            });
-          }
-          break;
-        }
-
-        case "submit_result": {
-          pythonScript = args.pythonScript as string;
-          suggestedChartType = args.suggestedChartType as ChartType;
-          explanation = args.explanation as string;
-
-          try {
-            const { stdout, stderr } = await runPythonCodeForCurrentActivity(
-              pythonScript,
-              entityDataJson,
-            );
-
-            let parsedData: unknown;
-            try {
-              parsedData = JSON.parse(stdout.trim());
-            } catch {
-              toolResults.push({
-                tool_use_id: toolCall.id,
-                content: dedent(`
-                  Final script's stdout is not valid JSON.
-
-                  stdout: ${stdout || "(empty)"}
-                  ${stderr ? `stderr: ${stderr}` : ""}
-
-                  Please fix and try again.
-                `),
-              });
-              break;
-            }
-
-            if (!Array.isArray(parsedData)) {
-              toolResults.push({
-                tool_use_id: toolCall.id,
-                content:
-                  "Final script's output is valid JSON but not an array. Print a JSON *array* of flat row objects to stdout, then submit again.",
-              });
-              break;
-            }
-
-            chartData = parsedData;
-            return;
-          } catch (error) {
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content: `Final script error: ${
-                error instanceof Error ? error.message : "Unknown"
-              }\n\nPlease fix and try again.`,
-            });
-          }
-          break;
-        }
-      }
-    }
-
-    if (toolResults.length > 0) {
-      return callModel(
-        [
-          ...messages,
-          message,
-          {
-            role: "user",
-            content: toolResults.map(({ tool_use_id, content }) => ({
-              type: "tool_result" as const,
-              tool_use_id,
-              content,
-            })),
-          },
-        ],
-        iteration + 1,
-      );
-    }
-
-    // No tool calls - prompt to use a tool
-    return callModel(
-      [
-        ...messages,
-        message,
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Please use the run_python tool to transform the data, or submit_result when done.",
-            },
-          ],
-        },
-      ],
-      iteration + 1,
-    );
+  type LoopResult = {
+    pythonScript: string;
+    chartData: unknown[];
+    suggestedChartType: ChartType;
+    explanation: string;
   };
 
   try {
-    await callModel(
-      [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: dedent(`
+    const { pythonScript, chartData, suggestedChartType, explanation } =
+      await runAgenticToolLoop<ToolName, LoopResult>({
+        model,
+        systemPrompt,
+        tools,
+        maximumIterations,
+        noToolCallNudge:
+          "Please use the run_python tool to transform the data, or submit_result when done.",
+        usageTrackingParams: {
+          customMetadata: {
+            stepId,
+            taskName: "analyze-entity-data",
+          },
+          userAccountId: userAuthentication.actorId,
+          graphApiClient,
+          incurredInEntities: [{ entityId: flowEntityId }],
+          webId,
+        },
+        onIterationLimit: () => {
+          // Use last successful result if available
+          if (lastSuccessfulScript && lastSuccessfulOutput) {
+            return {
+              pythonScript: lastSuccessfulScript,
+              chartData: lastSuccessfulOutput,
+              suggestedChartType: fallbackChartType,
+              explanation: "Auto-submitted after reaching iteration limit",
+            };
+          }
+          throw new Error(
+            `Exceeded maximum iterations (${maximumIterations}) for data analysis`,
+          );
+        },
+        handleToolCall: async (toolCall) => {
+          const args = toolCall.input as Record<string, unknown>;
+
+          switch (toolCall.name) {
+            case "run_python": {
+              const code = args.code as string;
+              const codeExplanation = args.explanation as string;
+
+              logger.debug(
+                `Running Python code:\n${code}\nExplanation: ${codeExplanation}`,
+              );
+
+              try {
+                const { stdout, stderr } =
+                  await runPythonCodeForCurrentActivity(code, entityDataJson);
+
+                /**
+                 * Python warnings also land on stderr, so success is judged by
+                 * whether stdout parses as JSON — stderr alone is not a failure.
+                 */
+                let parsedData: unknown;
+                try {
+                  parsedData = JSON.parse(stdout.trim());
+                } catch {
+                  return {
+                    kind: "tool-result",
+                    content: dedent(`
+                      stdout is not valid JSON.
+
+                      stdout: ${stdout || "(empty)"}
+                      ${stderr ? `stderr: ${stderr}` : ""}
+
+                      Please ensure your code prints exactly one JSON array to stdout.
+                    `),
+                  };
+                }
+
+                if (!Array.isArray(parsedData)) {
+                  return {
+                    kind: "tool-result",
+                    content: `Output is valid JSON but not an array. Print a JSON *array* of flat row objects to stdout.`,
+                  };
+                }
+
+                lastSuccessfulScript = code;
+                lastSuccessfulOutput = parsedData;
+
+                return {
+                  kind: "tool-result",
+                  content: dedent(`
+                    Code executed successfully!
+
+                    Output (first 5 items):
+                    ${stringify(parsedData.slice(0, 5))}
+
+                    Total items: ${parsedData.length}
+                    ${
+                      stderr
+                        ? `\nWarnings on stderr (informational): ${stderr}`
+                        : ""
+                    }
+
+                    If this looks correct for the visualization goal, submit your final result.
+                    Otherwise, adjust your code and run again.
+                  `),
+                };
+              } catch (error) {
+                return {
+                  kind: "tool-result",
+                  content: `Execution error: ${
+                    error instanceof Error ? error.message : "Unknown"
+                  }`,
+                };
+              }
+            }
+
+            case "submit_result": {
+              const submittedScript = args.pythonScript as string;
+              const submittedChartType = args.suggestedChartType as ChartType;
+
+              fallbackChartType = submittedChartType;
+
+              try {
+                const { stdout, stderr } =
+                  await runPythonCodeForCurrentActivity(
+                    submittedScript,
+                    entityDataJson,
+                  );
+
+                let parsedData: unknown;
+                try {
+                  parsedData = JSON.parse(stdout.trim());
+                } catch {
+                  return {
+                    kind: "tool-result",
+                    content: dedent(`
+                      Final script's stdout is not valid JSON.
+
+                      stdout: ${stdout || "(empty)"}
+                      ${stderr ? `stderr: ${stderr}` : ""}
+
+                      Please fix and try again.
+                    `),
+                  };
+                }
+
+                if (!Array.isArray(parsedData)) {
+                  return {
+                    kind: "tool-result",
+                    content:
+                      "Final script's output is valid JSON but not an array. Print a JSON *array* of flat row objects to stdout, then submit again.",
+                  };
+                }
+
+                return {
+                  kind: "complete",
+                  result: {
+                    pythonScript: submittedScript,
+                    chartData: parsedData,
+                    suggestedChartType: submittedChartType,
+                    explanation: args.explanation as string,
+                  },
+                };
+              } catch (error) {
+                return {
+                  kind: "tool-result",
+                  content: `Final script error: ${
+                    error instanceof Error ? error.message : "Unknown"
+                  }\n\nPlease fix and try again.`,
+                };
+              }
+            }
+          }
+        },
+        initialMessages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: dedent(`
                 User's goal: "${userGoal}"
                 ${
                   targetChartTypes.length > 0
@@ -533,10 +497,13 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
                     : "Please suggest an appropriate chart type."
                 }
 
-                The following structural query filter was used to retrieve the entities:
+                The following structural query (filter, plus any traversal paths that pull in
+                connected entities) was used to retrieve the entities:
                 ${structuralQuery}
 
-                Entity data is available at the path stored in DATA_FILE_PATH variable.
+                Entity data is available at the absolute path stored in the pre-defined Python
+                string variable DATA_FILE_PATH. Open that variable directly — do not read it from
+                os.environ, take its basename, or replace it with a relative path.
 
                 The dataset contains ${simpleEntities.length} entities.
 
@@ -550,21 +517,17 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
                 ${stringify(entityTypes)}
 
                 Please write Python code to:
-                1. Load the JSON data from the file at DATA_FILE_PATH
+                1. Load the JSON data with:
+                   with open(DATA_FILE_PATH, encoding="utf-8") as data_file:
+                       data = json.load(data_file)
                 2. Transform it into chart-ready rows per the output shape contract for the chart type
                 3. Print the result as a JSON array to stdout
               `),
-            },
-          ],
-        },
-      ],
-      1,
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Variable set in recursive async function
-    if (!pythonScript) {
-      throw new Error("Failed to generate Python script");
-    }
+              },
+            ],
+          },
+        ],
+      });
 
     /**
      * Proactively write the computed chart data to the analysis artifact
@@ -573,7 +536,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
      */
     try {
       const configHash = generateDashboardItemConfigHash({
-        structuralQuery: filter,
+        structuralQuery: queryDefinition,
         pythonScript,
       });
       await getStorageProvider().uploadDirect({

@@ -1,10 +1,10 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
 import type {
   ChartConfig,
   ChartType,
   DashboardGridLayout,
   GridPosition,
+  StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 
 export type DashboardItemData = {
@@ -12,7 +12,7 @@ export type DashboardItemData = {
   linkEntityId: EntityId;
   title: string;
   userGoal: string;
-  structuralQuery: Filter | null;
+  structuralQuery: StructuralQueryDefinition | null;
   pythonScript: string | null;
   chartType: ChartType | null;
   chartConfig: ChartConfig | null;

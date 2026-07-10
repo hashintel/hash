@@ -9,7 +9,7 @@ import {
 } from "@hashintel/ds-components";
 import { chartTypes } from "@local/hash-isomorphic-utils/dashboard-types";
 
-import { DeleteIconButton } from "./delete-icon-button";
+import { DeleteIconButton } from "../delete-icon-button";
 
 import type {
   ChartConfig,

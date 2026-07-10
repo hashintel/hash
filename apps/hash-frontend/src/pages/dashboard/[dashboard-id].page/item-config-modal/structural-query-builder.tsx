@@ -1,22 +1,43 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   Button,
   NumberInput,
   Select,
   TextInput,
 } from "@hashintel/ds-components";
+import {
+  incomingHopEdges,
+  outgoingHopEdges,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 
-import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
+import {
+  useEntityTypesOptional,
+  useLatestEntityTypesOptional,
+} from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useDataTypesContext } from "../../../shared/data-types-context";
 import { resolveDataTypeValueKind } from "../../../shared/entities-visualizer/shared/property-filters/derive-filterable-properties";
-import { DeleteIconButton } from "./delete-icon-button";
+import { DeleteIconButton } from "../delete-icon-button";
 
 import type { FilterValueKind } from "../../../shared/entities-visualizer/shared/property-filters/property-filter";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { SelectItem } from "@hashintel/ds-components";
-import type { Filter, FilterExpression } from "@local/hash-graph-client";
+import type {
+  EntityTraversalEdge,
+  Filter,
+  FilterExpression,
+} from "@local/hash-graph-client";
+import type {
+  LabelledTraversalPath,
+  StructuralQueryDefinition,
+  TraversalHopMeta,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 
 const cardBorderColor = "#e0e0e0";
 
@@ -1052,18 +1073,463 @@ const FilterNodeEditor = ({
   );
 };
 
-type StructuralQueryBuilderProps = {
-  value: Filter | null;
-  /** `null` clears the query entirely */
-  onChange: (filter: Filter | null) => void;
+/* -------------------------------------------------------------------------
+ * Related entities: traversal paths built from named relationships.
+ *
+ * Users pick relationships by name ("Associated with → Account"); each pick
+ * compiles to a graph traversal path (a pair of link-entity edges per hop).
+ * The graph doesn't type-filter hops, so a hop brings in all entities linked
+ * at that step — the named pick guarantees the wanted data is reachable.
+ * ---------------------------------------------------------------------- */
+
+/** Graph API limits (see MAX_TRAVERSAL_PATHS / MAX_ENTITY_TRAVERSAL_EDGES). */
+const maximumTraversalPaths = 10;
+const maximumTraversalEdgesPerPath = 10;
+
+type RelationshipOption = {
+  id: string;
+  label: string;
+  hop: TraversalHopMeta;
+};
+
+const hopToEdges = (hop: TraversalHopMeta): EntityTraversalEdge[] => [
+  ...(hop.direction === "outgoing" ? outgoingHopEdges : incomingHopEdges),
+];
+
+type EntityTypeLinkSchema = NonNullable<
+  EntityTypeWithMetadata["schema"]["links"]
+>[VersionedUrl];
+
+/**
+ * Relationship options for entities of the given type base URLs: outgoing
+ * relationships from each type's link definitions, and incoming ones from
+ * scanning all types whose links can target one of the given types.
+ *
+ * Inheritance is resolved on both sides: a type's effective links include
+ * those declared on its `allOf` ancestors, and a link whose declared target
+ * is an ancestor of the root type counts as targeting the root.
+ *
+ * @todo FE-13: use a context with closed entity types to avoid this custom walking
+ */
+const useRelationshipOptions = (
+  forTypeBaseUrls: string[],
+): RelationshipOption[] => {
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
+  /** All versions, for resolving the exact versioned URLs in `allOf` refs. */
+  const allEntityTypes = useEntityTypesOptional();
+
+  return useMemo(() => {
+    if (!latestEntityTypes || forTypeBaseUrls.length === 0) {
+      return [];
+    }
+
+    const typesByBaseUrl = new Map(
+      latestEntityTypes.map((entityType) => [
+        entityType.metadata.recordId.baseUrl as string,
+        entityType,
+      ]),
+    );
+
+    const typesByVersionedUrl = new Map(
+      (allEntityTypes ?? []).map((entityType) => [
+        entityType.schema.$id,
+        entityType,
+      ]),
+    );
+
+    const titleForBaseUrl = (baseUrl: string) =>
+      typesByBaseUrl.get(baseUrl)?.schema.title ?? baseUrl;
+
+    /**
+     * Walk a type's `allOf` ancestry breadth-first (cycle-safe, skipping
+     * ancestors that aren't loaded), visiting the type itself first so that
+     * nearer declarations take precedence.
+     */
+    const walkTypeAndAncestors = (
+      entityType: EntityTypeWithMetadata,
+      visit: (schema: EntityTypeWithMetadata["schema"]) => void,
+    ) => {
+      const queue = [entityType.schema];
+      const visited = new Set([entityType.schema.$id]);
+      while (queue.length > 0) {
+        const schema = queue.shift()!;
+        visit(schema);
+        for (const parentRef of schema.allOf ?? []) {
+          const parent = typesByVersionedUrl.get(parentRef.$ref);
+          if (parent && !visited.has(parent.schema.$id)) {
+            visited.add(parent.schema.$id);
+            queue.push(parent.schema);
+          }
+        }
+      }
+    };
+
+    /**
+     * A type's effective link definitions: its own plus those inherited via
+     * `allOf`, keyed by link type base URL (nearest declaration wins).
+     */
+    const effectiveLinksCache = new Map<
+      VersionedUrl,
+      Map<string, EntityTypeLinkSchema>
+    >();
+    const getEffectiveLinks = (entityType: EntityTypeWithMetadata) => {
+      const cached = effectiveLinksCache.get(entityType.schema.$id);
+      if (cached) {
+        return cached;
+      }
+      const links = new Map<string, EntityTypeLinkSchema>();
+      walkTypeAndAncestors(entityType, (schema) => {
+        for (const [linkTypeId, linkSchema] of Object.entries(
+          schema.links ?? {},
+        )) {
+          const linkTypeBaseUrl = extractBaseUrl(linkTypeId as VersionedUrl);
+          if (!links.has(linkTypeBaseUrl)) {
+            links.set(linkTypeBaseUrl, linkSchema);
+          }
+        }
+      });
+      effectiveLinksCache.set(entityType.schema.$id, links);
+      return links;
+    };
+
+    /** Base URLs of a type and all of its `allOf` ancestors. */
+    const getSelfAndAncestorBaseUrls = (entityType: EntityTypeWithMetadata) => {
+      const baseUrls = new Set<string>();
+      walkTypeAndAncestors(entityType, (schema) => {
+        baseUrls.add(extractBaseUrl(schema.$id));
+      });
+      return baseUrls;
+    };
+
+    const optionsById = new Map<string, RelationshipOption>();
+
+    const addOption = (label: string, hop: TraversalHopMeta) => {
+      const id = `${hop.direction}:${hop.linkTypeBaseUrl ?? ""}:${
+        hop.entityTypeBaseUrl ?? ""
+      }`;
+      if (!optionsById.has(id)) {
+        optionsById.set(id, { id, label, hop });
+      }
+    };
+
+    for (const rootBaseUrl of forTypeBaseUrls) {
+      const rootType = typesByBaseUrl.get(rootBaseUrl);
+
+      const rootAndAncestorBaseUrls = rootType
+        ? getSelfAndAncestorBaseUrls(rootType)
+        : new Set([rootBaseUrl]);
+
+      // Outgoing: the root type's effective (own + inherited) links
+      for (const [linkTypeBaseUrl, linkSchema] of rootType
+        ? getEffectiveLinks(rootType)
+        : new Map<string, EntityTypeLinkSchema>()) {
+        const linkTitle = titleForBaseUrl(linkTypeBaseUrl);
+
+        const destinationRefs =
+          "oneOf" in linkSchema.items
+            ? linkSchema.items.oneOf.map((destination) => destination.$ref)
+            : undefined;
+
+        if (destinationRefs) {
+          for (const destinationRef of destinationRefs) {
+            const destinationBaseUrl = extractBaseUrl(destinationRef);
+            addOption(`${linkTitle} → ${titleForBaseUrl(destinationBaseUrl)}`, {
+              direction: "outgoing",
+              linkTypeBaseUrl,
+              entityTypeBaseUrl: destinationBaseUrl,
+            });
+          }
+        } else {
+          addOption(`${linkTitle} → (any entity)`, {
+            direction: "outgoing",
+            linkTypeBaseUrl,
+          });
+        }
+      }
+
+      // Incoming: other types whose effective links can target the root type
+      // (a declared target that is an ancestor of the root also matches)
+      for (const candidateType of latestEntityTypes) {
+        for (const [linkTypeBaseUrl, linkSchema] of getEffectiveLinks(
+          candidateType,
+        )) {
+          if (!("oneOf" in linkSchema.items)) {
+            continue;
+          }
+          const targetsRoot = linkSchema.items.oneOf.some((destination) =>
+            rootAndAncestorBaseUrls.has(extractBaseUrl(destination.$ref)),
+          );
+          if (!targetsRoot) {
+            continue;
+          }
+          addOption(
+            `← ${titleForBaseUrl(linkTypeBaseUrl)} ← ${
+              candidateType.schema.title
+            }`,
+            {
+              direction: "incoming",
+              linkTypeBaseUrl,
+              entityTypeBaseUrl: candidateType.metadata.recordId
+                .baseUrl as string,
+            },
+          );
+        }
+      }
+    }
+
+    return [...optionsById.values()].sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [latestEntityTypes, allEntityTypes, forTypeBaseUrls]);
+};
+
+const edgePairMatches = (
+  first: EntityTraversalEdge,
+  second: EntityTraversalEdge,
+  [expectedFirst, expectedSecond]: EntityTraversalEdge[],
+): boolean =>
+  first.kind === expectedFirst!.kind &&
+  first.direction === expectedFirst!.direction &&
+  second.kind === expectedSecond!.kind &&
+  second.direction === expectedSecond!.direction;
+
+/**
+ * Human-readable description of a traversal path. Paths built via the picker
+ * carry a label; AI- or JSON-authored paths get a generic description derived
+ * from their edges.
+ */
+const describeTraversalPath = (path: LabelledTraversalPath): string => {
+  if (path.label) {
+    return path.label;
+  }
+
+  const hopDirections: string[] = [];
+  if (path.edges.length % 2 === 0) {
+    for (let index = 0; index + 1 < path.edges.length; index += 2) {
+      const [first, second] = [path.edges[index]!, path.edges[index + 1]!];
+      if (edgePairMatches(first, second, outgoingHopEdges)) {
+        hopDirections.push("outgoing");
+      } else if (edgePairMatches(first, second, incomingHopEdges)) {
+        hopDirections.push("incoming");
+      } else {
+        hopDirections.length = 0;
+        break;
+      }
+    }
+  }
+
+  if (hopDirections.length > 0) {
+    return `${hopDirections.length} hop${
+      hopDirections.length === 1 ? "" : "s"
+    } via ${hopDirections.join(", then ")} links`;
+  }
+
+  return `Custom traversal (${path.edges.length} edge${
+    path.edges.length === 1 ? "" : "s"
+  })`;
+};
+
+/** Select item list for a set of relationship options. */
+const relationshipItems = (options: RelationshipOption[]): SelectItem[] =>
+  options.map((option) => ({ value: option.id, text: option.label }));
+
+type TraversalPathRowProps = {
+  path: LabelledTraversalPath;
+  onChange: (path: LabelledTraversalPath) => void;
+  onDelete: () => void;
+};
+
+const TraversalPathRow = ({
+  path,
+  onChange,
+  onDelete,
+}: TraversalPathRowProps) => {
+  // Chaining deeper needs to know the entity type at the end of the path
+  const endTypeBaseUrl = path.hops?.at(-1)?.entityTypeBaseUrl;
+  const extendOptions = useRelationshipOptions(
+    endTypeBaseUrl ? [endTypeBaseUrl] : [],
+  );
+
+  const canExtend =
+    extendOptions.length > 0 &&
+    path.edges.length + 2 <= maximumTraversalEdgesPerPath;
+
+  const handleExtend = (optionId: string | null | undefined) => {
+    const option = extendOptions.find((candidate) => candidate.id === optionId);
+    if (!option) {
+      return;
+    }
+    onChange({
+      edges: [...path.edges, ...hopToEdges(option.hop)],
+      label: `${path.label ?? describeTraversalPath(path)} › ${option.label}`,
+      hops: [...(path.hops ?? []), option.hop],
+    });
+  };
+
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      flexWrap="wrap"
+      useFlexGap
+      sx={{
+        border: `1px solid ${cardBorderColor}`,
+        borderRadius: "8px",
+        backgroundColor: "white",
+        px: 1,
+        py: 0.75,
+      }}
+    >
+      <Typography sx={{ fontSize: 13, color: "#37352f" }}>
+        {describeTraversalPath(path)}
+      </Typography>
+      {canExtend && (
+        <Box sx={{ flexShrink: 0 }}>
+          <Select
+            size={inputSize}
+            width="fitContent"
+            items={relationshipItems(extendOptions)}
+            value={null}
+            placeholder="Extend…"
+            onChange={handleExtend}
+            aria-label="Extend traversal path"
+          />
+        </Box>
+      )}
+      <Box sx={{ ml: "auto", flexShrink: 0 }}>
+        <DeleteIconButton label="Remove related entities" onClick={onDelete} />
+      </Box>
+    </Stack>
+  );
+};
+
+type RelatedEntitiesSectionProps = {
+  rootTypeBaseUrls: string[];
+  traversalPaths: LabelledTraversalPath[];
+  onChange: (traversalPaths: LabelledTraversalPath[]) => void;
+};
+
+const RelatedEntitiesSection = ({
+  rootTypeBaseUrls,
+  traversalPaths,
+  onChange,
+}: RelatedEntitiesSectionProps) => {
+  const addOptions = useRelationshipOptions(rootTypeBaseUrls);
+
+  const handleAdd = (optionId: string | null | undefined) => {
+    const option = addOptions.find((candidate) => candidate.id === optionId);
+    if (!option) {
+      return;
+    }
+    onChange([
+      ...traversalPaths,
+      {
+        edges: hopToEdges(option.hop),
+        label: option.label,
+        hops: [option.hop],
+      },
+    ]);
+  };
+
+  return (
+    <Stack spacing={1} sx={{ alignSelf: "stretch" }}>
+      <Typography sx={{ fontSize: 12, fontWeight: 500, color: "#525252" }}>
+        Include related entities
+      </Typography>
+
+      {traversalPaths.map((path, index) => (
+        <TraversalPathRow
+          // eslint-disable-next-line react/no-array-index-key
+          key={index}
+          path={path}
+          onChange={(newPath) =>
+            onChange(
+              traversalPaths.map((existing, pathIndex) =>
+                pathIndex === index ? newPath : existing,
+              ),
+            )
+          }
+          onDelete={() =>
+            onChange(
+              traversalPaths.filter((_, pathIndex) => pathIndex !== index),
+            )
+          }
+        />
+      ))}
+
+      {rootTypeBaseUrls.length === 0 ? (
+        <Typography variant="smallTextParagraphs" color="text.secondary">
+          Select an entity type in the query above to add related entities.
+        </Typography>
+      ) : addOptions.length === 0 ? (
+        <Typography variant="smallTextParagraphs" color="text.secondary">
+          The selected entity type has no known relationships. Use the JSON view
+          for custom traversal paths.
+        </Typography>
+      ) : traversalPaths.length < maximumTraversalPaths ? (
+        <Box>
+          <Select
+            size={inputSize}
+            width="fitContent"
+            items={relationshipItems(addOptions)}
+            value={null}
+            placeholder="Add related entities…"
+            onChange={handleAdd}
+            aria-label="Add related entities"
+          />
+        </Box>
+      ) : null}
+
+      {traversalPaths.length > 0 && (
+        <Typography
+          variant="smallTextParagraphs"
+          sx={{ color: "text.secondary", fontSize: 11 }}
+        >
+          Each hop brings in all entities linked at that step, not only the
+          named relationship — the analysis uses the ones it needs.
+        </Typography>
+      )}
+    </Stack>
+  );
 };
 
 /**
- * Visual builder for graph structural queries (`Filter` trees). Simple
- * conditions get dedicated UI: "Entity Type is …" (backed by the entity types
- * context) and "Property … <operator> …" with operators driven by the
- * property's data type. Anything else is editable via the "Advanced" path
- * editor, with all/any/not groups combining conditions.
+ * Collect the entity type base URLs positively selected by the filter (used
+ * to offer relationship options). Types inside NOT groups are skipped.
+ */
+const collectEntityTypeBaseUrls = (filter: Filter): string[] => {
+  const parsed = parseCondition(filter);
+  if (parsed) {
+    return parsed.subject === "entityType" && parsed.entityTypeBaseUrl
+      ? [parsed.entityTypeBaseUrl]
+      : [];
+  }
+  const groupKind = getGroupKind(filter);
+  if (groupKind === "all" || groupKind === "any") {
+    return (filter as unknown as Record<"all" | "any", Filter[]>)[
+      groupKind
+    ].flatMap(collectEntityTypeBaseUrls);
+  }
+  return [];
+};
+
+type StructuralQueryBuilderProps = {
+  value: StructuralQueryDefinition | null;
+  /** `null` clears the query entirely */
+  onChange: (definition: StructuralQueryDefinition | null) => void;
+};
+
+/**
+ * Visual builder for dashboard item data queries: a graph structural query
+ * (`Filter` tree) plus optional traversal paths pulling in related entities.
+ *
+ * Simple filter conditions get dedicated UI: "Entity Type is …" (backed by
+ * the entity types context) and "Property … <operator> …" with operators
+ * driven by the property's data type. Anything else is editable via the
+ * "Advanced" path editor, with all/any/not groups combining conditions.
+ * Related entities are added by picking named relationships, compiled to
+ * traversal paths under the hood.
  */
 export const StructuralQueryBuilder = ({
   value,
@@ -1071,7 +1537,22 @@ export const StructuralQueryBuilder = ({
 }: StructuralQueryBuilderProps) => {
   const options = useBuilderOptions();
 
-  if (!value) {
+  const filter = value?.filter ?? null;
+  const traversalPaths = useMemo(
+    () => value?.traversalPaths ?? [],
+    [value?.traversalPaths],
+  );
+
+  const rootTypeBaseUrls = useMemo(
+    () => (filter ? [...new Set(collectEntityTypeBaseUrls(filter))] : []),
+    [filter],
+  );
+
+  const handleFilterChange = (newFilter: Filter | null) => {
+    onChange(newFilter ? { filter: newFilter, traversalPaths } : null);
+  };
+
+  if (!filter) {
     return (
       <Stack spacing={1.5} alignItems="flex-start">
         <Typography variant="smallTextParagraphs" color="text.secondary">
@@ -1083,7 +1564,7 @@ export const StructuralQueryBuilder = ({
             tone="neutral"
             size="xs"
             iconName="plus"
-            onClick={() => onChange(defaultCondition)}
+            onClick={() => handleFilterChange(defaultCondition)}
           >
             Condition
           </Button>
@@ -1092,7 +1573,7 @@ export const StructuralQueryBuilder = ({
             tone="neutral"
             size="xs"
             iconName="plus"
-            onClick={() => onChange({ all: [defaultCondition] })}
+            onClick={() => handleFilterChange({ all: [defaultCondition] })}
           >
             Group
           </Button>
@@ -1104,14 +1585,14 @@ export const StructuralQueryBuilder = ({
   // A lone condition at the root has no group around it to offer add/remove
   // controls, so provide them here: adding wraps it into an ALL group.
   const rootIsLeaf =
-    parseCondition(value) !== null || getGroupKind(value) === null;
+    parseCondition(filter) !== null || getGroupKind(filter) === null;
 
   return (
     <Stack spacing={1} alignItems="flex-start">
       <Box sx={{ alignSelf: "stretch" }}>
         <FilterNodeEditor
-          filter={value}
-          onChange={onChange}
+          filter={filter}
+          onChange={handleFilterChange}
           onDelete={() => onChange(null)}
           depth={0}
           options={options}
@@ -1124,7 +1605,9 @@ export const StructuralQueryBuilder = ({
             tone="neutral"
             size="xs"
             iconName="plus"
-            onClick={() => onChange({ all: [value, defaultCondition] })}
+            onClick={() =>
+              handleFilterChange({ all: [filter, defaultCondition] })
+            }
           >
             Condition
           </Button>
@@ -1134,13 +1617,30 @@ export const StructuralQueryBuilder = ({
             size="xs"
             iconName="plus"
             onClick={() =>
-              onChange({ all: [value, { all: [defaultCondition] }] })
+              handleFilterChange({ all: [filter, { all: [defaultCondition] }] })
             }
           >
             Group
           </Button>
         </Stack>
       )}
+
+      <Box
+        sx={{
+          alignSelf: "stretch",
+          borderTop: `1px solid ${cardBorderColor}`,
+          pt: 1.5,
+          mt: 0.5,
+        }}
+      >
+        <RelatedEntitiesSection
+          rootTypeBaseUrls={rootTypeBaseUrls}
+          traversalPaths={traversalPaths}
+          onChange={(newPaths) =>
+            onChange({ filter, traversalPaths: newPaths })
+          }
+        />
+      </Box>
     </Stack>
   );
 };

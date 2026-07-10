@@ -165,13 +165,17 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
         activeIfPathMatches: /^\/processes(\/|$)/,
       },
-      {
-        title: "Dashboards",
-        path: "/dashboards",
-        icon: <FontAwesomeIcon icon={faChartColumn} />,
-        activeIfPathMatches: /^\/dashboards?(\/|$)/,
-        tooltipTitle: "",
-      },
+      ...(enabledFeatureFlags.dashboards
+        ? [
+            {
+              title: "Dashboards",
+              path: "/dashboards",
+              icon: <FontAwesomeIcon icon={faChartColumn} />,
+              activeIfPathMatches: /^\/dashboards?(\/|$)/,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
       {
         title: "Inbox",
         path: getInboxHref({
@@ -220,6 +224,7 @@ export const PageSidebar: FunctionComponent = () => {
     workersSection,
     numberOfUnreadNotifications,
     pendingInvites.length,
+    enabledFeatureFlags.dashboards,
     enabledFeatureFlags.notes,
   ]);
 

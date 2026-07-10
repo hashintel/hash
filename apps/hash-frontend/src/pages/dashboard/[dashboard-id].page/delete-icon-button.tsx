@@ -4,12 +4,12 @@ import { Icon } from "@hashintel/ds-components";
 
 type DeleteIconButtonProps = {
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 /**
- * Small square delete button: neutral grey at rest, red with a light red
- * background on hover.
+ * Small square delete button shared by dashboard cards and configuration
+ * builders: neutral at rest, then red with a light red background on hover.
  */
 export const DeleteIconButton = ({ label, onClick }: DeleteIconButtonProps) => (
   <ButtonBase

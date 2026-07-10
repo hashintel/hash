@@ -6,6 +6,7 @@ import dedent from "dedent";
  * This activity explores available entity types, constructs and tests queries iteratively.
  */
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { stableStringify } from "@local/hash-backend-utils/dashboards";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
@@ -15,6 +16,7 @@ import {
 import {
   type ChartType,
   chartTypes,
+  type StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
@@ -23,20 +25,20 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
+import { runAgenticToolLoop } from "../shared/agentic-tool-loop.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
-import { getLlmResponse } from "../shared/get-llm-response.js";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { stringify } from "../shared/stringify.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { Filter } from "@local/hash-graph-client";
+import type { EntityTraversalPath, Filter } from "@local/hash-graph-client";
 import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 /**
  * Generic JSON value type for schema definitions.
@@ -61,6 +63,9 @@ const model: PermittedAnthropicModel = "claude-opus-4-8";
  * types), so valid filters routinely match more than one `oneOf` branch and
  * would be rejected by strict validation. The schema is guidance for the
  * model — ground truth is the graph API itself via test_query.
+ *
+ * OpenAPI-specific keywords that JSON Schema validators reject in strict
+ * mode (e.g. `discriminator` on EntityTraversalEdge) are dropped.
  */
 const transformSchemaRefs = (schema: JsonValue): JsonValue => {
   if (schema === null || typeof schema !== "object") {
@@ -73,6 +78,9 @@ const transformSchemaRefs = (schema: JsonValue): JsonValue => {
 
   const result: { [key: string]: JsonValue } = {};
   for (const [key, value] of Object.entries(schema)) {
+    if (key === "discriminator") {
+      continue;
+    }
     if (key === "$ref" && typeof value === "string") {
       result[key] = value.replace("#/components/schemas/", "#/$defs/");
     } else if (key === "oneOf") {
@@ -88,7 +96,6 @@ const transformSchemaRefs = (schema: JsonValue): JsonValue => {
  * Schema definitions extracted from the Graph API OpenAPI spec.
  * These are used to validate the filter structure in AI tool calls.
  */
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- JSON import has known structure
 const schemas = graphOpenApiSpec.components.schemas as unknown as Record<
   string,
   JsonValue
@@ -105,6 +112,9 @@ const filterSchemaDefinitions = {
   EntityQueryToken: transformSchemaRefs(schemas.EntityQueryToken!),
   Selector: transformSchemaRefs(schemas.Selector!),
   VersionedUrl: transformSchemaRefs(schemas.VersionedUrl!),
+  EntityTraversalPath: transformSchemaRefs(schemas.EntityTraversalPath!),
+  EntityTraversalEdge: transformSchemaRefs(schemas.EntityTraversalEdge!),
+  EdgeDirection: transformSchemaRefs(schemas.EdgeDirection!),
 };
 
 const systemPrompt = dedent(`
@@ -134,23 +144,45 @@ const systemPrompt = dedent(`
   ## Important: what the query returns
 
   The query returns the entities matching the filter, each with its properties and its outgoing
-  links (link type, link properties, and target entity id). It does NOT return the full data of
-  linked entities — link traversal is not performed. If the user's goal needs data that lives on a
-  related entity (e.g. "deals grouped by the name of their account"), prefer instead:
-  - properties stored directly on the matched entities, or
-  - properties stored on the link itself, or
-  - filtering the matched type via ["leftEntity", ...] / ["rightEntity", ...] paths (for link
-    entities) so the returned entities carry the needed data themselves.
-  Pick the entity type whose instances carry the values to be charted.
+  links (link type, link properties, and target entity id). By default linked entities' own
+  properties are NOT included — only their ids.
+
+  ## Bringing in connected entities (traversalPaths)
+
+  If the user's goal needs data that lives on a related entity (e.g. "deals grouped by the
+  industry of their account"), pass "traversalPaths" alongside the filter. Each traversal path is
+  a sequence of edges walked from every entity matching the filter; entities reached appear as
+  additional top-level entities in the result. Joining works via "links" arrays, which sit on the
+  SOURCE side of each link: for outgoing hops the roots' own "links" carry the targetEntityId of
+  the connected entity; for incoming hops it is the connected entity's "links" that point at the
+  root.
+
+  Edges come in pairs, because links are themselves entities sitting between source and target:
+  - One hop to the entities the roots LINK TO (outgoing):
+    [{ "kind": "has-left-entity", "direction": "incoming" }, { "kind": "has-right-entity", "direction": "outgoing" }]
+  - One hop to the entities that LINK TO the roots (incoming):
+    [{ "kind": "has-right-entity", "direction": "incoming" }, { "kind": "has-left-entity", "direction": "outgoing" }]
+  - Two hops outgoing = the outgoing pair repeated twice, and so on (max 10 edges per path,
+    max 10 paths).
+
+  Traversal is not filtered by link type: a hop brings in ALL entities linked at that hop. That
+  is fine — the analysis script joins on the specific links it needs and ignores the rest. Keep
+  traversal as shallow as the goal allows.
+
+  If the goal only needs data on the matched entities themselves (or on their links' properties),
+  do not use traversalPaths.
 
   ## Workflow (required)
 
   1. Use search_entity_types to find the entity types relevant to the user's goal (the initial
      list you are given may be incomplete).
-  2. Construct a query, then use test_query to verify it returns the expected data. You MUST run
-     at least one successful test_query before submitting — submit_query will be rejected
-     otherwise.
-  3. Iterate until the results look correct, then use submit_query.
+  2. Construct a query, then use test_query to verify it returns the expected data. The EXACT
+     query you submit (same filter and traversalPaths) must have been tested successfully —
+     submit_query rejects untested queries, so re-test after any change before submitting.
+  3. If the goal needs related-entity data, include traversalPaths in test_query and CHECK the
+     results: the linked entities (and the specific properties the analysis needs) must actually
+     appear before you submit. If they don't, adjust the traversal and re-test.
+  4. Iterate until the results look correct, then use submit_query.
 
   When suggesting chart types, strongly prefer bar and line charts — only include pie if the
   user's goal explicitly asks for one.
@@ -186,21 +218,28 @@ const systemPrompt = dedent(`
 type ToolName = "search_entity_types" | "test_query" | "submit_query";
 
 /**
- * The model sometimes provides the `filter` argument as a JSON-encoded string
- * rather than an object — parse it before schema validation so the request
- * doesn't get stuck in a validation-retry loop.
+ * `LlmToolInputSchema` property values don't admit `$ref` inside `items`, but
+ * the runtime validator resolves them against `$defs` fine — hence the cast.
+ */
+const traversalPathArraySchema = {
+  $ref: "#/$defs/EntityTraversalPath",
+} as unknown as JSONSchema;
+
+/**
+ * The model sometimes provides the `filter` / `traversalPaths` arguments as
+ * JSON-encoded strings rather than objects — parse them before schema
+ * validation so the request doesn't get stuck in a validation-retry loop.
  */
 const parseStringifiedFilter = (rawInput: object): object => {
-  if (
-    "filter" in rawInput &&
-    typeof (rawInput as { filter: unknown }).filter === "string"
-  ) {
-    return {
-      ...rawInput,
-      filter: JSON.parse((rawInput as { filter: string }).filter) as unknown,
-    };
+  const result: Record<string, unknown> = {
+    ...(rawInput as Record<string, unknown>),
+  };
+  for (const key of ["filter", "traversalPaths"]) {
+    if (typeof result[key] === "string") {
+      result[key] = JSON.parse(result[key]) as unknown;
+    }
   }
-  return rawInput;
+  return result;
 };
 
 const tools: LlmToolDefinition<ToolName>[] = [
@@ -233,6 +272,12 @@ const tools: LlmToolDefinition<ToolName>[] = [
           $ref: "#/$defs/Filter",
           description: "The filter object for the structural query",
         },
+        traversalPaths: {
+          type: "array",
+          items: traversalPathArraySchema,
+          description:
+            "Optional traversal paths walked from each matched entity to pull connected entities into the results (see system prompt for the edge-pair encoding)",
+        },
         limit: {
           type: "number",
           description: "Maximum number of results to return (default 10)",
@@ -246,7 +291,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "submit_query",
     description:
-      "Submit the final query once you're satisfied it returns the correct data for the user's goal.",
+      "Submit the final query once you're satisfied it returns the correct data for the user's goal. The exact filter and traversalPaths submitted must previously have been run successfully via test_query.",
     sanitizeInputBeforeValidation: parseStringifiedFilter,
     inputSchema: {
       type: "object",
@@ -254,6 +299,12 @@ const tools: LlmToolDefinition<ToolName>[] = [
         filter: {
           $ref: "#/$defs/Filter",
           description: "The final filter object for the structural query",
+        },
+        traversalPaths: {
+          type: "array",
+          items: traversalPathArraySchema,
+          description:
+            "Optional traversal paths walked from each matched entity to pull connected entities into the results. Include these if (and only if) the analysis needs data on related entities, and only after verifying via test_query that the needed data appears.",
         },
         explanation: {
           type: "string",
@@ -264,7 +315,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
           type: "array",
           items: {
             type: "string",
-            enum: chartTypes,
+            enum: [...chartTypes],
           },
           description:
             "Suggested chart types that would work well with this data, in order of preference. Strongly prefer bar and line charts; only suggest pie if the user explicitly asked for one.",
@@ -388,36 +439,32 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
     )}`;
   };
 
-  type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
+  /**
+   * Canonical keys of the (filter, traversalPaths) combinations that a
+   * test_query has run successfully (returning at least one entity).
+   * submit_query is only accepted for a combination in this set, so the
+   * submitted query is guaranteed to have been verified as-is.
+   */
+  const testedQueryKeys = new Set<string>();
 
-  type QueryGenerationState = {
-    /** Whether a test_query has returned at least one entity. */
-    hasSuccessfulTest: boolean;
-  };
+  const queryKey = (filter: Filter, traversalPaths: EntityTraversalPath[]) =>
+    stableStringify({ filter, traversalPaths });
 
-  const callModel = async (
-    messages: MessageType,
-    iteration: number,
-    state: QueryGenerationState,
-  ): Promise<{
-    structuralQuery: Filter;
+  type LoopResult = {
+    structuralQuery: StructuralQueryDefinition;
     suggestedChartTypes: ChartType[];
     explanation: string;
-  }> => {
-    if (iteration > maximumIterations) {
-      throw new Error(
-        `Exceeded maximum iterations (${maximumIterations}) for query generation`,
-      );
-    }
+  };
 
-    const llmResponse = await getLlmResponse(
-      {
-        model,
-        systemPrompt,
-        messages,
-        tools,
-      },
-      {
+  try {
+    const response = await runAgenticToolLoop<ToolName, LoopResult>({
+      model,
+      systemPrompt,
+      tools,
+      maximumIterations,
+      noToolCallNudge:
+        "Please use one of the available tools to explore entity types, test a query, or submit your final query.",
+      usageTrackingParams: {
         customMetadata: {
           stepId,
           taskName: "generate-structural-query",
@@ -427,143 +474,12 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
         incurredInEntities: [{ entityId: flowEntityId }],
         webId,
       },
-    );
-
-    if (llmResponse.status !== "ok") {
-      throw new Error(`LLM error: ${llmResponse.status}`);
-    }
-
-    const { message } = llmResponse;
-    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-    /**
-     * The model may make multiple tool calls in a single message. Every
-     * tool_use block must receive a matching tool_result in the next user
-     * message, otherwise the Anthropic API rejects the conversation.
-     */
-    const toolResults: { tool_use_id: string; content: string }[] = [];
-    const currentState: QueryGenerationState = { ...state };
-
-    for (const toolCall of toolCalls) {
-      const args = toolCall.input as Record<string, unknown>;
-
-      switch (toolCall.name) {
-        case "search_entity_types": {
-          const query = args.query as string;
-
-          toolResults.push({
-            tool_use_id: toolCall.id,
-            content: await handleSearchEntityTypes(query),
-          });
-          break;
-        }
-
-        case "test_query": {
-          const filter = args.filter as Filter;
-          const limit = (args.limit as number | undefined) ?? 10;
-
-          try {
-            const { subgraph } = await queryEntitySubgraph(
-              { graphApi: graphApiClient },
-              userAuthentication,
-              {
-                filter,
-                temporalAxes: currentTimeInstantTemporalAxes,
-                graphResolveDepths: almostFullOntologyResolveDepths,
-                traversalPaths: [],
-                includeDrafts: false,
-                limit,
-                includePermissions: false,
-              },
-            );
-
-            const { entities: simpleEntities } = getSimpleGraph(subgraph);
-
-            let resultsJson = stringify(simpleEntities.slice(0, limit));
-            if (resultsJson.length > maximumTestResultCharacters) {
-              resultsJson = `${resultsJson.slice(
-                0,
-                maximumTestResultCharacters,
-              )}\n… (results truncated – rely on the entities shown above)`;
-            }
-
-            currentState.hasSuccessfulTest =
-              currentState.hasSuccessfulTest || simpleEntities.length > 0;
-
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content: `Query returned ${simpleEntities.length} entities:\n${resultsJson}`,
-            });
-          } catch (error) {
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content: `Query error: ${error instanceof Error ? error.message : "Unknown error"}`,
-            });
-          }
-          break;
-        }
-
-        case "submit_query": {
-          if (!currentState.hasSuccessfulTest) {
-            toolResults.push({
-              tool_use_id: toolCall.id,
-              content:
-                "Rejected: you must run test_query and see it return at least one entity before submitting. Test your query first.",
-            });
-            break;
-          }
-
-          const structuralQuery = args.filter as Filter;
-          const suggestedChartTypes = args.suggestedChartTypes as ChartType[];
-          const explanation = args.explanation as string;
-
-          return { structuralQuery, suggestedChartTypes, explanation };
-        }
-      }
-    }
-
-    if (toolResults.length > 0) {
-      return callModel(
-        [
-          ...messages,
-          message,
-          {
-            role: "user",
-            content: toolResults.map(({ tool_use_id, content }) => ({
-              type: "tool_result" as const,
-              tool_use_id,
-              content,
-            })),
-          },
-        ],
-        iteration + 1,
-        currentState,
-      );
-    }
-
-    // No tool calls - prompt to use a tool
-    return callModel(
-      [
-        ...messages,
-        message,
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Please use one of the available tools to explore entity types, test a query, or submit your final query.",
-            },
-          ],
-        },
-      ],
-      iteration + 1,
-      state,
-    );
-  };
-
-  try {
-    const response = await callModel(
-      [
+      onIterationLimit: () => {
+        throw new Error(
+          `Exceeded maximum iterations (${maximumIterations}) for query generation`,
+        );
+      },
+      initialMessages: [
         {
           role: "user",
           content: [
@@ -578,15 +494,97 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
                 Please:
                 1. Use search_entity_types to find the types relevant to the goal
                 2. Construct a query and test it with test_query to verify it returns appropriate data
-                3. Submit your final query when satisfied (a successful test is required first)
+                3. Submit your final query when satisfied (the exact query must have been tested successfully first)
               `),
             },
           ],
         },
       ],
-      1,
-      { hasSuccessfulTest: false },
-    );
+      handleToolCall: async (toolCall) => {
+        const args = toolCall.input as Record<string, unknown>;
+
+        switch (toolCall.name) {
+          case "search_entity_types": {
+            const query = args.query as string;
+
+            return {
+              kind: "tool-result",
+              content: await handleSearchEntityTypes(query),
+            };
+          }
+
+          case "test_query": {
+            const filter = args.filter as Filter;
+            const traversalPaths = (args.traversalPaths ??
+              []) as EntityTraversalPath[];
+            const limit = (args.limit as number | undefined) ?? 10;
+
+            try {
+              const { subgraph } = await queryEntitySubgraph(
+                { graphApi: graphApiClient },
+                userAuthentication,
+                {
+                  filter,
+                  temporalAxes: currentTimeInstantTemporalAxes,
+                  graphResolveDepths: almostFullOntologyResolveDepths,
+                  traversalPaths,
+                  includeDrafts: false,
+                  limit,
+                  includePermissions: false,
+                },
+              );
+
+              const { entities: simpleEntities } = getSimpleGraph(subgraph);
+
+              let resultsJson = stringify(simpleEntities.slice(0, limit));
+              if (resultsJson.length > maximumTestResultCharacters) {
+                resultsJson = `${resultsJson.slice(
+                  0,
+                  maximumTestResultCharacters,
+                )}\n… (results truncated – rely on the entities shown above)`;
+              }
+
+              if (simpleEntities.length > 0) {
+                testedQueryKeys.add(queryKey(filter, traversalPaths));
+              }
+
+              return {
+                kind: "tool-result",
+                content: `Query returned ${simpleEntities.length} entities:\n${resultsJson}`,
+              };
+            } catch (error) {
+              return {
+                kind: "tool-result",
+                content: `Query error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              };
+            }
+          }
+
+          case "submit_query": {
+            const filter = args.filter as Filter;
+            const traversalPaths = (args.traversalPaths ??
+              []) as EntityTraversalPath[];
+
+            if (!testedQueryKeys.has(queryKey(filter, traversalPaths))) {
+              return {
+                kind: "tool-result",
+                content:
+                  "Rejected: this exact query (filter and traversalPaths) has not been successfully tested. Run test_query with it, confirm the results contain the data the goal needs, then submit it unchanged.",
+              };
+            }
+
+            return {
+              kind: "complete",
+              result: {
+                structuralQuery: { filter, traversalPaths },
+                suggestedChartTypes: args.suggestedChartTypes as ChartType[],
+                explanation: args.explanation as string,
+              },
+            };
+          }
+        }
+      },
+    });
 
     const { structuralQuery, suggestedChartTypes, explanation } = response;
 

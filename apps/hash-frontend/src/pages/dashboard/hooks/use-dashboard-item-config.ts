@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -24,10 +25,10 @@ import type {
   PropertyPatchOperation,
   WebId,
 } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
 import type {
   ChartConfig,
   ChartType,
+  StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -36,7 +37,7 @@ export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 export type ConfigState = {
   step: ConfigStep;
   userGoal: string;
-  structuralQuery: Filter | null;
+  structuralQuery: StructuralQueryDefinition | null;
   queryExplanation: string | null;
   sampleData: unknown[] | null;
   pythonScript: string | null;
@@ -64,7 +65,7 @@ const initialState: ConfigState = {
 };
 
 export type DashboardItemInitialValues = {
-  structuralQuery: Filter | null;
+  structuralQuery: StructuralQueryDefinition | null;
   pythonScript: string | null;
   chartType: ChartType | null;
   chartConfig: ChartConfig | null;
@@ -213,17 +214,21 @@ export const useDashboardItemConfig = ({
       );
       const pythonScript = getOutputValue<string>(outputs, "pythonScript");
       const chartDataJson = getOutputValue<string>(outputs, "chartData");
-      const chartType = getOutputValue<string>(outputs, "chartType");
+      const chartType = getOutputValue<ChartType>(outputs, "chartType");
       const chartConfigJson = getOutputValue<string>(outputs, "chartConfig");
+
+      const structuralQuery = structuralQueryJson
+        ? normalizeStructuralQuery(JSON.parse(structuralQueryJson))
+        : null;
 
       const propertyPatches: PropertyPatchOperation[] = [];
 
-      if (structuralQueryJson) {
+      if (structuralQuery) {
         propertyPatches.push({
           op: "add",
           path: [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl],
           property: {
-            value: JSON.parse(structuralQueryJson),
+            value: structuralQuery,
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
@@ -299,9 +304,7 @@ export const useDashboardItemConfig = ({
       // Update state with parsed values
       setState((prev) => ({
         ...prev,
-        structuralQuery: structuralQueryJson
-          ? (JSON.parse(structuralQueryJson) as Filter)
-          : null,
+        structuralQuery,
         pythonScript,
         chartData: chartDataJson
           ? (JSON.parse(chartDataJson) as unknown[])
@@ -580,9 +583,12 @@ export const useDashboardItemConfig = ({
     setState((prev) => ({ ...prev, chartConfig }));
   }, []);
 
-  const setStructuralQuery = useCallback((structuralQuery: Filter | null) => {
-    setState((prev) => ({ ...prev, structuralQuery }));
-  }, []);
+  const setStructuralQuery = useCallback(
+    (structuralQuery: StructuralQueryDefinition | null) => {
+      setState((prev) => ({ ...prev, structuralQuery }));
+    },
+    [],
+  );
 
   const setPythonScript = useCallback((pythonScript: string | null) => {
     setState((prev) => ({ ...prev, pythonScript }));
@@ -592,7 +598,7 @@ export const useDashboardItemConfig = ({
    * Save the structural query to the entity.
    */
   const saveStructuralQuery = useCallback(
-    async (structuralQuery: Filter) => {
+    async (structuralQuery: StructuralQueryDefinition) => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
@@ -793,6 +799,7 @@ export const useDashboardItemConfig = ({
 
   return {
     state,
+    ensureItemEntity: ensureEntityId,
     setUserGoal,
     generateQuery,
     regenerateQuery,

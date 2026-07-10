@@ -6,6 +6,7 @@ import {
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -124,18 +125,38 @@ const dashboardItemData: NamedAnalysis = {
       throw new AnalysisNotFoundError(`Unknown dashboard item "${itemUuid}"`);
     }
 
-    const structuralQuery =
+    const configurationStatus =
+      itemEntity.properties[
+        systemPropertyTypes.configurationStatus.propertyTypeBaseUrl
+      ];
+
+    /**
+     * The entity may still carry its previous query and script while a new AI
+     * configuration flow is running. Do not compute that stale configuration;
+     * ask the client to poll until the flow atomically stores its outputs and
+     * marks the item ready.
+     */
+    if (configurationStatus === "configuring") {
+      return { status: "computing", retryAfterMs: COMPUTING_RETRY_AFTER_MS };
+    }
+
+    const structuralQuery = normalizeStructuralQuery(
       itemEntity.properties[
         systemPropertyTypes.structuralQuery.propertyTypeBaseUrl
-      ];
+      ],
+    );
     const pythonScript =
       itemEntity.properties[
         systemPropertyTypes.pythonScript.propertyTypeBaseUrl
       ];
 
-    if (!structuralQuery || typeof pythonScript !== "string") {
+    if (
+      configurationStatus !== "ready" ||
+      !structuralQuery ||
+      typeof pythonScript !== "string"
+    ) {
       throw new AnalysisNotFoundError(
-        `Dashboard item "${itemUuid}" is not fully configured (missing query or script)`,
+        `Dashboard item "${itemUuid}" is not fully configured`,
       );
     }
 

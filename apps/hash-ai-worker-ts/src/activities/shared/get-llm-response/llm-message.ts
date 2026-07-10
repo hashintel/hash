@@ -130,7 +130,7 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 return {
                   type: "thinking" as const,
                   thinking: content.thinking,
-                  signature: content.signature ?? "",
+                  signature: content.signature,
                 } satisfies LlmMessageThinkingContent;
               } else if (content.type === "redacted_thinking") {
                 return {

@@ -72,6 +72,7 @@ const itemEntity = {
   properties: {
     [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl]: structuralQuery,
     [systemPropertyTypes.pythonScript.propertyTypeBaseUrl]: pythonScript,
+    [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl]: "ready",
   },
 };
 
@@ -109,6 +110,45 @@ const resolve = (args: Record<string, unknown>) =>
     uploadProvider,
     cache,
   });
+
+describe("generateDashboardItemConfigHash", () => {
+  it("hashes a legacy bare filter and its definition wrapper identically", () => {
+    const wrappedHash = generateDashboardItemConfigHash({
+      structuralQuery: { filter: structuralQuery, traversalPaths: [] },
+      pythonScript,
+    });
+    expect(wrappedHash).toBe(configHash);
+  });
+
+  it("ignores UI-only traversal path labels", () => {
+    const traversalPaths = [
+      {
+        edges: [
+          { kind: "has-left-entity", direction: "incoming" },
+          { kind: "has-right-entity", direction: "outgoing" },
+        ],
+      },
+    ];
+
+    const withoutLabel = generateDashboardItemConfigHash({
+      structuralQuery: { filter: structuralQuery, traversalPaths },
+      pythonScript,
+    });
+    const withLabel = generateDashboardItemConfigHash({
+      structuralQuery: {
+        filter: structuralQuery,
+        traversalPaths: [
+          { ...traversalPaths[0], label: "Associated with → Account" },
+        ],
+      },
+      pythonScript,
+    });
+
+    expect(withLabel).toBe(withoutLabel);
+    // Traversal paths themselves do change the hash
+    expect(withoutLabel).not.toBe(configHash);
+  });
+});
 
 describe("dashboardItemData analysis", () => {
   beforeEach(() => {
@@ -154,6 +194,26 @@ describe("dashboardItemData analysis", () => {
     const result = await resolve({ itemUuid: ITEM_UUID });
     expect(result.status).toBe("error");
     expect(result.error).toMatch(/not fully configured/i);
+  });
+
+  it("waits without computing the stale configuration while the item is configuring", async () => {
+    mockedQueryEntities.mockResolvedValue({
+      entities: [
+        {
+          properties: {
+            ...itemEntity.properties,
+            [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl]:
+              "configuring",
+          },
+        },
+      ],
+    } as unknown as Awaited<ReturnType<typeof queryEntities>>);
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("computing");
+    expect(result.retryAfterMs).toBeGreaterThan(0);
+    expect(workflowStart).not.toHaveBeenCalled();
   });
 
   it("starts the compute workflow and returns computing when no artifact exists", async () => {

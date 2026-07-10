@@ -14,6 +14,11 @@
  */
 import { createHash } from "node:crypto";
 
+import {
+  normalizeStructuralQuery,
+  toApiTraversalPaths,
+} from "@local/hash-isomorphic-utils/dashboard-types";
+
 import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 
 /**
@@ -23,8 +28,11 @@ import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
  * not preserve key order, so a plain `JSON.stringify` of the round-tripped
  * object may differ from the originally-generated JSON. Sorting keys makes
  * the hash independent of key order.
+ *
+ * Also used to compare structural queries for equality regardless of key
+ * order (e.g. matching an LLM's submitted query against the ones it tested).
  */
-const stableStringify = (value: unknown): string => {
+export const stableStringify = (value: unknown): string => {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
@@ -49,17 +57,35 @@ const stableStringify = (value: unknown): string => {
  * Hash of a dashboard item's data-producing configuration. Items with the
  * same query and script produce the same hash (and therefore share a cached
  * artifact); any change to either produces a new hash.
+ *
+ * The stored query is normalized first (legacy bare filters and
+ * `{ filter, traversalPaths }` definitions hash identically for the same
+ * data-producing configuration), and UI-only traversal path labels are
+ * stripped so editing a label never invalidates cached chart data.
  */
 export const generateDashboardItemConfigHash = (params: {
-  /** The structural query, as stored on the entity (a parsed Filter object) */
+  /**
+   * The structural query, as stored on the entity (a parsed Filter object or
+   * a StructuralQueryDefinition)
+   */
   structuralQuery: unknown;
   pythonScript: string;
-}): string =>
-  createHash("sha256")
-    .update(stableStringify(params.structuralQuery))
+}): string => {
+  const definition = normalizeStructuralQuery(params.structuralQuery);
+
+  const hashableQuery = definition
+    ? {
+        filter: definition.filter,
+        traversalPaths: toApiTraversalPaths(definition.traversalPaths),
+      }
+    : params.structuralQuery;
+
+  return createHash("sha256")
+    .update(stableStringify(hashableQuery))
     .update("\u0000")
     .update(params.pythonScript)
     .digest("hex");
+};
 
 /**
  * Storage key for a dashboard item's computed chart data artifact.
@@ -78,7 +104,10 @@ export const COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW = "computeDashboardItemData";
 export type ComputeDashboardItemDataWorkflowParams = {
   authentication: { actorId: ActorEntityUuid };
   webId: WebId;
-  /** The structural query filter, as a JSON string */
+  /**
+   * The data query as a JSON string: either a bare Filter (legacy) or a
+   * StructuralQueryDefinition (`{ filter, traversalPaths }`)
+   */
   structuralQuery: string;
   /** The Python data-transformation script */
   pythonScript: string;

@@ -4,7 +4,105 @@
  */
 
 import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
+import type {
+  EntityTraversalEdge,
+  EntityTraversalPath,
+  Filter,
+} from "@local/hash-graph-client";
+
+/**
+ * UI-only metadata for one hop of a traversal path built via the
+ * relationship picker: which named relationship was followed, and the entity
+ * type at the far end (used to offer further relationships when chaining).
+ */
+export type TraversalHopMeta = {
+  direction: "outgoing" | "incoming";
+  linkTypeBaseUrl?: string;
+  /** Base URL of the entity type reached by this hop, if constrained */
+  entityTypeBaseUrl?: string;
+};
+
+/**
+ * A traversal path with optional UI-only metadata: a human-readable label
+ * describing the named relationship(s) it was built from (e.g. "Associated
+ * with → Account") and per-hop details used by the relationship picker.
+ * Both are stripped before the path is sent to the graph API and before
+ * config hashing, so editing them never invalidates cached chart data.
+ */
+export type LabelledTraversalPath = EntityTraversalPath & {
+  label?: string;
+  hops?: TraversalHopMeta[];
+};
+
+/**
+ * A dashboard item's data query: a structural query filter selecting the
+ * root entities, plus optional traversal paths that pull connected entities
+ * into the result subgraph so the analysis script can join across them.
+ *
+ * One "hop" from a root to the entities it links to is two edges:
+ * `has-left-entity` incoming (root → link entities) then `has-right-entity`
+ * outgoing (link entity → target). The reverse hop (entities linking to the
+ * root) is `has-right-entity` incoming then `has-left-entity` outgoing.
+ * See {@link outgoingHopEdges} / {@link incomingHopEdges}.
+ */
+export type StructuralQueryDefinition = {
+  filter: Filter;
+  traversalPaths?: LabelledTraversalPath[];
+};
+
+/**
+ * The edge pair encoding one traversal hop from matched entities to the
+ * entities they link to (links are themselves entities sitting between
+ * source and target, hence two edges per hop).
+ */
+export const outgoingHopEdges: EntityTraversalEdge[] = [
+  { kind: "has-left-entity", direction: "incoming" },
+  { kind: "has-right-entity", direction: "outgoing" },
+];
+
+/**
+ * The edge pair encoding one traversal hop from matched entities to the
+ * entities that link to them.
+ */
+export const incomingHopEdges: EntityTraversalEdge[] = [
+  { kind: "has-right-entity", direction: "incoming" },
+  { kind: "has-left-entity", direction: "outgoing" },
+];
+
+/**
+ * Normalize a stored structural query property value to a
+ * {@link StructuralQueryDefinition}.
+ *
+ * Historically the property stored a bare `Filter`; newer items store the
+ * definition object. The two are distinguished by the presence of a `filter`
+ * key, which is not a valid `Filter` operator so cannot clash.
+ */
+export const normalizeStructuralQuery = (
+  value: unknown,
+): StructuralQueryDefinition | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  if ("filter" in value) {
+    const definition = value as StructuralQueryDefinition;
+    return {
+      filter: definition.filter,
+      traversalPaths: definition.traversalPaths ?? [],
+    };
+  }
+
+  return { filter: value as Filter, traversalPaths: [] };
+};
+
+/**
+ * Strip UI-only labels from traversal paths, producing the shape accepted by
+ * the graph API (and used for config hashing).
+ */
+export const toApiTraversalPaths = (
+  traversalPaths: LabelledTraversalPath[] | undefined,
+): EntityTraversalPath[] =>
+  (traversalPaths ?? []).map(({ edges }) => ({ edges }));
 
 /**
  * React Grid Layout position for a dashboard item
@@ -46,7 +144,14 @@ export type DashboardGridLayout = {
   };
 };
 
-export const chartTypes = ["bar", "line", "pie", "scatter", "heatmap", "map"];
+export const chartTypes = [
+  "bar",
+  "line",
+  "pie",
+  "scatter",
+  "heatmap",
+  "map",
+] as const;
 
 /**
  * Supported chart types (aligned with Apache ECharts)
@@ -115,8 +220,8 @@ export type DashboardItemConfig = {
   /** The user's natural language goal for this chart */
   userGoal: string;
 
-  /** Generated Graph API filter query */
-  structuralQuery: Filter | null;
+  /** Generated data query (filter + optional traversal paths) */
+  structuralQuery: StructuralQueryDefinition | null;
 
   /** Python script for data transformation */
   pythonScript: string | null;
@@ -153,7 +258,7 @@ export type GenerateDashboardQueryInput = {
  * Output from the generate-dashboard-query activity
  */
 export type GenerateDashboardQueryOutput = {
-  structuralQuery: Filter;
+  structuralQuery: StructuralQueryDefinition;
   explanation: string;
   sampleData?: unknown[];
   suggestedChartTypes?: ChartType[];
@@ -163,7 +268,7 @@ export type GenerateDashboardQueryOutput = {
  * Input for the analyze-dashboard-data activity
  */
 export type AnalyzeDashboardDataInput = {
-  structuralQuery: Filter;
+  structuralQuery: StructuralQueryDefinition;
   userGoal: string;
   targetChartType?: ChartType;
   webId: WebId;

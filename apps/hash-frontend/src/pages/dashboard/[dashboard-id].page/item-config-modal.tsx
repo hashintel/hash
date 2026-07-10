@@ -7,6 +7,7 @@ import {
   PortalContainerContext,
   TextInput,
 } from "@hashintel/ds-components";
+import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 
 import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
 import { ChartConfigBuilder } from "./item-config-modal/chart-config-builder";
@@ -19,7 +20,6 @@ import type {
   SectionControls,
 } from "./item-config-modal/config-accordion";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
 import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 
 type ItemConfigModalProps = {
@@ -72,6 +72,7 @@ export const ItemConfigModal = ({
     saveStructuralQuery,
     savePythonScript,
     saveChartConfig,
+    ensureItemEntity,
     reset,
   } = useDashboardItemConfig({
     itemEntityId,
@@ -120,13 +121,19 @@ export const ItemConfigModal = ({
           await controls.save();
         }
       }
+      /**
+       * Saving a new, untouched item should still create it. Section saves
+       * also call this helper, which is idempotent and shares in-flight
+       * creation, so this cannot create a duplicate.
+       */
+      await ensureItemEntity();
       handleClose();
     } catch {
       // Error already displayed inside the failed section
     } finally {
       setIsSaving(false);
     }
-  }, [handleClose]);
+  }, [ensureItemEntity, handleClose]);
 
   const isConfiguring =
     state.step !== "goal" &&
@@ -144,9 +151,9 @@ export const ItemConfigModal = ({
 
   const handleSaveStructuralQuery = useCallback(
     async (value: string) => {
-      let parsed: Filter;
+      let parsedJson: unknown;
       try {
-        parsed = JSON.parse(value) as Filter;
+        parsedJson = JSON.parse(value);
       } catch (error) {
         throw new Error(
           `Not saved – the query is not valid JSON: ${
@@ -154,7 +161,14 @@ export const ItemConfigModal = ({
           }`,
         );
       }
-      await saveStructuralQuery(parsed);
+      // Accept both a bare filter and a { filter, traversalPaths } definition
+      const definition = normalizeStructuralQuery(parsedJson);
+      if (!definition) {
+        throw new Error(
+          "Not saved – the query must be a filter object or a { filter, traversalPaths } object",
+        );
+      }
+      await saveStructuralQuery(definition);
     },
     [saveStructuralQuery],
   );
@@ -186,9 +200,9 @@ export const ItemConfigModal = ({
   const renderQueryBuilder = useCallback(
     (value: string, onChange: (newValue: string) => void) => (
       <StructuralQueryBuilder
-        value={tryParseJson<Filter>(value)}
-        onChange={(filter) =>
-          onChange(filter ? JSON.stringify(filter, null, 2) : "")
+        value={normalizeStructuralQuery(tryParseJson<unknown>(value))}
+        onChange={(definition) =>
+          onChange(definition ? JSON.stringify(definition, null, 2) : "")
         }
       />
     ),

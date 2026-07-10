@@ -214,6 +214,7 @@ const DashboardsPage: NextPageWithLayout = () => {
         {dashboards.length > 0 && (
           <Button
             variant="primary"
+            size="small"
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
           >

@@ -63,6 +63,7 @@
     "@opentelemetry/api-logs": "0.218.0",
     "@opentelemetry/instrumentation": "0.218.0",
     "@opentelemetry/instrumentation-grpc": "0.218.0",
+    "@rust/hash-graph-api": "workspace:*",
     "@sentry/node": "10.54.0",
     "@temporalio/activity": "1.18.1",
     "@temporalio/common": "1.18.1",

@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { Icon } from "@hashintel/ds-components";
 
 import { useDashboardItemData } from "../../hooks/use-dashboard-item-data";
+import { DeleteIconButton } from "../delete-icon-button";
 import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 
 import type { DashboardItemData } from "../../shared/types";
@@ -21,13 +22,11 @@ const cardBorderColor = "#dfdfdf";
  */
 const CardActionButton = ({
   children,
-  destructive = false,
   disabled,
   label,
   onClick,
 }: {
   children: ReactNode;
-  destructive?: boolean;
   disabled?: boolean;
   label: string;
   onClick?: () => void;
@@ -42,15 +41,11 @@ const CardActionButton = ({
       height: 24,
       borderRadius: "6px",
       flexShrink: 0,
-      color: destructive ? "#e5484d" : "#202020",
-      backgroundColor: destructive
-        ? "rgba(251, 112, 114, 0.12)"
-        : "rgba(0, 0, 0, 0.05)",
+      color: "#202020",
+      backgroundColor: "rgba(0, 0, 0, 0.05)",
       transition: "background-color 0.15s ease",
       "&:hover": {
-        backgroundColor: destructive
-          ? "rgba(251, 112, 114, 0.24)"
-          : "rgba(0, 0, 0, 0.1)",
+        backgroundColor: "rgba(0, 0, 0, 0.1)",
       },
       "&.Mui-disabled": {
         opacity: 0.5,
@@ -59,23 +54,6 @@ const CardActionButton = ({
   >
     {children}
   </ButtonBase>
-);
-
-/** Two-column grip glyph shown in the drag handle (no ds-components icon exists for it) */
-const GripVerticalIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 20 20"
-    fill="none"
-    aria-hidden="true"
-  >
-    {[5, 10, 15].flatMap((y) =>
-      [7.5, 12.5].map((x) => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r="1.4" fill="#9b9b9b" />
-      )),
-    )}
-  </svg>
 );
 
 type DashboardItemProps = {
@@ -154,11 +132,12 @@ export const DashboardItem = ({
               display: "flex",
               alignItems: "center",
               px: 1,
+              color: "#9b9b9b",
               backgroundColor: "#fafafa",
               borderRight: `1px solid ${cardBorderColor}`,
             }}
           >
-            <GripVerticalIcon />
+            <Icon name="gripVertical" size="sm" />
           </Box>
         )}
 
@@ -231,13 +210,7 @@ export const DashboardItem = ({
           >
             {isEditing && (
               <>
-                <CardActionButton
-                  destructive
-                  label="Delete item"
-                  onClick={onDeleteClick}
-                >
-                  <Icon name="trash" size="sm" />
-                </CardActionButton>
+                <DeleteIconButton label="Delete item" onClick={onDeleteClick} />
                 <CardActionButton
                   label="Configure chart"
                   onClick={onConfigureClick}
