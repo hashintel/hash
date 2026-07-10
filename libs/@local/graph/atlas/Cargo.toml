@@ -19,6 +19,7 @@ simple-mermaid = { workspace = true }
 # backend and our direct candle usage share a single candle build.
 burn                                = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
 bytes.workspace                     = true
+camino.workspace                    = true
 candle-core                         = { version = "0.10.2" }
 candle-nn                           = { version = "0.10.2" }
 error-stack.workspace               = true
@@ -28,8 +29,10 @@ hash-graph-postgres-store.workspace = true
 hash-graph-store.workspace          = true
 hash-graph-types.workspace          = true
 memmap2                             = "0.9.11"
+pin-project-lite.workspace          = true
 rand                                = { workspace = true }
 rand_xoshiro                        = { workspace = true }
+tempfile                            = "3.27.0"
 tokio.workspace                     = true
 tokio-postgres.workspace            = true
 tokio-util.workspace                = true

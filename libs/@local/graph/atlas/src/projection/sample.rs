@@ -1,22 +1,30 @@
-use core::{error::Error, fmt, pin::pin};
-use std::io;
+use core::{convert::identity, error::Error, fmt, future, iter, pin::pin, task};
+use std::{io, task::Poll};
 
-use futures::{SinkExt as _, TryStreamExt as _, future::join, sink};
+use bytes::Bytes;
+use camino::{Utf8Path, Utf8PathBuf};
+use futures::{SinkExt as _, Stream, TryStreamExt as _, sink};
 use hash_graph_embeddings::{D512, Dimension};
 use hash_graph_postgres_store::store::postgres::query::{
     Table,
     table::{DatabaseColumn as _, EntityEmbeddings},
 };
-use tokio::io::{AsyncWrite, AsyncWriteExt as _, BufWriter};
+use tempfile::NamedTempFile;
+use tokio::{
+    fs,
+    io::{AsyncWrite, AsyncWriteExt as _, BufWriter},
+};
 use tokio_postgres::{
-    Client, GenericClient, IsolationLevel, Row,
+    Client, GenericClient, IsolationLevel, Row, RowStream, Transaction,
     types::{FromSql, ToSql, Type},
 };
-use type_system::{knowledge::entity::id::EntityUuid, principal::actor_group::WebId};
-use uuid::Uuid;
+use tokio_util::io::{CopyToBytes, SinkWriter};
+
+use crate::float::FloatBytes;
 
 #[derive(Debug)]
-enum SampleError {
+pub(super) enum SampleError {
+    CacheRowCount { embeddings: usize, mappings: u64 },
     InvalidIndex(i64),
     Io(io::Error),
     Postgres(tokio_postgres::Error),
@@ -25,10 +33,18 @@ enum SampleError {
 impl fmt::Display for SampleError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::CacheRowCount {
+                embeddings,
+                mappings,
+            } => write!(
+                fmt,
+                "sample cache is inconsistent: {embeddings} embedding rows but {mappings} mapping \
+                 rows"
+            ),
             Self::InvalidIndex(index) => {
                 write!(fmt, "database returned invalid sample index {index}")
             }
-            Self::Io(_) => fmt.write_str("failed to write sampled data"),
+            Self::Io(_) => fmt.write_str("failed to access sampled data"),
             Self::Postgres(_) => fmt.write_str("failed to query sampled data"),
         }
     }
@@ -37,7 +53,7 @@ impl fmt::Display for SampleError {
 impl Error for SampleError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::InvalidIndex(_) => None,
+            Self::CacheRowCount { .. } | Self::InvalidIndex(_) => None,
             Self::Io(error) => Some(error),
             Self::Postgres(error) => Some(error),
         }
@@ -57,19 +73,124 @@ impl From<tokio_postgres::Error> for SampleError {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
-struct SampleOptions {
-    dim: Dimension = D512,
-    size: usize = 1_500_000,
+pub(crate) struct SampleOptions {
+    pub dim: Dimension = D512,
+    pub size: usize = 1_500_000,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct SampleStats {
-    rows: u64,
-    edges: u64,
+/// A prepared sample whose relational view is backed by a temporary PostgreSQL table.
+///
+/// The repeatable-read transaction remains open so callers can build relational inputs through
+/// [`Self::visit_edges`]. Call [`Self::finish`] before long-running fitting or training to release
+/// the database snapshot and connection while retaining the mmap-backed embeddings.
+pub(crate) struct Sample<'client> {
+    embeddings: FloatBytes,
+    transaction: Transaction<'client>,
+}
+
+impl<'client> Sample<'client> {
+    pub(crate) async fn load(
+        client: &'client mut Client,
+        out: impl AsRef<Utf8Path>,
+        seed: u64,
+        options: SampleOptions,
+    ) -> Result<Self, SampleError> {
+        let out = out.as_ref();
+        let embeddings_path = embeddings_path(out);
+        let mappings_path = mappings_path(out);
+
+        let cache_exists = <[io::Result<bool>; 2]>::from(
+            future::join!(
+                fs::try_exists(&embeddings_path),
+                fs::try_exists(&mappings_path),
+            )
+            .await,
+        )
+        .map(|result| result.is_ok_and(|result| result))
+        .into_iter()
+        .all(identity);
+
+        let transaction = client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()
+            .await?;
+
+        let mapping_rows = if cache_exists {
+            let mut file = fs::File::open(&mappings_path).await?;
+            load_mapping(&transaction, &mut file).await?
+        } else {
+            write_sample(&transaction, out, seed, options).await?
+        };
+
+        let embeddings_file = fs::File::open(embeddings_path).await?.into_std().await;
+        let embeddings = FloatBytes::from_file(embeddings_file, options.dim.value().into())?;
+
+        if usize::try_from(mapping_rows).ok() != Some(embeddings.len()) {
+            return Err(SampleError::CacheRowCount {
+                embeddings: embeddings.len(),
+                mappings: mapping_rows,
+            });
+        }
+
+        Ok(Self {
+            embeddings,
+            transaction,
+        })
+    }
+
+    pub(super) const fn embeddings(&self) -> &FloatBytes {
+        &self.embeddings
+    }
+
+    /// Streams sampled relation edges into `visit` without retaining an edge file.
+    pub(super) async fn visit_edges(&self) -> Result<QueryEdges, SampleError> {
+        query_edges(&self.transaction).await
+    }
+
+    /// Commits the short-lived database snapshot and returns the embeddings used for training.
+    pub(super) async fn finish(self) -> Result<FloatBytes, SampleError> {
+        let Self {
+            embeddings,
+            transaction,
+        } = self;
+
+        transaction.commit().await?;
+        Ok(embeddings)
+    }
 }
 
 const SAMPLE_TABLE: &str = "atlas_sample";
 const OUTPUT_BUFFER_SIZE: usize = 1024 * 1024;
+
+async fn create_sample_table(client: &(impl GenericClient + Sync)) -> Result<(), SampleError> {
+    client
+        .batch_execute(&format!(
+            "CREATE TEMPORARY TABLE {SAMPLE_TABLE} (
+                 sample_index BIGINT NOT NULL,
+                 web_id UUID NOT NULL,
+                 entity_uuid UUID NOT NULL
+             ) ON COMMIT DROP"
+        ))
+        .await
+        .map_err(From::from)
+}
+
+// Building indexes after the bulk insert or COPY is substantially cheaper than maintaining
+// them row by row. PostgreSQL does not auto-analyze temporary tables, so collect statistics
+// explicitly for the large joins below.
+async fn index_sample_table(client: &(impl GenericClient + Sync)) -> Result<(), SampleError> {
+    client
+        .batch_execute(&format!(
+            "CREATE UNIQUE INDEX atlas_sample_by_index
+                 ON {SAMPLE_TABLE} (sample_index);
+             CREATE UNIQUE INDEX atlas_sample_by_entity
+                 ON {SAMPLE_TABLE} (web_id, entity_uuid);
+             ANALYZE {SAMPLE_TABLE};"
+        ))
+        .await
+        .map_err(From::from)
+}
 
 async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, SampleError> {
     let row = client
@@ -98,15 +219,7 @@ async fn materialize_sample(
     total_rows: i64,
     options: SampleOptions,
 ) -> Result<u64, SampleError> {
-    client
-        .batch_execute(&format!(
-            "CREATE TEMPORARY TABLE {SAMPLE_TABLE} (
-                 sample_index BIGINT NOT NULL,
-                 web_id UUID NOT NULL,
-                 entity_uuid UUID NOT NULL
-             ) ON COMMIT DROP"
-        ))
-        .await?;
+    create_sample_table(client).await?;
 
     let seed = seed.cast_signed();
     let pct = f64::min(
@@ -128,36 +241,22 @@ async fn materialize_sample(
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
             ),
-            &[
-                (&pct as &(dyn ToSql + Sync)),
-                (&seed as &(dyn ToSql + Sync)),
-            ],
+            &[&pct as &(dyn ToSql + Sync), &seed as &(dyn ToSql + Sync)],
         )
         .await?;
 
-    // Building indexes after the bulk insert is substantially cheaper than maintaining them row by
-    // row. PostgreSQL does not auto-analyze temporary tables, so collect statistics explicitly for
-    // the two large joins below.
-    client
-        .batch_execute(&format!(
-            "CREATE UNIQUE INDEX atlas_sample_by_index
-                 ON {SAMPLE_TABLE} (sample_index);
-             CREATE UNIQUE INDEX atlas_sample_by_entity
-                 ON {SAMPLE_TABLE} (web_id, entity_uuid);
-             ANALYZE {SAMPLE_TABLE};"
-        ))
-        .await?;
-
+    index_sample_table(client).await?;
     Ok(rows)
 }
 
-struct RawEmbedding<'v>(&'v [u8]);
-impl<'v> FromSql<'v> for RawEmbedding<'v> {
+struct EmbeddingBytes<'value>(&'value [u8]);
+
+impl<'value> FromSql<'value> for EmbeddingBytes<'value> {
     #[expect(
         clippy::big_endian_bytes,
         reason = "PostgreSQL sends vector headers in big-endian order"
     )]
-    fn from_sql(_ty: &Type, raw: &'v [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+    fn from_sql(_ty: &Type, raw: &'value [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let &[raw_hi, raw_lo, unused_hi, unused_lo, ref rest @ ..] = raw else {
             return Err("expected at least 4 bytes".into());
         };
@@ -185,22 +284,18 @@ impl<'v> FromSql<'v> for RawEmbedding<'v> {
     clippy::host_endian_bytes,
     reason = "PostgreSQL sends f32 values big-endian and sample files are native-endian"
 )]
-async fn query_embeddings<W1, W2>(
+async fn query_embeddings<W>(
     client: &(impl GenericClient + Sync),
     options: SampleOptions,
-    embeddings_output: W1,
-    metadata_output: W2,
+    output: W,
 ) -> Result<(), SampleError>
 where
-    W1: AsyncWrite,
-    W2: AsyncWrite,
+    W: AsyncWrite,
 {
     let stream = client
         .query_raw(
             &format!(
                 "SELECT
-                     sample.web_id,
-                     sample.entity_uuid,
                      l2_normalize(
                          subvector(embedding.embedding, 1, {dim})
                      )::vector({dim}) AS embedding
@@ -214,48 +309,30 @@ where
                 property = EntityEmbeddings::Property.name().as_str(),
                 dim = options.dim,
             ),
-            core::iter::empty::<&(dyn ToSql + Sync)>(),
+            iter::empty::<&(dyn ToSql + Sync)>(),
         )
         .await?;
 
-    let mut metadata_writer = pin!(metadata_output);
-    let mut embeddings_writer = pin!(embeddings_output);
-
+    let mut writer = pin!(output);
     let sink = sink::unfold(
         (
             vec![0_u8; usize::from(options.dim.get()) * size_of::<f32>()],
-            &mut metadata_writer,
-            &mut embeddings_writer,
+            &mut writer,
         ),
-        async |(mut embedding, metadata_writer, embeddings_writer), row: Row| {
-            let web_id: WebId = row.try_get(0)?;
-            let entity_uuid: EntityUuid = row.try_get(1)?;
-            let raw_embedding_bytes: RawEmbedding<'_> = row.try_get(2)?;
+        async |(mut embedding, writer), row: Row| {
+            let raw_embedding: EmbeddingBytes<'_> = row.try_get(0)?;
 
-            embedding.copy_from_slice(raw_embedding_bytes.0);
-
-            // PostgreSQL sends each f32 in big-endian order. Reuse this allocation for every row
-            // while converting the bytes to the native-endian format consumed by FloatBytes.
+            // Reuse this allocation for every row while converting PostgreSQL's big-endian f32
+            // representation to the native-endian format consumed by FloatBytes.
+            embedding.copy_from_slice(raw_embedding.0);
             let (floats, tail) = embedding.as_chunks_mut::<{ size_of::<f32>() }>();
             debug_assert!(tail.is_empty());
             for float in floats {
                 *float = f32::from_be_bytes(*float).to_ne_bytes();
             }
 
-            let mut metadata = [0_u8; 32];
-            metadata[..16].copy_from_slice(Uuid::from(web_id).as_bytes());
-            metadata[16..].copy_from_slice(Uuid::from(entity_uuid).as_bytes());
-
-            let (metadata_result, embeddings_result) = join(
-                metadata_writer.write_all(&metadata),
-                embeddings_writer.write_all(&embedding),
-            )
-            .await;
-
-            metadata_result?;
-            embeddings_result?;
-
-            Ok::<_, SampleError>((embedding, metadata_writer, embeddings_writer))
+            writer.write_all(&embedding).await?;
+            Ok::<_, SampleError>((embedding, writer))
         },
     );
 
@@ -267,63 +344,150 @@ where
         sink.close().await?;
     }
 
-    metadata_writer.shutdown().await?;
-    embeddings_writer.shutdown().await?;
-
+    writer.shutdown().await?;
     Ok(())
 }
 
-#[expect(
-    clippy::host_endian_bytes,
-    reason = "sample files intentionally use native byte order"
-)]
-async fn query_reverse_index<W>(
-    client: &(impl GenericClient + Sync),
-    output: W,
-) -> Result<u64, SampleError>
+async fn copy_mapping_out<W>(transaction: &Transaction<'_>, output: W) -> Result<(), SampleError>
 where
     W: AsyncWrite,
 {
-    let stream = client
-        .query_raw(
-            &format!(
-                "SELECT web_id, entity_uuid, sample_index
+    let stream = transaction
+        .copy_out(&format!(
+            "COPY (
+                 SELECT sample_index, web_id, entity_uuid
                  FROM {SAMPLE_TABLE}
-                 ORDER BY web_id, entity_uuid"
-            ),
-            core::iter::empty::<&(dyn ToSql + Sync)>(),
-        )
+                 ORDER BY sample_index
+             ) TO STDOUT (FORMAT BINARY)"
+        ))
         .await?;
     let mut stream = pin!(stream);
     let mut writer = pin!(output);
-    let mut written = 0_u64;
-    let mut record = [0_u8; 2 * size_of::<Uuid>() + size_of::<u64>()];
 
-    while let Some(row) = stream.try_next().await? {
-        let web_id: Uuid = row.try_get(0)?;
-        let entity_uuid: Uuid = row.try_get(1)?;
-        let index = row.try_get::<_, i64>(2)?;
-        let index = u64::try_from(index).map_err(|_error| SampleError::InvalidIndex(index))?;
-
-        record[..16].copy_from_slice(web_id.as_bytes());
-        record[16..32].copy_from_slice(entity_uuid.as_bytes());
-        record[32..].copy_from_slice(&index.to_ne_bytes());
-        writer.write_all(&record).await?;
-        written += 1;
+    while let Some(bytes) = stream.try_next().await? {
+        writer.write_all(&bytes).await?;
     }
 
     writer.shutdown().await?;
-    Ok(written)
+    Ok(())
 }
 
-#[expect(
-    clippy::host_endian_bytes,
-    reason = "sample files intentionally use native byte order"
-)]
-async fn query_edges<W>(client: &(impl GenericClient + Sync), output: W) -> Result<u64, SampleError>
-where
-    W: AsyncWrite,
-{
+async fn copy_mapping_in(
+    transaction: &Transaction<'_>,
+    file: &mut fs::File,
+) -> Result<u64, SampleError> {
+    let sink = transaction
+        .copy_in::<_, Bytes>(&format!(
+            "COPY {SAMPLE_TABLE} (sample_index, web_id, entity_uuid)
+             FROM STDIN (FORMAT BINARY)"
+        ))
+        .await?;
+    let mut sink = pin!(sink);
+
+    {
+        let mut writer = pin!(SinkWriter::new(CopyToBytes::new(
+            sink.as_mut().sink_map_err(io::Error::other)
+        )));
+
+        tokio::io::copy(file, &mut writer).await?;
+    }
+
+    sink.finish().await.map_err(From::from)
+}
+
+async fn load_mapping(
+    transaction: &Transaction<'_>,
+    file: &mut fs::File,
+) -> Result<u64, SampleError> {
+    create_sample_table(transaction).await?;
+    let rows = copy_mapping_in(transaction, file).await?;
+    index_sample_table(transaction).await?;
+    Ok(rows)
+}
+
+fn embeddings_path(out: impl AsRef<Utf8Path>) -> Utf8PathBuf {
+    out.as_ref().join("sample.f32")
+}
+
+fn mappings_path(out: impl AsRef<Utf8Path>) -> Utf8PathBuf {
+    out.as_ref().join("sample.pgcopy")
+}
+
+async fn write_sample(
+    transaction: &Transaction<'_>,
+    out: impl AsRef<Utf8Path>,
+    seed: u64,
+    options: SampleOptions,
+) -> Result<u64, SampleError> {
+    let out = out.as_ref();
+
+    let total_rows = query_count(transaction).await?;
+    let rows = materialize_sample(transaction, seed, total_rows, options).await?;
+
+    let (embeddings_out, embeddings_temporary_path) = NamedTempFile::new_in(out)?.into_parts();
+    let (mappings_out, mappings_temporary_path) = NamedTempFile::new_in(out)?.into_parts();
+
+    let embeddings_out = fs::File::from_std(embeddings_out);
+    let mappings_out = fs::File::from_std(mappings_out);
+
+    query_embeddings(
+        transaction,
+        options,
+        BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, &mut embeddings_out),
+    )
+    .await?;
+
+    copy_mapping_out(
+        transaction,
+        BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, &mut mappings_out),
+    )
+    .await?;
+
+    let embeddings_out =
+        NamedTempFile::from_parts(embeddings_out.into_std().await, embeddings_temporary_path);
+    let mappings_out =
+        NamedTempFile::from_parts(mappings_out.into_std().await, mappings_temporary_path);
+
+    tokio::task::spawn_blocking(|| {
+        embeddings_out.persist(embeddings_path(out))?;
+        mappings_out.persist(mappings_path(out))?;
+
+        Ok(())
+    })
+    .await??;
+
+    Ok(rows)
+}
+
+pin_project_lite::pin_project! {
+    struct QueryEdges {
+        #[pin]
+        stream: RowStream
+    }
+}
+
+impl Stream for QueryEdges {
+    type Item = Result<(u64, u64), SampleError>;
+
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+        let Some(row) = task::ready!(this.stream.poll_next(cx)?) else {
+            return Poll::Ready(None);
+        };
+
+        let source: i64 = row.try_get(0)?;
+        let source = u64::try_from(source).map_err(|_error| SampleError::InvalidIndex(source))?;
+        let target: i64 = row.try_get(1)?;
+        let target = u64::try_from(target).map_err(|_error| SampleError::InvalidIndex(target))?;
+
+        Poll::Ready(Some(Ok((source, target))))
+    }
+}
+
+async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges, SampleError> {
     let stream = client
         .query_raw(
             &format!(
@@ -344,67 +508,9 @@ where
                    AND right_edge.direction = 'outgoing'",
                 entity_edge = Table::EntityEdge.as_str(),
             ),
-            core::iter::empty::<&(dyn ToSql + Sync)>(),
+            iter::empty::<&(dyn ToSql + Sync)>(),
         )
         .await?;
-    let mut stream = pin!(stream);
-    let mut writer = pin!(output);
-    let mut written = 0_u64;
-    let mut record = [0_u8; 2 * size_of::<u64>()];
 
-    while let Some(row) = stream.try_next().await? {
-        let source = row.try_get::<_, i64>(0)?;
-        let source = u64::try_from(source).map_err(|_error| SampleError::InvalidIndex(source))?;
-        let target = row.try_get::<_, i64>(1)?;
-        let target = u64::try_from(target).map_err(|_error| SampleError::InvalidIndex(target))?;
-
-        record[..8].copy_from_slice(&source.to_ne_bytes());
-        record[8..].copy_from_slice(&target.to_ne_bytes());
-        writer.write_all(&record).await?;
-        written += 1;
-    }
-
-    writer.shutdown().await?;
-    Ok(written)
-}
-
-async fn write_sample<W1, W2, W3, W4>(
-    client: &mut Client,
-    seed: u64,
-    options: SampleOptions,
-    embeddings_output: W1,
-    metadata_output: W2,
-    reverse_output: W3,
-    edges_output: W4,
-) -> Result<SampleStats, SampleError>
-where
-    W1: AsyncWrite,
-    W2: AsyncWrite,
-    W3: AsyncWrite,
-    W4: AsyncWrite,
-{
-    // Keep the count, sampled identities, embeddings, and edges on one database snapshot. The
-    // temporary table is dropped automatically when this transaction commits or rolls back.
-    let transaction = client
-        .build_transaction()
-        .isolation_level(IsolationLevel::RepeatableRead)
-        .start()
-        .await?;
-
-    let total_rows = query_count(&transaction).await?;
-    let rows = materialize_sample(&transaction, seed, total_rows, options).await?;
-
-    let embeddings_output = BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, embeddings_output);
-    let metadata_output = BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, metadata_output);
-    let reverse_output = BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, reverse_output);
-    let edges_output = BufWriter::with_capacity(OUTPUT_BUFFER_SIZE, edges_output);
-
-    query_embeddings(&transaction, options, embeddings_output, metadata_output).await?;
-    let reverse_rows = query_reverse_index(&transaction, reverse_output).await?;
-    debug_assert_eq!(rows, reverse_rows);
-
-    let edges = query_edges(&transaction, edges_output).await?;
-    transaction.commit().await?;
-
-    Ok(SampleStats { rows, edges })
+    Ok(QueryEdges { stream })
 }
