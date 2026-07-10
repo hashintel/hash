@@ -273,15 +273,19 @@ export const constructOrg = (params: {
       continue;
     }
 
-    /**
-     * The left entity may be missing from the subgraph (e.g. if it was not
-     * resolved when the subgraph was produced) – skip the membership in that
-     * case rather than crashing.
-     */
     const userEntityRevision = leftEntity?.[0];
 
     if (!userEntityRevision) {
-      continue;
+      /**
+       * User entities are public – if the membership link is in the subgraph,
+       * its left (user) entity must be too. A missing user entity means the
+       * subgraph is internally inconsistent (e.g. produced by non
+       * snapshot-consistent reads – see BE-644), which we surface loudly
+       * rather than silently dropping the membership.
+       */
+      throw new Error(
+        `Invariant violation: membership link ${linkEntityRevision.metadata.recordId.entityId} is missing its left (user) entity in the subgraph – see BE-644`,
+      );
     }
 
     if (!isEntityUserEntity(userEntityRevision)) {

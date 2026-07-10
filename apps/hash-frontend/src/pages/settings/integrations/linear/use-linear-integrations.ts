@@ -120,14 +120,25 @@ export const useLinearIntegrations = (): {
               !linkEntity.metadata.archived &&
               linkEntity.metadata.entityTypeIds.includes(
                 systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-              ) &&
-              // the target web may be missing from the subgraph – skip the link
-              !!linkAndTarget.rightEntity?.[0]
+              )
             );
           })
           .map((linkAndTarget) => {
             const linkEntity = linkAndTarget.linkEntity[0]!;
-            const rightEntity = linkAndTarget.rightEntity![0]!;
+            const rightEntity = linkAndTarget.rightEntity?.[0];
+
+            if (!rightEntity) {
+              /**
+               * The target of a `syncLinearDataWith` link is a user or org
+               * (web) entity, which is public – if the link is in the
+               * subgraph its target must be too. A missing target means the
+               * subgraph is internally inconsistent (e.g. produced by non
+               * snapshot-consistent reads – see BE-644).
+               */
+              throw new Error(
+                `Invariant violation: syncLinearDataWith link ${linkEntity.metadata.recordId.entityId} is missing its right (web) entity in the subgraph – see BE-644`,
+              );
+            }
 
             const { linearTeamId: linearTeamIds } = simplifyProperties(
               linkEntity.properties as SyncLinearDataWithProperties,

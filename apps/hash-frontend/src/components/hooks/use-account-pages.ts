@@ -76,12 +76,20 @@ export const useAccountPages = (
         ),
       );
 
-      /**
-       * The right entity may be missing from the subgraph (e.g. if it was
-       * not resolved when the subgraph was produced) – treat the page as
-       * having no parent in that case.
-       */
-      const parentPage = parentLink?.rightEntity?.[0] ?? null;
+      const parentPage = parentLink ? parentLink.rightEntity?.[0] : null;
+
+      if (parentLink && !parentPage) {
+        /**
+         * The query resolves one level of outgoing `has-parent` links, so if
+         * the link is in the subgraph its target page must be too. A missing
+         * parent page means the subgraph is internally inconsistent (e.g.
+         * produced by non snapshot-consistent reads – see BE-644), which we
+         * surface loudly rather than silently treating the page as parentless.
+         */
+        throw new Error(
+          `Invariant violation: has-parent link ${parentLink.linkEntity[0]?.metadata.recordId.entityId} on page ${latestPage.metadata.recordId.entityId} is missing its right (parent page) entity in the subgraph – see BE-644`,
+        );
+      }
 
       return {
         ...simplifyProperties(latestPage.properties as PageProperties),

@@ -88,13 +88,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(
-        ({ linkEntity, rightEntity }) =>
-          linkEntity[0]?.metadata.entityTypeIds.includes(
-            systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-          ) &&
-          // the org entity may be missing from the subgraph – skip the link
-          !!rightEntity?.[0],
+      ).filter(({ linkEntity }) =>
+        linkEntity[0]?.metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        ),
       );
 
       const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
@@ -226,8 +223,19 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         });
       }
 
-      const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
-        const org = rightEntity![0]!;
+      const orgs = orgLinksAndEntities.map(({ linkEntity, rightEntity }) => {
+        const org = rightEntity?.[0];
+        if (!org) {
+          /**
+           * Org entities are public – if the membership link is in the
+           * subgraph, its right (org) entity must be too. A missing org
+           * entity means the subgraph is internally inconsistent (e.g.
+           * produced by non snapshot-consistent reads – see BE-644).
+           */
+          throw new Error(
+            `Invariant violation: membership link ${linkEntity[0]?.metadata.recordId.entityId} is missing its right (org) entity in the subgraph – see BE-644`,
+          );
+        }
         const orgAvatar = getAvatarForEntity(
           subgraph,
           org.metadata.recordId.entityId,
