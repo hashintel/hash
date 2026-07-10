@@ -229,11 +229,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           /**
            * Org entities are public – if the membership link is in the
            * subgraph, its right (org) entity must be too. A missing org
-           * entity means the subgraph is internally inconsistent (e.g.
-           * produced by non snapshot-consistent reads – see BE-644).
+           * entity means the subgraph is internally inconsistent.
            */
           throw new Error(
-            `Invariant violation: membership link ${linkEntity[0]?.metadata.recordId.entityId} is missing its right (org) entity in the subgraph – see BE-644`,
+            `Invariant violation: membership link ${linkEntity[0]?.metadata.recordId.entityId} is missing its right (org) entity in the subgraph`,
           );
         }
         const orgAvatar = getAvatarForEntity(

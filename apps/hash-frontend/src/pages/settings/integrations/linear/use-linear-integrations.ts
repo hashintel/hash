@@ -132,11 +132,10 @@ export const useLinearIntegrations = (): {
                * The target of a `syncLinearDataWith` link is a user or org
                * (web) entity, which is public – if the link is in the
                * subgraph its target must be too. A missing target means the
-               * subgraph is internally inconsistent (e.g. produced by non
-               * snapshot-consistent reads – see BE-644).
+               * subgraph is internally inconsistent.
                */
               throw new Error(
-                `Invariant violation: syncLinearDataWith link ${linkEntity.metadata.recordId.entityId} is missing its right (web) entity in the subgraph – see BE-644`,
+                `Invariant violation: syncLinearDataWith link ${linkEntity.metadata.recordId.entityId} is missing its right (web) entity in the subgraph`,
               );
             }
 

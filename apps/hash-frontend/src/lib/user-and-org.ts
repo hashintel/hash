@@ -279,12 +279,11 @@ export const constructOrg = (params: {
       /**
        * User entities are public – if the membership link is in the subgraph,
        * its left (user) entity must be too. A missing user entity means the
-       * subgraph is internally inconsistent (e.g. produced by non
-       * snapshot-consistent reads – see BE-644), which we surface loudly
-       * rather than silently dropping the membership.
+       * subgraph is internally inconsistent, which we surface loudly rather
+       * than silently dropping the membership.
        */
       throw new Error(
-        `Invariant violation: membership link ${linkEntityRevision.metadata.recordId.entityId} is missing its left (user) entity in the subgraph – see BE-644`,
+        `Invariant violation: membership link ${linkEntityRevision.metadata.recordId.entityId} is missing its left (user) entity in the subgraph`,
       );
     }
 
@@ -461,9 +460,15 @@ export const constructUser = (params: {
     intervalForTimestamp(currentTimestamp()),
   );
 
-  const avatarLinkAndEntities: LinkEntityAndRightEntity[] = [];
-  const coverImageLinkAndEntities: LinkEntityAndRightEntity[] = [];
-  const hasBioLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  /**
+   * These hold the latest revision of each link and its target entity, taken
+   * from the revision arrays after checking that both are present.
+   */
+  type LinkAndTargetRevision = { linkEntity: LinkEntity; rightEntity: Entity };
+
+  const avatarLinkAndEntities: LinkAndTargetRevision[] = [];
+  const coverImageLinkAndEntities: LinkAndTargetRevision[] = [];
+  const hasBioLinkAndEntities: LinkAndTargetRevision[] = [];
   const hasServiceAccounts: User["hasServiceAccounts"] = [];
 
   for (const linkAndEntity of outgoingLinkAndTargetEntities) {
@@ -479,7 +484,7 @@ export const constructUser = (params: {
     if (
       entityTypeIds.includes(systemLinkEntityTypes.hasAvatar.linkEntityTypeId)
     ) {
-      avatarLinkAndEntities.push(linkAndEntity);
+      avatarLinkAndEntities.push({ linkEntity, rightEntity });
       continue;
     }
 
@@ -488,12 +493,12 @@ export const constructUser = (params: {
         systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
       )
     ) {
-      coverImageLinkAndEntities.push(linkAndEntity);
+      coverImageLinkAndEntities.push({ linkEntity, rightEntity });
       continue;
     }
 
     if (entityTypeIds.includes(systemLinkEntityTypes.hasBio.linkEntityTypeId)) {
-      hasBioLinkAndEntities.push(linkAndEntity);
+      hasBioLinkAndEntities.push({ linkEntity, rightEntity });
       continue;
     }
 
@@ -521,36 +526,27 @@ export const constructUser = (params: {
     }
   }
 
-  /**
-   * Non-null assertions are safe below: entries are only pushed to these
-   * arrays after checking that both `linkEntity[0]` and `rightEntity[0]`
-   * are present.
-   */
-  const hasAvatar = avatarLinkAndEntities[0]
+  const [avatarLinkAndEntity] = avatarLinkAndEntities;
+  const hasAvatar = avatarLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0]
-          .rightEntity![0]! as Entity<ImageFile>,
+        linkEntity: avatarLinkAndEntity.linkEntity,
+        imageEntity: avatarLinkAndEntity.rightEntity as Entity<ImageFile>,
       }
     : undefined;
 
-  const hasCoverImage = coverImageLinkAndEntities[0]
+  const [coverImageLinkAndEntity] = coverImageLinkAndEntities;
+  const hasCoverImage = coverImageLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity![0]! as Entity<ImageFile>,
+        linkEntity: coverImageLinkAndEntity.linkEntity,
+        imageEntity: coverImageLinkAndEntity.rightEntity as Entity<ImageFile>,
       }
     : undefined;
 
-  const hasBio = hasBioLinkAndEntities[0]
+  const [hasBioLinkAndEntity] = hasBioLinkAndEntities;
+  const hasBio = hasBioLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0]
-          .linkEntity[0]! as LinkEntity<HasBio>,
-        profileBioEntity: hasBioLinkAndEntities[0]
-          .rightEntity![0]! as Entity<ProfileBio>,
+        linkEntity: hasBioLinkAndEntity.linkEntity as LinkEntity<HasBio>,
+        profileBioEntity: hasBioLinkAndEntity.rightEntity as Entity<ProfileBio>,
       }
     : undefined;
 
