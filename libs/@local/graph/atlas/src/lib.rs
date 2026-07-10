@@ -11,3 +11,13 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Language Features
+    default_field_values,
+
+    // Library Features
+    pointer_is_aligned_to,
+    int_roundings
+)]
+mod float;
+pub mod projection;

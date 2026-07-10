@@ -484,7 +484,7 @@ async function main() {
     // shared ids to lerp by), so the slider crossfades the two
     // adjacent levels instead -- shapes dissolve rather than morph.
     const fo = fieldOpacity(reveal);
-    if (farfieldPolys && fo > 0.02) {
+    if (false && farfieldPolys && fo > 0.02) {
       const li = levelOf(sliderPos);
       const t = sliderPos - li;
       for (const [lvl, w] of [

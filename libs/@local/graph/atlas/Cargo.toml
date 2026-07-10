@@ -15,6 +15,35 @@ authors.workspace = true
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
+# candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
+# backend and our direct candle usage share a single candle build.
+burn            = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
+bytes.workspace = true
+candle-core     = { version = "0.10.2" }
+candle-nn       = { version = "0.10.2" }
+memmap2         = "0.9.11"
+rand            = { workspace = true }
+rand_xoshiro    = { workspace = true }
+zerocopy        = "0.8.54"
+
+# Opt-in only: these need the CUDA toolkit (nvcc) at build time, so they must not be
+# enabled by default or via `--all-features` runs on machines without it.
+# [features]
+# cuda  = ["burn/cuda", "burn/candle-cuda", "candle-nn/cuda"]
+# cudnn = ["cuda", "candle-nn/cudnn"]
+# mkl   = ["candle-nn/mkl"]
+
+# Apple-only backends: always available on macOS, never elsewhere.
+# `metal` implies `wgpu` and compiles kernels via MSL; `candle-metal` puts the
+# burn-candle backend on Metal; `accelerate` uses Apple's BLAS for CPU paths.
+[target.'cfg(target_os = "macos")'.dependencies]
+burn      = { version = "0.21.0", features = ["metal", "accelerate", "candle-metal"] }
+candle-nn = { version = "0.10.2", features = ["metal", "accelerate"] }
+
+# Everywhere else the wgpu backend compiles kernels via SPIR-V/Vulkan.
+# No vendor toolchain needed at build time (unlike CUDA).
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+burn = { version = "0.21.0", features = ["vulkan"] }
 
 [lints]
 workspace = true
