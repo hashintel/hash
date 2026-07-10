@@ -17,14 +17,25 @@ authors.workspace = true
 simple-mermaid = { workspace = true }
 # candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
 # backend and our direct candle usage share a single candle build.
-burn            = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
-bytes.workspace = true
-candle-core     = { version = "0.10.2" }
-candle-nn       = { version = "0.10.2" }
-memmap2         = "0.9.11"
-rand            = { workspace = true }
-rand_xoshiro    = { workspace = true }
-zerocopy        = "0.8.54"
+burn                                = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"] }
+bytes.workspace                     = true
+candle-core                         = { version = "0.10.2" }
+candle-nn                           = { version = "0.10.2" }
+error-stack.workspace               = true
+futures.workspace                   = true
+hash-graph-embeddings.workspace     = true
+hash-graph-postgres-store.workspace = true
+hash-graph-store.workspace          = true
+hash-graph-types.workspace          = true
+memmap2                             = "0.9.11"
+rand                                = { workspace = true }
+rand_xoshiro                        = { workspace = true }
+tokio.workspace                     = true
+tokio-postgres.workspace            = true
+tokio-util.workspace                = true
+type-system.workspace               = true
+uuid.workspace                      = true
+zerocopy                            = "0.8.54"
 
 # Opt-in only: these need the CUDA toolkit (nvcc) at build time, so they must not be
 # enabled by default or via `--all-features` runs on machines without it.

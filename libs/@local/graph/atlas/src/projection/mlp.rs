@@ -25,7 +25,7 @@ use burn::{
         },
     },
 };
-use rand::{SeedableRng as _, seq::SliceRandom};
+use rand::{SeedableRng as _, seq::SliceRandom as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use crate::float::{FloatBytes, Sample};
@@ -33,26 +33,58 @@ use crate::float::{FloatBytes, Sample};
 /// Width of the projected output: entities are placed on a 2D map.
 const OUTPUT_DIM: usize = 2;
 
-#[derive(Debug, Copy, Clone)]
+/// Hyperparameters for [`Projector::fit`].
+///
+/// Every field has a default, so a training run only needs
+/// `TrainingConfig { .. }`; name individual fields to override them, for
+/// example `TrainingConfig { epochs: 100, .. }`.
+#[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct TrainingConfig {
+    /// Number of rows per optimizer step.
     pub batch_size: usize = 8192,
+    /// Upper bound on passes over the training split.
+    ///
+    /// Early stopping usually ends training sooner; see [`Self::patience`].
     pub epochs: usize = 30,
+    /// Learning rate at the start of the cosine schedule.
+    ///
+    /// Must be in `(0, 1]`.
     pub learning_rate: f64 = 1e-3,
+    /// Learning rate the cosine schedule decays toward by the final
+    /// scheduled step.
+    ///
+    /// Must be in `[0, learning_rate]`.
     pub learning_rate_min: f64 = 1e-4,
+    /// Fraction of rows held out as the validation split.
+    ///
+    /// The held-out rows drive early stopping and never influence the
+    /// weights. The row count rounds down.
     pub validation_fraction: f64 = 0.02,
+    /// Seed for the train/validation split, the per-epoch batch shuffling,
+    /// and the backend RNG for the run.
+    ///
+    /// Weight initialization happens in [`Projector::new`] and is not
+    /// covered by this seed.
     pub seed: u64 = 42,
+    /// Number of consecutive epochs the validation loss may fail to improve
+    /// before training stops early.
     pub patience: usize = 5,
+    /// Number of worker threads each dataloader uses to fetch and collate
+    /// batches.
     pub num_workers: usize = 4,
 }
 
-/// One entity: its embedding and the map coordinates to distill.
+/// A single training example: one entity's embedding and its target map
+/// coordinates.
 #[derive(Debug, Clone)]
 pub(crate) struct ProjectionItem {
+    /// The entity's embedding, [`FloatBytes::dim`] values wide.
     pub embedding: Sample,
+    /// The map coordinates the encoder learns to reproduce.
     pub position: [f32; OUTPUT_DIM],
 }
 
-/// A batch of entities, ready for the model.
+/// A collated batch of examples on the training device.
 #[derive(Debug, Clone)]
 pub(crate) struct ProjectionBatch<B: Backend> {
     /// Embeddings, shape `[batch, input_dim]`.
@@ -61,10 +93,11 @@ pub(crate) struct ProjectionBatch<B: Backend> {
     pub positions: Tensor<B, 2>,
 }
 
-/// Row-major view over the sampled embeddings and layout coordinates,
-/// restricted to the rows selected for one split. Rows are copied out lazily,
-/// one item at a time, so `xs` can later be backed by something large and
-/// read-only (e.g. a memmap) without materializing the whole split.
+/// The examples of one split (training or validation), selected by row index
+/// from the shared embedding and coordinate matrices.
+///
+/// Rows are read on demand, one example per [`Dataset::get`] call, so only
+/// the rows a dataloader actually requests are paged in.
 struct ProjectionDataset {
     xs: FloatBytes,
     ys: FloatBytes,
@@ -123,8 +156,18 @@ impl<B: Backend> Batcher<B, ProjectionItem, ProjectionBatch<B>> for ProjectionBa
     }
 }
 
-/// A small encoder distilled from a fitted 2D layout: maps entity embeddings
-/// (`[batch, input_dim]`) to map coordinates (`[batch, 2]`).
+/// An encoder that places entity embeddings on a fitted 2D map.
+///
+/// A projector is distilled from one level of a fitted layout:
+/// [`Projector::fit`] trains it to reproduce the layout's coordinates from
+/// the entities' embeddings, after which [`Projector::forward`] places any
+/// embedding, including ones the layout was never fitted on, at the position
+/// the layout would have assigned.
+///
+/// The encoder is a three-layer perceptron (`input_dim -> 512 -> 512 -> 2`)
+/// with GELU activations. The architecture is part of the encoder's exchange
+/// format: consumers of exported weights must apply the same activation, and
+/// [`Gelu`] is the exact erf-based form, not the tanh approximation.
 #[derive(Module, Debug)]
 pub(crate) struct Projector<B: Backend> {
     l0: Linear<B>,
@@ -134,6 +177,10 @@ pub(crate) struct Projector<B: Backend> {
 }
 
 impl<B: Backend> Projector<B> {
+    /// Creates an untrained projector for embeddings `input_dim` values wide.
+    ///
+    /// Weights are randomly initialized on `device`; train them with
+    /// [`Projector::fit`].
     pub(crate) fn new(input_dim: usize, device: &B::Device) -> Self {
         Self {
             l0: LinearConfig::new(input_dim, 512).init(device),
@@ -143,12 +190,19 @@ impl<B: Backend> Projector<B> {
         }
     }
 
+    /// Places a batch of embeddings on the map.
+    ///
+    /// `xs` has shape `[batch, input_dim]` and the result has shape
+    /// `[batch, 2]`: one coordinate pair per input row, in the same order.
+    /// To place a single entity, pass a batch of one.
     pub(crate) fn forward(&self, xs: Tensor<B, 2>) -> Tensor<B, 2> {
         let xs = self.activation.forward(self.l0.forward(xs));
         let xs = self.activation.forward(self.l1.forward(xs));
         self.l2.forward(xs)
     }
 
+    /// Runs the forward pass shared by training and validation steps and
+    /// packages predictions, targets, and MSE loss for burn's metrics.
     fn forward_step(&self, batch: ProjectionBatch<B>) -> RegressionOutput<B> {
         let output = self.forward(batch.embeddings);
         let loss = MseLoss.forward(output.clone(), batch.positions.clone(), Reduction::Mean);
@@ -177,28 +231,38 @@ impl<B: Backend> InferenceStep for Projector<B> {
 }
 
 impl<B: AutodiffBackend> Projector<B> {
-    /// Distills the layout into this encoder.
+    /// Trains the encoder to reproduce a fitted layout.
     ///
-    /// `xs` are the input embeddings and `ys` the target map coordinates:
-    /// row `i` of `xs` is the embedding of the entity whose coordinates are
-    /// row `i` of `ys`, so both must have the same number of rows and `ys`
-    /// must be 2 wide.
+    /// Row `i` of `xs` is the embedding of the entity whose map coordinates
+    /// are row `i` of `ys`. A shuffle seeded by `config.seed` holds out
+    /// [`TrainingConfig::validation_fraction`] of the rows as the validation
+    /// split; the remaining rows form the training split and are reshuffled
+    /// every epoch.
     ///
-    /// The rows are split into training and validation sets (seeded by
-    /// `config.seed`), and the model is trained with MSE loss, Adam, and a
-    /// cosine-annealed learning rate, stopping early once the validation
-    /// loss has not improved for `config.patience` epochs.
+    /// Training minimizes the mean squared error between projected and
+    /// target coordinates with Adam, the learning rate following a cosine
+    /// schedule from [`TrainingConfig::learning_rate`] down to
+    /// [`TrainingConfig::learning_rate_min`]. Training runs for
+    /// [`TrainingConfig::epochs`] epochs, or stops earlier once the
+    /// validation loss has not improved for [`TrainingConfig::patience`]
+    /// consecutive epochs.
     ///
-    /// `artifact_dir` receives the training logs and metric store backing
-    /// the dashboard rendered while training runs.
+    /// While training runs, a terminal dashboard shows per-epoch training
+    /// and validation loss; `artifact_dir` receives the experiment log and
+    /// the metric store behind the dashboard.
     ///
-    /// Consumes the model and returns the fitted one on the inference
-    /// (non-autodiff) backend.
+    /// The returned encoder holds the weights of the last trained epoch, on
+    /// the inference (non-autodiff) backend. Note that with early stopping
+    /// this trails the best validation epoch by up to
+    /// [`TrainingConfig::patience`] epochs.
     ///
     /// # Panics
     ///
-    /// Panics if `xs`/`ys` are empty or have inconsistent row counts, or if
-    /// the learning-rate range in `config` is invalid (e.g. not in `(0, 1]`).
+    /// Panics when `ys` is empty, when `ys` rows are not 2 values wide, when
+    /// `xs` and `ys` disagree on the number of rows, when `config.epochs` is
+    /// zero, or when the learning rates are invalid
+    /// (`learning_rate` outside `(0, 1]` or `learning_rate_min` outside
+    /// `[0, learning_rate]`).
     pub(crate) fn fit(
         self,
         xs: FloatBytes,

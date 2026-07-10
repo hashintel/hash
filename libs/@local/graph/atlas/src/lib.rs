@@ -17,13 +17,14 @@
 
     // Library Features
     pointer_is_aligned_to,
-    int_roundings
+    future_join
 )]
 #![expect(
     dead_code,
     clippy::integer_division,
     clippy::integer_division_remainder_used,
-    clippy::float_arithmetic
+    clippy::float_arithmetic,
+    clippy::indexing_slicing
 )]
 pub mod float;
 pub mod projection;
