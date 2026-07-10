@@ -1,7 +1,13 @@
-use core::{convert::identity, error::Error, fmt, future, iter, pin::pin, task};
-use std::{io, task::Poll};
+use core::{
+    error::Error,
+    fmt, future, iter,
+    marker::PhantomData,
+    pin::{Pin, pin},
+    task::{self, Context, Poll},
+};
+use std::io;
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use camino::{Utf8Path, Utf8PathBuf};
 use futures::{SinkExt as _, Stream, TryStreamExt as _, sink};
 use hash_graph_embeddings::{D512, Dimension};
@@ -12,13 +18,12 @@ use hash_graph_postgres_store::store::postgres::query::{
 use tempfile::NamedTempFile;
 use tokio::{
     fs,
-    io::{AsyncWrite, AsyncWriteExt as _, BufWriter},
+    io::{AsyncReadExt as _, AsyncWrite, AsyncWriteExt as _, BufWriter},
 };
 use tokio_postgres::{
     Client, GenericClient, IsolationLevel, Row, RowStream, Transaction,
     types::{FromSql, ToSql, Type},
 };
-use tokio_util::io::{CopyToBytes, SinkWriter};
 
 use crate::float::FloatBytes;
 
@@ -27,6 +32,8 @@ pub(super) enum SampleError {
     CacheRowCount { embeddings: usize, mappings: u64 },
     InvalidIndex(i64),
     Io(io::Error),
+    Join(tokio::task::JoinError),
+    Persist(tempfile::PersistError),
     Postgres(tokio_postgres::Error),
 }
 
@@ -45,6 +52,8 @@ impl fmt::Display for SampleError {
                 write!(fmt, "database returned invalid sample index {index}")
             }
             Self::Io(_) => fmt.write_str("failed to access sampled data"),
+            Self::Join(_) => fmt.write_str("sample cache persistence task failed"),
+            Self::Persist(_) => fmt.write_str("failed to persist sampled data"),
             Self::Postgres(_) => fmt.write_str("failed to query sampled data"),
         }
     }
@@ -55,6 +64,8 @@ impl Error for SampleError {
         match self {
             Self::CacheRowCount { .. } | Self::InvalidIndex(_) => None,
             Self::Io(error) => Some(error),
+            Self::Join(error) => Some(error),
+            Self::Persist(error) => Some(error),
             Self::Postgres(error) => Some(error),
         }
     }
@@ -63,6 +74,18 @@ impl Error for SampleError {
 impl From<io::Error> for SampleError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
+    }
+}
+
+impl From<tokio::task::JoinError> for SampleError {
+    fn from(error: tokio::task::JoinError) -> Self {
+        Self::Join(error)
+    }
+}
+
+impl From<tempfile::PersistError> for SampleError {
+    fn from(error: tempfile::PersistError) -> Self {
+        Self::Persist(error)
     }
 }
 
@@ -99,16 +122,12 @@ impl<'client> Sample<'client> {
         let embeddings_path = embeddings_path(out);
         let mappings_path = mappings_path(out);
 
-        let cache_exists = <[io::Result<bool>; 2]>::from(
-            future::join!(
-                fs::try_exists(&embeddings_path),
-                fs::try_exists(&mappings_path),
-            )
-            .await,
+        let (embeddings_exists, mappings_exists) = future::join!(
+            fs::try_exists(&embeddings_path),
+            fs::try_exists(&mappings_path),
         )
-        .map(|result| result.is_ok_and(|result| result))
-        .into_iter()
-        .all(identity);
+        .await;
+        let cache_exists = embeddings_exists? && mappings_exists?;
 
         let transaction = client
             .build_transaction()
@@ -143,8 +162,8 @@ impl<'client> Sample<'client> {
         &self.embeddings
     }
 
-    /// Streams sampled relation edges into `visit` without retaining an edge file.
-    pub(super) async fn visit_edges(&self) -> Result<QueryEdges, SampleError> {
+    /// Returns sampled relation edges as a stream without retaining an edge file.
+    pub(super) async fn visit_edges(&self) -> Result<QueryEdges<'_>, SampleError> {
         query_edges(&self.transaction).await
     }
 
@@ -383,16 +402,19 @@ async fn copy_mapping_in(
         ))
         .await?;
     let mut sink = pin!(sink);
+    let mut buffer = BytesMut::with_capacity(OUTPUT_BUFFER_SIZE);
 
-    {
-        let mut writer = pin!(SinkWriter::new(CopyToBytes::new(
-            sink.as_mut().sink_map_err(io::Error::other)
-        )));
+    loop {
+        buffer.reserve(OUTPUT_BUFFER_SIZE);
+        let read = file.read_buf(&mut buffer).await?;
+        if read == 0 {
+            break;
+        }
 
-        tokio::io::copy(file, &mut writer).await?;
+        sink.as_mut().send(buffer.split().freeze()).await?;
     }
 
-    sink.finish().await.map_err(From::from)
+    sink.as_mut().finish().await.map_err(From::from)
 }
 
 async fn load_mapping(
@@ -424,11 +446,14 @@ async fn write_sample(
     let total_rows = query_count(transaction).await?;
     let rows = materialize_sample(transaction, seed, total_rows, options).await?;
 
+    let embeddings_path = embeddings_path(out);
+    let mappings_path = mappings_path(out);
+
     let (embeddings_out, embeddings_temporary_path) = NamedTempFile::new_in(out)?.into_parts();
     let (mappings_out, mappings_temporary_path) = NamedTempFile::new_in(out)?.into_parts();
 
-    let embeddings_out = fs::File::from_std(embeddings_out);
-    let mappings_out = fs::File::from_std(mappings_out);
+    let mut embeddings_out = fs::File::from_std(embeddings_out);
+    let mut mappings_out = fs::File::from_std(mappings_out);
 
     query_embeddings(
         transaction,
@@ -448,9 +473,9 @@ async fn write_sample(
     let mappings_out =
         NamedTempFile::from_parts(mappings_out.into_std().await, mappings_temporary_path);
 
-    tokio::task::spawn_blocking(|| {
-        embeddings_out.persist(embeddings_path(out))?;
-        mappings_out.persist(mappings_path(out))?;
+    tokio::task::spawn_blocking(move || -> Result<(), tempfile::PersistError> {
+        embeddings_out.persist(embeddings_path)?;
+        mappings_out.persist(mappings_path)?;
 
         Ok(())
     })
@@ -460,19 +485,17 @@ async fn write_sample(
 }
 
 pin_project_lite::pin_project! {
-    struct QueryEdges {
+    pub(super) struct QueryEdges<'sample> {
         #[pin]
-        stream: RowStream
+        stream: RowStream,
+        marker: PhantomData<&'sample ()>,
     }
 }
 
-impl Stream for QueryEdges {
+impl Stream for QueryEdges<'_> {
     type Item = Result<(u64, u64), SampleError>;
 
-    fn poll_next(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
         let Some(row) = task::ready!(this.stream.poll_next(cx)?) else {
             return Poll::Ready(None);
@@ -487,7 +510,7 @@ impl Stream for QueryEdges {
     }
 }
 
-async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges, SampleError> {
+async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges<'_>, SampleError> {
     let stream = client
         .query_raw(
             &format!(
@@ -512,5 +535,8 @@ async fn query_edges(client: &(impl GenericClient + Sync)) -> Result<QueryEdges,
         )
         .await?;
 
-    Ok(QueryEdges { stream })
+    Ok(QueryEdges {
+        stream,
+        marker: PhantomData,
+    })
 }

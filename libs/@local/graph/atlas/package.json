@@ -8,5 +8,13 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:unit": "mise run test:unit @rust/hash-graph-atlas"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-graph-embeddings": "workspace:*",
+    "@rust/hash-graph-postgres-store": "workspace:*",
+    "@rust/hash-graph-store": "workspace:*",
+    "@rust/hash-graph-types": "workspace:*"
   }
 }
