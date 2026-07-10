@@ -1001,6 +1001,178 @@ where
     }
 }
 
+impl<C, S> PostgresStore<C, S>
+where
+    C: AsClient,
+    S: TransactionState,
+{
+    /// Rebuilds the entity edition cache and the inherited `entity_is_of_type` rows.
+    ///
+    /// This is inherent rather than only an [`EntityStore`] method so that code paths already
+    /// operating inside an enclosing transaction — snapshot restore and entity-type reindexing —
+    /// can rebuild the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent
+    /// reads are only available where [`BeginReadOnlyTransaction`] is implemented.
+    ///
+    /// # Errors
+    ///
+    /// - if the database rejects one of the rebuild statements
+    #[expect(
+        clippy::same_name_method,
+        reason = "the `EntityStore` method of the same name delegates here; sharing the name \
+                  keeps every call site uniform regardless of which impl is available"
+    )]
+    #[tracing::instrument(level = "info", skip(self))]
+    pub(crate) async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
+        tracing::info!("Reindexing entity cache");
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
+
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    )
+                    SELECT entity_edition_id,
+                           target_entity_type_ontology_id AS entity_type_ontology_id,
+                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
+                      FROM entity_is_of_type
+                      JOIN entity_type_inherits_from
+                        ON entity_type_ontology_id = source_entity_type_ontology_id
+                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
+
+                    DELETE FROM entity_edition_cache;
+                ",
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .as_client()
+            .query(&insert_entity_edition_cache_statement(false), &[])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        Ok(())
+    }
+
+    /// Returns the entity editions among `params.entity_ids` on which `authenticated_actor` may
+    /// perform `params.action`.
+    ///
+    /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
+    /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
+    /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
+    ///
+    /// # Errors
+    ///
+    /// - if the permission filter cannot be compiled or the underlying query fails
+    #[expect(
+        clippy::same_name_method,
+        reason = "the `EntityStore` method of the same name delegates here; sharing the name \
+                  keeps every call site uniform regardless of which impl is available"
+    )]
+    #[tracing::instrument(skip(self, params))]
+    pub(crate) async fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        let temporal_axes = params.temporal_axes.resolve();
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+
+        let entity_uuids = params
+            .entity_ids
+            .iter()
+            .map(|id| id.entity_uuid)
+            .collect::<Vec<_>>();
+
+        let entity_filter = Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            },
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityUuids(&entity_uuids),
+            },
+        );
+        compiler
+            .add_filter(&entity_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+        let policy_filter = Filter::<Entity>::for_policies(
+            policy_components.extract_filter_policies(params.action),
+            policy_components.actor_id(),
+            policy_components.optimization_data(params.action),
+        );
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
+        let uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
+        let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
+        let edition_id_idx = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
+            Distinctness::Distinct,
+            None,
+        );
+
+        let mut permitted_ids = HashMap::<EntityId, Vec<EntityEditionId>>::new();
+
+        let (statement, parameters) = compiler.compile();
+        let () = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
+            .await
+            .change_context(CheckPermissionError::StoreError)?
+            .map_ok(|row| {
+                permitted_ids
+                    .entry(EntityId {
+                        web_id: row.get(web_id_idx),
+                        entity_uuid: row.get(uuid_idx),
+                        draft_id: row.get(draft_id_idx),
+                    })
+                    .or_default()
+                    .push(row.get(edition_id_idx));
+            })
+            .try_collect()
+            .await
+            .change_context(CheckPermissionError::StoreError)?;
+
+        Ok(permitted_ids)
+    }
+}
+
 impl<C, S> EntityStore for PostgresStore<C, S>
 where
     C: AsClient,
@@ -2602,140 +2774,23 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
-        tracing::info!("Reindexing entity cache");
-        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
-
-        // We remove the data from the reference tables first
-        transaction
-            .as_client()
-            .simple_query(
-                "
-                    DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
-
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    )
-                    SELECT entity_edition_id,
-                           target_entity_type_ontology_id AS entity_type_ontology_id,
-                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                      FROM entity_is_of_type
-                      JOIN entity_type_inherits_from
-                        ON entity_type_ontology_id = source_entity_type_ontology_id
-                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
-
-                    DELETE FROM entity_edition_cache;
-                ",
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .as_client()
-            .query(&insert_entity_edition_cache_statement(false), &[])
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        transaction.commit().await.change_context(UpdateError)?;
-
-        Ok(())
+        // Delegates to the inherent method on `PostgresStore<C, S>` (which takes precedence in
+        // method resolution), so the rebuild is also reachable where the `EntityStore` impl —
+        // bounded on `BeginReadOnlyTransaction` — is unavailable.
+        self.reindex_entity_cache().await
     }
 
-    #[tracing::instrument(skip(self, params))]
     async fn has_permission_for_entities(
         &self,
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
-        let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
-
-        let entity_uuids = params
-            .entity_ids
-            .iter()
-            .map(|id| id.entity_uuid)
-            .collect::<Vec<_>>();
-
-        let entity_filter = Filter::In(
-            FilterExpression::Path {
-                path: EntityQueryPath::Uuid,
-            },
-            FilterExpressionList::ParameterList {
-                parameters: ParameterList::EntityUuids(&entity_uuids),
-            },
-        );
-        compiler
-            .add_filter(&entity_filter)
-            .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
+        // Delegates to the inherent method on `PostgresStore<C, S>` (which takes precedence in
+        // method resolution), so the permission check is also reachable where the `EntityStore`
+        // impl — bounded on `BeginReadOnlyTransaction` — is unavailable.
+        self.has_permission_for_entities(authenticated_actor, params)
             .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(params.action),
-            policy_components.actor_id(),
-            policy_components.optimization_data(params.action),
-        );
-        compiler
-            .add_filter(&policy_filter)
-            .change_context(CheckPermissionError::CompileFilter)?;
-
-        let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
-        let uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-        let edition_id_idx = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
-            Distinctness::Distinct,
-            None,
-        );
-
-        let mut permitted_ids = HashMap::<EntityId, Vec<EntityEditionId>>::new();
-
-        let (statement, parameters) = compiler.compile();
-        let () = self
-            .as_client()
-            .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::info_span!(
-                "SELECT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-                db.query.text = statement,
-            ))
-            .await
-            .change_context(CheckPermissionError::StoreError)?
-            .map_ok(|row| {
-                permitted_ids
-                    .entry(EntityId {
-                        web_id: row.get(web_id_idx),
-                        entity_uuid: row.get(uuid_idx),
-                        draft_id: row.get(draft_id_idx),
-                    })
-                    .or_default()
-                    .push(row.get(edition_id_idx));
-            })
-            .try_collect()
-            .await
-            .change_context(CheckPermissionError::StoreError)?;
-
-        Ok(permitted_ids)
     }
 
     #[expect(clippy::too_many_lines)]

@@ -3316,8 +3316,12 @@ impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>, InTransactio
 ///
 /// - In the [`NoTransaction`] state a `REPEATABLE READ, READ ONLY` transaction is begun, giving all
 ///   statements of the read one shared snapshot.
-/// - In the [`InTransaction`] state a savepoint is created instead: the read runs within the
-///   enclosing transaction and observes that transaction's snapshot semantics.
+/// - In the [`InTransaction`] state — only available with the `test-utils` feature — a savepoint is
+///   created instead: the read runs within the enclosing transaction and observes that
+///   transaction's snapshot semantics.
+// TODO(BE-688): The `InTransaction` impl exists only for the rollback-isolation test harness,
+//   which bypasses the `REPEATABLE READ` snapshot — remove it once the harness uses per-test
+//   databases.
 pub trait BeginReadOnlyTransaction {
     /// Begins the transaction serving a snapshot-consistent read.
     ///
@@ -3349,6 +3353,7 @@ where
     }
 }
 
+#[cfg(feature = "test-utils")]
 impl<C> BeginReadOnlyTransaction for PostgresStore<C, InTransaction>
 where
     C: AsClient,

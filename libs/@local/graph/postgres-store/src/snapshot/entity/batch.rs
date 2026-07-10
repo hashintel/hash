@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::{
-    entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
+    entity::{EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
     query::Read,
 };

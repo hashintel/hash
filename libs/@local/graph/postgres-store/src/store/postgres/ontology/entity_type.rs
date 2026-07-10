@@ -11,7 +11,7 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
-    entity::{ClosedMultiEntityTypeMap, EntityStore},
+    entity::ClosedMultiEntityTypeMap,
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
@@ -2013,7 +2013,7 @@ where
         // The entity edition cache derives type titles, labels (via `closed_schema`), and
         // the inherited type entries from the data rebuilt above, so it has to be rebuilt
         // as well — otherwise it silently keeps serving the pre-reindex schemas.
-        EntityStore::reindex_entity_cache(&mut transaction).await?;
+        transaction.reindex_entity_cache().await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 
