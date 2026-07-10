@@ -16,6 +16,7 @@ type-system = { workspace = true, public = true }
 error-stack = { workspace = true }
 
 # Private third-party dependencies
+hostname              = { workspace = true }
 opentelemetry         = { workspace = true }
 serde                 = { workspace = true }
 serde_json            = { workspace = true }
@@ -27,6 +28,10 @@ tracing               = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 url                   = { workspace = true }
 uuid                  = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+# Private third-party dependencies
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
 
 [lints]
 workspace = true

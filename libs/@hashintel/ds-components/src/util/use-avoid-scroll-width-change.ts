@@ -1,5 +1,10 @@
 import { type RefObject, useLayoutEffect } from "react";
 
+import {
+  getConsumedScrollbarHeight,
+  getConsumedScrollbarWidth,
+} from "./scrollbar-size";
+
 /**
  * Probed scrollbar thickness, cached per `scrollbar-width` mode
  * (`"auto"`/`"thin"`/`"none"`) since each mode renders a different thickness.
@@ -189,17 +194,10 @@ export const useAvoidScrollWidthChange = (
         style.direction === "rtl" ? "paddingLeft" : "paddingRight";
       const scrollbarWidthMode = style.getPropertyValue("scrollbar-width");
 
-      // The real scrollbar thickness is the difference between the element's
-      // border box and its (padding-inclusive) client box on the relevant axis,
-      // minus the borders — i.e. the space the bar is consuming right now. When
-      // no bar is present that difference is zero.
-      const borderX =
-        parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
-      const borderY =
-        parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
-
-      const liveWidth = element.offsetWidth - element.clientWidth - borderX;
-      const liveHeight = element.offsetHeight - element.clientHeight - borderY;
+      // The real scrollbar thickness is the space the bar is consuming right
+      // now (see `scrollbar-size.ts`). When no bar is present it is zero.
+      const liveWidth = getConsumedScrollbarWidth(element, style);
+      const liveHeight = getConsumedScrollbarHeight(element, style);
 
       // Remember the last real bar thickness we saw, per axis, so we can reserve
       // exactly that width while the bar is absent (we can't measure it then).

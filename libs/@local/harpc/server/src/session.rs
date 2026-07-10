@@ -5,7 +5,7 @@ use std::{collections::HashSet, sync::Mutex};
 use futures::{Stream, StreamExt as _};
 pub use harpc_net::session::server::{SessionEvent, SessionEventError, SessionId};
 use harpc_types::{procedure::ProcedureDescriptor, subsystem::SubsystemDescriptor};
-use scc::{ebr::Guard, hash_index::Entry};
+use scc::{Guard, hash_index::Entry};
 use tokio::pin;
 use tokio_util::sync::CancellationToken;
 
@@ -58,7 +58,7 @@ where
 
         let entry = self.storage.storage.entry_async(self.key).await;
 
-        if let Entry::Occupied(entry) = entry {
+        if let Entry::Occupied(mut entry) = entry {
             entry.update(value);
         }
     }

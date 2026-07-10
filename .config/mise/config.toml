@@ -21,7 +21,7 @@ uv             = "0.11.18"
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.15.0"
 java              = "25"
-protoc            = "32.1"
+protoc            = "35.1"
 
 # CLI tools
 "cargo:cargo-codspeed" = "4.1.0"

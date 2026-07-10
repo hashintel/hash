@@ -19,7 +19,6 @@ import { inviteUserToOrgResolver } from "@apps/hash-api/src/graphql/resolvers/kn
 import { Logger } from "@local/hash-backend-utils/logger";
 import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestUser,
@@ -119,7 +118,6 @@ describe("org invitation with a mixed-case signup email", () => {
       await deleteKratosIdentity({
         kratosIdentityId: inviter.kratosIdentityId,
       });
-      await resetGraph();
     };
   });
 

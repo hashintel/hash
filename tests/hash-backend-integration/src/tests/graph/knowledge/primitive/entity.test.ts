@@ -37,7 +37,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -184,8 +183,6 @@ describe("Entity CRU", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser2.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 
@@ -264,9 +261,14 @@ describe("Entity CRU", () => {
       { actorId: testUser.accountId },
       {
         filter: {
-          // We have quite a few entities seeded and above we inserted a multi-type entity as well.
-          // We can use the opportunity to simply test all entities
-          all: [],
+          // Scope the query to the test org's web (which contains the
+          // multi-type entity inserted above, among others) so that the test
+          // does not depend on entities created by other test files.
+          all: [
+            {
+              equal: [{ path: ["webId"] }, { parameter: testOrg.webId }],
+            },
+          ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,

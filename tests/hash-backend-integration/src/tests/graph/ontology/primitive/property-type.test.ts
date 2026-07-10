@@ -18,7 +18,6 @@ import {
   fullTransactionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -86,8 +85,6 @@ beforeAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser2.kratosIdentityId,
     });
-
-    await resetGraph();
   };
 });
 
