@@ -370,15 +370,3 @@ export function topPlanningMismatches(
     .sort((left, right) => right.deviationPct - left.deviationPct)
     .slice(0, count);
 }
-
-export function countBadPlanningParams(
-  nodes: SiteNode[],
-  measure: BaseMeasure = "median",
-): number {
-  return nodes.filter((node) => {
-    if (node.plan == null || node.plan <= 0 || node.stats.n === 0) {
-      return false;
-    }
-    return (selectStat(node.stats, measure) ?? 0) > node.plan * 1.2;
-  }).length;
-}

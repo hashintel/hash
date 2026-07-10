@@ -17,7 +17,6 @@ import {
 import {
   totalSiteDwellCost,
   topDwellCosts,
-  countBadPlanningParams,
   computeNodePeriodCost,
 } from "../../shared/site-aggregation";
 import { siteNodeKey } from "../../shared/site-node-key";
@@ -136,9 +135,8 @@ export function useSiteOverviewRows({
 
   const summaryStats = useMemo(() => {
     const dwellCost = totalSiteDwellCost(filteredNodes, waccRate, storageCost);
-    const badParams = countBadPlanningParams(filteredNodes, measure);
-    return { dwellCost: dwellCost > 0 ? dwellCost : null, badParams };
-  }, [filteredNodes, waccRate, storageCost, measure]);
+    return { dwellCost: dwellCost > 0 ? dwellCost : null };
+  }, [filteredNodes, waccRate, storageCost]);
 
   // Site-wide currency for cost formatting: the most common non-null currency
   // across the site's nodes. Falls back to the active dataset/default currency.
