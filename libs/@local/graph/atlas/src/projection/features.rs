@@ -1,3 +1,18 @@
+//! Structure-feature generation for projector training.
+//!
+//! Projectors train on more than the raw embedding: [`structure_features`]
+//! widens each row to `2d + 2` values that also expose the row's relational
+//! context, so the encoder can reproduce layout positions that were shaped by
+//! relations as well as by meaning. Per row the feature vector is:
+//!
+//! 1. the embedding itself (`d` values);
+//! 2. the normalized mean of a deterministically capped neighbor set (`d` values);
+//! 3. the neighbor mean's norm before normalization (the "coherence");
+//! 4. the row's true relation degree, log-scaled and normalized by the fit-time maximum.
+//!
+//! Feature matrices are transient training inputs held in owned memory; they
+//! are dropped after projector fitting rather than persisted.
+
 use core::{error::Error, fmt, num::NonZero};
 use std::collections::BinaryHeap;
 
@@ -6,18 +21,18 @@ use rayon::prelude::*;
 use super::graph::SparseGraph;
 use crate::float::FloatBytes;
 
+/// An invalid structure-feature input or a non-finite feature value.
 #[derive(Debug)]
 pub(crate) enum StructureFeatureError {
+    /// The embedding matrix has no rows.
     EmptyEmbeddings,
-    RowCount {
-        embeddings: usize,
-        adjacency: usize,
-    },
+    /// The embeddings and adjacency disagree on the row count.
+    RowCount { embeddings: usize, adjacency: usize },
+    /// `2d + 2` overflows for the embedding dimension `d`.
     DimensionOverflow(usize),
-    OutputSizeOverflow {
-        rows: usize,
-        dimensions: usize,
-    },
+    /// The full feature matrix would exceed the addressable buffer size.
+    OutputSizeOverflow { rows: usize, dimensions: usize },
+    /// An input embedding or computed feature is NaN or infinite.
     NonFiniteValue {
         row: usize,
         dimension: usize,
@@ -62,20 +77,46 @@ impl fmt::Display for StructureFeatureError {
 
 impl Error for StructureFeatureError {}
 
+/// Configuration for [`structure_features`].
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct StructureFeatureOptions {
+    /// Maximum number of neighbors averaged per row. Rows above the cap keep
+    /// the neighbors with the smallest salted hashes, a selection that is
+    /// stable across runs and independent of adjacency order.
     pub(crate) neighbor_cap: usize = 256,
+    /// Salt mixed into the neighbor-selection hash. Serving must reuse the
+    /// fit-time salt to reproduce the same capped neighbor sets.
     pub(crate) salt: u64 = 0x5EED_00D5,
 }
 
+/// The generated feature matrix plus the fit-time state serving must reuse.
 pub(crate) struct StructureFeatures {
+    /// The feature matrix, `2d + 2` values per row in owned memory.
     pub(crate) values: FloatBytes,
+    /// The degree normalizer (`ln(1 + max_degree)`) baked into feature
+    /// generation at fit time.
     pub(crate) degree_normalizer: f64,
+    /// The embedding dimension `d` the features were generated from.
     pub(crate) embedding_dimensions: usize,
+    /// The neighbor cap used for the capped neighbor mean.
     pub(crate) neighbor_cap: usize,
+    /// The neighbor-selection salt used at fit time.
     pub(crate) salt: u64,
 }
 
+/// Generates the `2d + 2`-wide structure-feature matrix for every sampled
+/// row.
+///
+/// Rows are generated in parallel with one reusable scratch buffer per
+/// worker; the embeddings are read straight from their shared mapping. The
+/// result matches the pinned oracle, including the deterministic capped
+/// neighbor selection.
+///
+/// # Errors
+///
+/// Returns an error when the inputs are empty or disagree on row count, when
+/// the output size overflows, or when any input or computed value is not
+/// finite.
 pub(crate) fn structure_features(
     embeddings: &FloatBytes,
     adjacency: &SparseGraph,
@@ -151,9 +192,13 @@ pub(crate) fn structure_features(
     })
 }
 
+/// Reusable per-worker buffers for one feature row.
 struct RowScratch {
+    /// Max-heap of `(hash, neighbor)` pairs holding the current cap winners.
     neighbors: BinaryHeap<(u64, u32)>,
+    /// The selected neighbors, sorted for deterministic accumulation order.
     selected: Vec<(u64, u32)>,
+    /// The `f64` running sum of the selected neighbors' embeddings.
     accumulator: Vec<f64>,
 }
 
@@ -167,6 +212,8 @@ impl RowScratch {
     }
 }
 
+/// Fills one output row: embedding, capped neighbor mean, coherence, and
+/// normalized degree.
 fn write_feature_row(
     row: usize,
     output: &mut [f32],
@@ -262,6 +309,7 @@ fn write_feature_row(
     Ok(())
 }
 
+/// The `SplitMix64` finalizer used for salt-keyed neighbor selection.
 const fn splitmix64(mut value: u64) -> u64 {
     value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
     value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);

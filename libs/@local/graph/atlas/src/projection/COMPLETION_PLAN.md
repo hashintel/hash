@@ -214,3 +214,5 @@ Do not start these items until the end-to-end baseline above is complete and val
 - **Kiddo/k-d tree for 512D semantic search:** rejected as the baseline. USearch/HNSW remains the high-dimensional ANN implementation.
 - **A custom generic CSR implementation:** rejected. Continue using `sprs` plus specialized bounded row kernels.
 - **Unsafe non-atomic Hogwild coordinate updates:** rejected. Keep the safe atomic/partitioned parallel optimizer.
+
+> another rule: if you have more than like 3 arguments, it's probably time to create a struct that houses them _especially_ if they're of the same type, like e.g. `foo, bar, context` or smth like that

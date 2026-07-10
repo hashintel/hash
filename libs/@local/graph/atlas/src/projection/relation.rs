@@ -1,3 +1,13 @@
+//! The relational half of the layout signal: degree-normalized adjacency
+//! plus bounded shared-neighbor diffusion.
+//!
+//! [`relation_graph`] consumes the sample's PostgreSQL-preprocessed relation
+//! stream and produces two graphs: the raw symmetric adjacency (retained for
+//! structure features) and the weighted relation graph that enters the alpha
+//! blend. Construction never materializes a dense matrix or an unpruned
+//! sparse product; diffusion candidates are pruned per row while they are
+//! generated.
+
 use core::{error::Error, fmt, pin::pin};
 
 use futures::TryStreamExt as _;
@@ -8,23 +18,27 @@ use super::{
     sample::{Sample, SampleError},
 };
 
+/// A failure while streaming relations or assembling relation graphs.
 #[derive(Debug)]
 pub(crate) enum RelationGraphError {
+    /// Relational preprocessing or streaming failed in the database.
     Sample(SampleError),
+    /// Sparse graph construction failed.
     Graph(GraphError),
-    InvalidOption {
-        name: &'static str,
-        value: f64,
-    },
+    /// A [`RelationGraphOptions`] field is out of range.
+    InvalidOption { name: &'static str, value: f64 },
+    /// A streamed endpoint is not a valid sampled row.
     EdgeOutOfBounds {
         source: u32,
         target: u32,
         rows: usize,
     },
+    /// The streamed adjacency violated its strict ordering contract.
     UnsortedEdge {
         previous: (u32, u32),
         current: (u32, u32),
     },
+    /// The edge count exceeds `u32` pointers.
     TooManyEdges(usize),
 }
 
@@ -83,17 +97,34 @@ impl From<GraphError> for RelationGraphError {
     }
 }
 
+/// Configuration for [`relation_graph`].
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct RelationGraphOptions {
+    /// Positive-degree quantile above which a row is a hub candidate.
     pub(crate) hub_quantile: f64 = 0.9995,
+    /// Minimum hub degree as a multiple of the median positive degree. A row
+    /// must exceed both this and the quantile threshold to become a hub.
     pub(crate) hub_min_ratio: f64 = 4.0,
+    /// Number of diffusion candidates kept per row and hop. Zero disables
+    /// diffusion entirely.
     pub(crate) shared_neighbors: usize = 10,
+    /// Weight applied to the two-hop shared-neighbor graph. Zero disables
+    /// diffusion entirely.
     pub(crate) shared_weight: f32 = 1.0,
+    /// Deepest diffusion hop. `2` adds shared neighbors of neighbors, `3`
+    /// adds one further step, and so on.
     pub(crate) hops: usize = 2,
+    /// Multiplicative decay applied to each hop beyond the second.
     pub(crate) hop_decay: f32 = 0.5,
 }
 
 impl RelationGraphOptions {
+    /// Rejects non-finite or out-of-range options.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RelationGraphError::InvalidOption`] naming the first invalid
+    /// field.
     fn validate(self) -> Result<Self, RelationGraphError> {
         if !self.hub_quantile.is_finite() || !(0.0..=1.0).contains(&self.hub_quantile) {
             return Err(RelationGraphError::InvalidOption {
@@ -129,12 +160,32 @@ impl RelationGraphOptions {
     }
 }
 
+/// The relational outputs of one sample: the weighted layout graph, the raw
+/// adjacency, and the removed hubs.
 pub(crate) struct RelationGraph {
+    /// The degree-normalized, diffusion-augmented graph entering the alpha
+    /// blend. Weights are scaled so the global maximum is one.
     pub(crate) graph: SparseGraph,
+    /// The unweighted symmetric adjacency after deduplication and hub
+    /// removal, retained for structure-feature generation.
     pub(crate) adjacency: SparseGraph,
+    /// Stable identities of the removed hub rows, in sample-index order.
     pub(crate) hubs: Vec<EntityId>,
 }
 
+/// Extracts the sampled relations and builds both relation graphs.
+///
+/// Relational set operations (deduplication, degree statistics, hub
+/// selection) run inside the sample's PostgreSQL snapshot; this function
+/// consumes the resulting ordered stream and performs the numeric work: CSR
+/// assembly, `1 / sqrt(degree(i) * degree(j))` weighting, and bounded
+/// shared-neighbor diffusion.
+///
+/// # Errors
+///
+/// Returns an error when the options are invalid, when the database stages
+/// fail, when the stream violates its bounds or ordering contract, or when
+/// the graph exceeds `u32` indices.
 pub(crate) async fn relation_graph(
     sample: &Sample<'_>,
     options: RelationGraphOptions,
@@ -159,6 +210,12 @@ pub(crate) async fn relation_graph(
     })
 }
 
+/// Assembles the symmetric adjacency CSR from the ordered edge stream.
+///
+/// Every entry gets weight `1.0`. Rows without relations stay present as
+/// empty rows, so the matrix shape always covers the whole sample. The
+/// stream's strict `(source, target)` ordering is validated while building;
+/// it implies each pair arrives at most once.
 async fn adjacency_from_stream(
     rows: usize,
     edges: super::sample::QueryEdges<'_>,
@@ -210,6 +267,15 @@ async fn adjacency_from_stream(
     sparse_graph(rows, indptr, indices, values).map_err(From::from)
 }
 
+/// Weights the adjacency and augments it with bounded diffusion.
+///
+/// Direct edges are weighted `1 / sqrt(degree(source) * degree(target))`, so
+/// links between low-degree rows count more than links into well-connected
+/// rows. When diffusion is enabled, each hop's bounded product is symmetrized
+/// by element-wise maximum with its transpose, decayed by
+/// `shared_weight * hop_decay^(hop - 2)`, and merged into the result, again
+/// by element-wise maximum. Non-empty results are rescaled so the global
+/// maximum weight is exactly one.
 fn build_relation_graph(
     adjacency: &SparseGraph,
     options: RelationGraphOptions,
@@ -220,7 +286,11 @@ fn build_relation_graph(
     let degrees = (0..rows)
         .map(|row| (pointers[row + 1] - pointers[row]) as usize)
         .collect::<Vec<_>>();
-    let (indptr, indices, _) = adjacency.clone().into_raw_storage();
+    // Reuse the adjacency structure but not its values; copying only the
+    // pointer and index arrays avoids cloning the value storage just to
+    // overwrite it.
+    let indptr = pointers.to_vec();
+    let indices = adjacency.indices().to_vec();
     let mut values = Vec::with_capacity(indices.len());
 
     for source in 0..rows {
@@ -233,21 +303,42 @@ fn build_relation_graph(
     }
 
     let direct = sparse_graph(rows, indptr, indices, values)?;
-    let mut combined = direct.clone();
-    let mut power = direct.clone();
 
+    // Accumulate the decayed shared-neighbor graphs separately and merge with
+    // the direct graph once at the end; this avoids cloning the direct graph
+    // for the accumulator and for the first hop's product operand.
+    let mut shared_hops: Option<SparseGraph> = None;
     if options.shared_neighbors > 0 && options.shared_weight > 0.0 {
+        let mut power: Option<SparseGraph> = None;
         for hop in 2..=options.hops {
-            power = bounded_product(&direct, &power, options.shared_neighbors)?;
-            let transpose = power.transpose_view().to_csr();
-            let mut shared = elementwise_max(&power, &transpose)?;
+            let next = bounded_product(
+                &direct,
+                power.as_ref().unwrap_or(&direct),
+                options.shared_neighbors,
+            )?;
+            let transpose = next.transpose_view().to_csr();
+            let mut shared = elementwise_max(&next, &transpose)?;
+            #[expect(
+                clippy::cast_possible_truncation,
+                clippy::cast_possible_wrap,
+                reason = "hop counts are tiny"
+            )]
             let weight = options.shared_weight * options.hop_decay.powi(hop as i32 - 2);
             for value in shared.data_mut() {
                 *value *= weight;
             }
-            combined = elementwise_max(&combined, &shared)?;
+            shared_hops = Some(match shared_hops {
+                None => shared,
+                Some(accumulated) => elementwise_max(&accumulated, &shared)?,
+            });
+            power = Some(next);
         }
     }
+
+    let mut combined = match shared_hops {
+        None => direct,
+        Some(shared_hops) => elementwise_max(&direct, &shared_hops)?,
+    };
 
     if let Some(maximum) = combined.data().iter().copied().reduce(f32::max)
         && maximum > 0.0
@@ -260,6 +351,18 @@ fn build_relation_graph(
     Ok(combined)
 }
 
+/// Multiplies two sparse graphs while pruning each output row to the `keep`
+/// heaviest candidates.
+///
+/// Candidates accumulate in a reusable dense accumulator indexed by target
+/// row, with a generation counter standing in for clearing it between rows.
+/// Diagonal entries are dropped. Pruning happens during construction, so
+/// peak memory is bounded by `rows * keep` output entries plus the two
+/// reusable row buffers; the full unpruned product never exists.
+///
+/// Ties at the `keep` boundary are broken by the unstable selection, so the
+/// retained set among equal weights is arbitrary but deterministic for a
+/// given input.
 fn bounded_product(
     left: &SparseGraph,
     right: &SparseGraph,

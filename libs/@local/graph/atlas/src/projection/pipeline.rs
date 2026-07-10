@@ -1,3 +1,10 @@
+//! End-to-end orchestration of the projection fit.
+//!
+//! [`fit_projection`] wires the stages together in dependency order and
+//! enforces the pipeline's central resource rule: the sample's
+//! repeatable-read transaction is committed as soon as relational extraction
+//! finishes, before any long-running numerical stage starts.
+
 use core::{error::Error, fmt};
 use std::path::Path;
 
@@ -18,13 +25,20 @@ use super::{
 };
 use crate::float::FloatBytes;
 
+/// A failure in any stage of the projection fit, tagged by stage.
 #[derive(Debug)]
 pub(crate) enum ProjectionError {
+    /// Sampling or the relational snapshot failed.
     Sample(SampleError),
+    /// PCA initialization failed.
     Initialization(InitializationError),
+    /// Semantic k-NN or fuzzy graph construction failed.
     Semantic(GraphError),
+    /// Structure-feature generation failed.
     Features(StructureFeatureError),
+    /// Relation graph construction failed.
     Relation(RelationGraphError),
+    /// Layout fitting or publication failed.
     Layout(LayoutError),
 }
 
@@ -84,6 +98,7 @@ impl From<LayoutError> for ProjectionError {
     }
 }
 
+/// Per-stage configuration for [`fit_projection`].
 #[derive(Debug, Clone, Default)]
 pub(crate) struct ProjectionOptions {
     pub(crate) pca: PcaOptions,
@@ -93,21 +108,33 @@ pub(crate) struct ProjectionOptions {
     pub(crate) layout: LayoutLadderOptions,
 }
 
+/// Everything a caller needs after the graph and layout stages: inputs for
+/// projector training plus the artifacts that must outlive the fit.
 pub(crate) struct ProjectionArtifacts {
+    /// The sampled embeddings, still mmap-backed.
     pub(crate) embeddings: FloatBytes,
+    /// The hub-free symmetric relation adjacency used for features.
     pub(crate) relation_adjacency: SparseGraph,
+    /// Transient structure features for projector training.
     pub(crate) features: StructureFeatures,
+    /// Stable identities of removed hub rows, in sample-index order.
     pub(crate) hubs: Vec<EntityId>,
+    /// The fitted, persisted layout levels in descending alpha order.
     pub(crate) layouts: Vec<LayoutLevel>,
 }
 
+/// Configuration for [`ProjectionArtifacts::fit_projectors`].
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct ProjectorLadderOptions {
+    /// Training hyperparameters for the first (cold) projector.
     pub(crate) training: TrainingConfig,
+    /// Epoch budget for warm-chained projectors after the first.
     pub(crate) chained_epochs: usize = 8,
 }
 
 impl ProjectionArtifacts {
+    /// Distills every fitted layout level into a projector; see
+    /// [`fit_projectors`].
     pub(crate) fn fit_projectors<B: AutodiffBackend>(
         &self,
         options: ProjectorLadderOptions,
@@ -128,8 +155,18 @@ impl ProjectionArtifacts {
 /// Fits the graph and layout stages while keeping the database snapshot as short-lived as possible.
 ///
 /// Relational preprocessing consumes the temporary sample mapping inside the repeatable-read
-/// transaction. The transaction is then committed before USearch construction, UMAP optimization,
+/// transaction. The transaction is then committed before `USearch` construction, UMAP optimization,
 /// layout persistence, or projector training.
+///
+/// When `initial_coordinates` is `None`, the layout starts from
+/// [`pca_initialization`]; passing coordinates instead warm-starts the ladder,
+/// which is how refits carry a previous layout forward.
+///
+/// # Errors
+///
+/// Returns the first failing stage's error; see [`ProjectionError`]. A
+/// failure before layout publication leaves previously published artifacts
+/// untouched.
 pub(crate) async fn fit_projection(
     sample: Sample<'_>,
     initial_coordinates: Option<Vec<[f32; 2]>>,

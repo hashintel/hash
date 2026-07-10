@@ -1,3 +1,16 @@
+//! Alpha-ladder layout fitting and durable layout publication.
+//!
+//! [`fit_layout_ladder`] walks a descending ladder of alpha levels. Each rung
+//! blends the semantic and relation graphs at its alpha, optimizes the layout
+//! with the parallel UMAP optimizer, and warm-starts the next rung from the
+//! finished coordinates, so consecutive levels stay visually aligned. Every
+//! rung's layout is persisted as a native-endian `layout-aXXX.f32` file and
+//! handed back as an mmap-backed matrix.
+//!
+//! [`fit_projectors`] then distills each persisted level into a projector,
+//! chaining trained weights from rung to rung the same way the layouts chain
+//! coordinates.
+
 use core::{error::Error, fmt, num::NonZero};
 use std::{
     collections::HashSet,
@@ -13,19 +26,28 @@ use tempfile::NamedTempFile;
 use super::{
     graph::{GraphError, SparseGraph, blend_and_reset},
     mlp::{Projector, TrainingConfig},
-    umap::{ParallelOptimizer, SerialUmapOptions, UmapError, fit_curve_parameters},
+    umap::{ParallelOptimizer, UmapError, UmapOptions, fit_curve_parameters},
 };
 use crate::float::FloatBytes;
 
+/// A failure while fitting or publishing the layout ladder.
 #[derive(Debug)]
 pub(crate) enum LayoutError {
+    /// Blending the semantic and relation graphs failed.
     Graph(GraphError),
+    /// The UMAP optimizer rejected its inputs or configuration.
     Umap(UmapError),
+    /// Writing a layout file failed.
     Io(io::Error),
+    /// Publishing a layout file over its destination failed.
     Persist(tempfile::PersistError),
+    /// The ladder contains no alpha values.
     EmptyAlphaLadder,
+    /// An alpha value is outside `[0, 1]` or not finite.
     InvalidAlpha(f32),
+    /// Two alpha values round to the same `aXXX` file tag.
     DuplicateAlphaTag(u16),
+    /// The initial layout row count does not match the graphs.
     InitialRows { expected: usize, actual: usize },
 }
 
@@ -94,17 +116,34 @@ impl From<tempfile::PersistError> for LayoutError {
     }
 }
 
+/// Configuration for [`fit_layout_ladder`].
+///
+/// The first rung runs a cold fit with the full epoch budget and learning
+/// rate; every later rung warm-starts from the previous coordinates and uses
+/// the smaller chained budget and rate.
 #[derive(Debug, Clone)]
 pub(crate) struct LayoutLadderOptions {
+    /// Alpha levels to fit. Sorted descending before fitting, so the ladder
+    /// always starts from the most semantic blend regardless of input order.
     pub(crate) alphas: Vec<f32>,
+    /// Epoch budget for the first (cold) rung.
     pub(crate) first_epochs: usize,
+    /// Epoch budget for every warm-started rung after the first.
     pub(crate) chained_epochs: usize,
+    /// Initial learning rate for the cold rung.
     pub(crate) cold_learning_rate: f64,
+    /// Initial learning rate for warm-started rungs.
     pub(crate) warm_learning_rate: f64,
+    /// Distance below which layout points are considered ideally close; see
+    /// [`fit_curve_parameters`].
     pub(crate) min_distance: f64,
+    /// Scale of distances in the fitted layout; see [`fit_curve_parameters`].
     pub(crate) spread: f64,
+    /// Weight of repulsive negative-sample updates.
     pub(crate) repulsion_strength: f64,
+    /// Negative samples drawn per attractive update.
     pub(crate) negative_sample_rate: usize,
+    /// Seed for the per-rung optimizer RNG states.
     pub(crate) seed: u64,
 }
 
@@ -126,6 +165,13 @@ impl Default for LayoutLadderOptions {
 }
 
 impl LayoutLadderOptions {
+    /// Sorts the ladder descending and derives each rung's `aXXX` file tag.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the ladder is empty, when an alpha is outside
+    /// `[0, 1]`, or when two alphas collide on the same rounded tag (which
+    /// would silently overwrite a layout file).
     fn validate(mut self) -> Result<(Self, Vec<u16>), LayoutError> {
         if self.alphas.is_empty() {
             return Err(LayoutError::EmptyAlphaLadder);
@@ -156,12 +202,30 @@ impl LayoutLadderOptions {
     }
 }
 
+/// One fitted and persisted rung of the alpha ladder.
 pub(crate) struct LayoutLevel {
+    /// The blend level this layout was fitted at.
     pub(crate) alpha: f32,
+    /// The published `layout-aXXX.f32` file.
     pub(crate) path: Utf8PathBuf,
+    /// The persisted coordinates, mmap-backed with two values per row.
     pub(crate) coordinates: FloatBytes,
 }
 
+/// Fits one layout per alpha level and publishes each as a native-endian
+/// `layout-aXXX.f32` file under `out`.
+///
+/// Levels are fitted in descending alpha order and returned in that order.
+/// Each rung's fused graph is dropped before the next is built, so at most
+/// one fused graph is alive at a time. Publication uses temporary-file
+/// hotswaps: an existing layout file is only replaced once its successor is
+/// fully written and synced.
+///
+/// # Errors
+///
+/// Returns an error when the options are invalid, when the initial layout
+/// length does not match the graphs, when blending or optimization fails, or
+/// when a layout file cannot be written or published.
 pub(crate) fn fit_layout_ladder(
     semantic: &SparseGraph,
     relation: &SparseGraph,
@@ -184,7 +248,7 @@ pub(crate) fn fit_layout_ladder(
     for (rung, (&alpha, tag)) in options.alphas.iter().zip(tags).enumerate() {
         let graph = blend_and_reset(semantic, relation, alpha)?;
         let first = rung == 0;
-        let optimizer_options = SerialUmapOptions {
+        let optimizer_options = UmapOptions {
             epochs: if first {
                 options.first_epochs
             } else {
@@ -225,6 +289,11 @@ pub(crate) fn fit_layout_ladder(
     Ok(levels)
 }
 
+/// Writes coordinates to a temporary file, syncs it, and swaps it over
+/// `path`.
+///
+/// The destination is never deleted first: a crash mid-publication leaves
+/// the previous layout file intact.
 fn persist_layout(path: &Utf8Path, coordinates: &[[f32; 2]]) -> Result<(), LayoutError> {
     let parent = path.parent().ok_or_else(|| {
         io::Error::new(
@@ -247,6 +316,10 @@ fn persist_layout(path: &Utf8Path, coordinates: &[[f32; 2]]) -> Result<(), Layou
     Ok(())
 }
 
+/// Derives a rung-specific optimizer RNG state via `SplitMix64`.
+///
+/// Each rung gets an independent, deterministic stream, so re-fitting the
+/// same ladder reproduces the same layouts rung for rung.
 fn rung_random_state(seed: u64, rung: usize) -> [i64; 3] {
     let mut state = seed.wrapping_add(rung as u64);
     core::array::from_fn(|_| {
@@ -258,6 +331,19 @@ fn rung_random_state(seed: u64, rung: usize) -> [i64; 3] {
     })
 }
 
+/// Distills each fitted layout level into a [`Projector`], chaining weights
+/// between rungs.
+///
+/// The first level trains from fresh weights with the caller's full epoch
+/// budget; every later level starts from the previous level's trained
+/// weights and uses `chained_epochs`, mirroring how the layouts themselves
+/// warm-start. The returned projectors pair each alpha with its trained
+/// encoder on the inference backend, in ladder order.
+///
+/// # Panics
+///
+/// Panics when the features and a level's coordinates disagree on row count
+/// or when the training configuration is invalid; see [`Projector::fit`].
 pub(crate) fn fit_projectors<B: AutodiffBackend>(
     features: FloatBytes,
     levels: &[LayoutLevel],

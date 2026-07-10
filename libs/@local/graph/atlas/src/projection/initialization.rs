@@ -1,3 +1,11 @@
+//! Bounded-memory PCA initialization for cold layout fits.
+//!
+//! A UMAP layout converges faster and more reproducibly from a structured
+//! start than from random noise. [`pca_initialization`] projects every
+//! sampled embedding onto its two dominant principal axes, fitting the basis
+//! on a bounded sketch of rows so initialization cost stays flat as the
+//! sample grows.
+
 use core::{error::Error, fmt};
 
 use faer::Mat;
@@ -5,12 +13,18 @@ use rayon::prelude::*;
 
 use crate::float::FloatBytes;
 
+/// A failure while computing the PCA initialization.
 #[derive(Debug)]
 pub(crate) enum InitializationError {
+    /// The sample has fewer than two rows.
     TooFewRows(usize),
+    /// The sketch size option is below two.
     InvalidSketchRows(usize),
+    /// The singular value decomposition failed.
     Decomposition(String),
+    /// The embeddings do not span two usable principal axes.
     RankDeficient,
+    /// A projected coordinate is NaN or infinite.
     NonFiniteCoordinate { row: usize, axis: usize, value: f32 },
 }
 
@@ -43,12 +57,27 @@ impl fmt::Display for InitializationError {
 
 impl Error for InitializationError {}
 
+/// Configuration for [`pca_initialization`].
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct PcaOptions {
     /// Number of rows used to fit the principal basis. Projection still covers every row.
     pub(crate) sketch_rows: usize = 2_048,
 }
 
+/// Projects every embedding onto the sample's two dominant principal axes.
+///
+/// The mean is computed over all rows in parallel, the principal basis is
+/// fitted by thin SVD on an evenly strided sketch of at most
+/// [`PcaOptions::sketch_rows`] centered rows, and then every row is projected
+/// onto the first two right singular vectors. Peak additional memory is the
+/// sketch matrix plus the output; the embeddings themselves are read from
+/// their shared mapping. The result is deterministic for a given sample.
+///
+/// # Errors
+///
+/// Returns an error when fewer than two rows or sketch rows are available,
+/// when the decomposition fails or yields fewer than two non-degenerate
+/// components, or when a projected coordinate is not finite.
 pub(crate) fn pca_initialization(
     embeddings: &FloatBytes,
     options: PcaOptions,

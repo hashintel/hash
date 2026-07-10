@@ -68,11 +68,21 @@ impl FloatBytes {
     /// Copies native-endian floats into shared owned storage.
     ///
     /// Prefer [`Self::from_vec`] when the caller already owns the allocation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `values` is not a whole number of `dim`-value
+    /// rows.
     pub fn from_slice(values: &[f32], dim: NonZero<usize>) -> io::Result<Self> {
         Self::from_vec(values.to_vec(), dim)
     }
 
     /// Transfers a vector of native-endian floats into shared storage without copying it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `values` is not a whole number of `dim`-value
+    /// rows.
     pub fn from_vec(values: Vec<f32>, dim: NonZero<usize>) -> io::Result<Self> {
         let dimensions = dim.get();
         if !values.len().is_multiple_of(dimensions) {
