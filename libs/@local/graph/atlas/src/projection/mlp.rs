@@ -1,4 +1,3 @@
-use core::num::NonZero;
 use std::path::Path;
 
 use burn::{
@@ -26,7 +25,7 @@ use burn::{
         },
     },
 };
-use rand::{RngExt as _, SeedableRng as _, seq::SliceRandom};
+use rand::{SeedableRng as _, seq::SliceRandom};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use crate::float::{FloatBytes, Sample};
@@ -180,9 +179,10 @@ impl<B: Backend> InferenceStep for Projector<B> {
 impl<B: AutodiffBackend> Projector<B> {
     /// Distills the layout into this encoder.
     ///
-    /// `xs` are the input embeddings and `ys` the target map coordinates,
-    /// both as row-major matrices: `xs` is `n * input_dim` values, `ys` is
-    /// `n * 2`.
+    /// `xs` are the input embeddings and `ys` the target map coordinates:
+    /// row `i` of `xs` is the embedding of the entity whose coordinates are
+    /// row `i` of `ys`, so both must have the same number of rows and `ys`
+    /// must be 2 wide.
     ///
     /// The rows are split into training and validation sets (seeded by
     /// `config.seed`), and the model is trained with MSE loss, Adam, and a
@@ -210,20 +210,19 @@ impl<B: AutodiffBackend> Projector<B> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(config.seed);
 
         assert!(!ys.is_empty(), "training data must not be empty");
-        assert!(
-            ys.len().is_multiple_of(OUTPUT_DIM),
-            "`ys` must be `n * {OUTPUT_DIM}` values"
+        assert_eq!(
+            ys.dim(),
+            OUTPUT_DIM,
+            "`ys` rows must be {OUTPUT_DIM}-wide map coordinates"
         );
-
-        let n = NonZero::new(ys.len() / OUTPUT_DIM)
-            .unwrap_or_else(|| unreachable!("n must be non-zero by construction"));
-
-        assert!(
-            xs.len().is_multiple_of(n.get()),
+        assert_eq!(
+            xs.len(),
+            ys.len(),
             "`xs` and `ys` must have the same number of rows"
         );
 
-        let input_dim = xs.len() / n;
+        let n = xs.len();
+        let input_dim = xs.dim();
 
         B::seed(device, config.seed);
 
@@ -236,9 +235,9 @@ impl<B: AutodiffBackend> Projector<B> {
             clippy::cast_sign_loss,
             clippy::cast_possible_truncation
         )]
-        let n_val = (n.get() as f64 * config.validation_fraction) as usize;
+        let n_val = (n as f64 * config.validation_fraction) as usize;
 
-        let mut permutation: Vec<usize> = (0..n.get()).collect();
+        let mut permutation: Vec<usize> = (0..n).collect();
         permutation.shuffle(&mut rng);
 
         let indices_val = permutation.split_off(permutation.len() - n_val);

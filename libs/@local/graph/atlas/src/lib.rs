@@ -19,5 +19,11 @@
     pointer_is_aligned_to,
     int_roundings
 )]
-mod float;
+#![expect(
+    dead_code,
+    clippy::integer_division,
+    clippy::integer_division_remainder_used,
+    clippy::float_arithmetic
+)]
+pub mod float;
 pub mod projection;
