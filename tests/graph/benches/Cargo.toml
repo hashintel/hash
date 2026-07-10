@@ -14,9 +14,9 @@ autobenches = false
 
 [dev-dependencies]
 # Private workspace dependencies
-error-stack                    = { workspace = true }
-hash-graph-api                 = { workspace = true }
-hash-graph-authorization       = { workspace = true }
+error-stack              = { workspace = true }
+hash-graph-api           = { workspace = true }
+hash-graph-authorization = { workspace = true }
 # `test-utils` enables the `BeginReadOnlyTransaction` impl for `InTransaction` stores, which the
 # transaction-wrapped seeding helpers rely on. See `TODO(BE-688)`.
 hash-graph-postgres-store      = { workspace = true, features = ["test-utils"] }
