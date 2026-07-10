@@ -12,7 +12,7 @@ It does not expose HTTP or TCP.
 Build first:
 
 ```bash
-yarn workspace @hashintel/petrinaut-cli build
+turbo --filter @hashintel/petrinaut-cli build
 ```
 
 Start the model process:
