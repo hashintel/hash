@@ -2013,7 +2013,7 @@ where
         // The entity edition cache derives type titles, labels (via `closed_schema`), and
         // the inherited type entries from the data rebuilt above, so it has to be rebuilt
         // as well — otherwise it silently keeps serving the pre-reindex schemas.
-        transaction.reindex_entity_cache().await?;
+        transaction.reindex_entity_cache_impl().await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

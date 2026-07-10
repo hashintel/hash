@@ -757,7 +757,7 @@ where
                 .collect::<Vec<_>>();
 
             let update_permissions = self
-                .has_permission_for_entities(
+                .has_permission_for_entities_impl(
                     policy_components.actor_id().into(),
                     HasPermissionForEntitiesParams {
                         action: ActionName::UpdateEntity,
@@ -970,7 +970,7 @@ where
                         .collect::<Vec<_>>();
 
                     let update_permissions = self
-                        .has_permission_for_entities(
+                        .has_permission_for_entities_impl(
                             actor.into(),
                             HasPermissionForEntitiesParams {
                                 action: ActionName::UpdateEntity,
@@ -1016,13 +1016,8 @@ where
     /// # Errors
     ///
     /// - if the database rejects one of the rebuild statements
-    #[expect(
-        clippy::same_name_method,
-        reason = "the `EntityStore` method of the same name delegates here; sharing the name \
-                  keeps every call site uniform regardless of which impl is available"
-    )]
     #[tracing::instrument(level = "info", skip(self))]
-    pub(crate) async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
+    pub(crate) async fn reindex_entity_cache_impl(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity cache");
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
@@ -1085,13 +1080,8 @@ where
     /// # Errors
     ///
     /// - if the permission filter cannot be compiled or the underlying query fails
-    #[expect(
-        clippy::same_name_method,
-        reason = "the `EntityStore` method of the same name delegates here; sharing the name \
-                  keeps every call site uniform regardless of which impl is available"
-    )]
     #[tracing::instrument(skip(self, params))]
-    pub(crate) async fn has_permission_for_entities(
+    pub(crate) async fn has_permission_for_entities_impl(
         &self,
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntitiesParams<'_>,
@@ -2775,10 +2765,10 @@ where
     }
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
-        // Delegates to the inherent method on `PostgresStore<C, S>` (which takes precedence in
-        // method resolution), so the rebuild is also reachable where the `EntityStore` impl —
-        // bounded on `BeginReadOnlyTransaction` — is unavailable.
-        self.reindex_entity_cache().await
+        // Delegates to the inherent method on `PostgresStore<C, S>`, so the rebuild is also
+        // reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` — is
+        // unavailable.
+        self.reindex_entity_cache_impl().await
     }
 
     async fn has_permission_for_entities(
@@ -2786,10 +2776,10 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
-        // Delegates to the inherent method on `PostgresStore<C, S>` (which takes precedence in
-        // method resolution), so the permission check is also reachable where the `EntityStore`
-        // impl — bounded on `BeginReadOnlyTransaction` — is unavailable.
-        self.has_permission_for_entities(authenticated_actor, params)
+        // Delegates to the inherent method on `PostgresStore<C, S>`, so the permission check is
+        // also reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` —
+        // is unavailable.
+        self.has_permission_for_entities_impl(authenticated_actor, params)
             .await
     }
 
@@ -2831,7 +2821,7 @@ where
 
         // Filter to entities the actor is allowed to view.
         let permitted = self
-            .has_permission_for_entities(
+            .has_permission_for_entities_impl(
                 AuthenticatedActor::from(actor_id),
                 HasPermissionForEntitiesParams {
                     action: ActionName::ViewEntity,
@@ -3009,7 +2999,7 @@ struct LockedEntityEdition {
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
 /// The write paths pass `scoped` to restrict it to the just-written editions
-/// (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all editions. Must run
+/// (`$1: UUID[]`), `reindex_entity_cache_impl` runs it unscoped over all editions. Must run
 /// after the editions' `entity_is_of_type` rows (including the inherited ones) have been
 /// written.
 fn insert_entity_edition_cache_statement(scoped: bool) -> String {

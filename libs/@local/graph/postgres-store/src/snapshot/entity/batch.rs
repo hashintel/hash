@@ -249,7 +249,7 @@ where
             .change_context(InsertionError)?;
 
         postgres_client
-            .reindex_entity_cache()
+            .reindex_entity_cache_impl()
             .await
             .change_context(InsertionError)?;
 
@@ -387,7 +387,7 @@ where
         // values written above would otherwise leave stale label entries behind.
         if !edition_ids_updates.is_empty() {
             postgres_client
-                .reindex_entity_cache()
+                .reindex_entity_cache_impl()
                 .await
                 .change_context(InsertionError)?;
         }
