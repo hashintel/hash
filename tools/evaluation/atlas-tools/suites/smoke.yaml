@@ -34,7 +34,16 @@ datasets:
     params: { dim: 32, isolate_frac: 0.3, n_clusters: 10 }
   - shape: mixed
     n: 1000
-    params: { dim: 32 }
+    params:
+      components:
+        - weight: 0.35
+          generator: { shape: clique_communities, params: { dim: 32 } }
+        - weight: 0.25
+          generator: { shape: bipartite_star, params: { dim: 32 } }
+        - weight: 0.2
+          generator: { shape: chains, params: { dim: 32 } }
+        - weight: 0.2
+          generator: { shape: isolates, params: { dim: 32 } }
 # Gate thresholds tuned on measured smoke runs (2026-07): pca2d, umap_tuned
 # and umap_default all clear every gate with >=1.5x headroom over their
 # measured worst case, while a row-shuffled layout lands at chance and fails

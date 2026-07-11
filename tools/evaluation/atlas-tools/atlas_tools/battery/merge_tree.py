@@ -35,17 +35,27 @@ trustworthiness/continuity), per the atlas spec: "Persistence does not
 replace neighbor metrics; both are required."
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
 from scipy.ndimage import gaussian_filter
 
 DEFAULT_GRID_SIZE = 1024
 DEFAULT_BANDWIDTH_PX = 4.0
 DEFAULT_FLOOR_FRAC = 0.005
 DEFAULT_PERSISTENCE_FRAC = 0.05
+
+
+class MergeTreeConfig(BaseModel):
+    """Raster + sweep parameters (PRD defaults)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    grid_size: PositiveInt = DEFAULT_GRID_SIZE
+    bandwidth_px: PositiveFloat = DEFAULT_BANDWIDTH_PX
+    floor_frac: PositiveFloat = DEFAULT_FLOOR_FRAC
+    persistence_frac: PositiveFloat = DEFAULT_PERSISTENCE_FRAC
 
 
 @dataclass(frozen=True)
@@ -205,16 +215,16 @@ def merge_tree_from_density(
 
 
 def merge_tree_persistence(
-    xy: np.ndarray,
-    *,
-    grid_size: int = DEFAULT_GRID_SIZE,
-    bandwidth_px: float = DEFAULT_BANDWIDTH_PX,
-    floor_frac: float = DEFAULT_FLOOR_FRAC,
-    persistence_frac: float = DEFAULT_PERSISTENCE_FRAC,
+    xy: np.ndarray, config: MergeTreeConfig | None = None
 ) -> MergeTreeResult:
     """Merge-tree leaf persistence of a layout (raster + sweep composed)."""
-    raster = density_raster(xy, grid_size=grid_size, bandwidth_px=bandwidth_px)
+    config = config if config is not None else MergeTreeConfig()
+    raster = density_raster(
+        xy, grid_size=config.grid_size, bandwidth_px=config.bandwidth_px
+    )
 
     return merge_tree_from_density(
-        raster, floor_frac=floor_frac, persistence_frac=persistence_frac
+        raster,
+        floor_frac=config.floor_frac,
+        persistence_frac=config.persistence_frac,
     )

@@ -252,13 +252,14 @@ def test_umap_baselines_pass_smoke_gates(tmp_path):
 
 def test_suite_loading_validation(tmp_path):
     ok = load_suite(SMOKE_SUITE)
-    assert ok["version"] == 1
-    assert [d["shape"] for d in ok["datasets"]].count("noise_edges") == 1
-    assert ok["merge_tree"]["floor_frac"] == 0.005
+    assert ok.version == 1
+    assert ok.shapes().count("noise_edges") == 1
+    assert ok.merge_tree.floor_frac == 0.005
 
     bad_version = tmp_path / "v.yaml"
     bad_version.write_text("version: 3\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="version: 1"):
+    # Pydantic's Literal[1] rejection message: "version ... Input should be 1".
+    with pytest.raises(ValueError, match=r"version\s+Input should be 1"):
         load_suite(bad_version)
 
     bad_shape = tmp_path / "s.yaml"
@@ -272,7 +273,8 @@ def test_suite_loading_validation(tmp_path):
         ),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="unknown shape"):
+    # Discriminated-union rejection names the bad tag and the known ones.
+    with pytest.raises(ValueError, match="'nope'.*does not match any of the"):
         load_suite(bad_shape)
 
     bad_gate = tmp_path / "g.yaml"

@@ -29,26 +29,13 @@ mechanism: same command, a bigger layout.npz, and its recorded values.
 
 from __future__ import annotations
 
-from pathlib import Path
+from os import PathLike
 from typing import Any
 
 import yaml
 
-from atlas_tools.battery.merge_tree import (
-    DEFAULT_BANDWIDTH_PX,
-    DEFAULT_FLOOR_FRAC,
-    DEFAULT_GRID_SIZE,
-    DEFAULT_PERSISTENCE_FRAC,
-    merge_tree_persistence,
-)
+from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
 from atlas_tools.common.layout import load_layout
-
-MERGE_TREE_DEFAULTS: dict[str, Any] = {
-    "grid_size": DEFAULT_GRID_SIZE,
-    "bandwidth_px": DEFAULT_BANDWIDTH_PX,
-    "floor_frac": DEFAULT_FLOOR_FRAC,
-    "persistence_frac": DEFAULT_PERSISTENCE_FRAC,
-}
 
 TOLERANCE_DEFAULTS: dict[str, float] = {
     "leaf_count_frac": 0.03,
@@ -56,9 +43,7 @@ TOLERANCE_DEFAULTS: dict[str, float] = {
 }
 
 
-def run_calibration(
-    layout_path: Path | str, manifest_path: Path | str
-) -> dict[str, Any]:
+def run_calibration(layout_path: PathLike, manifest_path: PathLike) -> dict[str, Any]:
     """Compute merge-tree stats and compare with the reference manifest."""
     with open(manifest_path, encoding="utf-8") as f:
         manifest = yaml.safe_load(f)
@@ -66,21 +51,17 @@ def run_calibration(
         raise ValueError(
             f"{manifest_path}: calibration manifest must declare 'version: 1'"
         )
+
     expected = manifest.get("expected") or {}
     for key in ("leaf_count", "normalized_persistence"):
         if key not in expected:
             raise ValueError(f"{manifest_path}: expected.{key} is required")
-    params = {**MERGE_TREE_DEFAULTS, **(manifest.get("merge_tree") or {})}
+
+    params = MergeTreeConfig.model_validate(manifest.get("merge_tree") or {})
     tolerances = {**TOLERANCE_DEFAULTS, **(manifest.get("tolerances") or {})}
 
     artifact = load_layout(layout_path)
-    result = merge_tree_persistence(
-        artifact.xy,
-        grid_size=params["grid_size"],
-        bandwidth_px=params["bandwidth_px"],
-        floor_frac=params["floor_frac"],
-        persistence_frac=params["persistence_frac"],
-    )
+    result = merge_tree_persistence(artifact.xy, params)
 
     checks = []
     for name, actual, frac_key in (
@@ -94,6 +75,7 @@ def run_calibration(
         exp = float(expected[name])
         frac = float(tolerances[frac_key])
         limit = frac * abs(exp)
+
         checks.append(
             {
                 "name": name,
@@ -104,10 +86,11 @@ def run_calibration(
                 "pass": bool(abs(actual - exp) <= limit),
             }
         )
+
     return {
-        "pass": all(c["pass"] for c in checks),
+        "pass": all(check["pass"] for check in checks),
         "checks": checks,
-        "params": params,
+        "params": params.model_dump(mode="json"),
         "layout": str(layout_path),
         "manifest": str(manifest_path),
     }

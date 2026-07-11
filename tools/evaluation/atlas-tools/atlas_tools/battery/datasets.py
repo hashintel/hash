@@ -19,8 +19,6 @@ functions of (config, seed); only sidecar ``created_at`` fields carry
 wall-clock time, and those are excluded from all hashes.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path

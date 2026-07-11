@@ -48,8 +48,6 @@ engine with edges disabled. Rules per engine:
   gate, not a reported number.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 import pandas as pd
@@ -272,21 +270,24 @@ def _noise_differential(
 
 
 def evaluate_gates(
-    df: pd.DataFrame, suite: dict[str, Any], engines: list[EngineSpec]
+    df: pd.DataFrame,
+    engines: list[EngineSpec],
+    *,
+    suite_shapes: list[str],
+    gate_configs: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Evaluate all configured gates plus the hard noise differential.
 
     Returns the ``gates.json`` payload: structured pass/fail with reasons,
     per engine.
     """
-    suite_shapes = [d["shape"] for d in suite["datasets"]]
     noise_shapes = [s for s in suite_shapes if s == NOISE_SHAPE]
     engine_names = {spec.name for spec in engines}
 
     engines_out: dict[str, Any] = {}
     for spec in engines:
         entries = []
-        for gate in suite.get("gates", []):
+        for gate in gate_configs:
             shapes = gate.get("shapes") or suite_shapes
             for shape in shapes:
                 entries.append(

@@ -13,8 +13,6 @@ Commands:
   dataset artifact directory.
 """
 
-from __future__ import annotations
-
 import json
 import sys
 
@@ -74,7 +72,7 @@ def calibrate_cmd(layout_path: str, manifest_path: str) -> None:
 @click.option(
     "--shape",
     required=True,
-    type=click.Choice(sorted(gen_mod.REGISTRY)),
+    type=click.Choice(gen_mod.generator_shapes()),
 )
 @click.option("--n", type=int, default=None)
 @click.option("--dim", type=int, default=None)
@@ -95,12 +93,14 @@ def generate_cmd(
     out_dir: str,
 ) -> None:
     """Generate one planted-shape dataset artifact directory."""
-    config = dict(json.loads(params_json)) if params_json else {}
-    if n is not None:
-        config["n"] = n
+    params = dict(json.loads(params_json)) if params_json else {}
     if dim is not None:
-        config["dim"] = dim
-    dataset = gen_mod.generate(shape, config, seed)
+        params["dim"] = dim
+    spec: dict[str, object] = {"shape": shape, "params": params}
+    if n is not None:
+        spec["n"] = n
+    generator = gen_mod.generator_adapter.validate_python(spec)
+    dataset = generator.run(seed)
     hashes = write_dataset(dataset, out_dir)
     click.echo(
         f"wrote {dataset.shape}: n={dataset.n}"

@@ -83,7 +83,7 @@ class EngineSpec(BaseModel):
         return None
 
 
-def load_engines(path: Path | str) -> list[EngineSpec]:
+def load_engines(path: PathLike) -> list[EngineSpec]:
     """Load and validate a versioned engines YAML file."""
     with open(path, encoding="utf-8") as file:
         data = yaml.safe_load(file)
@@ -92,11 +92,12 @@ def load_engines(path: Path | str) -> list[EngineSpec]:
     return engine_file.engines
 
 
-def load_engines_raw(path: Path | str) -> dict[str, Any]:
+def load_engines_raw(path: PathLike) -> dict[str, Any]:
     """The raw (validated) YAML dict, for hashing into the manifest."""
     load_engines(path)
-    with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+
+    with open(path, encoding="utf-8") as file:
+        return yaml.safe_load(file)
 
 
 def render_command(template: str, mapping: dict[str, str]) -> list[str]:

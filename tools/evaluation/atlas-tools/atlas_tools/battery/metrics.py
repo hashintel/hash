@@ -14,8 +14,6 @@ Conventions:
   gated shape as a failure (fail closed).
 """
 
-from __future__ import annotations
-
 from typing import Literal, Never
 
 import numpy as np

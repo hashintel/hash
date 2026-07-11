@@ -12,7 +12,10 @@ from atlas_tools.battery.engine_runner import (
     render_command,
     run_engine,
 )
-from atlas_tools.battery.generators import generate
+from atlas_tools.battery.generators import (
+    CliqueCommunitiesGenerator,
+    CliqueCommunitiesParams,
+)
 from atlas_tools.common.layout import load_layout, write_layout
 
 PCA = "{python} -m atlas_tools.battery.engines.pca_cli --embeddings {embeddings} --out {out} --seed {seed}"
@@ -25,7 +28,9 @@ CHEAT_NO_EDGES = "{python} -m atlas_tools.battery.engines.cheat_cli --embeddings
 @pytest.fixture(scope="module")
 def dataset_dir(tmp_path_factory):
     root = tmp_path_factory.mktemp("engine-cli-dataset")
-    dataset = generate("clique_communities", {"n": 150, "dim": 8}, seed=0)
+    dataset = CliqueCommunitiesGenerator(
+        n=150, params=CliqueCommunitiesParams(dim=8)
+    ).run(0)
     write_dataset(dataset, root)
     return root, dataset
 

@@ -44,21 +44,26 @@ with-edges layout relative to its same-seed no-relation twin); on shapes
 without a no-edges twin, ``contraction_factor`` is null.
 """
 
-from __future__ import annotations
-
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from importlib import metadata as importlib_metadata
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import numpy as np
 import pandas as pd
 import yaml
-from pydantic import BaseModel, DirectoryPath, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    DirectoryPath,
+    Field,
+    PositiveInt,
+    model_validator,
+)
 
-from atlas_tools.battery.datasets import write_dataset
+from atlas_tools.battery.datasets import Dataset, write_dataset
 from atlas_tools.battery.engine_runner import (
     EngineSpec,
     load_aligned_layout,
@@ -71,8 +76,8 @@ from atlas_tools.battery.gates import (
     evaluate_gates,
     validate_gates_config,
 )
-from atlas_tools.battery.generators import REGISTRY, Generator, generate
-from atlas_tools.battery.merge_tree import merge_tree_persistence
+from atlas_tools.battery.generators import Generator
+from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
 from atlas_tools.battery.metrics import (
     contraction_factor,
     edge_binding_ratio,
@@ -87,22 +92,6 @@ from atlas_tools.common.provenance import (
     canonical_json_bytes,
     sha256_bytes,
 )
-
-SUITE_DEFAULTS: dict[str, Any] = {
-    "knn_ks": [15, 30, 50],
-    "tc_neighbors": 15,
-    "tc_sample": 2000,
-    "silhouette_sample": 5000,
-    "merge_tree": {},
-    "gates": [],
-}
-
-MERGE_TREE_DEFAULTS: dict[str, Any] = {
-    "grid_size": 1024,
-    "bandwidth_px": 4.0,
-    "floor_frac": 0.005,
-    "persistence_frac": 0.05,
-}
 
 METRIC_ORDER = [
     "leaf_count",
@@ -119,53 +108,46 @@ METRIC_ORDER = [
 _VERSIONED_LIBS = ("numpy", "scipy", "scikit-learn", "umap-learn", "pandas", "pyarrow")
 
 
-class MergeTreeConfig(BaseModel):
-    grid_size: int = 1024
-    bandwidth_px: float = 4.0
-    floor_frac: float = 0.005
-    persistence_frac: float = 0.05
-
-
 class Suite(BaseModel):
     version: Literal[1]
-    name: str
-    seeds: list[int]
+    # Defaults to the suite file's stem when omitted (see load_suite).
+    name: str = ""
+    seeds: list[int] = Field(min_length=1)
     knn_ks: list[int] = Field(default_factory=lambda: [15, 30, 50])
-    tc_neighbors: int = 15
-    tc_sample: int = 2000
-    silhouette_sample: int = 5000
+    tc_neighbors: PositiveInt = 15
+    tc_sample: PositiveInt = 2000
+    silhouette_sample: PositiveInt = 5000
     merge_tree: MergeTreeConfig = Field(default_factory=MergeTreeConfig)
-    datasets: list[Generator]
+    datasets: list[Generator] = Field(min_length=1)
+    # Gate entries stay free-form JSON; battery.gates owns their schema.
+    gates: list[JsonDict] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def check_unique_shapes(self) -> Self:
+        shapes = self.shapes()
+        duplicates = sorted({shape for shape in shapes if shapes.count(shape) > 1})
+
+        if duplicates:
+            raise ValueError(f"duplicate shapes in suite: {duplicates}")
+
+        return self
+
+    def shapes(self) -> list[str]:
+        return [generator.shape for generator in self.datasets]
 
 
-def load_suite(path: Path | str) -> dict[str, Any]:
+def load_suite(path: os.PathLike) -> Suite:
     """Load and validate a versioned suite YAML; fill defaults."""
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    if not isinstance(data, dict) or data.get("version") != 1:
-        raise ValueError(f"{path}: suite config must declare 'version: 1'")
-    suite = {**SUITE_DEFAULTS, **data}
-    suite["name"] = str(suite.get("name") or Path(path).stem)
-    seeds = suite.get("seeds")
-    if not seeds or not all(isinstance(s, int) for s in seeds):
-        raise ValueError(f"{path}: suite needs a non-empty integer 'seeds' list")
-    datasets = suite.get("datasets")
-    if not datasets:
-        raise ValueError(f"{path}: suite lists no datasets")
-    shapes = []
-    for entry in datasets:
-        shape = entry.get("shape")
-        if shape not in REGISTRY:
-            raise ValueError(
-                f"{path}: unknown shape {shape!r}; known: {sorted(REGISTRY)}"
-            )
-        if shape in shapes:
-            raise ValueError(f"{path}: duplicate shape {shape!r} in suite")
-        shapes.append(shape)
-        if not isinstance(entry.get("n"), int) or entry["n"] <= 0:
-            raise ValueError(f"{path}: dataset {shape!r} needs positive int 'n'")
-    suite["merge_tree"] = {**MERGE_TREE_DEFAULTS, **(suite.get("merge_tree") or {})}
-    validate_gates_config(suite["gates"], shapes)
+    with open(path, encoding="utf-8") as file:
+        data = yaml.safe_load(file)
+
+    suite = Suite.model_validate(data)
+    if not suite.name:
+        suite.name = Path(path).stem
+
+    validate_gates_config(suite.gates, suite.shapes())
     return suite
 
 
@@ -199,33 +181,26 @@ class _Task(BaseModel):
 
 
 def _compute_metrics(
-    dataset: SuiteDataset, xy: np.ndarray, suite: dict[str, Any], seed: int
+    dataset: Dataset, xy: np.ndarray, suite: Suite, seed: int
 ) -> dict[str, float | None]:
-    mt_cfg = suite["merge_tree"]
-    mt = merge_tree_persistence(
-        xy,
-        grid_size=mt_cfg["grid_size"],
-        bandwidth_px=mt_cfg["bandwidth_px"],
-        floor_frac=mt_cfg["floor_frac"],
-        persistence_frac=mt_cfg["persistence_frac"],
-    )
+    merge_tree = merge_tree_persistence(xy, suite.merge_tree)
     metrics: dict[str, float | None] = {
-        "leaf_count": float(mt.leaf_count),
-        "total_persistence": mt.total_persistence,
-        "normalized_persistence": mt.normalized_persistence,
+        "leaf_count": float(merge_tree.leaf_count),
+        "total_persistence": merge_tree.total_persistence,
+        "normalized_persistence": merge_tree.normalized_persistence,
     }
-    metrics.update(knn_recall(xy, dataset.embeddings, suite["knn_ks"]))
+    metrics.update(knn_recall(xy, dataset.embeddings, suite.knn_ks))
     trust, continuity = trustworthiness_continuity(
         dataset.embeddings,
         xy,
-        n_neighbors=suite["tc_neighbors"],
-        sample_size=suite["tc_sample"],
+        n_neighbors=suite.tc_neighbors,
+        sample_size=suite.tc_sample,
         seed=seed,
     )
     metrics["trustworthiness"] = trust
     metrics["continuity"] = continuity
     metrics["silhouette"] = silhouette_on_labels(
-        xy, dataset.labels, sample_size=suite["silhouette_sample"], seed=seed
+        xy, dataset.labels, sample_size=suite.silhouette_sample, seed=seed
     )
     metrics["pendant_diffusion"] = pendant_diffusion(xy, dataset.edges, dataset.labels)
     metrics["edge_binding"] = edge_binding_ratio(xy, dataset.edges, seed=seed)
@@ -233,9 +208,9 @@ def _compute_metrics(
 
 
 def run_suite(
-    suite_path: Path | str,
-    engines_path: Path | str,
-    out_dir: Path | str,
+    suite_path: os.PathLike,
+    engines_path: os.PathLike,
+    out_dir: os.PathLike,
     *,
     jobs: int | None = None,
 ) -> dict[str, Any]:
@@ -243,21 +218,23 @@ def run_suite(
     suite = load_suite(suite_path)
     engines = load_engines(engines_path)
     engines_raw = load_engines_raw(engines_path)
+
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     jobs = jobs or min(8, os.cpu_count() or 1)
 
-    # 1. Generate all datasets (deterministic in (config, seed)).
-    datasets: dict[tuple[str, int], tuple[SuiteDataset, Path]] = {}
+    # 1. Generate all datasets (deterministic in (generator, seed)).
+    datasets: dict[tuple[str, int], tuple[Dataset, Path]] = {}
     dataset_hashes: dict[str, dict[str, str]] = {}
-    for entry in suite["datasets"]:
-        for seed in suite["seeds"]:
-            config = {"n": entry["n"], **(entry.get("params") or {})}
-            dataset = generate(entry["shape"], config, seed)
+
+    for generator in suite.datasets:
+        for seed in suite.seeds:
+            dataset = generator.run(seed)
             dataset_directory = out / "datasets" / f"{dataset.shape}-s{seed}"
             dataset_hashes[f"{dataset.shape}-s{seed}"] = write_dataset(
                 dataset, dataset_directory
             )
+
             datasets[(dataset.shape, seed)] = (dataset, dataset_directory)
 
     # 2. Build the run matrix (plus no-edges twins on noise_edges).
@@ -265,6 +242,7 @@ def run_suite(
     for spec in engines:
         for (shape, seed), (_, dataset_directory) in datasets.items():
             base = out / "layouts" / spec.name / f"{shape}-s{seed}"
+
             tasks.append(
                 _Task(
                     spec=spec,
@@ -275,6 +253,7 @@ def run_suite(
                     layout_path=base / "edges" / "layout.npz",
                 )
             )
+
             if (
                 shape == NOISE_SHAPE
                 and spec.uses_edges
@@ -305,9 +284,10 @@ def run_suite(
         list(pool.map(_execute, tasks))
 
     # 4. Load + align layouts, compute metrics.
-    layouts: dict[tuple[str, str, int, str], np.ndarray] = {}
+    layouts: dict[tuple[str, str, int, Literal["edges", "no_edges"]], np.ndarray] = {}
     metric_rows: list[dict[str, Any]] = []
     per_task_metrics: dict[tuple[str, str, int, str], dict[str, float | None]] = {}
+
     for task in tasks:
         dataset, _ = datasets[(task.shape, task.seed)]
         artifact = load_aligned_layout(task.layout_path, dataset.n)
@@ -319,6 +299,7 @@ def run_suite(
     for task in tasks:
         key = (task.spec.name, task.shape, task.seed, task.variant)
         metrics = per_task_metrics[key]
+
         if task.variant == "edges":
             twin = layouts.get((task.spec.name, task.shape, task.seed, "no_edges"))
             metrics["contraction_factor"] = (
@@ -326,6 +307,7 @@ def run_suite(
             )
         else:
             metrics["contraction_factor"] = None
+
         for metric, value in metrics.items():
             metric_rows.append(
                 {
@@ -345,7 +327,9 @@ def run_suite(
     df.to_parquet(results_path, index=False)
 
     # 5. Gates.
-    gates_payload = evaluate_gates(df, suite, engines)
+    gates_payload = evaluate_gates(
+        df, engines, suite_shapes=suite.shapes(), gate_configs=suite.gates
+    )
     gates_path = out / "gates.json"
     gates_path.write_text(
         json.dumps(gates_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -355,20 +339,22 @@ def run_suite(
     suite_hash = sha256_bytes(canonical_json_bytes(suite))
     engines_hash = sha256_bytes(canonical_json_bytes(engines_raw))
     versions = {"python": _python_version()}
+
     for lib in _VERSIONED_LIBS:
         try:
             versions[lib] = importlib_metadata.version(lib)
         except importlib_metadata.PackageNotFoundError:  # pragma: no cover
             versions[lib] = "unknown"
+
     manifest = RunProvenance.make(
         producer="battery.run",
-        config={"suite": suite, "engines": engines_raw},
+        config={"suite": suite.model_dump(mode="json"), "engines": engines_raw},
         details=RunDetails(
-            suite_path=str(suite_path),
-            engines_path=str(engines_path),
+            suite_path=Path(suite_path),
+            engines_path=Path(engines_path),
             suite_config_hash=suite_hash,
             engines_config_hash=engines_hash,
-            seeds=list(suite["seeds"]),
+            seeds=suite.seeds,
             datasets=dataset_hashes,
             versions=versions,
         ),
@@ -400,7 +386,7 @@ def _python_version() -> str:
 
 def _render_report(
     df: pd.DataFrame,
-    suite: dict[str, Any],
+    suite: Suite,
     engines: list[EngineSpec],
     gates_payload: dict[str, Any],
     suite_hash: str,
@@ -408,14 +394,15 @@ def _render_report(
 ) -> str:
     """Per-shape tables. Every cell is ``mean ±spread`` where the spread
     (max - min across seed reruns) is the rerun-noise floor annotation."""
-    metric_names = [f"knn_recall_{k}" for k in suite["knn_ks"]] + METRIC_ORDER
+    metric_names = [f"knn_recall_{k}" for k in suite.knn_ks] + METRIC_ORDER
     engine_names = [spec.name for spec in engines]
+
     lines = [
-        f"# Battery report: {suite['name']}",
+        f"# Battery report: {suite.name}",
         "",
         f"- suite config hash: `{suite_hash}`",
         f"- engines config hash: `{engines_hash}`",
-        f"- seeds (reruns): {list(suite['seeds'])}",
+        f"- seeds (reruns): {list(suite.seeds)}",
         "",
         "Every value is `mean ±spread` across seed reruns; the spread"
         " (max − min) is the rerun-noise floor that annotates all"
@@ -423,9 +410,10 @@ def _render_report(
         " to a shape.",
         "",
     ]
-    for entry in suite["datasets"]:
-        shape = entry["shape"]
-        lines.append(f"## Shape: {shape} (n={entry['n']})")
+
+    for generator in suite.datasets:
+        shape = generator.shape
+        lines.append(f"## Shape: {shape} (n={generator.n})")
         lines.append("")
         lines.append("| metric | " + " | ".join(engine_names) + " |")
         lines.append("|---" * (len(engine_names) + 1) + "|")
@@ -447,11 +435,13 @@ def _render_report(
 
     lines.append("## Gates")
     lines.append("")
+
     for name in engine_names:
         result = gates_payload["engines"][name]
         status = "PASS" if result["pass"] else "FAIL"
         lines.append(f"### {name}: {status}")
         lines.append("")
+
         failed = [e for e in result["gates"] if not e["pass"]]
         if failed:
             lines.append("Failed gate entries:")
@@ -461,8 +451,10 @@ def _render_report(
                 )
         else:
             lines.append("All configured gate entries passed.")
+
         nd = result["noise_differential"]
         nd_status = "PASS" if nd["pass"] else "FAIL"
         lines.append(f"- noise differential: {nd_status} — {nd['reason']}")
         lines.append("")
+
     return "\n".join(lines) + "\n"

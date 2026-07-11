@@ -13,6 +13,7 @@ and a layout without provenance is not reproducible from the manifest. Pass
 from __future__ import annotations
 
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 
 import numpy as np
@@ -54,7 +55,7 @@ class LayoutArtifact:
     provenance: LayoutProvenance | None
 
 
-def load_layout(path: Path | str, *, require_provenance: bool = True) -> LayoutArtifact:
+def load_layout(path: PathLike, *, require_provenance: bool = True) -> LayoutArtifact:
     """Load and validate a ``layout.npz`` artifact plus its sidecar."""
     path = Path(path)
 

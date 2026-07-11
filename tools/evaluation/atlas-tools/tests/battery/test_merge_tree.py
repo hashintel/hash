@@ -9,14 +9,16 @@ the ~1M-point reference scale and stay the production defaults).
 
 import numpy as np
 import pytest
+
 from atlas_tools.battery.merge_tree import (
+    MergeTreeConfig,
     MergeTreeResult,
     density_raster,
     merge_tree_from_density,
     merge_tree_persistence,
 )
 
-MT = {"grid_size": 64, "bandwidth_px": 3.0, "persistence_frac": 0.2}
+MT = MergeTreeConfig(grid_size=64, bandwidth_px=3.0, persistence_frac=0.2)
 
 
 def truncated_blob(center, n, sigma, seed, max_r=2.0):
@@ -39,28 +41,28 @@ def blobs(c, n_per=3000, spread=6.0, sigma=0.5, seed=0):
 
 @pytest.mark.parametrize("c", [1, 3, 5])
 def test_c_blobs_yield_exactly_c_leaves(c):
-    result = merge_tree_persistence(blobs(c), **MT)
+    result = merge_tree_persistence(blobs(c), MT)
     assert result.leaf_count == c
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])
 def test_blob_count_stable_across_seeds(seed):
-    assert merge_tree_persistence(blobs(3, seed=seed), **MT).leaf_count == 3
+    assert merge_tree_persistence(blobs(3, seed=seed), MT).leaf_count == 3
 
 
 def test_low_persistence_bump_is_merged_but_far_blob_is_detected():
     main = truncated_blob([0, 0], 3000, 0.5, seed=1)
-    base = merge_tree_persistence(main, **MT)
+    base = merge_tree_persistence(main, MT)
     assert base.leaf_count == 1
 
     # A tiny bump inside the main blob's support: low persistence -> merged.
     bump = truncated_blob([0.8, 0], 40, 0.05, seed=3)
-    with_bump = merge_tree_persistence(np.concatenate([main, bump]), **MT)
+    with_bump = merge_tree_persistence(np.concatenate([main, bump]), MT)
     assert with_bump.leaf_count == 1
 
     # Sensitivity counterpart: a genuine far mode DOES add a leaf.
     far = truncated_blob([6.0, 0], 800, 0.4, seed=4)
-    with_far = merge_tree_persistence(np.concatenate([main, far]), **MT)
+    with_far = merge_tree_persistence(np.concatenate([main, far]), MT)
     assert with_far.leaf_count == 2
     assert with_far.normalized_persistence > base.normalized_persistence
 
@@ -71,10 +73,10 @@ def test_persistence_frac_controls_merge_vs_leaf():
     near = truncated_blob([1.4, 0], 700, 0.35, seed=2)
     two = np.concatenate([main, near])
     lenient = merge_tree_persistence(
-        two, grid_size=64, bandwidth_px=3.0, persistence_frac=0.05
+        two, MergeTreeConfig(grid_size=64, bandwidth_px=3.0, persistence_frac=0.05)
     )
     harsh = merge_tree_persistence(
-        two, grid_size=64, bandwidth_px=3.0, persistence_frac=0.95
+        two, MergeTreeConfig(grid_size=64, bandwidth_px=3.0, persistence_frac=0.95)
     )
     assert lenient.leaf_count == 2
     assert harsh.leaf_count == 1
@@ -85,16 +87,16 @@ def test_contraction_does_not_increase_normalized_persistence():
     normalization by the density max make pure contraction persistence-
     neutral."""
     xy = blobs(3)
-    original = merge_tree_persistence(xy, **MT)
-    collapsed = merge_tree_persistence(xy * 0.01, **MT)
+    original = merge_tree_persistence(xy, MT)
+    collapsed = merge_tree_persistence(xy * 0.01, MT)
     assert collapsed.leaf_count == original.leaf_count
     assert collapsed.normalized_persistence <= original.normalized_persistence + 1e-12
 
 
 def test_determinism():
     xy = blobs(3)
-    a = merge_tree_persistence(xy, **MT)
-    b = merge_tree_persistence(xy, **MT)
+    a = merge_tree_persistence(xy, MT)
+    b = merge_tree_persistence(xy, MT)
     assert a == b
     assert isinstance(a, MergeTreeResult)
 
@@ -128,9 +130,10 @@ def test_saddle_merge_level_and_persistence_filter():
 
 
 def test_tiny_and_degenerate_inputs():
-    assert merge_tree_persistence(np.zeros((0, 2)), grid_size=32).leaf_count == 0
-    assert merge_tree_persistence(np.array([[1.0, 1.0]]), grid_size=32).leaf_count == 1
-    assert merge_tree_persistence(np.ones((50, 2)), grid_size=32).leaf_count == 1
+    small_grid = MergeTreeConfig(grid_size=32)
+    assert merge_tree_persistence(np.zeros((0, 2)), small_grid).leaf_count == 0
+    assert merge_tree_persistence(np.array([[1.0, 1.0]]), small_grid).leaf_count == 1
+    assert merge_tree_persistence(np.ones((50, 2)), small_grid).leaf_count == 1
 
 
 def test_density_raster_shape_and_mass():

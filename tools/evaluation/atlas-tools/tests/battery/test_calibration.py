@@ -2,10 +2,11 @@
 
 import numpy as np
 import yaml
+from click.testing import CliRunner
+
 from atlas_tools.battery.calibrate import run_calibration
 from atlas_tools.battery.cli import main
 from atlas_tools.battery.datasets import load_dataset
-from click.testing import CliRunner
 
 from .conftest import FIXTURES_DIR
 
@@ -94,7 +95,8 @@ def test_generate_cli_writes_dataset(tmp_path):
     assert dataset.shape == "bipartite_star"
     assert dataset.n == 200
     assert dataset.embeddings.shape == (200, 8)
-    assert dataset.config["items_per_doc"] == 4
+    # config() is the generator's model dump: {shape, n, params}.
+    assert dataset.config["params"]["items_per_doc"] == 4
     assert dataset.seed == 5
     degree = np.bincount(dataset.edges.ravel(), minlength=200)
     assert (degree[dataset.truth["n_docs"] :] == 1).all()
