@@ -1,7 +1,5 @@
 """``audit`` console entry point (see pyproject [project.scripts])."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import click
@@ -19,8 +17,10 @@ def _parse_int_list(value: str, name: str) -> list[int]:
         raise click.BadParameter(
             f"{name} must be a comma-separated list of integers, got {value!r}"
         ) from exc
+
     if not items:
         raise click.BadParameter(f"{name} must not be empty")
+
     return items
 
 

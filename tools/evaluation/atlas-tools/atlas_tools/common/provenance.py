@@ -23,7 +23,7 @@ import json
 from datetime import datetime, timezone
 from os import PathLike
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Never, Self
 
 from pydantic import (
     AwareDatetime,
@@ -33,9 +33,9 @@ from pydantic import (
 )
 from pydantic_extra_types.semantic_version import SemanticVersion
 
-type JsonDict = dict[str, JsonValue]
-
 import atlas_tools
+
+type JsonDict = dict[str, JsonValue]
 
 
 def canonical_json_bytes(obj: Any) -> bytes:
@@ -49,8 +49,9 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def sha256_file(path: Path | str, chunk_size: int = 1 << 20) -> str:
+def sha256_file(path: PathLike, chunk_size: int = 1 << 20) -> str:
     digest = hashlib.sha256()
+
     with open(path, "rb") as f:
         while True:
             chunk = f.read(chunk_size)
@@ -62,14 +63,14 @@ def sha256_file(path: Path | str, chunk_size: int = 1 << 20) -> str:
     return digest.hexdigest()
 
 
-class Provenance[TDetails](BaseModel):
+class Provenance[TDetails, TConfig = Never](BaseModel):
     producer: str
     created_at: AwareDatetime
     # None for sidecars written by foreign producers (e.g. the Rust pipeline)
     # that do not version themselves with this tool.
     tool_version: SemanticVersion | None = None
 
-    config: JsonDict | None = None
+    config: TConfig | None = None
     config_hash: str | None = None
 
     input_hashes: dict[str, str] | None = None
@@ -107,14 +108,14 @@ class Provenance[TDetails](BaseModel):
         return cls.model_validate_json(Path(path).read_text())
 
 
-def make_provenance[TDetails](
+def make_provenance[TDetails, TConfig = Never](
     *,
     producer: str,
     input_hashes: dict[str, str] | None = None,
-    config: dict[str, Any] | None = None,
+    config: TConfig | None = None,
     seed: int | None = None,
     details: TDetails,
-) -> Provenance[TDetails]:
+) -> Provenance[TDetails, TConfig]:
     """Build a typed provenance envelope around artifact-specific ``details``.
 
     ``input_hashes`` maps input names to content hashes. ``config`` is hashed
@@ -123,7 +124,7 @@ def make_provenance[TDetails](
 
     return Provenance(
         producer=producer,
-        tool_version=atlas_tools.__version__,
+        tool_version=SemanticVersion(atlas_tools.__version__),
         created_at=datetime.now(timezone.utc),
         input_hashes=(
             dict(sorted(input_hashes.items())) if input_hashes is not None else None
@@ -158,13 +159,17 @@ def provenance_block(
     }
     if input_hashes is not None:
         block["input_hashes"] = dict(sorted(input_hashes.items()))
+
     if config is not None:
         block["config"] = config
         block["config_hash"] = sha256_bytes(canonical_json_bytes(config))
+
     if seed is not None:
         block["seed"] = seed
+
     if extra:
         block.update(extra)
+
     return block
 
 

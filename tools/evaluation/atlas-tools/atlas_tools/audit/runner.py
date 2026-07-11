@@ -61,20 +61,33 @@ materialized query block. Prefix passes are strictly cheaper: smaller d
 gives a larger b with the same q * b * 4 score budget.
 """
 
-from __future__ import annotations
-
 import json
+from os import PathLike
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pyarrow.parquet as pq
 
+from atlas_tools.audit.evaluation import (
+    ColumnReport,
+    Dim,
+    FlagReport,
+    GroupMetric,
+    GroupReport,
+    K,
+    RunnerConfig,
+    RunnerCorpus,
+    RunnerDetails,
+    RunnerReport,
+)
 from atlas_tools.audit.metrics import (
     METRIC_DEFINITIONS,
     PerQueryMetrics,
     per_query_metrics,
 )
 from atlas_tools.audit.report import render_markdown
+from atlas_tools.common import make_provenance
 from atlas_tools.common.knn import (
     DEFAULT_MEMORY_CAP_BYTES,
     exact_cosine_knn,
@@ -82,43 +95,40 @@ from atlas_tools.common.knn import (
 )
 from atlas_tools.common.matrix import load_matrix
 from atlas_tools.common.provenance import (
-    provenance_block,
     sha256_bytes,
     sha256_file,
-    write_sidecar,
 )
 
 PRODUCER = "atlas-tools audit run"
 
 
-def _round6(value: float) -> float:
-    return round(float(value), 6)
-
-
-def _metric_dict(metrics: PerQueryMetrics, mask: np.ndarray | None = None) -> dict:
+def _group_metric(
+    metrics: PerQueryMetrics, mask: np.ndarray | None = None
+) -> GroupMetric:
     def mean(values: np.ndarray) -> float:
-        return _round6((values if mask is None else values[mask]).mean())
+        return (values if mask is None else values[mask]).mean()
 
-    return {
-        "recall": mean(metrics.recall),
-        "intrusion_rate": mean(metrics.intrusion_rate),
-        "mean_rank_displacement": mean(metrics.mean_rank_displacement),
-    }
+    return GroupMetric(
+        recall=mean(metrics.recall),
+        intrusion_rate=mean(metrics.intrusion_rate),
+        mean_rank_displacement=mean(metrics.mean_rank_displacement),
+    )
 
 
-def load_strata(path: Path | str) -> dict[str, dict[int, str]]:
+def load_strata(path: PathLike) -> dict[str, dict[int, str]]:
     """Load a strata parquet: int64 ``row`` column plus group columns.
 
     Returns ``{column_name: {row: label}}``; null labels are skipped.
     """
-    import pyarrow.parquet as pq
 
     table = pq.read_table(path)
     if "row" not in table.column_names:
         raise ValueError(f"strata table {path} has no 'row' column")
+
     rows = table.column("row").to_pylist()
     if any(not isinstance(r, int) for r in rows):
         raise ValueError(f"strata table {path}: 'row' column must be integer")
+
     if len(set(rows)) != len(rows):
         raise ValueError(f"strata table {path}: duplicate values in 'row' column")
 
@@ -126,69 +136,89 @@ def load_strata(path: Path | str) -> dict[str, dict[int, str]]:
     for name in table.column_names:
         if name == "row":
             continue
+
         mapping: dict[int, str] = {}
         for row, value in zip(rows, table.column(name).to_pylist()):
             if value is None:
                 continue
+
             mapping[int(row)] = str(value)
+
         out[name] = mapping
+
     if not out:
         raise ValueError(f"strata table {path} has no group columns besides 'row'")
+
     return out
 
 
 def _evaluate_strata(
+    *,
     strata: dict[str, dict[int, str]],
     sampled: np.ndarray,
-    dims: list[int],
-    ks: list[int],
-    per_query: dict[tuple[int, int], PerQueryMetrics],
+    dims: list[Dim],
+    ks: list[K],
+    per_query: dict[tuple[Dim, K], PerQueryMetrics],
     min_group_size: int,
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+) -> tuple[dict[str, GroupReport], list[FlagReport]]:
     """Per-group metrics plus flags for groups degrading > 2x overall."""
-    groups_report: dict[str, Any] = {}
-    flags: list[dict[str, Any]] = []
+    groups_report: dict[str, GroupReport] = {}
+    flags: list[FlagReport] = []
+
     for column in sorted(strata):
         mapping = strata[column]
         labels = [mapping.get(int(row)) for row in sampled]
-        column_report: dict[str, Any] = {}
+
+        column_report: dict[str, ColumnReport] = {}
+
         for value in sorted({lab for lab in labels if lab is not None}):
             mask = np.fromiter(
                 (lab == value for lab in labels), dtype=bool, count=len(labels)
             )
+
             n_queries = int(mask.sum())
             if n_queries < min_group_size:
                 continue
-            group_metrics: dict[str, Any] = {}
-            for d in dims:
-                group_metrics[str(d)] = {}
+
+            group_metrics: dict[Dim, dict[K, GroupMetric]] = {}
+            for dim in dims:
+                dim_metrics: dict[K, GroupMetric] = {}
+                group_metrics[dim] = dim_metrics
+
                 for k in ks:
-                    metrics = per_query[(d, k)]
-                    group_metrics[str(d)][str(k)] = _metric_dict(metrics, mask)
+                    metrics = per_query[(dim, k)]
+                    dim_metrics[k] = _group_metric(metrics, mask)
+
                     # Flag on unrounded means for exactness.
                     group_recall = float(metrics.recall[mask].mean())
                     overall_recall = float(metrics.recall.mean())
-                    group_deg = 1.0 - group_recall
-                    overall_deg = 1.0 - overall_recall
-                    if group_deg > 2.0 * overall_deg:
+                    group_degradation = 1.0 - group_recall
+                    overall_degradation = 1.0 - overall_recall
+
+                    if group_degradation > 2.0 * overall_degradation:
                         flags.append(
-                            {
-                                "column": column,
-                                "value": value,
-                                "dim": d,
-                                "k": k,
-                                "n_queries": n_queries,
-                                "group_recall": _round6(group_recall),
-                                "overall_recall": _round6(overall_recall),
-                                "group_degradation": _round6(group_deg),
-                                "overall_degradation": _round6(overall_deg),
-                            }
+                            FlagReport(
+                                column=column,
+                                value=value,
+                                dim=dim,
+                                k=k,
+                                n_queries=n_queries,
+                                group_recall=group_recall,
+                                overall_recall=overall_recall,
+                                group_degradation=group_degradation,
+                                overall_degradation=overall_degradation,
+                            )
                         )
-            column_report[value] = {
-                "n_queries": n_queries,
-                "metrics": group_metrics,
-            }
-        groups_report[column] = column_report
+
+            column_report[value] = ColumnReport(
+                n_queries=n_queries,
+                metrics=group_metrics,
+            )
+
+        groups_report[column] = GroupReport(
+            columns=column_report,
+        )
+
     return groups_report, flags
 
 
@@ -197,42 +227,49 @@ def _sample_rows(rows: int, sample: int, seed: int) -> np.ndarray:
         raise ValueError("sample must be positive")
     if sample >= rows:
         return np.arange(rows, dtype=np.int64)
+
     rng = np.random.default_rng(seed)
     return np.sort(rng.choice(rows, size=sample, replace=False)).astype(np.int64)
 
 
 def run_audit(
-    embeddings_path: Path | str,
-    out_dir: Path | str,
+    embeddings_path: PathLike,
+    out_dir: PathLike,
     *,
-    dims: list[int],
-    ks: list[int],
+    dims: list[Dim],
+    ks: list[K],
     sample: int = 20000,
-    strata_path: Path | str | None = None,
+    strata_path: PathLike | None = None,
     seed: int = 0,
     memory_cap_bytes: int = DEFAULT_MEMORY_CAP_BYTES,
     min_group_size: int = 50,
 ) -> dict[str, Any]:
-    """Run the prefix audit and write report.json / report.md / report.meta.json.
+    """
+    Run the prefix audit and write report.json / report.md / report.meta.json.
 
     Returns the report dict as loaded back from the written ``report.json``.
     """
+
     embeddings_path = Path(embeddings_path)
     out_dir = Path(out_dir)
 
     corpus, meta = load_matrix(embeddings_path, mmap=True)
     rows, full_dim = meta.rows, meta.dim
 
-    dims = sorted(set(int(d) for d in dims))
-    ks = sorted(set(int(k) for k in ks))
+    dims = sorted(set(dims))
+    ks = sorted(set(ks))
+
     if not dims or not ks:
         raise ValueError("dims and ks must be non-empty")
-    for d in dims:
-        if not 0 < d <= full_dim:
-            raise ValueError(f"prefix dim {d} exceeds embedding dim {full_dim}")
+
+    for dim in dims:
+        if not 0 < dim <= full_dim:
+            raise ValueError(f"prefix dim {dim} exceeds embedding dim {full_dim}")
+
     max_k = max(ks)
     if min(ks) <= 0:
         raise ValueError("k values must be positive")
+
     if max_k > rows - 1:
         raise ValueError(
             f"k={max_k} too large for corpus with {rows} rows (self-excluded)"
@@ -255,57 +292,65 @@ def run_audit(
     # Candidates: prefix-space top-max_k per dim. The corpus side is the lazy
     # memmap slice corpus[:, :d]; exact_cosine_knn normalizes each block
     # in-stream, which on a truncated slice IS the prefix transform.
-    prefix_idx_by_dim: dict[int, np.ndarray] = {}
-    for d in dims:
-        queries_d = prefix_transform(queries_full, d)
+    prefix_idx_by_dim: dict[Dim, np.ndarray] = {}
+    for dim in dims:
+        queries_d = prefix_transform(queries_full, dim)
         prefix_idx, _ = exact_cosine_knn(
             queries_d,
-            corpus[:, :d],
+            corpus[:, :dim],
             max_k,
             query_rows_in_corpus=sampled,
             memory_cap_bytes=memory_cap_bytes,
         )
-        prefix_idx_by_dim[d] = prefix_idx
 
-    per_query: dict[tuple[int, int], PerQueryMetrics] = {}
-    overall: dict[str, dict[str, dict[str, float]]] = {}
-    for d in dims:
-        overall[str(d)] = {}
+        prefix_idx_by_dim[dim] = prefix_idx
+
+    per_query: dict[tuple[Dim, K], PerQueryMetrics] = {}
+    overall: dict[Dim, dict[K, GroupMetric]] = {}
+    for dim in dims:
+        overall[dim] = {}
+
         for k in ks:
-            metrics = per_query_metrics(prefix_idx_by_dim[d], full_idx, k)
-            per_query[(d, k)] = metrics
-            overall[str(d)][str(k)] = _metric_dict(metrics)
+            metrics = per_query_metrics(prefix_idx_by_dim[dim], full_idx, k)
+            per_query[(dim, k)] = metrics
+            overall[dim][k] = _group_metric(metrics)
 
-    groups_report: dict[str, Any] = {}
-    flags: list[dict[str, Any]] = []
+    groups_report: dict[str, GroupReport] = {}
+    flags: list[FlagReport] = []
     if strata_path is not None:
         groups_report, flags = _evaluate_strata(
-            load_strata(strata_path), sampled, dims, ks, per_query, min_group_size
+            strata=load_strata(strata_path),
+            sampled=sampled,
+            dims=dims,
+            ks=ks,
+            per_query=per_query,
+            min_group_size=min_group_size,
         )
 
-    config = {
-        "embeddings": str(embeddings_path),
-        "strata": str(strata_path) if strata_path is not None else None,
-        "dims": dims,
-        "ks": ks,
-        "sample": sample,
-        "seed": seed,
-        "memory_cap_bytes": int(memory_cap_bytes),
-        "min_group_size": min_group_size,
-    }
-    report = {
-        "metric_definitions": METRIC_DEFINITIONS,
-        "config": config,
-        "corpus": {
-            "rows": rows,
-            "dim": full_dim,
-            "n_sampled": int(len(sampled)),
-            "full_truth_k": full_truth_k,
-        },
-        "overall": overall,
-        "groups": groups_report,
-        "flags": flags,
-    }
+    config = RunnerConfig(
+        embeddings=embeddings_path,
+        strata=Path(strata_path) if strata_path is not None else None,
+        dims=dims,
+        ks=ks,
+        sample=sample,
+        seed=seed,
+        memory_cap_bytes=memory_cap_bytes,
+        min_group_size=min_group_size,
+    )
+
+    report = RunnerReport(
+        metric_definitions=METRIC_DEFINITIONS,
+        config=config,
+        corpus=RunnerCorpus(
+            rows=rows,
+            dim=full_dim,
+            n_sampled=int(len(sampled)),
+            full_truth_k=full_truth_k,
+        ),
+        overall=overall,
+        groups=groups_report,
+        flags=flags,
+    )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     report_path = out_dir / "report.json"
@@ -314,25 +359,22 @@ def run_audit(
         encoding="utf-8",
     )
 
-    # report.md is rendered from the loaded report.json dict so every number
-    # in it provably comes from report.json.
-    loaded = json.loads(report_path.read_text(encoding="utf-8"))
-    (out_dir / "report.md").write_text(render_markdown(loaded), encoding="utf-8")
+    (out_dir / "report.md").write_text(render_markdown(report), encoding="utf-8")
 
     inputs = {"embeddings": meta.content_sha256}
     if strata_path is not None:
         inputs["strata"] = sha256_file(strata_path)
-    write_sidecar(
-        out_dir / "report.meta.json",
-        provenance_block(
-            producer=PRODUCER,
-            input_hashes=inputs,
-            config=config,
-            seed=seed,
-            extra={
-                "sample_rows_sha256": sample_rows_sha256,
-                "report_sha256": sha256_file(report_path),
-            },
+
+    provenance = make_provenance(
+        producer=PRODUCER,
+        input_hashes=inputs,
+        config=config,
+        seed=seed,
+        details=RunnerDetails(
+            sample_rows_sha256=sample_rows_sha256,
+            report_sha256=sha256_file(report_path),
         ),
     )
+    provenance.write(out_dir / "report.meta.json")
+
     return loaded

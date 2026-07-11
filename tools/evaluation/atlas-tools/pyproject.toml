@@ -3,7 +3,7 @@ name = "atlas-tools"
 version = "0.1.0"
 description = "Atlas Track A (data/audit) and Track C (layout gate battery) tooling"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "click>=8.1",
     "numpy>=1.26,<2.3",

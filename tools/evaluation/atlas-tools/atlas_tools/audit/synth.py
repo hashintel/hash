@@ -12,8 +12,6 @@ default band:
 The tool is dim-agnostic: nothing here or in the runner hardcodes 3072.
 """
 
-from __future__ import annotations
-
 import numpy as np
 
 
@@ -35,11 +33,15 @@ def make_synthetic(
     lo, hi = signal_band
     if not 0 <= lo < hi <= dim:
         raise ValueError(f"signal_band {signal_band} out of range for dim {dim}")
+
     if n_clusters <= 0 or n <= 0:
         raise ValueError("n and n_clusters must be positive")
+
     rng = np.random.default_rng(seed)
     centroids = np.zeros((n_clusters, dim), dtype=np.float64)
     centroids[:, lo:hi] = rng.standard_normal((n_clusters, hi - lo)) * signal_scale
+
     labels = np.arange(n, dtype=np.int64) % n_clusters
+
     x = centroids[labels] + rng.standard_normal((n, dim)) * noise_scale
     return x.astype(np.float32), labels

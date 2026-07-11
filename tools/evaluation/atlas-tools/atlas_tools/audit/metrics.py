@@ -12,8 +12,6 @@ Exact definitions (these strings are embedded verbatim in ``report.json``):
   get the cap). Deterministic, simple, monotone-sensitive.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -58,23 +56,29 @@ def rank_in_reference(
     not appear. Processed in query chunks so the ``(q, k, m)`` comparison
     tensor stays bounded.
     """
+
     candidates = np.asarray(candidates, dtype=np.int64)
     reference = np.asarray(reference, dtype=np.int64)
+
     if candidates.ndim != 2 or reference.ndim != 2:
         raise ValueError("candidates and reference must be 2-d")
+
     if candidates.shape[0] != reference.shape[0]:
         raise ValueError(
             f"row mismatch: candidates {candidates.shape[0]} vs"
             f" reference {reference.shape[0]}"
         )
+
     n_queries, k = candidates.shape
     out = np.full((n_queries, k), absent_rank, dtype=np.int64)
+
     for start in range(0, n_queries, chunk):
         stop = min(start + chunk, n_queries)
         eq = candidates[start:stop, :, None] == reference[start:stop, None, :]
         found = eq.any(axis=2)
         first = eq.argmax(axis=2)
         out[start:stop] = np.where(found, first, absent_rank)
+
     return out
 
 
@@ -92,18 +96,23 @@ def per_query_metrics(
     ``3k`` neighbors, the reference list is simply the entire full ranking
     and no candidate can be absent from it.
     """
+
     if k <= 0:
         raise ValueError("k must be positive")
+
     if prefix_idx.shape[1] < k:
         raise ValueError(
             f"prefix neighbor list has {prefix_idx.shape[1]} columns; need {k}"
         )
+
     cap = 3 * k
     reference = full_idx[:, : min(cap, full_idx.shape[1])]
     ranks = rank_in_reference(prefix_idx[:, :k], reference, absent_rank=cap)
+
     recall = (ranks < k).mean(axis=1)
     intrusion = (ranks == cap).mean(axis=1)
     displacement = np.maximum(ranks - np.arange(k, dtype=np.int64), 0).mean(axis=1)
+
     return PerQueryMetrics(
         recall=recall,
         intrusion_rate=intrusion,
