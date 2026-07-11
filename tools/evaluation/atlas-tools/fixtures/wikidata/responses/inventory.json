@@ -1,0 +1,135 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P212"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#ExternalId"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "900000"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P361"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "500000"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P50"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "300000"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P527"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "200000"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9001"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "50"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9002"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "20"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9003"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "10"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9004"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "5"
+        }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9005"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "15"
+        }
+      }
+    ]
+  }
+}

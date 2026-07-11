@@ -1,0 +1,184 @@
+"""W2b extractor tests: line parsing, golden manifest over the committed
+200-entity excerpt, and interrupted-resume equality (in-process)."""
+
+from __future__ import annotations
+
+import json
+
+import pyarrow.parquet as pq
+import pytest
+from atlas_tools.wikidata.dump import extract_entities, extract_entity_row
+
+from tests.wikidata.conftest import DUMP_EXCERPT
+
+# Hand-computed from the generator rules in
+# fixtures/wikidata/generate_fixtures.py:
+# - Q9000 (i=0):  class Q5;   sitelinks 0%7=0;  labels en "Person 000" (10)
+#   and fr "Entité 000" (10) [i%3==0 -> no de; i%7==0 -> fr].
+# - Q9121 (i=121): class Q515; sitelinks 121%7=2; labels en "City 121" (8),
+#   de "Stadt 121" (9).
+# - Q9155 (i=155): class Q571 + secondary Q99999999 [i%10==5]; sitelinks
+#   155%7=1; labels en "Book 155" (8), de "Buch 155" (8).
+GOLDEN_ROWS = {
+    "Q9000": {
+        "qid": "Q9000",
+        "p31": ["Q5"],
+        "sitelink_count": 0,
+        "label_count": 2,
+        "label_len_primary": 10,
+        "label_len_min": 10,
+        "label_len_mean": 10.0,
+        "label_len_max": 10,
+    },
+    "Q9121": {
+        "qid": "Q9121",
+        "p31": ["Q515"],
+        "sitelink_count": 2,
+        "label_count": 2,
+        "label_len_primary": 8,
+        "label_len_min": 8,
+        "label_len_mean": 8.5,
+        "label_len_max": 9,
+    },
+    "Q9155": {
+        "qid": "Q9155",
+        "p31": ["Q571", "Q99999999"],
+        "sitelink_count": 1,
+        "label_count": 2,
+        "label_len_primary": 8,
+        "label_len_min": 8,
+        "label_len_mean": 8.0,
+        "label_len_max": 8,
+    },
+}
+
+
+class TestExtractEntityRow:
+    def test_structural_lines_yield_none(self):
+        assert extract_entity_row(b"[\n", "en") is None
+        assert extract_entity_row(b"]\n", "en") is None
+        assert extract_entity_row(b"\n", "en") is None
+
+    def test_trailing_comma_stripped(self):
+        line = b'{"type":"item","id":"Q1","labels":{}},\n'
+        row = extract_entity_row(line, "en")
+        assert row is not None and row["qid"] == "Q1"
+
+    def test_non_item_entities_skipped(self):
+        line = b'{"type":"property","id":"P31","labels":{}},\n'
+        assert extract_entity_row(line, "en") is None
+
+    def test_entity_without_labels_or_claims(self):
+        row = extract_entity_row(b'{"type":"item","id":"Q2"}\n', "en")
+        assert row == {
+            "qid": "Q2",
+            "p31": [],
+            "sitelink_count": 0,
+            "label_count": 0,
+            "label_len_primary": None,
+            "label_len_min": None,
+            "label_len_mean": None,
+            "label_len_max": None,
+        }
+
+    def test_novalue_p31_snak_skipped(self):
+        line = (
+            b'{"type":"item","id":"Q3","claims":{"P31":[{"mainsnak":'
+            b'{"snaktype":"novalue"}}]}}\n'
+        )
+        row = extract_entity_row(line, "en")
+        assert row is not None and row["p31"] == []
+
+
+def _run(config, out_dir, checkpoint_dir):
+    with open(DUMP_EXCERPT, "rb") as stream:
+        return extract_entities(
+            stream,
+            config=config,
+            out_path=out_dir / "entities.parquet",
+            checkpoint_dir=checkpoint_dir,
+            input_name=DUMP_EXCERPT.name,
+        )
+
+
+def test_golden_manifest_on_committed_excerpt(config, tmp_path):
+    summary = _run(config, tmp_path, tmp_path / "ckpt")
+    assert summary["rows"] == 200
+
+    table = pq.read_table(tmp_path / "entities.parquet")
+    assert table.num_rows == 200
+    rows = {row["qid"]: row for row in table.to_pylist()}
+    for qid, expected in GOLDEN_ROWS.items():
+        assert rows[qid] == expected, qid
+
+    # Rows are in dump order.
+    qids = table.column("qid").to_pylist()
+    assert qids == [f"Q{9000 + i}" for i in range(200)]
+
+    # Dump identity comes from config (mirror checksum file), never computed
+    # by hashing the stream.
+    with open(tmp_path / "entities.parquet.meta.json", encoding="utf-8") as f:
+        sidecar = json.load(f)
+    assert sidecar["dump_date"] == config.dump.date
+    assert sidecar["dump_sha256"] == config.dump.sha256
+    assert sidecar["rows_sha256"] == summary["rows_sha256"]
+
+
+class _ExplodingStream:
+    """Delegates readline() to a real file, then raises mid-run."""
+
+    def __init__(self, path, explode_after_lines: int):
+        self._f = open(path, "rb")
+        self._remaining = explode_after_lines
+
+    def readline(self) -> bytes:
+        if self._remaining <= 0:
+            raise RuntimeError("simulated crash")
+        self._remaining -= 1
+        return self._f.readline()
+
+    def seek(self, offset: int) -> None:
+        self._f.seek(offset)
+
+    def close(self) -> None:
+        self._f.close()
+
+
+def test_interrupted_resume_produces_identical_outputs(config, tmp_path):
+    # config.checkpoint_interval is 20 in the fixture config: the crash at
+    # ~95 lines lands mid-interval, after several checkpoints.
+    baseline_dir = tmp_path / "baseline"
+    baseline = _run(config, baseline_dir, baseline_dir / "ckpt")
+
+    resumed_dir = tmp_path / "resumed"
+    stream = _ExplodingStream(DUMP_EXCERPT, explode_after_lines=95)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        extract_entities(
+            stream,
+            config=config,
+            out_path=resumed_dir / "entities.parquet",
+            checkpoint_dir=resumed_dir / "ckpt",
+            input_name=DUMP_EXCERPT.name,
+        )
+    stream.close()
+    assert (resumed_dir / "ckpt" / "checkpoint.json").exists()
+    assert not (resumed_dir / "entities.parquet").exists()
+
+    resumed = _run(config, resumed_dir, resumed_dir / "ckpt")
+
+    # Row-level hash equality plus full table and byte equality.
+    assert resumed["rows_sha256"] == baseline["rows_sha256"]
+    baseline_table = pq.read_table(baseline_dir / "entities.parquet")
+    resumed_table = pq.read_table(resumed_dir / "entities.parquet")
+    assert baseline_table.equals(resumed_table)
+    assert (baseline_dir / "entities.parquet").read_bytes() == (
+        resumed_dir / "entities.parquet"
+    ).read_bytes()
+
+
+def test_completed_run_reruns_as_identical_noop(config, tmp_path):
+    first = _run(config, tmp_path, tmp_path / "ckpt")
+    bytes_first = (tmp_path / "entities.parquet").read_bytes()
+    second = _run(config, tmp_path, tmp_path / "ckpt")
+    assert second["rows_sha256"] == first["rows_sha256"]
+    assert (tmp_path / "entities.parquet").read_bytes() == bytes_first

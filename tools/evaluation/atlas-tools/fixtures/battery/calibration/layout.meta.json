@@ -1,0 +1,17 @@
+{
+  "config": {
+    "blobs": 4,
+    "rng_seed": 42,
+    "sigma": 0.8,
+    "sizes": [700, 500, 450, 350],
+    "trunc": 2.5
+  },
+  "config_hash": "b21c07cbb96ec8ba06b35f71e7265bc1d4aef42f510dcfc650b0d9796c3ca025",
+  "created_at": "2026-07-11T14:48:35.079599+00:00",
+  "engine": "battery.fixture.calibration",
+  "layout_sha256": "61b3670189621b3c3c73b0cb47fd91e3f410e84bf89a64dca2413e1c601f913c",
+  "producer": "battery.fixture.calibration",
+  "rows": 1907,
+  "seed": 42,
+  "tool_version": "0.1.0"
+}

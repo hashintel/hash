@@ -1,0 +1,51 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 001"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Synthetic Novel"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q571"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 003"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Synthetic Film"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q11424"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 005"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Poem Collection"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q571"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "1525bf02385a13c5053d8d69a12575e6c566782698b12cb7a7d1947192fa62f3": {
+    "file": "examples_P9002_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9002 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 500,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "22fdf48057a91adce31461326ca7872863bf5340730105c26a3ce2807329ce8b": {
+    "file": "examples_P361_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P361 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "8c337af11a24543d96ab233ff7f8faeb7031142036cebddebdfd457b6b6c44fb": {
+    "file": "props_batch_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "action": "wbgetentities",
+      "format": "json",
+      "ids": "P50|P361|P527|P9001|P9002|P9003|P9004|P9005",
+      "languages": "en|de",
+      "props": "labels|descriptions|aliases|claims|datatype"
+    },
+    "status": 200,
+    "url": "https://www.wikidata.org/w/api.php"
+  },
+  "8d634a5d598c14191a03497ff7fe9328a24b0605658e2e190e0d75c36c6914ed": {
+    "file": "examples_P9005_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9005 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "8eaee101b4d2f7a2d0022f4f72a16b015fe87efde506e31a07d57dcf14c85c09": {
+    "file": "examples_P9002_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9002 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 500,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "a3ed1e902765ab152d027a581964196f8f673a8446bd1783f77ee7b6ad304e61": {
+    "file": "examples_P9001_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9001 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 500,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "d08e4b679ee10aed09c65c1f27df908447dc90a7d7824d7d8bd57792c910e10d": {
+    "file": "examples_P50_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P50 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "d2eaec8d68788941308b73e699b1ae788ee21491164f843a4bac23ee18026f72": {
+    "file": "inventory.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?property ?propertyType ?usage WHERE {\n  ?property a wikibase:Property ;\n            wikibase:propertyType ?propertyType .\n  FILTER(?propertyType = wikibase:WikibaseItem)\n  OPTIONAL { ?property wikibase:statements ?usage . }\n}\nORDER BY ?property"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "d6f71f9161e9ad8f83dca9ffba2e688e78608bb31e4bc90213124798809d6039": {
+    "file": "items_batch_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "action": "wbgetentities",
+      "format": "json",
+      "ids": "Q5|Q571|Q35120",
+      "languages": "en|de",
+      "props": "labels|descriptions|aliases|claims|datatype"
+    },
+    "status": 200,
+    "url": "https://www.wikidata.org/w/api.php"
+  },
+  "dec6bde4e9b98a030d37ce7cedb96c6e9a5b5ea9fa1a213fb0d1ff9d830df83c": {
+    "file": "examples_P9001_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9001 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "fa8fef915d03c662da93f72b3b8f5c3604c55fc5c64e8852ccb9379b047e509d": {
+    "file": "examples_P527_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P527 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }\n}\nORDER BY ?subject ?object\nLIMIT 10 OFFSET 0"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  }
+}

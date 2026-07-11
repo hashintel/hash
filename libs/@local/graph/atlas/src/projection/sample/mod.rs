@@ -46,8 +46,6 @@ const OUTPUT_BUFFER_SIZE: usize = 1024 * 1024;
 pub enum SampleError {
     /// The cached embedding and mapping files disagree on the row count.
     CacheRowCount { embeddings: usize, mappings: u64 },
-    /// The database returned an embedding with the wrong dimension.
-    EmbeddingDimension { expected: usize, actual: usize },
     /// The database returned a sample index outside `u32`.
     InvalidIndex(i64),
     /// Reading or writing sampled data failed.
@@ -71,10 +69,6 @@ impl fmt::Display for SampleError {
                 "sample cache is inconsistent: {embeddings} embedding rows but {mappings} mapping \
                  rows"
             ),
-            Self::EmbeddingDimension { expected, actual } => write!(
-                fmt,
-                "database returned an embedding with {actual} values, expected {expected}"
-            ),
             Self::InvalidIndex(index) => {
                 write!(fmt, "database returned invalid sample index {index}")
             }
@@ -89,9 +83,7 @@ impl fmt::Display for SampleError {
 impl Error for SampleError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::CacheRowCount { .. }
-            | Self::EmbeddingDimension { .. }
-            | Self::InvalidIndex(_) => None,
+            Self::CacheRowCount { .. } | Self::InvalidIndex(_) => None,
             Self::Io(error) => Some(error),
             Self::Join(error) => Some(error),
             Self::Persist(error) => Some(error),

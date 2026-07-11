@@ -1,0 +1,48 @@
+[project]
+name = "atlas-tools"
+version = "0.1.0"
+description = "Atlas Track A (data/audit) and Track C (layout gate battery) tooling"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "click>=8.1",
+    "numpy>=1.26,<2.3",
+    "scipy>=1.12",
+    "scikit-learn>=1.4",
+    "umap-learn>=0.5.6",
+    "hnswlib>=0.8.0",
+    "pyyaml>=6.0",
+    "pyarrow>=16.0",
+    "pandas>=2.2",
+    "requests>=2.31",
+    "tiktoken>=0.7",
+    "orjson>=3.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+audit    = "atlas_tools.audit.cli:main"
+wikidata = "atlas_tools.wikidata.cli:main"
+battery  = "atlas_tools.battery.cli:main"
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["atlas_tools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-q"
+
+[tool.pyright]
+venvPath = "."
+venv     = ".venv"
+
+[tool.ty.environment]
+python = "./.venv"

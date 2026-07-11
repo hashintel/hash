@@ -1,0 +1,29 @@
+"""Shared fixtures: everything runs offline against committed fixtures."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from atlas_tools.wikidata.config import Config
+from atlas_tools.wikidata.transport import FixtureTransport
+
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "wikidata"
+RESPONSES = FIXTURES / "responses"
+DUMP_EXCERPT = FIXTURES / "dump_excerpt.json"
+CONFIG_PATH = FIXTURES / "config.yaml"
+
+
+@pytest.fixture
+def fixtures_dir() -> Path:
+    return FIXTURES
+
+
+@pytest.fixture
+def config() -> Config:
+    return Config.load(CONFIG_PATH)
+
+
+@pytest.fixture
+def fixture_transport() -> FixtureTransport:
+    return FixtureTransport(RESPONSES)

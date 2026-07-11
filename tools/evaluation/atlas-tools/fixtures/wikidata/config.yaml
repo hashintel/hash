@@ -1,0 +1,27 @@
+# Fixture config for offline wikidata-miner tests.
+# tokenizer MUST be "heuristic" here: cl100k downloads its BPE on first use.
+languages: [en, de]
+seed: 7
+endpoints:
+  wdqs: https://query.wikidata.org/sparql
+  qlever: https://qlever.cs.uni-freiburg.de/api/wikidata
+  wikibase_api: https://www.wikidata.org/w/api.php
+rate_limit_per_sec: 10.0
+max_retries: 2
+backoff_base_seconds: 0.5
+snapshot_date: "2025-06-01"
+example_count: 4
+example_pool_limit: 10
+example_offsets: [0]
+token_budget: 6000
+hard_token_budget: 7500
+tokenizer: heuristic
+checkpoint_interval: 20
+dump:
+  date: "2025-06-01"
+  sha256: "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+stratification:
+  default_cap: 10
+  rare_floor: 5
+  per_class_caps:
+    Q515: 3

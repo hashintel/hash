@@ -1,0 +1,94 @@
+# Smoke suite: the 7 planted shapes at n=600-1000 so the full harness runs
+# in seconds-to-minutes. Tests use this suite. Gate schema/versioning:
+# see atlas_tools/battery/gates.py.
+version: 1
+name: smoke
+seeds: [0, 1]
+knn_ks: [15, 30, 50]
+tc_neighbors: 15
+tc_sample: 400
+silhouette_sample: 800
+merge_tree:
+  grid_size: 128
+  bandwidth_px: 3.0
+  floor_frac: 0.005
+  persistence_frac: 0.05
+datasets:
+  - shape: bipartite_star
+    n: 900
+    params: { dim: 32, items_per_doc: 8, n_topics: 8 }
+  - shape: clique_communities
+    n: 800
+    params: { dim: 32, n_communities: 8 }
+  - shape: chains
+    n: 800
+    params: { dim: 32, depth: 4 }
+  - shape: lattice_product
+    n: 800
+    params: { dim: 32, factor_a: 4, factor_b: 6 }
+  - shape: noise_edges
+    n: 800
+    params: { dim: 32, n_clusters: 6 }
+  - shape: isolates
+    n: 800
+    params: { dim: 32, isolate_frac: 0.3, n_clusters: 10 }
+  - shape: mixed
+    n: 1000
+    params: { dim: 32 }
+# Gate thresholds tuned on measured smoke runs (2026-07): pca2d, umap_tuned
+# and umap_default all clear every gate with >=1.5x headroom over their
+# measured worst case, while a row-shuffled layout lands at chance and fails
+# every one of the structure gates below. The normalized_persistence gate is
+# a baseline-margin floor: merge-tree persistence is identity-blind (a row
+# shuffle preserves the position multiset), so it guards against structure
+# LOSS and pairs with the neighbor gates above; unsupported structure GAIN
+# is policed by the always-on noise differential.
+# Scoping notes:
+# - silhouette excludes bipartite_star (umap_default legitimately scores
+#   ~0.08 there: 8 topic macro-clusters fragment into ~100 star clumps).
+# - pendant_diffusion only applies where degree-1 nodes' partners share
+#   their cluster (bipartite stars); chain endpoints' partners live in a
+#   different type cluster by construction.
+# - edge_binding excludes chains (consecutive chain types are different
+#   embedding clusters) and noise_edges (random edges do not bind, ~1.0 by
+#   construction).
+gates:
+  - { metric: knn_recall_15, type: min, value: 0.08 }
+  - { metric: knn_recall_30, type: min, value: 0.12 }
+  - { metric: knn_recall_50, type: min, value: 0.15 }
+  - { metric: trustworthiness, type: min, value: 0.75 }
+  - { metric: continuity, type: min, value: 0.75 }
+  - {
+      metric: silhouette,
+      type: min,
+      value: 0.3,
+      shapes:
+        [
+          clique_communities,
+          chains,
+          lattice_product,
+          noise_edges,
+          isolates,
+          mixed,
+        ],
+    }
+  - {
+      metric: pendant_diffusion,
+      type: max,
+      value: 0.75,
+      shapes: [bipartite_star, mixed],
+    }
+  - {
+      metric: edge_binding,
+      type: max,
+      value: 0.85,
+      shapes:
+        [bipartite_star, clique_communities, isolates, lattice_product, mixed],
+    }
+  - {
+      metric: normalized_persistence,
+      type: baseline_margin,
+      baseline: pca2d,
+      margin: 2.0,
+      direction: higher,
+    }

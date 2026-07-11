@@ -88,11 +88,9 @@ async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, Sample
             &format!(
                 "SELECT COUNT(*)
                  FROM {entity_embeddings}
-                 WHERE {property} IS NULL
-                   AND {draft_id} IS NULL",
+                 WHERE {property} IS NULL",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
-                draft_id = EntityEmbeddings::DraftId.name().as_str(),
             ),
             &[],
         )
@@ -104,10 +102,10 @@ async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, Sample
 /// Draws the Bernoulli sample into the sampled-identity table and assigns
 /// contiguous sample indices.
 ///
-/// Only live (non-draft) whole-entity embedding rows participate. Draft rows
-/// share their entity's `(web_id, entity_uuid)` identity, so admitting them
-/// would sample the same identity more than once and break the unique
-/// identity index (and the one-row-per-index embedding export).
+/// Only whole-entity embedding rows (`property IS NULL`) participate. The
+/// schema's unique index over `(web_id, entity_uuid, property)` with
+/// `NULLS NOT DISTINCT` guarantees one such row per entity, so draft state
+/// needs no filtering here.
 #[expect(
     clippy::cast_precision_loss,
     reason = "PostgreSQL's TABLESAMPLE percentage and seed are double precision"
@@ -140,11 +138,9 @@ async fn materialize_sample(
                  FROM {entity_embeddings} embeddings
                  TABLESAMPLE BERNOULLI($1::DOUBLE PRECISION)
                  REPEATABLE ($2::DOUBLE PRECISION)
-                 WHERE embeddings.{property} IS NULL
-                   AND embeddings.{draft_id} IS NULL",
+                 WHERE embeddings.{property} IS NULL",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
-                draft_id = EntityEmbeddings::DraftId.name().as_str(),
             ),
             &[&pct as &(dyn ToSql + Sync), &seed as &(dyn ToSql + Sync)],
         )
@@ -215,11 +211,9 @@ where
                    ON sample.web_id = embedding.web_id
                   AND sample.entity_uuid = embedding.entity_uuid
                  WHERE embedding.{property} IS NULL
-                   AND embedding.{draft_id} IS NULL
                  ORDER BY sample.sample_index",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
-                draft_id = EntityEmbeddings::DraftId.name().as_str(),
                 dim = options.dim,
             ),
             iter::empty::<&(dyn ToSql + Sync)>(),
@@ -234,15 +228,10 @@ where
         ),
         async |(mut embedding, writer), row: Row| {
             let raw_embedding: EmbeddingBytes<'_> = row.try_get(0)?;
-            if raw_embedding.0.len() != embedding.len() {
-                return Err(SampleError::EmbeddingDimension {
-                    expected: embedding.len() / size_of::<f32>(),
-                    actual: raw_embedding.0.len() / size_of::<f32>(),
-                });
-            }
 
             // Reuse this allocation for every row while converting PostgreSQL's big-endian f32
-            // representation to the native-endian format consumed by FloatBytes.
+            // representation to the native-endian format consumed by FloatBytes. The width is
+            // guaranteed by the `::vector({dim})` cast in the query above.
             embedding.copy_from_slice(raw_embedding.0);
             let (floats, tail) = embedding.as_chunks_mut::<{ size_of::<f32>() }>();
             debug_assert!(tail.is_empty());

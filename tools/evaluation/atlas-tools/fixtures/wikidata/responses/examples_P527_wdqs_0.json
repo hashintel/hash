@@ -1,0 +1,71 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Left Bank"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Paris"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q515"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Old Town"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Prague"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q515"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Chapter One"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Synthetic Novel"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q571"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Engine"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Car"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Wheel"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Bicycle"
+        }
+      }
+    ]
+  }
+}

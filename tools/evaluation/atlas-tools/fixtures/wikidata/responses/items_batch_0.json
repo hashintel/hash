@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "Q35120": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "anything that can be considered, discussed, or observed. The root class of the ontology."
+        }
+      },
+      "id": "Q35120",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "entity"
+        }
+      }
+    },
+    "Q5": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "any member of Homo sapiens"
+        }
+      },
+      "id": "Q5",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "human"
+        }
+      }
+    },
+    "Q571": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "written medium of text bound as pages. Includes physical and digital volumes."
+        }
+      },
+      "id": "Q571",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "book"
+        }
+      }
+    }
+  },
+  "success": 1
+}
