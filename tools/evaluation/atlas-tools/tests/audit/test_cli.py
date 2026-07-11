@@ -3,9 +3,10 @@
 import json
 
 import numpy as np
+from click.testing import CliRunner
+
 from atlas_tools.audit.cli import main
 from atlas_tools.common.matrix import load_matrix
-from click.testing import CliRunner
 
 
 def test_synth_fixture_writes_valid_matrix(tmp_path):
@@ -114,6 +115,6 @@ def test_run_end_to_end_with_strata(tmp_path):
     assert meta["input_hashes"]["embeddings"]
     assert meta["input_hashes"]["strata"]
     assert meta["seed"] == 0
-    assert meta["sample_rows_sha256"]
+    assert meta["details"]["sample_rows_sha256"]
     assert meta["config_hash"]
     assert meta["tool_version"]

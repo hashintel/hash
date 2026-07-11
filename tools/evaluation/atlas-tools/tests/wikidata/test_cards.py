@@ -7,6 +7,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+
 from atlas_tools.wikidata.cards import (
     HeuristicTokenCounter,
     build_card,
@@ -19,7 +20,6 @@ from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.transport import FixtureTransport
-
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
@@ -93,20 +93,23 @@ class TestGoldenCards:
         assert pipeline.rows["P361"]["retrieved_at"] == FIXTURE_DATE
 
     def test_manifest_hashes_match_rows(self, pipeline):
-        assert pipeline.manifest["card_format_version"] == 1
+        details = pipeline.manifest["details"]
+        assert details["card_format_version"] == 1
         for pid, row in pipeline.rows.items():
-            assert pipeline.manifest["cards"][pid]["card_hash"] == row["card_hash"]
+            assert details["cards"][pid]["card_hash"] == row["card_hash"]
 
 
 class TestExclusions:
     def test_p212_excluded_from_inventory_by_datatype(self, pipeline):
-        assert pipeline.inventory["excluded"]["P212"] == "datatype:ExternalId"
-        assert "P212" not in pipeline.inventory["retained"]
+        details = pipeline.inventory["details"]
+        assert details["excluded"]["P212"] == "datatype:ExternalId"
+        assert "P212" not in details["retained"]
         assert "P212" not in pipeline.rows
 
     def test_maintenance_and_deprecated_properties_excluded(self, pipeline):
-        assert pipeline.inventory["excluded"]["P9003"] == "deprecated"
-        assert pipeline.inventory["excluded"]["P9004"] == "maintenance"
+        details = pipeline.inventory["details"]
+        assert details["excluded"]["P9003"] == "deprecated"
+        assert details["excluded"]["P9004"] == "maintenance"
         assert "P9003" not in pipeline.rows
         assert "P9004" not in pipeline.rows
 
@@ -117,14 +120,14 @@ class TestExclusions:
 
 class TestExampleLadder:
     def test_wdqs_timeout_falls_back_to_qlever(self, pipeline):
-        assert pipeline.manifest["flags"]["example_ladder_fallbacks"] == {
-            "P9001": "qlever"
-        }
+        flags = pipeline.manifest["details"]["flags"]
+        assert flags["example_ladder_fallbacks"] == {"P9001": "qlever"}
         assert "Examples:" in pipeline.rows["P9001"]["card_text"]
 
     def test_both_endpoints_failing_records_skip_flag(self, pipeline):
-        assert pipeline.manifest["flags"]["example_ladder_skips"] == ["P9002"]
-        assert pipeline.manifest["counts"]["example_skips"] == 1
+        details = pipeline.manifest["details"]
+        assert details["flags"]["example_ladder_skips"] == ["P9002"]
+        assert details["counts"]["example_skips"] == 1
         assert "Examples:" not in pipeline.rows["P9002"]["card_text"]
 
 

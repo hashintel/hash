@@ -2,10 +2,9 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from atlas_tools.common.provenance import (
+    JsonDict,
     Provenance,
     canonical_json_bytes,
-    make_provenance,
-    provenance_block,
     sha256_bytes,
 )
 
@@ -15,7 +14,9 @@ class _Details(BaseModel):
 
 
 def _make(config=None):
-    return make_provenance(producer="p", config=config, details=_Details(kind="t"))
+    return Provenance[_Details, JsonDict].make(
+        producer="p", config=config, details=_Details(kind="t")
+    )
 
 
 def test_canonical_json_is_key_order_invariant():
@@ -53,7 +54,7 @@ def test_config_hash_consistency_enforced():
         {"config_hash": "0" * 64},
     ):
         with pytest.raises(ValidationError, match="config_hash"):
-            Provenance[_Details].model_validate(
+            Provenance[_Details, JsonDict].model_validate(
                 {**valid.model_dump(mode="json"), **override}
             )
 
@@ -61,21 +62,42 @@ def test_config_hash_consistency_enforced():
 def test_roundtrip_via_file(tmp_path):
     block = _make(config={"a": 1})
     path = block.write(tmp_path / "artifact.meta.json")
-    loaded = Provenance[_Details].load(path)
+    loaded = Provenance[_Details, JsonDict].load(path)
     assert loaded == block
 
 
-def test_provenance_block_dict_helper():
-    block = provenance_block(
+class _Config(BaseModel):
+    alpha: int
+    beta: str
+
+
+def test_typed_config_roundtrip(tmp_path):
+    provenance = Provenance[_Details, _Config].make(
         producer="p",
-        input_hashes={"b": "2", "a": "1"},
-        config={"a": 1},
-        seed=3,
-        extra={"custom": True},
+        config=_Config(alpha=1, beta="x"),
+        details=_Details(kind="t"),
     )
-    assert block["producer"] == "p"
-    assert list(block["input_hashes"]) == ["a", "b"]
-    assert block["config_hash"] == sha256_bytes(canonical_json_bytes({"a": 1}))
-    assert block["seed"] == 3
-    assert block["custom"] is True
-    assert "created_at" in block
+    # The hash is computed over the JSON-mode dump, so it agrees between the
+    # in-memory model and the reloaded sidecar.
+    assert provenance.config_hash == sha256_bytes(
+        canonical_json_bytes({"alpha": 1, "beta": "x"})
+    )
+
+    path = provenance.write(tmp_path / "artifact.meta.json")
+    loaded = Provenance[_Details, _Config].load(path)
+    assert loaded == provenance
+    assert loaded.config == _Config(alpha=1, beta="x")
+
+
+def test_unparametrized_config_defaults_to_none():
+    # Without a TConfig parameter a sidecar must not carry a config.
+    provenance = Provenance[_Details].make(producer="p", details=_Details(kind="t"))
+    dumped = provenance.model_dump(mode="json")
+    with pytest.raises(ValidationError, match="config"):
+        Provenance[_Details].model_validate(
+            {
+                **dumped,
+                "config": {"a": 1},
+                "config_hash": sha256_bytes(canonical_json_bytes({"a": 1})),
+            }
+        )

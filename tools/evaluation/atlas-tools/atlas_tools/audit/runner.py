@@ -79,6 +79,7 @@ from atlas_tools.audit.evaluation import (
     RunnerConfig,
     RunnerCorpus,
     RunnerDetails,
+    RunnerProvenance,
     RunnerReport,
 )
 from atlas_tools.audit.metrics import (
@@ -87,7 +88,6 @@ from atlas_tools.audit.metrics import (
     per_query_metrics,
 )
 from atlas_tools.audit.report import render_markdown
-from atlas_tools.common import make_provenance
 from atlas_tools.common.knn import (
     DEFAULT_MEMORY_CAP_BYTES,
     exact_cosine_knn,
@@ -355,7 +355,13 @@ def run_audit(
     out_dir.mkdir(parents=True, exist_ok=True)
     report_path = out_dir / "report.json"
     report_path.write_text(
-        json.dumps(report, sort_keys=True, indent=2, ensure_ascii=False) + "\n",
+        json.dumps(
+            report.model_dump(mode="json"),
+            sort_keys=True,
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -365,7 +371,7 @@ def run_audit(
     if strata_path is not None:
         inputs["strata"] = sha256_file(strata_path)
 
-    provenance = make_provenance(
+    provenance = RunnerProvenance.make(
         producer=PRODUCER,
         input_hashes=inputs,
         config=config,
@@ -377,4 +383,6 @@ def run_audit(
     )
     provenance.write(out_dir / "report.meta.json")
 
-    return loaded
+    # Return what is actually on disk: every number a caller sees is
+    # reproducible from report.json alone.
+    return json.loads(report_path.read_text(encoding="utf-8"))

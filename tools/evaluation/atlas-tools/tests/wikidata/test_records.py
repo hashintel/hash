@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 
 import pytest
+
 from atlas_tools.wikidata.cache import CachingTransport
 from atlas_tools.wikidata.cards import emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
@@ -17,7 +18,6 @@ from atlas_tools.wikidata.records import (
     record_to_dict,
 )
 from atlas_tools.wikidata.transport import FixtureTransport
-
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 
@@ -76,7 +76,7 @@ def test_render_cards_never_constructs_a_transport(tmp_path, monkeypatch):
     assert any(row["omitted_fields"] for row in rows)  # budget actually bit
 
     manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
-    assert manifest["token_budget"] == 40
+    assert manifest["details"]["token_budget"] == 40
     # The manifest pins the records file it was rendered from.
     from atlas_tools.common.provenance import sha256_file
 
@@ -178,7 +178,7 @@ def test_load_records_rejects_missing_or_wrong_version(tmp_path):
     _extract(tmp_path / "extract")
     meta_path = tmp_path / "extract" / "records.meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta["records_format_version"] = 999
+    meta["details"]["records_format_version"] = 999
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
     with pytest.raises(ValueError, match="records format version"):
         load_records(tmp_path / "extract")

@@ -1,19 +1,22 @@
 """Provenance sidecars: every artifact records inputs, config, seed, versions.
 
-Two layers:
+:class:`Provenance` is a typed, self-validating envelope for artifact
+sidecars. ``TDetails`` carries the artifact-specific fields; ``TConfig`` the
+producing tool's configuration (a typed model where one exists, or
+``JsonDict`` for free-form engine configs). Unparametrized, ``TConfig``
+defaults to ``None``: such sidecars must not carry a config. Loading
+re-validates ``config_hash`` against ``config``, so tampering is detected.
 
-- :class:`Provenance` — a typed, self-validating model for artifact sidecars
-  (raw matrices, layouts). ``TDetails`` carries the artifact-specific fields;
-  the envelope carries producer/version/config/seed. Loading re-validates
-  ``config_hash`` against ``config``, so tampering is detected.
-- :func:`provenance_block` + :func:`write_sidecar`/:func:`read_sidecar` —
-  plain-dict helpers for free-form payloads (reports, manifests, truth files)
-  that embed provenance fields among other keys via ``**provenance_block()``.
+Free-form JSON documents that are not provenance envelopes (reports,
+manifests) are written with :func:`write_sidecar`/:func:`read_sidecar`; their
+provenance lives in a separate ``*.meta.json`` envelope next to them.
 
 Determinism rules:
 - ``created_at`` is the only wall-clock field and is excluded from all
   content hashes.
-- Hash inputs use canonical JSON (sorted keys, compact separators, UTF-8).
+- Hash inputs use canonical JSON (sorted keys, compact separators, UTF-8);
+  typed configs are hashed over their JSON-mode dump, so hashes agree between
+  the in-memory model and the reloaded sidecar.
 """
 
 from __future__ import annotations
@@ -23,7 +26,7 @@ import json
 from datetime import datetime, timezone
 from os import PathLike
 from pathlib import Path
-from typing import Any, Never, Self
+from typing import Any, Self
 
 from pydantic import (
     AwareDatetime,
@@ -39,7 +42,14 @@ type JsonDict = dict[str, JsonValue]
 
 
 def canonical_json_bytes(obj: Any) -> bytes:
-    """Serialize ``obj`` to canonical JSON bytes (sorted keys, compact)."""
+    """Serialize ``obj`` to canonical JSON bytes (sorted keys, compact).
+
+    Pydantic models are dumped in JSON mode first, so a typed config hashes
+    identically before writing and after reloading.
+    """
+    if isinstance(obj, BaseModel):
+        obj = obj.model_dump(mode="json")
+
     return json.dumps(
         obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ).encode("utf-8")
@@ -63,7 +73,7 @@ def sha256_file(path: PathLike, chunk_size: int = 1 << 20) -> str:
     return digest.hexdigest()
 
 
-class Provenance[TDetails, TConfig = Never](BaseModel):
+class Provenance[TDetails, TConfig = None](BaseModel):
     producer: str
     created_at: AwareDatetime
     # None for sidecars written by foreign producers (e.g. the Rust pipeline)
@@ -107,70 +117,38 @@ class Provenance[TDetails, TConfig = Never](BaseModel):
         """Load a sidecar from a JSON file."""
         return cls.model_validate_json(Path(path).read_text())
 
+    @classmethod
+    def make(
+        cls,
+        *,
+        producer: str,
+        input_hashes: dict[str, str] | None = None,
+        config: TConfig | None = None,
+        seed: int | None = None,
+        details: TDetails,
+    ) -> Self:
+        """Build an envelope with this tool's version and the current time.
 
-def make_provenance[TDetails, TConfig = Never](
-    *,
-    producer: str,
-    input_hashes: dict[str, str] | None = None,
-    config: TConfig | None = None,
-    seed: int | None = None,
-    details: TDetails,
-) -> Provenance[TDetails, TConfig]:
-    """Build a typed provenance envelope around artifact-specific ``details``.
-
-    ``input_hashes`` maps input names to content hashes. ``config`` is hashed
-    to ``config_hash`` and embedded verbatim.
-    """
-
-    return Provenance(
-        producer=producer,
-        tool_version=SemanticVersion(atlas_tools.__version__),
-        created_at=datetime.now(timezone.utc),
-        input_hashes=(
-            dict(sorted(input_hashes.items())) if input_hashes is not None else None
-        ),
-        config=config,
-        config_hash=(
-            sha256_bytes(canonical_json_bytes(config)) if config is not None else None
-        ),
-        seed=seed,
-        details=details,
-    )
-
-
-def provenance_block(
-    *,
-    producer: str,
-    input_hashes: dict[str, str] | None = None,
-    config: dict[str, Any] | None = None,
-    seed: int | None = None,
-    extra: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Plain-dict provenance for free-form payloads.
-
-    Use this when provenance fields are merged into a larger document
-    (``{**payload, **provenance_block(...)}``). For standalone artifact
-    sidecars prefer :func:`make_provenance` with a typed details model.
-    """
-    block: dict[str, Any] = {
-        "producer": producer,
-        "tool_version": atlas_tools.__version__,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if input_hashes is not None:
-        block["input_hashes"] = dict(sorted(input_hashes.items()))
-
-    if config is not None:
-        block["config"] = config
-        block["config_hash"] = sha256_bytes(canonical_json_bytes(config))
-
-    if seed is not None:
-        block["seed"] = seed
-
-    if extra:
-        block.update(extra)
-
-    return block
+        Call on a parametrized alias (``MatrixProvenance.make(...)``) so
+        ``TConfig``/``TDetails`` bind; unparametrized, ``TConfig`` defaults
+        to ``None`` and any config is rejected.
+        """
+        return cls(
+            producer=producer,
+            tool_version=SemanticVersion.parse(atlas_tools.__version__),
+            created_at=datetime.now(timezone.utc),
+            input_hashes=(
+                dict(sorted(input_hashes.items())) if input_hashes is not None else None
+            ),
+            config=config,
+            config_hash=(
+                sha256_bytes(canonical_json_bytes(config))
+                if config is not None
+                else None
+            ),
+            seed=seed,
+            details=details,
+        )
 
 
 def write_sidecar(path: PathLike, payload: dict[str, Any]) -> Path:

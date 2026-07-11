@@ -48,13 +48,35 @@ from typing import Any, BinaryIO
 import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
+from pydantic import BaseModel, NonNegativeInt
 
 from atlas_tools.common.provenance import (
+    JsonDict,
+    Provenance,
     canonical_json_bytes,
-    provenance_block,
-    write_sidecar,
 )
 from atlas_tools.wikidata.config import Config
+
+
+class EntityManifestDetails(BaseModel):
+    """Sidecar details for the per-entity manifest parquet.
+
+    ``dump_date``/``dump_sha256`` come from the mirror's checksum file via
+    config; the stream is NEVER hashed locally.
+    """
+
+    rows: NonNegativeInt
+    columns: list[str]
+    dump_date: str
+    dump_sha256: str
+    input: str
+    rows_sha256: str | None
+    parts: NonNegativeInt
+    checkpoint_interval: int
+
+
+EntityManifestProvenance = Provenance[EntityManifestDetails, JsonDict]
+
 
 ENTITY_SCHEMA = pa.schema(
     [
@@ -226,21 +248,20 @@ def extract_entities(
             digest.update(canonical_json_bytes(row))
         rows_sha256 = digest.hexdigest()
 
-    sidecar = {
-        "rows": table.num_rows,
-        "columns": ENTITY_SCHEMA.names,
-        # From the mirror's checksum file (config), never computed locally.
-        "dump_date": config.dump.date,
-        "dump_sha256": config.dump.sha256,
-        "input": input_name,
-        "rows_sha256": rows_sha256,
-        "parts": len(parts),
-        "checkpoint_interval": interval,
-        **provenance_block(
-            producer="wikidata.entity-manifest",
-            config=config.raw,
-            seed=config.seed,
+    EntityManifestProvenance.make(
+        producer="wikidata.entity-manifest",
+        config=config.raw,
+        seed=config.seed,
+        details=EntityManifestDetails(
+            rows=table.num_rows,
+            columns=ENTITY_SCHEMA.names,
+            # From the mirror's checksum file (config), never computed locally.
+            dump_date=config.dump.date,
+            dump_sha256=config.dump.sha256,
+            input=input_name,
+            rows_sha256=rows_sha256,
+            parts=len(parts),
+            checkpoint_interval=interval,
         ),
-    }
-    write_sidecar(out_path.with_name(out_path.name + ".meta.json"), sidecar)
+    ).write(out_path.with_name(out_path.name + ".meta.json"))
     return {"rows": table.num_rows, "parts": len(parts), "rows_sha256": rows_sha256}

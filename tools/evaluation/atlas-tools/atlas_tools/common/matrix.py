@@ -1,19 +1,17 @@
 """Raw float matrix contract (PRD section 0.1).
 
-Embeddings and coordinates are exchanged as raw row-major float32 files with
-no header, plus a JSON sidecar ``<name>.meta.json`` (name appended to the
-full binary filename, e.g. ``X.f32`` -> ``X.f32.meta.json``)::
+Embeddings and coordinates are exchanged as raw row-major little-endian
+float32 files with no header, plus a JSON sidecar ``<name>.meta.json``
+(name appended to the full binary filename, e.g. ``X.f32`` ->
+``X.f32.meta.json``). The sidecar is a :class:`Provenance` envelope whose
+``details`` carry the matrix shape contract::
 
-    {"dtype": "f32", "dim": 3072, "rows": 986432, "byte_order": "little",
-     "content_sha256": "...", "producer": "...", "created_at": "..."}
-
-The sidecar is FLAT on disk — this exact shape is shared with the Rust
-consumer, so :class:`MatrixDetails` fields are inlined at the top level next
-to the :class:`~atlas_tools.common.provenance.Provenance` envelope fields
-when writing, and split back out when loading. The binary carries no header.
+    {"producer": "...", "created_at": "...",
+     "details": {"dtype": "f32", "dim": 3072, "rows": 986432,
+                 "byte_order": "little", "content_sha256": "..."}}
 
 The loader validates ``file size == rows * dim * 4`` and rejects mismatches
-with an error naming the mismatch.
+with an error naming the mismatch. The binary itself carries no header.
 """
 
 from __future__ import annotations
@@ -28,10 +26,7 @@ from pydantic import BaseModel, NonNegativeInt, PositiveInt
 from atlas_tools.common.provenance import (
     JsonDict,
     Provenance,
-    make_provenance,
-    read_sidecar,
     sha256_file,
-    write_sidecar,
 )
 
 _F32_BYTES = 4
@@ -63,27 +58,6 @@ class MatrixDetails(BaseModel):
 MatrixProvenance = Provenance[MatrixDetails]
 
 
-def _read_flat_sidecar(path: Path) -> MatrixProvenance:
-    """Parse the flat on-disk sidecar back into the nested model."""
-    data = read_sidecar(path)
-    detail_fields = MatrixDetails.model_fields.keys()
-    details = {key: data.pop(key) for key in list(detail_fields) if key in data}
-
-    return MatrixProvenance.model_validate({**data, "details": details})
-
-
-def _write_flat_sidecar(path: Path, provenance: MatrixProvenance) -> None:
-    """Write the nested model as the flat sidecar shape pinned by PRD 0.1."""
-    payload = provenance.model_dump(mode="json")
-    details = payload.pop("details")
-    # Envelope and detail field names are disjoint; None-valued envelope
-    # fields are omitted to keep the sidecar minimal.
-    flat = {key: value for key, value in payload.items() if value is not None}
-    flat.update({key: value for key, value in details.items() if value is not None})
-
-    write_sidecar(path, flat)
-
-
 def load_matrix(
     path: PathLike,
     *,
@@ -97,7 +71,7 @@ def load_matrix(
     """
     path = Path(path)
 
-    meta = _read_flat_sidecar(meta_path_for(path)).details
+    meta = MatrixProvenance.load(meta_path_for(path)).details
 
     expected = meta.rows * meta.dim * _F32_BYTES
     actual = path.stat().st_size
@@ -151,7 +125,7 @@ def write_matrix(
         extra=extra_metadata,
     )
 
-    provenance = make_provenance(producer=producer, details=details)
-    _write_flat_sidecar(meta_path_for(path), provenance)
+    provenance = MatrixProvenance.make(producer=producer, details=details)
+    provenance.write(meta_path_for(path))
 
     return provenance

@@ -72,17 +72,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Protocol
 
+from pydantic import BaseModel, NonNegativeInt
+
 from atlas_tools.common.provenance import (
-    provenance_block,
+    JsonDict,
+    Provenance,
     sha256_bytes,
     sha256_file,
-    write_sidecar,
 )
 from atlas_tools.wikidata import CARD_FORMAT_VERSION
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import PropertyRecord, pid_number
 from atlas_tools.wikidata.properties import ExtractionResult
-from atlas_tools.wikidata.records import RecordSet, emit_records, load_records
+from atlas_tools.wikidata.records import (
+    LadderFlags,
+    RecordSet,
+    emit_records,
+    load_records,
+)
 
 
 class TokenCounter(Protocol):
@@ -166,6 +173,41 @@ class Card:
     omitted_fields: tuple[str, ...]
     severely_truncated: bool
     retrieved_at: str | None
+
+
+class CardEntry(BaseModel):
+    card_hash: str
+    token_count: NonNegativeInt
+    severely_truncated: bool
+
+
+class CardsCounts(BaseModel):
+    inventory_rows: NonNegativeInt
+    excluded: NonNegativeInt
+    cards: NonNegativeInt
+    example_skips: NonNegativeInt
+
+
+class CardsManifestDetails(BaseModel):
+    """Details of the cards.jsonl projection; the records.jsonl input hash
+    lives in the envelope's ``input_hashes``."""
+
+    card_format_version: int
+    card_hash_canonicalization: str
+    tokenizer: str
+    token_budget: int
+    hard_token_budget: int
+    # API-snapshot date stands in for a dump SHA in W2a (no dump).
+    api_snapshot_date: str
+    cards: dict[str, CardEntry]
+    counts: CardsCounts
+    flags: LadderFlags
+    excluded: dict[str, str]
+
+
+# The rendering config is the full free-form YAML config (card-format keys
+# INCLUDED here, unlike the records envelope: they change the projection).
+CardsManifestProvenance = Provenance[CardsManifestDetails, JsonDict]
 
 
 @dataclass
@@ -374,38 +416,36 @@ def render_cards(
             )
 
     manifest_path = out_dir / "cards.manifest.json"
-    manifest = {
-        "card_format_version": CARD_FORMAT_VERSION,
-        "card_hash_canonicalization": "utf-8 bytes of card_text",
-        "tokenizer": counter.name,
-        "token_budget": config.token_budget,
-        "hard_token_budget": config.hard_token_budget,
-        # API-snapshot date stands in for a dump SHA in W2a (no dump).
-        "api_snapshot_date": meta.get("api_snapshot_date", ""),
-        "cards": {
-            card.pid: {
-                "card_hash": card.card_hash,
-                "token_count": card.token_count,
-                "severely_truncated": card.severely_truncated,
-            }
-            for card in cards
-        },
-        "counts": {
-            "inventory_rows": meta["counts"]["inventory_rows"],
-            "excluded": meta["counts"]["excluded"],
-            "cards": len(cards),
-            "example_skips": meta["counts"]["example_skips"],
-        },
-        "flags": meta["flags"],
-        "excluded": meta["excluded"],
-        **provenance_block(
-            producer="wikidata.render-cards",
-            input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
-            config=config.raw,
-            seed=config.seed,
+    CardsManifestProvenance.make(
+        producer="wikidata.render-cards",
+        input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
+        config=config.raw,
+        seed=config.seed,
+        details=CardsManifestDetails(
+            card_format_version=CARD_FORMAT_VERSION,
+            card_hash_canonicalization="utf-8 bytes of card_text",
+            tokenizer=counter.name,
+            token_budget=config.token_budget,
+            hard_token_budget=config.hard_token_budget,
+            api_snapshot_date=meta.details.api_snapshot_date,
+            cards={
+                card.pid: CardEntry(
+                    card_hash=card.card_hash,
+                    token_count=card.token_count,
+                    severely_truncated=card.severely_truncated,
+                )
+                for card in cards
+            },
+            counts=CardsCounts(
+                inventory_rows=meta.details.counts.inventory_rows,
+                excluded=meta.details.counts.excluded,
+                cards=len(cards),
+                example_skips=meta.details.counts.example_skips,
+            ),
+            flags=meta.details.flags,
+            excluded=meta.details.excluded,
         ),
-    }
-    write_sidecar(manifest_path, manifest)
+    ).write(manifest_path)
 
     return {"cards": cards_path, "manifest": manifest_path}
 

@@ -19,10 +19,9 @@ from atlas_tools.common.matrix import (
     write_matrix,
 )
 from atlas_tools.common.provenance import (
+    JsonDict,
     Provenance,
     canonical_json_bytes,
-    make_provenance,
-    provenance_block,
     read_sidecar,
     sha256_bytes,
     sha256_file,
@@ -30,6 +29,7 @@ from atlas_tools.common.provenance import (
 )
 
 __all__ = [
+    "JsonDict",
     "LayoutArtifact",
     "LayoutDetails",
     "LayoutProvenance",
@@ -41,9 +41,7 @@ __all__ = [
     "l2_normalize",
     "load_layout",
     "load_matrix",
-    "make_provenance",
     "prefix_transform",
-    "provenance_block",
     "read_sidecar",
     "sha256_bytes",
     "sha256_file",

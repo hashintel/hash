@@ -6,10 +6,10 @@ import json
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.dump import ENTITY_SCHEMA, extract_entities
 from atlas_tools.wikidata.manifest import build_sampling_plan, primary_class
-
 from tests.wikidata.conftest import DUMP_EXCERPT
 
 
@@ -98,8 +98,8 @@ def test_caps_floors_and_overrides_honored(tmp_path):
 
     with open(tmp_path / "plan.parquet.meta.json", encoding="utf-8") as f:
         sidecar = json.load(f)
-    assert sidecar["excluded_no_p31"] == 1
-    assert sidecar["seed"] == 3
+    assert sidecar["details"]["excluded_no_p31"] == 1
+    assert sidecar["seed"] == 3  # seed lives in the provenance envelope
 
 
 def test_plan_is_deterministic_across_runs(tmp_path):

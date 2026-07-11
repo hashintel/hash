@@ -16,23 +16,37 @@ seed, versions) in a JSON sidecar. Prefer boring code over clever code.
 ### 0.1 Raw float matrix files
 
 Embeddings and coordinates are exchanged as raw row-major float32 files
-(no header), with a JSON sidecar `<name>.meta.json`:
+(no header), with a JSON sidecar `<name>.meta.json` (sidecar name appends
+to the full binary filename: `X.f32` -> `X.f32.meta.json`). The sidecar is
+a provenance envelope; the matrix contract lives under `details`:
 
 ```json
 {
-  "dtype": "f32",
-  "dim": 3072,
-  "rows": 986432,
-  "byte_order": "little",
-  "content_sha256": "...",
   "producer": "...",
-  "created_at": "..."
+  "created_at": "...",
+  "tool_version": "0.1.0",
+  "config": null,
+  "config_hash": null,
+  "input_hashes": null,
+  "seed": null,
+  "details": {
+    "dtype": "f32",
+    "dim": 3072,
+    "rows": 986432,
+    "byte_order": "little",
+    "content_sha256": "...",
+    "extra": null
+  }
 }
 ```
 
-Loader MUST validate: file size == rows _dim_ 4; reject otherwise with
-an error naming the mismatch. (This matches the Rust consumer's contract;
-do not add headers to the binary.)
+Only `producer`, `created_at`, and `details` are required; `config` and
+`config_hash` must be set together (the hash is over the canonical JSON of
+`config`, sorted keys, compact separators, UTF-8).
+
+Loader MUST validate: file size == `rows * dim * 4`; reject otherwise with
+an error naming the mismatch. (The Rust consumer follows this envelope
+contract; do not add headers to the binary.)
 
 ### 0.2 Layout artifacts
 

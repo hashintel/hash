@@ -34,12 +34,15 @@ Use :func:`generate` to dispatch by shape name via :data:`REGISTRY`.
 from __future__ import annotations
 
 import math
+from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
+from pydantic import BaseModel, FiniteFloat, NonNegativeInt, PositiveInt
 
 from atlas_tools.battery.datasets import Dataset
+from atlas_tools.common import JsonDict
 
 CHAIN_TYPE_NAMES = ("order", "item", "movement", "delivery")
 
@@ -117,28 +120,28 @@ BIPARTITE_STAR_DEFAULTS: dict[str, Any] = {
 
 
 def bipartite_star(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(BIPARTITE_STAR_DEFAULTS, config)
+    config = _merge_config(BIPARTITE_STAR_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n, dim, k = cfg["n"], cfg["dim"], cfg["items_per_doc"]
+    n, dim, k = config["n"], config["dim"], config["items_per_doc"]
 
     n_docs = max(1, int(round(n / (k + 1))))
     n_docs = min(n_docs, n)
     n_items = n - n_docs
 
-    topic_centers = cfg["topic_scale"] * rng.normal(size=(cfg["n_topics"], dim))
-    doc_topic = rng.integers(0, cfg["n_topics"], size=n_docs).astype(np.int64)
-    doc_emb = topic_centers[doc_topic] + cfg["doc_noise"] * rng.normal(
+    topic_centers = config["topic_scale"] * rng.normal(size=(config["n_topics"], dim))
+    doc_topic = rng.integers(0, config["n_topics"], size=n_docs).astype(np.int64)
+    doc_emb = topic_centers[doc_topic] + config["doc_noise"] * rng.normal(
         size=(n_docs, dim)
     )
     parent = np.arange(n_items, dtype=np.int64) % n_docs  # round-robin
-    item_emb = doc_emb[parent] + cfg["item_noise"] * rng.normal(size=(n_items, dim))
+    item_emb = doc_emb[parent] + config["item_noise"] * rng.normal(size=(n_items, dim))
     embeddings = np.concatenate([doc_emb, item_emb]).astype(np.float32)
 
     item_ids = n_docs + np.arange(n_items, dtype=np.int64)
     edges = np.stack([parent, item_ids], axis=1)
     n_multi = 0
-    if n_docs > 1 and cfg["multi_parent_frac"] > 0 and n_items > 0:
-        n_multi = int(round(cfg["multi_parent_frac"] * n_items))
+    if n_docs > 1 and config["multi_parent_frac"] > 0 and n_items > 0:
+        n_multi = int(round(config["multi_parent_frac"] * n_items))
         chosen = rng.choice(n_items, size=n_multi, replace=False)
         # Second parent guaranteed distinct from the first.
         offset = 1 + rng.integers(0, n_docs - 1, size=n_multi)
@@ -151,13 +154,19 @@ def bipartite_star(config: dict[str, Any] | None, seed: int) -> Dataset:
         "n_items": int(n_items),
         "items_per_doc": int(k),
         "multi_parent_items": int(n_multi),
-        "n_topics": int(cfg["n_topics"]),
+        "n_topics": int(config["n_topics"]),
         "doc_id_range": [0, int(n_docs)],
         "item_id_range": [int(n_docs), int(n)],
         "labels_are": "topic",
     }
     return Dataset(
-        "bipartite_star", embeddings, _canonical_edges(edges), labels, truth, cfg, seed
+        "bipartite_star",
+        embeddings,
+        _canonical_edges(edges),
+        labels,
+        truth,
+        config,
+        seed,
     )
 
 
@@ -172,20 +181,20 @@ CLIQUE_COMMUNITIES_DEFAULTS: dict[str, Any] = {
 
 
 def clique_communities(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(CLIQUE_COMMUNITIES_DEFAULTS, config)
+    config = _merge_config(CLIQUE_COMMUNITIES_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    c = cfg["n_communities"]
+    c = config["n_communities"]
     embeddings, labels = _cluster_embeddings(
-        rng, cfg["n"], cfg["dim"], c, cfg["center_scale"], cfg["noise"]
+        rng, config["n"], config["dim"], c, config["center_scale"], config["noise"]
     )
     groups = [np.nonzero(labels == ci)[0] for ci in range(c)]
-    edges = _canonical_edges(_intra_group_edges(rng, groups, cfg["intra_degree"]))
+    edges = _canonical_edges(_intra_group_edges(rng, groups, config["intra_degree"]))
     truth = {
         "n_communities": int(c),
-        "intra_degree": int(cfg["intra_degree"]),
+        "intra_degree": int(config["intra_degree"]),
         "labels_are": "community",
     }
-    return Dataset("clique_communities", embeddings, edges, labels, truth, cfg, seed)
+    return Dataset("clique_communities", embeddings, edges, labels, truth, config, seed)
 
 
 CHAINS_DEFAULTS: dict[str, Any] = {
@@ -198,9 +207,9 @@ CHAINS_DEFAULTS: dict[str, Any] = {
 
 
 def chains(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(CHAINS_DEFAULTS, config)
+    config = _merge_config(CHAINS_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n, dim, depth = cfg["n"], cfg["dim"], cfg["depth"]
+    n, dim, depth = config["n"], config["dim"], config["depth"]
     type_names = [
         CHAIN_TYPE_NAMES[i] if i < len(CHAIN_TYPE_NAMES) else f"type_{i}"
         for i in range(depth)
@@ -209,10 +218,10 @@ def chains(config: dict[str, Any] | None, seed: int) -> Dataset:
     ids = np.arange(n, dtype=np.int64)
     type_id = ids % depth
     chain_id = ids // depth
-    centers = cfg["center_scale"] * rng.normal(size=(depth, dim))
-    embeddings = (centers[type_id] + cfg["noise"] * rng.normal(size=(n, dim))).astype(
-        np.float32
-    )
+    centers = config["center_scale"] * rng.normal(size=(depth, dim))
+    embeddings = (
+        centers[type_id] + config["noise"] * rng.normal(size=(n, dim))
+    ).astype(np.float32)
 
     src = ids[:-1]
     mask = chain_id[:-1] == chain_id[1:]
@@ -224,7 +233,7 @@ def chains(config: dict[str, Any] | None, seed: int) -> Dataset:
         "labels_are": "type",
         "embeddings_cluster_by": "type",
     }
-    return Dataset("chains", embeddings, edges, type_id, truth, cfg, seed)
+    return Dataset("chains", embeddings, edges, type_id, truth, config, seed)
 
 
 LATTICE_PRODUCT_DEFAULTS: dict[str, Any] = {
@@ -239,22 +248,22 @@ LATTICE_PRODUCT_DEFAULTS: dict[str, Any] = {
 
 
 def lattice_product(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(LATTICE_PRODUCT_DEFAULTS, config)
+    config = _merge_config(LATTICE_PRODUCT_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n, dim = cfg["n"], cfg["dim"]
-    a, b = cfg["factor_a"], cfg["factor_b"]
+    n, dim = config["n"], config["dim"]
+    a, b = config["factor_a"], config["factor_b"]
 
     fa = rng.integers(0, a, size=n).astype(np.int64)
     fb = rng.integers(0, b, size=n).astype(np.int64)
-    u = cfg["center_scale"] * rng.normal(size=(a, dim))
-    v = cfg["center_scale"] * rng.normal(size=(b, dim))
-    embeddings = (u[fa] + v[fb] + cfg["noise"] * rng.normal(size=(n, dim))).astype(
+    u = config["center_scale"] * rng.normal(size=(a, dim))
+    v = config["center_scale"] * rng.normal(size=(b, dim))
+    embeddings = (u[fa] + v[fb] + config["noise"] * rng.normal(size=(n, dim))).astype(
         np.float32
     )
 
     groups_a = [np.nonzero(fa == i)[0] for i in range(a)]
     groups_b = [np.nonzero(fb == i)[0] for i in range(b)]
-    epf = cfg["edges_per_factor"]
+    epf = config["edges_per_factor"]
     edges = _canonical_edges(
         np.concatenate(
             [
@@ -270,7 +279,7 @@ def lattice_product(config: dict[str, Any] | None, seed: int) -> Dataset:
         "n_cells": int(a * b),
         "labels_are": "cell (factor_a * b + factor_b)",
     }
-    return Dataset("lattice_product", embeddings, edges, labels, truth, cfg, seed)
+    return Dataset("lattice_product", embeddings, edges, labels, truth, config, seed)
 
 
 NOISE_EDGES_DEFAULTS: dict[str, Any] = {
@@ -284,13 +293,18 @@ NOISE_EDGES_DEFAULTS: dict[str, Any] = {
 
 
 def noise_edges(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(NOISE_EDGES_DEFAULTS, config)
+    config = _merge_config(NOISE_EDGES_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n = cfg["n"]
+    n = config["n"]
     embeddings, labels = _cluster_embeddings(
-        rng, n, cfg["dim"], cfg["n_clusters"], cfg["center_scale"], cfg["noise"]
+        rng,
+        n,
+        config["dim"],
+        config["n_clusters"],
+        config["center_scale"],
+        config["noise"],
     )
-    m = int(round(cfg["edge_factor"] * n))
+    m = int(round(config["edge_factor"] * n))
     i = rng.integers(0, n, size=m)
     j = rng.integers(0, n, size=m)
     bad = i == j
@@ -299,13 +313,13 @@ def noise_edges(config: dict[str, Any] | None, seed: int) -> Dataset:
         bad = i == j
     edges = _canonical_edges(np.stack([i, j], axis=1))
     truth = {
-        "n_clusters": int(cfg["n_clusters"]),
+        "n_clusters": int(config["n_clusters"]),
         "edges_random": True,
         "requested_edges": int(m),
         "unique_edges": int(len(edges)),
         "labels_are": "embedding cluster (independent of edges)",
     }
-    return Dataset("noise_edges", embeddings, edges, labels, truth, cfg, seed)
+    return Dataset("noise_edges", embeddings, edges, labels, truth, config, seed)
 
 
 ISOLATES_DEFAULTS: dict[str, Any] = {
@@ -320,24 +334,29 @@ ISOLATES_DEFAULTS: dict[str, Any] = {
 
 
 def isolates(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(ISOLATES_DEFAULTS, config)
+    config = _merge_config(ISOLATES_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n = cfg["n"]
+    n = config["n"]
     embeddings, labels = _cluster_embeddings(
-        rng, n, cfg["dim"], cfg["n_clusters"], cfg["center_scale"], cfg["noise"]
+        rng,
+        n,
+        config["dim"],
+        config["n_clusters"],
+        config["center_scale"],
+        config["noise"],
     )
-    n_iso = int(round(cfg["isolate_frac"] * n))
+    n_iso = int(round(config["isolate_frac"] * n))
     perm = rng.permutation(n)
     rest = np.sort(perm[n_iso:])
-    groups = [rest[labels[rest] == ci] for ci in range(cfg["n_clusters"])]
-    edges = _canonical_edges(_intra_group_edges(rng, groups, cfg["intra_degree"]))
+    groups = [rest[labels[rest] == ci] for ci in range(config["n_clusters"])]
+    edges = _canonical_edges(_intra_group_edges(rng, groups, config["intra_degree"]))
     truth = {
-        "isolate_frac": float(cfg["isolate_frac"]),
+        "isolate_frac": float(config["isolate_frac"]),
         "n_isolates": int(n_iso),
-        "n_clusters": int(cfg["n_clusters"]),
+        "n_clusters": int(config["n_clusters"]),
         "labels_are": "cluster",
     }
-    return Dataset("isolates", embeddings, edges, labels, truth, cfg, seed)
+    return Dataset("isolates", embeddings, edges, labels, truth, config, seed)
 
 
 MIXED_DEFAULT_COMPONENTS: list[dict[str, Any]] = [
@@ -355,10 +374,10 @@ MIXED_DEFAULTS: dict[str, Any] = {
 
 
 def mixed(config: dict[str, Any] | None, seed: int) -> Dataset:
-    cfg = _merge_config(MIXED_DEFAULTS, config)
+    config = _merge_config(MIXED_DEFAULTS, config)
     rng = np.random.default_rng(seed)
-    n, dim = cfg["n"], cfg["dim"]
-    components = cfg["components"]
+    n, dim = config["n"], config["dim"]
+    components = config["components"]
     if not components:
         raise ValueError("mixed requires at least one component")
     if any(c["shape"] == "mixed" for c in components):
@@ -405,9 +424,97 @@ def mixed(config: dict[str, Any] | None, seed: int) -> Dataset:
         _canonical_edges(np.concatenate(edge_parts)),
         np.concatenate(label_parts),
         truth,
-        cfg,
+        config,
         seed,
     )
+
+
+class AbstractGenerator[TParams: BaseModel](BaseModel, ABC):
+    params: TParams
+    n: int = 20_000
+
+    @abstractmethod
+    def run(self, seed: int) -> Dataset: ...
+
+    def config(self) -> JsonDict:
+        return {"params": self.params.model_dump(), "n": self.n, "shape": self.shape}
+
+
+class BipartiteStarParams(BaseModel):
+    dim: NonNegativeInt = 64
+    items_per_doc: PositiveInt = 8
+    multi_parent_frac: FiniteFloat = 0.0
+    n_topics: PositiveInt = 10
+    topic_scale: FiniteFloat = 1.0
+    doc_noise: FiniteFloat = 0.25
+    item_noise: FiniteFloat = 0.10
+
+
+class BipartiteStarGenerator(AbstractGenerator[BipartiteStarParams]):
+    shape: Literal["bipartite_star"] = "bipartite_star"
+
+    def run(self, seed: int) -> Dataset:
+        rng = np.random.default_rng(seed)
+        n, dim, k = self.n, self.params.dim, self.params.items_per_doc
+
+        n_docs = max(1, int(round(n / (k + 1))))
+        n_docs = min(n_docs, n)
+        n_items = n - n_docs
+
+        topic_centers = self.params.topic_scale * rng.normal(
+            size=(self.params.n_topics, dim)
+        )
+
+        doc_topic = rng.integers(0, self.params.n_topics, size=n_docs).astype(np.int64)
+        doc_embeddings = topic_centers[doc_topic] + self.params.doc_noise * rng.normal(
+            size=(n_docs, dim)
+        )
+
+        parent = np.arange(n_items, dtype=np.int64) % n_docs  # round-robin
+        item_embeddings = doc_embeddings[parent] + self.params.item_noise * rng.normal(
+            size=(n_items, dim)
+        )
+
+        embeddings = np.concatenate([doc_embeddings, item_embeddings]).astype(
+            np.float32
+        )
+
+        item_ids = n_docs + np.arange(n_items, dtype=np.int64)
+        edges = np.stack([parent, item_ids], axis=1)
+        n_multi = 0
+
+        if n_docs > 1 and self.params.multi_parent_frac > 0 and n_items > 0:
+            n_multi = int(round(self.params.multi_parent_frac * n_items))
+            chosen = rng.choice(n_items, size=n_multi, replace=False)
+
+            # Second parent guaranteed distinct from the first.
+            offset = 1 + rng.integers(0, n_docs - 1, size=n_multi)
+            second = (parent[chosen] + offset) % n_docs
+            edges = np.concatenate(
+                [edges, np.stack([second, item_ids[chosen]], axis=1)]
+            )
+
+        labels = np.concatenate([doc_topic, doc_topic[parent]])
+        truth = {
+            "n_docs": n_docs,
+            "n_items": n_items,
+            "items_per_doc": k,
+            "multi_parent_items": n_multi,
+            "n_topics": self.params.n_topics,
+            "doc_id_range": [0, n_docs],
+            "item_id_range": [n_docs, n],
+            "labels_are": "topic",
+        }
+
+        return Dataset(
+            "bipartite_star",
+            embeddings,
+            _canonical_edges(edges),
+            labels,
+            truth,
+            self.config(),
+            seed,
+        )
 
 
 REGISTRY: dict[str, Callable[[dict[str, Any] | None, int], Dataset]] = {
@@ -420,9 +527,12 @@ REGISTRY: dict[str, Callable[[dict[str, Any] | None, int], Dataset]] = {
     "mixed": mixed,
 }
 
+Generator = BipartiteStarGenerator
+
 
 def generate(shape: str, config: dict[str, Any] | None, seed: int) -> Dataset:
     """Dispatch to a registered generator by shape name."""
     if shape not in REGISTRY:
         raise ValueError(f"unknown shape {shape!r}; known: {sorted(REGISTRY)}")
+
     return REGISTRY[shape](config, int(seed))

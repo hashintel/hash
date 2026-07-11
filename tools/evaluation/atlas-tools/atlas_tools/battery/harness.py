@@ -49,16 +49,16 @@ from __future__ import annotations
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 import yaml
+from pydantic import BaseModel, DirectoryPath, Field
 
-from atlas_tools.battery.datasets import Dataset, write_dataset
+from atlas_tools.battery.datasets import write_dataset
 from atlas_tools.battery.engine_runner import (
     EngineSpec,
     load_aligned_layout,
@@ -71,7 +71,7 @@ from atlas_tools.battery.gates import (
     evaluate_gates,
     validate_gates_config,
 )
-from atlas_tools.battery.generators import REGISTRY, generate
+from atlas_tools.battery.generators import REGISTRY, Generator, generate
 from atlas_tools.battery.merge_tree import merge_tree_persistence
 from atlas_tools.battery.metrics import (
     contraction_factor,
@@ -82,10 +82,10 @@ from atlas_tools.battery.metrics import (
     trustworthiness_continuity,
 )
 from atlas_tools.common.provenance import (
+    JsonDict,
+    Provenance,
     canonical_json_bytes,
-    provenance_block,
     sha256_bytes,
-    write_sidecar,
 )
 
 SUITE_DEFAULTS: dict[str, Any] = {
@@ -119,6 +119,25 @@ METRIC_ORDER = [
 _VERSIONED_LIBS = ("numpy", "scipy", "scikit-learn", "umap-learn", "pandas", "pyarrow")
 
 
+class MergeTreeConfig(BaseModel):
+    grid_size: int = 1024
+    bandwidth_px: float = 4.0
+    floor_frac: float = 0.005
+    persistence_frac: float = 0.05
+
+
+class Suite(BaseModel):
+    version: Literal[1]
+    name: str
+    seeds: list[int]
+    knn_ks: list[int] = Field(default_factory=lambda: [15, 30, 50])
+    tc_neighbors: int = 15
+    tc_sample: int = 2000
+    silhouette_sample: int = 5000
+    merge_tree: MergeTreeConfig = Field(default_factory=MergeTreeConfig)
+    datasets: list[Generator]
+
+
 def load_suite(path: Path | str) -> dict[str, Any]:
     """Load and validate a versioned suite YAML; fill defaults."""
     with open(path, encoding="utf-8") as f:
@@ -150,18 +169,37 @@ def load_suite(path: Path | str) -> dict[str, Any]:
     return suite
 
 
-@dataclass(frozen=True)
-class _Task:
+class RunDetails(BaseModel):
+    """Run-level facts recorded in ``manifest.json`` (the reproducibility
+    contract: every reported number is derivable from this manifest)."""
+
+    suite_path: Path
+    engines_path: Path
+
+    suite_config_hash: str
+    engines_config_hash: str
+
+    seeds: list[int]
+    datasets: dict[str, dict[str, str]]
+    versions: dict[str, str]
+
+
+# The manifest embeds the resolved suite + engine configs verbatim as
+# free-form JSON; the harness only hashes them.
+RunProvenance = Provenance[RunDetails, JsonDict]
+
+
+class _Task(BaseModel):
     spec: EngineSpec
     shape: str
     seed: int
-    variant: str  # "edges" | "no_edges"
-    dataset_dir: Path
+    variant: Literal["edges", "no_edges"]
+    dataset_dir: DirectoryPath
     layout_path: Path
 
 
 def _compute_metrics(
-    ds: Dataset, xy: np.ndarray, suite: dict[str, Any], seed: int
+    dataset: SuiteDataset, xy: np.ndarray, suite: dict[str, Any], seed: int
 ) -> dict[str, float | None]:
     mt_cfg = suite["merge_tree"]
     mt = merge_tree_persistence(
@@ -176,9 +214,9 @@ def _compute_metrics(
         "total_persistence": mt.total_persistence,
         "normalized_persistence": mt.normalized_persistence,
     }
-    metrics.update(knn_recall(xy, ds.embeddings, suite["knn_ks"]))
+    metrics.update(knn_recall(xy, dataset.embeddings, suite["knn_ks"]))
     trust, continuity = trustworthiness_continuity(
-        ds.embeddings,
+        dataset.embeddings,
         xy,
         n_neighbors=suite["tc_neighbors"],
         sample_size=suite["tc_sample"],
@@ -187,10 +225,10 @@ def _compute_metrics(
     metrics["trustworthiness"] = trust
     metrics["continuity"] = continuity
     metrics["silhouette"] = silhouette_on_labels(
-        xy, ds.labels, sample_size=suite["silhouette_sample"], seed=seed
+        xy, dataset.labels, sample_size=suite["silhouette_sample"], seed=seed
     )
-    metrics["pendant_diffusion"] = pendant_diffusion(xy, ds.edges, ds.labels)
-    metrics["edge_binding"] = edge_binding_ratio(xy, ds.edges, seed=seed)
+    metrics["pendant_diffusion"] = pendant_diffusion(xy, dataset.edges, dataset.labels)
+    metrics["edge_binding"] = edge_binding_ratio(xy, dataset.edges, seed=seed)
     return metrics
 
 
@@ -210,23 +248,32 @@ def run_suite(
     jobs = jobs or min(8, os.cpu_count() or 1)
 
     # 1. Generate all datasets (deterministic in (config, seed)).
-    datasets: dict[tuple[str, int], tuple[Dataset, Path]] = {}
+    datasets: dict[tuple[str, int], tuple[SuiteDataset, Path]] = {}
     dataset_hashes: dict[str, dict[str, str]] = {}
     for entry in suite["datasets"]:
         for seed in suite["seeds"]:
             config = {"n": entry["n"], **(entry.get("params") or {})}
-            ds = generate(entry["shape"], config, seed)
-            ds_dir = out / "datasets" / f"{ds.shape}-s{seed}"
-            dataset_hashes[f"{ds.shape}-s{seed}"] = write_dataset(ds, ds_dir)
-            datasets[(ds.shape, seed)] = (ds, ds_dir)
+            dataset = generate(entry["shape"], config, seed)
+            dataset_directory = out / "datasets" / f"{dataset.shape}-s{seed}"
+            dataset_hashes[f"{dataset.shape}-s{seed}"] = write_dataset(
+                dataset, dataset_directory
+            )
+            datasets[(dataset.shape, seed)] = (dataset, dataset_directory)
 
     # 2. Build the run matrix (plus no-edges twins on noise_edges).
     tasks: list[_Task] = []
     for spec in engines:
-        for (shape, seed), (_, ds_dir) in datasets.items():
+        for (shape, seed), (_, dataset_directory) in datasets.items():
             base = out / "layouts" / spec.name / f"{shape}-s{seed}"
             tasks.append(
-                _Task(spec, shape, seed, "edges", ds_dir, base / "edges" / "layout.npz")
+                _Task(
+                    spec=spec,
+                    shape=shape,
+                    seed=seed,
+                    variant="edges",
+                    dataset_dir=dataset_directory,
+                    layout_path=base / "edges" / "layout.npz",
+                )
             )
             if (
                 shape == NOISE_SHAPE
@@ -235,12 +282,12 @@ def run_suite(
             ):
                 tasks.append(
                     _Task(
-                        spec,
-                        shape,
-                        seed,
-                        "no_edges",
-                        ds_dir,
-                        base / "no_edges" / "layout.npz",
+                        spec=spec,
+                        shape=shape,
+                        seed=seed,
+                        variant="no_edges",
+                        dataset_dir=dataset_directory,
+                        layout_path=base / "no_edges" / "layout.npz",
                     )
                 )
 
@@ -262,11 +309,11 @@ def run_suite(
     metric_rows: list[dict[str, Any]] = []
     per_task_metrics: dict[tuple[str, str, int, str], dict[str, float | None]] = {}
     for task in tasks:
-        ds, _ = datasets[(task.shape, task.seed)]
-        artifact = load_aligned_layout(task.layout_path, ds.n)
+        dataset, _ = datasets[(task.shape, task.seed)]
+        artifact = load_aligned_layout(task.layout_path, dataset.n)
         layouts[(task.spec.name, task.shape, task.seed, task.variant)] = artifact.xy
         per_task_metrics[(task.spec.name, task.shape, task.seed, task.variant)] = (
-            _compute_metrics(ds, artifact.xy, suite, task.seed)
+            _compute_metrics(dataset, artifact.xy, suite, task.seed)
         )
 
     for task in tasks:
@@ -313,20 +360,20 @@ def run_suite(
             versions[lib] = importlib_metadata.version(lib)
         except importlib_metadata.PackageNotFoundError:  # pragma: no cover
             versions[lib] = "unknown"
-    manifest = provenance_block(
+    manifest = RunProvenance.make(
         producer="battery.run",
         config={"suite": suite, "engines": engines_raw},
-        extra={
-            "suite_path": str(suite_path),
-            "engines_path": str(engines_path),
-            "suite_config_hash": suite_hash,
-            "engines_config_hash": engines_hash,
-            "seeds": list(suite["seeds"]),
-            "datasets": dataset_hashes,
-            "versions": versions,
-        },
+        details=RunDetails(
+            suite_path=str(suite_path),
+            engines_path=str(engines_path),
+            suite_config_hash=suite_hash,
+            engines_config_hash=engines_hash,
+            seeds=list(suite["seeds"]),
+            datasets=dataset_hashes,
+            versions=versions,
+        ),
     )
-    manifest_path = write_sidecar(out / "manifest.json", manifest)
+    manifest_path = manifest.write(out / "manifest.json")
 
     # 7. Report.
     report = _render_report(df, suite, engines, gates_payload, suite_hash, engines_hash)

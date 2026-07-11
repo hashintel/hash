@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt
@@ -22,7 +21,6 @@ from pydantic import BaseModel, NonNegativeInt
 from atlas_tools.common.provenance import (
     JsonDict,
     Provenance,
-    make_provenance,
     sha256_file,
 )
 
@@ -43,7 +41,9 @@ class LayoutDetails(BaseModel):
     extra: JsonDict | None = None
 
 
-LayoutProvenance = Provenance[LayoutDetails]
+# Engine configs are free-form JSON: the battery never interprets them, it
+# only hashes and reproduces them.
+LayoutProvenance = Provenance[LayoutDetails, JsonDict]
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,7 @@ def write_layout(
     row_id: np.ndarray | None = None,
     *,
     engine: str,
-    config: dict[str, Any] | None = None,
+    config: JsonDict | None = None,
     seed: int | None = None,
     source_embedding_hash: str | None = None,
     extra_meta: JsonDict | None = None,
@@ -135,7 +135,7 @@ def write_layout(
 
     np.savez(path, xy=xy, row_id=row_id)
 
-    provenance = make_provenance(
+    provenance = LayoutProvenance.make(
         producer=engine,
         config=config,
         seed=seed,

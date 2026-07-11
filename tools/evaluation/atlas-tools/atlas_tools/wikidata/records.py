@@ -18,14 +18,17 @@ Files written by ``emit_records`` (all in the extract out dir):
   endpoint-type QIDs). Kept as one shared file rather than embedded
   per-record because the same entity (e.g. Q5) is referenced by many
   properties; a shared map keeps records.jsonl small and duplication-free.
-- ``records.meta.json`` — provenance sidecar (the only file with a
-  wall-clock ``created_at``): records_format_version, api_snapshot_date,
-  counts, ladder flags, exclusions, and content hashes of the two data
-  files. Its ``config_hash`` is computed over the config EXCLUDING
-  card-format keys (token budgets, tokenizer), so re-rendering with a
-  different card config never invalidates the records.
-- ``inventory.json`` — the raw inventory + exclusion reasons (an extraction
-  artifact, so it is written here, not by the card renderer).
+- ``records.meta.json`` — a typed :class:`Provenance` envelope (the only
+  file with a wall-clock ``created_at``) whose ``details`` carry
+  records_format_version, api_snapshot_date, counts, ladder flags,
+  exclusions, and content hashes of the two data files
+  (:class:`RecordsDetails`). Its ``config``/``config_hash`` cover the config
+  EXCLUDING card-format keys (token budgets, tokenizer), so re-rendering
+  with a different card config never invalidates the records.
+- ``inventory.json`` — a :class:`Provenance` envelope whose ``details``
+  carry the raw inventory rows + retained/excluded PIDs
+  (:class:`InventoryDetails`); an extraction artifact, so it is written
+  here, not by the card renderer.
 
 records.jsonl row schema (records_format_version 1)
 ----------------------------------------------------
@@ -59,18 +62,63 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel, NonNegativeInt
+
 from atlas_tools.common.provenance import (
+    JsonDict,
+    Provenance,
     canonical_json_bytes,
-    provenance_block,
-    read_sidecar,
     sha256_file,
-    write_sidecar,
 )
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord, pid_number
 from atlas_tools.wikidata.properties import ExtractionResult
 
 RECORDS_FORMAT_VERSION = 1
+
+
+class LadderFlags(BaseModel):
+    """Example-ladder outcomes (shared with the cards manifest)."""
+
+    example_ladder_fallbacks: dict[str, str]
+    example_ladder_skips: list[str]
+
+
+class ExtractionCounts(BaseModel):
+    inventory_rows: NonNegativeInt
+    excluded: NonNegativeInt
+    records: NonNegativeInt
+    example_skips: NonNegativeInt
+
+
+class RecordsDetails(BaseModel):
+    """Details of the records.jsonl intermediate (card-format-independent)."""
+
+    records_format_version: int
+    api_snapshot_date: str
+    counts: ExtractionCounts
+    flags: LadderFlags
+    excluded: dict[str, str]
+    content_hashes: dict[str, str]
+
+
+# The extraction config is free-form YAML (minus card-format keys): JsonDict.
+RecordsProvenance = Provenance[RecordsDetails, JsonDict]
+
+
+class InventoryRowEntry(BaseModel):
+    pid: str
+    datatype: str
+    usage: int | None
+
+
+class InventoryDetails(BaseModel):
+    rows: list[InventoryRowEntry]
+    retained: list[str]
+    excluded: dict[str, str]
+
+
+InventoryProvenance = Provenance[InventoryDetails, JsonDict]
 
 # Config keys that only affect card rendering; excluded from the records
 # provenance config_hash so the records artifact stays card-independent.
@@ -160,7 +208,7 @@ class RecordSet:
 
     records: list[PropertyRecord]
     entity_labels: dict[str, tuple[str, str]]
-    meta: dict[str, Any]
+    meta: RecordsProvenance
     records_path: Path
 
 
@@ -196,53 +244,47 @@ def emit_records(
         sorted(result.excluded.items(), key=lambda kv: pid_number(kv[0]))
     )
     meta_path = out_dir / "records.meta.json"
-    write_sidecar(
-        meta_path,
-        {
-            "records_format_version": RECORDS_FORMAT_VERSION,
-            "api_snapshot_date": result.api_snapshot_date,
-            "counts": {
-                "inventory_rows": len(result.inventory_rows),
-                "excluded": len(result.excluded),
-                "records": len(ordered),
-                "example_skips": len(result.example_skips),
-            },
-            "flags": {
-                "example_ladder_fallbacks": dict(
-                    sorted(result.example_fallbacks.items())
-                ),
-                "example_ladder_skips": sorted(result.example_skips, key=pid_number),
-            },
-            "excluded": excluded_sorted,
-            "content_hashes": {
+    RecordsProvenance.make(
+        producer="wikidata.extract-properties",
+        config=extraction_config(config),
+        seed=config.seed,
+        details=RecordsDetails(
+            records_format_version=RECORDS_FORMAT_VERSION,
+            api_snapshot_date=result.api_snapshot_date,
+            counts=ExtractionCounts(
+                inventory_rows=len(result.inventory_rows),
+                excluded=len(result.excluded),
+                records=len(ordered),
+                example_skips=len(result.example_skips),
+            ),
+            flags=LadderFlags(
+                example_ladder_fallbacks=dict(sorted(result.example_fallbacks.items())),
+                example_ladder_skips=sorted(result.example_skips, key=pid_number),
+            ),
+            excluded=excluded_sorted,
+            content_hashes={
                 "records.jsonl": sha256_file(records_path),
                 "entity_labels.json": sha256_file(labels_path),
             },
-            **provenance_block(
-                producer="wikidata.extract-properties",
-                config=extraction_config(config),
-                seed=config.seed,
-            ),
-        },
-    )
+        ),
+    ).write(meta_path)
 
     inventory_path = out_dir / "inventory.json"
-    write_sidecar(
-        inventory_path,
-        {
-            "rows": [
-                {"pid": row.pid, "datatype": row.datatype_uri, "usage": row.usage}
+    InventoryProvenance.make(
+        producer="wikidata.extract-properties",
+        config=extraction_config(config),
+        seed=config.seed,
+        details=InventoryDetails(
+            rows=[
+                InventoryRowEntry(
+                    pid=row.pid, datatype=row.datatype_uri, usage=row.usage
+                )
                 for row in result.inventory_rows
             ],
-            "retained": [record.pid for record in ordered],
-            "excluded": excluded_sorted,
-            **provenance_block(
-                producer="wikidata.extract-properties",
-                config=extraction_config(config),
-                seed=config.seed,
-            ),
-        },
-    )
+            retained=[record.pid for record in ordered],
+            excluded=excluded_sorted,
+        ),
+    ).write(inventory_path)
 
     return {
         "records": records_path,
@@ -267,8 +309,8 @@ def load_records(path: Path | str) -> RecordSet:
         if not required.exists():
             raise FileNotFoundError(f"records intermediate incomplete: {required}")
 
-    meta = read_sidecar(meta_path)
-    version = meta.get("records_format_version")
+    meta = RecordsProvenance.load(meta_path)
+    version = meta.details.records_format_version
     if version != RECORDS_FORMAT_VERSION:
         raise ValueError(
             f"records format version {version!r} unsupported"

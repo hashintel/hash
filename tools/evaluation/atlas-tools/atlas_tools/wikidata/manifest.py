@@ -29,14 +29,35 @@ from typing import Any
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+from pydantic import BaseModel, NonNegativeInt
 
 from atlas_tools.common.provenance import (
-    provenance_block,
+    JsonDict,
+    Provenance,
     sha256_file,
-    write_sidecar,
 )
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import pid_number
+
+
+class ClassSampleCount(BaseModel):
+    total: NonNegativeInt
+    sampled: NonNegativeInt
+
+
+class SamplingPlanDetails(BaseModel):
+    """Sidecar details for the sampling plan; the entities parquet input
+    hash lives in the envelope's ``input_hashes``."""
+
+    rows: NonNegativeInt
+    classes: dict[str, ClassSampleCount]
+    excluded_no_p31: NonNegativeInt
+    primary_class_rule: str
+    emit_rule: str
+
+
+SamplingPlanProvenance = Provenance[SamplingPlanDetails, JsonDict]
+
 
 PLAN_SCHEMA = pa.schema(
     [
@@ -116,18 +137,19 @@ def build_sampling_plan(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(plan, out_path)
 
-    sidecar = {
-        "rows": plan.num_rows,
-        "classes": class_counts,
-        "excluded_no_p31": excluded_no_p31,
-        "primary_class_rule": "lexicographically smallest P31 QID string",
-        "emit_rule": "only sampled rows are emitted",
-        **provenance_block(
-            producer="wikidata.sampling-plan",
-            input_hashes={"entities": sha256_file(entities_path)},
-            config=config.raw,
-            seed=config.seed,
+    SamplingPlanProvenance.make(
+        producer="wikidata.sampling-plan",
+        input_hashes={"entities": sha256_file(entities_path)},
+        config=config.raw,
+        seed=config.seed,
+        details=SamplingPlanDetails(
+            rows=plan.num_rows,
+            classes={
+                cls: ClassSampleCount(**counts) for cls, counts in class_counts.items()
+            },
+            excluded_no_p31=excluded_no_p31,
+            primary_class_rule="lexicographically smallest P31 QID string",
+            emit_rule="only sampled rows are emitted",
         ),
-    }
-    write_sidecar(out_path.with_name(out_path.name + ".meta.json"), sidecar)
+    ).write(out_path.with_name(out_path.name + ".meta.json"))
     return {"rows": plan.num_rows, "classes": class_counts}

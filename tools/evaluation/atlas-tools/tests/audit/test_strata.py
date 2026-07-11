@@ -48,7 +48,7 @@ def test_group_destroyed_by_truncation_is_flagged(tmp_path):
         min_group_size=50,
     )
 
-    groups = report["groups"]["band"]
+    groups = report["groups"]["band"]["columns"]
     assert groups["high"]["n_queries"] == 220
     assert groups["low"]["n_queries"] == 660
 

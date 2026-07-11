@@ -70,7 +70,7 @@ def test_calibrate_cli_exit_codes(tmp_path):
 
 def test_generate_cli_writes_dataset(tmp_path):
     runner = CliRunner()
-    out = tmp_path / "ds"
+    out = tmp_path / "dataset"
     result = runner.invoke(
         main,
         [
@@ -90,11 +90,11 @@ def test_generate_cli_writes_dataset(tmp_path):
         ],
     )
     assert result.exit_code == 0, result.output
-    ds = load_dataset(out)
-    assert ds.shape == "bipartite_star"
-    assert ds.n == 200
-    assert ds.embeddings.shape == (200, 8)
-    assert ds.config["items_per_doc"] == 4
-    assert ds.seed == 5
-    degree = np.bincount(ds.edges.ravel(), minlength=200)
-    assert (degree[ds.truth["n_docs"] :] == 1).all()
+    dataset = load_dataset(out)
+    assert dataset.shape == "bipartite_star"
+    assert dataset.n == 200
+    assert dataset.embeddings.shape == (200, 8)
+    assert dataset.config["items_per_doc"] == 4
+    assert dataset.seed == 5
+    degree = np.bincount(dataset.edges.ravel(), minlength=200)
+    assert (degree[dataset.truth["n_docs"] :] == 1).all()

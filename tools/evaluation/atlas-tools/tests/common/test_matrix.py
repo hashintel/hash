@@ -37,13 +37,13 @@ def test_rejects_unsupported_dtype_and_byte_order(tmp_path):
     meta_path = meta_path_for(path)
 
     meta = json.loads(meta_path.read_text())
-    meta["dtype"] = "f64"
+    meta["details"]["dtype"] = "f64"
     meta_path.write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="dtype"):
         load_matrix(path)
 
-    meta["dtype"] = "f32"
-    meta["byte_order"] = "big"
+    meta["details"]["dtype"] = "f32"
+    meta["details"]["byte_order"] = "big"
     meta_path.write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="byte_order"):
         load_matrix(path)
@@ -54,15 +54,15 @@ def test_missing_sidecar_fields_rejected(tmp_path):
     write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
     meta = json.loads(meta_path.read_text())
-    del meta["rows"]
+    del meta["details"]["rows"]
     meta_path.write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="rows"):
         load_matrix(path)
 
 
-def test_sidecar_is_flat_and_appends_to_filename(tmp_path):
-    # PRD section 0.1 pins a FLAT sidecar named <binary filename>.meta.json;
-    # the Rust consumer reads this exact shape.
+def test_sidecar_shape_and_filename(tmp_path):
+    # PRD section 0.1: the sidecar is a Provenance envelope named
+    # <binary filename>.meta.json with the matrix contract under "details".
     path = tmp_path / "emb.f32"
     write_matrix(path, np.zeros((2, 3), dtype=np.float32), producer="test")
 
@@ -70,37 +70,26 @@ def test_sidecar_is_flat_and_appends_to_filename(tmp_path):
     assert meta_path.name == "emb.f32.meta.json"
 
     raw = json.loads(meta_path.read_text())
-    assert "details" not in raw
-    for key in (
-        "dtype",
-        "dim",
-        "rows",
-        "byte_order",
-        "content_sha256",
-        "producer",
-        "created_at",
-    ):
+    for key in ("producer", "created_at", "details"):
         assert key in raw, key
+    for key in ("dtype", "dim", "rows", "byte_order", "content_sha256"):
+        assert key in raw["details"], key
 
 
 def test_minimal_foreign_sidecar_accepted(tmp_path):
-    # A sidecar with only the PRD-required fields (e.g. written by the Rust
-    # producer, no tool_version) must load.
+    # A sidecar without tool_version/config/seed (e.g. written by the Rust
+    # producer) must load: only producer, created_at, and details are required.
     path = tmp_path / "emb.f32"
     write_matrix(path, np.zeros((2, 3), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
     raw = json.loads(meta_path.read_text())
     minimal = {
-        key: raw[key]
-        for key in (
-            "dtype",
-            "dim",
-            "rows",
-            "byte_order",
-            "content_sha256",
-            "producer",
-            "created_at",
-        )
+        "producer": raw["producer"],
+        "created_at": raw["created_at"],
+        "details": {
+            key: raw["details"][key]
+            for key in ("dtype", "dim", "rows", "byte_order", "content_sha256")
+        },
     }
     meta_path.write_text(json.dumps(minimal))
 

@@ -12,6 +12,7 @@ import json
 import pandas as pd
 import pytest
 import yaml
+
 from atlas_tools.battery.harness import load_suite, run_suite
 from atlas_tools.common.provenance import read_sidecar
 
@@ -98,14 +99,14 @@ def test_artifacts_exist_and_are_self_consistent(adversarial_run):
 
     # manifest.json: config hashes + dataset hashes + seeds + versions
     manifest = read_sidecar(result["manifest_path"])
-    assert manifest["suite_config_hash"]
-    assert manifest["engines_config_hash"]
+    assert manifest["details"]["suite_config_hash"]
+    assert manifest["details"]["engines_config_hash"]
     assert manifest["config_hash"]
-    assert manifest["seeds"] == [0, 1]
-    assert set(manifest["datasets"]) == {
+    assert manifest["details"]["seeds"] == [0, 1]
+    assert set(manifest["details"]["datasets"]) == {
         f"{shape}-s{seed}" for shape in set(df["shape"]) for seed in (0, 1)
     }
-    for hashes in manifest["datasets"].values():
+    for hashes in manifest["details"]["datasets"].values():
         for key in (
             "embeddings_sha256",
             "edges_sha256",
@@ -113,7 +114,7 @@ def test_artifacts_exist_and_are_self_consistent(adversarial_run):
             "truth_config_hash",
         ):
             assert hashes[key]
-    assert "numpy" in manifest["versions"]
+    assert "numpy" in manifest["details"]["versions"]
 
     # dataset + layout artifacts actually on disk
     assert (out / "datasets" / "mixed-s0" / "truth.json").exists()

@@ -16,6 +16,8 @@ Conventions:
 
 from __future__ import annotations
 
+from typing import Literal, Never
+
 import numpy as np
 from sklearn.metrics import pairwise_distances, silhouette_score
 from sklearn.neighbors import NearestNeighbors
@@ -28,23 +30,28 @@ def layout_std(xy: np.ndarray) -> float:
     xy = np.asarray(xy, dtype=np.float64)
     if len(xy) == 0:
         return 0.0
+
     centered = xy - xy.mean(axis=0)
-    return float(np.sqrt((centered**2).sum(axis=1).mean()))
+    return np.sqrt((centered**2).sum(axis=1).mean())
 
 
 def layout_knn_indices(xy: np.ndarray, k: int) -> np.ndarray:
     """Exact euclidean kNN indices in layout space, self excluded."""
     xy = np.asarray(xy, dtype=np.float64)
     n = len(xy)
+
     if k >= n:
         raise ValueError(f"k={k} must be < n={n}")
+
     nn = NearestNeighbors(n_neighbors=k + 1).fit(xy)
     idx = nn.kneighbors(xy, return_distance=False)
     out = np.empty((n, k), dtype=np.int64)
+
     for i in range(n):
         row = idx[i]
         row = row[row != i]  # drop self; with duplicates self may be absent
         out[i] = row[:k]
+
     return out
 
 
@@ -55,17 +62,23 @@ def knn_recall(
     ks = sorted(int(k) for k in ks)
     kmax = ks[-1]
     n = len(xy)
-    emb = np.ascontiguousarray(embeddings, dtype=np.float32)
+    embedding = np.ascontiguousarray(embeddings, dtype=np.float32)
+
     truth_idx, _ = exact_cosine_knn(
-        emb, emb, kmax, query_rows_in_corpus=np.arange(n, dtype=np.int64)
+        embedding, embedding, kmax, query_rows_in_corpus=np.arange(n, dtype=np.int64)
     )
+
     lay_idx = layout_knn_indices(xy, kmax)
     out: dict[str, float] = {}
+
     for k in ks:
         hits = 0
+
         for i in range(n):
             hits += np.intersect1d(truth_idx[i, :k], lay_idx[i, :k]).size
+
         out[f"knn_recall_{k}"] = hits / (n * k)
+
     return out
 
 
@@ -88,20 +101,25 @@ def _trustworthiness_ranked(
     n = orig.shape[0]
     k = int(n_neighbors)
     q = len(sample_idx)
+
     if not 0 < k < n / 2:
         raise ValueError(f"n_neighbors={k} must satisfy 0 < k < n/2 (n={n})")
-    rows = np.arange(q)
-    d_orig = pairwise_distances(orig[sample_idx], orig)
-    d_emb = pairwise_distances(embedded[sample_idx], embedded)
-    d_orig[rows, sample_idx] = np.inf
-    d_emb[rows, sample_idx] = np.inf
 
-    order = np.argsort(d_orig, axis=1)
+    rows = np.arange(q)
+    distances_original = pairwise_distances(orig[sample_idx], orig)
+    distances_embedding = pairwise_distances(embedded[sample_idx], embedded)
+
+    distances_original[rows, sample_idx] = np.inf
+    distances_embedding[rows, sample_idx] = np.inf
+
+    order = np.argsort(distances_original, axis=1)
     ranks = np.empty((q, n), dtype=np.int64)
     ranks[rows[:, None], order] = np.arange(n)[None, :]  # 0-based, nearest=0
-    nn_emb = np.argsort(d_emb, axis=1)[:, :k]
-    r = ranks[rows[:, None], nn_emb] + 1  # 1-based rank in orig space
-    penalty = float(np.maximum(0, r - k).sum())
+
+    nn_embeddings = np.argsort(distances_embedding, axis=1)[:, :k]
+    rank = ranks[rows[:, None], nn_embeddings] + 1  # 1-based rank in orig space
+
+    penalty = np.maximum(0, rank - k).sum()
     return 1.0 - 2.0 * penalty / (q * k * (2.0 * n - 3.0 * k - 1.0))
 
 
@@ -125,22 +143,28 @@ def trustworthiness_continuity(
     ``sample_size`` (if smaller than n) selects a seeded query subset;
     ranks are still computed against the full corpus.
     """
-    emb = l2_normalize(np.asarray(embeddings, dtype=np.float32)).astype(np.float64)
+    embedding = l2_normalize(np.asarray(embeddings, dtype=np.float32)).astype(
+        np.float64
+    )
+
     xy = np.asarray(xy, dtype=np.float64)
-    n = len(emb)
+    n = len(embedding)
+
     if sample_size is not None and sample_size < n:
         sample_idx = np.sort(
             np.random.default_rng(seed).choice(n, size=int(sample_size), replace=False)
         )
     else:
         sample_idx = np.arange(n)
+
     trust = _trustworthiness_ranked(
-        emb, xy, n_neighbors=n_neighbors, sample_idx=sample_idx
+        embedding, xy, n_neighbors=n_neighbors, sample_idx=sample_idx
     )
     continuity = _trustworthiness_ranked(
-        xy, emb, n_neighbors=n_neighbors, sample_idx=sample_idx
+        xy, embedding, n_neighbors=n_neighbors, sample_idx=sample_idx
     )
-    return float(trust), float(continuity)
+
+    return trust, continuity
 
 
 def silhouette_on_labels(
@@ -154,17 +178,22 @@ def silhouette_on_labels(
     absent or degenerate (<2 classes). Rows with label -1 are excluded."""
     labels = np.asarray(labels, dtype=np.int64)
     mask = labels >= 0
+
     if int(mask.sum()) < 3:
         return None
+
     x = np.asarray(xy, dtype=np.float64)[mask]
     y = labels[mask]
+
     n_classes = np.unique(y).size
     if n_classes < 2 or n_classes >= len(y):
         return None
-    kwargs = {}
+
+    kwargs: dict[str, Never] | dict[Literal["sample_size", "random_state"], int] = {}
     if sample_size is not None and sample_size < len(y):
         kwargs = {"sample_size": int(sample_size), "random_state": int(seed)}
-    return float(silhouette_score(x, y, **kwargs))
+
+    return silhouette_score(x, y, **kwargs)
 
 
 def pendant_diffusion(
@@ -181,27 +210,35 @@ def pendant_diffusion(
     """
     edges = np.asarray(edges, dtype=np.int64).reshape(-1, 2)
     labels = np.asarray(labels, dtype=np.int64)
+
     xy = np.asarray(xy, dtype=np.float64)
+
     n = len(xy)
     if len(edges) == 0 or not (labels >= 0).any():
         return None
+
     degree = np.bincount(edges.ravel(), minlength=n)
+
     pendant = degree == 1
     if not pendant.any():
         return None
 
     partner = np.full(n, -1, dtype=np.int64)
     e0, e1 = edges[:, 0], edges[:, 1]
+
     m0 = pendant[e0]
     partner[e0[m0]] = e1[m0]
+
     m1 = pendant[e1]
     partner[e1[m1]] = e0[m1]
 
     pendant_ids = np.nonzero(pendant)[0]
     partner_labels = labels[partner[pendant_ids]]
+
     ok = partner_labels >= 0
     if not ok.any():
         return None
+
     pendant_ids = pendant_ids[ok]
     partner_labels = partner_labels[ok]
 
@@ -209,15 +246,18 @@ def pendant_diffusion(
     centroids = np.zeros((n_labels, 2))
     counts = np.zeros(n_labels)
     labeled = labels >= 0
+
     np.add.at(centroids, labels[labeled], xy[labeled])
     np.add.at(counts, labels[labeled], 1)
     centroids /= np.maximum(counts, 1)[:, None]
 
     distances = np.linalg.norm(xy[pendant_ids] - centroids[partner_labels], axis=1)
     std = layout_std(xy)
+
     if std <= 0:
         return None
-    return float(np.median(distances) / std)
+
+    return np.median(distances) / std
 
 
 def edge_binding_ratio(
@@ -227,30 +267,40 @@ def edge_binding_ratio(
     over a size-matched seeded random node-pair baseline. < 1 means edges
     bind. ``None`` without edges or on a fully degenerate layout."""
     edges = np.asarray(edges, dtype=np.int64).reshape(-1, 2)
+
     xy = np.asarray(xy, dtype=np.float64)
+
     n = len(xy)
     if len(edges) == 0 or n < 2:
         return None
+
     d_edge = np.linalg.norm(xy[edges[:, 0]] - xy[edges[:, 1]], axis=1)
 
     rng = np.random.default_rng(seed)
+
     m = len(edges)
     i = rng.integers(0, n, size=m)
     j = rng.integers(0, n, size=m)
+
     bad = i == j
     while bad.any():
         j[bad] = rng.integers(0, n, size=int(bad.sum()))
         bad = i == j
+
     d_rand = np.linalg.norm(xy[i] - xy[j], axis=1)
-    median_rand = float(np.median(d_rand))
+
+    median_rand = np.median(d_rand)
     if median_rand <= 0:
         return None
-    return float(np.median(d_edge)) / median_rand
+
+    return np.median(d_edge) / median_rand
 
 
 def contraction_factor(xy: np.ndarray, baseline_xy: np.ndarray) -> float | None:
     """Layout std relative to a same-seed no-relation baseline layout."""
     baseline = layout_std(baseline_xy)
+
     if baseline <= 0:
         return None
+
     return layout_std(xy) / baseline

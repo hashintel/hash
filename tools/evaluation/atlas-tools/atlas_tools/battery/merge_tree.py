@@ -64,22 +64,30 @@ def density_raster(
     bandwidth_px: float = DEFAULT_BANDWIDTH_PX,
 ) -> np.ndarray:
     """2-D histogram over the layout's own extent + gaussian blur (pixels)."""
+
     xy = np.asarray(xy, dtype=np.float64)
     if xy.ndim != 2 or xy.shape[1] != 2:
         raise ValueError(f"xy must have shape (n, 2), got {xy.shape}")
+
     if grid_size < 2:
         raise ValueError("grid_size must be >= 2")
+
     if len(xy) == 0:
         return np.zeros((grid_size, grid_size))
+
     xmin, ymin = xy.min(axis=0)
     xmax, ymax = xy.max(axis=0)
+
     if xmax <= xmin:
         xmin, xmax = xmin - 0.5, xmax + 0.5
+
     if ymax <= ymin:
         ymin, ymax = ymin - 0.5, ymax + 0.5
+
     hist, _, _ = np.histogram2d(
         xy[:, 0], xy[:, 1], bins=grid_size, range=[[xmin, xmax], [ymin, ymax]]
     )
+
     return gaussian_filter(hist, sigma=bandwidth_px)
 
 
@@ -97,77 +105,96 @@ def merge_tree_from_density(
     d = np.asarray(density, dtype=np.float64)
     if d.ndim != 2:
         raise ValueError(f"density must be 2-d, got shape {d.shape}")
+
     density_max = float(d.max()) if d.size else 0.0
     if density_max <= 0.0:
         return MergeTreeResult(0, 0.0, 0.0, density_max, ())
 
     floor = floor_frac * density_max
     h, w = d.shape
+
     flat = d.ravel()
     active = np.nonzero(flat >= floor)[0]
+
     # Primary: descending density; ties: ascending flat index.
-    order = active[np.lexsort((active, -flat[active]))].tolist()
-    values = flat.tolist()
+    order: list[int] = active[np.lexsort((active, -flat[active]))].tolist()
+    values: list[float] = flat.tolist()
 
     comp_of: list[int] = [-1] * (h * w)
     parent: list[int] = []
     birth: list[float] = []
     leaves: list[tuple[float, float]] = []
 
-    def find(c: int) -> int:
-        root = c
+    def find(child: int) -> int:
+        root = child
+
         while parent[root] != root:
             root = parent[root]
-        while parent[c] != root:
-            parent[c], c = root, parent[c]
+
+        while parent[child] != root:
+            parent[child], child = root, parent[child]
+
         return root
 
     for p in order:
         v = values[p]
         row, col = divmod(p, w)
         roots: list[int] = []
-        for dr in (-1, 0, 1):
-            rr = row + dr
-            if not 0 <= rr < h:
+
+        for dir_row in (-1, 0, 1):
+            row_neighbour = row + dir_row
+            if not 0 <= row_neighbour < h:
                 continue
-            base = rr * w
-            for dc in (-1, 0, 1):
-                if dr == 0 and dc == 0:
+            base = row_neighbour * w
+
+            for dir_col in (-1, 0, 1):
+                if dir_row == 0 and dir_col == 0:
                     continue
-                cc = col + dc
-                if not 0 <= cc < w:
+
+                col_neighbour = col + dir_col
+                if not 0 <= col_neighbour < w:
                     continue
-                q = comp_of[base + cc]
+
+                q = comp_of[base + col_neighbour]
+
                 if q >= 0:
                     root = find(q)
                     if root not in roots:
                         roots.append(root)
+
         if not roots:
             comp_of[p] = len(parent)
             parent.append(len(parent))
             birth.append(v)
+
             continue
+
         eldest = roots[0]
         for r in roots[1:]:
             if birth[r] > birth[eldest] or (birth[r] == birth[eldest] and r < eldest):
                 eldest = r
+
         comp_of[p] = eldest
         for r in roots:
             if r == eldest:
                 continue
+
             persistence = birth[r] - v
             if persistence >= persistence_frac * birth[r]:
                 leaves.append((birth[r], v))
+
             parent[r] = eldest
 
     # Finalize survivors at the floor with the same persistence filter.
     for c in range(len(parent)):
         if parent[c] == c:
             persistence = birth[c] - floor
+
             if persistence >= persistence_frac * birth[c]:
                 leaves.append((birth[c], floor))
 
     total = float(sum(b - death for b, death in leaves))
+
     return MergeTreeResult(
         leaf_count=len(leaves),
         total_persistence=total,
@@ -187,6 +214,7 @@ def merge_tree_persistence(
 ) -> MergeTreeResult:
     """Merge-tree leaf persistence of a layout (raster + sweep composed)."""
     raster = density_raster(xy, grid_size=grid_size, bandwidth_px=bandwidth_px)
+
     return merge_tree_from_density(
         raster, floor_frac=floor_frac, persistence_frac=persistence_frac
     )

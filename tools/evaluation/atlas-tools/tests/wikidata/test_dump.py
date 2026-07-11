@@ -7,8 +7,8 @@ import json
 
 import pyarrow.parquet as pq
 import pytest
-from atlas_tools.wikidata.dump import extract_entities, extract_entity_row
 
+from atlas_tools.wikidata.dump import extract_entities, extract_entity_row
 from tests.wikidata.conftest import DUMP_EXCERPT
 
 # Hand-computed from the generator rules in
@@ -119,9 +119,9 @@ def test_golden_manifest_on_committed_excerpt(config, tmp_path):
     # by hashing the stream.
     with open(tmp_path / "entities.parquet.meta.json", encoding="utf-8") as f:
         sidecar = json.load(f)
-    assert sidecar["dump_date"] == config.dump.date
-    assert sidecar["dump_sha256"] == config.dump.sha256
-    assert sidecar["rows_sha256"] == summary["rows_sha256"]
+    assert sidecar["details"]["dump_date"] == config.dump.date
+    assert sidecar["details"]["dump_sha256"] == config.dump.sha256
+    assert sidecar["details"]["rows_sha256"] == summary["rows_sha256"]
 
 
 class _ExplodingStream:
