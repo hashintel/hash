@@ -9,7 +9,7 @@ silhouette, pendant diffusion, edge binding) collapses to chance. The
 acceptance test asserts this engine fails every structure gate.
 """
 
-from __future__ import annotations
+from pathlib import Path
 
 import click
 import numpy as np
@@ -32,12 +32,13 @@ def main(
     out: str,
     seed: int,
 ) -> None:
-    emb, meta = load_matrix(embeddings, mmap=False)
-    xy = pca_coords(emb)
-    perm = np.random.default_rng(seed).permutation(len(xy))
+    loaded, meta = load_matrix(Path(embeddings), mmap=False)
+    xy = pca_coords(loaded)
+    permutation = np.random.default_rng(seed).permutation(len(xy))
+
     write_layout(
         out,
-        xy[perm],  # row_id defaults to arange(n): coordinates decoupled
+        xy[permutation],  # row_id defaults to arange(n): coordinates decoupled
         engine="shuffle",
         config={"base": "pca2d"},
         seed=seed,

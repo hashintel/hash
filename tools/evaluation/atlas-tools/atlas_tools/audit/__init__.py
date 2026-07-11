@@ -6,10 +6,12 @@ every projector gate downstream references these numbers.
 
 See :mod:`atlas_tools.audit.runner` for the pipeline, exact metric
 definitions, and the blockwise scale math; :mod:`atlas_tools.audit.metrics`
-for the metric implementations; :mod:`atlas_tools.audit.cli` for the
+for the metric implementations; :mod:`atlas_tools.audit.evaluation` for the
+typed report/provenance models; :mod:`atlas_tools.audit.cli` for the
 ``audit`` console entry point.
 """
 
+from atlas_tools.audit.evaluation import RunnerProvenance, RunnerReport
 from atlas_tools.audit.runner import run_audit
 
-__all__ = ["run_audit"]
+__all__ = ["RunnerProvenance", "RunnerReport", "run_audit"]

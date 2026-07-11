@@ -3,10 +3,9 @@
 from pathlib import Path
 
 import click
-import numpy as np
 
 from atlas_tools.audit.runner import run_audit
-from atlas_tools.audit.synth import make_synthetic
+from atlas_tools.audit.synth import make_synthetic, write_cluster_labels
 from atlas_tools.common.matrix import write_matrix
 
 
@@ -127,7 +126,7 @@ def synth_fixture(
     """Write a synthetic fixture whose signal lives in a dim band."""
     band = (signal_start, dim if signal_end is None else signal_end)
     try:
-        vectors, labels = make_synthetic(
+        corpus = make_synthetic(
             rows,
             dim,
             n_clusters=clusters,
@@ -140,7 +139,7 @@ def synth_fixture(
         raise click.ClickException(str(exc)) from exc
     write_matrix(
         out,
-        vectors,
+        corpus.vectors,
         producer="atlas-tools audit synth-fixture",
         extra_metadata={
             "synthetic": {
@@ -154,15 +153,5 @@ def synth_fixture(
     )
     click.echo(f"wrote {out}")
     if labels_out is not None:
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
-        table = pa.table(
-            {
-                "row": pa.array(np.arange(rows, dtype=np.int64), type=pa.int64()),
-                "cluster": pa.array([f"c{int(label)}" for label in labels]),
-            }
-        )
-        labels_out.parent.mkdir(parents=True, exist_ok=True)
-        pq.write_table(table, labels_out)
+        write_cluster_labels(labels_out, corpus.cluster_labels)
         click.echo(f"wrote {labels_out}")

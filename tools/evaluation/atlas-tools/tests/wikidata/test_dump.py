@@ -8,7 +8,11 @@ import json
 import pyarrow.parquet as pq
 import pytest
 
-from atlas_tools.wikidata.dump import extract_entities, extract_entity_row
+from atlas_tools.wikidata.dump import (
+    EntityRow,
+    extract_entities,
+    extract_entity_row,
+)
 from tests.wikidata.conftest import DUMP_EXCERPT
 
 # Hand-computed from the generator rules in
@@ -62,7 +66,7 @@ class TestExtractEntityRow:
     def test_trailing_comma_stripped(self):
         line = b'{"type":"item","id":"Q1","labels":{}},\n'
         row = extract_entity_row(line, "en")
-        assert row is not None and row["qid"] == "Q1"
+        assert row is not None and row.qid == "Q1"
 
     def test_non_item_entities_skipped(self):
         line = b'{"type":"property","id":"P31","labels":{}},\n'
@@ -70,16 +74,16 @@ class TestExtractEntityRow:
 
     def test_entity_without_labels_or_claims(self):
         row = extract_entity_row(b'{"type":"item","id":"Q2"}\n', "en")
-        assert row == {
-            "qid": "Q2",
-            "p31": [],
-            "sitelink_count": 0,
-            "label_count": 0,
-            "label_len_primary": None,
-            "label_len_min": None,
-            "label_len_mean": None,
-            "label_len_max": None,
-        }
+        assert row == EntityRow(
+            qid="Q2",
+            p31=(),
+            sitelink_count=0,
+            label_count=0,
+            label_len_primary=None,
+            label_len_min=None,
+            label_len_mean=None,
+            label_len_max=None,
+        )
 
     def test_novalue_p31_snak_skipped(self):
         line = (
@@ -87,7 +91,7 @@ class TestExtractEntityRow:
             b'{"snaktype":"novalue"}}]}}\n'
         )
         row = extract_entity_row(line, "en")
-        assert row is not None and row["p31"] == []
+        assert row is not None and row.p31 == ()
 
 
 def _run(config, out_dir, checkpoint_dir):
@@ -103,7 +107,7 @@ def _run(config, out_dir, checkpoint_dir):
 
 def test_golden_manifest_on_committed_excerpt(config, tmp_path):
     summary = _run(config, tmp_path, tmp_path / "ckpt")
-    assert summary["rows"] == 200
+    assert summary.rows == 200
 
     table = pq.read_table(tmp_path / "entities.parquet")
     assert table.num_rows == 200
@@ -119,9 +123,9 @@ def test_golden_manifest_on_committed_excerpt(config, tmp_path):
     # by hashing the stream.
     with open(tmp_path / "entities.parquet.meta.json", encoding="utf-8") as f:
         sidecar = json.load(f)
-    assert sidecar["details"]["dump_date"] == config.dump.date
-    assert sidecar["details"]["dump_sha256"] == config.dump.sha256
-    assert sidecar["details"]["rows_sha256"] == summary["rows_sha256"]
+    assert sidecar["details"]["dump_date"] == config.extraction.dump.date
+    assert sidecar["details"]["dump_sha256"] == config.extraction.dump.sha256
+    assert sidecar["details"]["rows_sha256"] == summary.rows_sha256
 
 
 class _ExplodingStream:
@@ -167,7 +171,7 @@ def test_interrupted_resume_produces_identical_outputs(config, tmp_path):
     resumed = _run(config, resumed_dir, resumed_dir / "ckpt")
 
     # Row-level hash equality plus full table and byte equality.
-    assert resumed["rows_sha256"] == baseline["rows_sha256"]
+    assert resumed.rows_sha256 == baseline.rows_sha256
     baseline_table = pq.read_table(baseline_dir / "entities.parquet")
     resumed_table = pq.read_table(resumed_dir / "entities.parquet")
     assert baseline_table.equals(resumed_table)
@@ -180,5 +184,5 @@ def test_completed_run_reruns_as_identical_noop(config, tmp_path):
     first = _run(config, tmp_path, tmp_path / "ckpt")
     bytes_first = (tmp_path / "entities.parquet").read_bytes()
     second = _run(config, tmp_path, tmp_path / "ckpt")
-    assert second["rows_sha256"] == first["rows_sha256"]
+    assert second.rows_sha256 == first.rows_sha256
     assert (tmp_path / "entities.parquet").read_bytes() == bytes_first

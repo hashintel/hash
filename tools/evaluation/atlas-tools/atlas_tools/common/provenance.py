@@ -23,10 +23,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from os import PathLike
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 from pydantic import (
     AwareDatetime,
@@ -41,11 +42,12 @@ import atlas_tools
 type JsonDict = dict[str, JsonValue]
 
 
-def canonical_json_bytes(obj: Any) -> bytes:
+def canonical_json_bytes(obj: object) -> bytes:
     """Serialize ``obj`` to canonical JSON bytes (sorted keys, compact).
 
     Pydantic models are dumped in JSON mode first, so a typed config hashes
-    identically before writing and after reloading.
+    identically before writing and after reloading. Non-JSON-serializable
+    input raises ``TypeError`` (from ``json.dumps``).
     """
     if isinstance(obj, BaseModel):
         obj = obj.model_dump(mode="json")
@@ -151,7 +153,7 @@ class Provenance[TDetails, TConfig = None](BaseModel):
         )
 
 
-def write_sidecar(path: PathLike, payload: dict[str, Any]) -> Path:
+def write_sidecar(path: PathLike, payload: Mapping[str, object]) -> Path:
     """Write a JSON sidecar with stable key order and trailing newline."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -162,7 +164,7 @@ def write_sidecar(path: PathLike, payload: dict[str, Any]) -> Path:
     return path
 
 
-def read_sidecar(path: PathLike) -> dict[str, Any]:
+def read_sidecar(path: PathLike) -> JsonDict:
     with open(path, encoding="utf-8") as f:
         loaded = json.load(f)
     if not isinstance(loaded, dict):

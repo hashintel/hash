@@ -22,7 +22,6 @@ wall-clock time, and those are excluded from all hashes.
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt
@@ -38,6 +37,10 @@ EMBEDDINGS_FILE = "embeddings.f32"
 EDGES_FILE = "edges.npy"
 LABELS_FILE = "labels.npy"
 TRUTH_FILE = "truth.json"
+
+type StrPath = str | PathLike[str]
+"""A filesystem path as accepted at the battery's boundaries (CLI passes
+strings, tests pass ``Path`` objects)."""
 
 
 class TruthDetails(BaseModel):
@@ -63,7 +66,11 @@ class Dataset:
     embeddings: np.ndarray  # (n, dim) float32
     edges: np.ndarray  # (m, 2) int64
     labels: np.ndarray  # (n,) int64; -1 = unlabeled
-    truth: dict[str, Any]
+    # Genuinely shape-specific free-form JSON: each generator plants its own
+    # descriptor (community counts, chain structure, ...); consumers narrow
+    # the keys they read.
+    truth: JsonDict
+    # The producing generator's resolved config dump ({shape, n, params}).
     config: JsonDict
     seed: int
 
@@ -95,27 +102,36 @@ class Dataset:
         return int(self.embeddings.shape[0])
 
 
-def write_dataset(dataset: Dataset, out_dir: PathLike) -> dict[str, str]:
+class DatasetHashes(BaseModel):
+    """Content hashes of one dataset artifact directory (manifest currency)."""
+
+    embeddings_sha256: str
+    edges_sha256: str
+    labels_sha256: str
+    truth_config_hash: str
+
+
+def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
     """Write the dataset artifact directory; return its content hashes."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     producer = f"battery.generators.{dataset.shape}"
-    meta = write_matrix(
+    provenance = write_matrix(
         out_dir / EMBEDDINGS_FILE, dataset.embeddings, producer=producer
     )
     np.save(out_dir / EDGES_FILE, dataset.edges)
     np.save(out_dir / LABELS_FILE, dataset.labels)
 
-    hashes = {
-        "embeddings_sha256": meta.details.content_sha256,
+    input_hashes = {
+        "embeddings_sha256": provenance.details.content_sha256,
         "edges_sha256": sha256_file(out_dir / EDGES_FILE),
         "labels_sha256": sha256_file(out_dir / LABELS_FILE),
     }
 
     truth_payload = TruthProvenance.make(
         producer=producer,
-        input_hashes=hashes,
+        input_hashes=input_hashes,
         config=dataset.config,
         seed=dataset.seed,
         details=TruthDetails(
@@ -129,10 +145,10 @@ def write_dataset(dataset: Dataset, out_dir: PathLike) -> dict[str, str]:
     truth_payload.write(out_dir / TRUTH_FILE)
 
     assert truth_payload.config_hash is not None
-    return {**hashes, "truth_config_hash": truth_payload.config_hash}
+    return DatasetHashes(**input_hashes, truth_config_hash=truth_payload.config_hash)
 
 
-def load_dataset(directory: PathLike) -> Dataset:
+def load_dataset(directory: StrPath) -> Dataset:
     """Load a dataset artifact directory written by :func:`write_dataset`."""
     directory = Path(directory)
     embeddings, _ = load_matrix(directory / EMBEDDINGS_FILE, mmap=False)

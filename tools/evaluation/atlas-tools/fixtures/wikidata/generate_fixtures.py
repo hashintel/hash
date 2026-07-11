@@ -450,9 +450,9 @@ def write_responses(config: Config) -> None:
             "params": params,
         }
 
-    wdqs = config.endpoints["wdqs"]
-    qlever = config.endpoints["qlever"]
-    api = config.endpoints["wikibase_api"]
+    wdqs = config.extraction.endpoints.wdqs
+    qlever = config.extraction.endpoints.qlever
+    api = config.extraction.endpoints.wikibase_api
 
     # 1. Property inventory (WDQS).
     add(
@@ -468,7 +468,7 @@ def write_responses(config: Config) -> None:
         add(
             f"props_batch_{batch_index}.json",
             api,
-            wbgetentities_params(batch, config.languages),
+            wbgetentities_params(batch, config.extraction.languages),
             {"entities": {pid: PROPERTY_DOCS[pid] for pid in batch}, "success": 1},
         )
 
@@ -479,17 +479,19 @@ def write_responses(config: Config) -> None:
         add(
             f"items_batch_{batch_index}.json",
             api,
-            wbgetentities_params(batch, config.languages),
+            wbgetentities_params(batch, config.extraction.languages),
             {"entities": {qid: ITEM_DOCS[qid] for qid in batch}, "success": 1},
         )
 
     # 4. Example ladder responses.
     def example_params(pid: str, offset: int) -> dict[str, str]:
         return sparql_params(
-            example_pairs_query(pid, limit=config.example_pool_limit, offset=offset)
+            example_pairs_query(
+                pid, limit=config.extraction.example_pool_limit, offset=offset
+            )
         )
 
-    for offset in config.example_offsets:
+    for offset in config.extraction.example_offsets:
         for pid in ("P361", "P50", "P527", "P9005"):
             add(
                 f"examples_{pid}_wdqs_{offset}.json",

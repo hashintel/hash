@@ -1,5 +1,7 @@
 """Calibration fixture + CLI tests (W3.2.1 calibration mechanism)."""
 
+from pathlib import Path
+
 import numpy as np
 import yaml
 from click.testing import CliRunner
@@ -7,6 +9,7 @@ from click.testing import CliRunner
 from atlas_tools.battery.calibrate import run_calibration
 from atlas_tools.battery.cli import main
 from atlas_tools.battery.datasets import load_dataset
+from atlas_tools.battery.metrics import MetricName
 
 from .conftest import FIXTURES_DIR
 
@@ -15,7 +18,7 @@ LAYOUT = CALIBRATION_DIR / "layout.npz"
 MANIFEST = CALIBRATION_DIR / "calibration.yaml"
 
 
-def _perturbed_manifest(tmp_path, **overrides):
+def _perturbed_manifest(tmp_path: Path, **overrides: float) -> Path:
     manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
     manifest["expected"] = {**manifest["expected"], **overrides}
     path = tmp_path / "perturbed.yaml"
@@ -23,43 +26,46 @@ def _perturbed_manifest(tmp_path, **overrides):
     return path
 
 
-def test_committed_fixture_passes_calibration():
-    result = run_calibration(LAYOUT, MANIFEST)
-    assert result["pass"], result["checks"]
-    by_name = {c["name"]: c for c in result["checks"]}
-    assert by_name["leaf_count"]["actual"] == 4.0
-    assert by_name["leaf_count"]["tolerance_frac"] == 0.03
-    assert by_name["normalized_persistence"]["tolerance_frac"] == 0.05
+def test_committed_fixture_passes_calibration() -> None:
+    report = run_calibration(LAYOUT, MANIFEST)
+    assert report.passed, report.checks
+    by_name = {check.name: check for check in report.checks}
+    assert by_name[MetricName.leaf_count].actual == 4.0
+    assert by_name[MetricName.leaf_count].tolerance_frac == 0.03
+    assert by_name[MetricName.normalized_persistence].tolerance_frac == 0.05
 
 
-def test_perturbation_beyond_tolerance_fails(tmp_path):
+def test_perturbation_beyond_tolerance_fails(tmp_path: Path) -> None:
     reference = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
-    np_expected = reference["expected"]["normalized_persistence"]
+    expected_persistence = reference["expected"]["normalized_persistence"]
 
     # +10 % persistence: outside the ±5 % tolerance
-    bad_np = _perturbed_manifest(tmp_path, normalized_persistence=np_expected * 1.10)
-    result = run_calibration(LAYOUT, bad_np)
-    assert not result["pass"]
-    failing = {c["name"] for c in result["checks"] if not c["pass"]}
-    assert failing == {"normalized_persistence"}
+    bad_persistence = _perturbed_manifest(
+        tmp_path, normalized_persistence=expected_persistence * 1.10
+    )
+    report = run_calibration(LAYOUT, bad_persistence)
+    assert not report.passed
+    failing = {check.name for check in report.checks if not check.passed}
+    assert failing == {MetricName.normalized_persistence}
 
     # wrong leaf count: 4 vs 5 is far outside ±3 %
     bad_leaves = _perturbed_manifest(tmp_path, leaf_count=5)
-    result = run_calibration(LAYOUT, bad_leaves)
-    assert not result["pass"]
+    assert not run_calibration(LAYOUT, bad_leaves).passed
 
     # +4 % persistence stays within the ±5 % tolerance
-    ok = _perturbed_manifest(tmp_path, normalized_persistence=np_expected * 1.04)
-    assert run_calibration(LAYOUT, ok)["pass"]
+    ok = _perturbed_manifest(
+        tmp_path, normalized_persistence=expected_persistence * 1.04
+    )
+    assert run_calibration(LAYOUT, ok).passed
 
 
-def test_calibrate_cli_exit_codes(tmp_path):
+def test_calibrate_cli_exit_codes(tmp_path: Path) -> None:
     runner = CliRunner()
     good = runner.invoke(
         main, ["calibrate", "--layout", str(LAYOUT), "--manifest", str(MANIFEST)]
     )
     assert good.exit_code == 0, good.output
-    assert '"pass": true' in good.output
+    assert '"passed": true' in good.output
 
     bad_manifest = _perturbed_manifest(tmp_path, leaf_count=40)
     bad = runner.invoke(
@@ -69,7 +75,7 @@ def test_calibrate_cli_exit_codes(tmp_path):
     assert bad.exit_code == 1
 
 
-def test_generate_cli_writes_dataset(tmp_path):
+def test_generate_cli_writes_dataset(tmp_path: Path) -> None:
     runner = CliRunner()
     out = tmp_path / "dataset"
     result = runner.invoke(
@@ -95,8 +101,12 @@ def test_generate_cli_writes_dataset(tmp_path):
     assert dataset.shape == "bipartite_star"
     assert dataset.n == 200
     assert dataset.embeddings.shape == (200, 8)
-    # config() is the generator's model dump: {shape, n, params}.
-    assert dataset.config["params"]["items_per_doc"] == 4
+    # config is the generator's model dump: {shape, n, params}.
+    params = dataset.config["params"]
+    assert isinstance(params, dict)
+    assert params["items_per_doc"] == 4
     assert dataset.seed == 5
+    n_docs = dataset.truth["n_docs"]
+    assert isinstance(n_docs, int)
     degree = np.bincount(dataset.edges.ravel(), minlength=200)
-    assert (degree[dataset.truth["n_docs"] :] == 1).all()
+    assert (degree[n_docs:] == 1).all()

@@ -21,6 +21,8 @@ grid is config-driven: any cell is reachable through the CLI flags below.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
 
 from atlas_tools.common.layout import write_layout
@@ -49,7 +51,7 @@ def main(
     import numpy as np
     import umap  # heavy import (numba); keep local to the command
 
-    emb, meta = load_matrix(embeddings, mmap=False)
+    matrix, meta = load_matrix(Path(embeddings), mmap=False)
     reducer = umap.UMAP(
         n_components=2,
         n_neighbors=n_neighbors,
@@ -57,7 +59,8 @@ def main(
         metric=metric,
         random_state=seed,
     )
-    xy = np.asarray(reducer.fit_transform(np.asarray(emb)), dtype=np.float32)
+    xy = np.asarray(reducer.fit_transform(np.asarray(matrix)), dtype=np.float32)
+
     write_layout(
         out,
         xy,

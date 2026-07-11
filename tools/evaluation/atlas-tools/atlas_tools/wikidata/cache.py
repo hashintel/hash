@@ -1,8 +1,9 @@
 """Disk cache for HTTP responses.
 
-Cache key = sha256 of the canonical JSON of ``{endpoint (url), params,
-snapshot_date}``; value = the response body (``<key>.body``) plus a metadata
-JSON (``<key>.meta.json``) recording status, headers, and ``retrieved_at``.
+Cache key = sha256 of the canonical JSON of a :class:`_CacheKey` (endpoint
+url, params, snapshot date); value = the response body (``<key>.body``) plus
+a metadata JSON (``<key>.meta.json``, a :class:`CacheEntryMetadata`)
+recording status, headers, and ``retrieved_at``.
 
 ``CachingTransport`` wraps an inner transport: once every request of a run is
 cached, a full rerun makes ZERO calls to the inner transport. Failed
@@ -21,22 +22,50 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+
+from pydantic import BaseModel, Field
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
-from atlas_tools.wikidata.transport import Transport
+from atlas_tools.wikidata.transport import Response, Transport
 
 RETRIEVED_AT_HEADER = "x-atlas-retrieved-at"
 
 
-def cache_key(url: str, params: dict[str, str] | None, snapshot_date: str) -> str:
+class _CacheKey(BaseModel):
+    """Canonical cache-entry identity; hashing it yields the entry key."""
+
+    endpoint: str
+    params: dict[str, str]
+    snapshot_date: str
+
+
+def cache_key(url: str, params: Mapping[str, str] | None, snapshot_date: str) -> str:
     return sha256_bytes(
         canonical_json_bytes(
-            {"endpoint": url, "params": params or {}, "snapshot_date": snapshot_date}
+            _CacheKey(
+                endpoint=url, params=dict(params or {}), snapshot_date=snapshot_date
+            )
         )
     )
+
+
+class CacheEntryMetadata(BaseModel):
+    """The ``<key>.meta.json`` document next to each cached body."""
+
+    status: int
+    headers: dict[str, str] = Field(default_factory=dict)
+    retrieved_at: str
+    url: str
+    params: dict[str, str] = Field(default_factory=dict)
+    snapshot_date: str
+
+    def response(self, body: bytes) -> Response:
+        headers = dict(self.headers)
+        headers[RETRIEVED_AT_HEADER] = self.retrieved_at
+        return Response(status=self.status, headers=headers, body=body)
 
 
 def _atomic_write_bytes(path: Path, data: bytes) -> None:
@@ -63,37 +92,40 @@ class CachingTransport:
     def _paths(self, key: str) -> tuple[Path, Path]:
         return self._dir / f"{key}.body", self._dir / f"{key}.meta.json"
 
-    def get(
-        self, url: str, params: dict[str, str] | None = None
-    ) -> tuple[int, dict[str, str], bytes]:
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
         key = cache_key(url, params, self._snapshot_date)
-        body_path, meta_path = self._paths(key)
-        if body_path.exists() and meta_path.exists():
-            with open(meta_path, encoding="utf-8") as f:
-                meta: dict[str, Any] = json.load(f)
-            headers = dict(meta.get("headers", {}))
-            headers[RETRIEVED_AT_HEADER] = meta["retrieved_at"]
-            return int(meta["status"]), headers, body_path.read_bytes()
+        body_path, metadata_path = self._paths(key)
+        if body_path.exists() and metadata_path.exists():
+            metadata = CacheEntryMetadata.model_validate_json(
+                metadata_path.read_bytes()
+            )
+            return metadata.response(body_path.read_bytes())
 
-        status, headers, body = self._inner.get(url, params)
-        retrieved_at = headers.get("date") or datetime.now(timezone.utc).isoformat()
-        meta = {
-            "status": status,
-            "headers": {k.lower(): v for k, v in headers.items()},
-            "retrieved_at": retrieved_at,
-            "url": url,
-            "params": params or {},
-            "snapshot_date": self._snapshot_date,
-        }
+        fetched = self._inner.get(url, params)
+        retrieved_at = (
+            fetched.headers.get("date") or datetime.now(timezone.utc).isoformat()
+        )
+        metadata = CacheEntryMetadata(
+            status=fetched.status,
+            headers={key.lower(): value for key, value in fetched.headers.items()},
+            retrieved_at=retrieved_at,
+            url=url,
+            params=dict(params or {}),
+            snapshot_date=self._snapshot_date,
+        )
         # Body first, then metadata: a torn write leaves no meta file, so the
         # entry is simply refetched.
-        _atomic_write_bytes(body_path, body)
+        _atomic_write_bytes(body_path, fetched.body)
         _atomic_write_bytes(
-            meta_path,
+            metadata_path,
             (
-                json.dumps(meta, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+                json.dumps(
+                    metadata.model_dump(mode="json"),
+                    sort_keys=True,
+                    indent=2,
+                    ensure_ascii=False,
+                )
+                + "\n"
             ).encode("utf-8"),
         )
-        out_headers = dict(meta["headers"])
-        out_headers[RETRIEVED_AT_HEADER] = retrieved_at
-        return status, out_headers, body
+        return metadata.response(fetched.body)

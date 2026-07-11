@@ -2,10 +2,10 @@
 
 import numpy as np
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from sklearn.metrics import silhouette_score
 
-from atlas_tools.battery.datasets import load_dataset, write_dataset
+from atlas_tools.battery.datasets import Dataset, load_dataset, write_dataset
 from atlas_tools.battery.generators import (
     BipartiteStarGenerator,
     BipartiteStarParams,
@@ -28,6 +28,13 @@ from atlas_tools.battery.generators import (
 
 SMALL_N = 400
 SMALL_DIM = 16
+
+
+def truth_int(dataset: Dataset, key: str) -> int:
+    """An integer field of the free-form truth descriptor, narrowed."""
+    value = dataset.truth[key]
+    assert isinstance(value, int)
+    return value
 
 
 def small_mixed_components() -> list[MixedComponent]:
@@ -108,7 +115,7 @@ def test_determinism_same_seed_identical_bytes(generator):
 
 def test_unknown_param_rejected():
     with pytest.raises(ValidationError, match="typo_key"):
-        CliqueCommunitiesParams(typo_key=1)
+        CliqueCommunitiesParams.model_validate({"typo_key": 1})
     with pytest.raises(ValidationError, match="not_a_shape"):
         generator_adapter.validate_python({"shape": "not_a_shape", "n": 100})
 
@@ -154,7 +161,7 @@ def test_mixed_inside_mixed_is_unrepresentable():
 
 def test_bipartite_star_items_have_degree_one():
     dataset = SMALL_GENERATORS[0].run(0)
-    n_docs = dataset.truth["n_docs"]
+    n_docs = truth_int(dataset, "n_docs")
     degree = np.bincount(dataset.edges.ravel(), minlength=dataset.n)
     item_degrees = degree[n_docs:]
     assert (item_degrees == 1).all()
@@ -167,10 +174,10 @@ def test_bipartite_star_multi_parent_fraction():
         n=SMALL_N, params=BipartiteStarParams(dim=SMALL_DIM, multi_parent_frac=0.25)
     )
     dataset = generator.run(0)
-    n_docs = dataset.truth["n_docs"]
+    n_docs = truth_int(dataset, "n_docs")
     degree = np.bincount(dataset.edges.ravel(), minlength=dataset.n)
     item_degrees = degree[n_docs:]
-    n_items = dataset.truth["n_items"]
+    n_items = truth_int(dataset, "n_items")
     expected_multi = round(0.25 * n_items)
     assert dataset.truth["multi_parent_items"] == expected_multi
     assert (item_degrees == 2).sum() == expected_multi
@@ -245,24 +252,37 @@ def test_isolates_have_zero_edges():
     )
     dataset = generator.run(0)
     degree = np.bincount(dataset.edges.ravel(), minlength=dataset.n)
-    assert (degree == 0).sum() >= dataset.truth["n_isolates"]
-    assert dataset.truth["n_isolates"] == round(0.3 * SMALL_N)
+    assert (degree == 0).sum() >= truth_int(dataset, "n_isolates")
+    assert truth_int(dataset, "n_isolates") == round(0.3 * SMALL_N)
+
+
+class ComponentTruth(BaseModel):
+    """The per-component descriptor the mixed generator plants in truth."""
+
+    shape: str
+    n: int
+    node_offset: int
+    label_offset: int
+    seed: int
+
+
+component_truth_adapter = TypeAdapter(list[ComponentTruth])
 
 
 def test_mixed_concatenates_components_with_offsets():
     dataset = SMALL_GENERATORS[-1].run(0)
     assert dataset.n == SMALL_N
-    components = dataset.truth["components"]
-    assert sum(c["n"] for c in components) == SMALL_N
+    components = component_truth_adapter.validate_python(dataset.truth["components"])
+    assert sum(component.n for component in components) == SMALL_N
     # labels of different components are disjoint (offsets applied)
     seen: set[int] = set()
     for component in components:
-        lo, hi = component["node_offset"], component["node_offset"] + component["n"]
+        lo, hi = component.node_offset, component.node_offset + component.n
         component_labels = set(dataset.labels[lo:hi].tolist()) - {-1}
         assert not (component_labels & seen)
         seen |= component_labels
     # edges never cross component boundaries
-    starts = np.array([c["node_offset"] for c in components] + [SMALL_N])
+    starts = np.array([component.node_offset for component in components] + [SMALL_N])
     component_of = np.searchsorted(starts, np.arange(SMALL_N), side="right")
     assert (
         component_of[dataset.edges[:, 0]] == component_of[dataset.edges[:, 1]]
@@ -275,13 +295,7 @@ def test_dataset_roundtrip_and_deterministic_artifact_bytes(tmp_path):
     hashes_a = write_dataset(dataset, tmp_path / "a")
     hashes_b = write_dataset(dataset, tmp_path / "b")
     # content hashes identical across writes (created_at excluded from hashes)
-    for key in (
-        "embeddings_sha256",
-        "edges_sha256",
-        "labels_sha256",
-        "truth_config_hash",
-    ):
-        assert hashes_a[key] == hashes_b[key]
+    assert hashes_a == hashes_b
 
     loaded = load_dataset(tmp_path / "a")
     assert loaded.shape == dataset.shape

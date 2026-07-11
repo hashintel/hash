@@ -23,8 +23,9 @@ Documented decisions:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import NamedTuple
 
 import numpy as np
 import pyarrow as pa
@@ -32,11 +33,11 @@ import pyarrow.parquet as pq
 from pydantic import BaseModel, NonNegativeInt
 
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     sha256_file,
 )
-from atlas_tools.wikidata.config import Config
+from atlas_tools.wikidata.config import Config, StratificationConfig
+from atlas_tools.wikidata.dump import EntityRow
 from atlas_tools.wikidata.model import pid_number
 
 
@@ -56,7 +57,7 @@ class SamplingPlanDetails(BaseModel):
     emit_rule: str
 
 
-SamplingPlanProvenance = Provenance[SamplingPlanDetails, JsonDict]
+SamplingPlanProvenance = Provenance[SamplingPlanDetails, Config]
 
 
 PLAN_SCHEMA = pa.schema(
@@ -73,15 +74,59 @@ PLAN_SCHEMA = pa.schema(
 )
 
 
-def primary_class(p31: list[str]) -> str | None:
+class PlanRow(NamedTuple):
+    """One sampled entity (field order == plan parquet column order)."""
+
+    qid: str
+    p31_class: str
+    sitelink_count: int
+    label_count: int
+    label_len_primary: int | None
+    label_len_min: int | None
+    label_len_mean: float | None
+    label_len_max: int | None
+
+
+@dataclass(frozen=True)
+class SamplingPlanSummary:
+    rows: int
+    classes: dict[str, ClassSampleCount]
+
+
+def primary_class(p31: tuple[str, ...]) -> str | None:
     """Lexicographically smallest P31 QID string, or None when P31 is empty."""
     return min(p31) if p31 else None
 
 
-def class_cap(cls: str, config: Config) -> int:
-    return config.stratification.per_class_caps.get(
-        cls, config.stratification.default_cap
-    )
+def class_cap(class_qid: str, stratification: StratificationConfig) -> int:
+    return stratification.per_class_caps.get(class_qid, stratification.default_cap)
+
+
+def _read_entity_rows(entities_path: Path) -> list[EntityRow]:
+    """Load the extractor's parquet back into typed rows (dump order)."""
+    table = pq.read_table(entities_path)
+    return [
+        EntityRow(
+            qid=row["qid"],
+            p31=tuple(row["p31"]),
+            sitelink_count=row["sitelink_count"],
+            label_count=row["label_count"],
+            label_len_primary=row["label_len_primary"],
+            label_len_min=row["label_len_min"],
+            label_len_mean=row["label_len_mean"],
+            label_len_max=row["label_len_max"],
+        )
+        for row in table.to_pylist()
+    ]
+
+
+def _plan_table(rows: list[PlanRow]) -> pa.Table:
+    columns = list(zip(*rows, strict=True)) if rows else [[] for _ in PLAN_SCHEMA]
+    arrays = [
+        pa.array(column, type=field.type)
+        for column, field in zip(columns, PLAN_SCHEMA, strict=True)
+    ]
+    return pa.Table.from_arrays(arrays, schema=PLAN_SCHEMA)
 
 
 def build_sampling_plan(
@@ -89,67 +134,65 @@ def build_sampling_plan(
     *,
     config: Config,
     out_path: Path | str,
-) -> dict[str, Any]:
+) -> SamplingPlanSummary:
     entities_path = Path(entities_path)
     out_path = Path(out_path)
-    table = pq.read_table(entities_path)
-    rows = table.to_pylist()
+    stratification = config.extraction.stratification
+    seed = config.extraction.seed
 
-    by_class: dict[str, list[dict[str, Any]]] = {}
+    by_class: dict[str, list[EntityRow]] = {}
     excluded_no_p31 = 0
-    for row in rows:
-        cls = primary_class(row["p31"])
-        if cls is None:
+    for row in _read_entity_rows(entities_path):
+        row_class = primary_class(row.p31)
+        if row_class is None:
             excluded_no_p31 += 1
             continue
-        by_class.setdefault(cls, []).append(row)
+        by_class.setdefault(row_class, []).append(row)
 
-    floor = config.stratification.rare_floor
-    selected: list[dict[str, Any]] = []
-    class_counts: dict[str, dict[str, int]] = {}
-    for cls in sorted(by_class):
-        members = sorted(by_class[cls], key=lambda r: pid_number(r["qid"]))
-        n = len(members)
-        if n <= floor:
+    floor = stratification.rare_floor
+    selected: list[PlanRow] = []
+    class_counts: dict[str, ClassSampleCount] = {}
+    for row_class in sorted(by_class):
+        members = sorted(by_class[row_class], key=lambda row: pid_number(row.qid))
+        total = len(members)
+        if total <= floor:
             chosen = members
         else:
-            k = min(n, class_cap(cls, config))
-            rng = np.random.default_rng([config.seed, pid_number(cls)])
-            indices = np.sort(rng.choice(n, size=k, replace=False))
+            sample_size = min(total, class_cap(row_class, stratification))
+            rng = np.random.default_rng([seed, pid_number(row_class)])
+            indices = np.sort(rng.choice(total, size=sample_size, replace=False))
             chosen = [members[i] for i in indices]
-        class_counts[cls] = {"total": n, "sampled": len(chosen)}
+        class_counts[row_class] = ClassSampleCount(total=total, sampled=len(chosen))
         for row in chosen:
             selected.append(
-                {
-                    "qid": row["qid"],
-                    "p31_class": cls,
-                    "sitelink_count": row["sitelink_count"],
-                    "label_count": row["label_count"],
-                    "label_len_primary": row["label_len_primary"],
-                    "label_len_min": row["label_len_min"],
-                    "label_len_mean": row["label_len_mean"],
-                    "label_len_max": row["label_len_max"],
-                }
+                PlanRow(
+                    qid=row.qid,
+                    p31_class=row_class,
+                    sitelink_count=row.sitelink_count,
+                    label_count=row.label_count,
+                    label_len_primary=row.label_len_primary,
+                    label_len_min=row.label_len_min,
+                    label_len_mean=row.label_len_mean,
+                    label_len_max=row.label_len_max,
+                )
             )
 
-    selected.sort(key=lambda r: pid_number(r["qid"]))
-    plan = pa.Table.from_pylist(selected, schema=PLAN_SCHEMA)
+    selected.sort(key=lambda row: pid_number(row.qid))
+    plan = _plan_table(selected)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(plan, out_path)
 
     SamplingPlanProvenance.make(
         producer="wikidata.sampling-plan",
         input_hashes={"entities": sha256_file(entities_path)},
-        config=config.raw,
-        seed=config.seed,
+        config=config,
+        seed=seed,
         details=SamplingPlanDetails(
             rows=plan.num_rows,
-            classes={
-                cls: ClassSampleCount(**counts) for cls, counts in class_counts.items()
-            },
+            classes=class_counts,
             excluded_no_p31=excluded_no_p31,
             primary_class_rule="lexicographically smallest P31 QID string",
             emit_rule="only sampled rows are emitted",
         ),
     ).write(out_path.with_name(out_path.name + ".meta.json"))
-    return {"rows": plan.num_rows, "classes": class_counts}
+    return SamplingPlanSummary(rows=plan.num_rows, classes=class_counts)

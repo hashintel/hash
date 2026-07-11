@@ -6,7 +6,7 @@ parameters (grid 1024, blur 4 px, floor_frac 0.005, persistence_frac 0.05,
 overridable in the manifest) and checks them against recorded reference
 values within tolerances: leaves ±3 %, normalized persistence ±5 %.
 
-Calibration manifest schema (version 1)::
+Calibration manifest schema (version 1, :class:`CalibrationManifest`)::
 
     version: 1
     merge_tree:            # optional overrides of the PRD defaults
@@ -27,70 +27,117 @@ real 986k-point reference layout drops in later using exactly this
 mechanism: same command, a bigger layout.npz, and its recorded values.
 """
 
-from __future__ import annotations
-
-from os import PathLike
-from typing import Any
+from pathlib import Path
+from typing import Literal
 
 import yaml
+from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
+from atlas_tools.battery.datasets import StrPath
 from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
+from atlas_tools.battery.metrics import MetricName
 from atlas_tools.common.layout import load_layout
 
-TOLERANCE_DEFAULTS: dict[str, float] = {
-    "leaf_count_frac": 0.03,
-    "normalized_persistence_frac": 0.05,
-}
+
+class CalibrationExpected(BaseModel):
+    """Recorded reference values of the calibration layout."""
+
+    leaf_count: float
+    normalized_persistence: float
+
+    model_config = ConfigDict(extra="forbid")
 
 
-def run_calibration(layout_path: PathLike, manifest_path: PathLike) -> dict[str, Any]:
+class CalibrationTolerances(BaseModel):
+    """Relative tolerances (PRD defaults: leaves ±3 %, persistence ±5 %)."""
+
+    leaf_count_frac: PositiveFloat = 0.03
+    normalized_persistence_frac: PositiveFloat = 0.05
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CalibrationManifest(BaseModel):
+    """Versioned calibration reference (see module docstring for YAML)."""
+
+    version: Literal[1]
+    merge_tree: MergeTreeConfig = Field(default_factory=MergeTreeConfig)
+    expected: CalibrationExpected
+    tolerances: CalibrationTolerances = Field(default_factory=CalibrationTolerances)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CalibrationCheck(BaseModel):
+    """One computed value compared against its recorded reference."""
+
+    name: MetricName
+    expected: float
+    actual: float
+    tolerance_frac: float
+    abs_limit: float
+    passed: bool
+
+
+class CalibrationReport(BaseModel):
+    """The ``battery calibrate`` verdict (JSON-printed by the CLI)."""
+
+    passed: bool
+    checks: list[CalibrationCheck]
+    merge_tree: MergeTreeConfig
+    layout: Path
+    manifest: Path
+
+
+def load_calibration_manifest(path: StrPath) -> CalibrationManifest:
+    """Load and validate a versioned calibration manifest YAML."""
+    with open(path, encoding="utf-8") as file:
+        data = yaml.safe_load(file)
+
+    return CalibrationManifest.model_validate(data)
+
+
+def _check(
+    name: MetricName, *, expected: float, actual: float, tolerance_frac: float
+) -> CalibrationCheck:
+    limit = tolerance_frac * abs(expected)
+
+    return CalibrationCheck(
+        name=name,
+        expected=expected,
+        actual=actual,
+        tolerance_frac=tolerance_frac,
+        abs_limit=limit,
+        passed=abs(actual - expected) <= limit,
+    )
+
+
+def run_calibration(layout_path: StrPath, manifest_path: StrPath) -> CalibrationReport:
     """Compute merge-tree stats and compare with the reference manifest."""
-    with open(manifest_path, encoding="utf-8") as f:
-        manifest = yaml.safe_load(f)
-    if not isinstance(manifest, dict) or manifest.get("version") != 1:
-        raise ValueError(
-            f"{manifest_path}: calibration manifest must declare 'version: 1'"
-        )
+    manifest = load_calibration_manifest(manifest_path)
 
-    expected = manifest.get("expected") or {}
-    for key in ("leaf_count", "normalized_persistence"):
-        if key not in expected:
-            raise ValueError(f"{manifest_path}: expected.{key} is required")
+    artifact = load_layout(Path(layout_path))
+    result = merge_tree_persistence(artifact.xy, manifest.merge_tree)
 
-    params = MergeTreeConfig.model_validate(manifest.get("merge_tree") or {})
-    tolerances = {**TOLERANCE_DEFAULTS, **(manifest.get("tolerances") or {})}
-
-    artifact = load_layout(layout_path)
-    result = merge_tree_persistence(artifact.xy, params)
-
-    checks = []
-    for name, actual, frac_key in (
-        ("leaf_count", float(result.leaf_count), "leaf_count_frac"),
-        (
-            "normalized_persistence",
-            result.normalized_persistence,
-            "normalized_persistence_frac",
+    checks = [
+        _check(
+            MetricName.leaf_count,
+            expected=manifest.expected.leaf_count,
+            actual=float(result.leaf_count),
+            tolerance_frac=manifest.tolerances.leaf_count_frac,
         ),
-    ):
-        exp = float(expected[name])
-        frac = float(tolerances[frac_key])
-        limit = frac * abs(exp)
+        _check(
+            MetricName.normalized_persistence,
+            expected=manifest.expected.normalized_persistence,
+            actual=result.normalized_persistence,
+            tolerance_frac=manifest.tolerances.normalized_persistence_frac,
+        ),
+    ]
 
-        checks.append(
-            {
-                "name": name,
-                "expected": exp,
-                "actual": actual,
-                "tolerance_frac": frac,
-                "abs_limit": limit,
-                "pass": bool(abs(actual - exp) <= limit),
-            }
-        )
-
-    return {
-        "pass": all(check["pass"] for check in checks),
-        "checks": checks,
-        "params": params.model_dump(mode="json"),
-        "layout": str(layout_path),
-        "manifest": str(manifest_path),
-    }
+    return CalibrationReport(
+        passed=all(check.passed for check in checks),
+        checks=checks,
+        merge_tree=manifest.merge_tree,
+        layout=Path(layout_path),
+        manifest=Path(manifest_path),
+    )

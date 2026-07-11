@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from atlas_tools.wikidata.properties import parse_constraints
+from atlas_tools.wikidata.properties import Snak, Statement, parse_constraints
 
 
-def _constraint(constraint_type: str, qualifiers: dict[str, list[str]] | None = None):
+def _constraint(
+    constraint_type: str, qualifiers: dict[str, list[str]] | None = None
+) -> Statement:
     statement = {
         "mainsnak": {
             "snaktype": "value",
@@ -17,13 +19,13 @@ def _constraint(constraint_type: str, qualifiers: dict[str, list[str]] | None = 
     }
     if qualifiers:
         statement["qualifiers"] = {
-            prop: [
+            qualifier: [
                 {"snaktype": "value", "datavalue": {"value": {"id": entity_id}}}
                 for entity_id in ids
             ]
-            for prop, ids in qualifiers.items()
+            for qualifier, ids in qualifiers.items()
         }
-    return statement
+    return Statement.model_validate(statement)
 
 
 def test_symmetric_and_transitive_parsed():
@@ -69,5 +71,5 @@ def test_unknown_constraint_type_ignored_without_error():
 
 
 def test_novalue_snak_skipped():
-    constraints = parse_constraints([{"mainsnak": {"snaktype": "novalue"}}])
-    assert constraints == parse_constraints([])
+    statement = Statement(mainsnak=Snak(snaktype="novalue"))
+    assert parse_constraints([statement]) == parse_constraints([])

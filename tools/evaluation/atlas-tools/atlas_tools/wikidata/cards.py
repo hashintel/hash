@@ -65,35 +65,37 @@ above) OR more than 50% of the collected examples were dropped.
 
 from __future__ import annotations
 
-import json
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Protocol
+from typing import Protocol
 
 from pydantic import BaseModel, NonNegativeInt
 
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
+    canonical_json_bytes,
     sha256_bytes,
     sha256_file,
 )
 from atlas_tools.wikidata import CARD_FORMAT_VERSION
-from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import PropertyRecord, pid_number
+from atlas_tools.wikidata.config import Config, TokenizerName
+from atlas_tools.wikidata.model import EntityLabel, PropertyRecord, pid_number
 from atlas_tools.wikidata.properties import ExtractionResult
 from atlas_tools.wikidata.records import (
     LadderFlags,
     RecordSet,
+    RecordsPaths,
     emit_records,
     load_records,
 )
 
 
 class TokenCounter(Protocol):
-    name: str
+    @property
+    def name(self) -> TokenizerName: ...
 
     def count(self, text: str) -> int: ...
 
@@ -101,7 +103,7 @@ class TokenCounter(Protocol):
 class HeuristicTokenCounter:
     """ceil(len(utf8_bytes) / 4): deterministic, offline, documented above."""
 
-    name = "heuristic"
+    name: TokenizerName = "heuristic"
 
     def count(self, text: str) -> int:
         return math.ceil(len(text.encode("utf-8")) / 4)
@@ -110,7 +112,7 @@ class HeuristicTokenCounter:
 class Cl100kTokenCounter:
     """tiktoken cl100k_base (downloads its BPE file on first use)."""
 
-    name = "cl100k"
+    name: TokenizerName = "cl100k"
 
     def __init__(self) -> None:
         import tiktoken
@@ -121,12 +123,12 @@ class Cl100kTokenCounter:
         return len(self._encoding.encode(text))
 
 
-def make_token_counter(name: str) -> TokenCounter:
-    if name == "heuristic":
-        return HeuristicTokenCounter()
-    if name == "cl100k":
-        return Cl100kTokenCounter()
-    raise ValueError(f"unknown tokenizer {name!r}")
+def make_token_counter(name: TokenizerName) -> TokenCounter:
+    match name:
+        case "heuristic":
+            return HeuristicTokenCounter()
+        case "cl100k":
+            return Cl100kTokenCounter()
 
 
 def slugify(label: str) -> str:
@@ -141,25 +143,20 @@ def first_sentence(text: str) -> str:
     return head + "." if sep else text
 
 
-def _annotated(
-    entity_id: str, labels: Mapping[str, tuple[str, str]]
-) -> tuple[str, str]:
-    """('<title> (<id>)' or '<id>', description) for a referenced entity."""
-    label, description = labels.get(entity_id, ("", ""))
-    title = f"{label} ({entity_id})" if label else entity_id
-    return title, description
-
-
 def _entity_phrase(
     entity_id: str,
-    labels: Mapping[str, tuple[str, str]],
+    labels: Mapping[str, EntityLabel],
     *,
     truncate_description: bool,
 ) -> str:
-    title, description = _annotated(entity_id, labels)
-    if description:
-        if truncate_description:
-            description = first_sentence(description)
+    entry = labels.get(entity_id, EntityLabel())
+    title = f"{entry.label} ({entity_id})" if entry.label else entity_id
+    if entry.description:
+        description = (
+            first_sentence(entry.description)
+            if truncate_description
+            else entry.description
+        )
         return f"{title} — {description}"
     return title
 
@@ -171,6 +168,18 @@ class Card:
     card_hash: str
     token_count: int
     omitted_fields: tuple[str, ...]
+    severely_truncated: bool
+    retrieved_at: str | None
+
+
+class CardRow(BaseModel):
+    """One cards.jsonl line (written as canonical JSON)."""
+
+    pid: str
+    card_text: str
+    card_hash: str
+    token_count: NonNegativeInt
+    omitted_fields: list[str]
     severely_truncated: bool
     retrieved_at: str | None
 
@@ -194,7 +203,7 @@ class CardsManifestDetails(BaseModel):
 
     card_format_version: int
     card_hash_canonicalization: str
-    tokenizer: str
+    tokenizer: TokenizerName
     token_budget: int
     hard_token_budget: int
     # API-snapshot date stands in for a dump SHA in W2a (no dump).
@@ -205,9 +214,25 @@ class CardsManifestDetails(BaseModel):
     excluded: dict[str, str]
 
 
-# The rendering config is the full free-form YAML config (card-format keys
-# INCLUDED here, unlike the records envelope: they change the projection).
-CardsManifestProvenance = Provenance[CardsManifestDetails, JsonDict]
+# The rendering config is the FULL config (card-format keys included here,
+# unlike the records envelope: they change the projection).
+CardsManifestProvenance = Provenance[CardsManifestDetails, Config]
+
+
+@dataclass(frozen=True)
+class CardsPaths:
+    """Locations of the files written by :func:`render_cards`."""
+
+    cards_jsonl: Path
+    manifest: Path
+
+
+@dataclass(frozen=True)
+class ExtractPaths:
+    """Everything :func:`emit_cards` writes: intermediate + projection."""
+
+    records: RecordsPaths
+    cards: CardsPaths
 
 
 @dataclass
@@ -222,17 +247,11 @@ class _TruncationState:
 
 def _render(
     record: PropertyRecord,
-    labels: Mapping[str, tuple[str, str]],
+    labels: Mapping[str, EntityLabel],
     config: Config,
-    *,
-    example_count: int,
-    drop_examples_section: bool,
-    drop_ancestors_section: bool,
-    truncate_ancestors: bool,
-    truncate_source_types: bool,
-    truncate_destination_types: bool,
+    state: _TruncationState,
 ) -> str:
-    primary = config.languages[0]
+    primary = config.extraction.primary_language
     title = record.labels.get(primary, "")
     description = record.descriptions.get(primary, "")
     aliases = record.aliases.get(primary, [])
@@ -248,11 +267,13 @@ def _render(
             "Inverse: "
             + _entity_phrase(record.inverse_pid, labels, truncate_description=False)
         )
-    if record.ancestors and not drop_ancestors_section:
+    if record.ancestors and not state.drop_ancestors_section:
         lines.append(
             "Ancestors: "
             + "; ".join(
-                _entity_phrase(pid, labels, truncate_description=truncate_ancestors)
+                _entity_phrase(
+                    pid, labels, truncate_description=state.truncate_ancestors
+                )
                 for pid in record.ancestors
             )
         )
@@ -260,7 +281,9 @@ def _render(
         lines.append(
             "Source types: "
             + "; ".join(
-                _entity_phrase(qid, labels, truncate_description=truncate_source_types)
+                _entity_phrase(
+                    qid, labels, truncate_description=state.truncate_source_types
+                )
                 for qid in constraints.subject_types
             )
         )
@@ -269,26 +292,26 @@ def _render(
             "Destination types: "
             + "; ".join(
                 _entity_phrase(
-                    qid, labels, truncate_description=truncate_destination_types
+                    qid, labels, truncate_description=state.truncate_destination_types
                 )
                 for qid in constraints.value_types
             )
         )
 
-    def yn(flag: bool) -> str:
+    def yes_no(flag: bool) -> str:
         return "yes" if flag else "no"
 
     direction = "symmetric" if constraints.symmetric else "subject->object"
     lines.append(
-        f"Constraints: symmetric={yn(constraints.symmetric)};"
-        f" transitive={yn(constraints.transitive)};"
-        f" single-value={yn(constraints.single_value)};"
-        f" distinct-values={yn(constraints.distinct_values)};"
+        f"Constraints: symmetric={yes_no(constraints.symmetric)};"
+        f" transitive={yes_no(constraints.transitive)};"
+        f" single-value={yes_no(constraints.single_value)};"
+        f" distinct-values={yes_no(constraints.distinct_values)};"
         f" direction={direction}"
     )
-    if record.examples and not drop_examples_section and example_count > 0:
+    if record.examples and not state.drop_examples_section and state.example_count > 0:
         lines.append("Examples:")
-        for example in record.examples[:example_count]:
+        for example in record.examples[: state.example_count]:
             lines.append(f"- {example.subject_label} -> {example.object_label}")
     lines.append(f"Slug: {slugify(title)}")
     return "\n".join(lines) + "\n"
@@ -296,36 +319,24 @@ def _render(
 
 def build_card(
     record: PropertyRecord,
-    labels: Mapping[str, tuple[str, str]],
+    labels: Mapping[str, EntityLabel],
     config: Config,
     counter: TokenCounter,
 ) -> Card:
     """Serialize one card, applying the deterministic truncation algorithm."""
+    budgets = config.cards
     total_examples = len(record.examples)
     state = _TruncationState(example_count=total_examples)
     omitted: list[str] = []
 
-    def render() -> str:
-        return _render(
-            record,
-            labels,
-            config,
-            example_count=state.example_count,
-            drop_examples_section=state.drop_examples_section,
-            drop_ancestors_section=state.drop_ancestors_section,
-            truncate_ancestors=state.truncate_ancestors,
-            truncate_source_types=state.truncate_source_types,
-            truncate_destination_types=state.truncate_destination_types,
-        )
-
-    text = render()
+    text = _render(record, labels, config, state)
     count = counter.count(text)
 
     # (a) drop examples from the end, lowest diversity rank first.
-    while count > config.token_budget and state.example_count > 0:
+    while count > budgets.token_budget and state.example_count > 0:
         state.example_count -= 1
         omitted.append(f"example[{state.example_count}]")
-        text = render()
+        text = _render(record, labels, config, state)
         count = counter.count(text)
 
     # (b) sentence-boundary truncation, in priority order.
@@ -334,10 +345,10 @@ def build_card(
         ("truncate_source_types", "source_type_descriptions_truncated"),
         ("truncate_destination_types", "destination_type_descriptions_truncated"),
     ):
-        if count <= config.token_budget:
+        if count <= budgets.token_budget:
             break
         setattr(state, flag, True)
-        new_text = render()
+        new_text = _render(record, labels, config, state)
         if new_text != text:
             omitted.append(name)
         text = new_text
@@ -345,7 +356,7 @@ def build_card(
 
     # Hard budget: drop example + ancestor sections entirely, nothing else.
     severely_truncated = False
-    if count > config.hard_token_budget:
+    if count > budgets.hard_token_budget:
         severely_truncated = True
         if record.examples:
             state.drop_examples_section = True
@@ -353,7 +364,7 @@ def build_card(
         if record.ancestors:
             state.drop_ancestors_section = True
             omitted.append("ancestors_section")
-        text = render()
+        text = _render(record, labels, config, state)
         count = counter.count(text)
 
     dropped = total_examples - state.example_count
@@ -375,7 +386,7 @@ def render_cards(
     record_set: RecordSet,
     config: Config,
     out_dir: Path | str,
-) -> dict[str, Path]:
+) -> CardsPaths:
     """Render cards.jsonl + cards.manifest.json from a loaded record set.
 
     Pure projection: records + config in, cards out. No transport or network
@@ -385,7 +396,7 @@ def render_cards(
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    counter = make_token_counter(config.tokenizer)
+    counter = make_token_counter(config.cards.tokenizer)
     meta = record_set.meta
 
     cards = [
@@ -397,36 +408,29 @@ def render_cards(
     cards_path = out_dir / "cards.jsonl"
     with open(cards_path, "w", encoding="utf-8") as f:
         for card in cards:
-            f.write(
-                json.dumps(
-                    {
-                        "pid": card.pid,
-                        "card_text": card.card_text,
-                        "card_hash": card.card_hash,
-                        "token_count": card.token_count,
-                        "omitted_fields": list(card.omitted_fields),
-                        "severely_truncated": card.severely_truncated,
-                        "retrieved_at": card.retrieved_at,
-                    },
-                    sort_keys=True,
-                    separators=(",", ":"),
-                    ensure_ascii=False,
-                )
-                + "\n"
+            row = CardRow(
+                pid=card.pid,
+                card_text=card.card_text,
+                card_hash=card.card_hash,
+                token_count=card.token_count,
+                omitted_fields=list(card.omitted_fields),
+                severely_truncated=card.severely_truncated,
+                retrieved_at=card.retrieved_at,
             )
+            f.write(canonical_json_bytes(row).decode("utf-8") + "\n")
 
     manifest_path = out_dir / "cards.manifest.json"
     CardsManifestProvenance.make(
         producer="wikidata.render-cards",
         input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
-        config=config.raw,
-        seed=config.seed,
+        config=config,
+        seed=config.extraction.seed,
         details=CardsManifestDetails(
             card_format_version=CARD_FORMAT_VERSION,
             card_hash_canonicalization="utf-8 bytes of card_text",
             tokenizer=counter.name,
-            token_budget=config.token_budget,
-            hard_token_budget=config.hard_token_budget,
+            token_budget=config.cards.token_budget,
+            hard_token_budget=config.cards.hard_token_budget,
             api_snapshot_date=meta.details.api_snapshot_date,
             cards={
                 card.pid: CardEntry(
@@ -447,14 +451,14 @@ def render_cards(
         ),
     ).write(manifest_path)
 
-    return {"cards": cards_path, "manifest": manifest_path}
+    return CardsPaths(cards_jsonl=cards_path, manifest=manifest_path)
 
 
 def emit_cards(
     result: ExtractionResult,
     config: Config,
     out_dir: Path | str,
-) -> dict[str, Path]:
+) -> ExtractPaths:
     """Extraction-side emitter: persist the structured intermediate
     (records.jsonl + entity_labels.json + records.meta.json + inventory.json)
     and then render cards through the SAME load+render path that the
@@ -462,6 +466,6 @@ def emit_cards(
     emission.
     """
     out_dir = Path(out_dir)
-    record_paths = emit_records(result, config, out_dir)
-    card_paths = render_cards(load_records(out_dir), config, out_dir)
-    return {**record_paths, **card_paths}
+    records_paths = emit_records(result, config, out_dir)
+    cards_paths = render_cards(load_records(out_dir), config, out_dir)
+    return ExtractPaths(records=records_paths, cards=cards_paths)

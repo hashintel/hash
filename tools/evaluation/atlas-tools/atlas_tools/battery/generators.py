@@ -39,7 +39,7 @@ Shapes:
 import math
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import Annotated, Any, Literal, Self, TypeAliasType, get_args
+from typing import Annotated, Literal, Self, TypeAliasType, get_args
 
 import numpy as np
 from pydantic import (
@@ -47,6 +47,7 @@ from pydantic import (
     ConfigDict,
     Field,
     FiniteFloat,
+    JsonValue,
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
@@ -197,7 +198,7 @@ class BipartiteStarGenerator(AbstractGenerator[BipartiteStarParams]):
             )
 
         labels = np.concatenate([doc_topic, doc_topic[parent]])
-        truth = {
+        truth: JsonDict = {
             "n_docs": n_docs,
             "n_items": n_items,
             "items_per_doc": k,
@@ -251,7 +252,7 @@ class CliqueCommunitiesGenerator(AbstractGenerator[CliqueCommunitiesParams]):
             _intra_group_edges(rng, groups, self.params.intra_degree)
         )
 
-        truth = {
+        truth: JsonDict = {
             "n_communities": n_communities,
             "intra_degree": self.params.intra_degree,
             "labels_are": "community",
@@ -295,7 +296,7 @@ class ChainsGenerator(AbstractGenerator[ChainsParams]):
         mask = chain_id[:-1] == chain_id[1:]
         edges = _canonical_edges(np.stack([source[mask], source[mask] + 1], axis=1))
 
-        truth = {
+        truth: JsonDict = {
             "depth": depth,
             "n_chains": math.ceil(n / depth),
             "type_names": type_names,
@@ -346,7 +347,7 @@ class LatticeProductGenerator(AbstractGenerator[LatticeProductParams]):
         )
 
         labels = level_a * b + level_b
-        truth = {
+        truth: JsonDict = {
             "factor_a": a,
             "factor_b": b,
             "n_cells": a * b,
@@ -394,7 +395,7 @@ class NoiseEdgesGenerator(AbstractGenerator[NoiseEdgesParams]):
 
         edges = _canonical_edges(np.stack([i, j], axis=1))
 
-        truth = {
+        truth: JsonDict = {
             "n_clusters": self.params.n_clusters,
             "edges_random": True,
             "requested_edges": requested,
@@ -445,7 +446,7 @@ class IsolatesGenerator(AbstractGenerator[IsolatesParams]):
             _intra_group_edges(rng, groups, self.params.intra_degree)
         )
 
-        truth = {
+        truth: JsonDict = {
             "isolate_frac": self.params.isolate_frac,
             "n_isolates": n_isolates,
             "n_clusters": self.params.n_clusters,
@@ -527,7 +528,7 @@ class MixedGenerator(AbstractGenerator[MixedParams]):
         embedding_parts: list[np.ndarray] = []
         edge_parts: list[np.ndarray] = []
         label_parts: list[np.ndarray] = []
-        component_truth: list[dict[str, Any]] = []
+        component_truth: list[JsonValue] = []
         node_offset = 0
         label_offset = 0
 
@@ -560,7 +561,11 @@ class MixedGenerator(AbstractGenerator[MixedParams]):
 
             node_offset += size
 
-        truth = {"components": component_truth, "labels_are": "per-component, offset"}
+        truth: JsonDict = {
+            "components": component_truth,
+            "labels_are": "per-component, offset",
+        }
+
         return Dataset(
             "mixed",
             np.concatenate(embedding_parts),
@@ -584,7 +589,7 @@ generator_adapter: TypeAdapter[Generator] = TypeAdapter(Generator)
 """Validator for the string/JSON boundary (CLI, YAML)."""
 
 
-def _union_members(annotation: Any) -> Iterator[type[AbstractGenerator[Any]]]:
+def _union_members(annotation: object) -> Iterator[type[BaseModel]]:
     """Concrete generator classes of a (possibly nested/aliased) union."""
     if isinstance(annotation, TypeAliasType):
         yield from _union_members(annotation.__value__)
@@ -592,9 +597,12 @@ def _union_members(annotation: Any) -> Iterator[type[AbstractGenerator[Any]]]:
         for argument in get_args(annotation):
             if isinstance(argument, FieldInfo):
                 continue  # the Annotated discriminator metadata
+
             yield from _union_members(argument)
     else:
+        assert isinstance(annotation, type)
         assert issubclass(annotation, AbstractGenerator)
+
         yield annotation
 
 

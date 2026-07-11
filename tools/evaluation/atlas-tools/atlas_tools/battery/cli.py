@@ -18,9 +18,9 @@ import sys
 
 import click
 
-from atlas_tools.battery import generators as gen_mod
 from atlas_tools.battery.calibrate import run_calibration
 from atlas_tools.battery.datasets import write_dataset
+from atlas_tools.battery.generators import generator_adapter, generator_shapes
 from atlas_tools.battery.harness import run_suite
 
 
@@ -44,14 +44,16 @@ def main() -> None:
 )
 @click.option("--out", "out_dir", required=True, type=click.Path(file_okay=False))
 @click.option("--jobs", type=int, default=None, help="Parallel engine runs.")
-def run_cmd(suite_path: str, engines_path: str, out_dir: str, jobs: int | None) -> None:
+def run_command(
+    suite_path: str, engines_path: str, out_dir: str, jobs: int | None
+) -> None:
     """Run generators x engines x seeds; write results, report, gates."""
     result = run_suite(suite_path, engines_path, out_dir, jobs=jobs)
-    click.echo(f"results: {result['results_path']}")
-    click.echo(f"report:  {result['report_path']}")
-    click.echo(f"gates:   {result['gates_path']}")
-    for name, engine_result in result["gates"]["engines"].items():
-        status = "PASS" if engine_result["pass"] else "FAIL"
+    click.echo(f"results: {result.results_path}")
+    click.echo(f"report:  {result.report_path}")
+    click.echo(f"gates:   {result.gates_path}")
+    for name, engine_report in result.gates.engines.items():
+        status = "PASS" if engine_report.passed else "FAIL"
         click.echo(f"  {name}: {status}")
 
 
@@ -60,11 +62,11 @@ def run_cmd(suite_path: str, engines_path: str, out_dir: str, jobs: int | None) 
 @click.option(
     "--manifest", "manifest_path", required=True, type=click.Path(exists=True)
 )
-def calibrate_cmd(layout_path: str, manifest_path: str) -> None:
+def calibrate_command(layout_path: str, manifest_path: str) -> None:
     """Check merge-tree leaves + persistence against reference values."""
-    result = run_calibration(layout_path, manifest_path)
-    click.echo(json.dumps(result, indent=2, sort_keys=True))
-    if not result["pass"]:
+    report = run_calibration(layout_path, manifest_path)
+    click.echo(report.model_dump_json(indent=2))
+    if not report.passed:
         sys.exit(1)
 
 
@@ -72,7 +74,7 @@ def calibrate_cmd(layout_path: str, manifest_path: str) -> None:
 @click.option(
     "--shape",
     required=True,
-    type=click.Choice(gen_mod.generator_shapes()),
+    type=click.Choice(generator_shapes()),
 )
 @click.option("--n", type=int, default=None)
 @click.option("--dim", type=int, default=None)
@@ -84,7 +86,7 @@ def calibrate_cmd(layout_path: str, manifest_path: str) -> None:
     help="JSON dict of extra generator params.",
 )
 @click.option("--out", "out_dir", required=True, type=click.Path(file_okay=False))
-def generate_cmd(
+def generate_command(
     shape: str,
     n: int | None,
     dim: int | None,
@@ -93,20 +95,20 @@ def generate_cmd(
     out_dir: str,
 ) -> None:
     """Generate one planted-shape dataset artifact directory."""
-    params = dict(json.loads(params_json)) if params_json else {}
+    params: dict[str, object] = dict(json.loads(params_json)) if params_json else {}
     if dim is not None:
         params["dim"] = dim
-    spec: dict[str, object] = {"shape": shape, "params": params}
+    specification: dict[str, object] = {"shape": shape, "params": params}
     if n is not None:
-        spec["n"] = n
-    generator = gen_mod.generator_adapter.validate_python(spec)
+        specification["n"] = n
+    generator = generator_adapter.validate_python(specification)
     dataset = generator.run(seed)
     hashes = write_dataset(dataset, out_dir)
     click.echo(
         f"wrote {dataset.shape}: n={dataset.n}"
         f" dim={dataset.embeddings.shape[1]} edges={len(dataset.edges)}"
     )
-    click.echo(f"embeddings sha256: {hashes['embeddings_sha256']}")
+    click.echo(f"embeddings sha256: {hashes.embeddings_sha256}")
 
 
 if __name__ == "__main__":

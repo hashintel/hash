@@ -17,7 +17,12 @@ from atlas_tools.wikidata.cards import (
     slugify,
 )
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord
+from atlas_tools.wikidata.model import (
+    Constraints,
+    EntityLabel,
+    Example,
+    PropertyRecord,
+)
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.transport import FixtureTransport
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
@@ -38,13 +43,13 @@ def pipeline(tmp_path_factory):
     out_dir = tmp_path_factory.mktemp("cards_out")
     paths = emit_cards(result, config, out_dir)
     rows = {}
-    with open(paths["cards"], encoding="utf-8") as f:
+    with open(paths.cards.cards_jsonl, encoding="utf-8") as f:
         for line in f:
             row = json.loads(line)
             rows[row["pid"]] = row
-    with open(paths["manifest"], encoding="utf-8") as f:
+    with open(paths.cards.manifest, encoding="utf-8") as f:
         manifest = json.load(f)
-    with open(paths["inventory"], encoding="utf-8") as f:
+    with open(paths.records.inventory, encoding="utf-8") as f:
         inventory = json.load(f)
     return SimpleNamespace(
         config=config,
@@ -69,7 +74,10 @@ class TestGoldenCards:
         config = Config.load(CONFIG_PATH)
         result = extract_properties(config, FixtureTransport(RESPONSES))
         paths = emit_cards(result, config, tmp_path)
-        assert paths["cards"].read_bytes() == pipeline.paths["cards"].read_bytes()
+        assert (
+            paths.cards.cards_jsonl.read_bytes()
+            == pipeline.paths.cards.cards_jsonl.read_bytes()
+        )
 
     def test_cards_are_text_not_json(self, pipeline):
         for row in pipeline.rows.values():
@@ -78,10 +86,10 @@ class TestGoldenCards:
                 json.loads(row["card_text"])
 
     def test_token_budget_respected_with_heuristic_counter(self, pipeline):
-        counter = make_token_counter(pipeline.config.tokenizer)
+        counter = make_token_counter(pipeline.config.cards.tokenizer)
         assert counter.name == "heuristic"
         for row in pipeline.rows.values():
-            assert row["token_count"] <= pipeline.config.token_budget
+            assert row["token_count"] <= pipeline.config.cards.token_budget
             assert counter.count(row["card_text"]) == row["token_count"]
 
     def test_inverse_linkage_names_both_directions(self, pipeline):
@@ -134,14 +142,18 @@ class TestExampleLadder:
 # --- truncation ---------------------------------------------------------------
 
 LABELS = {
-    "P527": ("has part", "this item has the listed part"),
-    "P1000": (
-        "umbrella relation",
-        "first sentence of the ancestor description. second sentence with"
-        " extra ancestor detail that is expendable.",
+    "P527": EntityLabel(label="has part", description="this item has the listed part"),
+    "P1000": EntityLabel(
+        label="umbrella relation",
+        description="first sentence of the ancestor description. second sentence"
+        " with extra ancestor detail that is expendable.",
     ),
-    "Q1": ("alpha type", "first alpha sentence. second alpha sentence."),
-    "Q2": ("beta type", "first beta sentence. second beta sentence."),
+    "Q1": EntityLabel(
+        label="alpha type", description="first alpha sentence. second alpha sentence."
+    ),
+    "Q2": EntityLabel(
+        label="beta type", description="first beta sentence. second beta sentence."
+    ),
 }
 
 BIG = 10_000_000
@@ -169,12 +181,14 @@ def _crafted_record(n_examples: int) -> PropertyRecord:
 
 
 def _config(token_budget: int, hard_token_budget: int) -> Config:
-    return Config.from_dict(
+    return Config.model_validate(
         {
-            "languages": ["en"],
-            "tokenizer": "heuristic",
-            "token_budget": token_budget,
-            "hard_token_budget": hard_token_budget,
+            "extraction": {"languages": ["en"]},
+            "cards": {
+                "tokenizer": "heuristic",
+                "token_budget": token_budget,
+                "hard_token_budget": hard_token_budget,
+            },
         }
     )
 

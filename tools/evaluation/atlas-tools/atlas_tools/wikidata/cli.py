@@ -44,35 +44,36 @@ def main() -> None:
     help="Serve responses from committed fixtures instead of the network"
     " (offline testing).",
 )
-def extract_properties_cmd(
+def extract_properties_command(
     config_path: str, out_dir: str, cache_dir: str | None, fixture_dir: str | None
 ) -> None:
     """W2a: mine relation cards (cards.jsonl + manifest + inventory)."""
     from atlas_tools.wikidata.cards import emit_cards
     from atlas_tools.wikidata.properties import extract_properties
-    from atlas_tools.wikidata.transport import FixtureTransport, RequestsTransport
+    from atlas_tools.wikidata.transport import (
+        FixtureTransport,
+        RequestsTransport,
+        Transport,
+    )
 
     config = Config.load(config_path)
+    transport: Transport
     if fixture_dir is not None:
         transport = FixtureTransport(fixture_dir)
     else:
-        transport = RequestsTransport(
-            rate_limit_per_sec=config.rate_limit_per_sec,
-            max_retries=config.max_retries,
-            backoff_base_seconds=config.backoff_base_seconds,
-        )
+        transport = RequestsTransport(policy=config.extraction.politeness)
     if cache_dir is not None:
         from atlas_tools.wikidata.cache import CachingTransport
 
         transport = CachingTransport(
-            transport, cache_dir, snapshot_date=config.snapshot_date
+            transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
     result = extract_properties(
         config, transport, checkpoint_path=Path(out_dir) / "checkpoint.json"
     )
     paths = emit_cards(result, config, out_dir)
-    click.echo(f"wrote {paths['records']} ({len(result.records)} records)")
-    click.echo(f"wrote {paths['cards']} ({len(result.records)} cards)")
+    click.echo(f"wrote {paths.records.records_jsonl} ({len(result.records)} records)")
+    click.echo(f"wrote {paths.cards.cards_jsonl} ({len(result.records)} cards)")
 
 
 @main.command("render-cards")
@@ -85,7 +86,7 @@ def extract_properties_cmd(
 )
 @click.option("--config", "config_path", required=True, type=click.Path(exists=True))
 @click.option("--out", "out_dir", required=True, type=click.Path())
-def render_cards_cmd(records_path: str, config_path: str, out_dir: str) -> None:
+def render_cards_command(records_path: str, config_path: str, out_dir: str) -> None:
     """W2a: render cards.jsonl from records.jsonl (no network, ever)."""
     from atlas_tools.wikidata.cards import render_cards
     from atlas_tools.wikidata.records import load_records
@@ -93,7 +94,7 @@ def render_cards_cmd(records_path: str, config_path: str, out_dir: str) -> None:
     config = Config.load(config_path)
     record_set = load_records(records_path)
     paths = render_cards(record_set, config, out_dir)
-    click.echo(f"wrote {paths['cards']} ({len(record_set.records)} cards)")
+    click.echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} cards)")
 
 
 @main.command("entity-manifest")
@@ -107,7 +108,7 @@ def render_cards_cmd(records_path: str, config_path: str, out_dir: str) -> None:
 @click.option("--out", "out_path", required=True, type=click.Path())
 @click.option("--checkpoint", "checkpoint_dir", required=True, type=click.Path())
 @click.option("--no-row-hash", is_flag=True, default=False)
-def entity_manifest_cmd(
+def entity_manifest_command(
     config_path: str,
     input_path: str,
     out_path: str,
@@ -139,20 +140,20 @@ def entity_manifest_cmd(
                 seekable=True,
                 hash_rows=not no_row_hash,
             )
-    click.echo(f"wrote {out_path} ({summary['rows']} rows)")
+    click.echo(f"wrote {out_path} ({summary.rows} rows)")
 
 
 @main.command("sampling-plan")
 @click.option("--config", "config_path", required=True, type=click.Path(exists=True))
 @click.option("--input", "input_path", required=True, type=click.Path(exists=True))
 @click.option("--out", "out_path", required=True, type=click.Path())
-def sampling_plan_cmd(config_path: str, input_path: str, out_path: str) -> None:
+def sampling_plan_command(config_path: str, input_path: str, out_path: str) -> None:
     """W2b: emit the P31-stratified sampling plan parquet."""
     from atlas_tools.wikidata.manifest import build_sampling_plan
 
     config = Config.load(config_path)
     summary = build_sampling_plan(input_path, config=config, out_path=out_path)
-    click.echo(f"wrote {out_path} ({summary['rows']} rows)")
+    click.echo(f"wrote {out_path} ({summary.rows} rows)")
 
 
 if __name__ == "__main__":

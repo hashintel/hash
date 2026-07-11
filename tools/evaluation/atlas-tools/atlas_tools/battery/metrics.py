@@ -1,5 +1,11 @@
 """Layout-quality metrics (W3.2), each a pure function of layout + truth.
 
+Metric identity has one source of truth here: :class:`MetricName` names the
+fixed metrics and :class:`KnnRecallMetric` expresses the per-k kNN-recall
+family; :class:`LayoutMetrics` carries one run's values and is the only
+place that expands into the tidy ``results.parquet`` columns
+(:meth:`LayoutMetrics.column_values` / :func:`metric_columns`).
+
 Conventions:
 
 - Embedding-space neighbor truth is exact cosine kNN
@@ -14,13 +20,134 @@ Conventions:
   gated shape as a failure (fail closed).
 """
 
-from typing import Literal, Never
+from collections.abc import Iterable, Sequence
+from enum import StrEnum
+from typing import Annotated, Final, Literal, Never, NewType
 
 import numpy as np
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    PlainSerializer,
+)
 from sklearn.metrics import pairwise_distances, silhouette_score
 from sklearn.neighbors import NearestNeighbors
 
 from atlas_tools.common.knn import exact_cosine_knn, l2_normalize
+
+K = NewType("K", int)
+"""Neighborhood size of the kNN-recall metric family."""
+
+KNN_RECALL_PREFIX: Final = "knn_recall_"
+
+
+class MetricName(StrEnum):
+    """The fixed layout-quality metrics; the per-k kNN-recall family is
+    expressed separately as :class:`KnnRecallMetric`."""
+
+    leaf_count = "leaf_count"
+    total_persistence = "total_persistence"
+    normalized_persistence = "normalized_persistence"
+    trustworthiness = "trustworthiness"
+    continuity = "continuity"
+    silhouette = "silhouette"
+    pendant_diffusion = "pendant_diffusion"
+    edge_binding = "edge_binding"
+    contraction_factor = "contraction_factor"
+
+
+class KnnRecallMetric(BaseModel):
+    """The kNN-recall metric at one neighborhood size (``knn_recall_{k}``)."""
+
+    k: K
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+def knn_recall_column(k: int) -> str:
+    """``results.parquet`` column name of the recall@k metric."""
+    return f"{KNN_RECALL_PREFIX}{k}"
+
+
+def metric_column(metric: MetricName | KnnRecallMetric) -> str:
+    """``results.parquet`` column name of a metric identity."""
+    if isinstance(metric, KnnRecallMetric):
+        return knn_recall_column(metric.k)
+
+    return metric.value
+
+
+def _parse_metric_id(value: object) -> object:
+    """Accept ``knn_recall_{k}`` column strings for the per-k family."""
+    if isinstance(value, str) and value.startswith(KNN_RECALL_PREFIX):
+        return KnnRecallMetric(k=K(int(value.removeprefix(KNN_RECALL_PREFIX))))
+
+    return value
+
+
+type MetricId = Annotated[
+    MetricName | KnnRecallMetric,
+    BeforeValidator(_parse_metric_id),
+    PlainSerializer(metric_column, return_type=str),
+]
+"""A metric identity as referenced by gate configs: validates from — and
+serializes back to — its ``results.parquet`` column string."""
+
+
+class LayoutMetrics(BaseModel):
+    """Every metric of one (engine, shape, seed, variant) run.
+
+    ``None`` keeps its "not applicable" meaning (see module docstring).
+    Field order is the report/parquet column order; ``knn_recall`` expands
+    to one ``knn_recall_{k}`` column per requested k.
+    """
+
+    leaf_count: float
+    total_persistence: float
+    normalized_persistence: float
+    knn_recall: dict[K, float]
+    trustworthiness: float
+    continuity: float
+    silhouette: float | None
+    pendant_diffusion: float | None
+    edge_binding: float | None
+    contraction_factor: float | None
+
+    model_config = ConfigDict(extra="forbid")
+
+    def column_values(self) -> dict[str, float | None]:
+        """Values keyed by results column — the single typed-to-tidy hop."""
+        values: dict[str, float | None] = {}
+
+        for name in type(self).model_fields:
+            if name == "knn_recall":
+                for k, recall in self.knn_recall.items():
+                    values[knn_recall_column(k)] = recall
+            else:
+                values[name] = getattr(self, name)
+
+        return values
+
+
+def metric_columns(knn_ks: Iterable[K]) -> list[str]:
+    """Column order, derived from :class:`LayoutMetrics` (no hand list)."""
+    columns: list[str] = []
+
+    for name in LayoutMetrics.model_fields:
+        if name == "knn_recall":
+            columns.extend(knn_recall_column(k) for k in knn_ks)
+        else:
+            columns.append(name)
+
+    return columns
+
+
+# One source of truth: the fixed-metric enum mirrors LayoutMetrics' scalar
+# fields exactly (knn_recall expands per-k at the DataFrame boundary).
+assert [member.value for member in MetricName] == [
+    name for name in LayoutMetrics.model_fields if name != "knn_recall"
+]
 
 
 def layout_std(xy: np.ndarray) -> float:
@@ -54,11 +181,11 @@ def layout_knn_indices(xy: np.ndarray, k: int) -> np.ndarray:
 
 
 def knn_recall(
-    xy: np.ndarray, embeddings: np.ndarray, ks: list[int]
-) -> dict[str, float]:
+    xy: np.ndarray, embeddings: np.ndarray, ks: Sequence[K]
+) -> dict[K, float]:
     """recall@k = mean fraction overlap of layout kNN vs cosine truth kNN."""
-    ks = sorted(int(k) for k in ks)
-    kmax = ks[-1]
+    ordered = sorted(ks)
+    kmax = ordered[-1]
     n = len(xy)
     embedding = np.ascontiguousarray(embeddings, dtype=np.float32)
 
@@ -67,15 +194,15 @@ def knn_recall(
     )
 
     lay_idx = layout_knn_indices(xy, kmax)
-    out: dict[str, float] = {}
+    out: dict[K, float] = {}
 
-    for k in ks:
+    for k in ordered:
         hits = 0
 
         for i in range(n):
             hits += np.intersect1d(truth_idx[i, :k], lay_idx[i, :k]).size
 
-        out[f"knn_recall_{k}"] = hits / (n * k)
+        out[k] = hits / (n * k)
 
     return out
 

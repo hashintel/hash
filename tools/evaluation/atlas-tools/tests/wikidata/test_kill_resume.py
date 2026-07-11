@@ -21,12 +21,13 @@ def _write_config(path: Path) -> None:
     path.write_text(
         "\n".join(
             [
-                "languages: [en]",
-                "seed: 0",
-                "checkpoint_interval: 1000",
-                "dump:",
-                '  date: "2025-06-01"',
-                '  sha256: "feedfeed"',
+                "extraction:",
+                "  languages: [en]",
+                "  seed: 0",
+                "  checkpoint_interval: 1000",
+                "  dump:",
+                '    date: "2025-06-01"',
+                '    sha256: "feedfeed"',
             ]
         )
         + "\n",

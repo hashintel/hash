@@ -107,7 +107,9 @@ def generate_slice(path: Path, target_bytes: int) -> int:
 @click.option("--target-mb", default=50, type=int, help="Slice size to generate.")
 @click.option("--checkpoint-interval", default=100_000, type=int)
 def main(target_mb: int, checkpoint_interval: int) -> None:
-    config = Config.from_dict({"checkpoint_interval": checkpoint_interval})
+    config = Config.model_validate(
+        {"extraction": {"checkpoint_interval": checkpoint_interval}}
+    )
     with tempfile.TemporaryDirectory(prefix="wikidata-bench-") as tmp:
         tmpdir = Path(tmp)
         slice_path = tmpdir / "slice.json"
@@ -128,7 +130,7 @@ def main(target_mb: int, checkpoint_interval: int) -> None:
 
         mb_per_s = size_mb / elapsed
         projected_hours = (DUMP_UNCOMPRESSED_GB * 1000) / mb_per_s / 3600
-        click.echo(f"slice: {size_mb:.1f} MB, {summary['rows']} entities")
+        click.echo(f"slice: {size_mb:.1f} MB, {summary.rows} entities")
         click.echo(f"elapsed: {elapsed:.2f} s -> {mb_per_s:.1f} MB/s")
         click.echo(
             f"projected for ~{DUMP_UNCOMPRESSED_GB} GB uncompressed:"

@@ -15,7 +15,7 @@ with-edges persistence/cluster structure on noise_edges vastly exceeds its
 no-edges output beyond any rerun-noise floor.
 """
 
-from __future__ import annotations
+from pathlib import Path
 
 import click
 import numpy as np
@@ -43,7 +43,7 @@ def main(
     radius: float,
     jitter: float,
 ) -> None:
-    _, meta = load_matrix(embeddings, mmap=True)
+    _, meta = load_matrix(Path(embeddings), mmap=True)
     n = meta.rows
     rng = np.random.default_rng(seed)
     xy = rng.normal(size=(n, 2)).astype(np.float32)

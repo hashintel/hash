@@ -3,7 +3,8 @@ example ladder, and the extraction orchestrator.
 
 P2302 constraint parse scope (authoritative)
 --------------------------------------------
-The following constraint types are parsed:
+The parsed constraint types are the members of
+:class:`~atlas_tools.wikidata.model.ConstraintKind`:
 
 - ``Q21510862`` symmetric constraint         -> ``Constraints.symmetric``
 - ``Q18647515`` transitive constraint        -> ``Constraints.transitive``
@@ -28,19 +29,21 @@ Exclusion rules (configurable, applied in this order; first match wins)
    defensively re-filters so external-identifier properties (P212-style)
    can never leak through.
 2. ``maintenance`` — the property's P31 intersects
-   ``config.maintenance_classes`` (Q18644435 "Wikimedia property…"-style
+   ``extraction.maintenance_classes`` (Q18644435 "Wikimedia property…"-style
    classes).
 3. ``deprecated`` — the property's P31 intersects
-   ``config.deprecated_classes`` (Q18644427-style obsolete-property classes;
-   this is the owl:deprecated proxy available in entity documents).
+   ``extraction.deprecated_classes`` (Q18644427-style obsolete-property
+   classes; this is the owl:deprecated proxy available in entity documents).
 
 Example fallback ladder
 -----------------------
 WDQS LIMIT/OFFSET query -> QLever public endpoint -> skip with a recorded
-flag. An endpoint "fails" for a property when any of its offset requests
-returns a non-200 status (RequestsTransport has already retried with
-backoff by then). Failures are cached like successes, so a warm-cache rerun
-makes zero network calls even for failing properties.
+flag; the outcome is a :data:`LadderOutcome` (``LadderSuccess`` tagged with
+its source endpoint, or ``LadderSkip``). An endpoint "fails" for a property
+when any of its offset requests returns a non-200 status
+(``RequestsTransport`` has already retried with backoff by then). Failures
+are cached like successes, so a warm-cache rerun makes zero network calls
+even for failing properties.
 
 Inverse resolution: an explicit P1696 (inverse property) statement wins;
 otherwise the inverse constraint (Q21510855, qualifier P2306) is used.
@@ -48,18 +51,26 @@ otherwise the inverse constraint (Q21510855, qualifier P2306) is used.
 
 from __future__ import annotations
 
-import json
 import os
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
+from pydantic import BaseModel, Field, JsonValue, ValidationError
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 from atlas_tools.wikidata.cache import RETRIEVED_AT_HEADER
-from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord, pid_number
+from atlas_tools.wikidata.config import Config, ExtractionConfig
+from atlas_tools.wikidata.model import (
+    ConstraintKind,
+    Constraints,
+    EntityLabel,
+    Example,
+    ExampleSource,
+    PropertyRecord,
+    pid_number,
+)
 from atlas_tools.wikidata.sparql import (
     WIKIBASE_ITEM_DATATYPE,
     ExampleRow,
@@ -74,48 +85,87 @@ from atlas_tools.wikidata.transport import Transport
 
 WBGETENTITIES_BATCH_SIZE = 50
 
-_CONSTRAINT_SYMMETRIC = "Q21510862"
-_CONSTRAINT_TRANSITIVE = "Q18647515"
-_CONSTRAINT_SINGLE_VALUE = "Q19474404"
-_CONSTRAINT_DISTINCT_VALUES = "Q21502410"
-_CONSTRAINT_SUBJECT_TYPE = "Q21503250"
-_CONSTRAINT_VALUE_TYPE = "Q21510865"
-_CONSTRAINT_INVERSE = "Q21510855"
+# Ladder order: WDQS first, QLever as the fallback rung.
+EXAMPLE_ENDPOINT_LADDER: tuple[ExampleSource, ...] = ("wdqs", "qlever")
 
 _QUALIFIER_CLASS = "P2308"
 _QUALIFIER_PROPERTY = "P2306"
 
 
-def _snak_entity_id(snak: dict[str, Any]) -> str | None:
-    if snak.get("snaktype") != "value":
+class EntityIdValue(BaseModel):
+    """An entity-id snak datavalue payload (``{"id": "Q5", ...}``)."""
+
+    id: str
+
+
+class SnakDataValue(BaseModel):
+    # Entity-id payloads are modelled; everything else (strings, times,
+    # quantities) is opaque JSON this tool never reads. Left-to-right union
+    # mode: smart mode would keep an id-carrying dict as plain JSON instead
+    # of coercing it into EntityIdValue.
+    value: EntityIdValue | JsonValue = Field(default=None, union_mode="left_to_right")
+
+
+class Snak(BaseModel):
+    snaktype: str = ""
+    datavalue: SnakDataValue | None = None
+
+
+class Statement(BaseModel):
+    mainsnak: Snak = Field(default_factory=Snak)
+    qualifiers: dict[str, list[Snak]] = Field(default_factory=dict)
+
+
+class TermValue(BaseModel):
+    """A label/description/alias entry (``{"language": .., "value": ..}``)."""
+
+    language: str = ""
+    value: str
+
+
+class EntityDocument(BaseModel):
+    """The subset of a wbgetentities entity document this tool reads."""
+
+    id: str
+    datatype: str = ""
+    labels: dict[str, TermValue] = Field(default_factory=dict)
+    descriptions: dict[str, TermValue] = Field(default_factory=dict)
+    aliases: dict[str, list[TermValue]] = Field(default_factory=dict)
+    claims: dict[str, list[Statement]] = Field(default_factory=dict)
+
+
+class WbGetEntitiesResponse(BaseModel):
+    entities: dict[str, EntityDocument] = Field(default_factory=dict)
+
+
+def _snak_entity_id(snak: Snak) -> str | None:
+    if snak.snaktype != "value" or snak.datavalue is None:
         return None
-    value = snak.get("datavalue", {}).get("value")
-    if isinstance(value, dict):
-        entity_id = value.get("id")
-        if isinstance(entity_id, str):
-            return entity_id
-    return None
+    value = snak.datavalue.value
+    return value.id if isinstance(value, EntityIdValue) else None
 
 
-def _statement_entity_ids(claims: dict[str, Any], prop: str) -> tuple[str, ...]:
+def _statement_entity_ids(
+    claims: Mapping[str, Sequence[Statement]], claim_property: str
+) -> tuple[str, ...]:
     ids: list[str] = []
-    for statement in claims.get(prop, []):
-        entity_id = _snak_entity_id(statement.get("mainsnak", {}))
+    for statement in claims.get(claim_property, ()):
+        entity_id = _snak_entity_id(statement.mainsnak)
         if entity_id is not None and entity_id not in ids:
             ids.append(entity_id)
     return tuple(ids)
 
 
-def _qualifier_entity_ids(statement: dict[str, Any], qualifier: str) -> tuple[str, ...]:
+def _qualifier_entity_ids(statement: Statement, qualifier: str) -> tuple[str, ...]:
     ids: list[str] = []
-    for snak in statement.get("qualifiers", {}).get(qualifier, []):
+    for snak in statement.qualifiers.get(qualifier, ()):
         entity_id = _snak_entity_id(snak)
         if entity_id is not None and entity_id not in ids:
             ids.append(entity_id)
     return tuple(ids)
 
 
-def parse_constraints(p2302_statements: list[dict[str, Any]]) -> Constraints:
+def parse_constraints(p2302_statements: Sequence[Statement]) -> Constraints:
     """Parse the P2302 statements of one property (scope documented above).
 
     Unknown constraint types are ignored without error and recorded in
@@ -131,32 +181,36 @@ def parse_constraints(p2302_statements: list[dict[str, Any]]) -> Constraints:
     ignored: list[str] = []
 
     for statement in p2302_statements:
-        constraint_type = _snak_entity_id(statement.get("mainsnak", {}))
-        if constraint_type is None:
+        type_qid = _snak_entity_id(statement.mainsnak)
+        if type_qid is None:
             continue
-        if constraint_type == _CONSTRAINT_SYMMETRIC:
-            symmetric = True
-        elif constraint_type == _CONSTRAINT_TRANSITIVE:
-            transitive = True
-        elif constraint_type == _CONSTRAINT_SINGLE_VALUE:
-            single_value = True
-        elif constraint_type == _CONSTRAINT_DISTINCT_VALUES:
-            distinct_values = True
-        elif constraint_type == _CONSTRAINT_SUBJECT_TYPE:
-            for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
-                if qid not in subject_types:
-                    subject_types.append(qid)
-        elif constraint_type == _CONSTRAINT_VALUE_TYPE:
-            for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
-                if qid not in value_types:
-                    value_types.append(qid)
-        elif constraint_type == _CONSTRAINT_INVERSE:
-            pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
-            if pids and inverse_pid is None:
-                inverse_pid = pids[0]
-        else:
-            if constraint_type not in ignored:
-                ignored.append(constraint_type)
+        try:
+            kind = ConstraintKind(type_qid)
+        except ValueError:
+            if type_qid not in ignored:
+                ignored.append(type_qid)
+            continue
+        match kind:
+            case ConstraintKind.SYMMETRIC:
+                symmetric = True
+            case ConstraintKind.TRANSITIVE:
+                transitive = True
+            case ConstraintKind.SINGLE_VALUE:
+                single_value = True
+            case ConstraintKind.DISTINCT_VALUES:
+                distinct_values = True
+            case ConstraintKind.SUBJECT_TYPE:
+                for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
+                    if qid not in subject_types:
+                        subject_types.append(qid)
+            case ConstraintKind.VALUE_TYPE:
+                for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
+                    if qid not in value_types:
+                        value_types.append(qid)
+            case ConstraintKind.INVERSE:
+                pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
+                if pids and inverse_pid is None:
+                    inverse_pid = pids[0]
 
     return Constraints(
         symmetric=symmetric,
@@ -171,60 +225,62 @@ def parse_constraints(p2302_statements: list[dict[str, Any]]) -> Constraints:
 
 
 def parse_property_document(
-    doc: dict[str, Any], languages: tuple[str, ...]
+    document: EntityDocument, languages: tuple[str, ...]
 ) -> PropertyRecord:
     """Build a PropertyRecord (sans examples/usage) from a wbgetentities doc."""
-    claims = doc.get("claims", {})
-    labels = {
-        lang: doc.get("labels", {})[lang]["value"]
-        for lang in languages
-        if lang in doc.get("labels", {})
-    }
-    descriptions = {
-        lang: doc.get("descriptions", {})[lang]["value"]
-        for lang in languages
-        if lang in doc.get("descriptions", {})
-    }
-    aliases = {
-        lang: [entry["value"] for entry in doc.get("aliases", {}).get(lang, [])]
-        for lang in languages
-        if doc.get("aliases", {}).get(lang)
-    }
-    constraints = parse_constraints(claims.get("P2302", []))
-    p1696 = _statement_entity_ids(claims, "P1696")
+    constraints = parse_constraints(document.claims.get("P2302", []))
+    p1696 = _statement_entity_ids(document.claims, "P1696")
     inverse_pid = p1696[0] if p1696 else constraints.inverse_pid
     return PropertyRecord(
-        pid=doc["id"],
-        datatype=doc.get("datatype", ""),
-        labels=labels,
-        descriptions=descriptions,
-        aliases=aliases,
-        p31=_statement_entity_ids(claims, "P31"),
-        ancestors=_statement_entity_ids(claims, "P1647"),
+        pid=document.id,
+        datatype=document.datatype,
+        labels={
+            language: document.labels[language].value
+            for language in languages
+            if language in document.labels
+        },
+        descriptions={
+            language: document.descriptions[language].value
+            for language in languages
+            if language in document.descriptions
+        },
+        aliases={
+            language: [entry.value for entry in document.aliases[language]]
+            for language in languages
+            if document.aliases.get(language)
+        },
+        p31=_statement_entity_ids(document.claims, "P31"),
+        ancestors=_statement_entity_ids(document.claims, "P1647"),
         inverse_pid=inverse_pid,
         constraints=constraints,
     )
 
 
-def exclusion_reason(record: PropertyRecord, config: Config) -> str | None:
+def exclusion_reason(
+    record: PropertyRecord, extraction: ExtractionConfig
+) -> str | None:
     """First matching exclusion rule, or None if the property is retained."""
     if record.datatype != "wikibase-item":
         return f"datatype:{record.datatype}"
     p31 = set(record.p31)
-    if p31 & set(config.maintenance_classes):
+    if p31 & set(extraction.maintenance_classes):
         return "maintenance"
-    if p31 & set(config.deprecated_classes):
+    if p31 & set(extraction.deprecated_classes):
         return "deprecated"
     return None
 
 
-def chunk_ids(ids: list[str], size: int = WBGETENTITIES_BATCH_SIZE) -> list[list[str]]:
+def chunk_ids(
+    ids: Sequence[str], size: int = WBGETENTITIES_BATCH_SIZE
+) -> list[list[str]]:
     """Numeric-sorted ids in fixed-size chunks (deterministic batching)."""
     ordered = sorted(ids, key=pid_number)
     return [ordered[i : i + size] for i in range(0, len(ordered), size)]
 
 
-def wbgetentities_params(ids: list[str], languages: tuple[str, ...]) -> dict[str, str]:
+def wbgetentities_params(
+    ids: Sequence[str], languages: tuple[str, ...]
+) -> dict[str, str]:
     return {
         "action": "wbgetentities",
         "format": "json",
@@ -235,7 +291,7 @@ def wbgetentities_params(ids: list[str], languages: tuple[str, ...]) -> dict[str
 
 
 def sample_diverse_examples(
-    rows: list[ExampleRow], *, count: int, seed: int, pid: str
+    rows: Sequence[ExampleRow], *, count: int, seed: int, pid: str
 ) -> list[Example]:
     """Deterministic, most-diverse-first example sampling.
 
@@ -284,41 +340,63 @@ def sample_diverse_examples(
     return out
 
 
+@dataclass(frozen=True)
+class LadderSuccess:
+    """One endpoint of the ladder produced example rows."""
+
+    source: ExampleSource
+    rows: tuple[ExampleRow, ...]
+
+
+@dataclass(frozen=True)
+class LadderSkip:
+    """Every endpoint of the ladder failed; the property records a skip."""
+
+
+type LadderOutcome = LadderSuccess | LadderSkip
+
+
 def fetch_example_rows(
     pid: str,
-    config: Config,
+    extraction: ExtractionConfig,
     transport: Transport,
     *,
-    endpoints: tuple[str, ...] = ("wdqs", "qlever"),
-) -> tuple[list[ExampleRow], str | None]:
-    """Run the fallback ladder; returns (rows, source endpoint name or None)."""
-    for endpoint_name in endpoints:
-        url = config.endpoints[endpoint_name]
+    endpoints: tuple[ExampleSource, ...] = EXAMPLE_ENDPOINT_LADDER,
+) -> LadderOutcome:
+    """Run the fallback ladder over ``endpoints`` in order."""
+    for endpoint in endpoints:
+        url = extraction.endpoints.sparql_url(endpoint)
         rows: list[ExampleRow] = []
-        ok = True
-        for offset in config.example_offsets:
+        endpoint_ok = True
+        for offset in extraction.example_offsets:
             query = example_pairs_query(
-                pid, limit=config.example_pool_limit, offset=offset
+                pid, limit=extraction.example_pool_limit, offset=offset
             )
-            status, _headers, body = transport.get(url, sparql_params(query))
-            if status != 200:
-                ok = False
+            response = transport.get(url, sparql_params(query))
+            if not response.ok:
+                endpoint_ok = False
                 break
-            rows.extend(parse_example_results(body))
-        if ok:
-            return rows, endpoint_name
-    return [], None
+            rows.extend(parse_example_results(response.body))
+        if endpoint_ok:
+            return LadderSuccess(source=endpoint, rows=tuple(rows))
+    return LadderSkip()
 
 
-@dataclass
-class ExtractionResult:
+class ExtractionResult(BaseModel):
     records: list[PropertyRecord]  # retained, numeric-PID order
     inventory_rows: list[InventoryRow]
     excluded: dict[str, str]  # pid -> exclusion reason
-    entity_labels: dict[str, tuple[str, str]]  # id -> (label, description)
-    example_fallbacks: dict[str, str]  # pid -> endpoint that rescued it
+    entity_labels: dict[str, EntityLabel]
+    example_fallbacks: dict[str, ExampleSource]  # pid -> rescuing endpoint
     example_skips: list[str]  # pids where the whole ladder failed
     api_snapshot_date: str = ""
+
+
+class ExtractionCheckpointState(BaseModel):
+    """On-disk shape of the property-level progress checkpoint."""
+
+    config_hash: str
+    examples_done: dict[str, ExampleSource | None] = Field(default_factory=dict)
 
 
 class ExtractionCheckpoint:
@@ -327,41 +405,44 @@ class ExtractionCheckpoint:
     Records the example-ladder outcome per PID so a rerun replays recorded
     outcomes (fetching through the response cache) instead of re-probing
     endpoints. A checkpoint whose config_hash differs from the current
-    config is discarded. Combined with the response cache this makes
-    rerun-after-kill idempotent.
+    config is discarded, as is an unreadable one. Combined with the response
+    cache this makes rerun-after-kill idempotent.
     """
 
     def __init__(self, path: Path, config_hash: str) -> None:
         self.path = path
-        self.config_hash = config_hash
-        self.examples_done: dict[str, str | None] = {}
+        self._state = ExtractionCheckpointState(config_hash=config_hash)
         if path.exists():
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-            if data.get("config_hash") == config_hash:
-                self.examples_done = data.get("examples_done", {})
+            try:
+                loaded = ExtractionCheckpointState.model_validate_json(
+                    path.read_bytes()
+                )
+            except ValidationError:
+                loaded = None
+            if loaded is not None and loaded.config_hash == config_hash:
+                self._state = loaded
 
-    def record_example(self, pid: str, source: str | None) -> None:
-        self.examples_done[pid] = source
+    @property
+    def examples_done(self) -> Mapping[str, ExampleSource | None]:
+        return self._state.examples_done
+
+    def record_example(self, pid: str, source: ExampleSource | None) -> None:
+        self._state.examples_done[pid] = source
         self._save()
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_name(self.path.name + ".tmp")
         tmp.write_text(
-            json.dumps(
-                {"config_hash": self.config_hash, "examples_done": self.examples_done},
-                sort_keys=True,
-                indent=2,
-            )
-            + "\n",
+            self._state.model_dump_json(indent=2) + "\n",
             encoding="utf-8",
         )
         os.replace(tmp, self.path)
 
 
-def config_hash(config: Config) -> str:
-    return sha256_bytes(canonical_json_bytes(config.raw))
+def extraction_config_hash(config: Config) -> str:
+    """Hash of the extraction sub-config (card-format-independent)."""
+    return sha256_bytes(canonical_json_bytes(config.extraction))
 
 
 def extract_properties(
@@ -373,19 +454,22 @@ def extract_properties(
     """Full W2a extraction: inventory -> documents -> exclusions -> labels ->
     example ladder. All HTTP goes through ``transport``; wrap it in a
     ``CachingTransport`` for warm-cache reruns with zero network calls."""
+    extraction = config.extraction
     checkpoint = (
-        ExtractionCheckpoint(Path(checkpoint_path), config_hash(config))
+        ExtractionCheckpoint(Path(checkpoint_path), extraction_config_hash(config))
         if checkpoint_path is not None
         else None
     )
 
     # 1. Property inventory via SPARQL.
-    status, _headers, body = transport.get(
-        config.endpoints["wdqs"], sparql_params(property_inventory_query())
+    response = transport.get(
+        extraction.endpoints.wdqs, sparql_params(property_inventory_query())
     )
-    if status != 200:
-        raise RuntimeError(f"property inventory query failed with status {status}")
-    inventory_rows = parse_inventory_results(body)
+    if not response.ok:
+        raise RuntimeError(
+            f"property inventory query failed with status {response.status}"
+        )
+    inventory_rows = parse_inventory_results(response.body)
 
     excluded: dict[str, str] = {}
     retained_pids: list[str] = []
@@ -400,37 +484,41 @@ def extract_properties(
     # 2. Full property documents via wbgetentities, batches of 50.
     records: list[PropertyRecord] = []
     for batch in chunk_ids(retained_pids):
-        status, headers, body = transport.get(
-            config.endpoints["wikibase_api"],
-            wbgetentities_params(batch, config.languages),
+        response = transport.get(
+            extraction.endpoints.wikibase_api,
+            wbgetentities_params(batch, extraction.languages),
         )
-        if status != 200:
-            raise RuntimeError(f"wbgetentities batch failed with status {status}")
-        retrieved_at = headers.get(RETRIEVED_AT_HEADER) or headers.get("date")
-        doc = json.loads(body.decode("utf-8"))
+        if not response.ok:
+            raise RuntimeError(
+                f"wbgetentities batch failed with status {response.status}"
+            )
+        retrieved_at = response.headers.get(
+            RETRIEVED_AT_HEADER
+        ) or response.headers.get("date")
+        documents = WbGetEntitiesResponse.model_validate_json(response.body)
         for pid in batch:
-            entity = doc["entities"].get(pid)
-            if entity is None:
+            document = documents.entities.get(pid)
+            if document is None:
                 excluded[pid] = "missing-document"
                 continue
-            record = parse_property_document(entity, config.languages)
+            record = parse_property_document(document, extraction.languages)
             record.usage_count = usage_by_pid.get(pid)
             record.retrieved_at = retrieved_at
-            reason = exclusion_reason(record, config)
+            reason = exclusion_reason(record, extraction)
             if reason is not None:
                 excluded[pid] = reason
             else:
                 records.append(record)
-    records.sort(key=lambda r: pid_number(r.pid))
+    records.sort(key=lambda record: pid_number(record.pid))
 
     # 3. Labels/descriptions for referenced items (endpoint types) so cards
     # can render titles+descriptions. Property labels come from step 2.
-    entity_labels: dict[str, tuple[str, str]] = {}
-    primary = config.languages[0]
+    entity_labels: dict[str, EntityLabel] = {}
+    primary = extraction.primary_language
     for record in records:
-        entity_labels[record.pid] = (
-            record.labels.get(primary, ""),
-            record.descriptions.get(primary, ""),
+        entity_labels[record.pid] = EntityLabel(
+            label=record.labels.get(primary, ""),
+            description=record.descriptions.get(primary, ""),
         )
     referenced_qids = sorted(
         {
@@ -441,48 +529,61 @@ def extract_properties(
         key=pid_number,
     )
     for batch in chunk_ids(referenced_qids):
-        status, _headers, body = transport.get(
-            config.endpoints["wikibase_api"],
-            wbgetentities_params(batch, config.languages),
+        response = transport.get(
+            extraction.endpoints.wikibase_api,
+            wbgetentities_params(batch, extraction.languages),
         )
-        if status != 200:
-            raise RuntimeError(f"wbgetentities item batch failed with status {status}")
-        doc = json.loads(body.decode("utf-8"))
-        for qid in batch:
-            entity = doc["entities"].get(qid, {})
-            label = entity.get("labels", {}).get(primary, {}).get("value", "")
-            description = (
-                entity.get("descriptions", {}).get(primary, {}).get("value", "")
+
+        if not response.ok:
+            raise RuntimeError(
+                f"wbgetentities item batch failed with status {response.status}"
             )
-            entity_labels[qid] = (label, description)
+
+        documents = WbGetEntitiesResponse.model_validate_json(response.body)
+        for qid in batch:
+            document = documents.entities.get(qid)
+            if document is None:
+                entity_labels[qid] = EntityLabel()
+                continue
+            label = document.labels.get(primary)
+            description = document.descriptions.get(primary)
+            entity_labels[qid] = EntityLabel(
+                label=label.value if label else "",
+                description=description.value if description else "",
+            )
 
     # 4. Example ladder per retained property.
-    example_fallbacks: dict[str, str] = {}
+    example_fallbacks: dict[str, ExampleSource] = {}
     example_skips: list[str] = []
     for record in records:
         if checkpoint is not None and record.pid in checkpoint.examples_done:
-            source = checkpoint.examples_done[record.pid]
-            endpoints = (source,) if source is not None else ()
+            replay_source = checkpoint.examples_done[record.pid]
+            endpoints: tuple[ExampleSource, ...] = (
+                (replay_source,) if replay_source is not None else ()
+            )
         else:
-            endpoints = ("wdqs", "qlever")
+            endpoints = EXAMPLE_ENDPOINT_LADDER
+        outcome: LadderOutcome = LadderSkip()
         if endpoints:
-            rows, source = fetch_example_rows(
-                record.pid, config, transport, endpoints=tuple(endpoints)
+            outcome = fetch_example_rows(
+                record.pid, extraction, transport, endpoints=endpoints
             )
-        else:
-            rows, source = [], None
-        record.example_source = source
-        if source is None:
-            record.example_skipped = True
-            example_skips.append(record.pid)
-        else:
-            if source != "wdqs":
-                example_fallbacks[record.pid] = source
-            record.examples = sample_diverse_examples(
-                rows, count=config.example_count, seed=config.seed, pid=record.pid
-            )
+        match outcome:
+            case LadderSuccess(source=source, rows=rows):
+                record.example_source = source
+                if source != "wdqs":
+                    example_fallbacks[record.pid] = source
+                record.examples = sample_diverse_examples(
+                    rows,
+                    count=extraction.example_count,
+                    seed=extraction.seed,
+                    pid=record.pid,
+                )
+            case LadderSkip():
+                record.example_skipped = True
+                example_skips.append(record.pid)
         if checkpoint is not None:
-            checkpoint.record_example(record.pid, source)
+            checkpoint.record_example(record.pid, record.example_source)
 
     return ExtractionResult(
         records=records,
@@ -491,5 +592,5 @@ def extract_properties(
         entity_labels=entity_labels,
         example_fallbacks=example_fallbacks,
         example_skips=example_skips,
-        api_snapshot_date=config.snapshot_date,
+        api_snapshot_date=extraction.snapshot_date,
     )

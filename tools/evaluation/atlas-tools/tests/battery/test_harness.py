@@ -8,13 +8,19 @@ umap acceptance test runs the full default engine roster and is marked
 """
 
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
 import yaml
 
-from atlas_tools.battery.harness import load_suite, run_suite
-from atlas_tools.common.provenance import read_sidecar
+from atlas_tools.battery.harness import (
+    RunProvenance,
+    RunResult,
+    load_suite,
+    run_suite,
+)
+from atlas_tools.battery.metrics import KnnRecallMetric, MetricName
 
 from .conftest import SMOKE_SUITE, write_engines_yaml
 
@@ -23,28 +29,40 @@ from .conftest import SMOKE_SUITE, write_engines_yaml
 # preserves the multiset of positions), which is exactly why the suite
 # pairs it with these.
 STRUCTURE_METRICS = {
-    "knn_recall_15",
-    "knn_recall_30",
-    "knn_recall_50",
-    "trustworthiness",
-    "continuity",
-    "silhouette",
-    "pendant_diffusion",
-    "edge_binding",
+    KnnRecallMetric(k=15),
+    KnnRecallMetric(k=30),
+    KnnRecallMetric(k=50),
+    MetricName.trustworthiness,
+    MetricName.continuity,
+    MetricName.silhouette,
+    MetricName.pendant_diffusion,
+    MetricName.edge_binding,
 }
 
 
-def test_artifacts_exist_and_are_self_consistent(adversarial_run):
+def test_artifacts_exist_and_are_self_consistent(adversarial_run: RunResult) -> None:
     result = adversarial_run
-    out = result["out_dir"]
-    for key in ("results_path", "report_path", "gates_path", "manifest_path"):
-        assert result[key].exists(), key
+    out = result.out_dir
+    for path in (
+        result.results_path,
+        result.report_path,
+        result.gates_path,
+        result.manifest_path,
+    ):
+        assert path.exists(), path
 
     # results.parquet: tidy long format
-    df = pd.read_parquet(result["results_path"])
-    assert list(df.columns) == ["shape", "engine", "seed", "variant", "metric", "value"]
-    assert set(df["engine"]) == {"pca2d", "shuffle", "collapse"}
-    assert set(df["shape"]) == {
+    frame = pd.read_parquet(result.results_path)
+    assert list(frame.columns) == [
+        "shape",
+        "engine",
+        "seed",
+        "variant",
+        "metric",
+        "value",
+    ]
+    assert set(frame["engine"]) == {"pca2d", "shuffle", "collapse"}
+    assert set(frame["shape"]) == {
         "bipartite_star",
         "clique_communities",
         "chains",
@@ -53,7 +71,7 @@ def test_artifacts_exist_and_are_self_consistent(adversarial_run):
         "isolates",
         "mixed",
     }
-    assert set(df["seed"]) == {0, 1}
+    assert set(frame["seed"]) == {0, 1}
     expected_metrics = {
         "leaf_count",
         "total_persistence",
@@ -68,111 +86,119 @@ def test_artifacts_exist_and_are_self_consistent(adversarial_run):
         "edge_binding",
         "contraction_factor",
     }
-    assert set(df["metric"]) == expected_metrics
+    assert set(frame["metric"]) == expected_metrics
     # none of these engines consume edges: exactly one variant per cell
-    assert set(df["variant"]) == {"edges"}
-    assert len(df) == 3 * 7 * 2 * len(expected_metrics)
+    assert set(frame["variant"]) == {"edges"}
+    assert len(frame) == 3 * 7 * 2 * len(expected_metrics)
 
-    # gates.json matches the in-memory payload and the parquet numbers
-    gates = json.loads(result["gates_path"].read_text())
-    assert gates == result["gates"]
+    # gates.json matches the in-memory report and the parquet numbers
+    gates = json.loads(result.gates_path.read_text())
+    assert gates == result.gates.model_dump(mode="json")
     assert gates["version"] == 1
-    entry = next(
-        e
-        for e in gates["engines"]["pca2d"]["gates"]
-        if e["metric"] == "knn_recall_15" and e["shape"] == "clique_communities"
+    outcome = next(
+        entry
+        for entry in result.gates.engines["pca2d"].gates
+        if entry.gate.metric == KnnRecallMetric(k=15)
+        and entry.shape == "clique_communities"
     )
-    sel = df[
-        (df["engine"] == "pca2d")
-        & (df["shape"] == "clique_communities")
-        & (df["metric"] == "knn_recall_15")
+    selection = frame[
+        (frame["engine"] == "pca2d")
+        & (frame["shape"] == "clique_communities")
+        & (frame["metric"] == "knn_recall_15")
     ]["value"]
-    assert entry["value"] == pytest.approx(sel.mean())
-    assert entry["noise_floor"] == pytest.approx(sel.max() - sel.min())
+    assert outcome.observed is not None
+    assert outcome.observed.mean == pytest.approx(selection.mean())
+    assert outcome.observed.spread == pytest.approx(selection.max() - selection.min())
 
     # report.md: per-shape tables with noise-floor annotations
-    report = result["report_path"].read_text()
-    for shape in set(df["shape"]):
+    report = result.report_path.read_text()
+    for shape in set(frame["shape"]):
         assert f"## Shape: {shape}" in report
     assert "±" in report
     assert "rerun-noise floor" in report
 
-    # manifest.json: config hashes + dataset hashes + seeds + versions
-    manifest = read_sidecar(result["manifest_path"])
-    assert manifest["details"]["suite_config_hash"]
-    assert manifest["details"]["engines_config_hash"]
-    assert manifest["config_hash"]
-    assert manifest["details"]["seeds"] == [0, 1]
-    assert set(manifest["details"]["datasets"]) == {
-        f"{shape}-s{seed}" for shape in set(df["shape"]) for seed in (0, 1)
+    # manifest.json: config hashes + dataset hashes + seeds + versions;
+    # loading re-validates config_hash against the embedded config.
+    manifest = RunProvenance.load(result.manifest_path)
+    assert manifest.details.suite_config_hash
+    assert manifest.details.engines_config_hash
+    assert manifest.config_hash
+    assert manifest.details.seeds == [0, 1]
+    assert set(manifest.details.datasets) == {
+        f"{shape}-s{seed}" for shape in set(frame["shape"]) for seed in (0, 1)
     }
-    for hashes in manifest["details"]["datasets"].values():
-        for key in (
-            "embeddings_sha256",
-            "edges_sha256",
-            "labels_sha256",
-            "truth_config_hash",
-        ):
-            assert hashes[key]
-    assert "numpy" in manifest["details"]["versions"]
+    for hashes in manifest.details.datasets.values():
+        assert hashes.embeddings_sha256
+        assert hashes.edges_sha256
+        assert hashes.labels_sha256
+        assert hashes.truth_config_hash
+    assert "numpy" in manifest.details.versions
 
     # dataset + layout artifacts actually on disk
     assert (out / "datasets" / "mixed-s0" / "truth.json").exists()
     assert (out / "layouts" / "pca2d" / "mixed-s0" / "edges" / "layout.npz").exists()
 
 
-def test_pca_baseline_passes_smoke_gates(adversarial_run):
-    pca = adversarial_run["gates"]["engines"]["pca2d"]
-    failed = [e for e in pca["gates"] if not e["pass"]]
+def test_pca_baseline_passes_smoke_gates(adversarial_run: RunResult) -> None:
+    pca = adversarial_run.gates.engines["pca2d"]
+    failed = [outcome for outcome in pca.gates if not outcome.passed]
     assert not failed, f"pca2d failed gates: {failed}"
-    assert pca["noise_differential"]["pass"]
-    assert pca["pass"]
+    assert pca.noise_differential.passed
+    assert pca.passed
 
 
-def test_shuffle_fails_every_structure_gate(adversarial_run):
-    shuffle = adversarial_run["gates"]["engines"]["shuffle"]
-    assert not shuffle["pass"]
-    structure_entries = [
-        e for e in shuffle["gates"] if e["metric"] in STRUCTURE_METRICS
+def test_shuffle_fails_every_structure_gate(adversarial_run: RunResult) -> None:
+    shuffle = adversarial_run.gates.engines["shuffle"]
+    assert not shuffle.passed
+    structure_outcomes = [
+        outcome for outcome in shuffle.gates if outcome.gate.metric in STRUCTURE_METRICS
     ]
-    assert structure_entries
-    still_passing = [e for e in structure_entries if e["pass"]]
+    assert structure_outcomes
+    still_passing = [outcome for outcome in structure_outcomes if outcome.passed]
     assert not still_passing, f"shuffle passed structure gates: {still_passing}"
     # Documented blind spot: persistence is identity-blind, so the shuffle
     # sails through the persistence floor — the neighbor gates catch it.
-    persistence_entries = [
-        e for e in shuffle["gates"] if e["metric"] == "normalized_persistence"
+    persistence_outcomes = [
+        outcome
+        for outcome in shuffle.gates
+        if outcome.gate.metric == MetricName.normalized_persistence
     ]
-    assert persistence_entries and all(e["pass"] for e in persistence_entries)
+    assert persistence_outcomes
+    assert all(outcome.passed for outcome in persistence_outcomes)
 
 
-def test_collapse_gains_no_persistence_after_normalization(adversarial_run):
+def test_collapse_gains_no_persistence_after_normalization(
+    adversarial_run: RunResult,
+) -> None:
     """The contraction rig: normalized persistence must not exceed the pca
     baseline beyond the rerun-noise floor (it is pca2d scaled by 0.01)."""
-    df = adversarial_run["df"]
+    frame = adversarial_run.results
 
-    def stat(engine, shape):
-        sel = df[
-            (df["engine"] == engine)
-            & (df["shape"] == shape)
-            & (df["metric"] == "normalized_persistence")
-            & (df["variant"] == "edges")
+    def stat(engine: str, shape: str) -> tuple[float, float]:
+        selection = frame[
+            (frame["engine"] == engine)
+            & (frame["shape"] == shape)
+            & (frame["metric"] == "normalized_persistence")
+            & (frame["variant"] == "edges")
         ]["value"].dropna()
-        return float(sel.mean()), float(sel.max() - sel.min())
+        return float(selection.mean()), float(selection.max() - selection.min())
 
-    for shape in sorted(set(df["shape"])):
+    for shape in sorted(set(frame["shape"])):
         collapse_mean, _ = stat("collapse", shape)
         pca_mean, pca_spread = stat("pca2d", shape)
         assert collapse_mean <= pca_mean + pca_spread + 1e-9, shape
 
-    collapse = adversarial_run["gates"]["engines"]["collapse"]
-    persistence_entries = [
-        e for e in collapse["gates"] if e["metric"] == "normalized_persistence"
+    collapse = adversarial_run.gates.engines["collapse"]
+    persistence_outcomes = [
+        outcome
+        for outcome in collapse.gates
+        if outcome.gate.metric == MetricName.normalized_persistence
     ]
-    assert persistence_entries and all(e["pass"] for e in persistence_entries)
+    assert persistence_outcomes
+    assert all(outcome.passed for outcome in persistence_outcomes)
 
 
-def _mini_noise_suite(path):
+def _mini_noise_suite(path: Path) -> Path:
     suite = {
         "version": 1,
         "name": "mini-noise",
@@ -189,7 +215,7 @@ def _mini_noise_suite(path):
     return path
 
 
-def test_cheat_trips_noise_differential_and_fail_closed(tmp_path):
+def test_cheat_trips_noise_differential_and_fail_closed(tmp_path: Path) -> None:
     """W3.2.8 acceptance: the cheating engine that manufactures clusters
     from random edges fails the hard differential; an engine that consumes
     edges without a no-edges command fails closed; an edges-ignoring engine
@@ -199,39 +225,39 @@ def test_cheat_trips_noise_differential_and_fail_closed(tmp_path):
         tmp_path / "engines.yaml", ["pca2d", "cheat", "cheat_noeval"]
     )
     result = run_suite(suite, engines_yaml, tmp_path / "run", jobs=4)
-    gates = result["gates"]["engines"]
+    gates = result.gates.engines
 
-    cheat = gates["cheat"]["noise_differential"]
-    assert cheat["evaluated"]
-    assert not cheat["pass"]
-    failing = [c for c in cheat["checks"] if not c["pass"]]
-    assert any(c["metric"] == "normalized_persistence" for c in failing)
-    assert not gates["cheat"]["pass"]
+    cheat = gates["cheat"].noise_differential
+    assert cheat.evaluated
+    assert not cheat.passed
+    failing = [check for check in cheat.checks if not check.passed]
+    assert any(check.metric == MetricName.normalized_persistence for check in failing)
+    assert not gates["cheat"].passed
 
-    noeval = gates["cheat_noeval"]["noise_differential"]
-    assert not noeval["pass"]
-    assert "not evaluable" in noeval["reason"]
-    assert not gates["cheat_noeval"]["pass"]
+    noeval = gates["cheat_noeval"].noise_differential
+    assert not noeval.passed
+    assert "not evaluable" in noeval.reason
+    assert not gates["cheat_noeval"].passed
 
-    pca = gates["pca2d"]["noise_differential"]
-    assert pca["pass"]
-    assert "does not consume" in pca["reason"]
-    assert gates["pca2d"]["pass"]
+    pca = gates["pca2d"].noise_differential
+    assert pca.passed
+    assert "does not consume" in pca.reason
+    assert gates["pca2d"].passed
 
     # the with/no-edges runs both exist in the tidy results
-    df = result["df"]
-    assert set(df[df["engine"] == "cheat"]["variant"]) == {"edges", "no_edges"}
+    frame = result.results
+    assert set(frame[frame["engine"] == "cheat"]["variant"]) == {"edges", "no_edges"}
     # contraction factor is reported against the same-seed no-edges twin
-    contraction = df[
-        (df["engine"] == "cheat")
-        & (df["metric"] == "contraction_factor")
-        & (df["variant"] == "edges")
+    contraction = frame[
+        (frame["engine"] == "cheat")
+        & (frame["metric"] == "contraction_factor")
+        & (frame["variant"] == "edges")
     ]["value"].dropna()
     assert len(contraction) == 2
 
 
 @pytest.mark.slow
-def test_umap_baselines_pass_smoke_gates(tmp_path):
+def test_umap_baselines_pass_smoke_gates(tmp_path: Path) -> None:
     """Acceptance: the tuned umap-learn baseline PASSES the default suite
     (smoke scale). Exercises the real with/no-edges differential path for
     umap_tuned, whose command consumes {edges} (and ignores them)."""
@@ -240,17 +266,17 @@ def test_umap_baselines_pass_smoke_gates(tmp_path):
     )
     result = run_suite(SMOKE_SUITE, engines_yaml, tmp_path / "run", jobs=4)
     for name in ("umap_tuned", "umap_default", "pca2d"):
-        engine = result["gates"]["engines"][name]
-        failed = [e for e in engine["gates"] if not e["pass"]]
+        engine_report = result.gates.engines[name]
+        failed = [outcome for outcome in engine_report.gates if not outcome.passed]
         assert not failed, f"{name} failed gates: {failed}"
-        assert engine["noise_differential"]["pass"]
-        assert engine["pass"]
+        assert engine_report.noise_differential.passed
+        assert engine_report.passed
     # umap_tuned's differential was actually evaluated from real runs
-    tuned = result["gates"]["engines"]["umap_tuned"]["noise_differential"]
-    assert tuned["evaluated"] and tuned["checks"]
+    tuned = result.gates.engines["umap_tuned"].noise_differential
+    assert tuned.evaluated and tuned.checks
 
 
-def test_suite_loading_validation(tmp_path):
+def test_suite_loading_validation(tmp_path: Path) -> None:
     ok = load_suite(SMOKE_SUITE)
     assert ok.version == 1
     assert ok.shapes().count("noise_edges") == 1
@@ -289,5 +315,44 @@ def test_suite_loading_validation(tmp_path):
         ),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="type must be one of"):
+    # The gate union rejects the tag the same way the shape union does.
+    with pytest.raises(ValueError, match="'between'.*does not match any of the"):
         load_suite(bad_gate)
+
+    gate_shape_not_in_suite = tmp_path / "gs.yaml"
+    gate_shape_not_in_suite.write_text(
+        yaml.safe_dump(
+            {
+                "version": 1,
+                "seeds": [0],
+                "datasets": [{"shape": "chains", "n": 10}],
+                "gates": [
+                    {
+                        "metric": "silhouette",
+                        "type": "min",
+                        "value": 0.1,
+                        "shapes": ["isolates"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="not in suite shapes"):
+        load_suite(gate_shape_not_in_suite)
+
+    gate_k_not_computed = tmp_path / "gk.yaml"
+    gate_k_not_computed.write_text(
+        yaml.safe_dump(
+            {
+                "version": 1,
+                "seeds": [0],
+                "knn_ks": [15],
+                "datasets": [{"shape": "chains", "n": 10}],
+                "gates": [{"metric": "knn_recall_30", "type": "min", "value": 0.1}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="not in suite knn_ks"):
+        load_suite(gate_k_not_computed)

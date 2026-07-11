@@ -3,7 +3,10 @@ implementations agree with sklearn where an sklearn equivalent exists."""
 
 import numpy as np
 import pytest
+from sklearn.manifold import trustworthiness as sk_trustworthiness
+
 from atlas_tools.battery.metrics import (
+    K,
     _trustworthiness_ranked,
     contraction_factor,
     edge_binding_ratio,
@@ -14,7 +17,6 @@ from atlas_tools.battery.metrics import (
     trustworthiness_continuity,
 )
 from atlas_tools.common.knn import l2_normalize
-from sklearn.manifold import trustworthiness as sk_trustworthiness
 
 
 def circle_blobs(n, n_blobs, seed, radius=10.0, sigma=0.5, extra_dims=6):
@@ -66,13 +68,13 @@ def test_trustworthiness_sampled_is_deterministic_and_close_to_full():
 
 def test_knn_recall_identity_layout_high_shuffled_chance():
     emb, first2, _, rng = circle_blobs(400, 4, seed=0)
-    good = knn_recall(first2, emb, [15, 30])
-    assert good["knn_recall_15"] > 0.35
-    assert good["knn_recall_30"] >= good["knn_recall_15"] * 0.8
+    good = knn_recall(first2, emb, [K(15), K(30)])
+    assert good[K(15)] > 0.35
+    assert good[K(30)] >= good[K(15)] * 0.8
     perm = rng.permutation(400)
-    bad = knn_recall(first2[perm], emb, [15])
-    assert bad["knn_recall_15"] < 0.1
-    assert good["knn_recall_15"] > 3 * bad["knn_recall_15"]
+    bad = knn_recall(first2[perm], emb, [K(15)])
+    assert bad[K(15)] < 0.1
+    assert good[K(15)] > 3 * bad[K(15)]
 
 
 def test_silhouette_ordering_and_null_cases():

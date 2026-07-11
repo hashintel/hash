@@ -9,8 +9,9 @@ the output directory:
   (shape, engine, seed, variant, metric) with a float ``value``
 - ``report.md`` — per-shape tables; every number is annotated with the
   rerun-noise floor (spread = max - min across seed reruns)
-- ``gates.json`` — structured pass/fail per configured threshold plus the
-  hard noise differential (see battery.gates)
+- ``gates.json`` — the :class:`atlas_tools.battery.gates.GatesReport` dump:
+  structured pass/fail per configured threshold plus the hard noise
+  differential
 - ``manifest.json`` — suite/engine config hashes, dataset content hashes,
   seeds and library versions, so every number is reproducible from the
   manifest alone
@@ -44,12 +45,12 @@ with-edges layout relative to its same-seed no-relation twin); on shapes
 without a no-edges twin, ``contraction_factor`` is null.
 """
 
-import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
 from pathlib import Path
-from typing import Any, Literal, Self
+from typing import Final, Literal, Self
 
 import numpy as np
 import pandas as pd
@@ -63,49 +64,62 @@ from pydantic import (
     model_validator,
 )
 
-from atlas_tools.battery.datasets import Dataset, write_dataset
+from atlas_tools.battery.datasets import (
+    Dataset,
+    DatasetHashes,
+    StrPath,
+    write_dataset,
+)
 from atlas_tools.battery.engine_runner import (
+    EngineFile,
     EngineSpec,
     load_aligned_layout,
-    load_engines,
-    load_engines_raw,
+    load_engine_file,
     run_engine,
 )
 from atlas_tools.battery.gates import (
     NOISE_SHAPE,
+    GateConfig,
+    GatesReport,
+    Variant,
     evaluate_gates,
-    validate_gates_config,
 )
 from atlas_tools.battery.generators import Generator
 from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
 from atlas_tools.battery.metrics import (
+    K,
+    KnnRecallMetric,
+    LayoutMetrics,
     contraction_factor,
     edge_binding_ratio,
     knn_recall,
+    metric_column,
+    metric_columns,
     pendant_diffusion,
     silhouette_on_labels,
     trustworthiness_continuity,
 )
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     canonical_json_bytes,
     sha256_bytes,
+    write_sidecar,
 )
 
-METRIC_ORDER = [
-    "leaf_count",
-    "total_persistence",
-    "normalized_persistence",
-    "trustworthiness",
-    "continuity",
-    "silhouette",
-    "pendant_diffusion",
-    "edge_binding",
-    "contraction_factor",
-]
+_VERSIONED_LIBS: Final = (
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "umap-learn",
+    "pandas",
+    "pyarrow",
+)
 
-_VERSIONED_LIBS = ("numpy", "scipy", "scikit-learn", "umap-learn", "pandas", "pyarrow")
+_RESULT_COLUMNS: Final = ("shape", "engine", "seed", "variant", "metric", "value")
+
+
+def _default_knn_ks() -> list[K]:
+    return [K(15), K(30), K(50)]
 
 
 class Suite(BaseModel):
@@ -113,14 +127,13 @@ class Suite(BaseModel):
     # Defaults to the suite file's stem when omitted (see load_suite).
     name: str = ""
     seeds: list[int] = Field(min_length=1)
-    knn_ks: list[int] = Field(default_factory=lambda: [15, 30, 50])
+    knn_ks: list[K] = Field(default_factory=_default_knn_ks, min_length=1)
     tc_neighbors: PositiveInt = 15
     tc_sample: PositiveInt = 2000
     silhouette_sample: PositiveInt = 5000
     merge_tree: MergeTreeConfig = Field(default_factory=MergeTreeConfig)
     datasets: list[Generator] = Field(min_length=1)
-    # Gate entries stay free-form JSON; battery.gates owns their schema.
-    gates: list[JsonDict] = Field(default_factory=list)
+    gates: list[GateConfig] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -134,11 +147,33 @@ class Suite(BaseModel):
 
         return self
 
+    @model_validator(mode="after")
+    def check_gates_scoped_to_suite(self) -> Self:
+        """Gate shapes must be suite shapes; gated knn ks must be computed."""
+        shapes = set(self.shapes())
+        ks = set(self.knn_ks)
+
+        for index, gate in enumerate(self.gates):
+            label = f"gate #{index} ({metric_column(gate.metric)})"
+
+            unknown = [shape for shape in gate.shapes or [] if shape not in shapes]
+            if unknown:
+                raise ValueError(
+                    f"{label}: shapes {unknown} not in suite shapes {sorted(shapes)}"
+                )
+
+            if isinstance(gate.metric, KnnRecallMetric) and gate.metric.k not in ks:
+                raise ValueError(
+                    f"{label}: k={gate.metric.k} not in suite knn_ks {sorted(ks)}"
+                )
+
+        return self
+
     def shapes(self) -> list[str]:
         return [generator.shape for generator in self.datasets]
 
 
-def load_suite(path: os.PathLike) -> Suite:
+def load_suite(path: StrPath) -> Suite:
     """Load and validate a versioned suite YAML; fill defaults."""
     with open(path, encoding="utf-8") as file:
         data = yaml.safe_load(file)
@@ -147,7 +182,6 @@ def load_suite(path: os.PathLike) -> Suite:
     if not suite.name:
         suite.name = Path(path).stem
 
-    validate_gates_config(suite.gates, suite.shapes())
     return suite
 
 
@@ -162,34 +196,55 @@ class RunDetails(BaseModel):
     engines_config_hash: str
 
     seeds: list[int]
-    datasets: dict[str, dict[str, str]]
+    datasets: dict[str, DatasetHashes]
     versions: dict[str, str]
 
 
-# The manifest embeds the resolved suite + engine configs verbatim as
-# free-form JSON; the harness only hashes them.
-RunProvenance = Provenance[RunDetails, JsonDict]
+class RunConfig(BaseModel):
+    """The resolved suite + engine configs, embedded verbatim in the
+    manifest and hashed into ``config_hash``."""
+
+    suite: Suite
+    engines: EngineFile
+
+
+RunProvenance = Provenance[RunDetails, RunConfig]
+
+
+@dataclass(frozen=True)
+class RunResult:
+    """Everything ``battery run`` produced, in memory and on disk."""
+
+    out_dir: Path
+    results_path: Path
+    report_path: Path
+    gates_path: Path
+    manifest_path: Path
+    results: pd.DataFrame
+    gates: GatesReport
+    suite: Suite
 
 
 class _Task(BaseModel):
     spec: EngineSpec
     shape: str
     seed: int
-    variant: Literal["edges", "no_edges"]
+    variant: Variant
     dataset_dir: DirectoryPath
     layout_path: Path
 
 
 def _compute_metrics(
-    dataset: Dataset, xy: np.ndarray, suite: Suite, seed: int
-) -> dict[str, float | None]:
+    dataset: Dataset,
+    xy: np.ndarray,
+    suite: Suite,
+    seed: int,
+    *,
+    baseline_xy: np.ndarray | None,
+) -> LayoutMetrics:
+    """All metrics of one run; ``baseline_xy`` is the same-seed no-edges
+    twin layout (None when the engine has no such twin on this shape)."""
     merge_tree = merge_tree_persistence(xy, suite.merge_tree)
-    metrics: dict[str, float | None] = {
-        "leaf_count": float(merge_tree.leaf_count),
-        "total_persistence": merge_tree.total_persistence,
-        "normalized_persistence": merge_tree.normalized_persistence,
-    }
-    metrics.update(knn_recall(xy, dataset.embeddings, suite.knn_ks))
     trust, continuity = trustworthiness_continuity(
         dataset.embeddings,
         xy,
@@ -197,27 +252,36 @@ def _compute_metrics(
         sample_size=suite.tc_sample,
         seed=seed,
     )
-    metrics["trustworthiness"] = trust
-    metrics["continuity"] = continuity
-    metrics["silhouette"] = silhouette_on_labels(
-        xy, dataset.labels, sample_size=suite.silhouette_sample, seed=seed
+
+    return LayoutMetrics(
+        leaf_count=float(merge_tree.leaf_count),
+        total_persistence=merge_tree.total_persistence,
+        normalized_persistence=merge_tree.normalized_persistence,
+        knn_recall=knn_recall(xy, dataset.embeddings, suite.knn_ks),
+        trustworthiness=trust,
+        continuity=continuity,
+        silhouette=silhouette_on_labels(
+            xy, dataset.labels, sample_size=suite.silhouette_sample, seed=seed
+        ),
+        pendant_diffusion=pendant_diffusion(xy, dataset.edges, dataset.labels),
+        edge_binding=edge_binding_ratio(xy, dataset.edges, seed=seed),
+        contraction_factor=(
+            contraction_factor(xy, baseline_xy) if baseline_xy is not None else None
+        ),
     )
-    metrics["pendant_diffusion"] = pendant_diffusion(xy, dataset.edges, dataset.labels)
-    metrics["edge_binding"] = edge_binding_ratio(xy, dataset.edges, seed=seed)
-    return metrics
 
 
 def run_suite(
-    suite_path: os.PathLike,
-    engines_path: os.PathLike,
-    out_dir: os.PathLike,
+    suite_path: StrPath,
+    engines_path: StrPath,
+    out_dir: StrPath,
     *,
     jobs: int | None = None,
-) -> dict[str, Any]:
+) -> RunResult:
     """Run the full battery; returns paths, the results frame and gates."""
     suite = load_suite(suite_path)
-    engines = load_engines(engines_path)
-    engines_raw = load_engines_raw(engines_path)
+    engine_file = load_engine_file(engines_path)
+    engines = engine_file.engines
 
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -225,7 +289,7 @@ def run_suite(
 
     # 1. Generate all datasets (deterministic in (generator, seed)).
     datasets: dict[tuple[str, int], tuple[Dataset, Path]] = {}
-    dataset_hashes: dict[str, dict[str, str]] = {}
+    dataset_hashes: dict[str, DatasetHashes] = {}
 
     for generator in suite.datasets:
         for seed in suite.seeds:
@@ -283,72 +347,66 @@ def run_suite(
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(_execute, tasks))
 
-    # 4. Load + align layouts, compute metrics.
-    layouts: dict[tuple[str, str, int, Literal["edges", "no_edges"]], np.ndarray] = {}
-    metric_rows: list[dict[str, Any]] = []
-    per_task_metrics: dict[tuple[str, str, int, str], dict[str, float | None]] = {}
+    # 4. Load + align layouts, then compute metrics (the with-edges variant
+    # sees its same-seed no-edges twin for the contraction factor).
+    layouts: dict[tuple[str, str, int, Variant], np.ndarray] = {}
 
     for task in tasks:
         dataset, _ = datasets[(task.shape, task.seed)]
         artifact = load_aligned_layout(task.layout_path, dataset.n)
         layouts[(task.spec.name, task.shape, task.seed, task.variant)] = artifact.xy
-        per_task_metrics[(task.spec.name, task.shape, task.seed, task.variant)] = (
-            _compute_metrics(dataset, artifact.xy, suite, task.seed)
-        )
+
+    rows: list[tuple[str, str, int, str, str, float]] = []
 
     for task in tasks:
-        key = (task.spec.name, task.shape, task.seed, task.variant)
-        metrics = per_task_metrics[key]
+        dataset, _ = datasets[(task.shape, task.seed)]
+        xy = layouts[(task.spec.name, task.shape, task.seed, task.variant)]
+        baseline_xy = (
+            layouts.get((task.spec.name, task.shape, task.seed, "no_edges"))
+            if task.variant == "edges"
+            else None
+        )
 
-        if task.variant == "edges":
-            twin = layouts.get((task.spec.name, task.shape, task.seed, "no_edges"))
-            metrics["contraction_factor"] = (
-                contraction_factor(layouts[key], twin) if twin is not None else None
+        metrics = _compute_metrics(
+            dataset, xy, suite, task.seed, baseline_xy=baseline_xy
+        )
+
+        for column, value in metrics.column_values().items():
+            rows.append(
+                (
+                    task.shape,
+                    task.spec.name,
+                    task.seed,
+                    task.variant,
+                    column,
+                    float(value) if value is not None else np.nan,
+                )
             )
-        else:
-            metrics["contraction_factor"] = None
 
-        for metric, value in metrics.items():
-            metric_rows.append(
-                {
-                    "shape": task.shape,
-                    "engine": task.spec.name,
-                    "seed": task.seed,
-                    "variant": task.variant,
-                    "metric": metric,
-                    "value": float(value) if value is not None else np.nan,
-                }
-            )
-
-    df = pd.DataFrame(
-        metric_rows, columns=["shape", "engine", "seed", "variant", "metric", "value"]
-    )
+    frame = pd.DataFrame(rows, columns=pd.Index(_RESULT_COLUMNS))
     results_path = out / "results.parquet"
-    df.to_parquet(results_path, index=False)
+    frame.to_parquet(results_path, index=False)
 
     # 5. Gates.
-    gates_payload = evaluate_gates(
-        df, engines, suite_shapes=suite.shapes(), gate_configs=suite.gates
+    gates_report = evaluate_gates(
+        frame, engines, suite_shapes=suite.shapes(), gate_configs=suite.gates
     )
-    gates_path = out / "gates.json"
-    gates_path.write_text(
-        json.dumps(gates_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    gates_path = write_sidecar(out / "gates.json", gates_report.model_dump(mode="json"))
 
     # 6. Manifest (hashes exclude created_at by provenance convention).
     suite_hash = sha256_bytes(canonical_json_bytes(suite))
-    engines_hash = sha256_bytes(canonical_json_bytes(engines_raw))
+    engines_hash = sha256_bytes(canonical_json_bytes(engine_file))
     versions = {"python": _python_version()}
 
-    for lib in _VERSIONED_LIBS:
+    for library in _VERSIONED_LIBS:
         try:
-            versions[lib] = importlib_metadata.version(lib)
+            versions[library] = importlib_metadata.version(library)
         except importlib_metadata.PackageNotFoundError:  # pragma: no cover
-            versions[lib] = "unknown"
+            versions[library] = "unknown"
 
     manifest = RunProvenance.make(
         producer="battery.run",
-        config={"suite": suite.model_dump(mode="json"), "engines": engines_raw},
+        config=RunConfig(suite=suite, engines=engine_file),
         details=RunDetails(
             suite_path=Path(suite_path),
             engines_path=Path(engines_path),
@@ -362,20 +420,22 @@ def run_suite(
     manifest_path = manifest.write(out / "manifest.json")
 
     # 7. Report.
-    report = _render_report(df, suite, engines, gates_payload, suite_hash, engines_hash)
+    report = _render_report(
+        frame, suite, engines, gates_report, suite_hash, engines_hash
+    )
     report_path = out / "report.md"
     report_path.write_text(report, encoding="utf-8")
 
-    return {
-        "out_dir": out,
-        "results_path": results_path,
-        "report_path": report_path,
-        "gates_path": gates_path,
-        "manifest_path": manifest_path,
-        "df": df,
-        "gates": gates_payload,
-        "suite": suite,
-    }
+    return RunResult(
+        out_dir=out,
+        results_path=results_path,
+        report_path=report_path,
+        gates_path=gates_path,
+        manifest_path=manifest_path,
+        results=frame,
+        gates=gates_report,
+        suite=suite,
+    )
 
 
 def _python_version() -> str:
@@ -385,16 +445,16 @@ def _python_version() -> str:
 
 
 def _render_report(
-    df: pd.DataFrame,
+    frame: pd.DataFrame,
     suite: Suite,
     engines: list[EngineSpec],
-    gates_payload: dict[str, Any],
+    gates_report: GatesReport,
     suite_hash: str,
     engines_hash: str,
 ) -> str:
     """Per-shape tables. Every cell is ``mean ±spread`` where the spread
     (max - min across seed reruns) is the rerun-noise floor annotation."""
-    metric_names = [f"knn_recall_{k}" for k in suite.knn_ks] + METRIC_ORDER
+    metric_names = metric_columns(suite.knn_ks)
     engine_names = [spec.name for spec in engines]
 
     lines = [
@@ -420,16 +480,19 @@ def _render_report(
         for metric in metric_names:
             cells = []
             for name in engine_names:
-                sel = df[
-                    (df["engine"] == name)
-                    & (df["shape"] == shape)
-                    & (df["metric"] == metric)
-                    & (df["variant"] == "edges")
+                selection = frame[
+                    (frame["engine"] == name)
+                    & (frame["shape"] == shape)
+                    & (frame["metric"] == metric)
+                    & (frame["variant"] == "edges")
                 ]["value"].dropna()
-                if len(sel) == 0:
+                if len(selection) == 0:
                     cells.append("—")
                 else:
-                    cells.append(f"{sel.mean():.4f} ±{(sel.max() - sel.min()):.4f}")
+                    cells.append(
+                        f"{selection.mean():.4f}"
+                        f" ±{(selection.max() - selection.min()):.4f}"
+                    )
             lines.append(f"| {metric} | " + " | ".join(cells) + " |")
         lines.append("")
 
@@ -437,24 +500,28 @@ def _render_report(
     lines.append("")
 
     for name in engine_names:
-        result = gates_payload["engines"][name]
-        status = "PASS" if result["pass"] else "FAIL"
+        engine_report = gates_report.engines[name]
+        status = "PASS" if engine_report.passed else "FAIL"
         lines.append(f"### {name}: {status}")
         lines.append("")
 
-        failed = [e for e in result["gates"] if not e["pass"]]
+        failed = [outcome for outcome in engine_report.gates if not outcome.passed]
         if failed:
             lines.append("Failed gate entries:")
-            for e in failed:
+            for outcome in failed:
                 lines.append(
-                    f"- `{e['metric']}` [{e['type']}] on `{e['shape']}`: {e['reason']}"
+                    f"- `{metric_column(outcome.gate.metric)}`"
+                    f" [{outcome.gate.type}] on `{outcome.shape}`:"
+                    f" {outcome.reason}"
                 )
         else:
             lines.append("All configured gate entries passed.")
 
-        nd = result["noise_differential"]
-        nd_status = "PASS" if nd["pass"] else "FAIL"
-        lines.append(f"- noise differential: {nd_status} — {nd['reason']}")
+        differential = engine_report.noise_differential
+        differential_status = "PASS" if differential.passed else "FAIL"
+        lines.append(
+            f"- noise differential: {differential_status} — {differential.reason}"
+        )
         lines.append("")
 
     return "\n".join(lines) + "\n"

@@ -13,10 +13,11 @@ Exact definitions (these strings are embedded verbatim in ``report.json``):
 """
 
 from dataclasses import dataclass
+from typing import Final
 
 import numpy as np
 
-METRIC_DEFINITIONS: dict[str, str] = {
+METRIC_DEFINITIONS: Final[dict[str, str]] = {
     "recall@k(d)": "mean over queries of |prefix_topk ∩ full_topk| / k",
     "intrusion_rate@k(d)": (
         "mean over queries of the fraction of prefix top-k neighbors NOT in"
@@ -34,7 +35,11 @@ METRIC_DEFINITIONS: dict[str, str] = {
 
 @dataclass(frozen=True)
 class PerQueryMetrics:
-    """Per-query metric values, each an array of shape ``(n_queries,)``."""
+    """Per-query metric values, each a float64 array of shape ``(n_queries,)``.
+
+    Arrays live in a plain dataclass (not a pydantic model); the aggregated,
+    serializable numbers live in :class:`atlas_tools.audit.evaluation.GroupMetric`.
+    """
 
     recall: np.ndarray
     intrusion_rate: np.ndarray

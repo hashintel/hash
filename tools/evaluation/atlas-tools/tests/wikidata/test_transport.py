@@ -2,77 +2,85 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import pytest
+
 from atlas_tools.wikidata.transport import (
     FixtureMissError,
     FixtureTransport,
     RequestsTransport,
+    RetryPolicy,
 )
-
 from tests.wikidata.conftest import RESPONSES
 
 
-class FakeResponse:
-    def __init__(self, status_code: int, content: bytes = b"", headers=None):
+class FakeReply:
+    def __init__(self, status_code: int, content: bytes = b""):
         self.status_code = status_code
         self.content = content
-        self.headers = headers or {}
+        self.headers: dict[str, str] = {}
 
 
 class FakeSession:
-    def __init__(self, responses: list[FakeResponse]):
-        self._responses = list(responses)
-        self.requests: list[tuple[str, dict]] = []
+    def __init__(self, replies: list[FakeReply]):
+        self._replies = list(replies)
+        self.requests: list[tuple[str, dict[str, str]]] = []
 
-    def get(self, url, params=None, headers=None, timeout=None):
+    def get(
+        self,
+        url: str,
+        params: Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> FakeReply:
         self.requests.append((url, dict(params or {})))
-        return self._responses.pop(0)
+        return self._replies.pop(0)
 
 
 def test_backoff_is_exponential_then_returns_success():
-    session = FakeSession(
-        [FakeResponse(429), FakeResponse(500), FakeResponse(200, b"ok")]
-    )
+    session = FakeSession([FakeReply(429), FakeReply(500), FakeReply(200, b"ok")])
     sleeps: list[float] = []
     transport = RequestsTransport(
-        rate_limit_per_sec=0,  # disable rate limiting to isolate backoff
-        max_retries=3,
-        backoff_base_seconds=1.5,
+        # rate limiting disabled to isolate backoff
+        policy=RetryPolicy(
+            rate_limit_per_sec=0, max_retries=3, backoff_base_seconds=1.5
+        ),
         session=session,
         sleep=sleeps.append,
         clock=lambda: 0.0,
     )
-    status, _headers, body = transport.get("http://example.test", {"q": "1"})
-    assert status == 200
-    assert body == b"ok"
+    response = transport.get("http://example.test", {"q": "1"})
+    assert response.status == 200
+    assert response.body == b"ok"
     assert sleeps == [1.5, 3.0]  # base * 2**attempt
     assert len(session.requests) == 3
 
 
 def test_backoff_gives_up_and_returns_final_status():
-    session = FakeSession([FakeResponse(500)] * 3)
+    session = FakeSession([FakeReply(500)] * 3)
     sleeps: list[float] = []
     transport = RequestsTransport(
-        rate_limit_per_sec=0,
-        max_retries=2,
-        backoff_base_seconds=1.0,
+        policy=RetryPolicy(
+            rate_limit_per_sec=0, max_retries=2, backoff_base_seconds=1.0
+        ),
         session=session,
         sleep=sleeps.append,
         clock=lambda: 0.0,
     )
-    status, _headers, _body = transport.get("http://example.test")
-    assert status == 500  # returned, not raised: the example ladder handles it
+    response = transport.get("http://example.test")
+    assert response.status == 500  # returned, not raised: the ladder handles it
+    assert not response.ok
     assert sleeps == [1.0, 2.0]
     assert len(session.requests) == 3
 
 
 def test_rate_limit_sleeps_for_remaining_interval():
-    session = FakeSession([FakeResponse(200), FakeResponse(200)])
+    session = FakeSession([FakeReply(200), FakeReply(200)])
     sleeps: list[float] = []
     clock_values = [0.0, 0.2, 0.5]  # 1st stamp, elapsed check, 2nd stamp
     transport = RequestsTransport(
-        rate_limit_per_sec=2.0,  # min interval 0.5s
-        max_retries=0,
+        policy=RetryPolicy(rate_limit_per_sec=2.0, max_retries=0),  # 0.5s interval
         session=session,
         sleep=sleeps.append,
         clock=lambda: clock_values.pop(0),

@@ -8,7 +8,7 @@ engine must NOT gain persistence relative to the PCA baseline — that is the
 anti-cheat acceptance test.
 """
 
-from __future__ import annotations
+from pathlib import Path
 
 import click
 
@@ -32,8 +32,9 @@ def main(
     seed: int,
     scale: float,
 ) -> None:
-    emb, meta = load_matrix(embeddings, mmap=False)
-    xy = pca_coords(emb) * scale
+    loaded, meta = load_matrix(Path(embeddings), mmap=False)
+    xy = pca_coords(loaded) * scale
+
     write_layout(
         out,
         xy,

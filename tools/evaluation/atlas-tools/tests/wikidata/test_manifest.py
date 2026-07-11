@@ -3,70 +3,68 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
-import pyarrow as pa
 import pyarrow.parquet as pq
 
-from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.dump import ENTITY_SCHEMA, extract_entities
-from atlas_tools.wikidata.manifest import build_sampling_plan, primary_class
+from atlas_tools.wikidata.config import Config, StratificationConfig
+from atlas_tools.wikidata.dump import EntityRow, extract_entities, rows_to_table
+from atlas_tools.wikidata.manifest import (
+    ClassSampleCount,
+    build_sampling_plan,
+    primary_class,
+)
 from tests.wikidata.conftest import DUMP_EXCERPT
 
 
 def test_primary_class_is_lexicographically_smallest():
-    assert primary_class(["Q515", "Q11424"]) == "Q11424"  # string order
-    assert primary_class(["Q5"]) == "Q5"
-    assert primary_class([]) is None
+    assert primary_class(("Q515", "Q11424")) == "Q11424"  # string order
+    assert primary_class(("Q5",)) == "Q5"
+    assert primary_class(()) is None
 
 
-def _synthetic_entities(tmp_path):
+def _entity(qid: str, p31: tuple[str, ...]) -> EntityRow:
+    return EntityRow(
+        qid=qid,
+        p31=p31,
+        sitelink_count=1,
+        label_count=1,
+        label_len_primary=5,
+        label_len_min=5,
+        label_len_mean=5.0,
+        label_len_max=5,
+    )
+
+
+def _synthetic_entities(tmp_path: Path) -> Path:
     """Skewed classes: Q1 x 100, Q2 x 4 (rare), Q3 x 30 (override cap)."""
-    rows = []
-
-    def add(qid, p31):
-        rows.append(
-            {
-                "qid": qid,
-                "p31": p31,
-                "sitelink_count": 1,
-                "label_count": 1,
-                "label_len_primary": 5,
-                "label_len_min": 5,
-                "label_len_mean": 5.0,
-                "label_len_max": 5,
-            }
-        )
-
-    next_q = 1
+    rows: list[EntityRow] = []
+    next_qid = 1001
     for _ in range(100):
-        add(f"Q{next_q + 1000}", ["Q1"])
-        next_q += 1
+        rows.append(_entity(f"Q{next_qid}", ("Q1",)))
+        next_qid += 1
     for _ in range(4):
-        add(f"Q{next_q + 1000}", ["Q2"])
-        next_q += 1
+        rows.append(_entity(f"Q{next_qid}", ("Q2",)))
+        next_qid += 1
     for _ in range(30):
-        add(f"Q{next_q + 1000}", ["Q3"])
-        next_q += 1
-    add(f"Q{next_q + 1000}", [])  # no P31: excluded from plan
-    next_q += 1
-    add(f"Q{next_q + 1000}", ["Q3", "Q1"])  # multi-P31: primary is Q1
+        rows.append(_entity(f"Q{next_qid}", ("Q3",)))
+        next_qid += 1
+    rows.append(_entity(f"Q{next_qid}", ()))  # no P31: excluded from plan
+    next_qid += 1
+    rows.append(_entity(f"Q{next_qid}", ("Q3", "Q1")))  # multi-P31: primary Q1
 
     path = tmp_path / "entities.parquet"
-    pq.write_table(pa.Table.from_pylist(rows, schema=ENTITY_SCHEMA), path)
+    pq.write_table(rows_to_table(rows), path)
     return path
 
 
-def _config(**stratification):
-    return Config.from_dict(
-        {
-            "seed": 3,
-            "stratification": {
-                "default_cap": 10,
-                "rare_floor": 5,
-                "per_class_caps": {"Q3": 3},
-                **stratification,
-            },
-        }
+def _config(stratification: StratificationConfig | None = None) -> Config:
+    if stratification is None:
+        stratification = StratificationConfig(
+            default_cap=10, rare_floor=5, per_class_caps={"Q3": 3}
+        )
+    return Config.model_validate(
+        {"extraction": {"seed": 3, "stratification": stratification.model_dump()}}
     )
 
 
@@ -78,10 +76,10 @@ def test_caps_floors_and_overrides_honored(tmp_path):
     # Q1: 100 entities + 1 multi-P31 -> capped at default 10.
     # Q2: 4 <= rare_floor 5 -> all kept.
     # Q3: 30 -> per-class override cap 3.
-    assert summary["classes"] == {
-        "Q1": {"total": 101, "sampled": 10},
-        "Q2": {"total": 4, "sampled": 4},
-        "Q3": {"total": 30, "sampled": 3},
+    assert summary.classes == {
+        "Q1": ClassSampleCount(total=101, sampled=10),
+        "Q2": ClassSampleCount(total=4, sampled=4),
+        "Q3": ClassSampleCount(total=30, sampled=3),
     }
 
     table = pq.read_table(tmp_path / "plan.parquet")
@@ -114,17 +112,19 @@ def test_plan_is_deterministic_across_runs(tmp_path):
 def test_seed_changes_selection_for_capped_classes(tmp_path):
     entities = _synthetic_entities(tmp_path)
     build_sampling_plan(entities, config=_config(), out_path=tmp_path / "a.parquet")
-    other = Config.from_dict({**_config().raw, "seed": 4})
+    base = _config()
+    other_extraction = base.extraction.model_copy(update={"seed": 4})
+    other = base.model_copy(update={"extraction": other_extraction})
     build_sampling_plan(entities, config=other, out_path=tmp_path / "b.parquet")
     a = {
-        r["qid"]
-        for r in pq.read_table(tmp_path / "a.parquet").to_pylist()
-        if r["p31_class"] == "Q1"
+        row["qid"]
+        for row in pq.read_table(tmp_path / "a.parquet").to_pylist()
+        if row["p31_class"] == "Q1"
     }
     b = {
-        r["qid"]
-        for r in pq.read_table(tmp_path / "b.parquet").to_pylist()
-        if r["p31_class"] == "Q1"
+        row["qid"]
+        for row in pq.read_table(tmp_path / "b.parquet").to_pylist()
+        if row["p31_class"] == "Q1"
     }
     assert len(a) == len(b) == 10
     assert a != b  # 10-of-101 draws with different seeds coincide with p ~ 1e-13
@@ -134,10 +134,12 @@ def test_per_class_override_is_respected_end_to_end(tmp_path):
     entities = _synthetic_entities(tmp_path)
     summary = build_sampling_plan(
         entities,
-        config=_config(per_class_caps={"Q3": 7}),
+        config=_config(
+            StratificationConfig(default_cap=10, rare_floor=5, per_class_caps={"Q3": 7})
+        ),
         out_path=tmp_path / "plan.parquet",
     )
-    assert summary["classes"]["Q3"] == {"total": 30, "sampled": 7}
+    assert summary.classes["Q3"] == ClassSampleCount(total=30, sampled=7)
 
 
 def test_plan_on_committed_excerpt(config, tmp_path):
@@ -153,15 +155,19 @@ def test_plan_on_committed_excerpt(config, tmp_path):
         tmp_path / "entities.parquet", config=config, out_path=tmp_path / "plan.parquet"
     )
     # Fixture config: default_cap 10, rare_floor 5, override Q515 -> 3.
-    assert summary["classes"] == {
-        "Q5": {"total": 80, "sampled": 10},
-        "Q4830453": {"total": 40, "sampled": 10},
-        "Q515": {"total": 25, "sampled": 3},
-        "Q571": {"total": 20, "sampled": 10},
-        "Q11424": {"total": 12, "sampled": 10},
-        "Q3305213": {"total": 8, "sampled": 8},
-        "Q7889": {"total": 6, "sampled": 6},
-        "Q34770": {"total": 4, "sampled": 4},
-        "Q16521": {"total": 3, "sampled": 3},
-        "Q23397": {"total": 2, "sampled": 2},
+    expected = {
+        "Q5": (80, 10),
+        "Q4830453": (40, 10),
+        "Q515": (25, 3),
+        "Q571": (20, 10),
+        "Q11424": (12, 10),
+        "Q3305213": (8, 8),
+        "Q7889": (6, 6),
+        "Q34770": (4, 4),
+        "Q16521": (3, 3),
+        "Q23397": (2, 2),
+    }
+    assert summary.classes == {
+        class_qid: ClassSampleCount(total=total, sampled=sampled)
+        for class_qid, (total, sampled) in expected.items()
     }

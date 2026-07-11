@@ -15,11 +15,10 @@ honest): ``cheat_cli`` (manufactures clusters from edges), ``collapse_cli``
 rows relative to row_id).
 """
 
-from __future__ import annotations
-
 import numpy as np
-from atlas_tools.common.knn import l2_normalize
 from sklearn.decomposition import PCA
+
+from atlas_tools.common.knn import l2_normalize
 
 
 def pca_coords(embeddings: np.ndarray, *, normalize: bool = True) -> np.ndarray:
@@ -32,5 +31,6 @@ def pca_coords(embeddings: np.ndarray, *, normalize: bool = True) -> np.ndarray:
     x = np.asarray(embeddings, dtype=np.float32)
     if normalize:
         x = l2_normalize(x)
+
     xy = PCA(n_components=2, svd_solver="full").fit_transform(x.astype(np.float64))
     return xy.astype(np.float32)

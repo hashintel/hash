@@ -3,7 +3,7 @@
 Gate config schema (version 1), embedded in the suite YAML::
 
     gates:
-      - metric: knn_recall_15      # any metric name from results.parquet
+      - metric: knn_recall_15      # any metric column from results.parquet
         type: min                  # candidate mean across seeds >= value
         value: 0.15
         shapes: [clique_communities, ...]   # optional scope; default: all
@@ -18,18 +18,23 @@ Gate config schema (version 1), embedded in the suite YAML::
         direction: higher          # optional; 'lower' flips to
                                    # candidate <= baseline + margin
 
+``type`` discriminates the :data:`GateConfig` union (:class:`MinGate`,
+:class:`MaxGate`, :class:`BaselineMarginGate`) — the union IS the dispatch.
+Cross-field consistency with the suite (gate shapes ⊆ suite shapes, gated
+knn ks ⊆ ``knn_ks``) is enforced by the ``Suite`` model at load time.
+
 Semantics:
 
 - Gate values aggregate the with-edges variant as the *mean across seed
   reruns* per (engine, shape). The per-metric spread (max - min across
-  seeds) is the rerun-noise floor; it annotates every gate entry and every
-  comparative number in the report (W3.2.7).
+  seeds) is the rerun-noise floor; it annotates every gate outcome and
+  every comparative number in the report (W3.2.7).
 - A gated metric that is unavailable on a gated shape (value None/NaN)
-  fails that gate entry: the battery fails closed rather than skipping.
+  fails that gate outcome: the battery fails closed rather than skipping.
 - ``baseline_margin`` fails closed when the baseline engine is not part of
   the run.
-- An engine passes overall iff every applicable gate entry passes AND the
-  noise differential passes.
+- An engine passes overall iff every applicable gate outcome passes AND
+  the noise differential passes.
 
 No-structure-from-noise differential (W3.2.8, hard, always on):
 
@@ -46,258 +51,349 @@ engine with edges disabled. Rules per engine:
   ``mean_with_edges <= mean_no_edges + floor + eps`` must hold, where
   ``floor`` is the no-edges spread across seed reruns. This is a pass/fail
   gate, not a reported number.
+
+``gates.json`` is the JSON dump of :class:`GatesReport`.
 """
 
-from typing import Any
+from abc import ABC
+from collections.abc import Sequence
+from typing import Annotated, Final, Literal, assert_never
 
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, Field
 
 from atlas_tools.battery.engine_runner import EngineSpec
+from atlas_tools.battery.metrics import MetricId, MetricName, metric_column
 
-NOISE_SHAPE = "noise_edges"
-NOISE_DIFFERENTIAL_METRICS = ("silhouette", "normalized_persistence")
-_EPS = 1e-9
+NOISE_SHAPE: Final = "noise_edges"
+NOISE_DIFFERENTIAL_METRICS: Final = (
+    MetricName.silhouette,
+    MetricName.normalized_persistence,
+)
+_EPS: Final = 1e-9
 
-GATE_TYPES = ("min", "max", "baseline_margin")
-
-
-def validate_gates_config(gates: list[dict[str, Any]], suite_shapes: list[str]) -> None:
-    for i, gate in enumerate(gates):
-        if "metric" not in gate:
-            raise ValueError(f"gate #{i}: missing 'metric'")
-        gate_type = gate.get("type")
-        if gate_type not in GATE_TYPES:
-            raise ValueError(
-                f"gate #{i} ({gate['metric']}): type must be one of"
-                f" {GATE_TYPES}, got {gate_type!r}"
-            )
-        if gate_type in ("min", "max") and "value" not in gate:
-            raise ValueError(f"gate #{i} ({gate['metric']}): missing 'value'")
-        if gate_type == "baseline_margin":
-            if "baseline" not in gate or "margin" not in gate:
-                raise ValueError(
-                    f"gate #{i} ({gate['metric']}): baseline_margin needs"
-                    " 'baseline' and 'margin'"
-                )
-            if gate.get("direction", "higher") not in ("higher", "lower"):
-                raise ValueError(
-                    f"gate #{i} ({gate['metric']}): direction must be"
-                    " 'higher' or 'lower'"
-                )
-        for shape in gate.get("shapes") or []:
-            if shape not in suite_shapes:
-                raise ValueError(
-                    f"gate #{i} ({gate['metric']}): shape {shape!r} not in"
-                    f" suite shapes {suite_shapes}"
-                )
+type Variant = Literal["edges", "no_edges"]
+"""Run variant: the engine command as configured vs its edges-disabled twin."""
 
 
-def _stat(
-    df: pd.DataFrame,
+class AbstractGate(BaseModel, ABC):
+    """Fields shared by every gate kind; unknown keys are rejected."""
+
+    metric: MetricId
+    # None = every suite shape. Membership in the suite's shapes is checked
+    # by the Suite model at load time.
+    shapes: list[str] | None = Field(default=None, min_length=1)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class MinGate(AbstractGate):
+    """Candidate mean across seed reruns must be >= ``value``."""
+
+    type: Literal["min"] = "min"
+    value: float
+
+
+class MaxGate(AbstractGate):
+    """Candidate mean across seed reruns must be <= ``value``."""
+
+    type: Literal["max"] = "max"
+    value: float
+
+
+class BaselineMarginGate(AbstractGate):
+    """Candidate must stay within ``margin`` of a baseline engine's mean.
+
+    ``direction='higher'``: candidate >= baseline - margin (guards against
+    structure LOSS); ``'lower'``: candidate <= baseline + margin.
+    """
+
+    type: Literal["baseline_margin"] = "baseline_margin"
+    baseline: str
+    margin: float
+    direction: Literal["higher", "lower"] = "higher"
+
+
+type GateConfig = Annotated[
+    MinGate | MaxGate | BaselineMarginGate,
+    Field(discriminator="type"),
+]
+"""Discriminated union over the gate kinds: the union IS the dispatch."""
+
+
+class MetricStat(BaseModel):
+    """A metric aggregated across seed reruns for one (engine, shape)."""
+
+    mean: float
+    # max - min across seed reruns: the rerun-noise floor (W3.2.7).
+    spread: float
+    n_reruns: int
+
+
+class GateOutcome(BaseModel):
+    """One gate evaluated against one (engine, shape) cell."""
+
+    gate: GateConfig
+    engine: str
+    shape: str
+    # None = the gated metric produced no value on this shape (fail closed).
+    observed: MetricStat | None
+    # Baseline engine stats; only populated by baseline_margin gates.
+    baseline: MetricStat | None = None
+    passed: bool
+    reason: str
+
+
+class NoiseDifferentialCheck(BaseModel):
+    """One (shape, metric) comparison of with-edges vs no-edges runs."""
+
+    shape: str
+    metric: MetricName
+    with_edges: MetricStat | None
+    no_edges: MetricStat | None
+    passed: bool
+    reason: str
+
+
+class NoiseDifferential(BaseModel):
+    """The hard no-structure-from-noise verdict for one engine (W3.2.8)."""
+
+    passed: bool
+    evaluated: bool
+    reason: str
+    checks: list[NoiseDifferentialCheck] = Field(default_factory=list)
+
+
+class EngineGateReport(BaseModel):
+    """All gate outcomes plus the noise differential for one engine."""
+
+    passed: bool
+    gates: list[GateOutcome]
+    noise_differential: NoiseDifferential
+
+
+class GatesReport(BaseModel):
+    """The ``gates.json`` payload: per-engine pass/fail with reasons."""
+
+    version: Literal[1] = 1
+    engines: dict[str, EngineGateReport]
+
+
+def _rerun_stat(
+    frame: pd.DataFrame,
     engine: str,
     shape: str,
-    metric: str,
-    variant: str = "edges",
-) -> tuple[float, float, int] | None:
-    """(mean, spread=max-min across seed reruns, count) or None."""
-    sel = df[
-        (df["engine"] == engine)
-        & (df["shape"] == shape)
-        & (df["metric"] == metric)
-        & (df["variant"] == variant)
+    column: str,
+    variant: Variant = "edges",
+) -> MetricStat | None:
+    """Mean + rerun-noise spread across seed reruns, or None if absent."""
+    selection = frame[
+        (frame["engine"] == engine)
+        & (frame["shape"] == shape)
+        & (frame["metric"] == column)
+        & (frame["variant"] == variant)
     ]["value"].dropna()
-    if len(sel) == 0:
+
+    if len(selection) == 0:
         return None
-    return float(sel.mean()), float(sel.max() - sel.min()), int(len(sel))
+
+    return MetricStat(
+        mean=float(selection.mean()),
+        spread=float(selection.max() - selection.min()),
+        n_reruns=int(len(selection)),
+    )
 
 
-def _evaluate_gate_entry(
-    df: pd.DataFrame,
-    gate: dict[str, Any],
+def _evaluate_gate(
+    frame: pd.DataFrame,
+    gate: GateConfig,
     engine: str,
     shape: str,
     engine_names: set[str],
-) -> dict[str, Any]:
-    entry: dict[str, Any] = {
-        "metric": gate["metric"],
-        "type": gate["type"],
-        "engine": engine,
-        "shape": shape,
-    }
-    stat = _stat(df, engine, shape, gate["metric"])
-    if stat is None:
-        entry.update(
-            {
-                "pass": False,
-                "value": None,
-                "noise_floor": None,
-                "reason": "metric not available for this shape (fail closed)",
-            }
-        )
-        return entry
-    mean, spread, count = stat
-    entry.update({"value": mean, "noise_floor": spread, "n_reruns": count})
+) -> GateOutcome:
+    observed = _rerun_stat(frame, engine, shape, metric_column(gate.metric))
 
-    if gate["type"] == "min":
-        threshold = float(gate["value"])
-        entry["threshold"] = threshold
-        entry["pass"] = bool(mean >= threshold)
-        entry["reason"] = (
-            f"mean {mean:.4f} (±{spread:.4f} rerun floor)"
-            f" {'>=' if entry['pass'] else '<'} min {threshold}"
+    def outcome(
+        *, passed: bool, reason: str, baseline: MetricStat | None = None
+    ) -> GateOutcome:
+        return GateOutcome(
+            gate=gate,
+            engine=engine,
+            shape=shape,
+            observed=observed,
+            baseline=baseline,
+            passed=passed,
+            reason=reason,
         )
-    elif gate["type"] == "max":
-        threshold = float(gate["value"])
-        entry["threshold"] = threshold
-        entry["pass"] = bool(mean <= threshold)
-        entry["reason"] = (
-            f"mean {mean:.4f} (±{spread:.4f} rerun floor)"
-            f" {'<=' if entry['pass'] else '>'} max {threshold}"
+
+    if observed is None:
+        return outcome(
+            passed=False,
+            reason="metric not available for this shape (fail closed)",
         )
-    else:  # baseline_margin
-        baseline = gate["baseline"]
-        margin = float(gate["margin"])
-        direction = gate.get("direction", "higher")
-        entry["baseline"] = baseline
-        entry["margin"] = margin
-        entry["direction"] = direction
-        if baseline not in engine_names:
-            entry.update(
-                {
-                    "pass": False,
-                    "reason": f"baseline engine {baseline!r} not in run (fail closed)",
-                }
+
+    match gate:
+        case MinGate(value=threshold):
+            passed = observed.mean >= threshold
+            comparator = ">=" if passed else "<"
+
+            return outcome(
+                passed=passed,
+                reason=f"mean {observed.mean:.4f} (±{observed.spread:.4f}"
+                f" rerun floor) {comparator} min {threshold}",
             )
-            return entry
-        base_stat = _stat(df, baseline, shape, gate["metric"])
-        if base_stat is None:
-            entry.update(
-                {
-                    "pass": False,
-                    "reason": f"baseline {baseline!r} has no value for this"
+
+        case MaxGate(value=threshold):
+            passed = observed.mean <= threshold
+            comparator = "<=" if passed else ">"
+
+            return outcome(
+                passed=passed,
+                reason=f"mean {observed.mean:.4f} (±{observed.spread:.4f}"
+                f" rerun floor) {comparator} max {threshold}",
+            )
+
+        case BaselineMarginGate(
+            baseline=baseline_name, margin=margin, direction=direction
+        ):
+            if baseline_name not in engine_names:
+                return outcome(
+                    passed=False,
+                    reason=f"baseline engine {baseline_name!r} not in run"
+                    " (fail closed)",
+                )
+
+            baseline = _rerun_stat(
+                frame, baseline_name, shape, metric_column(gate.metric)
+            )
+            if baseline is None:
+                return outcome(
+                    passed=False,
+                    reason=f"baseline {baseline_name!r} has no value for this"
                     " shape (fail closed)",
-                }
+                )
+
+            if direction == "higher":
+                passed = observed.mean >= baseline.mean - margin
+                comparator = ">=" if passed else "<"
+                margin_note = f"- margin {margin}"
+            else:
+                passed = observed.mean <= baseline.mean + margin
+                comparator = "<=" if passed else ">"
+                margin_note = f"+ margin {margin}"
+
+            return outcome(
+                passed=passed,
+                baseline=baseline,
+                reason=f"mean {observed.mean:.4f} (±{observed.spread:.4f})"
+                f" {comparator} baseline {baseline.mean:.4f}"
+                f" (±{baseline.spread:.4f}) {margin_note}",
             )
-            return entry
-        base_mean, base_spread, _ = base_stat
-        entry["baseline_value"] = base_mean
-        entry["baseline_noise_floor"] = base_spread
-        if direction == "higher":
-            entry["pass"] = bool(mean >= base_mean - margin)
-            cmp = ">=" if entry["pass"] else "<"
-            entry["reason"] = (
-                f"mean {mean:.4f} (±{spread:.4f}) {cmp} baseline"
-                f" {base_mean:.4f} (±{base_spread:.4f}) - margin {margin}"
-            )
-        else:
-            entry["pass"] = bool(mean <= base_mean + margin)
-            cmp = "<=" if entry["pass"] else ">"
-            entry["reason"] = (
-                f"mean {mean:.4f} (±{spread:.4f}) {cmp} baseline"
-                f" {base_mean:.4f} (±{base_spread:.4f}) + margin {margin}"
-            )
-    return entry
+
+        case _:
+            assert_never(gate)
 
 
 def _noise_differential(
-    df: pd.DataFrame, spec: EngineSpec, noise_shapes: list[str]
-) -> dict[str, Any]:
+    frame: pd.DataFrame, spec: EngineSpec, noise_shapes: Sequence[str]
+) -> NoiseDifferential:
     if not noise_shapes:
-        return {
-            "pass": True,
-            "evaluated": False,
-            "reason": "suite contains no noise_edges dataset;"
-            " differential not evaluated",
-        }
+        return NoiseDifferential(
+            passed=True,
+            evaluated=False,
+            reason="suite contains no noise_edges dataset; differential not evaluated",
+        )
+
     if not spec.uses_edges:
-        return {
-            "pass": True,
-            "evaluated": True,
-            "reason": "engine command does not consume {edges};"
+        return NoiseDifferential(
+            passed=True,
+            evaluated=True,
+            reason="engine command does not consume {edges};"
             " differential trivially passes",
-        }
+        )
+
     if spec.command_no_edges is None:
-        return {
-            "pass": False,
-            "evaluated": False,
-            "reason": "not evaluable (fail closed): engine consumes {edges}"
+        return NoiseDifferential(
+            passed=False,
+            evaluated=False,
+            reason="not evaluable (fail closed): engine consumes {edges}"
             " but defines no command_no_edges",
-        }
-    checks = []
-    ok = True
+        )
+
+    checks: list[NoiseDifferentialCheck] = []
+
     for shape in noise_shapes:
         for metric in NOISE_DIFFERENTIAL_METRICS:
-            with_stat = _stat(df, spec.name, shape, metric, variant="edges")
-            no_stat = _stat(df, spec.name, shape, metric, variant="no_edges")
-            if with_stat is None or no_stat is None:
-                ok = False
+            with_edges = _rerun_stat(
+                frame, spec.name, shape, metric.value, variant="edges"
+            )
+            no_edges = _rerun_stat(
+                frame, spec.name, shape, metric.value, variant="no_edges"
+            )
+
+            if with_edges is None or no_edges is None:
                 checks.append(
-                    {
-                        "shape": shape,
-                        "metric": metric,
-                        "pass": False,
-                        "reason": "missing with-edges or no-edges runs (fail closed)",
-                    }
+                    NoiseDifferentialCheck(
+                        shape=shape,
+                        metric=metric,
+                        with_edges=with_edges,
+                        no_edges=no_edges,
+                        passed=False,
+                        reason="missing with-edges or no-edges runs (fail closed)",
+                    )
                 )
                 continue
-            with_mean, _, _ = with_stat
-            no_mean, no_spread, _ = no_stat
-            improved = with_mean > no_mean + no_spread + _EPS
-            if improved:
-                ok = False
+
+            improved = with_edges.mean > no_edges.mean + no_edges.spread + _EPS
             checks.append(
-                {
-                    "shape": shape,
-                    "metric": metric,
-                    "with_edges": with_mean,
-                    "no_edges": no_mean,
-                    "noise_floor": no_spread,
-                    "pass": not improved,
-                    "reason": (
-                        f"with-edges {with_mean:.4f}"
+                NoiseDifferentialCheck(
+                    shape=shape,
+                    metric=metric,
+                    with_edges=with_edges,
+                    no_edges=no_edges,
+                    passed=not improved,
+                    reason=(
+                        f"with-edges {with_edges.mean:.4f}"
                         f" {'>' if improved else '<='} no-edges"
-                        f" {no_mean:.4f} + floor {no_spread:.4f}"
+                        f" {no_edges.mean:.4f} + floor {no_edges.spread:.4f}"
                     ),
-                }
+                )
             )
-    return {
-        "pass": ok,
-        "evaluated": True,
-        "reason": "edges must not improve silhouette or normalized"
+
+    return NoiseDifferential(
+        passed=all(check.passed for check in checks),
+        evaluated=True,
+        reason="edges must not improve silhouette or normalized"
         " persistence on noise_edges beyond the rerun-noise floor",
-        "checks": checks,
-    }
+        checks=checks,
+    )
 
 
 def evaluate_gates(
-    df: pd.DataFrame,
-    engines: list[EngineSpec],
+    frame: pd.DataFrame,
+    engines: Sequence[EngineSpec],
     *,
-    suite_shapes: list[str],
-    gate_configs: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """Evaluate all configured gates plus the hard noise differential.
-
-    Returns the ``gates.json`` payload: structured pass/fail with reasons,
-    per engine.
-    """
-    noise_shapes = [s for s in suite_shapes if s == NOISE_SHAPE]
+    suite_shapes: Sequence[str],
+    gate_configs: Sequence[GateConfig],
+) -> GatesReport:
+    """Evaluate all configured gates plus the hard noise differential."""
+    noise_shapes = [shape for shape in suite_shapes if shape == NOISE_SHAPE]
     engine_names = {spec.name for spec in engines}
 
-    engines_out: dict[str, Any] = {}
+    engine_reports: dict[str, EngineGateReport] = {}
+
     for spec in engines:
-        entries = []
-        for gate in gate_configs:
-            shapes = gate.get("shapes") or suite_shapes
-            for shape in shapes:
-                entries.append(
-                    _evaluate_gate_entry(df, gate, spec.name, shape, engine_names)
-                )
-        differential = _noise_differential(df, spec, noise_shapes)
-        overall = all(e["pass"] for e in entries) and differential["pass"]
-        engines_out[spec.name] = {
-            "pass": overall,
-            "gates": entries,
-            "noise_differential": differential,
-        }
-    return {"version": 1, "engines": engines_out}
+        outcomes = [
+            _evaluate_gate(frame, gate, spec.name, shape, engine_names)
+            for gate in gate_configs
+            for shape in (gate.shapes if gate.shapes is not None else suite_shapes)
+        ]
+        differential = _noise_differential(frame, spec, noise_shapes)
+
+        engine_reports[spec.name] = EngineGateReport(
+            passed=all(outcome.passed for outcome in outcomes) and differential.passed,
+            gates=outcomes,
+            noise_differential=differential,
+        )
+
+    return GatesReport(version=1, engines=engine_reports)

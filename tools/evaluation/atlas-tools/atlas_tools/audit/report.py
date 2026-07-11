@@ -1,7 +1,9 @@
-"""Human-readable report.md rendered from the report.json dict.
+"""Human-readable report.md rendered from the typed report.
 
-Every number in report.md comes from the loaded report.json: the renderer
-takes the deserialized dict and only formats values already present in it.
+Every number in report.md comes from report.json: the runner passes the
+:class:`~atlas_tools.audit.evaluation.RunnerReport` re-validated from the
+written report.json, and the renderer only formats values already present
+on that model.
 """
 
 from atlas_tools.audit.evaluation import RunnerReport

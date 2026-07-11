@@ -11,10 +11,12 @@ Files written by ``emit_records`` (all in the extract out dir):
 
 - ``records.jsonl`` — one canonical JSON object per PropertyRecord (sorted
   keys, compact separators, UTF-8, one per line), ordered by numeric PID.
-  Contains NO wall-clock fields: ``retrieved_at`` comes from the response
-  cache metadata, so warm-cache reruns are byte-identical.
-- ``entity_labels.json`` — a single map ``{entity id: {"label", "description"}}``
-  for every entity referenced by cards (inverse/ancestor properties,
+  The row schema IS ``PropertyRecord``'s JSON-mode dump (see ``model.py``);
+  ``RECORDS_FORMAT_VERSION`` versions it. Contains NO wall-clock fields:
+  ``retrieved_at`` comes from the response cache metadata, so warm-cache
+  reruns are byte-identical.
+- ``entity_labels.json`` — a single map ``{entity id: EntityLabel}`` for
+  every entity referenced by cards (inverse/ancestor properties,
   endpoint-type QIDs). Kept as one shared file rather than embedded
   per-record because the same entity (e.g. Q5) is referenced by many
   properties; a shared map keeps records.jsonl small and duplication-free.
@@ -22,65 +24,46 @@ Files written by ``emit_records`` (all in the extract out dir):
   file with a wall-clock ``created_at``) whose ``details`` carry
   records_format_version, api_snapshot_date, counts, ladder flags,
   exclusions, and content hashes of the two data files
-  (:class:`RecordsDetails`). Its ``config``/``config_hash`` cover the config
-  EXCLUDING card-format keys (token budgets, tokenizer), so re-rendering
-  with a different card config never invalidates the records.
+  (:class:`RecordsDetails`). Its ``config``/``config_hash`` cover ONLY the
+  extraction sub-config (:class:`ExtractionConfig`), so re-rendering with a
+  different card config never invalidates the records.
 - ``inventory.json`` — a :class:`Provenance` envelope whose ``details``
   carry the raw inventory rows + retained/excluded PIDs
   (:class:`InventoryDetails`); an extraction artifact, so it is written
   here, not by the card renderer.
-
-records.jsonl row schema (records_format_version 1)
-----------------------------------------------------
-    {
-      "pid": "P361",
-      "datatype": "wikibase-item",
-      "labels": {"en": "part of", ...},
-      "descriptions": {"en": "...", ...},
-      "aliases": {"en": ["contained within", ...], ...},
-      "p31": ["Q..."],
-      "ancestors": ["P..."],
-      "inverse_pid": "P527" | null,
-      "constraints": {
-        "symmetric": bool, "transitive": bool,
-        "single_value": bool, "distinct_values": bool,
-        "subject_types": ["Q..."], "value_types": ["Q..."],
-        "inverse_pid": "P..." | null, "ignored_types": ["Q..."]
-      },
-      "usage_count": int | null,   # sampling-only; still banned from card text
-      "examples": [{"subject_label", "object_label", "subject_type"}, ...],
-      "example_source": "wdqs" | "qlever" | null,
-      "example_skipped": bool,
-      "retrieved_at": str | null   # from cache metadata, not emit wall clock
-    }
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
-from pydantic import BaseModel, NonNegativeInt
+from pydantic import BaseModel, NonNegativeInt, TypeAdapter
 
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     canonical_json_bytes,
     sha256_file,
+    write_sidecar,
 )
-from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord, pid_number
+from atlas_tools.wikidata.config import Config, ExtractionConfig
+from atlas_tools.wikidata.model import (
+    EntityLabel,
+    ExampleSource,
+    PropertyRecord,
+    pid_number,
+)
 from atlas_tools.wikidata.properties import ExtractionResult
 
 RECORDS_FORMAT_VERSION = 1
+
+_ENTITY_LABELS_ADAPTER = TypeAdapter(dict[str, EntityLabel])
 
 
 class LadderFlags(BaseModel):
     """Example-ladder outcomes (shared with the cards manifest)."""
 
-    example_ladder_fallbacks: dict[str, str]
+    example_ladder_fallbacks: dict[str, ExampleSource]
     example_ladder_skips: list[str]
 
 
@@ -102,8 +85,7 @@ class RecordsDetails(BaseModel):
     content_hashes: dict[str, str]
 
 
-# The extraction config is free-form YAML (minus card-format keys): JsonDict.
-RecordsProvenance = Provenance[RecordsDetails, JsonDict]
+RecordsProvenance = Provenance[RecordsDetails, ExtractionConfig]
 
 
 class InventoryRowEntry(BaseModel):
@@ -118,88 +100,17 @@ class InventoryDetails(BaseModel):
     excluded: dict[str, str]
 
 
-InventoryProvenance = Provenance[InventoryDetails, JsonDict]
-
-# Config keys that only affect card rendering; excluded from the records
-# provenance config_hash so the records artifact stays card-independent.
-CARD_FORMAT_CONFIG_KEYS = frozenset({"token_budget", "hard_token_budget", "tokenizer"})
+InventoryProvenance = Provenance[InventoryDetails, ExtractionConfig]
 
 
-def extraction_config(config: Config) -> dict[str, Any]:
-    """The config subset that can affect records content (card keys removed)."""
-    return {k: v for k, v in config.raw.items() if k not in CARD_FORMAT_CONFIG_KEYS}
+@dataclass(frozen=True)
+class RecordsPaths:
+    """Locations of the files written by :func:`emit_records`."""
 
-
-def record_to_dict(record: PropertyRecord) -> dict[str, Any]:
-    constraints = record.constraints
-    return {
-        "pid": record.pid,
-        "datatype": record.datatype,
-        "labels": record.labels,
-        "descriptions": record.descriptions,
-        "aliases": record.aliases,
-        "p31": list(record.p31),
-        "ancestors": list(record.ancestors),
-        "inverse_pid": record.inverse_pid,
-        "constraints": {
-            "symmetric": constraints.symmetric,
-            "transitive": constraints.transitive,
-            "single_value": constraints.single_value,
-            "distinct_values": constraints.distinct_values,
-            "subject_types": list(constraints.subject_types),
-            "value_types": list(constraints.value_types),
-            "inverse_pid": constraints.inverse_pid,
-            "ignored_types": list(constraints.ignored_types),
-        },
-        "usage_count": record.usage_count,
-        "examples": [
-            {
-                "subject_label": example.subject_label,
-                "object_label": example.object_label,
-                "subject_type": example.subject_type,
-            }
-            for example in record.examples
-        ],
-        "example_source": record.example_source,
-        "example_skipped": record.example_skipped,
-        "retrieved_at": record.retrieved_at,
-    }
-
-
-def record_from_dict(data: dict[str, Any]) -> PropertyRecord:
-    constraints = data["constraints"]
-    return PropertyRecord(
-        pid=data["pid"],
-        datatype=data["datatype"],
-        labels=dict(data["labels"]),
-        descriptions=dict(data["descriptions"]),
-        aliases={lang: list(values) for lang, values in data["aliases"].items()},
-        p31=tuple(data["p31"]),
-        ancestors=tuple(data["ancestors"]),
-        inverse_pid=data["inverse_pid"],
-        constraints=Constraints(
-            symmetric=constraints["symmetric"],
-            transitive=constraints["transitive"],
-            single_value=constraints["single_value"],
-            distinct_values=constraints["distinct_values"],
-            subject_types=tuple(constraints["subject_types"]),
-            value_types=tuple(constraints["value_types"]),
-            inverse_pid=constraints["inverse_pid"],
-            ignored_types=tuple(constraints["ignored_types"]),
-        ),
-        usage_count=data["usage_count"],
-        examples=[
-            Example(
-                subject_label=example["subject_label"],
-                object_label=example["object_label"],
-                subject_type=example["subject_type"],
-            )
-            for example in data["examples"]
-        ],
-        example_source=data["example_source"],
-        example_skipped=data["example_skipped"],
-        retrieved_at=data["retrieved_at"],
-    )
+    records_jsonl: Path
+    entity_labels: Path
+    records_meta: Path
+    inventory: Path
 
 
 @dataclass
@@ -207,47 +118,41 @@ class RecordSet:
     """The loaded structured intermediate, ready for card rendering."""
 
     records: list[PropertyRecord]
-    entity_labels: dict[str, tuple[str, str]]
+    entity_labels: dict[str, EntityLabel]
     meta: RecordsProvenance
     records_path: Path
 
 
 def emit_records(
     result: ExtractionResult, config: Config, out_dir: Path | str
-) -> dict[str, Path]:
+) -> RecordsPaths:
     """Persist the structured intermediate + inventory (see module doc)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     records_path = out_dir / "records.jsonl"
-    ordered = sorted(result.records, key=lambda r: pid_number(r.pid))
+    ordered = sorted(result.records, key=lambda record: pid_number(record.pid))
     with open(records_path, "w", encoding="utf-8") as f:
         for record in ordered:
-            f.write(canonical_json_bytes(record_to_dict(record)).decode("utf-8") + "\n")
+            f.write(canonical_json_bytes(record).decode("utf-8") + "\n")
 
     labels_path = out_dir / "entity_labels.json"
-    labels_path.write_text(
-        json.dumps(
-            {
-                entity_id: {"label": label, "description": description}
-                for entity_id, (label, description) in result.entity_labels.items()
-            },
-            sort_keys=True,
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n",
-        encoding="utf-8",
+    write_sidecar(
+        labels_path,
+        {
+            entity_id: entry.model_dump(mode="json")
+            for entity_id, entry in result.entity_labels.items()
+        },
     )
 
     excluded_sorted = dict(
-        sorted(result.excluded.items(), key=lambda kv: pid_number(kv[0]))
+        sorted(result.excluded.items(), key=lambda item: pid_number(item[0]))
     )
     meta_path = out_dir / "records.meta.json"
     RecordsProvenance.make(
         producer="wikidata.extract-properties",
-        config=extraction_config(config),
-        seed=config.seed,
+        config=config.extraction,
+        seed=config.extraction.seed,
         details=RecordsDetails(
             records_format_version=RECORDS_FORMAT_VERSION,
             api_snapshot_date=result.api_snapshot_date,
@@ -272,8 +177,8 @@ def emit_records(
     inventory_path = out_dir / "inventory.json"
     InventoryProvenance.make(
         producer="wikidata.extract-properties",
-        config=extraction_config(config),
-        seed=config.seed,
+        config=config.extraction,
+        seed=config.extraction.seed,
         details=InventoryDetails(
             rows=[
                 InventoryRowEntry(
@@ -286,12 +191,12 @@ def emit_records(
         ),
     ).write(inventory_path)
 
-    return {
-        "records": records_path,
-        "entity_labels": labels_path,
-        "records_meta": meta_path,
-        "inventory": inventory_path,
-    }
+    return RecordsPaths(
+        records_jsonl=records_path,
+        entity_labels=labels_path,
+        records_meta=meta_path,
+        inventory=inventory_path,
+    )
 
 
 def load_records(path: Path | str) -> RecordSet:
@@ -321,14 +226,9 @@ def load_records(path: Path | str) -> RecordSet:
     with open(records_path, encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                records.append(record_from_dict(json.loads(line)))
+                records.append(PropertyRecord.model_validate_json(line))
 
-    with open(labels_path, encoding="utf-8") as f:
-        raw_labels = json.load(f)
-    entity_labels = {
-        entity_id: (entry["label"], entry["description"])
-        for entity_id, entry in raw_labels.items()
-    }
+    entity_labels = _ENTITY_LABELS_ADAPTER.validate_json(labels_path.read_bytes())
 
     return RecordSet(
         records=records,

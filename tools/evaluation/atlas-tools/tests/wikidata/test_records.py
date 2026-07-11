@@ -4,29 +4,28 @@ formatting; rendering is a pure, transport-free projection of records."""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
 from atlas_tools.wikidata.cache import CachingTransport
-from atlas_tools.wikidata.cards import emit_cards, render_cards
+from atlas_tools.wikidata.cards import ExtractPaths, emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord
 from atlas_tools.wikidata.properties import extract_properties
-from atlas_tools.wikidata.records import (
-    load_records,
-    record_from_dict,
-    record_to_dict,
-)
+from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.transport import FixtureTransport
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 
-def _extract(out_dir, cache_dir=None):
+def _extract(
+    out_dir: Path, cache_dir: Path | None = None
+) -> tuple[Config, ExtractPaths]:
     config = Config.load(CONFIG_PATH)
     transport = FixtureTransport(RESPONSES)
     if cache_dir is not None:
         transport = CachingTransport(
-            transport, cache_dir, snapshot_date=config.snapshot_date
+            transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
     result = extract_properties(config, transport)
     return config, emit_cards(result, config, out_dir)
@@ -38,21 +37,24 @@ def test_render_cards_reproduces_extract_cards_byte_identically(tmp_path):
     record_set = load_records(tmp_path / "extract")
     render_paths = render_cards(record_set, config, tmp_path / "render")
 
-    assert render_paths["cards"].read_bytes() == extract_paths["cards"].read_bytes()
+    assert (
+        render_paths.cards_jsonl.read_bytes()
+        == extract_paths.cards.cards_jsonl.read_bytes()
+    )
 
     # Manifests agree except the wall-clock provenance timestamp.
-    def manifest(path):
+    def manifest(path: Path) -> dict[str, object]:
         data = json.loads(path.read_text(encoding="utf-8"))
         data.pop("created_at")
         return data
 
-    assert manifest(render_paths["manifest"]) == manifest(extract_paths["manifest"])
+    assert manifest(render_paths.manifest) == manifest(extract_paths.cards.manifest)
 
 
 def test_render_cards_never_constructs_a_transport(tmp_path, monkeypatch):
     config, _ = _extract(tmp_path / "extract")
 
-    def _explode(self, *args, **kwargs):
+    def _explode(self, *args: object, **kwargs: object) -> None:
         raise AssertionError("transport constructed during render-cards")
 
     import atlas_tools.wikidata.transport as transport_module
@@ -63,19 +65,22 @@ def test_render_cards_never_constructs_a_transport(tmp_path, monkeypatch):
 
     # A different token budget changes the projection, from the same records,
     # with zero transport/network involvement.
-    tiny = Config.from_dict({**config.raw, "token_budget": 40, "hard_token_budget": 60})
+    tiny_cards = config.cards.model_copy(
+        update={"token_budget": 40, "hard_token_budget": 60}
+    )
+    tiny = config.model_copy(update={"cards": tiny_cards})
     record_set = load_records(tmp_path / "extract" / "records.jsonl")
     paths = render_cards(record_set, tiny, tmp_path / "tiny")
 
     baseline = (tmp_path / "extract" / "cards.jsonl").read_bytes()
-    assert paths["cards"].read_bytes() != baseline
+    assert paths.cards_jsonl.read_bytes() != baseline
     rows = [
         json.loads(line)
-        for line in paths["cards"].read_text(encoding="utf-8").splitlines()
+        for line in paths.cards_jsonl.read_text(encoding="utf-8").splitlines()
     ]
     assert any(row["omitted_fields"] for row in rows)  # budget actually bit
 
-    manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    manifest = json.loads(paths.manifest.read_text(encoding="utf-8"))
     assert manifest["details"]["token_budget"] == 40
     # The manifest pins the records file it was rendered from.
     from atlas_tools.common.provenance import sha256_file
@@ -107,16 +112,18 @@ def test_record_round_trip_exercising_all_fields():
         ),
         usage_count=500000,
         examples=[
-            Example("Left Bank", "Paris", "Q515"),
-            Example("Engine", "Car", ""),
+            Example(
+                subject_label="Left Bank", object_label="Paris", subject_type="Q515"
+            ),
+            Example(subject_label="Engine", object_label="Car", subject_type=""),
         ],
         example_source="qlever",
         example_skipped=False,
         retrieved_at="2025-06-01T00:00:00+00:00",
     )
-    assert record_from_dict(record_to_dict(record)) == record
+    assert PropertyRecord.model_validate(record.model_dump(mode="json")) == record
     # And through actual JSON text, as records.jsonl stores it.
-    assert record_from_dict(json.loads(json.dumps(record_to_dict(record)))) == record
+    assert PropertyRecord.model_validate_json(record.model_dump_json()) == record
 
 
 def test_record_round_trip_with_null_and_skip_fields():
@@ -129,7 +136,7 @@ def test_record_round_trip_with_null_and_skip_fields():
         usage_count=None,
         retrieved_at=None,
     )
-    assert record_from_dict(record_to_dict(record)) == record
+    assert PropertyRecord.model_validate(record.model_dump(mode="json")) == record
 
 
 def test_records_jsonl_byte_identical_across_warm_cache_reruns(tmp_path):
@@ -143,8 +150,8 @@ def test_records_jsonl_byte_identical_across_warm_cache_reruns(tmp_path):
         ).read_bytes(), name
 
     # records.meta.json identical except the wall-clock created_at; its
-    # config hash must be card-format-independent.
-    def meta(run):
+    # config must be the extraction sub-config: card-format-independent.
+    def meta(run: str) -> dict[str, object]:
         data = json.loads(
             (tmp_path / run / "records.meta.json").read_text(encoding="utf-8")
         )
@@ -152,8 +159,11 @@ def test_records_jsonl_byte_identical_across_warm_cache_reruns(tmp_path):
         return data
 
     assert meta("run1") == meta("run2")
-    assert "token_budget" not in meta("run1")["config"]
-    assert "tokenizer" not in meta("run1")["config"]
+    records_config = meta("run1")["config"]
+    assert isinstance(records_config, dict)
+    assert "cards" not in records_config
+    assert "token_budget" not in records_config
+    assert "tokenizer" not in records_config
 
 
 def test_records_are_sorted_by_numeric_pid_and_stable_keys(tmp_path):

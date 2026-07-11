@@ -7,14 +7,16 @@ generates a synthetic dump slice and streams it through `extract_entities`
 
 ## Measured (local)
 
-Apple-silicon laptop, warm page cache, synthetic entities (~1.5 KB/line):
+Apple-silicon laptop, warm page cache, synthetic entities (~1.5 KB/line).
+Remeasured after the typed rework (NamedTuple rows + column-wise arrow
+build): unchanged within noise (previously 182/298 MB/s).
 
 | slice  | entities | elapsed | throughput |
 | ------ | -------- | ------- | ---------- |
-| 50 MB  | 33,082   | 0.27 s  | 182 MB/s   |
-| 200 MB | 132,276  | 0.67 s  | 298 MB/s   |
+| 50 MB  | 33,082   | 0.30 s  | 165 MB/s   |
+| 200 MB | 132,276  | 0.68 s  | 295 MB/s   |
 
-Treat **~180 MB/s as a local, parse-only lower bound**. Real dump entities
+Treat **~165 MB/s as a local, parse-only lower bound**. Real dump entities
 are heavier (average ~7 KB/line with far more claims to skip past), so real
 parse throughput will be somewhat lower per entity but similar per byte;
 the dominant real-world costs are download bandwidth and bzip2
@@ -24,7 +26,7 @@ decompression, which this benchmark deliberately excludes.
 
 ```
 projected_parse_hours = dump_uncompressed_MB / measured_MB_per_s / 3600
-                      = 140_000 / 182 / 3600  ≈ 0.21 h  (parse only)
+                      = 140_000 / 165 / 3600  ≈ 0.24 h  (parse only)
 ```
 
 End-to-end wall time is bounded by the slowest pipeline stage of

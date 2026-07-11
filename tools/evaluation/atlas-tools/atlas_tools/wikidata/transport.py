@@ -4,23 +4,35 @@ All network access in the miner goes through a ``Transport`` so tests never
 touch the network:
 
 - ``RequestsTransport`` — production transport with a rate limiter and
-  exponential backoff. The sleep function and monotonic clock are injectable
-  so backoff/rate-limit behaviour is unit-testable without sleeping.
+  exponential backoff (a :class:`RetryPolicy` value). The sleep function and
+  monotonic clock are injectable so backoff/rate-limit behaviour is
+  unit-testable without sleeping.
 - ``FixtureTransport`` — serves committed response files keyed by request and
   counts calls; raises ``FixtureMissError`` on a miss.
 
-A transport returns ``(status, headers, body_bytes)``. Non-200 statuses are
-returned (after retries, for ``RequestsTransport``) rather than raised: the
+A transport returns a :class:`Response`. Non-200 statuses are returned
+(after retries, for ``RequestsTransport``) rather than raised: the
 example-ladder logic in ``properties.py`` interprets them as fallback
 triggers.
 """
 
 from __future__ import annotations
 
-import json
 import time
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Protocol
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeFloat,
+    NonNegativeInt,
+    PositiveFloat,
+    TypeAdapter,
+)
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 
@@ -28,55 +40,114 @@ from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 # giving up and returning the final status to the caller.
 RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
 
+# Synthesized status for connection errors / timeouts (never a real reply).
+CONNECTION_FAILED_STATUS = 599
+
 USER_AGENT = "atlas-tools-wikidata/0.1 (research tooling)"
 
 
-def request_key(url: str, params: dict[str, str] | None) -> str:
+@dataclass(frozen=True)
+class Response:
+    """One HTTP response: status, lower-cased headers, raw body bytes."""
+
+    status: int
+    headers: Mapping[str, str] = field(default_factory=dict)
+    body: bytes = b""
+
+    @property
+    def ok(self) -> bool:
+        return self.status == 200
+
+
+class _RequestKey(BaseModel):
+    """Canonical request identity; hashing it yields the fixture/cache key."""
+
+    url: str
+    params: dict[str, str]
+
+
+def request_key(url: str, params: Mapping[str, str] | None) -> str:
     """Deterministic key for a GET request: sha256 of canonical JSON."""
-    return sha256_bytes(canonical_json_bytes({"url": url, "params": params or {}}))
+    return sha256_bytes(
+        canonical_json_bytes(_RequestKey(url=url, params=dict(params or {})))
+    )
 
 
 class Transport(Protocol):
-    def get(
-        self, url: str, params: dict[str, str] | None = None
-    ) -> tuple[int, dict[str, str], bytes]:
-        """Perform a GET; return (status, lower-cased headers, body bytes)."""
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
+        """Perform a GET; never raises for HTTP-level failures."""
         ...
+
+
+class RetryPolicy(BaseModel):
+    """Politeness knobs for the production transport (also a config value)."""
+
+    rate_limit_per_sec: NonNegativeFloat = 1.0
+    max_retries: NonNegativeInt = 3
+    backoff_base_seconds: NonNegativeFloat = 1.0
+    timeout_seconds: PositiveFloat = 60.0
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class SessionResponse(Protocol):
+    """The subset of ``requests.Response`` the transport reads."""
+
+    @property
+    def status_code(self) -> int: ...
+    @property
+    def headers(self) -> Mapping[str, str]: ...
+    @property
+    def content(self) -> bytes: ...
+
+
+class Session(Protocol):
+    """The subset of ``requests.Session`` the transport calls."""
+
+    def get(
+        self,
+        url: str,
+        *,
+        params: Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> SessionResponse: ...
+
+
+def _requests_session() -> Session:
+    import requests
+
+    return requests.Session()
 
 
 class RequestsTransport:
     """Polite production transport: rate limit + exponential backoff.
 
-    - Rate limit: at most ``rate_limit_per_sec`` requests per second,
+    - Rate limit: at most ``policy.rate_limit_per_sec`` requests per second,
       enforced by sleeping for the remaining inter-request interval.
     - Backoff: on retryable statuses or connection errors, sleeps
-      ``backoff_base_seconds * 2**attempt`` and retries, up to
-      ``max_retries`` retries. The final response (or a synthesized status
-      599 for a connection error) is returned, never raised.
+      ``policy.backoff_base_seconds * 2**attempt`` and retries, up to
+      ``policy.max_retries`` retries. The final response (or a synthesized
+      status-599 response for a connection error) is returned, never raised.
     """
 
     def __init__(
         self,
         *,
-        rate_limit_per_sec: float = 1.0,
-        max_retries: int = 3,
-        backoff_base_seconds: float = 1.0,
-        session: Any | None = None,
+        policy: RetryPolicy | None = None,
+        session: Session | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
-        timeout_seconds: float = 60.0,
     ) -> None:
-        if session is None:
-            import requests
-
-            session = requests.Session()
-        self._session = session
-        self._min_interval = 1.0 / rate_limit_per_sec if rate_limit_per_sec > 0 else 0.0
-        self._max_retries = max_retries
-        self._backoff_base = backoff_base_seconds
+        self._policy = policy if policy is not None else RetryPolicy()
+        self._session = session if session is not None else _requests_session()
+        self._min_interval = (
+            1.0 / self._policy.rate_limit_per_sec
+            if self._policy.rate_limit_per_sec > 0
+            else 0.0
+        )
         self._sleep = sleep
         self._clock = clock
-        self._timeout = timeout_seconds
         self._last_request_at: float | None = None
 
     def _respect_rate_limit(self) -> None:
@@ -87,60 +158,80 @@ class RequestsTransport:
                 self._sleep(remaining)
         self._last_request_at = self._clock()
 
-    def get(
-        self, url: str, params: dict[str, str] | None = None
-    ) -> tuple[int, dict[str, str], bytes]:
-        status, headers, body = 599, {}, b""
-        for attempt in range(self._max_retries + 1):
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
+        response = Response(status=CONNECTION_FAILED_STATUS)
+        for attempt in range(self._policy.max_retries + 1):
             self._respect_rate_limit()
             try:
-                response = self._session.get(
+                reply = self._session.get(
                     url,
-                    params=params or {},
+                    params=dict(params or {}),
                     headers={"User-Agent": USER_AGENT},
-                    timeout=self._timeout,
+                    timeout=self._policy.timeout_seconds,
                 )
-                status = int(response.status_code)
-                headers = {k.lower(): v for k, v in dict(response.headers).items()}
-                body = response.content
+                response = Response(
+                    status=int(reply.status_code),
+                    headers={
+                        key.lower(): value for key, value in reply.headers.items()
+                    },
+                    body=reply.content,
+                )
             except Exception:  # connection error / timeout
-                status, headers, body = 599, {}, b""
-            if status not in RETRYABLE_STATUSES and status != 599:
-                return status, headers, body
-            if attempt < self._max_retries:
-                self._sleep(self._backoff_base * (2**attempt))
-        return status, headers, body
+                response = Response(status=CONNECTION_FAILED_STATUS)
+            if (
+                response.status not in RETRYABLE_STATUSES
+                and response.status != CONNECTION_FAILED_STATUS
+            ):
+                return response
+            if attempt < self._policy.max_retries:
+                self._sleep(self._policy.backoff_base_seconds * (2**attempt))
+        return response
 
 
 class FixtureMissError(KeyError):
     """A test transport was asked for a request it has no fixture for."""
 
 
-class FixtureTransport:
-    """Serves committed responses from ``fixture_dir``.
+class FixtureEntry(BaseModel):
+    """One committed response in ``fixture_dir/index.json``.
 
-    ``fixture_dir/index.json`` maps ``request_key(url, params)`` to
-    ``{"file": <relative path>, "status": int, "headers": {..}}``. The index
-    also stores the human-readable ``url``/``params`` per entry so misses can
-    be diagnosed and the generator script stays reviewable.
+    The index also stores the human-readable ``url``/``params`` per entry so
+    misses can be diagnosed and the generator script stays reviewable.
     """
+
+    file: str
+    status: int = 200
+    headers: dict[str, str] = Field(default_factory=dict)
+    url: str = ""
+    params: dict[str, str] = Field(default_factory=dict)
+
+
+_FIXTURE_INDEX_ADAPTER = TypeAdapter(dict[str, FixtureEntry])
+
+
+class FixtureTransport:
+    """Serves committed responses keyed by ``request_key(url, params)``."""
 
     def __init__(self, fixture_dir: Path | str) -> None:
         self._dir = Path(fixture_dir)
-        with open(self._dir / "index.json", encoding="utf-8") as f:
-            self._index: dict[str, dict[str, Any]] = json.load(f)
+        self._index = _FIXTURE_INDEX_ADAPTER.validate_json(
+            (self._dir / "index.json").read_bytes()
+        )
+
         self.calls = 0
 
-    def get(
-        self, url: str, params: dict[str, str] | None = None
-    ) -> tuple[int, dict[str, str], bytes]:
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
         self.calls += 1
         key = request_key(url, params)
         entry = self._index.get(key)
+
         if entry is None:
             raise FixtureMissError(
                 f"no fixture for request key {key} url={url!r} params={params!r}"
             )
-        body = (self._dir / entry["file"]).read_bytes()
-        headers = {str(k).lower(): str(v) for k, v in entry.get("headers", {}).items()}
-        return int(entry.get("status", 200)), headers, body
+
+        return Response(
+            status=entry.status,
+            headers={key.lower(): value for key, value in entry.headers.items()},
+            body=(self._dir / entry.file).read_bytes(),
+        )

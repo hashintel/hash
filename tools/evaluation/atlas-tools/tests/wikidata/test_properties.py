@@ -3,9 +3,11 @@ ladder, diversity sampling, and the extraction checkpoint."""
 
 from __future__ import annotations
 
-from atlas_tools.wikidata.config import Config
+from atlas_tools.wikidata.config import ExtractionConfig
 from atlas_tools.wikidata.model import Constraints, PropertyRecord
 from atlas_tools.wikidata.properties import (
+    LadderSkip,
+    LadderSuccess,
     chunk_ids,
     exclusion_reason,
     extract_properties,
@@ -14,32 +16,31 @@ from atlas_tools.wikidata.properties import (
 )
 from atlas_tools.wikidata.sparql import ExampleRow
 from atlas_tools.wikidata.transport import FixtureTransport
-
 from tests.wikidata.conftest import RESPONSES
 
 
-def _record(datatype="wikibase-item", p31=()):
+def _record(
+    datatype: str = "wikibase-item", p31: tuple[str, ...] = ()
+) -> PropertyRecord:
     return PropertyRecord(
-        pid="P1", datatype=datatype, p31=tuple(p31), constraints=Constraints()
+        pid="P1", datatype=datatype, p31=p31, constraints=Constraints()
     )
 
 
 def test_exclusion_reasons():
-    config = Config.from_dict({})
-    assert exclusion_reason(_record(), config) is None
-    assert exclusion_reason(_record(datatype="external-id"), config) == (
+    extraction = ExtractionConfig()
+    assert exclusion_reason(_record(), extraction) is None
+    assert exclusion_reason(_record(datatype="external-id"), extraction) == (
         "datatype:external-id"
     )
-    assert exclusion_reason(_record(p31=["Q18644435"]), config) == "maintenance"
-    assert exclusion_reason(_record(p31=["Q18644427"]), config) == "deprecated"
+    assert exclusion_reason(_record(p31=("Q18644435",)), extraction) == "maintenance"
+    assert exclusion_reason(_record(p31=("Q18644427",)), extraction) == "deprecated"
 
 
 def test_exclusion_class_lists_are_configurable():
-    config = Config.from_dict(
-        {"maintenance_classes": ["Q42"], "deprecated_classes": []}
-    )
-    assert exclusion_reason(_record(p31=["Q42"]), config) == "maintenance"
-    assert exclusion_reason(_record(p31=["Q18644435"]), config) is None
+    extraction = ExtractionConfig(maintenance_classes=("Q42",), deprecated_classes=())
+    assert exclusion_reason(_record(p31=("Q42",)), extraction) == "maintenance"
+    assert exclusion_reason(_record(p31=("Q18644435",)), extraction) is None
 
 
 def test_chunk_ids_sorts_numerically_and_batches():
@@ -55,8 +56,12 @@ def test_chunk_ids_sorts_numerically_and_batches():
 
 def _rows(n_per_type: int, types: tuple[str, ...]) -> list[ExampleRow]:
     return [
-        ExampleRow(f"subject {t}-{i}", f"object {t}-{i}", t)
-        for t in types
+        ExampleRow(
+            subject_label=f"subject {subject_type}-{i}",
+            object_label=f"object {subject_type}-{i}",
+            subject_type=subject_type,
+        )
+        for subject_type in types
         for i in range(n_per_type)
     ]
 
@@ -77,15 +82,15 @@ def test_diverse_sampling_is_deterministic_and_dedupes():
 
 
 def test_example_ladder_falls_back_to_qlever(config, fixture_transport):
-    rows, source = fetch_example_rows("P9001", config, fixture_transport)
-    assert source == "qlever"
-    assert rows, "QLever fixture rows expected"
+    outcome = fetch_example_rows("P9001", config.extraction, fixture_transport)
+    assert isinstance(outcome, LadderSuccess)
+    assert outcome.source == "qlever"
+    assert outcome.rows, "QLever fixture rows expected"
 
 
 def test_example_ladder_records_skip_when_both_fail(config, fixture_transport):
-    rows, source = fetch_example_rows("P9002", config, fixture_transport)
-    assert source is None
-    assert rows == []
+    outcome = fetch_example_rows("P9002", config.extraction, fixture_transport)
+    assert isinstance(outcome, LadderSkip)
 
 
 def test_checkpoint_replay_skips_ladder_probing(config, tmp_path):
@@ -115,7 +120,10 @@ def test_stale_checkpoint_with_other_config_is_discarded(config, tmp_path):
         config, FixtureTransport(RESPONSES), checkpoint_path=checkpoint_path
     )
 
-    other = Config.from_dict({**config.raw, "seed": config.seed + 1})
+    other_extraction = config.extraction.model_copy(
+        update={"seed": config.extraction.seed + 1}
+    )
+    other = config.model_copy(update={"extraction": other_extraction})
     transport = FixtureTransport(RESPONSES)
     extract_properties(other, transport, checkpoint_path=checkpoint_path)
     assert transport.calls == 11  # full probe again, checkpoint was stale

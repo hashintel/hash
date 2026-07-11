@@ -7,18 +7,21 @@ import json
 from pathlib import Path
 
 from atlas_tools.wikidata.cache import CachingTransport
-from atlas_tools.wikidata.cards import emit_cards
+from atlas_tools.wikidata.cards import ExtractPaths, emit_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.transport import FixtureTransport
-
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 
-def _run_extract(cache_dir: Path, out_dir: Path) -> tuple[FixtureTransport, dict]:
+def _run_extract(
+    cache_dir: Path, out_dir: Path
+) -> tuple[FixtureTransport, ExtractPaths]:
     config = Config.load(CONFIG_PATH)
     inner = FixtureTransport(RESPONSES)
-    transport = CachingTransport(inner, cache_dir, snapshot_date=config.snapshot_date)
+    transport = CachingTransport(
+        inner, cache_dir, snapshot_date=config.extraction.snapshot_date
+    )
     result = extract_properties(
         config, transport, checkpoint_path=out_dir / "checkpoint.json"
     )
@@ -26,7 +29,7 @@ def _run_extract(cache_dir: Path, out_dir: Path) -> tuple[FixtureTransport, dict
     return inner, paths
 
 
-def _without_created_at(path: Path) -> dict:
+def _without_created_at(path: Path) -> dict[str, object]:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     data.pop("created_at", None)
@@ -43,11 +46,17 @@ def test_warm_cache_rerun_makes_zero_transport_calls(tmp_path):
 
     # cards.jsonl is byte-identical (retrieved_at comes from cache metadata,
     # not the wall clock at emit time).
-    assert paths1["cards"].read_bytes() == paths2["cards"].read_bytes()
+    assert (
+        paths1.cards.cards_jsonl.read_bytes() == paths2.cards.cards_jsonl.read_bytes()
+    )
 
     # Sidecars identical except the provenance created_at timestamp.
-    for key in ("manifest", "inventory"):
-        assert _without_created_at(paths1[key]) == _without_created_at(paths2[key])
+    assert _without_created_at(paths1.cards.manifest) == _without_created_at(
+        paths2.cards.manifest
+    )
+    assert _without_created_at(paths1.records.inventory) == _without_created_at(
+        paths2.records.inventory
+    )
 
 
 def test_failed_responses_are_cached_too(tmp_path):
@@ -60,22 +69,22 @@ def test_failed_responses_are_cached_too(tmp_path):
 
 
 def test_cache_key_includes_snapshot_date(tmp_path):
+    from atlas_tools.wikidata.sparql import property_inventory_query, sparql_params
+
     config = Config.load(CONFIG_PATH)
     cache_dir = tmp_path / "cache"
 
-    from atlas_tools.wikidata.sparql import property_inventory_query, sparql_params
-
     inner1 = FixtureTransport(RESPONSES)
-    t1 = CachingTransport(inner1, cache_dir, snapshot_date="2025-06-01")
+    transport1 = CachingTransport(inner1, cache_dir, snapshot_date="2025-06-01")
     params = sparql_params(property_inventory_query())
-    url = config.endpoints["wdqs"]
-    t1.get(url, params)
+    url = config.extraction.endpoints.wdqs
+    transport1.get(url, params)
     assert inner1.calls == 1
-    t1.get(url, params)
+    transport1.get(url, params)
     assert inner1.calls == 1  # warm
 
     # A different snapshot date must be a different cache key -> refetch.
     inner2 = FixtureTransport(RESPONSES)
-    t2 = CachingTransport(inner2, cache_dir, snapshot_date="2025-07-01")
-    t2.get(url, params)
+    transport2 = CachingTransport(inner2, cache_dir, snapshot_date="2025-07-01")
+    transport2.get(url, params)
     assert inner2.calls == 1

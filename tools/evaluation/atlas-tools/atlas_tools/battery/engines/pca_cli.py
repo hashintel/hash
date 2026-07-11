@@ -11,7 +11,7 @@ so the no-structure-from-noise differential passes trivially — which is the
 correct outcome for an engine that does not consume edges.
 """
 
-from __future__ import annotations
+from pathlib import Path
 
 import click
 
@@ -35,8 +35,9 @@ def main(
     seed: int,
     normalize: bool,
 ) -> None:
-    emb, meta = load_matrix(embeddings, mmap=False)
-    xy = pca_coords(emb, normalize=normalize)
+    loaded, meta = load_matrix(Path(embeddings), mmap=False)
+    xy = pca_coords(loaded, normalize=normalize)
+
     write_layout(
         out,
         xy,

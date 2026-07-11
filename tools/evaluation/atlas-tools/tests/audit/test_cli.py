@@ -1,15 +1,17 @@
 """CLI tests via click.testing.CliRunner (offline, in-test fixtures only)."""
 
 import json
+from pathlib import Path
 
 import numpy as np
 from click.testing import CliRunner
 
 from atlas_tools.audit.cli import main
+from atlas_tools.audit.evaluation import Dim, RunnerProvenance, RunnerReport
 from atlas_tools.common.matrix import load_matrix
 
 
-def test_synth_fixture_writes_valid_matrix(tmp_path):
+def test_synth_fixture_writes_valid_matrix(tmp_path: Path) -> None:
     out = tmp_path / "synth.f32"
     labels = tmp_path / "labels.parquet"
     result = CliRunner().invoke(
@@ -36,15 +38,15 @@ def test_synth_fixture_writes_valid_matrix(tmp_path):
     )
     assert result.exit_code == 0, result.output
 
-    vectors, meta = load_matrix(out)
-    assert (meta.rows, meta.dim) == (200, 32)
+    vectors, details = load_matrix(out)
+    assert (details.rows, details.dim) == (200, 32)
     # Signal lives only in dims 16..32: the low block is pure small noise.
     assert np.abs(vectors[:, :16]).max() < 1.0
     assert np.abs(vectors[:, 16:]).max() > 1.0
     assert labels.exists()
 
 
-def test_run_end_to_end_with_strata(tmp_path):
+def test_run_end_to_end_with_strata(tmp_path: Path) -> None:
     runner = CliRunner()
     embeddings = tmp_path / "synth.f32"
     strata = tmp_path / "strata.parquet"
@@ -106,15 +108,23 @@ def test_run_end_to_end_with_strata(tmp_path):
     assert "| dim | recall@10 |" in markdown
     assert "## Strata" in markdown
 
-    report = json.loads((out / "report.json").read_text())
-    assert set(report["overall"]) == {"16", "64"}
-    assert set(report["overall"]["16"]) == {"5", "10"}
-    assert report["groups"]  # strata groups were evaluated
+    # On disk, dim/k map keys are JSON strings.
+    raw_report = json.loads((out / "report.json").read_text())
+    assert set(raw_report["overall"]) == {"16", "64"}
+    assert set(raw_report["overall"]["16"]) == {"5", "10"}
 
-    meta = json.loads((out / "report.meta.json").read_text())
-    assert meta["input_hashes"]["embeddings"]
-    assert meta["input_hashes"]["strata"]
-    assert meta["seed"] == 0
-    assert meta["details"]["sample_rows_sha256"]
-    assert meta["config_hash"]
-    assert meta["tool_version"]
+    # The typed model coerces them back to ints.
+    report = RunnerReport.model_validate_json((out / "report.json").read_text())
+    assert sorted(report.overall) == [16, 64]
+    assert sorted(report.overall[Dim(16)]) == [5, 10]
+    assert report.groups  # strata groups were evaluated
+
+    # Loading the envelope re-validates config_hash against config.
+    provenance = RunnerProvenance.load(out / "report.meta.json")
+    assert provenance.input_hashes is not None
+    assert provenance.input_hashes["embeddings"]
+    assert provenance.input_hashes["strata"]
+    assert provenance.seed == 0
+    assert provenance.details.sample_rows_sha256
+    assert provenance.config_hash
+    assert provenance.tool_version is not None

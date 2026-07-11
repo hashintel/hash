@@ -40,11 +40,21 @@ Metric definitions (exact; embedded verbatim in report.json/report.md)
 
 Stratified reporting
 --------------------
-An optional parquet table maps corpus ``row`` (int64) to one or more string /
-categorical group columns. For every group column and value with at least
-``min_group_size`` sampled queries, all metrics are reported restricted to
-those queries. Degradation is ``1 - recall``; a group is flagged when its
-degradation exceeds ``2 x`` the overall degradation for the same (dim, k).
+An optional parquet table (loaded into a :class:`~atlas_tools.audit.strata.StrataTable`)
+maps corpus ``row`` (integer) to one or more string group columns. For every
+group column and value with at least ``min_group_size`` sampled queries, all
+metrics are reported restricted to those queries. Degradation is
+``1 - recall``; a group is flagged when its degradation exceeds ``2 x`` the
+overall degradation for the same (dim, k).
+
+Outputs
+-------
+``report.json`` (a serialized :class:`~atlas_tools.audit.evaluation.RunnerReport`)
+is the machine-readable source of truth. ``report.md`` is rendered from the
+``RunnerReport`` re-validated from the written ``report.json``, so every
+number in it provably comes from disk. ``report.meta.json`` is the
+:class:`~atlas_tools.audit.evaluation.RunnerProvenance` envelope (input
+hashes, typed config + config hash, seed, sample-row hash, tool version).
 
 Scale: 1M x 3072 corpus on a 32 GB machine
 ------------------------------------------
@@ -61,13 +71,11 @@ materialized query block. Prefix passes are strictly cheaper: smaller d
 gives a larger b with the same q * b * 4 score budget.
 """
 
-import json
+from collections.abc import Sequence
 from os import PathLike
 from pathlib import Path
-from typing import Any
 
 import numpy as np
-import pyarrow.parquet as pq
 
 from atlas_tools.audit.evaluation import (
     ColumnReport,
@@ -88,6 +96,7 @@ from atlas_tools.audit.metrics import (
     per_query_metrics,
 )
 from atlas_tools.audit.report import render_markdown
+from atlas_tools.audit.strata import StrataTable
 from atlas_tools.common.knn import (
     DEFAULT_MEMORY_CAP_BYTES,
     exact_cosine_knn,
@@ -97,6 +106,7 @@ from atlas_tools.common.matrix import load_matrix
 from atlas_tools.common.provenance import (
     sha256_bytes,
     sha256_file,
+    write_sidecar,
 )
 
 PRODUCER = "atlas-tools audit run"
@@ -106,7 +116,7 @@ def _group_metric(
     metrics: PerQueryMetrics, mask: np.ndarray | None = None
 ) -> GroupMetric:
     def mean(values: np.ndarray) -> float:
-        return (values if mask is None else values[mask]).mean()
+        return float((values if mask is None else values[mask]).mean())
 
     return GroupMetric(
         recall=mean(metrics.recall),
@@ -115,46 +125,9 @@ def _group_metric(
     )
 
 
-def load_strata(path: PathLike) -> dict[str, dict[int, str]]:
-    """Load a strata parquet: int64 ``row`` column plus group columns.
-
-    Returns ``{column_name: {row: label}}``; null labels are skipped.
-    """
-
-    table = pq.read_table(path)
-    if "row" not in table.column_names:
-        raise ValueError(f"strata table {path} has no 'row' column")
-
-    rows = table.column("row").to_pylist()
-    if any(not isinstance(r, int) for r in rows):
-        raise ValueError(f"strata table {path}: 'row' column must be integer")
-
-    if len(set(rows)) != len(rows):
-        raise ValueError(f"strata table {path}: duplicate values in 'row' column")
-
-    out: dict[str, dict[int, str]] = {}
-    for name in table.column_names:
-        if name == "row":
-            continue
-
-        mapping: dict[int, str] = {}
-        for row, value in zip(rows, table.column(name).to_pylist()):
-            if value is None:
-                continue
-
-            mapping[int(row)] = str(value)
-
-        out[name] = mapping
-
-    if not out:
-        raise ValueError(f"strata table {path} has no group columns besides 'row'")
-
-    return out
-
-
 def _evaluate_strata(
     *,
-    strata: dict[str, dict[int, str]],
+    strata: StrataTable,
     sampled: np.ndarray,
     dims: list[Dim],
     ks: list[K],
@@ -165,16 +138,16 @@ def _evaluate_strata(
     groups_report: dict[str, GroupReport] = {}
     flags: list[FlagReport] = []
 
-    for column in sorted(strata):
-        mapping = strata[column]
-        labels = [mapping.get(int(row)) for row in sampled]
+    for column in sorted(strata.label_columns):
+        labels = strata.labels_for(column, sampled)
+        values: list[str] = sorted(
+            {str(label) for label in labels if label is not None}
+        )
 
         column_report: dict[str, ColumnReport] = {}
 
-        for value in sorted({lab for lab in labels if lab is not None}):
-            mask = np.fromiter(
-                (lab == value for lab in labels), dtype=bool, count=len(labels)
-            )
+        for value in values:
+            mask = labels == value
 
             n_queries = int(mask.sum())
             if n_queries < min_group_size:
@@ -236,38 +209,41 @@ def run_audit(
     embeddings_path: PathLike,
     out_dir: PathLike,
     *,
-    dims: list[Dim],
-    ks: list[K],
+    dims: Sequence[int],
+    ks: Sequence[int],
     sample: int = 20000,
     strata_path: PathLike | None = None,
     seed: int = 0,
     memory_cap_bytes: int = DEFAULT_MEMORY_CAP_BYTES,
     min_group_size: int = 50,
-) -> dict[str, Any]:
+) -> RunnerReport:
     """
     Run the prefix audit and write report.json / report.md / report.meta.json.
 
-    Returns the report dict as loaded back from the written ``report.json``.
+    ``dims`` and ``ks`` are deduplicated and sorted ascending. Returns the
+    :class:`RunnerReport` re-validated from the written ``report.json``
+    (via ``model_validate_json``), so every number a caller sees is exactly
+    what is on disk.
     """
 
-    embeddings_path = Path(embeddings_path)
+    embeddings_file = Path(embeddings_path)
     out_dir = Path(out_dir)
 
-    corpus, meta = load_matrix(embeddings_path, mmap=True)
-    rows, full_dim = meta.rows, meta.dim
+    corpus, matrix_details = load_matrix(embeddings_file, mmap=True)
+    rows, full_dim = matrix_details.rows, matrix_details.dim
 
-    dims = sorted(set(dims))
-    ks = sorted(set(ks))
+    prefix_dims: list[Dim] = sorted({Dim(value) for value in dims})
+    requested_ks: list[K] = sorted({K(value) for value in ks})
 
-    if not dims or not ks:
+    if not prefix_dims or not requested_ks:
         raise ValueError("dims and ks must be non-empty")
 
-    for dim in dims:
+    for dim in prefix_dims:
         if not 0 < dim <= full_dim:
             raise ValueError(f"prefix dim {dim} exceeds embedding dim {full_dim}")
 
-    max_k = max(ks)
-    if min(ks) <= 0:
+    max_k = max(requested_ks)
+    if min(requested_ks) <= 0:
         raise ValueError("k values must be positive")
 
     if max_k > rows - 1:
@@ -290,13 +266,13 @@ def run_audit(
     )
 
     # Candidates: prefix-space top-max_k per dim. The corpus side is the lazy
-    # memmap slice corpus[:, :d]; exact_cosine_knn normalizes each block
+    # memmap slice corpus[:, :dim]; exact_cosine_knn normalizes each block
     # in-stream, which on a truncated slice IS the prefix transform.
     prefix_idx_by_dim: dict[Dim, np.ndarray] = {}
-    for dim in dims:
-        queries_d = prefix_transform(queries_full, dim)
+    for dim in prefix_dims:
+        queries_prefix = prefix_transform(queries_full, dim)
         prefix_idx, _ = exact_cosine_knn(
-            queries_d,
+            queries_prefix,
             corpus[:, :dim],
             max_k,
             query_rows_in_corpus=sampled,
@@ -307,10 +283,10 @@ def run_audit(
 
     per_query: dict[tuple[Dim, K], PerQueryMetrics] = {}
     overall: dict[Dim, dict[K, GroupMetric]] = {}
-    for dim in dims:
+    for dim in prefix_dims:
         overall[dim] = {}
 
-        for k in ks:
+        for k in requested_ks:
             metrics = per_query_metrics(prefix_idx_by_dim[dim], full_idx, k)
             per_query[(dim, k)] = metrics
             overall[dim][k] = _group_metric(metrics)
@@ -319,19 +295,19 @@ def run_audit(
     flags: list[FlagReport] = []
     if strata_path is not None:
         groups_report, flags = _evaluate_strata(
-            strata=load_strata(strata_path),
+            strata=StrataTable.from_parquet(strata_path),
             sampled=sampled,
-            dims=dims,
-            ks=ks,
+            dims=prefix_dims,
+            ks=requested_ks,
             per_query=per_query,
             min_group_size=min_group_size,
         )
 
     config = RunnerConfig(
-        embeddings=embeddings_path,
+        embeddings=embeddings_file,
         strata=Path(strata_path) if strata_path is not None else None,
-        dims=dims,
-        ks=ks,
+        dims=prefix_dims,
+        ks=requested_ks,
         sample=sample,
         seed=seed,
         memory_cap_bytes=memory_cap_bytes,
@@ -353,27 +329,25 @@ def run_audit(
     )
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    report_path = out_dir / "report.json"
-    report_path.write_text(
-        json.dumps(
-            report.model_dump(mode="json"),
-            sort_keys=True,
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n",
-        encoding="utf-8",
+    report_path = write_sidecar(out_dir / "report.json", report.model_dump(mode="json"))
+
+    # report.json on disk is the source of truth: re-validate it and render
+    # report.md from the reloaded model, so every number a caller (or the
+    # markdown) sees provably comes from report.json.
+    report_from_disk = RunnerReport.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    (out_dir / "report.md").write_text(
+        render_markdown(report_from_disk), encoding="utf-8"
     )
 
-    (out_dir / "report.md").write_text(render_markdown(report), encoding="utf-8")
-
-    inputs = {"embeddings": meta.content_sha256}
+    input_hashes = {"embeddings": matrix_details.content_sha256}
     if strata_path is not None:
-        inputs["strata"] = sha256_file(strata_path)
+        input_hashes["strata"] = sha256_file(strata_path)
 
     provenance = RunnerProvenance.make(
         producer=PRODUCER,
-        input_hashes=inputs,
+        input_hashes=input_hashes,
         config=config,
         seed=seed,
         details=RunnerDetails(
@@ -383,6 +357,4 @@ def run_audit(
     )
     provenance.write(out_dir / "report.meta.json")
 
-    # Return what is actually on disk: every number a caller sees is
-    # reproducible from report.json alone.
-    return json.loads(report_path.read_text(encoding="utf-8"))
+    return report_from_disk

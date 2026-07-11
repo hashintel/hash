@@ -31,15 +31,19 @@ fails closed (see :mod:`atlas_tools.battery.gates`).
 import shlex
 import subprocess
 import sys
-from os import PathLike
 from pathlib import Path
-from typing import Any, Literal, Self
+from typing import Literal, Self
 
 import numpy as np
 import yaml
 from pydantic import BaseModel, model_validator
 
-from atlas_tools.battery.datasets import EDGES_FILE, EMBEDDINGS_FILE, LABELS_FILE
+from atlas_tools.battery.datasets import (
+    EDGES_FILE,
+    EMBEDDINGS_FILE,
+    LABELS_FILE,
+    StrPath,
+)
 from atlas_tools.common.layout import LayoutArtifact, load_layout
 
 
@@ -83,21 +87,17 @@ class EngineSpec(BaseModel):
         return None
 
 
-def load_engines(path: PathLike) -> list[EngineSpec]:
+def load_engine_file(path: StrPath) -> EngineFile:
     """Load and validate a versioned engines YAML file."""
     with open(path, encoding="utf-8") as file:
         data = yaml.safe_load(file)
 
-    engine_file = EngineFile.model_validate(data)
-    return engine_file.engines
+    return EngineFile.model_validate(data)
 
 
-def load_engines_raw(path: PathLike) -> dict[str, Any]:
-    """The raw (validated) YAML dict, for hashing into the manifest."""
-    load_engines(path)
-
-    with open(path, encoding="utf-8") as file:
-        return yaml.safe_load(file)
+def load_engines(path: StrPath) -> list[EngineSpec]:
+    """The engine specs of a versioned engines YAML file."""
+    return load_engine_file(path).engines
 
 
 def render_command(template: str, mapping: dict[str, str]) -> list[str]:
@@ -118,8 +118,8 @@ def render_command(template: str, mapping: dict[str, str]) -> list[str]:
 def run_engine(
     spec: EngineSpec,
     *,
-    dataset_dir: PathLike,
-    out_path: PathLike,
+    dataset_dir: StrPath,
+    out_path: StrPath,
     seed: int,
     use_edges: bool = True,
 ) -> None:
@@ -159,9 +159,9 @@ def run_engine(
         )
 
 
-def load_aligned_layout(path: Path | str, expected_n: int) -> LayoutArtifact:
+def load_aligned_layout(path: StrPath, expected_n: int) -> LayoutArtifact:
     """Load a layout, validate it against the dataset, align xy by row_id."""
-    artifact = load_layout(path)
+    artifact = load_layout(Path(path))
 
     n = artifact.xy.shape[0]
     if n != expected_n:
