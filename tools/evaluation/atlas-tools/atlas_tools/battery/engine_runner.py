@@ -171,5 +171,5 @@ def load_aligned_layout(path: Path | str, expected_n: int) -> LayoutArtifact:
     return LayoutArtifact(
         xy=aligned,
         row_id=np.arange(expected_n, dtype=np.int64),
-        meta=artifact.meta,
+        sidecar=artifact.sidecar,
     )

@@ -51,7 +51,7 @@ import pyarrow.parquet as pq
 
 from atlas_tools.common.provenance import (
     canonical_json_bytes,
-    provenance_block,
+    make_provenance,
     write_sidecar,
 )
 from atlas_tools.wikidata.config import Config
@@ -236,7 +236,7 @@ def extract_entities(
         "rows_sha256": rows_sha256,
         "parts": len(parts),
         "checkpoint_interval": interval,
-        **provenance_block(
+        **make_provenance(
             producer="wikidata.entity-manifest",
             config=config.raw,
             seed=config.seed,

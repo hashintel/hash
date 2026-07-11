@@ -11,13 +11,13 @@ from atlas_tools.common.layout import (
     write_layout,
 )
 from atlas_tools.common.matrix import (
-    MatrixMeta,
+    MatrixDetails,
     load_matrix,
-    write_matrix,
+    write_sidecar,
 )
 from atlas_tools.common.provenance import (
     canonical_json_bytes,
-    provenance_block,
+    make_provenance,
     sha256_bytes,
     sha256_file,
     write_sidecar,

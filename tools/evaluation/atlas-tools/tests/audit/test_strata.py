@@ -11,9 +11,10 @@ degradation stays near 0.25 — well past the 2x flag threshold.
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.synth import make_synthetic
-from atlas_tools.common.matrix import write_matrix
+from atlas_tools.common.matrix import write_sidecar
 
 
 def test_group_destroyed_by_truncation_is_flagged(tmp_path):
@@ -23,7 +24,7 @@ def test_group_destroyed_by_truncation_is_flagged(tmp_path):
     n = vectors.shape[0]
 
     embeddings = tmp_path / "grouped.f32"
-    write_matrix(embeddings, vectors, producer="tests.audit")
+    write_sidecar(embeddings, vectors, producer="tests.audit")
 
     strata = tmp_path / "strata.parquet"
     pq.write_table(

@@ -34,10 +34,12 @@ def l2_normalize(x: np.ndarray, *, eps: float = _EPS) -> np.ndarray:
     x = np.asarray(x, dtype=np.float32)
     if not np.isfinite(x).all():
         raise ValueError("input contains non-finite values")
+
     norms = np.linalg.norm(x, axis=-1, keepdims=True)
     safe = np.where(norms < eps, 1.0, norms)
     out = x / safe
     out[np.broadcast_to(norms < eps, out.shape)] = 0.0
+
     return out.astype(np.float32, copy=False)
 
 
@@ -51,15 +53,18 @@ def prefix_transform(x: np.ndarray, dim: int, *, eps: float = _EPS) -> np.ndarra
     x = np.asarray(x)
     if x.ndim != 2:
         raise ValueError(f"expected a 2-d array, got shape {x.shape}")
+
     if not 0 < dim <= x.shape[1]:
         raise ValueError(
             f"prefix dim {dim} out of range for input with {x.shape[1]} dims"
         )
+
     return l2_normalize(np.ascontiguousarray(x[:, :dim], dtype=np.float32), eps=eps)
 
 
 def _block_rows(n_queries: int, dim: int, memory_cap_bytes: int) -> int:
     denom = 4 * (n_queries + dim)
+
     return max(1, min(1 << 20, memory_cap_bytes // denom))
 
 
@@ -79,8 +84,10 @@ def exact_cosine_knn(
     wins). If ``query_rows_in_corpus`` is given (shape (q,)), each query's
     own corpus row is excluded from its neighbor list.
     """
+
     if k <= 0:
         raise ValueError("k must be positive")
+
     q = l2_normalize(queries) if not normalized else np.asarray(queries, np.float32)
     n_queries = q.shape[0]
     n_corpus = corpus.shape[0]
@@ -107,6 +114,7 @@ def exact_cosine_knn(
         stop = min(start + block, n_corpus)
         rows = np.asarray(corpus[start:stop], dtype=np.float32)
         rows = rows if normalized else l2_normalize(rows)
+
         # Inputs are validated finite and unit-norm; Accelerate BLAS on macOS
         # still raises spurious divide/overflow FP warnings inside matmul.
         with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
@@ -123,6 +131,7 @@ def exact_cosine_knn(
         merged_idx = np.concatenate(
             [best_idx, np.broadcast_to(block_idx, scores.shape)], axis=1
         )
+
         # Deterministic selection: sort by (-score, index).
         order = np.lexsort((merged_idx, -merged_scores), axis=1)[:, :effective_k]
         best_scores = np.take_along_axis(merged_scores, order, axis=1)

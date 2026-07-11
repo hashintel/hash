@@ -3,6 +3,7 @@ the harness uses (shlex split, no shell, layout.npz artifact contract)."""
 
 import numpy as np
 import pytest
+
 from atlas_tools.battery.datasets import write_dataset
 from atlas_tools.battery.engine_runner import (
     EngineSpec,
@@ -42,7 +43,7 @@ def test_pca_cli_valid_and_deterministic(tmp_path, dataset_dir):
     assert a.xy.shape == (150, 2)
     assert np.array_equal(a.xy, b.xy)
     # provenance sidecar written with the source embedding hash
-    meta = load_layout(tmp_path / "a" / "layout.npz").meta
+    meta = load_layout(tmp_path / "a" / "layout.npz").sidecar
     assert meta["engine"] == "pca2d"
     assert "source_embedding_hash" in meta
     assert meta["rows"] == 150

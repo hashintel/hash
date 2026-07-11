@@ -17,6 +17,8 @@ dependencies = [
     "requests>=2.31",
     "tiktoken>=0.7",
     "orjson>=3.10",
+    "pydantic>=2.13.4",
+    "pydantic-extra-types>=2.11.1",
 ]
 
 [project.optional-dependencies]

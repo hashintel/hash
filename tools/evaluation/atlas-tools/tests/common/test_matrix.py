@@ -2,14 +2,15 @@ import json
 
 import numpy as np
 import pytest
-from atlas_tools.common.matrix import load_matrix, meta_path_for, write_matrix
+
+from atlas_tools.common.matrix import load_matrix, meta_path_for, write_sidecar
 
 
 def test_roundtrip(tmp_path):
     rng = np.random.default_rng(0)
     original = rng.standard_normal((17, 5)).astype(np.float32)
     path = tmp_path / "emb.f32"
-    write_matrix(path, original, producer="test")
+    write_sidecar(path, original, producer="test")
 
     loaded, meta = load_matrix(path, verify_hash=True)
     np.testing.assert_array_equal(loaded, original)
@@ -21,7 +22,7 @@ def test_roundtrip(tmp_path):
 
 def test_size_mismatch_names_mismatch(tmp_path):
     path = tmp_path / "emb.f32"
-    write_matrix(path, np.zeros((4, 3), dtype=np.float32), producer="test")
+    write_sidecar(path, np.zeros((4, 3), dtype=np.float32), producer="test")
     # Truncate the binary without touching the sidecar.
     data = path.read_bytes()
     path.write_bytes(data[:-4])
@@ -32,7 +33,7 @@ def test_size_mismatch_names_mismatch(tmp_path):
 
 def test_rejects_unsupported_dtype_and_byte_order(tmp_path):
     path = tmp_path / "emb.f32"
-    write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
+    write_sidecar(path, np.zeros((2, 2), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
 
     meta = json.loads(meta_path.read_text())
@@ -50,7 +51,7 @@ def test_rejects_unsupported_dtype_and_byte_order(tmp_path):
 
 def test_missing_sidecar_fields_rejected(tmp_path):
     path = tmp_path / "emb.f32"
-    write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
+    write_sidecar(path, np.zeros((2, 2), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
     meta = json.loads(meta_path.read_text())
     del meta["rows"]
@@ -61,7 +62,7 @@ def test_missing_sidecar_fields_rejected(tmp_path):
 
 def test_hash_verification_detects_corruption(tmp_path):
     path = tmp_path / "emb.f32"
-    write_matrix(path, np.ones((2, 2), dtype=np.float32), producer="test")
+    write_sidecar(path, np.ones((2, 2), dtype=np.float32), producer="test")
     raw = bytearray(path.read_bytes())
     raw[0] ^= 0xFF
     path.write_bytes(bytes(raw))

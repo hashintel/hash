@@ -1,8 +1,19 @@
 """Command-line interface for the Wikidata miner.
 
+W2a is layered so mining is decoupled from card formatting:
+
+1. raw response cache (``--cache-dir``) — provenance of every API byte;
+2. ``records.jsonl`` — structured, card-format-independent property records
+   (plus ``entity_labels.json`` and provenance sidecars);
+3. ``cards.jsonl`` — the versioned text projection of the records.
+
 Commands:
 
-- ``wikidata extract-properties`` (W2a): relation cards via APIs, no dump.
+- ``wikidata extract-properties`` (W2a): mine records via APIs, then render
+  cards from them (single render code path shared with ``render-cards``).
+- ``wikidata render-cards`` (W2a): re-render cards from an existing
+  ``records.jsonl`` with zero transport/network involvement — changing the
+  card format or token budget never requires re-extraction.
 - ``wikidata entity-manifest`` (W2b): streamed per-entity manifest parquet.
 - ``wikidata sampling-plan`` (W2b): P31-stratified sampling plan parquet.
 """
@@ -60,7 +71,29 @@ def extract_properties_cmd(
         config, transport, checkpoint_path=Path(out_dir) / "checkpoint.json"
     )
     paths = emit_cards(result, config, out_dir)
+    click.echo(f"wrote {paths['records']} ({len(result.records)} records)")
     click.echo(f"wrote {paths['cards']} ({len(result.records)} cards)")
+
+
+@main.command("render-cards")
+@click.option(
+    "--records",
+    "records_path",
+    required=True,
+    type=click.Path(exists=True),
+    help="records.jsonl or the extract out dir containing it.",
+)
+@click.option("--config", "config_path", required=True, type=click.Path(exists=True))
+@click.option("--out", "out_dir", required=True, type=click.Path())
+def render_cards_cmd(records_path: str, config_path: str, out_dir: str) -> None:
+    """W2a: render cards.jsonl from records.jsonl (no network, ever)."""
+    from atlas_tools.wikidata.cards import render_cards
+    from atlas_tools.wikidata.records import load_records
+
+    config = Config.load(config_path)
+    record_set = load_records(records_path)
+    paths = render_cards(record_set, config, out_dir)
+    click.echo(f"wrote {paths['cards']} ({len(record_set.records)} cards)")
 
 
 @main.command("entity-manifest")

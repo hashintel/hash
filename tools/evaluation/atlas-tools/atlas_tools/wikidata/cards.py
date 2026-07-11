@@ -1,5 +1,15 @@
 """Relation cards: deterministic text serializer, token budget, emitters.
 
+Layering (mining is decoupled from card formatting):
+
+1. raw response cache (``cache.py``) — provenance of every API byte;
+2. ``records.jsonl`` (``records.py``) — structured, card-format-independent
+   property records;
+3. ``cards.jsonl`` (this module) — the VERSIONED TEXT PROJECTION of the
+   records. ``render_cards`` is a pure records -> cards step with zero
+   transport/network involvement, so the card format can change and be
+   re-rendered without re-running extraction.
+
 Card format v1 (``card_format_version = 1``)
 --------------------------------------------
 A card is deterministic labeled TEXT (never JSON), one section per line, in
@@ -63,14 +73,16 @@ from pathlib import Path
 from typing import Mapping, Protocol
 
 from atlas_tools.common.provenance import (
-    provenance_block,
+    make_provenance,
     sha256_bytes,
+    sha256_file,
     write_sidecar,
 )
 from atlas_tools.wikidata import CARD_FORMAT_VERSION
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import PropertyRecord, pid_number
 from atlas_tools.wikidata.properties import ExtractionResult
+from atlas_tools.wikidata.records import RecordSet, emit_records, load_records
 
 
 class TokenCounter(Protocol):
@@ -317,23 +329,26 @@ def build_card(
     )
 
 
-def emit_cards(
-    result: ExtractionResult,
+def render_cards(
+    record_set: RecordSet,
     config: Config,
     out_dir: Path | str,
 ) -> dict[str, Path]:
-    """Write cards.jsonl + cards.manifest.json + inventory.json.
+    """Render cards.jsonl + cards.manifest.json from a loaded record set.
 
-    NO embedding calls happen here: embedding is a separate, budgeted step
-    outside this tool.
+    Pure projection: records + config in, cards out. No transport or network
+    involvement of any kind, and NO embedding calls (embedding is a
+    separate, budgeted step outside this tool). The manifest records the
+    records.jsonl content hash as an input hash.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     counter = make_token_counter(config.tokenizer)
+    meta = record_set.meta
 
     cards = [
-        build_card(record, result.entity_labels, config, counter)
-        for record in result.records
+        build_card(record, record_set.entity_labels, config, counter)
+        for record in record_set.records
     ]
     cards.sort(key=lambda card: pid_number(card.pid))
 
@@ -366,7 +381,7 @@ def emit_cards(
         "token_budget": config.token_budget,
         "hard_token_budget": config.hard_token_budget,
         # API-snapshot date stands in for a dump SHA in W2a (no dump).
-        "api_snapshot_date": result.api_snapshot_date,
+        "api_snapshot_date": meta.get("api_snapshot_date", ""),
         "cards": {
             card.pid: {
                 "card_hash": card.card_hash,
@@ -376,42 +391,37 @@ def emit_cards(
             for card in cards
         },
         "counts": {
-            "inventory_rows": len(result.inventory_rows),
-            "excluded": len(result.excluded),
+            "inventory_rows": meta["counts"]["inventory_rows"],
+            "excluded": meta["counts"]["excluded"],
             "cards": len(cards),
-            "example_skips": len(result.example_skips),
+            "example_skips": meta["counts"]["example_skips"],
         },
-        "flags": {
-            "example_ladder_fallbacks": dict(sorted(result.example_fallbacks.items())),
-            "example_ladder_skips": sorted(result.example_skips, key=pid_number),
-        },
-        "excluded": dict(
-            sorted(result.excluded.items(), key=lambda kv: pid_number(kv[0]))
-        ),
-        **provenance_block(
-            producer="wikidata.extract-properties",
+        "flags": meta["flags"],
+        "excluded": meta["excluded"],
+        **make_provenance(
+            producer="wikidata.render-cards",
+            input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
             config=config.raw,
             seed=config.seed,
         ),
     }
     write_sidecar(manifest_path, manifest)
 
-    inventory_path = out_dir / "inventory.json"
-    inventory = {
-        "rows": [
-            {"pid": row.pid, "datatype": row.datatype_uri, "usage": row.usage}
-            for row in result.inventory_rows
-        ],
-        "retained": [record.pid for record in result.records],
-        "excluded": dict(
-            sorted(result.excluded.items(), key=lambda kv: pid_number(kv[0]))
-        ),
-        **provenance_block(
-            producer="wikidata.extract-properties",
-            config=config.raw,
-            seed=config.seed,
-        ),
-    }
-    write_sidecar(inventory_path, inventory)
+    return {"cards": cards_path, "manifest": manifest_path}
 
-    return {"cards": cards_path, "manifest": manifest_path, "inventory": inventory_path}
+
+def emit_cards(
+    result: ExtractionResult,
+    config: Config,
+    out_dir: Path | str,
+) -> dict[str, Path]:
+    """Extraction-side emitter: persist the structured intermediate
+    (records.jsonl + entity_labels.json + records.meta.json + inventory.json)
+    and then render cards through the SAME load+render path that the
+    ``render-cards`` CLI command uses — there is a single code path for card
+    emission.
+    """
+    out_dir = Path(out_dir)
+    record_paths = emit_records(result, config, out_dir)
+    card_paths = render_cards(load_records(out_dir), config, out_dir)
+    return {**record_paths, **card_paths}

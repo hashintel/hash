@@ -11,10 +11,11 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.synth import make_synthetic
 from atlas_tools.common.knn import DEFAULT_MEMORY_CAP_BYTES
-from atlas_tools.common.matrix import write_matrix
+from atlas_tools.common.matrix import write_sidecar
 
 N_ROWS = 3000
 DIM = 512
@@ -28,7 +29,7 @@ def cluster_fixture(tmp_path_factory):
         N_ROWS, DIM, n_clusters=10, signal_band=(400, 512), seed=0
     )
     embeddings = root / "synthetic.f32"
-    write_matrix(embeddings, vectors, producer="tests.audit")
+    write_sidecar(embeddings, vectors, producer="tests.audit")
 
     strata = root / "strata.parquet"
     table = pa.table(

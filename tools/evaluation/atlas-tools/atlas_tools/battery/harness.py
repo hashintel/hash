@@ -83,7 +83,7 @@ from atlas_tools.battery.metrics import (
 )
 from atlas_tools.common.provenance import (
     canonical_json_bytes,
-    provenance_block,
+    make_provenance,
     sha256_bytes,
     write_sidecar,
 )
@@ -313,7 +313,7 @@ def run_suite(
             versions[lib] = importlib_metadata.version(lib)
         except importlib_metadata.PackageNotFoundError:  # pragma: no cover
             versions[lib] = "unknown"
-    manifest = provenance_block(
+    manifest = make_provenance(
         producer="battery.run",
         config={"suite": suite, "engines": engines_raw},
         extra={

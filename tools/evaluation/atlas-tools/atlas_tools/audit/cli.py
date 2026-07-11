@@ -9,7 +9,7 @@ import numpy as np
 
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.synth import make_synthetic
-from atlas_tools.common.matrix import write_matrix
+from atlas_tools.common.matrix import write_sidecar
 
 
 def _parse_int_list(value: str, name: str) -> list[int]:
@@ -138,11 +138,11 @@ def synth_fixture(
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    write_matrix(
+    write_sidecar(
         out,
         vectors,
         producer="atlas-tools audit synth-fixture",
-        extra_meta={
+        extra_metadata={
             "synthetic": {
                 "n_clusters": clusters,
                 "signal_band": list(band),

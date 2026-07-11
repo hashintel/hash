@@ -31,7 +31,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from atlas_tools.common.provenance import (
-    provenance_block,
+    make_provenance,
     sha256_file,
     write_sidecar,
 )
@@ -122,9 +122,9 @@ def build_sampling_plan(
         "excluded_no_p31": excluded_no_p31,
         "primary_class_rule": "lexicographically smallest P31 QID string",
         "emit_rule": "only sampled rows are emitted",
-        **provenance_block(
+        **make_provenance(
             producer="wikidata.sampling-plan",
-            inputs={"entities": sha256_file(entities_path)},
+            input_hashes={"entities": sha256_file(entities_path)},
             config=config.raw,
             seed=config.seed,
         ),

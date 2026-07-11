@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from atlas_tools.common.layout import load_layout, write_layout
 
 
@@ -18,10 +19,10 @@ def test_roundtrip_with_sidecar(tmp_path):
     artifact = load_layout(path)
     np.testing.assert_array_equal(artifact.xy, xy)
     np.testing.assert_array_equal(artifact.row_id, np.array([0, 1], dtype=np.int64))
-    assert artifact.meta["engine"] == "test-engine"
-    assert artifact.meta["seed"] == 7
-    assert artifact.meta["source_embedding_hash"] == "deadbeef"
-    assert "config_hash" in artifact.meta
+    assert artifact.sidecar["engine"] == "test-engine"
+    assert artifact.sidecar["seed"] == 7
+    assert artifact.sidecar["source_embedding_hash"] == "deadbeef"
+    assert "config_hash" in artifact.sidecar
 
 
 def test_shape_and_dtype_validation(tmp_path):

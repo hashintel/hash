@@ -82,7 +82,7 @@ from atlas_tools.common.knn import (
 )
 from atlas_tools.common.matrix import load_matrix
 from atlas_tools.common.provenance import (
-    provenance_block,
+    make_provenance,
     sha256_bytes,
     sha256_file,
     write_sidecar,
@@ -324,9 +324,9 @@ def run_audit(
         inputs["strata"] = sha256_file(strata_path)
     write_sidecar(
         out_dir / "report.meta.json",
-        provenance_block(
+        make_provenance(
             producer=PRODUCER,
-            inputs=inputs,
+            input_hashes=inputs,
             config=config,
             seed=seed,
             extra={

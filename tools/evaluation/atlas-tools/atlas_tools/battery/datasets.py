@@ -27,9 +27,9 @@ from typing import Any
 
 import numpy as np
 
-from atlas_tools.common.matrix import load_matrix, write_matrix
+from atlas_tools.common.matrix import load_matrix, write_sidecar
 from atlas_tools.common.provenance import (
-    provenance_block,
+    make_provenance,
     read_sidecar,
     sha256_file,
     write_sidecar,
@@ -83,7 +83,7 @@ def write_dataset(dataset: Dataset, out_dir: Path | str) -> dict[str, str]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     producer = f"battery.generators.{dataset.shape}"
-    meta = write_matrix(
+    meta = write_sidecar(
         out_dir / EMBEDDINGS_FILE, dataset.embeddings, producer=producer
     )
     np.save(out_dir / EDGES_FILE, dataset.edges)
@@ -94,9 +94,9 @@ def write_dataset(dataset: Dataset, out_dir: Path | str) -> dict[str, str]:
         "edges_sha256": sha256_file(out_dir / EDGES_FILE),
         "labels_sha256": sha256_file(out_dir / LABELS_FILE),
     }
-    truth_payload = provenance_block(
+    truth_payload = make_provenance(
         producer=producer,
-        inputs=hashes,
+        input_hashes=hashes,
         config=dataset.config,
         seed=dataset.seed,
         extra={
