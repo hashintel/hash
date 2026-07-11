@@ -6,7 +6,9 @@ Run from the atlas-tools root:
 
 Outputs (all committed):
 
-- ``dump_excerpt.json`` — 200 synthetic entities in exact Wikidata JSON dump
+- ``dump_excerpt.jsondump`` — 200 synthetic entities in exact Wikidata JSON dump
+  (the extension is deliberately NOT ``.json``: the dump format is
+  line-oriented and editor/CI JSON formatters must never reflow it)
   line format ("[", one entity per line with trailing comma, "]"). Entities
   span 10 P31 classes with skewed sizes, en/de (and occasional fr) labels,
   sitelinks, and claims using P361, P50, P212 (external-id) and P527.
@@ -142,7 +144,7 @@ def write_dump_excerpt() -> None:
         suffix = ",\n" if i < 199 else "\n"
         lines.append(entity_json + suffix)
     lines.append("]\n")
-    (HERE / "dump_excerpt.json").write_text("".join(lines), encoding="utf-8")
+    (HERE / "dump_excerpt.jsondump").write_text("".join(lines), encoding="utf-8")
 
 
 # --- fixture HTTP responses --------------------------------------------------

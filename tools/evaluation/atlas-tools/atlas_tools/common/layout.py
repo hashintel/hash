@@ -4,6 +4,10 @@ A layout is ``layout.npz`` with ``xy`` (n, 2) float32 and ``row_id`` (n,)
 int64, plus a sidecar ``layout.meta.json`` recording engine, config hash,
 seed, and source-embedding hash. Consumers (the battery) read ONLY this
 format and never import engine code.
+
+A missing sidecar is a hard error by default: the battery is a release gate
+and a layout without provenance is not reproducible from the manifest. Pass
+``require_provenance=False`` for ad-hoc inspection of bare ``.npz`` files.
 """
 
 from __future__ import annotations
@@ -13,10 +17,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from pydantic import BaseModel
-from pydantic.config import JsonDict
+from pydantic import BaseModel, NonNegativeInt
 
 from atlas_tools.common.provenance import (
+    JsonDict,
     Provenance,
     make_provenance,
     sha256_file,
@@ -31,12 +35,12 @@ def layout_meta_path_for(path: Path | str) -> Path:
 
 class LayoutDetails(BaseModel):
     engine: str
-    rows: int
+    rows: NonNegativeInt
 
     layout_sha256: str
-    source_embedding_hash: str | None
+    source_embedding_hash: str | None = None
 
-    extra: JsonDict | None
+    extra: JsonDict | None = None
 
 
 LayoutProvenance = Provenance[LayoutDetails]
@@ -50,7 +54,7 @@ class LayoutArtifact:
     provenance: LayoutProvenance | None
 
 
-def load_layout(path: Path | str) -> LayoutArtifact:
+def load_layout(path: Path | str, *, require_provenance: bool = True) -> LayoutArtifact:
     """Load and validate a ``layout.npz`` artifact plus its sidecar."""
     path = Path(path)
 
@@ -87,9 +91,18 @@ def load_layout(path: Path | str) -> LayoutArtifact:
 
     meta_path = layout_meta_path_for(path)
 
-    # TODO: shouldn't this hard error?
-    provenance = LayoutProvenance.load(meta_path) if meta_path.exists() else None
-    return LayoutArtifact(xy=xy, row_id=row_id, provenance=provenance)
+    if not meta_path.exists():
+        if require_provenance:
+            raise ValueError(
+                f"{path}: missing sidecar {meta_path.name}; a layout artifact"
+                " requires provenance (pass require_provenance=False for"
+                " ad-hoc inspection)"
+            )
+        return LayoutArtifact(xy=xy, row_id=row_id, provenance=None)
+
+    return LayoutArtifact(
+        xy=xy, row_id=row_id, provenance=LayoutProvenance.load(meta_path)
+    )
 
 
 def write_layout(

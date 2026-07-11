@@ -5,12 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.transport import FixtureTransport
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "wikidata"
 RESPONSES = FIXTURES / "responses"
-DUMP_EXCERPT = FIXTURES / "dump_excerpt.json"
+DUMP_EXCERPT = FIXTURES / "dump_excerpt.jsondump"
 CONFIG_PATH = FIXTURES / "config.yaml"
 
 

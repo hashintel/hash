@@ -7,17 +7,23 @@ from atlas_tools.common.knn import (
 )
 from atlas_tools.common.layout import (
     LayoutArtifact,
+    LayoutDetails,
+    LayoutProvenance,
     load_layout,
     write_layout,
 )
 from atlas_tools.common.matrix import (
     MatrixDetails,
+    MatrixProvenance,
     load_matrix,
-    write_sidecar,
+    write_matrix,
 )
 from atlas_tools.common.provenance import (
+    Provenance,
     canonical_json_bytes,
     make_provenance,
+    provenance_block,
+    read_sidecar,
     sha256_bytes,
     sha256_file,
     write_sidecar,
@@ -25,14 +31,20 @@ from atlas_tools.common.provenance import (
 
 __all__ = [
     "LayoutArtifact",
-    "MatrixMeta",
+    "LayoutDetails",
+    "LayoutProvenance",
+    "MatrixDetails",
+    "MatrixProvenance",
+    "Provenance",
     "canonical_json_bytes",
     "exact_cosine_knn",
     "l2_normalize",
     "load_layout",
     "load_matrix",
+    "make_provenance",
     "prefix_transform",
     "provenance_block",
+    "read_sidecar",
     "sha256_bytes",
     "sha256_file",
     "write_layout",

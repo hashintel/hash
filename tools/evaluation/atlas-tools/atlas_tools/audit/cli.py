@@ -9,7 +9,7 @@ import numpy as np
 
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.synth import make_synthetic
-from atlas_tools.common.matrix import write_sidecar
+from atlas_tools.common.matrix import write_matrix
 
 
 def _parse_int_list(value: str, name: str) -> list[int]:
@@ -138,7 +138,7 @@ def synth_fixture(
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    write_sidecar(
+    write_matrix(
         out,
         vectors,
         producer="atlas-tools audit synth-fixture",

@@ -43,10 +43,11 @@ def test_pca_cli_valid_and_deterministic(tmp_path, dataset_dir):
     assert a.xy.shape == (150, 2)
     assert np.array_equal(a.xy, b.xy)
     # provenance sidecar written with the source embedding hash
-    meta = load_layout(tmp_path / "a" / "layout.npz").sidecar
-    assert meta["engine"] == "pca2d"
-    assert "source_embedding_hash" in meta
-    assert meta["rows"] == 150
+    provenance = load_layout(tmp_path / "a" / "layout.npz").provenance
+    assert provenance is not None
+    assert provenance.details.engine == "pca2d"
+    assert provenance.details.source_embedding_hash is not None
+    assert provenance.details.rows == 150
 
 
 def test_shuffle_cli_permutes_coordinates_relative_to_row_id(tmp_path, dataset_dir):

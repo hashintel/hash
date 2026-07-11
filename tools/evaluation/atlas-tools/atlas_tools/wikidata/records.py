@@ -61,7 +61,7 @@ from typing import Any
 
 from atlas_tools.common.provenance import (
     canonical_json_bytes,
-    make_provenance,
+    provenance_block,
     read_sidecar,
     sha256_file,
     write_sidecar,
@@ -218,7 +218,7 @@ def emit_records(
                 "records.jsonl": sha256_file(records_path),
                 "entity_labels.json": sha256_file(labels_path),
             },
-            **make_provenance(
+            **provenance_block(
                 producer="wikidata.extract-properties",
                 config=extraction_config(config),
                 seed=config.seed,
@@ -236,7 +236,7 @@ def emit_records(
             ],
             "retained": [record.pid for record in ordered],
             "excluded": excluded_sorted,
-            **make_provenance(
+            **provenance_block(
                 producer="wikidata.extract-properties",
                 config=extraction_config(config),
                 seed=config.seed,

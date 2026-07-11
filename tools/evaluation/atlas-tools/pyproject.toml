@@ -19,6 +19,7 @@ dependencies = [
     "orjson>=3.10",
     "pydantic>=2.13.4",
     "pydantic-extra-types>=2.11.1",
+    "semver>=3.0",
 ]
 
 [project.optional-dependencies]

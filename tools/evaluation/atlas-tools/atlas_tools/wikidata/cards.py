@@ -73,7 +73,7 @@ from pathlib import Path
 from typing import Mapping, Protocol
 
 from atlas_tools.common.provenance import (
-    make_provenance,
+    provenance_block,
     sha256_bytes,
     sha256_file,
     write_sidecar,
@@ -398,7 +398,7 @@ def render_cards(
         },
         "flags": meta["flags"],
         "excluded": meta["excluded"],
-        **make_provenance(
+        **provenance_block(
             producer="wikidata.render-cards",
             input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
             config=config.raw,
