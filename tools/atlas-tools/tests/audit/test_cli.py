@@ -65,7 +65,10 @@ def test_synth_fixture_writes_valid_matrix(tmp_path: Path) -> None:
     assert labels.exists()
 
 
-def test_run_end_to_end_with_strata(tmp_path: Path) -> None:
+def test_run_end_to_end_with_strata(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     embeddings = tmp_path / "synth.f32"
     strata = tmp_path / "strata.parquet"
     out = tmp_path / "report"
@@ -122,10 +125,16 @@ def test_run_end_to_end_with_strata(tmp_path: Path) -> None:
     assert "| dim | recall@10 |" in markdown
     assert "## Strata" in markdown
 
+    captured = capsys.readouterr()
+    assert "FAISS backend" in captured.err
+    assert "exact FAISS" in captured.err
+    assert "ETA" in captured.err
+
     # On disk, dim/k map keys are JSON strings.
     raw_report = json.loads((out / "report.json").read_text())
     assert set(raw_report["overall"]) == {"16", "64"}
     assert set(raw_report["overall"]["16"]) == {"5", "10"}
+    assert raw_report["config"]["backend"] in {"cpu", "gpu"}
 
     # The typed model coerces them back to ints.
     report = RunnerReport.model_validate_json((out / "report.json").read_text())

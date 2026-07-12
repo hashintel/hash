@@ -1,6 +1,7 @@
 """``audit`` console entry point (see pyproject [project.scripts])."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -12,7 +13,13 @@ from pydantic import (
     PositiveInt,
     SecretStr,
 )
-from pydantic_settings import BaseSettings, CliApp, CliSubCommand, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    CliApp,
+    CliSubCommand,
+    CliToggleFlag,
+    SettingsConfigDict,
+)
 
 from atlas_tools.audit.postgres import (
     PostgresExportError,
@@ -23,6 +30,7 @@ from atlas_tools.audit.synthetic import make_synthetic, write_cluster_labels
 from atlas_tools.common.cli import echo, fail, run_cli
 from atlas_tools.common.matrix import write_matrix
 from atlas_tools.common.postgres import DatabaseConnectionInfo, PostgresPort
+from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
 
 
 class RunCommand(BaseModel):
@@ -38,10 +46,19 @@ class RunCommand(BaseModel):
     )
     out: Path
     seed: NonNegativeInt = 0
-    memory_cap_gb: PositiveFloat = 8.0
+    memory_cap_gb: PositiveFloat = Field(
+        default=8.0,
+        description="Estimated cap for audit-owned arrays and FAISS workspace.",
+    )
+    backend: Literal["auto", "cpu", "gpu"] = Field(
+        default="auto",
+        description="Exact FAISS backend; auto prefers Metal/CUDA/ROCm when available.",
+    )
     min_group_size: PositiveInt = 50
+    quiet: CliToggleFlag[bool] = Field(default=False, description="No progress on stderr.")
 
     def cli_cmd(self) -> None:
+        progress = NO_PROGRESS if self.quiet else StderrProgress()
         try:
             run_audit(
                 self.embeddings,
@@ -52,7 +69,9 @@ class RunCommand(BaseModel):
                 strata_path=self.strata,
                 seed=self.seed,
                 memory_cap_bytes=int(self.memory_cap_gb * (1 << 30)),
+                backend=self.backend,
                 min_group_size=self.min_group_size,
+                progress=progress,
             )
         except ValueError as error:
             fail(error)

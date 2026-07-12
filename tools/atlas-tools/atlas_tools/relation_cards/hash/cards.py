@@ -37,14 +37,14 @@ LINK_TYPES_FORMAT_VERSION = 1
 class HashCardsConfig(BaseModel):
     """Content-affecting controls for live HASH relation-card extraction."""
 
-    model_config = ConfigDict(extra="forbid")
-
     example_count: PositiveInt = 8
     # Direct PostgreSQL has no authorization-snapshot predicate. Native
     # endpoint labels therefore fail closed unless the generation explicitly
     # chooses the spec's all-snapshot-links security mode.
     example_security_mode: ExampleSecurityMode = "none"
     cards: CardsConfig = Field(default_factory=CardsConfig)
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class HashCardRow(BaseModel):
@@ -84,6 +84,9 @@ class HashCardsManifestDetails(BaseModel):
     entity_type_versions: NonNegativeInt
     link_types: NonNegativeInt
     example_candidates: NonNegativeInt
+    example_candidate_pairs: NonNegativeInt
+    example_unmatched_candidates: NonNegativeInt
+    example_unmatched_fallbacks: NonNegativeInt
     example_security_mode: ExampleSecurityMode
     selected_examples: NonNegativeInt
     content_hashes: dict[str, Sha256Hex]
@@ -161,6 +164,7 @@ def emit_hash_cards(
         "cards.jsonl": sha256_file(cards_path),
         "link-types.jsonl": sha256_file(link_types_path),
     }
+
     HashCardsProvenance.make(
         producer="hash.extract-relation-cards",
         input_hashes={"link-types.jsonl": content_hashes["link-types.jsonl"]},
@@ -180,6 +184,15 @@ def emit_hash_cards(
             entity_type_versions=extraction.entity_type_versions,
             link_types=len(records),
             example_candidates=extraction.example_candidates,
+            example_candidate_pairs=sum(
+                record.example_selection.candidate_pairs for record in records
+            ),
+            example_unmatched_candidates=sum(
+                record.example_selection.unmatched_candidates for record in records
+            ),
+            example_unmatched_fallbacks=sum(
+                record.example_selection.unmatched_used for record in records
+            ),
             example_security_mode=config.example_security_mode,
             selected_examples=sum(len(record.examples) for record in records),
             content_hashes=content_hashes,
@@ -194,6 +207,7 @@ def emit_hash_cards(
             },
         ),
     ).write(manifest_path)
+
     return HashCardsPaths(
         link_types_jsonl=link_types_path,
         cards_jsonl=cards_path,
@@ -212,6 +226,7 @@ def extract_and_emit_hash_cards(
         example_count=config.example_count,
         example_security_mode=config.example_security_mode,
     )
+
     return emit_hash_cards(
         extraction,
         config,

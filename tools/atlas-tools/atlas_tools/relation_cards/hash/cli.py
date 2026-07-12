@@ -23,8 +23,6 @@ from atlas_tools.relation_cards.hash.postgres import HashPostgresError
 class ExtractCardsCommand(BaseSettings):
     """Select all current HASH link types and write canonical relation cards."""
 
-    model_config = SettingsConfigDict(env_prefix="HASH_GRAPH_PG_", extra="forbid")
-
     out: Path
     host: str = "localhost"
     port: PostgresPort = 5432
@@ -42,6 +40,8 @@ class ExtractCardsCommand(BaseSettings):
     hard_token_budget: PositiveInt = 7500
     tokenizer: TokenizerName = "cl100k"
     sentence_splitter: SentenceSplitterName = "punkt"
+
+    model_config = SettingsConfigDict(env_prefix="HASH_GRAPH_PG_", extra="forbid")
 
     def cli_cmd(self) -> None:
         connection_info = DatabaseConnectionInfo(

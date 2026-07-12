@@ -9,6 +9,7 @@ dependencies = [
     "scipy>=1.12",
     "scikit-learn>=1.4",
     "umap-learn>=0.5.6",
+    "faiss-cpu>=1.14.3,<2",
     "hnswlib>=0.8.0",
     "pyyaml>=6.0",
     "pyarrow>=16.0",

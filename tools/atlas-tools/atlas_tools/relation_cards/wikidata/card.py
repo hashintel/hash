@@ -132,6 +132,7 @@ def _source_identifiers(record: PropertyRecord) -> set[str]:
         )
         if identifier
     )
+
     return identifiers
 
 

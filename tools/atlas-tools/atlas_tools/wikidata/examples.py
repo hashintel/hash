@@ -39,7 +39,9 @@ Pipeline:
    stratification.
 4. **Slots.** Example budget ``count``: one slot per non-empty stratum
    first (declaration order), then plain round-robin for the remainder
-   with a per-stratum cap of :data:`STRATUM_SLOT_CAP`. The cap is a
+   with a per-stratum cap of
+   :data:`~atlas_tools.relation_cards.common.examples.DEFAULT_STRATUM_SLOT_CAP`.
+   The cap is a
    fairness device, not a ceiling: once every stratum is capped or
    exhausted, remaining budget fills from whatever is left, so a
    single-stratum property still fills its whole card. Empty strata are
@@ -76,6 +78,12 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from atlas_tools.relation_cards.common.examples import (
+    DEFAULT_STRATUM_SLOT_CAP,
+    ExampleCandidate,
+    ExampleStratum,
+    select_diverse_examples,
+)
 from atlas_tools.wikidata.model import Example, Qid
 from atlas_tools.wikidata.sparql import ExampleRow
 from atlas_tools.wikidata.taxonomy import Taxonomy
@@ -83,10 +91,6 @@ from atlas_tools.wikidata.taxonomy import Taxonomy
 # `other` fraction of typed candidates above which the caller should log a
 # stale-constraint-list warning.
 OTHER_WARNING_FRACTION = 0.25
-
-# Remainder slots per stratum before the relaxation phase; keeps a dominant
-# stratum from claiming the whole card while other strata hold candidates.
-STRATUM_SLOT_CAP = 3
 
 # Fraction of assigned candidates in one stratum above which the caller
 # should log that the constraint ontology is coarser than the extension.
@@ -256,44 +260,6 @@ def _choose_stratum(
     )
 
 
-def _stratum_order(pool: Sequence[Candidate]) -> list[Candidate]:
-    """Order candidates scale-diverse: distinct P31 classes before repeats.
-
-    Candidates are grouped by their primary direct P31 class, each group
-    sorted by descending recognizability weight, and the groups are
-    interleaved round-robin with the most recognizable group first. The
-    global argmax-weight pair is therefore always the head (its group
-    ranks first by construction), and consecutive slots land in distinct
-    sub-populations of the stratum (one country, one municipality, one
-    commune) before any sub-population repeats. Fully deterministic:
-    ties break to earliest pool arrival.
-    """
-    groups: dict[str, list[tuple[int, Candidate]]] = {}
-    for arrival, candidate in enumerate(pool):
-        key = candidate.subject_types[0] if candidate.subject_types else ""
-        groups.setdefault(key, []).append((arrival, candidate))
-
-    for members in groups.values():
-        members.sort(key=lambda member: (-member[1].weight, member[0]))
-
-    ranked_groups = sorted(
-        groups.values(),
-        key=lambda members: (-members[0][1].weight, members[0][0]),
-    )
-
-    order: list[Candidate] = []
-    depth = 0
-    while True:
-        advanced = False
-        for members in ranked_groups:
-            if depth < len(members):
-                order.append(members[depth][1])
-                advanced = True
-        if not advanced:
-            return order
-        depth += 1
-
-
 @dataclass(frozen=True)
 class ExampleSelection:
     """Selected examples plus the diagnostics the manifests record."""
@@ -329,11 +295,14 @@ class ExampleSelection:
         """
         if len(self.stratum_candidates) < _MINIMUM_STRATA_FOR_DOMINANCE:
             return None
+
         total = sum(self.stratum_candidates.values())
         largest = max(self.stratum_candidates, key=lambda key: self.stratum_candidates[key])
         fraction = self.stratum_candidates[largest] / total
+
         if fraction <= DOMINANT_STRATUM_FRACTION:
             return None
+
         return largest, fraction
 
     @property
@@ -349,122 +318,44 @@ class ExampleSelection:
         assigned = sum(self.stratum_candidates.values())
         if not assigned or not self.stratum_overlaps:
             return None
+
         pair = max(self.stratum_overlaps, key=lambda key: self.stratum_overlaps[key])
         fraction = self.stratum_overlaps[pair] / assigned
         if fraction <= STRATUM_OVERLAP_WARNING_FRACTION:
             return None
+
         first, second = pair
         return first, second, fraction
 
 
-@dataclass
-class _Stratum:
-    """Selection state for one stratum (or the unstratified pool)."""
-
-    key: Qid | None
-    order: list[Candidate]
-    pointer: int = 0
-    picks: list[Candidate] = field(default_factory=list)
-
-    @property
-    def volume(self) -> int:
-        return len(self.order)
-
-    def take(self, used_tokens: set[str]) -> bool:
-        """Advance past dedup conflicts and pick one candidate, if any."""
-        while self.pointer < len(self.order):
-            candidate = self.order[self.pointer]
-            self.pointer += 1
-
-            if candidate.subject_token in used_tokens or candidate.object_token in used_tokens:
-                continue
-
-            used_tokens.add(candidate.subject_token)
-            used_tokens.add(candidate.object_token)
-            self.picks.append(candidate)
-
-            return True
-
-        return False
+def _common_candidate(candidate: Candidate) -> ExampleCandidate[Candidate]:
+    """Project Wikidata metadata into the datasource-neutral selector."""
+    return ExampleCandidate(
+        payload=candidate,
+        subject_token=candidate.subject_token,
+        object_token=candidate.object_token,
+        subgroup=candidate.subject_types[0] if candidate.subject_types else "",
+        recognizability=candidate.weight,
+    )
 
 
-def _allocate_slots(strata: Sequence[_Stratum], count: int) -> dict[int, int]:
-    """Allocate the example budget: guaranteed slots, capped rounds, relaxation.
-
-    Every non-empty stratum gets one guaranteed slot in declaration order.
-    Remaining budget is dealt round-robin in declaration order, capped at
-    :data:`STRATUM_SLOT_CAP` per stratum, so a stratum holding most of the
-    extension cannot claim the whole card while other strata still have
-    candidates. Budget left over once every stratum is capped or exhausted
-    is dealt in a second, cap-free round-robin bounded only by pool size,
-    so a single-stratum property still fills its card.
-    """
-    budget = count
-    slots = dict.fromkeys(range(len(strata)), 0)
-    for index in range(len(strata)):
-        if budget == 0:
-            break
-        slots[index] = 1
-        budget -= 1
-
-    for ceiling in (STRATUM_SLOT_CAP, None):
-        while budget > 0:
-            progressed = False
-            for index in range(len(strata)):
-                if budget == 0:
-                    break
-                limit = (
-                    strata[index].volume if ceiling is None else min(ceiling, strata[index].volume)
-                )
-                if slots[index] < limit:
-                    slots[index] += 1
-                    budget -= 1
-                    progressed = True
-            if not progressed:
-                break
-
-    return slots
-
-
-def _redistribute_shortfall(strata: Sequence[_Stratum], count: int, used_tokens: set[str]) -> None:
-    """Refill picks lost to dedup by drawing more from the other strata.
-
-    Draws round-robin in declaration order until the budget is met or
-    every stratum is exhausted; the slot cap does not apply to refills
-    (a shortfall means capped fairness already failed to fill the card).
-    """
-    total = sum(len(stratum.picks) for stratum in strata)
-    while total < count:
-        progressed = False
-
-        for stratum in strata:
-            if total == count:
-                break
-
-            if stratum.take(used_tokens):
-                total += 1
-                progressed = True
-
-        if not progressed:
-            break
-
-
-def _select_from_strata(strata: list[_Stratum], count: int) -> None:
-    """Fill each stratum's ``picks`` in place.
-
-    Guaranteed slots first, then volume round-robin, then redistribution
-    of dedup shortfalls. Earlier strata draw first, so they win dedup
-    conflicts (declaration order).
-    """
-    used_tokens: set[str] = set()
-    slots = _allocate_slots(strata, count)
-
-    for index, stratum in enumerate(strata):
-        for _ in range(slots[index]):
-            if not stratum.take(used_tokens):
-                break
-
-    _redistribute_shortfall(strata, count, used_tokens)
+def _select_candidate_pools(
+    pools: Sequence[tuple[Qid | None, Sequence[Candidate]]],
+    count: int,
+) -> list[tuple[Candidate, Qid | None]]:
+    """Run common mechanics while retaining Wikidata payloads and stratum IDs."""
+    selected = select_diverse_examples(
+        [
+            ExampleStratum(
+                key=key,
+                candidates=tuple(_common_candidate(candidate) for candidate in pool),
+            )
+            for key, pool in pools
+        ],
+        count=count,
+        slot_cap=DEFAULT_STRATUM_SLOT_CAP,
+    )
+    return [(example.payload, example.stratum) for example in selected]
 
 
 def _example(candidate: Candidate, stratum: Qid | None) -> Example:
@@ -497,10 +388,9 @@ def select_examples(
     candidates = collect_candidates(rows)
 
     if not constraint_classes or taxonomy is None:
-        pool = _Stratum(key=None, order=_stratum_order(candidates))
-        _select_from_strata([pool], count)
+        selected = _select_candidate_pools([(None, candidates)], count)
         return ExampleSelection(
-            examples=[_example(candidate, None) for candidate in pool.picks],
+            examples=[_example(candidate, stratum) for candidate, stratum in selected],
             candidates=len(candidates),
             untyped_dropped=0,
             other_candidates=0,
@@ -532,27 +422,22 @@ def select_examples(
         # Every declared stratum is empty: the constraint list does not
         # describe actual usage at all. Fall back to the `other` pool
         # (unstratified) rather than emitting an example-less card.
-        pool = _Stratum(key=None, order=_stratum_order(other))
-        _select_from_strata([pool], count)
+        selected = _select_candidate_pools([(None, other)], count)
         return ExampleSelection(
-            examples=[_example(candidate, None) for candidate in pool.picks],
+            examples=[_example(candidate, stratum) for candidate, stratum in selected],
             candidates=len(candidates),
             untyped_dropped=len(untyped),
             other_candidates=len(other),
-            other_used=bool(pool.picks),
+            other_used=bool(selected),
         )
 
-    strata = [
-        _Stratum(key=key, order=_stratum_order(pools[key]))
-        for key in constraint_classes
-        if pools[key]  # empty strata are skipped silently
-    ]
-    _select_from_strata(strata, count)
+    selected = _select_candidate_pools(
+        [(key, pools[key]) for key in constraint_classes if pools[key]],
+        count,
+    )
 
     return ExampleSelection(
-        examples=[
-            _example(candidate, stratum.key) for stratum in strata for candidate in stratum.picks
-        ],
+        examples=[_example(candidate, stratum) for candidate, stratum in selected],
         candidates=len(candidates),
         untyped_dropped=len(untyped),
         other_candidates=len(other),

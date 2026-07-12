@@ -151,6 +151,7 @@ def render_cards(
             untitled.append(record.pid)
         else:
             cards.append(card)
+
     cards.sort(key=lambda card: entity_number(card.pid))
     untitled.sort(key=entity_number)
 
@@ -221,4 +222,5 @@ def emit_cards(
     out_dir = Path(out_dir)
     records_paths = emit_records(result, config, out_dir)
     cards_paths = render_cards(load_records(out_dir), config, out_dir)
+
     return ExtractPaths(records=records_paths, cards=cards_paths)

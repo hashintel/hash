@@ -61,6 +61,9 @@ def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> Non
     assert details["database_name"] == "graph"
     assert details["snapshot_at"] == "2026-07-12T12:00:00Z"
     assert details["example_security_mode"] == "none"
+    assert details["example_candidate_pairs"] == 0
+    assert details["example_unmatched_candidates"] == 0
+    assert details["example_unmatched_fallbacks"] == 0
     assert "password" not in json.dumps(manifest)
     assert details["content_hashes"]["cards.jsonl"] == sha256_file(paths.cards_jsonl)
 

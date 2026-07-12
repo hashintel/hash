@@ -8,7 +8,7 @@ Pipeline
 --------
 1. Load the corpus as a memmapped raw f32 matrix
    (:func:`atlas_tools.common.matrix.load_matrix` with ``mmap=True``), so a 1M x 3072
-   corpus is never fully resident.
+   corpus is never fully materialized as a NumPy array.
 2. Sample query rows deterministically::
 
        np.sort(np.random.default_rng(seed).choice(rows, sample, replace=False))
@@ -16,17 +16,18 @@ Pipeline
    All rows are used when ``sample >= rows``. The sha256 of the sampled row indices
    (little-endian int64 bytes) is recorded in provenance.
 3. Ground truth: exact cosine top-``(3 * max_k)`` of the full-dimension sampled queries
-   against the full corpus, self-excluded, via
-   :func:`atlas_tools.common.knn.exact_cosine_knn` (blockwise; never materializes a
-   q x n matrix). Computing top-``(3 * max_k)`` once covers the full top-k and full
-   top-(3k) reference lists for every requested k.
+   against the full corpus, self-excluded, via FAISS ``IndexFlatIP`` in
+   :func:`atlas_tools.common.knn.exact_cosine_knn`. Computing top-``(3 * max_k)`` once
+   covers the full top-k and full top-(3k) reference lists for every requested k.
 4. Candidates: for each prefix dimension ``d``, queries are transformed with
    :func:`atlas_tools.common.knn.prefix_transform` (truncate to the first ``d``
    components, then L2-normalize) and matched against the memmapped column slice
-   ``corpus[:, :d]``. Slicing a memmap keeps it lazy, and ``exact_cosine_knn``
-   L2-normalizes each corpus block in-stream; on an already-truncated block that
-   normalization is exactly the prefix transform, so the prefix corpus is never
-   materialized either.
+   ``corpus[:, :d]``. Exact search streams normalized corpus blocks through a reusable
+   flat FAISS index and merges block-local results with ``faiss.ResultHeap``. The default
+   ``auto`` backend uses Metal/CUDA/ROCm when available and otherwise FAISS's multithreaded
+   CPU implementation. On Metal, each bounded corpus block runs in a spawned worker because
+   FAISS 1.14.3 retains its batch distance buffers for the process lifetime; worker exit
+   returns those allocations before the next block starts.
 
 Metric definitions live in :mod:`atlas_tools.audit.metrics`; the definition strings
 recorded in ``report.json`` are :data:`atlas_tools.audit.metrics.METRIC_DEFINITIONS`.
@@ -48,18 +49,15 @@ disk. ``report.meta.json`` is the :class:`~atlas_tools.audit.evaluation.RunnerPr
 envelope (input hashes, typed config plus config hash, seed, sample-row hash, tool
 version).
 
-Memory bounds: a 1M x 3072 corpus on a 32 GB machine
-----------------------------------------------------
-The corpus stays memmapped end to end. The only large transient is the per-block score
-matrix inside ``exact_cosine_knn``, whose block size is::
-
-    b = memory_cap_bytes // (4 * (n_queries + dim))
-
-(see that module's docstring for the derivation). With q=20_000 sampled queries, d=3072,
-and the default 8 GiB cap, a block covers roughly 93_000 corpus rows (about 11 blocks for
-a 1M-row corpus) and the peak score transient is q * b * 4, roughly 7.4 GB, which fits
-comfortably inside 32 GB alongside the 245 MB materialized query block. Prefix passes are
-strictly cheaper: a smaller d gives a larger b with the same q * b * 4 score budget.
+Memory and progress
+-------------------
+The corpus stays memmapped end to end. ``memory_cap_bytes`` plans bounded normalized
+corpus batches, flat-index storage, query batches, result heaps, and FAISS score workspace.
+For Metal it also bounds each isolated worker's cumulative distance buffers. It is not a hard
+RSS cap because caller-owned arrays, mapped file pages, and backend allocator bookkeeping are
+outside the function's control. The CLI reports the selected
+backend, batch sizes, estimated workspace, completed query/corpus comparisons, throughput,
+and ETA for every full and prefix pass.
 """
 
 from collections.abc import Sequence
@@ -89,10 +87,14 @@ from atlas_tools.audit.strata import StrataTable
 from atlas_tools.common.data import Dim, K
 from atlas_tools.common.knn import (
     DEFAULT_MEMORY_CAP_BYTES,
+    RequestedSearchBackend,
+    SearchBackend,
     exact_cosine_knn,
     prefix_transform,
+    resolve_search_backend,
 )
 from atlas_tools.common.matrix import load_matrix
+from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.common.provenance import (
     sha256_bytes,
     sha256_file,
@@ -236,6 +238,8 @@ def _prefix_neighbor_indices(
     max_k: int,
     sampled: np.ndarray,
     memory_cap_bytes: int,
+    backend: SearchBackend,
+    progress: ProgressReporter,
 ) -> dict[Dim, np.ndarray]:
     """Compute prefix-space top-``max_k`` neighbor indices for every prefix dimension.
 
@@ -252,6 +256,9 @@ def _prefix_neighbor_indices(
             max_k,
             query_rows_in_corpus=sampled,
             memory_cap_bytes=memory_cap_bytes,
+            backend=backend,
+            progress=progress,
+            phase=f"prefix {dim}",
         )
 
         prefix_indices_by_dim[dim] = prefix_indices
@@ -269,7 +276,9 @@ def run_audit(
     strata_path: PathLike | None = None,
     seed: int = 0,
     memory_cap_bytes: int = DEFAULT_MEMORY_CAP_BYTES,
+    backend: RequestedSearchBackend = "auto",
     min_group_size: int = 50,
+    progress: ProgressReporter = NO_PROGRESS,
 ) -> RunnerReport:
     """Run the prefix audit and write ``report.json``, ``report.md``, ``report.meta.json``.
 
@@ -287,8 +296,13 @@ def run_audit(
 
     prefix_dims, requested_ks = _validated_dims_and_ks(dims, ks, full_dim=full_dim, rows=rows)
     max_k = max(requested_ks)
+    resolved_backend = resolve_search_backend(backend)
 
     sampled = _sample_rows(rows, sample, seed)
+    progress.note(
+        f"corpus {rows:,} x {full_dim:,}; {len(sampled):,} sampled queries; "
+        f"FAISS backend {resolved_backend}"
+    )
     sample_rows_sha256 = sha256_bytes(sampled.astype("<i8").tobytes())
     queries_full = np.ascontiguousarray(corpus[sampled], dtype=np.float32)
 
@@ -300,6 +314,9 @@ def run_audit(
         full_truth_k,
         query_rows_in_corpus=sampled,
         memory_cap_bytes=memory_cap_bytes,
+        backend=resolved_backend,
+        progress=progress,
+        phase=f"full {full_dim}",
     )
 
     prefix_indices_by_dim = _prefix_neighbor_indices(
@@ -309,6 +326,8 @@ def run_audit(
         max_k=max_k,
         sampled=sampled,
         memory_cap_bytes=memory_cap_bytes,
+        backend=resolved_backend,
+        progress=progress,
     )
 
     per_query: dict[tuple[Dim, K], PerQueryMetrics] = {}
@@ -341,6 +360,7 @@ def run_audit(
         sample=sample,
         seed=seed,
         memory_cap_bytes=memory_cap_bytes,
+        backend=resolved_backend,
         min_group_size=min_group_size,
     )
 

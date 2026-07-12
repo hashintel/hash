@@ -6,7 +6,7 @@ validation, so a report re-validated from disk is equal to the model that produc
 """
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field, NonNegativeInt
 
@@ -60,6 +60,7 @@ class RunnerConfig(BaseModel):
     seed: int
 
     memory_cap_bytes: int
+    backend: Literal["cpu", "gpu"]
     min_group_size: int
 
 

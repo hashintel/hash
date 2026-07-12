@@ -99,7 +99,21 @@ class LinkExampleRow(FrozenModel):
     object_id: str
     subject_label: str
     object_label: str
-    source_type_title: str
+    subject_direct_type_base_urls: tuple[HttpUrl, ...]
+    subject_type_base_urls: tuple[HttpUrl, ...]
+    subject_frequency: PositiveInt = 1
+    object_frequency: PositiveInt = 1
+    source_type_base_url: HttpUrl | None = None
+    source_type_title: str | None = None
+
+
+class HashExampleSelection(FrozenModel):
+    """Per-relation diagnostics from SemType-aware example selection."""
+
+    candidate_pairs: NonNegativeInt = 0
+    unmatched_candidates: NonNegativeInt = 0
+    unmatched_used: bool = False
+    stratum_candidates: dict[str, NonNegativeInt] = Field(default_factory=dict)
 
 
 class HashRelationRecord(FrozenModel):
@@ -110,3 +124,4 @@ class HashRelationRecord(FrozenModel):
     versioned_url: HttpUrl
     card_input: RelationCardInput
     examples: tuple[LinkExampleRow, ...] = ()
+    example_selection: HashExampleSelection = Field(default_factory=HashExampleSelection)

@@ -17,7 +17,8 @@ from atlas_tools.relation_cards.hash.model import (
     LinkExampleRow,
 )
 
-_EXAMPLE_POOL_FACTOR = 8
+_EXAMPLE_SUBGROUP_POOL_FACTOR = 8
+_EXAMPLE_POOL_FACTOR = 32
 
 _ENTITY_TYPES_QUERY = """
     SELECT
@@ -67,7 +68,7 @@ _EXAMPLES_QUERY = """
          AND allowed_types.version = direct_type.version
         WHERE cache.base_urls && %s::text[]
     ),
-    labeled_examples AS (
+    raw_examples AS (
         SELECT
             links.relation_base_url,
             links.relation_version,
@@ -79,20 +80,20 @@ _EXAMPLES_QUERY = """
             right_edge.target_entity_uuid AS object_entity_uuid,
             (left_cache.labels)[1] AS subject_label,
             (right_cache.labels)[1] AS object_label,
-            (left_cache.type_titles)[1] AS source_type_title,
-            row_number() OVER (
-                PARTITION BY
-                    links.relation_base_url,
-                    links.relation_version,
-                    (left_cache.type_titles)[1]
-                ORDER BY
-                    links.web_id,
-                    links.entity_uuid,
-                    left_edge.target_web_id,
-                    left_edge.target_entity_uuid,
-                    right_edge.target_web_id,
-                    right_edge.target_entity_uuid
-            ) AS stratum_rank
+            left_cache.base_urls[1:left_cache.direct_types]
+                AS subject_direct_type_base_urls,
+            left_cache.base_urls AS subject_type_base_urls,
+            md5(concat_ws(
+                '|',
+                links.relation_base_url,
+                links.relation_version,
+                links.web_id,
+                links.entity_uuid,
+                left_edge.target_web_id,
+                left_edge.target_entity_uuid,
+                right_edge.target_web_id,
+                right_edge.target_entity_uuid
+            )) AS stable_hash
         FROM link_entities AS links
         INNER JOIN entity_edge AS left_edge
           ON left_edge.source_web_id = links.web_id
@@ -114,8 +115,63 @@ _EXAMPLES_QUERY = """
           ON left_cache.entity_edition_id = left_current.entity_edition_id
         INNER JOIN entity_edition_cache AS right_cache
           ON right_cache.entity_edition_id = right_current.entity_edition_id
-        WHERE (left_cache.labels)[1] IS NOT NULL
-          AND (right_cache.labels)[1] IS NOT NULL
+        WHERE nullif(btrim((left_cache.labels)[1]), '') IS NOT NULL
+          AND nullif(btrim((right_cache.labels)[1]), '') IS NOT NULL
+    ),
+    scored_examples AS (
+        SELECT
+            *,
+            count(*) OVER (
+                PARTITION BY
+                    relation_base_url,
+                    relation_version,
+                    subject_web_id,
+                    subject_entity_uuid
+            ) AS subject_frequency,
+            count(*) OVER (
+                PARTITION BY
+                    relation_base_url,
+                    relation_version,
+                    object_web_id,
+                    object_entity_uuid
+            ) AS object_frequency,
+            row_number() OVER (
+                PARTITION BY
+                    relation_base_url,
+                    relation_version,
+                    subject_web_id,
+                    subject_entity_uuid,
+                    object_web_id,
+                    object_entity_uuid
+                ORDER BY stable_hash
+            ) AS pair_rank
+        FROM raw_examples
+    ),
+    distinct_examples AS (
+        SELECT
+            *,
+            ln(1.0 + subject_frequency) + ln(1.0 + object_frequency)
+                AS recognizability
+        FROM scored_examples
+        WHERE pair_rank = 1
+    ),
+    stratified_examples AS (
+        SELECT
+            *,
+            coalesce((subject_direct_type_base_urls)[1], '') AS subgroup,
+            row_number() OVER (
+                PARTITION BY
+                    relation_base_url,
+                    relation_version,
+                    coalesce((subject_direct_type_base_urls)[1], '')
+                ORDER BY stable_hash
+            ) AS subgroup_rank
+        FROM distinct_examples
+    ),
+    pooled_examples AS (
+        SELECT *
+        FROM stratified_examples
+        WHERE subgroup_rank <= %s
     ),
     ranked_examples AS (
         SELECT
@@ -123,16 +179,12 @@ _EXAMPLES_QUERY = """
             row_number() OVER (
                 PARTITION BY relation_base_url, relation_version
                 ORDER BY
-                    stratum_rank,
-                    source_type_title,
-                    web_id,
-                    entity_uuid,
-                    subject_web_id,
-                    subject_entity_uuid,
-                    object_web_id,
-                    object_entity_uuid
+                    subgroup_rank,
+                    md5(relation_base_url || '|' || subgroup),
+                    recognizability DESC,
+                    stable_hash
             ) AS relation_rank
-        FROM labeled_examples
+        FROM pooled_examples
     )
     SELECT
         relation_base_url,
@@ -145,7 +197,10 @@ _EXAMPLES_QUERY = """
         object_entity_uuid::text,
         subject_label,
         object_label,
-        source_type_title
+        subject_direct_type_base_urls,
+        subject_type_base_urls,
+        subject_frequency,
+        object_frequency
     FROM ranked_examples
     WHERE relation_rank <= %s
     ORDER BY
@@ -187,6 +242,7 @@ def _select_snapshot_time(connection: _Connection) -> datetime:
     row = connection.execute("SELECT transaction_timestamp()").fetchone()
     if row is None:
         raise HashPostgresError("PostgreSQL returned no transaction timestamp")
+
     return cast("datetime", row[0])
 
 
@@ -195,6 +251,7 @@ def _select_entity_types(
     snapshot_at: datetime,
 ) -> list[EntityTypeRow]:
     rows = connection.execute(_ENTITY_TYPES_QUERY, (snapshot_at,)).fetchall()
+
     return [
         EntityTypeRow.model_validate(
             {
@@ -217,6 +274,7 @@ def _select_examples(
 ) -> list[LinkExampleRow]:
     if not records:
         return []
+
     relation_base_urls = [str(record.base_url) for record in records]
     relation_versions = [record.version for record in records]
     rows = connection.execute(
@@ -227,9 +285,11 @@ def _select_examples(
             snapshot_at,
             snapshot_at,
             relation_base_urls,
+            example_count * _EXAMPLE_SUBGROUP_POOL_FACTOR,
             example_count * _EXAMPLE_POOL_FACTOR,
         ),
     ).fetchall()
+
     return [
         LinkExampleRow(
             relation_base_url=cast("str", row[0]),
@@ -239,7 +299,10 @@ def _select_examples(
             object_id=f"{row[6]}/{row[7]}",
             subject_label=cast("str", row[8]),
             object_label=cast("str", row[9]),
-            source_type_title=cast("str", row[10]),
+            subject_direct_type_base_urls=cast("tuple[str, ...]", row[10]),
+            subject_type_base_urls=cast("tuple[str, ...]", row[11]),
+            subject_frequency=cast("int", row[12]),
+            object_frequency=cast("int", row[13]),
         )
         for row in rows
     ]

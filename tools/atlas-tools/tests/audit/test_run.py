@@ -97,9 +97,9 @@ def test_small_memory_cap_matches_default(
         seed=0,
         memory_cap_bytes=DEFAULT_MEMORY_CAP_BYTES,
     )
-    # b = cap // (4 * (q + d)); with q=200, d=512 this cap forces ~64-row
-    # blocks, i.e. ~47 corpus blocks instead of one.
-    tiny_cap = 4 * (200 + DIM) * 64
+    # The cap covers query/result state, normalized corpus and flat-index batches, and
+    # FAISS search workspace. Eight MiB forces multiple corpus blocks for this fixture.
+    tiny_cap = 8 << 20
     many_blocks = run_audit(
         embeddings,
         tmp_path / "tiny_cap",

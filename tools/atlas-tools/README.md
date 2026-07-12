@@ -115,6 +115,9 @@ Console scripts are installed in the venv (`uv run <name> ...`).
 uv run audit export-postgres --out X.f32 --strata-out strata.parquet
 uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
     --sample 20000 --strata strata.parquet --out report/
+# Force a backend when needed; auto prefers Metal/CUDA/ROCm and falls back to CPU.
+uv run audit run --embeddings X.f32 --dims 512 --k 50 --sample 1000 \
+    --backend gpu --memory-cap-gb 4 --out report-smoke/
 uv run audit synth-fixture --out X.f32   # synthetic acceptance fixture
 ```
 
@@ -127,9 +130,26 @@ Connection options read `HASH_GRAPH_PG_HOST`, `HASH_GRAPH_PG_PORT`,
 `HASH_GRAPH_PG_USER`, `HASH_GRAPH_PG_PASSWORD`, and `HASH_GRAPH_PG_DATABASE`, with
 the local development defaults available through `--help`.
 
-`run` writes `report.json` (the source of truth; `report.md` and the returned
-`RunnerReport` are both derived from the file on disk) plus a
-`report.meta.json` provenance envelope.
+`run` samples **queries**, not candidate corpus rows: every sampled query is still
+compared exactly with every corpus row. The work is therefore proportional to
+`sample × corpus rows × (full pass + prefix passes)`. The default sample is 20,000;
+use 500–1,000 for a smoke run before starting the full audit.
+
+Exact cosine kNN uses FAISS `IndexFlatIP` over L2-normalized vectors. Corpus blocks
+are streamed through a flat index and FAISS merges their top-k results, so no full
+query-by-corpus score matrix or normalized corpus is retained. `--backend auto` uses
+Metal on supported Apple Silicon wheels, CUDA/ROCm where exposed by FAISS, and
+otherwise FAISS's multithreaded CPU backend. FAISS 1.14.3 Metal retains each search's
+distance buffer for the process lifetime, so Metal corpus blocks run in bounded
+spawned workers; each worker exits before the next block, returning those allocations
+to the OS. `--memory-cap-gb` sizes those worker blocks and the estimated audit-owned
+arrays and FAISS workspace. It is not a hard process RSS cap because mapped input
+pages and backend allocator bookkeeping are outside that estimate.
+
+Progress is written to stderr for each full/prefix pass with completed exact
+comparisons, throughput, and ETA. Use `--quiet` to suppress it. `run` writes
+`report.json` (the source of truth; `report.md` and the returned `RunnerReport` are
+both derived from the file on disk) plus a `report.meta.json` provenance envelope.
 
 ### `battery`
 
@@ -176,6 +196,18 @@ because a direct SQL connection has no authorization-snapshot predicate. A
 generation that has explicitly selected the spec's all-snapshot security mode
 may add `--example-security-mode all-snapshot-links`; that choice and the live
 transaction timestamp are recorded in the manifest.
+
+When native examples are enabled, PostgreSQL builds a bounded, relation-seeded
+pool of distinct endpoint pairs and returns each subject's direct and closed
+SemType identities plus relation-local endpoint frequencies. The HASH adapter
+assigns the nearest permitted source-type stratum by stable type URL, keeps
+out-of-constraint candidates only as an all-strata-empty fallback, and then
+uses the same recognizability ordering, subgroup interleave, fair slot
+allocation, endpoint deduplication, and shortfall redistribution as Wikidata.
+Exact duplicate rendered lines are rejected during selection without removing
+alternates that may be needed after endpoint conflicts. Per-card stratum and
+fallback diagnostics live in `link-types.jsonl` and are aggregated in the
+manifest.
 
 ### `wikidata`
 
@@ -242,11 +274,11 @@ changes never re-run mining:
 3. `cards.jsonl` is the versioned text projection (never raw JSON), with
    token budgets, deterministic truncation, and pinned golden hashes.
 
-The card schema, renderer, token counters, and sentence splitters live in
-`atlas_tools/relation_cards/common`. Datasource adapters resolve their own
-identifiers into that canonical, identifier-free input; the final renderer
-also rejects URLs, adapter-supplied source identifiers, and UUID-shaped
-database keys before hashing.
+The card schema, renderer, token counters, sentence splitters, and diverse
+example allocator live in `atlas_tools/relation_cards/common`. Datasource
+adapters resolve their own identifiers into that canonical, identifier-free
+input; the final renderer also rejects URLs, adapter-supplied source
+identifiers, and UUID-shaped database keys before hashing.
 
 Card descriptions are split into a lead sentence and truncatable detail by a
 pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk, the
