@@ -6,7 +6,7 @@ extraction:
   seed: 7
   endpoints:
     wdqs: https://query.wikidata.org/sparql
-    qlever: https://qlever.cs.uni-freiburg.de/api/wikidata
+    qlever: https://qlever.dev/api/wikidata
     wikibase_api: https://www.wikidata.org/w/api.php
   politeness:
     rate_limit_per_sec: 10.0
@@ -16,8 +16,9 @@ extraction:
   example_count: 4
   example_pool_limit: 10
   example_offsets: [0]
-  # Explicit (matches the default): pool rows violating subject-type
-  # constraints are dropped; tests pass fixtures/wikidata/taxonomy.parquet.
+  # Explicit (matches the default): example selection stratifies by the
+  # subject-type constraint classes (untyped candidates dropped, unmatched
+  # ones bucketed as `other`); tests pass fixtures/wikidata/taxonomy.parquet.
   filter_examples_by_subject_type: true
   checkpoint_interval: 20
   dump:

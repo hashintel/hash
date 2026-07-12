@@ -9,9 +9,11 @@ Two query families:
   optional usage-count proxy. The query restricts by datatype already, but
   the parser defensively re-filters (see ``parse_inventory_results``) so
   external-identifier rows (P212-style) can never leak through.
-- example pairs: subject/object label pairs for one property with
-  LIMIT/OFFSET for the diversity ladder, plus the subject's P31 class so the
-  card builder can sample across distinct subject types.
+- example pairs: subject/object pairs for one property with LIMIT/OFFSET
+  for the diversity ladder, plus the subject's P31 class (stratum
+  assignment), both entity QIDs (endpoint dedup across a card), and both
+  sitelink counts (recognizability weighting) for the stratified example
+  selector (``examples.py``).
 
 The example query is written for STREAMING evaluation: no ORDER BY (which
 would force the endpoint to materialize every statement of the property
@@ -55,7 +57,7 @@ from atlas_tools.wikidata.model import Pid
 WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 
 # Bump on any semantic change to example_pairs_query (see module docstring).
-EXAMPLE_QUERY_VERSION = 3
+EXAMPLE_QUERY_VERSION = 4
 
 # The SPARQL endpoints the example ladder can draw from. Ladder ORDER is
 # config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
@@ -101,14 +103,19 @@ def property_ancestors_query() -> str:
 def example_pairs_query(
     pid: str, *, limit: int, offset: int, language: str = "en"
 ) -> str:
-    """Subject/object label pairs for ``pid`` with subject P31 class.
+    """Subject/object pairs for ``pid``: QIDs, labels, subject P31 class,
+    and sitelink counts for both endpoints.
 
     The inner subquery slices the raw statement stream (LIMIT/OFFSET on
-    ``?subject wdt:PID ?object`` alone); P31 and label joins apply only to
-    the sliced rows, which is what makes deep offsets answerable in
-    sub-second time on QLever (see module docstring). The outer pattern can
-    multiply rows (one per P31 type / label) — deliberate: the diversity
-    sampler wants to see every subject type.
+    ``?subject wdt:PID ?object`` alone); P31, label, and sitelink joins
+    apply only to the sliced rows, which is what makes deep offsets
+    answerable in sub-second time on QLever (see module docstring; the
+    sitelink OPTIONALs were live-verified in the same subquery form). The
+    outer pattern can multiply rows (one per P31 type / label) —
+    deliberate: the stratified selector unions every subject type per pair.
+
+    ``wdt:`` yields TRUTHY (best-rank) statements only, so deprecated and
+    superseded statements never enter the candidate pool.
 
     Streaming-safe and portable: no ORDER BY anywhere, no WDQS-only label
     service, explicit prefixes for QLever.
@@ -116,7 +123,9 @@ def example_pairs_query(
     return (
         "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
         "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
-        "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n"
+        "PREFIX wikibase: <http://wikiba.se/ontology#>\n"
+        "SELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType"
+        " ?subjectSitelinks ?objectSitelinks WHERE {\n"
         "  {\n"
         "    SELECT ?subject ?object WHERE {\n"
         f"      ?subject wdt:{pid} ?object .\n"
@@ -124,6 +133,8 @@ def example_pairs_query(
         f"    LIMIT {limit} OFFSET {offset}\n"
         "  }\n"
         "  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n"
+        "  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n"
+        "  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n"
         "  ?subject rdfs:label ?subjectLabel .\n"
         f'  FILTER(LANG(?subjectLabel) = "{language}")\n'
         "  ?object rdfs:label ?objectLabel .\n"
@@ -206,9 +217,20 @@ def parse_ancestor_results(body: bytes) -> list[tuple[Pid, Pid]]:
 class ExampleRow(BaseModel):
     model_config = ConfigDict(frozen=True)
 
+    subject_qid: str  # QID, or "" from pre-v4 responses (no dedup possible)
+    object_qid: str
     subject_label: str
     object_label: str
     subject_type: str  # QID, or "" when the subject has no P31
+    # ``wikibase:sitelinks``: how many Wikipedia-family pages the entity
+    # has — the recognizability proxy for weighted example selection.
+    subject_sitelinks: int = 0
+    object_sitelinks: int = 0
+
+
+def _sitelinks(binding: dict[str, SparqlValue], name: str) -> int:
+    bound = binding.get(name)
+    return int(bound.value) if bound else 0
 
 
 def parse_example_results(body: bytes) -> list[ExampleRow]:
@@ -217,8 +239,19 @@ def parse_example_results(body: bytes) -> list[ExampleRow]:
 
     for binding in response.results.bindings:
         subject_type_binding = binding.get("subjectType")
+        subject_binding = binding.get("subject")
+        object_binding = binding.get("object")
+
         rows.append(
             ExampleRow(
+                subject_qid=(
+                    _entity_id_from_uri(subject_binding.value)
+                    if subject_binding
+                    else ""
+                ),
+                object_qid=(
+                    _entity_id_from_uri(object_binding.value) if object_binding else ""
+                ),
                 subject_label=binding["subjectLabel"].value,
                 object_label=binding["objectLabel"].value,
                 subject_type=(
@@ -226,6 +259,8 @@ def parse_example_results(body: bytes) -> list[ExampleRow]:
                     if subject_type_binding
                     else ""
                 ),
+                subject_sitelinks=_sitelinks(binding, "subjectSitelinks"),
+                object_sitelinks=_sitelinks(binding, "objectSitelinks"),
             )
         )
 

@@ -33,6 +33,7 @@ Entity rules (index i in 0..199, qid = Q<9000+i>):
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from atlas_tools.wikidata.config import Config
@@ -248,12 +249,15 @@ PROPERTY_DOCS = {
         "aliases": {
             "en": [_label("en", "contained within"), _label("en", "component of")]
         },
+        # TWO subject-type constraint classes -> the example selector
+        # stratifies P361 into settlement + written-work strata; the
+        # film-typed pairs match neither and land in `other`.
         "claims": {
             "P1696": [_property_snak("P1696", "P527")],
             "P2302": [
                 _constraint("Q18647515"),
                 _constraint("Q21510855", {"P2306": ["P527"]}),
-                _constraint("Q21503250", {"P2308": ["Q35120"]}),
+                _constraint("Q21503250", {"P2308": ["Q486972", "Q47461344"]}),
                 _constraint("Q21510865", {"P2308": ["Q35120"]}),
             ],
         },
@@ -370,50 +374,115 @@ ITEM_DOCS = {
             )
         },
     },
+    "Q486972": {
+        "id": "Q486972",
+        "labels": {"en": _label("en", "human settlement")},
+        "descriptions": {
+            "en": _label("en", "community of people living in a particular place")
+        },
+    },
+    "Q47461344": {
+        "id": "Q47461344",
+        "labels": {"en": _label("en", "written work")},
+        "descriptions": {"en": _label("en", "any work expressed in writing")},
+    },
 }
 
-# (subject label, object label, subject type QID or "") per property.
+
+# One example-pool row: entity QIDs, labels, subject P31 (or ""), and the
+# sitelink counts that drive recognizability weighting. A shared entity
+# always reuses the same QID + sitelink count across pairs and properties
+# (a consistent synthetic snapshot); sitelinks of 0 OMIT the binding to
+# exercise the parser's OPTIONAL path.
+@dataclass(frozen=True)
+class ExamplePair:
+    subject_qid: str
+    subject_label: str
+    subject_sitelinks: int
+    object_qid: str
+    object_label: str
+    object_sitelinks: int
+    subject_type: str = ""
+
+
 EXAMPLE_PAIRS = {
+    # P361 subjects stratify as: city rows -> human settlement (Q486972),
+    # book rows -> written work (Q47461344), film rows -> `other`
+    # (Q11424 is under neither), untyped rows -> dropped. Sitelink weights
+    # make the settlement head (Left Bank -> Paris) deterministic, and the
+    # second Paris pair exercises endpoint dedup within a stratum.
     "P361": [
-        ("Left Bank", "Paris", "Q515"),
-        ("Old Town", "Prague", "Q515"),
-        ("Chapter One", "Synthetic Novel", "Q571"),
-        ("Appendix", "Field Guide", "Q571"),
-        ("Opening Scene", "Synthetic Film", "Q11424"),
-        ("Finale", "Concert Film", "Q11424"),
-        ("Engine", "Car", ""),
-        ("Wheel", "Bicycle", ""),
+        ExamplePair("Q9001001", "Left Bank", 40, "Q9001002", "Paris", 300, "Q515"),
+        ExamplePair("Q9001003", "Old Town", 15, "Q9001004", "Prague", 250, "Q515"),
+        ExamplePair("Q9001005", "Montmartre", 25, "Q9001002", "Paris", 300, "Q515"),
+        ExamplePair(
+            "Q9001010", "Chapter One", 2, "Q9001011", "Synthetic Novel", 8, "Q571"
+        ),
+        ExamplePair("Q9001012", "Appendix", 1, "Q9001013", "Field Guide", 5, "Q571"),
+        ExamplePair(
+            "Q9001020", "Opening Scene", 3, "Q9001021", "Synthetic Film", 12, "Q11424"
+        ),
+        ExamplePair("Q9001022", "Finale", 2, "Q9001023", "Concert Film", 9, "Q11424"),
+        ExamplePair("Q9001030", "Engine", 4, "Q9001031", "Car", 60),
+        ExamplePair("Q9001032", "Wheel", 2, "Q9001033", "Bicycle", 30),
     ],
-    # P50 constrains subjects to Q571 (book). The film rows, the untyped
-    # row, and the Q5-typed row all violate it and are dropped by the
-    # subject-type filter (the P6-style reversed-statement scenario).
+    # P50 constrains subjects to Q571 (book): the film rows and the
+    # Q5-typed row land in `other` (never on the card while the book
+    # stratum is non-empty), the untyped row is dropped (the P6-style
+    # reversed-statement scenario).
     "P50": [
-        ("Synthetic Novel", "Person 001", "Q571"),
-        ("Field Guide", "Person 002", "Q571"),
-        ("Synthetic Film", "Person 003", "Q11424"),
-        ("Concert Film", "Person 004", "Q11424"),
-        ("Poem Collection", "Person 005", "Q571"),
-        ("Essay Anthology", "Person 006", "Q571"),
-        ("Anonymous Manuscript", "Person 007", ""),
-        ("Some Human", "Person 008", "Q5"),
+        ExamplePair(
+            "Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"
+        ),
+        ExamplePair("Q9001013", "Field Guide", 5, "Q9002002", "Person 002", 2, "Q571"),
+        ExamplePair(
+            "Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"
+        ),
+        ExamplePair(
+            "Q9001023", "Concert Film", 9, "Q9002004", "Person 004", 1, "Q11424"
+        ),
+        ExamplePair(
+            "Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"
+        ),
+        ExamplePair(
+            "Q9001015", "Essay Anthology", 2, "Q9002006", "Person 006", 0, "Q571"
+        ),
+        ExamplePair("Q9001016", "Anonymous Manuscript", 0, "Q9002007", "Person 007", 0),
+        ExamplePair("Q9002008", "Some Human", 30, "Q9002009", "Person 008", 1, "Q5"),
     ],
+    # P527 has no subject-type constraints: one unstratified pool, untyped
+    # rows included. The two Paris-subject pairs exercise endpoint dedup on
+    # an unstratified card (exactly one survives), leaving a deterministic
+    # 4-of-5 selection at example_count=4.
     "P527": [
-        ("Paris", "Left Bank", "Q515"),
-        ("Prague", "Old Town", "Q515"),
-        ("Synthetic Novel", "Chapter One", "Q571"),
-        ("Car", "Engine", ""),
-        ("Bicycle", "Wheel", ""),
+        ExamplePair("Q9001002", "Paris", 300, "Q9001001", "Left Bank", 40, "Q515"),
+        ExamplePair("Q9001002", "Paris", 300, "Q9001005", "Montmartre", 25, "Q515"),
+        ExamplePair("Q9001004", "Prague", 250, "Q9001003", "Old Town", 15, "Q515"),
+        ExamplePair(
+            "Q9001011", "Synthetic Novel", 8, "Q9001010", "Chapter One", 2, "Q571"
+        ),
+        ExamplePair("Q9001031", "Car", 60, "Q9001030", "Engine", 4),
     ],
     "P9001": [
-        ("Company 081", "Company 082", "Q4830453"),
-        ("Company 083", "Company 084", "Q4830453"),
-        ("Person 001", "Company 085", "Q5"),
-        ("Person 002", "Company 086", "Q5"),
+        ExamplePair(
+            "Q9003001", "Company 081", 3, "Q9003002", "Company 082", 2, "Q4830453"
+        ),
+        ExamplePair(
+            "Q9003003", "Company 083", 1, "Q9003004", "Company 084", 1, "Q4830453"
+        ),
+        ExamplePair("Q9002001", "Person 001", 5, "Q9003005", "Company 085", 0, "Q5"),
+        ExamplePair("Q9002002", "Person 002", 2, "Q9003006", "Company 086", 0, "Q5"),
     ],
     "P9005": [
-        ("Synthetic Novel", "Person 001", "Q571"),
-        ("Synthetic Film", "Person 003", "Q11424"),
-        ("Poem Collection", "Person 005", "Q571"),
+        ExamplePair(
+            "Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"
+        ),
+        ExamplePair(
+            "Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"
+        ),
+        ExamplePair(
+            "Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"
+        ),
     ],
 }
 
@@ -458,16 +527,31 @@ def ancestors_response() -> dict:
 
 def example_response(pid: str) -> dict:
     bindings = []
-    for subject_label, object_label, subject_type in EXAMPLE_PAIRS[pid]:
+    for pair in EXAMPLE_PAIRS[pid]:
         binding = {
-            "subjectLabel": {"type": "literal", "value": subject_label},
-            "objectLabel": {"type": "literal", "value": object_label},
+            "subject": {
+                "type": "uri",
+                "value": f"http://www.wikidata.org/entity/{pair.subject_qid}",
+            },
+            "object": {
+                "type": "uri",
+                "value": f"http://www.wikidata.org/entity/{pair.object_qid}",
+            },
+            "subjectLabel": {"type": "literal", "value": pair.subject_label},
+            "objectLabel": {"type": "literal", "value": pair.object_label},
         }
-        if subject_type:
+        if pair.subject_type:
             binding["subjectType"] = {
                 "type": "uri",
-                "value": f"http://www.wikidata.org/entity/{subject_type}",
+                "value": f"http://www.wikidata.org/entity/{pair.subject_type}",
             }
+        # Zero sitelinks omit the binding (the OPTIONAL-absent path).
+        for name, count in (
+            ("subjectSitelinks", pair.subject_sitelinks),
+            ("objectSitelinks", pair.object_sitelinks),
+        ):
+            if count:
+                binding[name] = {"type": "literal", "value": str(count)}
         bindings.append(binding)
     return sparql_results(bindings)
 

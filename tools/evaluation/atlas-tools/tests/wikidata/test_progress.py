@@ -60,8 +60,9 @@ def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
 
     # The exhausted-ladder property is called out by PID.
     assert any("P9002" in note and "skipped" in note for note in progress.notes)
-    # The subject-type filter announces what it dropped.
-    assert any("subject-type filter" in note for note in progress.notes)
+    # The reversed-statement guard announces the untyped candidates it
+    # dropped (P361: Engine/Wheel, P50: Anonymous Manuscript).
+    assert any("reversed-statement guard" in note for note in progress.notes)
 
 
 def test_extraction_notes_checkpoint_resume(tmp_path):

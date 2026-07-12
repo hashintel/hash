@@ -56,7 +56,7 @@ class EndpointsConfig(ForbidExtraModel):
     """API endpoints; the field names are the closed endpoint-name set."""
 
     wdqs: str = "https://query.wikidata.org/sparql"
-    qlever: str = "https://qlever.cs.uni-freiburg.de/api/wikidata"
+    qlever: str = "https://qlever.dev/api/wikidata"
     wikibase_api: str = "https://www.wikidata.org/w/api.php"
 
     def sparql_url(self, endpoint: Literal["wdqs", "qlever"]) -> str:
@@ -107,10 +107,13 @@ class ExtractionConfig(ForbidExtraModel):
     example_endpoint_ladder: tuple[ExampleSource, ...] = Field(
         default=("qlever", "wdqs"), min_length=1
     )
-    # Drop pool rows whose subject type is empty or not subsumed by the
-    # property's subject-type constraints (needs a local P279 taxonomy, see
-    # `wikidata taxonomy`). Motivated by live-verified reversed statements
-    # in the long tail (e.g. a person with EMPTY P31 as the SUBJECT of P6).
+    # Stratify example selection by the property's subject-type constraint
+    # classes (needs a local P279 taxonomy, see `wikidata taxonomy`):
+    # untyped candidates are dropped (live-verified reversed statements in
+    # the long tail, e.g. a person with EMPTY P31 as the SUBJECT of P6) and
+    # typed candidates outside every constraint class land in a diagnostic
+    # `other` bucket (see examples.py). Disabled, selection runs over one
+    # unstratified pool and nothing is dropped.
     filter_examples_by_subject_type: bool = True
     # Page size for the `wikidata taxonomy` P279 pull (~48 MB JSON and
     # ~1.0 s per 500k page on QLever, measured live).

@@ -5,93 +5,189 @@
   "results": {
     "bindings": [
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002001"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 001"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "5"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001011"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Synthetic Novel"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "8"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002002"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 002"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001013"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Field Guide"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "5"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002003"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 003"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "7"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001021"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Synthetic Film"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "12"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q11424"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002004"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 004"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "1"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001023"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Concert Film"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "9"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q11424"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002005"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 005"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001014"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Poem Collection"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "3"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002006"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 006"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001015"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Essay Anthology"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002007"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 007"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001016"
         },
         "subjectLabel": {
           "type": "literal",
@@ -99,13 +195,29 @@
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002009"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Person 008"
         },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "1"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002008"
+        },
         "subjectLabel": {
           "type": "literal",
           "value": "Some Human"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "30"
         },
         "subjectType": {
           "type": "uri",

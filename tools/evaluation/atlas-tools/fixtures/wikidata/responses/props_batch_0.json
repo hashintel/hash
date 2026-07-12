@@ -94,7 +94,17 @@
                   "datavalue": {
                     "type": "wikibase-entityid",
                     "value": {
-                      "id": "Q35120"
+                      "id": "Q486972"
+                    }
+                  },
+                  "property": "P2308",
+                  "snaktype": "value"
+                },
+                {
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "id": "Q47461344"
                     }
                   },
                   "property": "P2308",

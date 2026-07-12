@@ -1,5 +1,5 @@
 """Golden card tests (pinned hashes from committed fixtures) + card format
-v3 unit tests: phrases, sentence splitters, truncation passes, untitled
+v5 unit tests: phrases, sentence splitters, truncation passes, untitled
 records. All offline; the sentence splitter under test is always ``naive``
 except one guarded punkt test that SKIPS when punkt_tab data is missing."""
 
@@ -42,11 +42,11 @@ from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
 # from the committed fixtures. Any change to the card format, the fixtures,
 # or the truncation/sampling logic must be a conscious re-pin.
-# Re-pinned for the subject-type example filter (P361 loses its untyped
-# rows, P50 its film/untyped/human rows) + closed P1647 ancestors (P50
-# gains the grandparent "abstract involvement").
-P361_CARD_HASH = "a3306138734cb57f1a2b2e917eeb99e267f329e57c8a89ddeb645c157b6dd85a"
-P50_CARD_HASH = "abcedb6714b209ce4b0aadb47982329448d699763bbaf939bf6d7741a3d19f97"
+# Re-pinned for card format v5: stratified example selection (subject-type
+# constraint strata with label prefixes, sitelink weighting, endpoint
+# dedup) over the QID+sitelink example query (v4).
+P361_CARD_HASH = "648c35614c1c463295a25c5ab2ec54514236d881138d2c9221ce3e4aa1c57bfa"
+P50_CARD_HASH = "f283ab38006e33c378bdad35cbc784ab54a3349fb1c71d750e415d469640edbb"
 
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
@@ -110,14 +110,38 @@ class TestGoldenCards:
             with pytest.raises(json.JSONDecodeError):
                 json.loads(row["card_text"])
 
-    def test_v3_block_structure(self, pipeline):
+    def test_v5_block_structure(self, pipeline):
         text = pipeline.rows["P361"]["card_text"]
         assert text.endswith("\n") and not text.endswith("\n\n")
         assert "\n\nConstraints:\n  - symmetric? no\n" in text
         assert "Aliases:\n  - contained within\n  - component of" in text
-        assert "\n\nExamples:\n  - Opening Scene -> Synthetic Film\n" in text
+        assert "\n\nExamples:\n  - human settlement: Left Bank -> Paris\n" in text
         assert "Target types:" in text and "Destination types:" not in text
         assert text.rstrip().endswith("Slug: part-of")
+
+    def test_examples_grouped_by_stratum_with_label_prefixes(self, pipeline):
+        # P361 declares two subject-type constraint classes; the card
+        # covers BOTH strata, grouped and prefixed with the class labels.
+        examples = _card_examples(pipeline.rows["P361"]["card_text"])
+        assert examples == [
+            "human settlement: Left Bank -> Paris",
+            "human settlement: Old Town -> Prague",
+            "written work: Chapter One -> Synthetic Novel",
+            "written work: Appendix -> Field Guide",
+        ]
+
+    def test_endpoint_dedup_one_paris_per_card(self, pipeline):
+        # P527's pool holds two Paris-subject pairs; endpoint dedup keeps
+        # exactly one (and P361's second Paris pair loses to the first).
+        for pid in ("P361", "P527"):
+            text = pipeline.rows[pid]["card_text"]
+            assert text.count("Paris") == 1, pid
+        assert "Montmartre" not in pipeline.rows["P527"]["card_text"]
+
+    def test_unstratified_cards_render_bare_examples(self, pipeline):
+        # P527 has no subject-type constraints: no stratum prefixes.
+        for example in _card_examples(pipeline.rows["P527"]["card_text"]):
+            assert ": " not in example, example
 
     def test_token_budget_respected_with_heuristic_counter(self, pipeline):
         counter = make_token_counter(pipeline.config.cards.tokenizer)
@@ -158,7 +182,7 @@ class TestGoldenCards:
 
     def test_manifest_hashes_match_rows(self, pipeline):
         details = pipeline.manifest["details"]
-        assert details["card_format_version"] == 4
+        assert details["card_format_version"] == 5
         assert details["sentence_splitter"] == "naive"
         assert details["untitled"] == []
         assert details["counts"]["untitled"] == 0
@@ -213,17 +237,22 @@ class TestClosedAncestors:
         assert "abstract involvement" in pipeline.rows["P9005"]["card_text"]
 
 
-class TestSubjectTypeFilter:
+class TestSubjectTypeStratification:
     """Reversed statements live in the long tail (live-verified: Q100151929,
     a person with EMPTY P31, appears as the SUBJECT of P6 — semantically
-    inverted). Pool rows violating subject-type constraints are dropped
-    before sampling; see test_properties for the row-level unit tests."""
+    inverted). Under stratification, untyped candidates are dropped and
+    typed candidates outside every constraint class land in the diagnostic
+    `other` bucket; see test_properties for the selection unit tests."""
 
-    def test_filtered_counts_recorded_in_manifest_flags(self, pipeline):
+    def test_filtered_and_other_counts_recorded_in_manifest_flags(self, pipeline):
         flags = pipeline.manifest["details"]["flags"]
-        # P361 (constraint Q35120): 2 untyped rows dropped.
-        # P50 (constraint Q571): 2 film rows + 1 untyped + 1 human dropped.
-        assert flags["example_rows_filtered"] == {"P361": 2, "P50": 4}
+        # Untyped candidates dropped: P361 (Engine, Wheel), P50 (Anonymous
+        # Manuscript).
+        assert flags["example_rows_filtered"] == {"P361": 2, "P50": 1}
+        # Typed candidates outside every constraint class: P361 (2 film
+        # pairs), P50 (2 film pairs + 1 human subject).
+        assert flags["example_other_candidates"] == {"P361": 2, "P50": 3}
+        assert flags["example_other_fallbacks"] == []
 
     def test_p50_examples_are_all_book_subjects(self, pipeline):
         text = pipeline.rows["P50"]["card_text"]
@@ -453,6 +482,74 @@ class TestTruncation:
         second = _build(record, _config(BIG, BIG))
         assert first.card_hash == second.card_hash
         assert first.card_text == second.card_text
+
+
+def _stratified_record(alpha_examples: int, beta_examples: int) -> PropertyRecord:
+    """Two-strata record: `alpha type` (Q1) and `beta type` (Q2) examples,
+    grouped the way the selector emits them."""
+
+    def example(stratum: str, i: int) -> Example:
+        return Example(
+            subject_qid=f"Q{stratum}{i:02d}1",
+            object_qid=f"Q{stratum}{i:02d}2",
+            subject_label=f"Subject Item Number {i:02d} With A Long Label",
+            object_label=f"Object Item Number {i:02d} With A Long Label",
+            subject_type=f"Q10{i}",
+            stratum=Pid(f"Q{stratum}"),
+        )
+
+    return PropertyRecord(
+        pid=Pid("P9999"),
+        datatype="wikibase-item",
+        labels={EN: "test relation"},
+        descriptions={EN: "a synthetic relation used to exercise truncation"},
+        constraints=Constraints(subject_types=(Pid("Q1"), Pid("Q2"))),
+        examples=[example("1", i) for i in range(alpha_examples)]
+        + [example("2", i) for i in range(beta_examples)],
+    )
+
+
+class TestStratifiedTruncation:
+    def test_slot_drops_come_from_the_largest_stratum_first(self):
+        record = _stratified_record(3, 2)
+        full = _build(record, _config(BIG, BIG))
+        assert full.truncations == []
+
+        card = _build(record, _config(full.token_count - 25, BIG))
+        dropped = [label for label in card.truncations if label.startswith("example[")]
+        assert dropped, "expected at least one dropped example slot"
+        # The largest stratum (alpha, 3 examples at indices 0-2) loses its
+        # lowest draw rank first.
+        assert dropped[0] == "example[2]"
+        assert not any(
+            label.startswith("example_stratum") for label in card.truncations
+        )
+
+    def test_strata_survive_slot_loss(self):
+        record = _stratified_record(3, 2)
+        full = _build(record, _config(BIG, BIG))
+        card = _build(record, _config(full.token_count - 25, BIG))
+        examples = _card_examples(card.card_text)
+        assert len(examples) < 5
+        # Both strata still land examples: slots are dropped round-robin
+        # from the largest strata, never a whole stratum while any stratum
+        # holds two or more.
+        assert any(example.startswith("alpha type: ") for example in examples)
+        assert any(example.startswith("beta type: ") for example in examples)
+
+    def test_whole_strata_drop_only_after_detail_stripping(self):
+        record = _stratified_record(3, 2)
+        card = _build(record, _config(1, BIG))  # impossible soft budget
+        # The LAST stratum (beta) was dropped whole, after the detail
+        # passes ran; one alpha example survives (the one-example floor).
+        assert "example_stratum[beta type]" in card.truncations
+        assert card.truncations.index("source_type_details") < card.truncations.index(
+            "example_stratum[beta type]"
+        )
+        assert _card_examples(card.card_text) == [
+            "alpha type: Subject Item Number 00 With A Long Label"
+            " -> Object Item Number 00 With A Long Label"
+        ]
 
 
 # --- Phrase + sentence splitters ----------------------------------------------

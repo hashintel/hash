@@ -9,4 +9,4 @@ disk; the extractor reads a (seekable file or stdin) stream and persists only
 part files, checkpoints, and the final parquet.
 """
 
-CARD_FORMAT_VERSION = 4
+CARD_FORMAT_VERSION = 5

@@ -5,10 +5,10 @@ Layering (mining is decoupled from card formatting):
 1. raw response cache (``cache.py``) — provenance of every API byte;
 2. ``records.jsonl`` (``records.py``) — structured, card-format-independent
    property records;
-3. ``card.py`` — ONE card: structured :class:`~atlas_tools.wikidata.card.CardContents`,
-   the text projection, and the truncation passes (card format v3 lives
-   there);
-4. ``cards.jsonl`` (this module) — CORPUS emission: iterate the record set,
+3. ``card.py`` — one card: structured :class:`~atlas_tools.wikidata.card.CardContents`,
+   the text projection, and the truncation passes (the current card format
+   lives there);
+4. ``cards.jsonl`` (this module) — corpus emission: iterate the record set,
    build each card, and write the JSONL corpus plus its provenance
    manifest. ``render_cards`` is a pure records -> cards step with zero
    transport/network involvement, so the card format can change and be

@@ -130,12 +130,30 @@ uv run wikidata sampling-plan --config config.yaml --input entities.parquet --ou
 oracle. It bypasses the response cache on purpose (each page is ~48 MB of
 JSON; the checkpointed parquet is the persistence) and is restartable like
 the W2b extractor. `extract-properties` needs `--taxonomy` while
-`extraction.filter_examples_by_subject_type` (default: on) is enabled: pool
-rows whose subject is untyped or typed outside the property's subject-type
-constraints are dropped before sampling — live runs surfaced semantically
-reversed statements in the long tail (a person with empty P31 as the
-SUBJECT of P6). Properties without constraints keep every row; per-property
-drop counts land in the manifests' ladder flags.
+`extraction.filter_examples_by_subject_type` (default: on) is enabled.
+
+Example selection (`atlas_tools/wikidata/examples.py`) is **stratified by
+the property's subject-type constraint classes**: pool rows collapse into
+distinct (subject, object) candidate pairs, each pair is assigned to the
+first constraint class that subsumes any of its P31 types under the local
+P279 closure, and the example budget goes one slot per non-empty stratum
+first, remainder by candidate volume. Within a stratum the most
+recognizable pair leads (weight ∝ `log1p(subject sitelinks) +
+log1p(object sitelinks)`), one slot is a uniform draw so the famous/obscure
+contrast survives, and no entity QID appears twice on a card (one Erdoğan).
+Cards render each example prefixed with its stratum's label
+(`municipality: Cluj-Napoca -> Emil Boc`); unconstrained properties select
+from one unstratified pool and render bare pairs.
+
+Two guard rails around stratification: **untyped** candidates (no P31 at
+all) are dropped — live runs surfaced semantically reversed statements in
+the long tail (a person with empty P31 as the SUBJECT of P6) — and typed
+candidates matching no constraint class land in a diagnostic `other`
+bucket that reaches cards only when every declared stratum is empty (a
+stale constraint list must not produce an example-less card, but must not
+smuggle constraint-violating pairs onto cards either). Per-property drop
+and `other` counts land in the manifests' ladder flags, and extraction
+logs a warning when `other` exceeds 25% of a property's typed candidates.
 
 Config is a typed tree (`extraction:` + `cards:` — see
 `fixtures/wikidata/config.yaml`). The pipeline is layered so card-format

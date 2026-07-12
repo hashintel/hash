@@ -38,7 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import BaseModel, NonNegativeInt, TypeAdapter
+from pydantic import BaseModel, Field, NonNegativeInt, TypeAdapter
 
 from atlas_tools.common.provenance import (
     Provenance,
@@ -56,7 +56,9 @@ from atlas_tools.wikidata.model import (
 )
 from atlas_tools.wikidata.properties import ExtractionResult
 
-RECORDS_FORMAT_VERSION = 1
+# v2: Example rows gained subject/object QIDs and the constraint-class
+# stratum; ladder flags gained the `other` bucket diagnostics.
+RECORDS_FORMAT_VERSION = 2
 
 _ENTITY_LABELS_ADAPTER = TypeAdapter(dict[Pid, EntityLabel])
 
@@ -66,8 +68,15 @@ class LadderFlags(BaseModel):
 
     example_ladder_fallbacks: dict[str, ExampleSource]
     example_ladder_skips: list[str]
-    # pid -> pool rows dropped by the subject-type filter (diagnostics).
+    # pid -> untyped candidates dropped under stratification (the
+    # reversed-statement guard).
     example_rows_filtered: dict[str, int]
+    # pid -> typed candidates matching no subject-type constraint class;
+    # a persistently large bucket means the constraint list is stale.
+    example_other_candidates: dict[str, int] = Field(default_factory=dict)
+    # pids whose constraint strata were ALL empty: examples fell back to
+    # the unstratified `other` pool.
+    example_other_fallbacks: list[str] = Field(default_factory=list)
 
 
 class ExtractionCounts(BaseModel):
@@ -173,6 +182,15 @@ def emit_records(
                         result.example_filtered.items(),
                         key=lambda item: pid_number(item[0]),
                     )
+                ),
+                example_other_candidates=dict(
+                    sorted(
+                        result.example_other.items(),
+                        key=lambda item: pid_number(item[0]),
+                    )
+                ),
+                example_other_fallbacks=sorted(
+                    result.example_other_fallbacks, key=pid_number
                 ),
             ),
             excluded=excluded_sorted,

@@ -52,11 +52,21 @@ class Constraints(BaseModel):
 
 
 class Example(BaseModel):
-    """One subject/object label pair shown on a card."""
+    """One subject/object pair shown on a card.
 
+    QIDs and the stratum are record METADATA — card text renders labels
+    only (identifier-free), with the stratum resolved to its label. A
+    ``None`` stratum means the example was selected without stratification
+    (property without subject-type constraints, no taxonomy, or the
+    all-strata-empty fallback — see ``examples.py``).
+    """
+
+    subject_qid: str = ""  # "" only for records predating query v4
+    object_qid: str = ""
     subject_label: str
     object_label: str
     subject_type: str  # QID, or "" when the subject has no P31
+    stratum: Pid | None = None  # subject-type constraint class
 
     model_config = ConfigDict(frozen=True)
 

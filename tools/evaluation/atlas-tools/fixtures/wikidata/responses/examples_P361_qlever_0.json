@@ -5,107 +5,265 @@
   "results": {
     "bindings": [
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001002"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Paris"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "300"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001001"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Left Bank"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "40"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q515"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001004"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Prague"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "250"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001003"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Old Town"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "15"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q515"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001002"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Paris"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "300"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001005"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Montmartre"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "25"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q515"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001011"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Synthetic Novel"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "8"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001010"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Chapter One"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001013"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Field Guide"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "5"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001012"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Appendix"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "1"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001021"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Synthetic Film"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "12"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001020"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Opening Scene"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "3"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q11424"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001023"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Concert Film"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "9"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001022"
         },
         "subjectLabel": {
           "type": "literal",
           "value": "Finale"
         },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
         "subjectType": {
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q11424"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001031"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Car"
         },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "60"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001030"
+        },
         "subjectLabel": {
           "type": "literal",
           "value": "Engine"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "4"
         }
       },
       {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001033"
+        },
         "objectLabel": {
           "type": "literal",
           "value": "Bicycle"
         },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "30"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001032"
+        },
         "subjectLabel": {
           "type": "literal",
           "value": "Wheel"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "2"
         }
       }
     ]

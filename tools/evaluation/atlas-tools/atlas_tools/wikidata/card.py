@@ -1,6 +1,6 @@
 """Single-card construction: structured contents, rendering, truncation.
 
-Card format v3
+Card format v5
 --------------
 A card is deterministic labeled TEXT (never JSON), one section per block,
 blank-line separated, in the atlas-spec priority order. All Wikidata
@@ -27,21 +27,30 @@ classifier later scores cards built from ontologies that have no PIDs/QIDs).
       ...
 
     Examples:
-      - <subject> -> <object>
+      - <stratum label>: <subject> -> <object>
 
     Slug: <normalized-title>
+
+Examples arrive grouped by SOURCE-TYPE STRATUM (``examples.py``): each
+line is prefixed with the label of the subject-type constraint class its
+subject belongs to (e.g. ``municipality: Cluj-Napoca -> Emil Boc``).
+Unstratified selections (property without constraints, or the fallback
+pool) render the bare ``<subject> -> <object>`` form. The stratum label
+vocabulary is part of the card-format version.
 
 Truncation is structural, not textual: descriptions are split into a
 ``lead`` sentence and the remaining ``detail`` at construction time
 (:class:`Phrase`), so truncation drops *fields*, never mid-sentence text.
-Passes run in spec order while the card
- exceeds the token budget:
+Passes run in spec order while the card exceeds the token budget:
 
-1. ``example[<rank>]`` — drop examples from the end (lowest diversity rank
-   first);
+1. ``example[<index>]`` — drop example SLOTS round-robin from the largest
+   strata (lowest draw rank within the stratum first); a stratum is never
+   emptied while any stratum still holds two or more examples;
 2. ``ancestor_details`` / ``source_type_details`` / ``target_type_details``
    — reduce ancestor/endpoint descriptions to their lead sentence;
-3. hard budget only: ``ancestors_section`` — drop the ancestors block.
+3. ``example_stratum[<index>]`` — only after detail-stripping, drop whole
+   single-example strata from the end (at least one example survives);
+4. hard budget only: ``example_section`` / ``ancestors_section``.
 
 The title, description, inverse, and endpoint-type summaries are never
 dropped. ``severely_truncated`` = the card still exceeds the hard budget
@@ -128,6 +137,20 @@ class Phrase(BaseModel):
         return cls(label=label, lead=lead, detail=" ".join(detail) or None)
 
 
+class ExampleLine(BaseModel):
+    """One Examples bullet: rendered pair text plus its stratum label
+    (``None`` on unstratified cards — no prefix is rendered)."""
+
+    text: str
+    stratum_label: str | None = None
+
+    def render(self) -> str:
+        if self.stratum_label is None:
+            return self.text
+
+        return f"{self.stratum_label}: {self.text}"
+
+
 class CardContents(BaseModel):
     """Structured card body; ``render()`` is the only text projection."""
 
@@ -136,7 +159,7 @@ class CardContents(BaseModel):
     source_types: list[Phrase] = Field(default_factory=list)
     target_types: list[Phrase] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
-    examples: list[str] = Field(default_factory=list)
+    examples: list[ExampleLine] = Field(default_factory=list)
     epilogue: list[str] = Field(default_factory=list)
 
     def _blocks(self) -> Generator[list[str]]:
@@ -155,7 +178,10 @@ class CardContents(BaseModel):
             yield ["Constraints:", *(f"  - {line}" for line in self.constraints)]
 
         if self.examples:
-            yield ["Examples:", *(f"  - {example}" for example in self.examples)]
+            yield [
+                "Examples:",
+                *(f"  - {example.render()}" for example in self.examples),
+            ]
 
         if self.epilogue:
             yield self.epilogue
@@ -216,8 +242,22 @@ class CardContents(BaseModel):
         ]
 
         this.constraints = list(_render_constraints(record.constraints))
+
+        def stratum_label(stratum: Pid | None) -> str | None:
+            # An unlabeled constraint class carries no transferable signal;
+            # its examples render bare, like unstratified ones.
+            if stratum is None:
+                return None
+
+            return (
+                _collapse_whitespace(labels.get(stratum, EntityLabel()).label) or None
+            )
+
         this.examples = [
-            f"{example.subject_label} -> {example.object_label}"
+            ExampleLine(
+                text=f"{example.subject_label} -> {example.object_label}",
+                stratum_label=stratum_label(example.stratum),
+            )
             for example in record.examples
         ]
 
@@ -249,13 +289,64 @@ class Card(BaseModel):
 type TruncationPass = Callable[[CardContents], str | None]
 
 
-def _drop_example(contents: CardContents) -> str | None:
-    # We want to preserve at least *one* example
+def _example_groups(
+    examples: list[ExampleLine],
+) -> list[tuple[str | None, list[int]]]:
+    """Example indices grouped by stratum label, in first-seen order.
+    (Selection emits examples grouped, so groups are contiguous.)"""
+    order: list[str | None] = []
+    groups: dict[str | None, list[int]] = {}
+
+    for index, line in enumerate(examples):
+        if line.stratum_label not in groups:
+            groups[line.stratum_label] = []
+            order.append(line.stratum_label)
+        groups[line.stratum_label].append(index)
+
+    return [(label, groups[label]) for label in order]
+
+
+def _drop_example_slot(contents: CardContents) -> str | None:
+    """Drop one example from the currently-largest stratum (its lowest draw
+    rank first). Ties go to the LATEST group, which makes repeated calls
+    round-robin across equally-sized strata. Never empties a stratum —
+    groups of one are left to :func:`_drop_example_stratum`."""
+    eligible = [
+        (label, indices)
+        for label, indices in _example_groups(contents.examples)
+        if len(indices) >= 2
+    ]
+
+    if not eligible:
+        return None
+
+    max_size = max(len(indices) for _, indices in eligible)
+    _, indices = [entry for entry in eligible if len(entry[1]) == max_size][-1]
+    index = indices[-1]
+    contents.examples.pop(index)
+    return f"example[{index}]"
+
+
+def _drop_example_stratum(contents: CardContents) -> str | None:
+    """Drop the LAST whole stratum (runs after detail-stripping, when every
+    stratum is down to one example). At least one example always survives
+    the soft passes."""
     if len(contents.examples) <= 1:
         return None
 
-    contents.examples.pop()
-    return f"example[{len(contents.examples)}]"
+    groups = _example_groups(contents.examples)
+    label, indices = groups[-1]
+
+    if len(groups) == 1:
+        # A single (possibly unstratified) group: shrink it instead of
+        # dropping it, preserving the one-example floor.
+        index = indices[-1]
+        contents.examples.pop(index)
+        return f"example[{index}]"
+
+    for index in reversed(indices):
+        contents.examples.pop(index)
+    return f"example_stratum[{label}]"
 
 
 def _strip_details(phrases: list[Phrase], label: str) -> str | None:
@@ -296,14 +387,17 @@ def _drop_examples_section(contents: CardContents) -> str | None:
     return "example_section"
 
 
-# Spec order: examples first (from the end), then sentence-level detail in
-# ancestor -> source -> target priority. Title, description, inverse, and
+# Spec order: example SLOTS first (round-robin from the largest strata),
+# then sentence-level detail in ancestor -> source -> target priority, and
+# only then whole single-example strata — a stratum outlives every
+# expendable description sentence. Title, description, inverse, and
 # endpoint-type summaries are never dropped.
 _BUDGET_PASSES: tuple[TruncationPass, ...] = (
-    _drop_example,
+    _drop_example_slot,
     _strip_ancestor_details,
     _strip_source_type_details,
     _strip_target_type_details,
+    _drop_example_stratum,
 )
 
 # Only when even that leaves the card above the HARD budget.

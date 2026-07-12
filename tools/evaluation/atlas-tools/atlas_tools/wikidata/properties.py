@@ -61,33 +61,31 @@ in ONE QLever query (0.3 s, 833 pairs live) and merged per record as
 direct parents (document order) first, then the remaining closure members
 in numeric-PID order. Cycle-safe (self and duplicates dropped).
 
-Subject-type example filter: for properties WITH subject-type constraints,
-pool rows whose subject type is empty or not subsumed by a permitted class
-(local P279 :class:`~atlas_tools.wikidata.taxonomy.Taxonomy`) are dropped
-before sampling. Live-verified motivation: reversed statements in the long
-tail (e.g. Q100151929, a person with EMPTY P31, as the SUBJECT of P6).
-Properties without constraints keep every row, typed or not.
+Example selection lives in ``examples.py`` (stratified by subject-type
+constraint class, sitelink-weighted, endpoint-deduplicated). Under
+stratification, untyped candidates are dropped (live-verified motivation:
+reversed statements in the long tail, e.g. Q100151929, a person with EMPTY
+P31, as the SUBJECT of P6) and typed candidates matching no constraint
+class land in the diagnostic ``other`` bucket. Properties without
+constraints keep every candidate, typed or not.
 """
-
-from __future__ import annotations
 
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 from pydantic import BaseModel, Field, JsonValue, ValidationError
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 from atlas_tools.wikidata.cache import RETRIEVED_AT_HEADER
 from atlas_tools.wikidata.config import Config, ExtractionConfig
+from atlas_tools.wikidata.examples import OTHER_WARNING_FRACTION, select_examples
 from atlas_tools.wikidata.model import (
     ConstraintKind,
     Constraints,
     EntityLabel,
-    Example,
     ExampleSource,
     Pid,
     PropertyRecord,
@@ -318,121 +316,6 @@ def wbgetentities_params(
     }
 
 
-@dataclass(frozen=True)
-class PooledExampleRow:
-    """One pool row tagged with its offset stratum (prominence rank).
-
-    The offset ladder samples increasingly deep statement regions, and depth
-    correlates with entity prominence on Wikidata (offset 0 of P6 is
-    countries; offset 100k is village mayors). The stratum index preserves
-    that signal for the sampler.
-    """
-
-    row: ExampleRow
-    stratum: int  # index into extraction.example_offsets
-
-
-def _type_diverse_order(
-    rows: Sequence[ExampleRow], rng: np.random.Generator
-) -> list[ExampleRow]:
-    """Order rows most-type-diverse-first: grouped by subject type, shuffled
-    within each group, drawn round-robin across types in lexicographic type
-    order (the head holds one row per distinct subject type)."""
-    groups: dict[str, list[ExampleRow]] = {}
-    for row in rows:
-        groups.setdefault(row.subject_type, []).append(row)
-
-    keys = sorted(groups)
-    permuted = {
-        key: [groups[key][i] for i in rng.permutation(len(groups[key]))] for key in keys
-    }
-
-    ordered: list[ExampleRow] = []
-    depth = 0
-    while True:
-        advanced = False
-        for key in keys:
-            group = permuted[key]
-            if depth < len(group):
-                advanced = True
-                ordered.append(group[depth])
-        if not advanced:
-            return ordered
-        depth += 1
-
-
-def sample_diverse_examples(
-    rows: Sequence[PooledExampleRow], *, count: int, seed: int, pid: str
-) -> list[Example]:
-    """Deterministic sampling, diverse across prominence strata FIRST.
-
-    Rows are deduplicated in arrival order, grouped by offset stratum, and
-    each stratum is ordered most-type-diverse-first (see
-    :func:`_type_diverse_order`; shuffles use
-    ``np.random.default_rng([seed, pid_number, stratum])``). Examples are
-    then drawn round-robin ACROSS STRATA in ladder order, so the head of the
-    list spans the prominence range (offset 0 of P6 is countries; offset
-    100k is village mayors — a card should show both). Within a stratum,
-    type diversity breaks up micro-class monocultures. Truncation drops from
-    the END, so the stratum spread survives longest.
-
-    Type-only round-robin (the previous scheme) is not enough: deep strata
-    contribute dozens of hyper-specific municipal micro-types that crowd the
-    handful of head-stratum types out of a small example set.
-
-    Emitted examples are additionally unique on (subject_label,
-    object_label): a subject with several P31 types yields one query row per
-    type, and without this a card could show the same pair twice (seen live:
-    Switzerland -> Swiss Federal Council under two types). The first
-    occurrence — the highest diversity rank — wins.
-    """
-    seen: set[tuple[str, str, str, int]] = set()
-    strata: dict[int, list[ExampleRow]] = {}
-    for pooled in rows:
-        row = pooled.row
-        key = (row.subject_label, row.object_label, row.subject_type, pooled.stratum)
-        if key in seen:
-            continue
-        seen.add(key)
-        strata.setdefault(pooled.stratum, []).append(row)
-
-    ordered_strata = {
-        stratum: _type_diverse_order(
-            stratum_rows,
-            np.random.default_rng([seed, pid_number(pid), stratum]),
-        )
-        for stratum, stratum_rows in sorted(strata.items())
-    }
-
-    out: list[Example] = []
-    emitted_pairs: set[tuple[str, str]] = set()
-    depth = 0
-    while len(out) < count:
-        advanced = False
-        for ordered in ordered_strata.values():
-            if depth >= len(ordered):
-                continue
-            advanced = True
-            row = ordered[depth]
-            pair = (row.subject_label, row.object_label)
-            if pair in emitted_pairs:
-                continue
-            emitted_pairs.add(pair)
-            out.append(
-                Example(
-                    subject_label=row.subject_label,
-                    object_label=row.object_label,
-                    subject_type=row.subject_type,
-                )
-            )
-            if len(out) >= count:
-                break
-        if not advanced:
-            break
-        depth += 1
-    return out
-
-
 def merge_closed_ancestors(
     record: PropertyRecord, closure: Mapping[Pid, tuple[Pid, ...]]
 ) -> tuple[Pid, ...]:
@@ -447,33 +330,12 @@ def merge_closed_ancestors(
     return direct + tuple(sorted(closure_members, key=pid_number))
 
 
-def filter_example_rows(
-    rows: tuple[PooledExampleRow, ...],
-    *,
-    permitted: frozenset[Pid],
-    taxonomy: Taxonomy,
-) -> tuple[tuple[PooledExampleRow, ...], int]:
-    """Drop rows violating the property's subject-type constraints.
-
-    A row survives only if its subject type is non-empty AND subsumed by a
-    permitted class (reflexive P279 closure). Returns (kept rows, dropped
-    count). Callers apply this only to properties WITH constraints.
-    """
-    kept = tuple(
-        pooled
-        for pooled in rows
-        if pooled.row.subject_type
-        and taxonomy.is_subclass_of(Pid(pooled.row.subject_type), permitted)
-    )
-    return kept, len(rows) - len(kept)
-
-
 @dataclass(frozen=True)
 class LadderSuccess:
     """One endpoint of the ladder produced example rows."""
 
     source: ExampleSource
-    rows: tuple[PooledExampleRow, ...]
+    rows: tuple[ExampleRow, ...]
 
 
 @dataclass(frozen=True)
@@ -498,9 +360,9 @@ def fetch_example_rows(
         endpoints = extraction.example_endpoint_ladder
     for endpoint in endpoints:
         url = extraction.endpoints.sparql_url(endpoint)
-        rows: list[PooledExampleRow] = []
+        rows: list[ExampleRow] = []
         endpoint_ok = True
-        for stratum, offset in enumerate(extraction.example_offsets):
+        for offset in extraction.example_offsets:
             query = example_pairs_query(
                 pid,
                 limit=extraction.example_pool_limit,
@@ -514,10 +376,7 @@ def fetch_example_rows(
                 )
                 endpoint_ok = False
                 break
-            rows.extend(
-                PooledExampleRow(row=row, stratum=stratum)
-                for row in parse_example_results(response.body)
-            )
+            rows.extend(parse_example_results(response.body))
         if endpoint_ok:
             return LadderSuccess(source=endpoint, rows=tuple(rows))
     return LadderSkip()
@@ -530,8 +389,16 @@ class ExtractionResult(BaseModel):
     entity_labels: dict[Pid, EntityLabel]
     example_fallbacks: dict[str, ExampleSource]  # pid -> rescuing endpoint
     example_skips: list[str]  # pids where the whole ladder failed
-    # pid -> pool rows dropped by the subject-type filter (diagnostics).
+    # pid -> untyped candidates dropped under stratification (the
+    # reversed-statement guard; diagnostics).
     example_filtered: dict[str, int] = Field(default_factory=dict)
+    # pid -> typed candidates matching no subject-type constraint class
+    # (the `other` bucket; a persistently large value means the constraint
+    # list is stale).
+    example_other: dict[str, int] = Field(default_factory=dict)
+    # pids where every constraint stratum was empty and examples fell back
+    # to the `other` pool.
+    example_other_fallbacks: list[str] = Field(default_factory=list)
     api_snapshot_date: str = ""
 
 
@@ -622,6 +489,7 @@ def extract_properties(
             " taxonomy.parquet --checkpoint …` and pass it via --taxonomy"
             " (or disable the filter)"
         )
+
     checkpoint = (
         ExtractionCheckpoint(Path(checkpoint_path), extraction_config_hash(config))
         if checkpoint_path is not None
@@ -637,11 +505,13 @@ def extract_properties(
         raise RuntimeError(
             f"property inventory query failed with status {response.status}"
         )
+
     inventory_rows = parse_inventory_results(response.body)
 
     excluded: dict[str, str] = {}
     retained_pids: list[Pid] = []
     usage_by_pid: dict[str, int | None] = {}
+
     for row in inventory_rows:
         usage_by_pid[row.pid] = row.usage
         if row.datatype_uri != WIKIBASE_ITEM_DATATYPE:
@@ -658,6 +528,7 @@ def extract_properties(
         raise RuntimeError(
             f"property ancestors query failed with status {response.status}"
         )
+
     ancestor_closure: dict[Pid, tuple[Pid, ...]] = {}
     for property_pid, ancestor_pid in parse_ancestor_results(response.body):
         ancestor_closure[property_pid] = ancestor_closure.get(property_pid, ()) + (
@@ -672,19 +543,23 @@ def extract_properties(
     property_batches = chunk_ids(retained_pids)
     progress.phase("property documents (wbgetentities)", total=len(property_batches))
     records: list[PropertyRecord] = []
+
     for batch in property_batches:
         response = transport.get(
             extraction.endpoints.wikibase_api,
             wbgetentities_params(batch, extraction.languages),
         )
+
         if not response.ok:
             raise RuntimeError(
                 f"wbgetentities batch failed with status {response.status}"
             )
+
         retrieved_at = response.headers.get(
             RETRIEVED_AT_HEADER
         ) or response.headers.get("date")
         documents = WbGetEntitiesResponse.model_validate_json(response.body)
+
         for pid in batch:
             document = documents.entities.get(pid)
             if document is None:
@@ -699,7 +574,9 @@ def extract_properties(
                 excluded[pid] = reason
             else:
                 records.append(record)
+
         progress.advance()
+
     records.sort(key=lambda record: pid_number(record.pid))
 
     # 3. Labels/descriptions for referenced items (endpoint types) so cards
@@ -711,6 +588,7 @@ def extract_properties(
             label=record.labels.get(primary, ""),
             description=record.descriptions.get(primary, ""),
         )
+
     # Endpoint-type QIDs plus closed-ancestor PIDs that are not retained
     # properties (their labels are not in entity_labels yet).
     referenced_ids = {
@@ -723,8 +601,10 @@ def extract_properties(
         for ancestor in record.ancestors
         if ancestor not in entity_labels
     }
+
     label_batches = chunk_ids(list(referenced_ids))
     progress.phase("entity labels (wbgetentities)", total=len(label_batches))
+
     for batch in label_batches:
         response = transport.get(
             extraction.endpoints.wikibase_api,
@@ -757,9 +637,13 @@ def extract_properties(
             f"resuming: {len(checkpoint.examples_done)} example outcomes"
             " replayed from checkpoint"
         )
+
     example_fallbacks: dict[str, ExampleSource] = {}
     example_skips: list[str] = []
     example_filtered: dict[str, int] = {}
+    example_other: dict[str, int] = {}
+    example_other_fallbacks: list[str] = []
+
     for record in records:
         if checkpoint is not None and record.pid in checkpoint.examples_done:
             replay_source = checkpoint.examples_done[record.pid]
@@ -768,7 +652,9 @@ def extract_properties(
             )
         else:
             endpoints = extraction.example_endpoint_ladder
+
         outcome: LadderOutcome = LadderSkip()
+
         if endpoints:
             outcome = fetch_example_rows(
                 record.pid,
@@ -777,39 +663,57 @@ def extract_properties(
                 endpoints=endpoints,
                 progress=progress,
             )
+
         match outcome:
             case LadderSuccess(source=source, rows=rows):
                 record.example_source = source
                 if source != extraction.example_endpoint_ladder[0]:
                     example_fallbacks[record.pid] = source
-                if (
-                    extraction.filter_examples_by_subject_type
-                    and taxonomy is not None
-                    and record.constraints.subject_types
-                ):
-                    rows, dropped = filter_example_rows(
-                        rows,
-                        permitted=frozenset(record.constraints.subject_types),
-                        taxonomy=taxonomy,
-                    )
-                    if dropped:
-                        example_filtered[record.pid] = dropped
-                        progress.note(
-                            f"{record.pid}: {dropped} pool rows dropped by the"
-                            " subject-type filter"
-                        )
-                record.examples = sample_diverse_examples(
+                selection = select_examples(
                     rows,
+                    constraint_classes=record.constraints.subject_types,
+                    taxonomy=(
+                        taxonomy if extraction.filter_examples_by_subject_type else None
+                    ),
                     count=extraction.example_count,
                     seed=extraction.seed,
                     pid=record.pid,
                 )
+
+                record.examples = selection.examples
+
+                if selection.untyped_dropped:
+                    example_filtered[record.pid] = selection.untyped_dropped
+                    progress.note(
+                        f"{record.pid}: {selection.untyped_dropped} untyped"
+                        " candidates dropped (reversed-statement guard)"
+                    )
+
+                if selection.other_candidates:
+                    example_other[record.pid] = selection.other_candidates
+
+                if selection.other_used:
+                    example_other_fallbacks.append(record.pid)
+                    progress.note(
+                        f"{record.pid}: every subject-type constraint stratum"
+                        " is empty; examples fell back to the `other` pool"
+                    )
+                elif selection.other_fraction > OTHER_WARNING_FRACTION:
+                    progress.note(
+                        f"{record.pid}: {selection.other_candidates} of"
+                        f" {selection.candidates} candidates match no"
+                        " subject-type constraint class — the constraint list"
+                        " may be stale"
+                    )
+
             case LadderSkip():
                 record.example_skipped = True
                 example_skips.append(record.pid)
                 progress.note(f"{record.pid}: example ladder exhausted, skipped")
+
         if checkpoint is not None:
             checkpoint.record_example(record.pid, record.example_source)
+
         progress.advance()
 
     return ExtractionResult(
@@ -820,5 +724,7 @@ def extract_properties(
         example_fallbacks=example_fallbacks,
         example_skips=example_skips,
         example_filtered=example_filtered,
+        example_other=example_other,
+        example_other_fallbacks=example_other_fallbacks,
         api_snapshot_date=extraction.snapshot_date,
     )

@@ -16,8 +16,6 @@ example-ladder logic in ``properties.py`` interprets them as fallback
 triggers.
 """
 
-from __future__ import annotations
-
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field

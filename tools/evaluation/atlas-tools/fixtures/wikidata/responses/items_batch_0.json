@@ -30,6 +30,36 @@
         }
       }
     },
+    "Q47461344": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "any work expressed in writing"
+        }
+      },
+      "id": "Q47461344",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "written work"
+        }
+      }
+    },
+    "Q486972": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "community of people living in a particular place"
+        }
+      },
+      "id": "Q486972",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "human settlement"
+        }
+      }
+    },
     "Q5": {
       "descriptions": {
         "en": {
