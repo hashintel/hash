@@ -127,10 +127,22 @@ def test_stratum_assignment_uses_subclass_closure() -> None:
     # it would land in `other`.
     [candidate] = collect_candidates([_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")])
     assert assign_stratum(candidate, (SETTLEMENT, WRITTEN_WORK), _TAXONOMY) == (SETTLEMENT)
-    # Declaration order wins when several classes subsume the subject.
-    assert assign_stratum(candidate, (Qid("Q35120"), SETTLEMENT), _TAXONOMY) == Qid("Q35120")
     # Reflexive: a subject typed exactly as the constraint class matches.
     assert assign_stratum(candidate, (Qid("Q515"),), _TAXONOMY) == Qid("Q515")
+
+
+def test_stratum_assignment_prefers_the_most_specific_class() -> None:
+    # Constraint lists overlap at wildly different granularity (seen live
+    # on P6: "political territorial entity" and "administrative
+    # territorial entity" both subsume municipalities, and the broad class
+    # absorbed everything). The smallest downward closure wins regardless
+    # of declaration order; the root class stops stealing members.
+    [candidate] = collect_candidates([_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")])
+    root = Qid("Q35120")  # subsumes everything in the fixture taxonomy
+    assert assign_stratum(candidate, (root, SETTLEMENT), _TAXONOMY) == SETTLEMENT
+    assert assign_stratum(candidate, (SETTLEMENT, root), _TAXONOMY) == SETTLEMENT
+    # Exact specificity ties fall back to declaration order.
+    assert assign_stratum(candidate, (root, root), _TAXONOMY) == root
 
 
 def _mixed_pool() -> list[ExampleRow]:
@@ -183,8 +195,6 @@ def test_stratified_selection_covers_all_nonempty_strata() -> None:
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
         taxonomy=_TAXONOMY,
         count=2,
-        seed=0,
-        pid="P361",
     )
     # One slot per non-empty stratum before any stratum gets its second.
     assert [example.stratum for example in selection.examples] == [
@@ -199,8 +209,6 @@ def test_other_bucket_is_counted_but_never_selected() -> None:
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
         taxonomy=_TAXONOMY,
         count=8,
-        seed=0,
-        pid="P361",
     )
     labels = {example.subject_label for example in selection.examples}
     assert "Opening Scene" not in labels  # `other` while strata are non-empty
@@ -229,8 +237,6 @@ def test_other_fallback_when_every_stratum_is_empty() -> None:
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
         taxonomy=_TAXONOMY,
         count=4,
-        seed=0,
-        pid="P361",
     )
     # A stale constraint list must not produce an example-less card, but
     # the fallback stays unstratified (no stratum prefix) and is flagged.
@@ -246,8 +252,6 @@ def test_weighted_head_is_the_most_recognizable_pair() -> None:
         constraint_classes=(SETTLEMENT,),
         taxonomy=_TAXONOMY,
         count=1,
-        seed=0,
-        pid="P361",
     )
     # log1p(40)+log1p(300) > log1p(15)+log1p(250): Left Bank -> Paris wins.
     assert [example.subject_label for example in selection.examples] == ["Left Bank"]
@@ -290,8 +294,6 @@ def test_endpoint_dedup_across_the_whole_card() -> None:
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
         taxonomy=_TAXONOMY,
         count=4,
-        seed=0,
-        pid="P361",
     )
     object_qids = [example.object_qid for example in selection.examples]
     assert object_qids.count("Q99") == 1
@@ -302,35 +304,25 @@ def test_endpoint_dedup_across_the_whole_card() -> None:
     ]
 
 
-def test_remainder_slots_go_to_larger_strata_first() -> None:
+def _settlement_rows(count: int) -> list[ExampleRow]:
+    """Build ``count`` distinct settlement-stratum rows with tiny sitelinks."""
+    return [
+        _row(
+            f"Q5{i:02d}1",
+            f"Village {i:02d}",
+            f"Q5{i:02d}2",
+            f"Mayor {i:02d}",
+            subject_type="Q515",
+            subject_sitelinks=1,
+            object_sitelinks=1,
+        )
+        for i in range(count)
+    ]
+
+
+def test_remainder_slots_are_dealt_round_robin() -> None:
     rows = [
-        _row(
-            "Q11",
-            "Left Bank",
-            "Q12",
-            "Paris",
-            subject_type="Q515",
-            subject_sitelinks=40,
-            object_sitelinks=300,
-        ),
-        _row(
-            "Q13",
-            "Old Town",
-            "Q14",
-            "Prague",
-            subject_type="Q515",
-            subject_sitelinks=15,
-            object_sitelinks=250,
-        ),
-        _row(
-            "Q15",
-            "Montmartre",
-            "Q16",
-            "Lyon",
-            subject_type="Q515",
-            subject_sitelinks=25,
-            object_sitelinks=80,
-        ),
+        *_settlement_rows(3),
         _row(
             "Q21",
             "Chapter One",
@@ -346,13 +338,163 @@ def test_remainder_slots_go_to_larger_strata_first() -> None:
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
         taxonomy=_TAXONOMY,
         count=3,
-        seed=0,
-        pid="P361",
     )
     strata = [example.stratum for example in selection.examples]
-    # Guaranteed slot each, remainder to the larger (settlement) stratum.
+    # Guaranteed slot each; the leftover goes to the stratum that can
+    # still take it (written work is exhausted at one candidate).
     assert strata.count(SETTLEMENT) == 2
     assert strata.count(WRITTEN_WORK) == 1
+
+
+def test_dominant_stratum_is_capped_while_others_hold_candidates() -> None:
+    # The P6 shape: one stratum holds nearly the whole extension. The
+    # per-stratum cap keeps it from claiming the card; the small stratum
+    # keeps its members instead of being crowded out.
+    rows = [
+        *_settlement_rows(20),
+        _row(
+            "Q21",
+            "Chapter One",
+            "Q22",
+            "Novel",
+            subject_type="Q571",
+            subject_sitelinks=2,
+            object_sitelinks=8,
+        ),
+        _row(
+            "Q23",
+            "Appendix",
+            "Q24",
+            "Field Guide",
+            subject_type="Q571",
+            subject_sitelinks=1,
+            object_sitelinks=5,
+        ),
+    ]
+    selection = select_examples(
+        rows,
+        constraint_classes=(SETTLEMENT, WRITTEN_WORK),
+        taxonomy=_TAXONOMY,
+        count=8,
+    )
+    strata = [example.stratum for example in selection.examples]
+    # Written work is exhausted at 2; the cap holds settlement at 3, and
+    # the relaxation phase spends the rest of the budget (8 = 5 + 3 is
+    # unreachable with written work exhausted, so settlement relaxes past
+    # the cap only after both were offered their capped share).
+    assert strata.count(WRITTEN_WORK) == 2
+    assert strata.count(SETTLEMENT) == 6
+
+
+def test_single_stratum_relaxes_past_the_cap_to_fill_the_card() -> None:
+    # The cap is fairness, not a ceiling: with nothing to be fair to, a
+    # lone stratum fills the whole card.
+    selection = select_examples(
+        _settlement_rows(10),
+        constraint_classes=(SETTLEMENT,),
+        taxonomy=_TAXONOMY,
+        count=8,
+    )
+    assert len(selection.examples) == 8
+
+
+def test_extra_slots_spread_across_distinct_subject_classes() -> None:
+    # Scale diversity inside one stratum: countries and villages are both
+    # subsumed by the same constraint class, and log-weighting alone would
+    # spend every slot on the heavier sub-population. The interleave
+    # guarantees distinct direct P31 classes before repeats.
+    country_edge = Taxonomy.from_edges(
+        [
+            (515, 486972),  # city -> human settlement
+            (6256, 486972),  # country -> human settlement (fixture shorthand)
+            (486972, 35120),
+        ]
+    )
+    rows = [
+        _row(
+            "Q901",
+            "Gabon",
+            "Q902",
+            "Prime Minister",
+            subject_type="Q6256",
+            subject_sitelinks=294,
+            object_sitelinks=25,
+        ),
+        _row(
+            "Q903",
+            "France",
+            "Q904",
+            "Another Prime Minister",
+            subject_type="Q6256",
+            subject_sitelinks=300,
+            object_sitelinks=40,
+        ),
+        _row(
+            "Q907",
+            "Spain",
+            "Q908",
+            "Third Prime Minister",
+            subject_type="Q6256",
+            subject_sitelinks=280,
+            object_sitelinks=30,
+        ),
+        _row(
+            "Q905",
+            "Casefabre",
+            "Q906",
+            "Village Mayor",
+            subject_type="Q515",
+            subject_sitelinks=2,
+            object_sitelinks=1,
+        ),
+    ]
+    selection = select_examples(
+        rows,
+        constraint_classes=(SETTLEMENT,),
+        taxonomy=country_edge,
+        count=3,
+    )
+    labels = [example.subject_label for example in selection.examples]
+    # Head is the heaviest pair (France); the interleave then visits every
+    # other P31 class before any class repeats, so the near-weightless
+    # village claims slot two ahead of the second country. Under pure
+    # weight ordering the card would be all countries.
+    assert labels == ["France", "Casefabre", "Spain"]
+
+
+def test_dominant_stratum_diagnostic() -> None:
+    rows = [
+        *_settlement_rows(9),
+        _row(
+            "Q21",
+            "Chapter One",
+            "Q22",
+            "Novel",
+            subject_type="Q571",
+            subject_sitelinks=2,
+            object_sitelinks=8,
+        ),
+    ]
+    selection = select_examples(
+        rows,
+        constraint_classes=(SETTLEMENT, WRITTEN_WORK),
+        taxonomy=_TAXONOMY,
+        count=4,
+    )
+    dominant = selection.dominant_stratum
+    assert dominant is not None
+    stratum, fraction = dominant
+    assert stratum == SETTLEMENT
+    assert fraction == 0.9
+
+    # A single-constraint property trivially holds everything: no signal.
+    single = select_examples(
+        _settlement_rows(9),
+        constraint_classes=(SETTLEMENT,),
+        taxonomy=_TAXONOMY,
+        count=4,
+    )
+    assert single.dominant_stratum is None
 
 
 def test_selection_is_deterministic() -> None:
@@ -362,8 +504,6 @@ def test_selection_is_deterministic() -> None:
             constraint_classes=(SETTLEMENT, WRITTEN_WORK),
             taxonomy=_TAXONOMY,
             count=3,
-            seed=7,
-            pid="P361",
         )
 
     assert run() == run()
@@ -375,8 +515,6 @@ def test_unconstrained_selection_keeps_untyped_and_sets_no_stratum() -> None:
         constraint_classes=(),
         taxonomy=_TAXONOMY,
         count=8,
-        seed=0,
-        pid="P527",
     )
     assert selection.untyped_dropped == 0
     assert selection.other_candidates == 0
@@ -391,8 +529,6 @@ def test_selection_without_taxonomy_is_unstratified() -> None:
         constraint_classes=(SETTLEMENT,),
         taxonomy=None,  # filter_examples_by_subject_type: false
         count=8,
-        seed=0,
-        pid="P361",
     )
     assert selection.untyped_dropped == 0
     assert all(example.stratum is None for example in selection.examples)

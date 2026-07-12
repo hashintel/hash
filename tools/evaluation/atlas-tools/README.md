@@ -159,17 +159,25 @@ restartable like the dump extractor. `extract-properties` needs `--taxonomy`
 while `extraction.filter_examples_by_subject_type` (default: on) is enabled.
 
 Example selection (`atlas_tools/wikidata/examples.py`) is stratified by the
-property's subject-type constraint classes: pool rows collapse into distinct
-(subject, object) candidate pairs, each pair is assigned to the first
-constraint class that subsumes any of its P31 types under the local P279
-closure, and the example budget goes one slot per non-empty stratum first,
-remainder by candidate volume. Within a stratum the most recognizable pair
-leads (weight proportional to `log1p(subject sitelinks) + log1p(object
-sitelinks)`), one slot is a uniform draw so the famous/obscure contrast
-survives, and each entity appears at most once per card. Cards render each
-example prefixed with its stratum's label (`municipality: Cluj-Napoca ->
-Emil Boc`); unconstrained properties select from one unstratified pool and
-render bare pairs.
+property's subject-type constraint classes and fully deterministic (no
+randomness anywhere). Pool rows collapse into distinct (subject, object)
+candidate pairs; each pair is assigned to the most specific constraint
+class that subsumes any of its P31 types under the local P279 closure
+(specificity is the size of the class's downward closure, so overlapping
+constraint lists no longer let the broadest class absorb everything). The
+example budget goes one slot per non-empty stratum, then round-robin with
+a per-stratum cap of three; leftover budget relaxes the cap so lone strata
+still fill their card. Within a stratum the most recognizable pair leads
+(argmax of `log1p(subject sitelinks) + log1p(object sitelinks)`; selection
+beats reweighting when villages outnumber countries ten-thousand to one),
+the remainder interleaves distinct direct P31 classes before any repeats
+(one country, one municipality, one commune), and each entity appears at
+most once per card. Cards render each example prefixed with its stratum's
+label (`municipality: Cluj-Napoca -> Emil Boc`); unconstrained properties
+select from one unstratified pool and render bare pairs. A stratum holding
+more than half of a property's assigned candidates is logged: the
+constraint ontology is coarser than the extension there, and the
+scale-diverse interleave is what keeps such cards readable anyway.
 
 Stratification has two guard rails. Untyped candidates (no P31 at all) are
 dropped, because live runs surfaced semantically reversed statements in the

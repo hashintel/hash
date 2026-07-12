@@ -708,8 +708,6 @@ def _apply_ladder_success(
         constraint_classes=record.constraints.subject_types,
         taxonomy=taxonomy,
         count=extraction.example_count,
-        seed=extraction.seed,
-        pid=record.pid,
     )
 
     record.examples = selection.examples
@@ -736,6 +734,14 @@ def _apply_ladder_success(
             f" {selection.candidates} candidates match no"
             " subject-type constraint class; the constraint list"
             " may be stale"
+        )
+
+    if (dominant := selection.dominant_stratum) is not None:
+        stratum, fraction = dominant
+        progress.note(
+            f"{record.pid}: stratum {stratum} holds {fraction:.0%} of the"
+            " assigned candidates; the constraint ontology is coarser than"
+            " the property's extension"
         )
 
 

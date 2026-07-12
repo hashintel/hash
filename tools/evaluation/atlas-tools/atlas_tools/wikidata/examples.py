@@ -14,12 +14,16 @@ Pipeline:
    its subject types. ``wdt:`` in the query already restricts the pool to
    truthy (best-rank) statements.
 2. **Strata.** The strata are the property's subject-type constraint
-   classes, in declaration order, which is the same list the card renders
-   under ``Source types:``. A candidate belongs to the first constraint
-   class that subsumes any of its subject types under the reflexive local
-   P279 closure (:class:`~atlas_tools.wikidata.taxonomy.Taxonomy`);
-   without the closure most candidates match nothing (Mariupol's P31 is
-   "urban hromada", not "municipality").
+   classes, which is the same list the card renders under ``Source
+   types:``. A candidate belongs to the most specific constraint class
+   that subsumes any of its subject types under the reflexive local P279
+   closure (:class:`~atlas_tools.wikidata.taxonomy.Taxonomy`); without
+   the closure most candidates match nothing (Mariupol's P31 is "urban
+   hromada", not "municipality"). Specificity is the size of the class's
+   downward closure (:meth:`Taxonomy.descendant_count`), so overlapping
+   constraint lists assign a municipality to "administrative territorial
+   entity" rather than the broader "political territorial entity" that
+   also subsumes it; declaration order breaks exact ties.
 3. **``other`` / untyped.** Typed candidates matching no constraint class
    land in an explicit ``other`` bucket, which is diagnostic and
    fallback-only: it is counted (a persistently large ``other`` means the
@@ -32,37 +36,63 @@ Pipeline:
    the reversed-statement signature) are always dropped under
    stratification.
 4. **Slots.** Example budget ``count``: one slot per non-empty stratum
-   first (declaration order), remaining slots round-robin in
-   volume-descending order. Empty strata are skipped silently (a
-   constraint class with no usage is ontology aspiration, not extension).
-5. **Within-stratum order.** Deterministic seeded preference order:
-   the weighted head first (argmax of ``log1p(subject sitelinks) +
-   log1p(object sitelinks)``, ties to earliest arrival), then one uniform
-   draw (so the famous/obscure contrast survives), then weighted draws
-   without replacement. Selection walks that order, skipping any candidate
-   whose subject or object was already used anywhere on the card, so each
-   entity appears at most once per card; shortfalls from dedup are
-   redistributed to the other strata.
+   first (declaration order), then plain round-robin for the remainder
+   with a per-stratum cap of :data:`STRATUM_SLOT_CAP`. The cap is a
+   fairness device, not a ceiling: once every stratum is capped or
+   exhausted, remaining budget fills from whatever is left, so a
+   single-stratum property still fills its whole card. Empty strata are
+   skipped silently (a constraint class with no usage is ontology
+   aspiration, not extension).
+5. **Within-stratum order.** Fully deterministic, no randomness. The
+   head is the most recognizable pair (argmax of ``log1p(subject
+   sitelinks) + log1p(object sitelinks)``, ties to earliest arrival):
+   selection beats reweighting, because in extensions where villages
+   outnumber countries ten-thousand to one a log-weighted random draw
+   still returns villages almost every time. The remaining candidates
+   follow in scale-diverse order: grouped by direct P31 class, groups
+   interleaved round-robin (most recognizable group first, weight
+   descending inside each group), so a dominant stratum spends its extra
+   slots on one country, one municipality, one commune rather than three
+   draws from the same sub-population. Selection walks that order,
+   skipping any candidate whose subject or object was already used
+   anywhere on the card, so each entity appears at most once per card;
+   shortfalls from dedup refill from the other strata.
 
 Properties without subject-type constraints (or runs without a taxonomy)
-select from a single unstratified pool with the same weighted order and
-dedup; their examples carry ``stratum=None`` and render without a stratum
-prefix.
+select from a single unstratified pool with the same head-then-diversity
+order and dedup; their examples carry ``stratum=None`` and render without
+a stratum prefix.
+
+The selection also reports the post-assignment stratum sizes. When one
+stratum holds more than :data:`DOMINANT_STRATUM_FRACTION` of the assigned
+candidates, the constraint ontology is coarser than the property's actual
+extension (the caller logs it); the scale-diverse order is what keeps such
+cards readable anyway.
 """
 
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-import numpy as np
-
-from atlas_tools.wikidata.model import Example, Qid, entity_number
+from atlas_tools.wikidata.model import Example, Qid
 from atlas_tools.wikidata.sparql import ExampleRow
 from atlas_tools.wikidata.taxonomy import Taxonomy
 
 # `other` fraction of typed candidates above which the caller should log a
 # stale-constraint-list warning.
 OTHER_WARNING_FRACTION = 0.25
+
+# Remainder slots per stratum before the relaxation phase; keeps a dominant
+# stratum from claiming the whole card while other strata hold candidates.
+STRATUM_SLOT_CAP = 3
+
+# Fraction of assigned candidates in one stratum above which the caller
+# should log that the constraint ontology is coarser than the extension.
+DOMINANT_STRATUM_FRACTION = 0.5
+
+# Dominance is only meaningful against at least one sibling stratum; a
+# single-constraint property trivially holds its whole extension.
+_MINIMUM_STRATA_FOR_DOMINANCE = 2
 
 
 @dataclass(frozen=True)
@@ -155,49 +185,73 @@ def assign_stratum(
     constraint_classes: tuple[Qid, ...],
     taxonomy: Taxonomy,
 ) -> Qid | None:
-    """Assign the first declaration-order constraint class subsuming any subject type.
+    """Assign the most specific constraint class subsuming any subject type.
 
     Subsumption uses the reflexive P279 closure; ``None`` means the
-    ``other`` bucket.
+    ``other`` bucket. Constraint lists routinely contain overlapping
+    classes at very different granularity ("political territorial entity"
+    and "administrative territorial entity" both subsume municipalities),
+    so among the matching classes the one with the smallest downward
+    closure wins; declaration order breaks exact ties. Without this
+    tie-break the broadest class absorbs every candidate and the narrower
+    strata sit empty.
     """
     closures = [
         taxonomy.closure(subject_type) for subject_type in candidate.subject_types if subject_type
     ]
+    matches = [
+        constraint_class
+        for constraint_class in constraint_classes
+        if any(constraint_class in closure for closure in closures)
+    ]
+    if not matches:
+        return None
 
-    for constraint_class in constraint_classes:
-        if any(constraint_class in closure for closure in closures):
-            return constraint_class
+    return min(
+        matches,
+        key=lambda match: (
+            taxonomy.descendant_count(match),
+            constraint_classes.index(match),
+        ),
+    )
 
-    return None
 
+def _stratum_order(pool: Sequence[Candidate]) -> list[Candidate]:
+    """Order candidates scale-diverse: distinct P31 classes before repeats.
 
-def _preference_order(pool: Sequence[Candidate], rng: np.random.Generator) -> list[Candidate]:
-    """Order candidates: weighted head, one uniform draw, then weighted draws.
-
-    The weighted draws run without replacement.
+    Candidates are grouped by their primary direct P31 class, each group
+    sorted by descending recognizability weight, and the groups are
+    interleaved round-robin with the most recognizable group first. The
+    global argmax-weight pair is therefore always the head (its group
+    ranks first by construction), and consecutive slots land in distinct
+    sub-populations of the stratum (one country, one municipality, one
+    commune) before any sub-population repeats. Fully deterministic:
+    ties break to earliest pool arrival.
     """
-    if len(pool) <= 1:
-        return list(pool)
+    groups: dict[str, list[tuple[int, Candidate]]] = {}
+    for arrival, candidate in enumerate(pool):
+        key = candidate.subject_types[0] if candidate.subject_types else ""
+        groups.setdefault(key, []).append((arrival, candidate))
 
-    head_index = max(range(len(pool)), key=lambda i: (pool[i].weight, -i))
-    rest = [candidate for i, candidate in enumerate(pool) if i != head_index]
-    order = [pool[head_index]]
+    for members in groups.values():
+        members.sort(key=lambda member: (-member[1].weight, member[0]))
 
-    # The contrast slot: uniform, so obscure candidates stay reachable.
-    order.append(rest.pop(int(rng.integers(len(rest)))))
+    ranked_groups = sorted(
+        groups.values(),
+        key=lambda members: (-members[0][1].weight, members[0][0]),
+    )
 
-    while rest:
-        weights = np.array([candidate.weight for candidate in rest])
-        total = float(weights.sum())
-
-        if total <= 0.0:
-            index = int(rng.integers(len(rest)))
-        else:
-            index = int(rng.choice(len(rest), p=weights / total))
-
-        order.append(rest.pop(index))
-
-    return order
+    order: list[Candidate] = []
+    depth = 0
+    while True:
+        advanced = False
+        for members in ranked_groups:
+            if depth < len(members):
+                order.append(members[depth][1])
+                advanced = True
+        if not advanced:
+            return order
+        depth += 1
 
 
 @dataclass(frozen=True)
@@ -209,11 +263,32 @@ class ExampleSelection:
     untyped_dropped: int  # candidates with no P31 (reversed-statement guard)
     other_candidates: int  # typed candidates matching no constraint class
     other_used: bool  # the all-strata-empty fallback engaged
+    # Post-assignment pool size per non-empty stratum, declaration order.
+    stratum_candidates: dict[Qid, int] = field(default_factory=dict)
 
     @property
     def other_fraction(self) -> float:
         typed = self.candidates - self.untyped_dropped
         return self.other_candidates / typed if typed else 0.0
+
+    @property
+    def dominant_stratum(self) -> tuple[Qid, float] | None:
+        """Return the largest stratum and its candidate share, if it dominates.
+
+        ``None`` unless at least two strata are non-empty and the largest
+        holds more than :data:`DOMINANT_STRATUM_FRACTION` of the assigned
+        candidates. A dominant stratum means the constraint ontology is
+        coarser than the property's actual extension; a single-constraint
+        property trivially holds everything, which is no signal at all.
+        """
+        if len(self.stratum_candidates) < _MINIMUM_STRATA_FOR_DOMINANCE:
+            return None
+        total = sum(self.stratum_candidates.values())
+        largest = max(self.stratum_candidates, key=lambda key: self.stratum_candidates[key])
+        fraction = self.stratum_candidates[largest] / total
+        if fraction <= DOMINANT_STRATUM_FRACTION:
+            return None
+        return largest, fraction
 
 
 @dataclass
@@ -248,11 +323,15 @@ class _Stratum:
 
 
 def _allocate_slots(strata: Sequence[_Stratum], count: int) -> dict[int, int]:
-    """Allocate the example budget: one slot per stratum, then volume rounds.
+    """Allocate the example budget: guaranteed slots, capped rounds, relaxation.
 
-    Every non-empty stratum gets one guaranteed slot in declaration order;
-    remaining budget is dealt in rounds over strata sorted by descending
-    volume, never exceeding a stratum's pool size.
+    Every non-empty stratum gets one guaranteed slot in declaration order.
+    Remaining budget is dealt round-robin in declaration order, capped at
+    :data:`STRATUM_SLOT_CAP` per stratum, so a stratum holding most of the
+    extension cannot claim the whole card while other strata still have
+    candidates. Budget left over once every stratum is capped or exhausted
+    is dealt in a second, cap-free round-robin bounded only by pool size,
+    so a single-stratum property still fills its card.
     """
     budget = count
     slots = dict.fromkeys(range(len(strata)), 0)
@@ -262,42 +341,41 @@ def _allocate_slots(strata: Sequence[_Stratum], count: int) -> dict[int, int]:
         slots[index] = 1
         budget -= 1
 
-    volume_order = _volume_order(strata)
-    while budget > 0:
-        progressed = False
-        for index in volume_order:
-            if budget == 0:
+    for ceiling in (STRATUM_SLOT_CAP, None):
+        while budget > 0:
+            progressed = False
+            for index in range(len(strata)):
+                if budget == 0:
+                    break
+                limit = (
+                    strata[index].volume if ceiling is None else min(ceiling, strata[index].volume)
+                )
+                if slots[index] < limit:
+                    slots[index] += 1
+                    budget -= 1
+                    progressed = True
+            if not progressed:
                 break
-            if slots[index] < strata[index].volume:
-                slots[index] += 1
-                budget -= 1
-                progressed = True
-        if not progressed:
-            break
+
     return slots
-
-
-def _volume_order(strata: Sequence[_Stratum]) -> list[int]:
-    """Order stratum indices by descending volume, declaration order on ties."""
-    return sorted(range(len(strata)), key=lambda index: (-strata[index].volume, index))
 
 
 def _redistribute_shortfall(strata: Sequence[_Stratum], count: int, used_tokens: set[str]) -> None:
     """Refill picks lost to dedup by drawing more from the other strata.
 
-    Draws round-robin in volume order until the budget is met or every
-    stratum is exhausted.
+    Draws round-robin in declaration order until the budget is met or
+    every stratum is exhausted; the slot cap does not apply to refills
+    (a shortfall means capped fairness already failed to fill the card).
     """
-    volume_order = _volume_order(strata)
     total = sum(len(stratum.picks) for stratum in strata)
     while total < count:
         progressed = False
 
-        for index in volume_order:
+        for stratum in strata:
             if total == count:
                 break
 
-            if strata[index].take(used_tokens):
+            if stratum.take(used_tokens):
                 total += 1
                 progressed = True
 
@@ -340,24 +418,20 @@ def select_examples(
     constraint_classes: tuple[Qid, ...],
     taxonomy: Taxonomy | None,
     count: int,
-    seed: int,
-    pid: str,
 ) -> ExampleSelection:
     """Select the bounded example set for one property (see module docstring).
 
     Stratification engages only when the property declares subject-type
     constraints and a taxonomy is available; otherwise the whole pool is
-    one unstratified stratum and nothing is dropped. RNG streams are
-    ``default_rng([seed, pid number, stratum index])``: stable per
-    stratum, independent of the other strata's pool sizes.
+    one unstratified stratum and nothing is dropped. The selection is a
+    deterministic function of the pool and the constraints alone: no
+    randomness, so identical inputs yield identical cards regardless of
+    any configured seed.
     """
     candidates = collect_candidates(rows)
 
-    def rng_for(stratum_index: int) -> np.random.Generator:
-        return np.random.default_rng([seed, entity_number(pid), stratum_index])
-
     if not constraint_classes or taxonomy is None:
-        pool = _Stratum(key=None, order=_preference_order(candidates, rng_for(0)))
+        pool = _Stratum(key=None, order=_stratum_order(candidates))
         _select_from_strata([pool], count)
         return ExampleSelection(
             examples=[_example(candidate, None) for candidate in pool.picks],
@@ -385,7 +459,7 @@ def select_examples(
         # Every declared stratum is empty: the constraint list does not
         # describe actual usage at all. Fall back to the `other` pool
         # (unstratified) rather than emitting an example-less card.
-        pool = _Stratum(key=None, order=_preference_order(other, rng_for(0)))
+        pool = _Stratum(key=None, order=_stratum_order(other))
         _select_from_strata([pool], count)
         return ExampleSelection(
             examples=[_example(candidate, None) for candidate in pool.picks],
@@ -396,11 +470,8 @@ def select_examples(
         )
 
     strata = [
-        _Stratum(
-            key=key,
-            order=_preference_order(pools[key], rng_for(index)),
-        )
-        for index, key in enumerate(constraint_classes)
+        _Stratum(key=key, order=_stratum_order(pools[key]))
+        for key in constraint_classes
         if pools[key]  # empty strata are skipped silently
     ]
     _select_from_strata(strata, count)
@@ -413,4 +484,5 @@ def select_examples(
         untyped_dropped=len(untyped),
         other_candidates=len(other),
         other_used=False,
+        stratum_candidates={key: len(pools[key]) for key in constraint_classes if pools[key]},
     )

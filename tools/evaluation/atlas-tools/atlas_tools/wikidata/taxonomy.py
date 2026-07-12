@@ -258,7 +258,12 @@ class Taxonomy:
         order = np.argsort(children, kind="stable")
         self._children = np.ascontiguousarray(children[order], dtype=np.int64)
         self._parents = np.ascontiguousarray(parents[order], dtype=np.int64)
+        # Reverse index (sorted by parent) for downward reachability.
+        reverse_order = np.argsort(parents, kind="stable")
+        self._parents_sorted = np.ascontiguousarray(parents[reverse_order], dtype=np.int64)
+        self._children_by_parent = np.ascontiguousarray(children[reverse_order], dtype=np.int64)
         self._closure_cache: dict[int, frozenset[int]] = {}
+        self._descendant_count_cache: dict[int, int] = {}
 
     @classmethod
     def load(cls, path: Path | str) -> Self:
@@ -313,3 +318,34 @@ class Taxonomy:
             return True
         permitted_numbers = {entity_number(entity_id) for entity_id in permitted}
         return not permitted_numbers.isdisjoint(self._closure_numbers(entity_number(type_qid)))
+
+    def _children_of(self, type_number: int) -> np.ndarray:
+        low = int(np.searchsorted(self._parents_sorted, type_number, side="left"))
+        high = int(np.searchsorted(self._parents_sorted, type_number, side="right"))
+        return self._children_by_parent[low:high]
+
+    def descendant_count(self, type_qid: Qid) -> int:
+        """Count the classes reachable downward from ``type_qid``, itself included.
+
+        The size of a class's reflexive subclass closure is its specificity
+        measure: a smaller count means a more specific class. Counts are
+        memoized per class; the count for a near-root class touches most of
+        the taxonomy once (a few seconds) and is then cached. Cycles
+        terminate through the visited set, mirroring the upward closure.
+        """
+        start = entity_number(type_qid)
+        cached = self._descendant_count_cache.get(start)
+        if cached is not None:
+            return cached
+        visited: set[int] = {start}
+        frontier: list[int] = [start]
+        while frontier:
+            node = frontier.pop()
+            for child in self._children_of(node):
+                child_number = int(child)
+                if child_number not in visited:
+                    visited.add(child_number)
+                    frontier.append(child_number)
+        count = len(visited)
+        self._descendant_count_cache[start] = count
+        return count

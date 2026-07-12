@@ -47,11 +47,12 @@ from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
 # from the committed fixtures. Any change to the card format, the fixtures,
 # or the truncation/sampling logic must be a conscious re-pin.
-# Re-pinned for card format v5: stratified example selection (subject-type
-# constraint strata with label prefixes, sitelink weighting, endpoint
-# dedup) over the QID+sitelink example query (v4).
+# P50 re-pinned for the deterministic scale-diverse selection (weight
+# order replaced the seeded draws, so its book examples now come
+# recognizability-descending). P361 was unchanged by that switch: its
+# picks and order survive both selection schemes.
 P361_CARD_HASH = "648c35614c1c463295a25c5ab2ec54514236d881138d2c9221ce3e4aa1c57bfa"
-P50_CARD_HASH = "f283ab38006e33c378bdad35cbc784ab54a3349fb1c71d750e415d469640edbb"
+P50_CARD_HASH = "dd11d49c6803928e46d8db14d6dc3c5015000aefa27d48d269726a213e2eb0ab"
 
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
