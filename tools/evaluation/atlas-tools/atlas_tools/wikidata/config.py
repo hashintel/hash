@@ -34,6 +34,7 @@ from atlas_tools.wikidata.model import ExampleSource
 from atlas_tools.wikidata.transport import RetryPolicy
 
 type TokenizerName = Literal["cl100k", "heuristic"]
+type SentenceSplitterName = Literal["punkt", "naive"]
 
 # Properties whose P31 intersects these classes are excluded as
 # Wikimedia-maintenance properties (Q18644435 "Wikidata property for
@@ -126,6 +127,8 @@ class CardsConfig(ForbidExtraModel):
     token_budget: PositiveInt = 6000
     hard_token_budget: PositiveInt = 7500
     tokenizer: TokenizerName = "cl100k"  # tests must use "heuristic"
+    # punkt requires the nltk punkt_tab data (see README); tests use "naive".
+    sentence_splitter: SentenceSplitterName = "punkt"
 
 
 class Config(ForbidExtraModel):
