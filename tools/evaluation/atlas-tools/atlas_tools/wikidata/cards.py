@@ -10,24 +10,35 @@ Layering (mining is decoupled from card formatting):
    transport/network involvement, so the card format can change and be
    re-rendered without re-running extraction.
 
-Card format v1 (``card_format_version = 1``)
+Card format v2 (``card_format_version = 2``)
 --------------------------------------------
 A card is deterministic labeled TEXT (never JSON), one section per line, in
 the atlas-spec priority order. Data-absent sections are simply not rendered;
 ``omitted_fields`` records only *truncation* losses.
 
-    Relation: <title> (<PID>)
+    Relation: <title>
     Description: <description>
     Aliases: <alias>; <alias>; ...
-    Inverse: <title> (<PID>) — <description>
-    Ancestors: <title> (<PID>) — <description>; ...
-    Source types: <title> (<QID>) — <description>; ...
-    Destination types: <title> (<QID>) — <description>; ...
+    Inverse: <label> — <description>
+    Ancestors: <label> — <description>; ...
+    Source types: <label> — <description>; ...
+    Destination types: <label> — <description>; ...
     Constraints: symmetric=yes|no; transitive=yes|no; single-value=yes|no; \
 distinct-values=yes|no; direction=symmetric|subject->object
     Examples:
     - <subject label> -> <object label>
     Slug: <normalized-en-label>
+
+v2 vs v1: Wikidata identifiers (PIDs/QIDs) are STRIPPED from card text.
+The card text is the embedding input for the relation-policy classifier;
+at inference time cards are built from ontologies where Wikidata ids do
+not exist, so ids are a non-transferable lexical feature and a leakage
+channel (train/inference distribution mismatch). References whose label is
+EMPTY are dropped from the text entirely — a bare QID carries no
+transferable signal — and a section whose references are all unlabeled is
+omitted (data absence, not truncation: ``omitted_fields`` is unaffected).
+The ``pid`` remains in the JSONL row and manifest as linkage metadata; it
+is never embedded.
 
 The serializer is a pure function of (PropertyRecord, label map, Config).
 ``card_hash`` = sha256 of the canonical serialization, defined as the UTF-8
@@ -148,17 +159,39 @@ def _entity_phrase(
     labels: Mapping[str, EntityLabel],
     *,
     truncate_description: bool,
-) -> str:
+) -> str | None:
+    """``<label> — <description>`` for a referenced entity, or None for an
+    unlabeled reference (bare Wikidata ids never reach card text; v2)."""
     entry = labels.get(entity_id, EntityLabel())
-    title = f"{entry.label} ({entity_id})" if entry.label else entity_id
+    if not entry.label:
+        return None
     if entry.description:
         description = (
             first_sentence(entry.description)
             if truncate_description
             else entry.description
         )
-        return f"{title} — {description}"
-    return title
+        return f"{entry.label} — {description}"
+    return entry.label
+
+
+def _entity_phrases(
+    entity_ids: tuple[str, ...],
+    labels: Mapping[str, EntityLabel],
+    *,
+    truncate_description: bool,
+) -> list[str]:
+    """Phrases for the labeled references, in order; unlabeled ones drop."""
+    return [
+        phrase
+        for entity_id in entity_ids
+        if (
+            phrase := _entity_phrase(
+                entity_id, labels, truncate_description=truncate_description
+            )
+        )
+        is not None
+    ]
 
 
 @dataclass(frozen=True)
@@ -257,46 +290,40 @@ def _render(
     aliases = record.aliases.get(primary, [])
     constraints = record.constraints
 
-    lines: list[str] = [f"Relation: {title} ({record.pid})"]
+    # v2: no Wikidata identifiers anywhere in card text; unlabeled
+    # references are dropped, and a section with no labeled references is
+    # omitted (data absence, never recorded in omitted_fields).
+    lines: list[str] = [f"Relation: {title}"]
     if description:
         lines.append(f"Description: {description}")
     if aliases:
         lines.append("Aliases: " + "; ".join(aliases))
     if record.inverse_pid:
-        lines.append(
-            "Inverse: "
-            + _entity_phrase(record.inverse_pid, labels, truncate_description=False)
+        inverse_phrase = _entity_phrase(
+            record.inverse_pid, labels, truncate_description=False
         )
+        if inverse_phrase is not None:
+            lines.append("Inverse: " + inverse_phrase)
     if record.ancestors and not state.drop_ancestors_section:
-        lines.append(
-            "Ancestors: "
-            + "; ".join(
-                _entity_phrase(
-                    pid, labels, truncate_description=state.truncate_ancestors
-                )
-                for pid in record.ancestors
-            )
+        ancestor_phrases = _entity_phrases(
+            record.ancestors, labels, truncate_description=state.truncate_ancestors
         )
-    if constraints.subject_types:
-        lines.append(
-            "Source types: "
-            + "; ".join(
-                _entity_phrase(
-                    qid, labels, truncate_description=state.truncate_source_types
-                )
-                for qid in constraints.subject_types
-            )
-        )
-    if constraints.value_types:
-        lines.append(
-            "Destination types: "
-            + "; ".join(
-                _entity_phrase(
-                    qid, labels, truncate_description=state.truncate_destination_types
-                )
-                for qid in constraints.value_types
-            )
-        )
+        if ancestor_phrases:
+            lines.append("Ancestors: " + "; ".join(ancestor_phrases))
+    source_phrases = _entity_phrases(
+        constraints.subject_types,
+        labels,
+        truncate_description=state.truncate_source_types,
+    )
+    if source_phrases:
+        lines.append("Source types: " + "; ".join(source_phrases))
+    destination_phrases = _entity_phrases(
+        constraints.value_types,
+        labels,
+        truncate_description=state.truncate_destination_types,
+    )
+    if destination_phrases:
+        lines.append("Destination types: " + "; ".join(destination_phrases))
 
     def yes_no(flag: bool) -> str:
         return "yes" if flag else "no"

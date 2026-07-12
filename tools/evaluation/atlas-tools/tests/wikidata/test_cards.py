@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -28,10 +29,11 @@ from atlas_tools.wikidata.transport import FixtureTransport
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
-# from the committed fixtures. Any change to card format v1, the fixtures,
+# from the committed fixtures. Any change to the card format, the fixtures,
 # or the truncation/sampling logic must be a conscious re-pin.
-P361_CARD_HASH = "413a7af6dd2f15c9de1cd81532da6c5a58401cdd928c7da7536ee36bcd7a4574"
-P50_CARD_HASH = "c9e57945ee1f2fecd9df844f3af111461fa1cb63547a6207df759d0c3a540cd3"
+# Re-pinned for card format v2 (Wikidata identifiers stripped from text).
+P361_CARD_HASH = "97cec85b0a57821a41becc22c78d4e9e0cec9fa19355364555291ae8c56e7348"
+P50_CARD_HASH = "55314bc9f5bef29175f153ff0fb1c9825f96f57b3a5835726204eecb279e3920"
 
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
@@ -93,8 +95,19 @@ class TestGoldenCards:
             assert counter.count(row["card_text"]) == row["token_count"]
 
     def test_inverse_linkage_names_both_directions(self, pipeline):
-        assert "Inverse: has part (P527)" in pipeline.rows["P361"]["card_text"]
-        assert "Inverse: part of (P361)" in pipeline.rows["P527"]["card_text"]
+        assert "Inverse: has part —" in pipeline.rows["P361"]["card_text"]
+        assert "Inverse: part of —" in pipeline.rows["P527"]["card_text"]
+
+    def test_no_wikidata_identifiers_in_any_card_text(self, pipeline):
+        # v2: PIDs/QIDs are a non-transferable lexical feature; the pid
+        # lives only in JSONL/manifest metadata.
+        identifier = re.compile(r"(?<![A-Za-z0-9])[PQ][0-9]+")
+        for pid, row in pipeline.rows.items():
+            assert pid not in row["card_text"], pid
+            match = identifier.search(row["card_text"])
+            assert match is None, f"{pid}: identifier {match.group() if match else ''}"
+        assert "P527" not in pipeline.rows["P361"]["card_text"]  # inverse id
+        assert "Q35120" not in pipeline.rows["P361"]["card_text"]  # type id
 
     def test_retrieved_at_comes_from_response_metadata(self, pipeline):
         # The fixture Date header, not the wall clock at emit time.
@@ -102,7 +115,7 @@ class TestGoldenCards:
 
     def test_manifest_hashes_match_rows(self, pipeline):
         details = pipeline.manifest["details"]
-        assert details["card_format_version"] == 1
+        assert details["card_format_version"] == 2  # v2: identifier-free text
         for pid, row in pipeline.rows.items():
             assert details["cards"][pid]["card_hash"] == row["card_hash"]
 
@@ -127,9 +140,11 @@ class TestExclusions:
 
 
 class TestExampleLadder:
-    def test_wdqs_timeout_falls_back_to_qlever(self, pipeline):
+    def test_qlever_timeout_falls_back_to_wdqs(self, pipeline):
+        # QLever is the first rung (config ladder); P9001 times out there
+        # and is rescued by WDQS, so it is recorded as a fallback.
         flags = pipeline.manifest["details"]["flags"]
-        assert flags["example_ladder_fallbacks"] == {"P9001": "qlever"}
+        assert flags["example_ladder_fallbacks"] == {"P9001": "wdqs"}
         assert "Examples:" in pipeline.rows["P9001"]["card_text"]
 
     def test_both_endpoints_failing_records_skip_flag(self, pipeline):
@@ -245,11 +260,11 @@ def test_severe_case_drops_example_and_ancestor_sections_only():
     assert "Examples:" not in card.card_text
     assert "Ancestors:" not in card.card_text
     # Title, description, inverse, and endpoint-type summaries survive.
-    assert "Relation: test relation (P9999)" in card.card_text
+    assert "Relation: test relation" in card.card_text
     assert "Description: " in card.card_text
-    assert "Inverse: has part (P527)" in card.card_text
-    assert "Source types: alpha type (Q1)" in card.card_text
-    assert "Destination types: beta type (Q2)" in card.card_text
+    assert "Inverse: has part —" in card.card_text
+    assert "Source types: alpha type —" in card.card_text
+    assert "Destination types: beta type —" in card.card_text
     assert "Constraints: " in card.card_text
     assert "Slug: test-relation" in card.card_text
 
@@ -281,6 +296,47 @@ def test_all_description_truncation_stages_without_severe_flag():
     assert "second beta sentence" not in card.card_text
     # Under the hard budget and no examples existed: not severe.
     assert not card.severely_truncated
+
+
+# --- v2: unlabeled references never reach card text ---------------------------
+
+
+def test_unlabeled_references_dropped_from_text():
+    counter = HeuristicTokenCounter()
+    record = _crafted_record(0)
+    # "QX" has no entry in LABELS: it must vanish; the labeled Q1 stays.
+    record.constraints = record.constraints.model_copy(
+        update={"subject_types": ("Q1", "QX")}
+    )
+    card = build_card(record, LABELS, _config(BIG, BIG), counter)
+    assert "QX" not in card.card_text
+    assert "Source types: alpha type —" in card.card_text
+    # Data absence is not truncation.
+    assert card.omitted_fields == ()
+
+
+def test_section_with_only_unlabeled_references_is_omitted():
+    counter = HeuristicTokenCounter()
+    record = _crafted_record(0)
+    record.ancestors = ("P777",)  # not in LABELS
+    record.constraints = record.constraints.model_copy(
+        update={"subject_types": ("Q888",)}  # not in LABELS
+    )
+    card = build_card(record, LABELS, _config(BIG, BIG), counter)
+    assert "Ancestors:" not in card.card_text
+    assert "Source types:" not in card.card_text
+    assert "P777" not in card.card_text
+    assert "Q888" not in card.card_text
+    assert card.omitted_fields == ()  # data absence, not truncation
+
+
+def test_unlabeled_inverse_line_omitted():
+    counter = HeuristicTokenCounter()
+    record = _crafted_record(0)
+    record.inverse_pid = "P4242"  # not in LABELS
+    card = build_card(record, LABELS, _config(BIG, BIG), counter)
+    assert "Inverse:" not in card.card_text
+    assert "P4242" not in card.card_text
 
 
 # --- small pure helpers -------------------------------------------------------

@@ -1,5 +1,18 @@
 {
-  "10c014c513a1c2982ee466618671a83ed9dc32a25ecb53357c01b99c3ba27a55": {
+  "25f3bb129fb79c42d5c3d82fbf03c02ad4326b1e2655f01427f56010f6a146a4": {
+    "file": "examples_P9001_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "2ca8bcfe65471ec8f3f85a8ec5c11e38bbd429ac1e4d89a050a5050c40ee1480": {
     "file": "examples_P9002_qlever_0.json",
     "headers": {
       "content-type": "application/json",
@@ -7,12 +20,64 @@
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9002 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 500,
     "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
   },
-  "33e7390240c1746ba60886a108588722fd15bb64b9e6561d9a5805b5eaac74c7": {
+  "3e145bec1d056b3a58aa6f8c30451caaef79706e411665e3a36cb94748d3e680": {
+    "file": "examples_P527_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P527 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "4026221be9808803301664026862e004014608d3dda06ae6a427259367384372": {
+    "file": "examples_P361_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P361 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "59a553c6993662037e672e48fdbc576970b36ccae9a9dd3174771ea3a3ea9c44": {
+    "file": "examples_P50_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P50 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "683fe698961cab5649aba11431abeaca0fd7777784a86454ee1be2d0d5d0391b": {
+    "file": "examples_P9005_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9005 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
+  "70cee6eec4e324e7d81cebf259eb3f657c5c41846fc58cd7be3383034fda6c5c": {
     "file": "examples_P9002_wdqs_0.json",
     "headers": {
       "content-type": "application/json",
@@ -20,35 +85,9 @@
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9002 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 500,
-    "url": "https://query.wikidata.org/sparql"
-  },
-  "5ab8f6597e96cc36156a14ae3a1d27e1a085f300a4e225a974e3f6e6fb61d162": {
-    "file": "examples_P50_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P50 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
-    },
-    "status": 200,
-    "url": "https://query.wikidata.org/sparql"
-  },
-  "6c81bef5ca32540e703298d379f4b3752dab055e2f9d1d9eeb0e16ebf5e1abeb": {
-    "file": "examples_P361_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P361 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
-    },
-    "status": 200,
     "url": "https://query.wikidata.org/sparql"
   },
   "8c337af11a24543d96ab233ff7f8faeb7031142036cebddebdfd457b6b6c44fb": {
@@ -67,7 +106,7 @@
     "status": 200,
     "url": "https://www.wikidata.org/w/api.php"
   },
-  "b5ba33e1b2e1933b7e23d989ac07b064c08b2a19d48d149cc66e2663b04d3ffd": {
+  "cfdd6bb1f0b24f0835d08fb294a4e5d3f5bfc7949c480b533d24049bce73a181": {
     "file": "examples_P9001_qlever_0.json",
     "headers": {
       "content-type": "application/json",
@@ -75,23 +114,10 @@
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9001 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
-    },
-    "status": 200,
-    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
-  },
-  "beb06a72ae169325be2166aca4c735a720be26d452afa8ad53bc0bb2d883c237": {
-    "file": "examples_P9001_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9001 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 500,
-    "url": "https://query.wikidata.org/sparql"
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
   },
   "d2eaec8d68788941308b73e699b1ae788ee21491164f843a4bac23ee18026f72": {
     "file": "inventory.json",
@@ -121,31 +147,5 @@
     },
     "status": 200,
     "url": "https://www.wikidata.org/w/api.php"
-  },
-  "d74997dda7266045a470c0295bec470b098cdafe4362538aec019ff358afc2f3": {
-    "file": "examples_P527_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P527 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
-    },
-    "status": 200,
-    "url": "https://query.wikidata.org/sparql"
-  },
-  "febe36727c79c484a6387a949cea9b4aa4f1ba56906212b318f5e5588fd5da82": {
-    "file": "examples_P9005_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n  ?subject wdt:P9005 ?object .\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}\nLIMIT 10 OFFSET 0"
-    },
-    "status": 200,
-    "url": "https://query.wikidata.org/sparql"
   }
 }

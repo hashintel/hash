@@ -1,3 +1,65 @@
 {
-  "error": "java.util.concurrent.TimeoutException: query timed out"
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 082"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Company 081"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 084"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Company 083"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 085"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Person 001"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 086"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Person 002"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5"
+        }
+      }
+    ]
+  }
 }

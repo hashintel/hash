@@ -20,6 +20,7 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-extra-types>=2.11.1",
     "semver>=3.0",
+    "nltk>=3.10.0",
 ]
 
 [project.optional-dependencies]

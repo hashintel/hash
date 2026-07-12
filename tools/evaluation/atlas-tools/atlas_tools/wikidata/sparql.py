@@ -22,6 +22,18 @@ Row-order determinism is provided by the response cache keyed on
 (query, endpoint, snapshot date), not by the query itself — live endpoints
 never promise stable order across cold fetches.
 
+Deep offsets via a SUBQUERY: the inner ``SELECT ?subject ?object … LIMIT
+… OFFSET …`` slices the raw statement stream FIRST; the P31 and label
+joins run only on the sliced rows. Endpoints stream statements in roughly
+QID order = prominence order, so shallow offsets only ever see prominent
+subjects (countries, heads of state); the geometric offset ladder in
+``ExtractionConfig.example_offsets`` reaches the long tail (small-town
+mayors live tens of thousands of statements deep). Verified live: QLever
+answers the subquery form at offset 10 000 in ~0.2 s (and empty deep
+slices, e.g. offset 100 000 on a small property, return an empty result
+cheaply); WDQS/Blazegraph times out (>40 s) on the same query — hence the
+QLever-first endpoint ladder in config.py.
+
 :data:`EXAMPLE_QUERY_VERSION` participates in the extraction checkpoint
 guard hash: bumping it on any semantic query change discards recorded
 ladder outcomes so reruns re-probe endpoints instead of replaying results
@@ -41,16 +53,23 @@ from pydantic import BaseModel, ConfigDict, Field
 WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 
 # Bump on any semantic change to example_pairs_query (see module docstring).
-EXAMPLE_QUERY_VERSION = 2
+EXAMPLE_QUERY_VERSION = 3
 
-# The SPARQL endpoints the example ladder can draw from, in ladder order.
+# The SPARQL endpoints the example ladder can draw from. Ladder ORDER is
+# config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
 type SparqlEndpoint = Literal["wdqs", "qlever"]
-
-SPARQL_ENDPOINT_LADDER: tuple[SparqlEndpoint, ...] = ("wdqs", "qlever")
 
 
 def property_inventory_query() -> str:
-    """All wikibase-item properties, with a usage-count proxy for sampling."""
+    """All wikibase-item properties, plus the ``wikibase:statements`` count.
+
+    Honesty note: ``wikibase:statements`` is the number of statements ON THE
+    PROPERTY'S OWN PAGE (P6 → 34), NOT how often the property is used in
+    claims. It is kept in the inventory as a weak prominence signal and is
+    not used for sampling. A real whole-graph usage GROUP BY times out on
+    both public endpoints (verified live: QLever 599), so no usage-scaled
+    behaviour is attempted anywhere.
+    """
     return (
         "SELECT ?property ?propertyType ?usage WHERE {\n"
         "  ?property a wikibase:Property ;\n"
@@ -67,25 +86,32 @@ def example_pairs_query(
 ) -> str:
     """Subject/object label pairs for ``pid`` with subject P31 class.
 
-    LIMIT/OFFSET implements the diversity ladder: configured offsets slice
-    different regions of the result set; final diversity comes from the
-    deterministic across-subject-type sampling in ``properties.py``.
+    The inner subquery slices the raw statement stream (LIMIT/OFFSET on
+    ``?subject wdt:PID ?object`` alone); P31 and label joins apply only to
+    the sliced rows, which is what makes deep offsets answerable in
+    sub-second time on QLever (see module docstring). The outer pattern can
+    multiply rows (one per P31 type / label) — deliberate: the diversity
+    sampler wants to see every subject type.
 
-    Streaming-safe and portable (see module docstring): no ORDER BY, no
-    WDQS-only label service, explicit prefixes for QLever.
+    Streaming-safe and portable: no ORDER BY anywhere, no WDQS-only label
+    service, explicit prefixes for QLever.
     """
     return (
         "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
         "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
         "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n"
-        f"  ?subject wdt:{pid} ?object .\n"
+        "  {\n"
+        "    SELECT ?subject ?object WHERE {\n"
+        f"      ?subject wdt:{pid} ?object .\n"
+        "    }\n"
+        f"    LIMIT {limit} OFFSET {offset}\n"
+        "  }\n"
         "  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n"
         "  ?subject rdfs:label ?subjectLabel .\n"
         f'  FILTER(LANG(?subjectLabel) = "{language}")\n'
         "  ?object rdfs:label ?objectLabel .\n"
         f'  FILTER(LANG(?objectLabel) = "{language}")\n'
-        "}\n"
-        f"LIMIT {limit} OFFSET {offset}"
+        "}"
     )
 
 
@@ -120,6 +146,9 @@ class InventoryRow(BaseModel):
 
     pid: str
     datatype_uri: str
+    # ``wikibase:statements``: statements on the property's OWN page, not a
+    # usage count (see ``property_inventory_query``). Weak prominence
+    # signal; recorded in the inventory, never used for sampling.
     usage: int | None
 
 

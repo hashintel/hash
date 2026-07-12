@@ -8,7 +8,6 @@ extraction:
     backoff_base_seconds: 1.0
   example_count: 8
   example_pool_limit: 50
-  example_offsets: [0, 50] # offset diversity for example queries
 cards:
   token_budget: 6000
   hard_token_budget: 7500

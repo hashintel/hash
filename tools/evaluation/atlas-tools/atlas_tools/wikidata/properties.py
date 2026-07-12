@@ -37,13 +37,20 @@ Exclusion rules (configurable, applied in this order; first match wins)
 
 Example fallback ladder
 -----------------------
-WDQS LIMIT/OFFSET query -> QLever public endpoint -> skip with a recorded
-flag; the outcome is a :data:`LadderOutcome` (``LadderSuccess`` tagged with
-its source endpoint, or ``LadderSkip``). An endpoint "fails" for a property
+Endpoints are tried in ``extraction.example_endpoint_ladder`` order
+(config, default QLever -> WDQS), then skip with a recorded flag; the
+outcome is a :data:`LadderOutcome` (``LadderSuccess`` tagged with its
+source endpoint, or ``LadderSkip``). ``example_fallbacks`` records every
+property NOT served by the first rung. An endpoint "fails" for a property
 when any of its offset requests returns a non-200 status
 (``RequestsTransport`` has already retried with backoff by then). Failures
 are cached like successes, so a warm-cache rerun makes zero network calls
 even for failing properties.
+
+QLever-first reverses the PRD's WDQS-first prescription deliberately: the
+deep-offset subquery form (see sparql.py) times out structurally on
+WDQS/Blazegraph while QLever answers it in sub-second time, and each WDQS
+timeout costs the full client timeout per offset before falling through.
 
 Inverse resolution: an explicit P1696 (inverse property) statement wins;
 otherwise the inverse constraint (Q21510855, qualifier P2306) is used.
@@ -86,9 +93,6 @@ from atlas_tools.wikidata.sparql import (
 from atlas_tools.wikidata.transport import Transport
 
 WBGETENTITIES_BATCH_SIZE = 50
-
-# Ladder order: WDQS first, QLever as the fallback rung.
-EXAMPLE_ENDPOINT_LADDER: tuple[ExampleSource, ...] = ("wdqs", "qlever")
 
 _QUALIFIER_CLASS = "P2308"
 _QUALIFIER_PROPERTY = "P2306"
@@ -302,6 +306,12 @@ def sample_diverse_examples(
     drawn round-robin across subject types in lexicographic type order. The
     resulting order is the diversity rank: truncation drops from the END, so
     the head (one example per distinct subject type) survives longest.
+
+    Emitted examples are additionally unique on (subject_label,
+    object_label): a subject with several P31 types yields one query row per
+    type, and without this a card could show the same pair twice (seen live:
+    Switzerland -> Swiss Federal Council under two types). The first
+    occurrence — the highest diversity rank — wins.
     """
     seen: set[tuple[str, str, str]] = set()
     groups: dict[str, list[ExampleRow]] = {}
@@ -319,13 +329,19 @@ def sample_diverse_examples(
     }
 
     out: list[Example] = []
+    emitted_pairs: set[tuple[str, str]] = set()
     depth = 0
     while len(out) < count:
         advanced = False
         for key in keys:
             group = permuted[key]
             if depth < len(group):
+                advanced = True
                 row = group[depth]
+                pair = (row.subject_label, row.object_label)
+                if pair in emitted_pairs:
+                    continue
+                emitted_pairs.add(pair)
                 out.append(
                     Example(
                         subject_label=row.subject_label,
@@ -333,7 +349,6 @@ def sample_diverse_examples(
                         subject_type=row.subject_type,
                     )
                 )
-                advanced = True
                 if len(out) >= count:
                     break
         if not advanced:
@@ -363,10 +378,13 @@ def fetch_example_rows(
     extraction: ExtractionConfig,
     transport: Transport,
     *,
-    endpoints: tuple[ExampleSource, ...] = EXAMPLE_ENDPOINT_LADDER,
+    endpoints: tuple[ExampleSource, ...] | None = None,
     progress: ProgressReporter = NO_PROGRESS,
 ) -> LadderOutcome:
-    """Run the fallback ladder over ``endpoints`` in order."""
+    """Run the fallback ladder; ``endpoints`` defaults to the configured
+    ``extraction.example_endpoint_ladder`` (checkpoint replay narrows it)."""
+    if endpoints is None:
+        endpoints = extraction.example_endpoint_ladder
     for endpoint in endpoints:
         url = extraction.endpoints.sparql_url(endpoint)
         rows: list[ExampleRow] = []
@@ -601,7 +619,7 @@ def extract_properties(
                 (replay_source,) if replay_source is not None else ()
             )
         else:
-            endpoints = EXAMPLE_ENDPOINT_LADDER
+            endpoints = extraction.example_endpoint_ladder
         outcome: LadderOutcome = LadderSkip()
         if endpoints:
             outcome = fetch_example_rows(
@@ -614,7 +632,7 @@ def extract_properties(
         match outcome:
             case LadderSuccess(source=source, rows=rows):
                 record.example_source = source
-                if source != "wdqs":
+                if source != extraction.example_endpoint_ladder[0]:
                     example_fallbacks[record.pid] = source
                 record.examples = sample_diverse_examples(
                     rows,

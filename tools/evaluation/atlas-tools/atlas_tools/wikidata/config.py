@@ -28,7 +28,9 @@ from pydantic import (
     NonNegativeInt,
     PositiveInt,
 )
+from pydantic_extra_types.language_code import LanguageAlpha2
 
+from atlas_tools.wikidata.model import ExampleSource
 from atlas_tools.wikidata.transport import RetryPolicy
 
 type TokenizerName = Literal["cl100k", "heuristic"]
@@ -83,26 +85,38 @@ class StratificationConfig(ForbidExtraModel):
 class ExtractionConfig(ForbidExtraModel):
     """Everything that shapes mined artifacts (records + entity manifest)."""
 
-    languages: tuple[str, ...] = ("en", "de")
+    languages: tuple[LanguageAlpha2, ...] = (LanguageAlpha2("en"), LanguageAlpha2("de"))
     seed: int = 0
     # W2a: endpoints + politeness
     endpoints: EndpointsConfig = Field(default_factory=EndpointsConfig)
     politeness: RetryPolicy = Field(default_factory=RetryPolicy)
     snapshot_date: str = ""
-    # W2a: examples
+    # W2a: examples. The geometric offset ladder reaches the long tail of
+    # each property's statement stream (endpoints stream in ~QID order =
+    # prominence order; shallow offsets only ever see countries and heads
+    # of state). Empty deep slices are cheap and contribute nothing.
     example_count: PositiveInt = 8
     example_pool_limit: PositiveInt = 50
-    example_offsets: tuple[NonNegativeInt, ...] = (0,)
+    example_offsets: tuple[NonNegativeInt, ...] = (0, 1_000, 10_000, 100_000)
+    # Endpoint ladder ORDER, first rung first. QLever-first reverses the
+    # PRD's WDQS-first prescription on live evidence: Blazegraph (WDQS)
+    # structurally times out (>40 s) on the deep-offset subquery form that
+    # QLever answers in ~0.2 s, and every WDQS timeout costs the full
+    # client timeout before the ladder can fall through.
+    example_endpoint_ladder: tuple[ExampleSource, ...] = Field(
+        default=("qlever", "wdqs"), min_length=1
+    )
     # W2a: exclusions
     maintenance_classes: tuple[str, ...] = DEFAULT_MAINTENANCE_CLASSES
     deprecated_classes: tuple[str, ...] = DEFAULT_DEPRECATED_CLASSES
     # W2b
     checkpoint_interval: PositiveInt = 10_000
+
     dump: DumpIdentity = Field(default_factory=DumpIdentity)
     stratification: StratificationConfig = Field(default_factory=StratificationConfig)
 
     @property
-    def primary_language(self) -> str:
+    def primary_language(self) -> LanguageAlpha2:
         return self.languages[0]
 
 

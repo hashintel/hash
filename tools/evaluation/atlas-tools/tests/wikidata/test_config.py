@@ -17,6 +17,15 @@ def test_defaults():
     assert config.extraction.endpoints == EndpointsConfig()
     assert "Q18644435" in config.extraction.maintenance_classes
     assert "Q18644427" in config.extraction.deprecated_classes
+    # Geometric offsets reach the long tail; QLever-first is evidence-based
+    # (WDQS times out on deep-offset subqueries).
+    assert config.extraction.example_offsets == (0, 1_000, 10_000, 100_000)
+    assert config.extraction.example_endpoint_ladder == ("qlever", "wdqs")
+
+
+def test_empty_endpoint_ladder_rejected():
+    with pytest.raises(ValidationError, match="example_endpoint_ladder"):
+        Config.model_validate({"extraction": {"example_endpoint_ladder": []}})
 
 
 def test_unknown_keys_rejected():
