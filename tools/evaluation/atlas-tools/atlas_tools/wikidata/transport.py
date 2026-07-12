@@ -21,6 +21,8 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -37,11 +39,20 @@ from pydantic import (
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 
 # Statuses that RequestsTransport retries with exponential backoff before
-# giving up and returning the final status to the caller.
-RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
+# giving up and returning the final status to the caller. 500 is deliberately
+# NOT retryable: WDQS/QLever signal deterministic query timeouts as 500, the
+# example ladder treats them as fallback triggers, and retrying multiplies a
+# 60-second server-side timeout by max_retries for zero benefit.
+RETRYABLE_STATUSES = frozenset({429, 502, 503, 504})
 
 # Synthesized status for connection errors / timeouts (never a real reply).
 CONNECTION_FAILED_STATUS = 599
+
+# Transient failures: retrying later can succeed, so these must never be
+# cached (see cache.py). Deterministic failures (e.g. a WDQS query that
+# always times out with 500) ARE cached, which the example-ladder fallback
+# semantics rely on.
+TRANSIENT_STATUSES = frozenset({429, 503, CONNECTION_FAILED_STATUS})
 
 USER_AGENT = "atlas-tools-wikidata/0.1 (research tooling)"
 
@@ -86,8 +97,39 @@ class RetryPolicy(BaseModel):
     max_retries: NonNegativeInt = 3
     backoff_base_seconds: NonNegativeFloat = 1.0
     timeout_seconds: PositiveFloat = 60.0
+    # Upper bound on honoring a server's Retry-After header, so a buggy or
+    # hostile header cannot stall a run indefinitely.
+    max_retry_after_seconds: NonNegativeFloat = 120.0
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+def retry_after_seconds(
+    headers: Mapping[str, str], now: Callable[[], datetime]
+) -> float | None:
+    """Parse a ``Retry-After`` header: delta-seconds or an HTTP date.
+
+    Returns the non-negative wait in seconds, or ``None`` when the header is
+    absent or unparseable (callers fall back to exponential backoff).
+    """
+    raw = headers.get("retry-after")
+    if raw is None:
+        return None
+
+    raw = raw.strip()
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        pass
+
+    try:
+        at = parsedate_to_datetime(raw)
+    except TypeError, ValueError:
+        return None
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)
+
+    return max(0.0, (at - now()).total_seconds())
 
 
 class SessionResponse(Protocol):
@@ -125,10 +167,13 @@ class RequestsTransport:
 
     - Rate limit: at most ``policy.rate_limit_per_sec`` requests per second,
       enforced by sleeping for the remaining inter-request interval.
-    - Backoff: on retryable statuses or connection errors, sleeps
-      ``policy.backoff_base_seconds * 2**attempt`` and retries, up to
-      ``policy.max_retries`` retries. The final response (or a synthesized
-      status-599 response for a connection error) is returned, never raised.
+    - Backoff: on retryable statuses or connection errors, sleeps and
+      retries up to ``policy.max_retries`` times, then returns the final
+      response (or a synthesized status-599 response for a connection
+      error) — never raises. The wait honors the server's ``Retry-After``
+      header when present (delta-seconds or HTTP date, capped at
+      ``policy.max_retry_after_seconds``), falling back to exponential
+      backoff (``policy.backoff_base_seconds * 2**attempt``).
     """
 
     def __init__(
@@ -138,6 +183,7 @@ class RequestsTransport:
         session: Session | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     ) -> None:
         self._policy = policy if policy is not None else RetryPolicy()
         self._session = session if session is not None else _requests_session()
@@ -148,6 +194,7 @@ class RequestsTransport:
         )
         self._sleep = sleep
         self._clock = clock
+        self._now = now
         self._last_request_at: float | None = None
 
     def _respect_rate_limit(self) -> None:
@@ -184,8 +231,17 @@ class RequestsTransport:
             ):
                 return response
             if attempt < self._policy.max_retries:
-                self._sleep(self._policy.backoff_base_seconds * (2**attempt))
+                self._sleep(self._retry_wait(response, attempt))
         return response
+
+    def _retry_wait(self, response: Response, attempt: int) -> float:
+        """Server-directed wait when available, else exponential backoff."""
+        backoff = self._policy.backoff_base_seconds * (2**attempt)
+        server_wait = retry_after_seconds(response.headers, self._now)
+        if server_wait is None:
+            return backoff
+
+        return max(backoff, min(server_wait, self._policy.max_retry_after_seconds))
 
 
 class FixtureMissError(KeyError):

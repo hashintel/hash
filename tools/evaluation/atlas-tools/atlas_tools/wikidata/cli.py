@@ -26,11 +26,16 @@ from pathlib import Path
 import click
 
 from atlas_tools.wikidata.config import Config
+from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter, StderrProgress
 
 
 @click.group()
 def main() -> None:
     """Wikidata miner (W2): relation cards + vec2slug sampling manifest."""
+
+
+def _progress_reporter(quiet: bool) -> ProgressReporter:
+    return NO_PROGRESS if quiet else StderrProgress()
 
 
 @main.command("extract-properties")
@@ -44,8 +49,13 @@ def main() -> None:
     help="Serve responses from committed fixtures instead of the network"
     " (offline testing).",
 )
+@click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
 def extract_properties_command(
-    config_path: str, out_dir: str, cache_dir: str | None, fixture_dir: str | None
+    config_path: str,
+    out_dir: str,
+    cache_dir: str | None,
+    fixture_dir: str | None,
+    quiet: bool,
 ) -> None:
     """W2a: mine relation cards (cards.jsonl + manifest + inventory)."""
     from atlas_tools.wikidata.cards import emit_cards
@@ -68,9 +78,14 @@ def extract_properties_command(
         transport = CachingTransport(
             transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
+    progress = _progress_reporter(quiet)
     result = extract_properties(
-        config, transport, checkpoint_path=Path(out_dir) / "checkpoint.json"
+        config,
+        transport,
+        checkpoint_path=Path(out_dir) / "checkpoint.json",
+        progress=progress,
     )
+    progress.note("emitting records + cards")
     paths = emit_cards(result, config, out_dir)
     click.echo(f"wrote {paths.records.records_jsonl} ({len(result.records)} records)")
     click.echo(f"wrote {paths.cards.cards_jsonl} ({len(result.records)} cards)")
@@ -108,17 +123,20 @@ def render_cards_command(records_path: str, config_path: str, out_dir: str) -> N
 @click.option("--out", "out_path", required=True, type=click.Path())
 @click.option("--checkpoint", "checkpoint_dir", required=True, type=click.Path())
 @click.option("--no-row-hash", is_flag=True, default=False)
+@click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
 def entity_manifest_command(
     config_path: str,
     input_path: str,
     out_path: str,
     checkpoint_dir: str,
     no_row_hash: bool,
+    quiet: bool,
 ) -> None:
     """W2b: stream the dump into the per-entity manifest parquet."""
     from atlas_tools.wikidata.dump import extract_entities
 
     config = Config.load(config_path)
+    progress = _progress_reporter(quiet)
     if input_path == "-":
         summary = extract_entities(
             sys.stdin.buffer,
@@ -128,6 +146,7 @@ def entity_manifest_command(
             input_name="stdin",
             seekable=False,
             hash_rows=not no_row_hash,
+            progress=progress,
         )
     else:
         with open(input_path, "rb") as stream:
@@ -139,6 +158,7 @@ def entity_manifest_command(
                 input_name=Path(input_path).name,
                 seekable=True,
                 hash_rows=not no_row_hash,
+                progress=progress,
             )
     click.echo(f"wrote {out_path} ({summary.rows} rows)")
 

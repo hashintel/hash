@@ -6,9 +6,17 @@ a metadata JSON (``<key>.meta.json``, a :class:`CacheEntryMetadata`)
 recording status, headers, and ``retrieved_at``.
 
 ``CachingTransport`` wraps an inner transport: once every request of a run is
-cached, a full rerun makes ZERO calls to the inner transport. Failed
-responses (non-200) are cached too, so reruns do not re-hit failing
-endpoints.
+cached, a full rerun makes ZERO calls to the inner transport.
+
+Failure caching is deliberate but split by kind:
+
+- Deterministic failures (e.g. a WDQS query that reliably times out with
+  500) ARE cached — the example-ladder fallback semantics rely on reruns
+  not re-hitting endpoints that will fail again.
+- Transient failures (:data:`~atlas_tools.wikidata.transport.TRANSIENT_STATUSES`:
+  429 rate limiting, 503, connection failures) are NEVER cached, and a
+  previously cached transient entry is evicted and refetched on read —
+  a rate-limited run must not poison every future warm rerun.
 
 ``retrieved_at`` semantics: if the inner response carries a ``date`` header
 it is stored verbatim (fixtures set an ISO date so tests are fully
@@ -29,7 +37,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
-from atlas_tools.wikidata.transport import Response, Transport
+from atlas_tools.wikidata.transport import TRANSIENT_STATUSES, Response, Transport
 
 RETRIEVED_AT_HEADER = "x-atlas-retrieved-at"
 
@@ -99,9 +107,16 @@ class CachingTransport:
             metadata = CacheEntryMetadata.model_validate_json(
                 metadata_path.read_bytes()
             )
-            return metadata.response(body_path.read_bytes())
+            if metadata.status not in TRANSIENT_STATUSES:
+                return metadata.response(body_path.read_bytes())
+            # Self-heal entries poisoned before transient statuses were
+            # excluded from caching: evict and refetch.
+            metadata_path.unlink()
+            body_path.unlink(missing_ok=True)
 
         fetched = self._inner.get(url, params)
+        if fetched.status in TRANSIENT_STATUSES:
+            return fetched
         retrieved_at = (
             fetched.headers.get("date") or datetime.now(timezone.utc).isoformat()
         )

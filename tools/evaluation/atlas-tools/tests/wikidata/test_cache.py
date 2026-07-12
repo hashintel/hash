@@ -4,13 +4,14 @@ rerun's outputs are byte-identical except sidecar created_at."""
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
-from atlas_tools.wikidata.cache import CachingTransport
+from atlas_tools.wikidata.cache import CacheEntryMetadata, CachingTransport, cache_key
 from atlas_tools.wikidata.cards import ExtractPaths, emit_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.properties import extract_properties
-from atlas_tools.wikidata.transport import FixtureTransport
+from atlas_tools.wikidata.transport import FixtureTransport, Response
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 
@@ -66,6 +67,59 @@ def test_failed_responses_are_cached_too(tmp_path):
     _run_extract(cache_dir, tmp_path / "run1")
     inner2, _ = _run_extract(cache_dir, tmp_path / "run2")
     assert inner2.calls == 0
+
+
+class ScriptedTransport:
+    """Returns scripted responses in order; counts calls."""
+
+    def __init__(self, responses: list[Response]):
+        self._responses = list(responses)
+        self.calls = 0
+
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
+        self.calls += 1
+        return self._responses.pop(0)
+
+
+def test_transient_failures_are_never_cached(tmp_path):
+    # A 429 must not be written to the cache: the next call goes back to the
+    # inner transport and its success IS cached.
+    inner = ScriptedTransport([Response(status=429), Response(status=200, body=b"ok")])
+    transport = CachingTransport(inner, tmp_path / "cache", snapshot_date="d")
+
+    assert transport.get("http://example.test").status == 429
+    assert transport.get("http://example.test").status == 200
+    assert inner.calls == 2
+    # Warm now: the cached 200 is served without touching the inner transport.
+    assert transport.get("http://example.test").status == 200
+    assert inner.calls == 2
+
+
+def test_poisoned_transient_cache_entry_is_evicted_and_refetched(tmp_path):
+    # Entries cached by versions that stored 429s must self-heal on read.
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    key = cache_key("http://example.test", None, "d")
+    (cache_dir / f"{key}.body").write_bytes(b"rate limited")
+    (cache_dir / f"{key}.meta.json").write_text(
+        CacheEntryMetadata(
+            status=429,
+            retrieved_at="2026-07-11T00:00:00+00:00",
+            url="http://example.test",
+            snapshot_date="d",
+        ).model_dump_json()
+    )
+
+    inner = ScriptedTransport([Response(status=200, body=b"healed")])
+    transport = CachingTransport(inner, cache_dir, snapshot_date="d")
+    response = transport.get("http://example.test")
+    assert response.status == 200
+    assert response.body == b"healed"
+    assert inner.calls == 1
+    # The healed entry is cached; deterministic failures (500) stay cached
+    # (test_failed_responses_are_cached_too covers that path).
+    assert transport.get("http://example.test").status == 200
+    assert inner.calls == 1
 
 
 def test_cache_key_includes_snapshot_date(tmp_path):

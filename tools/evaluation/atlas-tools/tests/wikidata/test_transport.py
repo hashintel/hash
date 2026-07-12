@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
 
 import pytest
 
@@ -11,15 +12,21 @@ from atlas_tools.wikidata.transport import (
     FixtureTransport,
     RequestsTransport,
     RetryPolicy,
+    retry_after_seconds,
 )
 from tests.wikidata.conftest import RESPONSES
 
 
 class FakeReply:
-    def __init__(self, status_code: int, content: bytes = b""):
+    def __init__(
+        self,
+        status_code: int,
+        content: bytes = b"",
+        headers: dict[str, str] | None = None,
+    ):
         self.status_code = status_code
         self.content = content
-        self.headers: dict[str, str] = {}
+        self.headers: dict[str, str] = dict(headers or {})
 
 
 class FakeSession:
@@ -39,7 +46,7 @@ class FakeSession:
 
 
 def test_backoff_is_exponential_then_returns_success():
-    session = FakeSession([FakeReply(429), FakeReply(500), FakeReply(200, b"ok")])
+    session = FakeSession([FakeReply(429), FakeReply(503), FakeReply(200, b"ok")])
     sleeps: list[float] = []
     transport = RequestsTransport(
         # rate limiting disabled to isolate backoff
@@ -57,8 +64,81 @@ def test_backoff_is_exponential_then_returns_success():
     assert len(session.requests) == 3
 
 
+_NOW = datetime(2026, 7, 11, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def test_retry_after_parsing():
+    now = lambda: _NOW  # noqa: E731 - tiny fixed clock
+    assert retry_after_seconds({"retry-after": "7"}, now) == 7.0
+    assert retry_after_seconds({"retry-after": "0"}, now) == 0.0
+    assert retry_after_seconds({"retry-after": "-3"}, now) == 0.0
+    # HTTP-date form: 90 seconds ahead of the fixed clock.
+    assert (
+        retry_after_seconds({"retry-after": "Sat, 11 Jul 2026 12:01:30 GMT"}, now)
+        == 90.0
+    )
+    # Dates in the past clamp to zero; garbage and absence yield None.
+    assert (
+        retry_after_seconds({"retry-after": "Sat, 11 Jul 2026 11:00:00 GMT"}, now)
+        == 0.0
+    )
+    assert retry_after_seconds({"retry-after": "soonish"}, now) is None
+    assert retry_after_seconds({}, now) is None
+
+
+def test_retry_after_header_overrides_exponential_backoff():
+    session = FakeSession(
+        [
+            FakeReply(429, headers={"Retry-After": "7"}),
+            FakeReply(429, headers={"Retry-After": "600"}),  # above the cap
+            FakeReply(200, b"ok"),
+        ]
+    )
+    sleeps: list[float] = []
+    transport = RequestsTransport(
+        policy=RetryPolicy(
+            rate_limit_per_sec=0,
+            max_retries=3,
+            backoff_base_seconds=1.0,
+            max_retry_after_seconds=120.0,
+        ),
+        session=session,
+        sleep=sleeps.append,
+        clock=lambda: 0.0,
+        now=lambda: _NOW,
+    )
+    response = transport.get("http://example.test")
+    assert response.status == 200
+    # First wait: server-directed 7s (not the 1s backoff). Second: the 600s
+    # request is capped at 120s.
+    assert sleeps == [7.0, 120.0]
+
+
+def test_retry_after_never_waits_less_than_backoff():
+    # A tiny Retry-After must not defeat exponential backoff.
+    session = FakeSession(
+        [
+            FakeReply(429, headers={"Retry-After": "0"}),
+            FakeReply(429, headers={"Retry-After": "0"}),
+            FakeReply(200, b"ok"),
+        ]
+    )
+    sleeps: list[float] = []
+    transport = RequestsTransport(
+        policy=RetryPolicy(
+            rate_limit_per_sec=0, max_retries=2, backoff_base_seconds=1.0
+        ),
+        session=session,
+        sleep=sleeps.append,
+        clock=lambda: 0.0,
+        now=lambda: _NOW,
+    )
+    assert transport.get("http://example.test").status == 200
+    assert sleeps == [1.0, 2.0]
+
+
 def test_backoff_gives_up_and_returns_final_status():
-    session = FakeSession([FakeReply(500)] * 3)
+    session = FakeSession([FakeReply(503)] * 3)
     sleeps: list[float] = []
     transport = RequestsTransport(
         policy=RetryPolicy(
@@ -69,10 +149,29 @@ def test_backoff_gives_up_and_returns_final_status():
         clock=lambda: 0.0,
     )
     response = transport.get("http://example.test")
-    assert response.status == 500  # returned, not raised: the ladder handles it
+    assert response.status == 503  # returned, not raised: the ladder handles it
     assert not response.ok
     assert sleeps == [1.0, 2.0]
     assert len(session.requests) == 3
+
+
+def test_500_is_deterministic_and_never_retried():
+    # WDQS/QLever signal query timeouts as 500; the ladder needs the failure
+    # immediately, not after max_retries * 60s.
+    session = FakeSession([FakeReply(500), FakeReply(200, b"never reached")])
+    sleeps: list[float] = []
+    transport = RequestsTransport(
+        policy=RetryPolicy(
+            rate_limit_per_sec=0, max_retries=3, backoff_base_seconds=1.0
+        ),
+        session=session,
+        sleep=sleeps.append,
+        clock=lambda: 0.0,
+    )
+    response = transport.get("http://example.test")
+    assert response.status == 500
+    assert sleeps == []
+    assert len(session.requests) == 1
 
 
 def test_rate_limit_sleeps_for_remaining_interval():

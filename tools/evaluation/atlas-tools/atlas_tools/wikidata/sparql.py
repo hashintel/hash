@@ -1,8 +1,7 @@
 """SPARQL query builders and result parsing.
 
-Queries are deterministic strings (stable whitespace, ORDER BY for stable
-row order) so they cache well: the disk cache key includes the full query
-text via the request params.
+Queries are deterministic strings (stable whitespace) so they cache well:
+the disk cache key includes the full query text via the request params.
 
 Two query families:
 
@@ -13,6 +12,20 @@ Two query families:
 - example pairs: subject/object label pairs for one property with
   LIMIT/OFFSET for the diversity ladder, plus the subject's P31 class so the
   card builder can sample across distinct subject types.
+
+The example query is written for STREAMING evaluation: no ORDER BY (which
+would force the endpoint to materialize every statement of the property
+before applying LIMIT — a guaranteed timeout for high-usage properties)
+and plain ``rdfs:label`` + LANG filters instead of the WDQS-only
+``SERVICE wikibase:label`` (QLever does not support the label service).
+Row-order determinism is provided by the response cache keyed on
+(query, endpoint, snapshot date), not by the query itself — live endpoints
+never promise stable order across cold fetches.
+
+:data:`EXAMPLE_QUERY_VERSION` participates in the extraction checkpoint
+guard hash: bumping it on any semantic query change discards recorded
+ladder outcomes so reruns re-probe endpoints instead of replaying results
+of the old query.
 
 Responses are validated into typed models (:class:`SparqlResponse`) at the
 parse boundary; parsers return typed rows (:class:`InventoryRow`,
@@ -26,6 +39,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
+
+# Bump on any semantic change to example_pairs_query (see module docstring).
+EXAMPLE_QUERY_VERSION = 2
 
 # The SPARQL endpoints the example ladder can draw from, in ladder order.
 type SparqlEndpoint = Literal["wdqs", "qlever"]
@@ -46,21 +62,29 @@ def property_inventory_query() -> str:
     )
 
 
-def example_pairs_query(pid: str, *, limit: int, offset: int) -> str:
+def example_pairs_query(
+    pid: str, *, limit: int, offset: int, language: str = "en"
+) -> str:
     """Subject/object label pairs for ``pid`` with subject P31 class.
 
     LIMIT/OFFSET implements the diversity ladder: configured offsets slice
     different regions of the result set; final diversity comes from the
     deterministic across-subject-type sampling in ``properties.py``.
+
+    Streaming-safe and portable (see module docstring): no ORDER BY, no
+    WDQS-only label service, explicit prefixes for QLever.
     """
     return (
+        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
+        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
         "SELECT ?subjectLabel ?objectLabel ?subjectType WHERE {\n"
         f"  ?subject wdt:{pid} ?object .\n"
         "  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n"
-        "  SERVICE wikibase:label "
-        '{ bd:serviceParam wikibase:language "en". }\n'
+        "  ?subject rdfs:label ?subjectLabel .\n"
+        f'  FILTER(LANG(?subjectLabel) = "{language}")\n'
+        "  ?object rdfs:label ?objectLabel .\n"
+        f'  FILTER(LANG(?objectLabel) = "{language}")\n'
         "}\n"
-        "ORDER BY ?subject ?object\n"
         f"LIMIT {limit} OFFSET {offset}"
     )
 

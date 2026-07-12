@@ -71,7 +71,9 @@ from atlas_tools.wikidata.model import (
     PropertyRecord,
     pid_number,
 )
+from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.wikidata.sparql import (
+    EXAMPLE_QUERY_VERSION,
     WIKIBASE_ITEM_DATATYPE,
     ExampleRow,
     InventoryRow,
@@ -362,6 +364,7 @@ def fetch_example_rows(
     transport: Transport,
     *,
     endpoints: tuple[ExampleSource, ...] = EXAMPLE_ENDPOINT_LADDER,
+    progress: ProgressReporter = NO_PROGRESS,
 ) -> LadderOutcome:
     """Run the fallback ladder over ``endpoints`` in order."""
     for endpoint in endpoints:
@@ -370,10 +373,16 @@ def fetch_example_rows(
         endpoint_ok = True
         for offset in extraction.example_offsets:
             query = example_pairs_query(
-                pid, limit=extraction.example_pool_limit, offset=offset
+                pid,
+                limit=extraction.example_pool_limit,
+                offset=offset,
+                language=extraction.primary_language,
             )
             response = transport.get(url, sparql_params(query))
             if not response.ok:
+                progress.note(
+                    f"{pid}: {endpoint} example query failed (status {response.status})"
+                )
                 endpoint_ok = False
                 break
             rows.extend(parse_example_results(response.body))
@@ -441,8 +450,20 @@ class ExtractionCheckpoint:
 
 
 def extraction_config_hash(config: Config) -> str:
-    """Hash of the extraction sub-config (card-format-independent)."""
-    return sha256_bytes(canonical_json_bytes(config.extraction))
+    """Checkpoint guard hash: extraction sub-config + example-query version.
+
+    Card-format-independent. Including :data:`EXAMPLE_QUERY_VERSION` means a
+    semantic query fix discards recorded ladder outcomes instead of
+    replaying results of the old, possibly-broken query.
+    """
+    return sha256_bytes(
+        canonical_json_bytes(
+            {
+                "extraction": config.extraction.model_dump(mode="json"),
+                "example_query_version": EXAMPLE_QUERY_VERSION,
+            }
+        )
+    )
 
 
 def extract_properties(
@@ -450,6 +471,7 @@ def extract_properties(
     transport: Transport,
     *,
     checkpoint_path: Path | str | None = None,
+    progress: ProgressReporter = NO_PROGRESS,
 ) -> ExtractionResult:
     """Full W2a extraction: inventory -> documents -> exclusions -> labels ->
     example ladder. All HTTP goes through ``transport``; wrap it in a
@@ -462,6 +484,7 @@ def extract_properties(
     )
 
     # 1. Property inventory via SPARQL.
+    progress.phase("property inventory (SPARQL)")
     response = transport.get(
         extraction.endpoints.wdqs, sparql_params(property_inventory_query())
     )
@@ -482,8 +505,14 @@ def extract_properties(
             retained_pids.append(row.pid)
 
     # 2. Full property documents via wbgetentities, batches of 50.
+    progress.note(
+        f"{len(inventory_rows)} properties in inventory,"
+        f" {len(retained_pids)} entity-valued retained"
+    )
+    property_batches = chunk_ids(retained_pids)
+    progress.phase("property documents (wbgetentities)", total=len(property_batches))
     records: list[PropertyRecord] = []
-    for batch in chunk_ids(retained_pids):
+    for batch in property_batches:
         response = transport.get(
             extraction.endpoints.wikibase_api,
             wbgetentities_params(batch, extraction.languages),
@@ -509,6 +538,7 @@ def extract_properties(
                 excluded[pid] = reason
             else:
                 records.append(record)
+        progress.advance()
     records.sort(key=lambda record: pid_number(record.pid))
 
     # 3. Labels/descriptions for referenced items (endpoint types) so cards
@@ -528,7 +558,9 @@ def extract_properties(
         },
         key=pid_number,
     )
-    for batch in chunk_ids(referenced_qids):
+    label_batches = chunk_ids(referenced_qids)
+    progress.phase("endpoint-type labels (wbgetentities)", total=len(label_batches))
+    for batch in label_batches:
         response = transport.get(
             extraction.endpoints.wikibase_api,
             wbgetentities_params(batch, extraction.languages),
@@ -551,8 +583,15 @@ def extract_properties(
                 label=label.value if label else "",
                 description=description.value if description else "",
             )
+        progress.advance()
 
     # 4. Example ladder per retained property.
+    progress.phase("example ladder (per property)", total=len(records))
+    if checkpoint is not None and checkpoint.examples_done:
+        progress.note(
+            f"resuming: {len(checkpoint.examples_done)} example outcomes"
+            " replayed from checkpoint"
+        )
     example_fallbacks: dict[str, ExampleSource] = {}
     example_skips: list[str] = []
     for record in records:
@@ -566,7 +605,11 @@ def extract_properties(
         outcome: LadderOutcome = LadderSkip()
         if endpoints:
             outcome = fetch_example_rows(
-                record.pid, extraction, transport, endpoints=endpoints
+                record.pid,
+                extraction,
+                transport,
+                endpoints=endpoints,
+                progress=progress,
             )
         match outcome:
             case LadderSuccess(source=source, rows=rows):
@@ -582,8 +625,10 @@ def extract_properties(
             case LadderSkip():
                 record.example_skipped = True
                 example_skips.append(record.pid)
+                progress.note(f"{record.pid}: example ladder exhausted, skipped")
         if checkpoint is not None:
             checkpoint.record_example(record.pid, record.example_source)
+        progress.advance()
 
     return ExtractionResult(
         records=records,

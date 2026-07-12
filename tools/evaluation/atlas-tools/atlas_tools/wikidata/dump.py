@@ -59,6 +59,7 @@ from atlas_tools.common.provenance import (
     canonical_json_bytes,
 )
 from atlas_tools.wikidata.config import Config
+from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 
 
 class EntityManifestDetails(BaseModel):
@@ -216,6 +217,7 @@ def extract_entities(
     input_name: str = "",
     seekable: bool = True,
     hash_rows: bool = True,
+    progress: ProgressReporter = NO_PROGRESS,
 ) -> ExtractionSummary:
     """Stream the dump, write the entity manifest parquet + sidecar.
 
@@ -230,6 +232,7 @@ def extract_entities(
     checkpoint_path = checkpoint_dir / "checkpoint.json"
 
     checkpoint = _load_checkpoint(checkpoint_path)
+    progress.phase("streaming dump entities")
     if checkpoint is not None:
         byte_offset = checkpoint.byte_offset
         entities_processed = checkpoint.entities_processed
@@ -237,6 +240,10 @@ def extract_entities(
         next_part_index = checkpoint.next_part_index
         if seekable:
             input_stream.seek(byte_offset)
+        progress.note(
+            f"resuming at byte {byte_offset:,}"
+            f" ({entities_processed:,} entities already processed)"
+        )
     else:
         byte_offset = 0
         entities_processed = 0
@@ -277,9 +284,17 @@ def extract_entities(
         entities_processed += 1
         if len(buffered) >= interval:
             flush(byte_offset)
+            progress.note(
+                f"{entities_processed:,} entities,"
+                f" {byte_offset / 1_000_000:,.0f} MB read"
+            )
 
     if buffered:
         flush(byte_offset)
+    progress.note(
+        f"stream done: {entities_processed:,} entities,"
+        f" {byte_offset / 1_000_000:,.0f} MB; combining part files"
+    )
 
     # Combine part files into the single final parquet, in dump order, with
     # one write_table call so interrupted and uninterrupted runs produce

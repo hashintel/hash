@@ -1,0 +1,15 @@
+extraction:
+  languages: [en, de] # first entry is the card's primary language
+  seed: 0
+  snapshot_date: "2026-07-11" # cache key + recorded in the manifest in lieu of a dump SHA
+  politeness:
+    rate_limit_per_sec: 5.0 # be polite to WDQS
+    max_retries: 4
+    backoff_base_seconds: 1.0
+  example_count: 8
+  example_pool_limit: 50
+  example_offsets: [0, 50] # offset diversity for example queries
+cards:
+  token_budget: 6000
+  hard_token_budget: 7500
+  tokenizer: cl100k # production default; downloads its BPE on first use
