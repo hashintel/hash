@@ -7,15 +7,33 @@ contract.
 """
 
 from enum import StrEnum
-from typing import Literal, NewType
+from typing import Annotated, Literal, NewType
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 # Which SPARQL endpoint an example set was mined from. None on a record
 # means the whole ladder failed (a recorded skip).
 type ExampleSource = Literal["wdqs", "qlever"]
+
 Pid = NewType("Pid", str)
+"""A Wikidata property id ("P361")."""
+
+Qid = NewType("Qid", str)
+"""A Wikidata item id ("Q486972"): P31 classes, constraint classes,
+taxonomy nodes, example subjects and objects."""
+
+type EntityId = Pid | Qid
+"""Either id kind, for the maps and batches that genuinely mix them
+(entity-label lookups, wbgetentities batching)."""
+
+type PidField = Annotated[Pid, StringConstraints(pattern=r"^P\d+$")]
+"""A ``Pid`` model field that additionally validates the id shape.
+Only for fields where emptiness is impossible."""
+
+type QidField = Annotated[Qid, StringConstraints(pattern=r"^Q\d+$")]
+"""A ``Qid`` model field that additionally validates the id shape.
+Only for fields where emptiness is impossible."""
 
 
 class ConstraintKind(StrEnum):
@@ -44,9 +62,9 @@ class Constraints(BaseModel):
     transitive: bool = False
     single_value: bool = False
     distinct_values: bool = False
-    subject_types: tuple[Pid, ...] = ()
-    value_types: tuple[Pid, ...] = ()
-    inverse_pid: str | None = None
+    subject_types: tuple[QidField, ...] = ()
+    value_types: tuple[QidField, ...] = ()
+    inverse_pid: Pid | None = None
     ignored_types: tuple[str, ...] = ()
 
     model_config = ConfigDict(frozen=True)
@@ -67,7 +85,7 @@ class Example(BaseModel):
     subject_label: str
     object_label: str
     subject_type: str  # QID, or "" when the subject has no P31
-    stratum: Pid | None = None  # subject-type constraint class
+    stratum: QidField | None = None  # subject-type constraint class
 
     model_config = ConfigDict(frozen=True)
 
@@ -87,12 +105,12 @@ class PropertyRecord(BaseModel):
     Mutable: extraction fills usage/examples/retrieval fields in stages.
     """
 
-    pid: Pid
+    pid: PidField
     datatype: str
     labels: dict[LanguageAlpha2, str] = Field(default_factory=dict)
     descriptions: dict[LanguageAlpha2, str] = Field(default_factory=dict)
     aliases: dict[LanguageAlpha2, list[str]] = Field(default_factory=dict)
-    p31: tuple[str, ...] = ()
+    p31: tuple[Qid, ...] = ()
     ancestors: tuple[Pid, ...] = ()  # P1647 subproperty-of targets
     inverse_pid: Pid | None = None  # P1696, else the inverse constraint
     constraints: Constraints = Field(default_factory=Constraints)
@@ -108,6 +126,6 @@ class PropertyRecord(BaseModel):
     retrieved_at: str | None = None
 
 
-def pid_number(entity_id: str) -> int:
+def entity_number(entity_id: str) -> int:
     """Numeric part of a PID/QID, for deterministic numeric ordering."""
     return int(entity_id[1:])

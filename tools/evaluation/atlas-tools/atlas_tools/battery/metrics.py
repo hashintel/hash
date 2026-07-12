@@ -20,7 +20,7 @@ Conventions:
 
 from collections.abc import Iterable, Sequence
 from enum import StrEnum
-from typing import Annotated, Final, Literal, Never, NewType
+from typing import Annotated, Final, Literal, Never
 
 import numpy as np
 from pydantic import (
@@ -32,10 +32,8 @@ from pydantic import (
 from sklearn.metrics import pairwise_distances, silhouette_score
 from sklearn.neighbors import NearestNeighbors
 
+from atlas_tools.common.data import K
 from atlas_tools.common.knn import exact_cosine_knn, l2_normalize
-
-K = NewType("K", int)
-"""Neighborhood size of the kNN-recall metric family."""
 
 KNN_RECALL_PREFIX: Final = "knn_recall_"
 

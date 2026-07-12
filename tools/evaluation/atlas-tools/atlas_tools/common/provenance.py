@@ -29,14 +29,22 @@ from typing import Self
 from pydantic import (
     AwareDatetime,
     BaseModel,
-    JsonValue,
     model_validator,
 )
 from pydantic_extra_types.semantic_version import SemanticVersion
 
 import atlas_tools
+from atlas_tools.common.data import JsonDict, Sha256Hex
 
-type JsonDict = dict[str, JsonValue]
+__all__ = [
+    "JsonDict",
+    "Provenance",
+    "canonical_json_bytes",
+    "read_sidecar",
+    "sha256_bytes",
+    "sha256_file",
+    "write_sidecar",
+]
 
 
 def canonical_json_bytes(value: object) -> bytes:
@@ -54,11 +62,11 @@ def canonical_json_bytes(value: object) -> bytes:
     )
 
 
-def sha256_bytes(data: bytes) -> str:
+def sha256_bytes(data: bytes) -> Sha256Hex:
     return hashlib.sha256(data).hexdigest()
 
 
-def sha256_file(path: PathLike, chunk_size: int = 1 << 20) -> str:
+def sha256_file(path: PathLike, chunk_size: int = 1 << 20) -> Sha256Hex:
     digest = hashlib.sha256()
 
     with Path(path).open("rb") as stream:
@@ -80,9 +88,9 @@ class Provenance[TDetails, TConfig = None](BaseModel):
     tool_version: SemanticVersion | None = None
 
     config: TConfig | None = None
-    config_hash: str | None = None
+    config_hash: Sha256Hex | None = None
 
-    input_hashes: dict[str, str] | None = None
+    input_hashes: dict[str, Sha256Hex] | None = None
 
     seed: int | None = None
 
@@ -120,7 +128,7 @@ class Provenance[TDetails, TConfig = None](BaseModel):
         cls,
         *,
         producer: str,
-        input_hashes: dict[str, str] | None = None,
+        input_hashes: dict[str, Sha256Hex] | None = None,
         config: TConfig | None = None,
         seed: int | None = None,
         details: TDetails,

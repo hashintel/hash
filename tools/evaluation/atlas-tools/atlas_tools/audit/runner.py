@@ -70,11 +70,9 @@ import numpy as np
 
 from atlas_tools.audit.evaluation import (
     ColumnReport,
-    Dim,
     FlagReport,
     GroupMetric,
     GroupReport,
-    K,
     RunnerConfig,
     RunnerCorpus,
     RunnerDetails,
@@ -88,6 +86,7 @@ from atlas_tools.audit.metrics import (
 )
 from atlas_tools.audit.report import render_markdown
 from atlas_tools.audit.strata import StrataTable
+from atlas_tools.common.data import Dim, K
 from atlas_tools.common.knn import (
     DEFAULT_MEMORY_CAP_BYTES,
     exact_cosine_knn,

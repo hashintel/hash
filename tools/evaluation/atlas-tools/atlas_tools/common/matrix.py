@@ -15,13 +15,13 @@ any file whose size disagrees with ``rows * dim * 4`` and names the mismatch in 
 
 from os import PathLike
 from pathlib import Path
-from typing import Final, Literal
+from typing import Annotated, Final, Literal
 
 import numpy as np
-from pydantic import BaseModel, NonNegativeInt, PositiveInt
+from pydantic import BaseModel, Field, NonNegativeInt
 
+from atlas_tools.common.data import Dim, JsonDict, Sha256Hex
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     sha256_file,
 )
@@ -44,11 +44,11 @@ def meta_path_for(path: PathLike) -> Path:
 class MatrixDetails(BaseModel):
     dtype: Literal["f32"]
 
-    dim: PositiveInt
+    dim: Annotated[Dim, Field(gt=0)]
     rows: NonNegativeInt
 
     byte_order: Literal["little"]
-    content_sha256: str
+    content_sha256: Sha256Hex
 
     extra: JsonDict | None = None
 
@@ -121,7 +121,7 @@ def write_matrix(
 
     details = MatrixDetails(
         dtype="f32",
-        dim=int(array.shape[1]),
+        dim=Dim(array.shape[1]),
         rows=int(array.shape[0]),
         byte_order="little",
         content_sha256=sha256_file(path),

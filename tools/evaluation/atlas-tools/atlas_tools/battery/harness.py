@@ -84,7 +84,6 @@ from atlas_tools.battery.gates import (
 from atlas_tools.battery.generators import Generator
 from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
 from atlas_tools.battery.metrics import (
-    K,
     KnnRecallMetric,
     LayoutMetrics,
     contraction_factor,
@@ -96,6 +95,7 @@ from atlas_tools.battery.metrics import (
     silhouette_on_labels,
     trustworthiness_continuity,
 )
+from atlas_tools.common.data import K, Sha256Hex
 from atlas_tools.common.provenance import (
     Provenance,
     canonical_json_bytes,
@@ -186,8 +186,8 @@ class RunDetails(BaseModel):
     suite_path: Path
     engines_path: Path
 
-    suite_config_hash: str
-    engines_config_hash: str
+    suite_config_hash: Sha256Hex
+    engines_config_hash: Sha256Hex
 
     seeds: list[int]
     datasets: dict[str, DatasetHashes]

@@ -18,8 +18,8 @@ from typing import Final
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt
 
+from atlas_tools.common.data import JsonDict, Sha256Hex
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     sha256_file,
 )
@@ -39,8 +39,8 @@ class LayoutDetails(BaseModel):
     engine: str
     rows: NonNegativeInt
 
-    layout_sha256: str
-    source_embedding_hash: str | None = None
+    layout_sha256: Sha256Hex
+    source_embedding_hash: Sha256Hex | None = None
 
     extra: JsonDict | None = None
 
@@ -120,7 +120,7 @@ def write_layout(
     engine: str,
     config: JsonDict | None = None,
     seed: int | None = None,
-    source_embedding_hash: str | None = None,
+    source_embedding_hash: Sha256Hex | None = None,
     extra_meta: JsonDict | None = None,
 ) -> LayoutArtifact:
     """Write ``layout.npz`` plus its ``layout.meta.json`` sidecar.

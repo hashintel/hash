@@ -52,6 +52,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pydantic import BaseModel, Field, NonNegativeInt
 
+from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.provenance import (
     Provenance,
     canonical_json_bytes,
@@ -70,9 +71,11 @@ class EntityManifestDetails(BaseModel):
     rows: NonNegativeInt
     columns: list[str]
     dump_date: str
+    # Deliberately unconstrained: mirrors ``DumpIdentity.sha256`` from the
+    # config, whose empty-string default is a documented wart there.
     dump_sha256: str
     input: str
-    rows_sha256: str | None
+    rows_sha256: Sha256Hex | None
     parts: NonNegativeInt
     checkpoint_interval: int
 

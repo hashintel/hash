@@ -31,10 +31,10 @@ such as kNN recall and trustworthiness/continuity.
 """
 
 from dataclasses import dataclass, field
-from typing import Final
+from typing import Annotated, Final
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, PositiveInt
 from scipy.ndimage import gaussian_filter
 
 DEFAULT_GRID_SIZE = 1024
@@ -48,6 +48,9 @@ _LAYOUT_AXES: Final = 2
 _MIN_GRID_SIZE: Final = 2
 """A raster needs at least two bins per axis to resolve any structure."""
 
+type PositiveFraction = Annotated[float, Field(gt=0.0, le=1.0)]
+"""A strictly positive fraction of a maximum, in the interval (0, 1]."""
+
 
 class MergeTreeConfig(BaseModel):
     """Density raster and superlevel-sweep parameters.
@@ -60,8 +63,8 @@ class MergeTreeConfig(BaseModel):
 
     grid_size: PositiveInt = DEFAULT_GRID_SIZE
     bandwidth_px: PositiveFloat = DEFAULT_BANDWIDTH_PX
-    floor_frac: PositiveFloat = DEFAULT_FLOOR_FRAC
-    persistence_frac: PositiveFloat = DEFAULT_PERSISTENCE_FRAC
+    floor_frac: PositiveFraction = DEFAULT_FLOOR_FRAC
+    persistence_frac: PositiveFraction = DEFAULT_PERSISTENCE_FRAC
 
 
 @dataclass(frozen=True)

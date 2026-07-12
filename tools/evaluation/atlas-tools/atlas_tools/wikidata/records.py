@@ -38,6 +38,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, NonNegativeInt, TypeAdapter
 
+from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.provenance import (
     Provenance,
     canonical_json_bytes,
@@ -46,11 +47,11 @@ from atlas_tools.common.provenance import (
 )
 from atlas_tools.wikidata.config import Config, ExtractionConfig
 from atlas_tools.wikidata.model import (
+    EntityId,
     EntityLabel,
     ExampleSource,
-    Pid,
     PropertyRecord,
-    pid_number,
+    entity_number,
 )
 from atlas_tools.wikidata.properties import ExtractionResult
 
@@ -58,7 +59,7 @@ from atlas_tools.wikidata.properties import ExtractionResult
 # stratum; ladder flags gained the `other` bucket diagnostics.
 RECORDS_FORMAT_VERSION = 2
 
-_ENTITY_LABELS_ADAPTER = TypeAdapter(dict[Pid, EntityLabel])
+_ENTITY_LABELS_ADAPTER = TypeAdapter(dict[EntityId, EntityLabel])
 
 
 class LadderFlags(BaseModel):
@@ -92,7 +93,7 @@ class RecordsDetails(BaseModel):
     counts: ExtractionCounts
     flags: LadderFlags
     excluded: dict[str, str]
-    content_hashes: dict[str, str]
+    content_hashes: dict[str, Sha256Hex]
 
 
 RecordsProvenance = Provenance[RecordsDetails, ExtractionConfig]
@@ -128,7 +129,7 @@ class RecordSet:
     """The loaded structured intermediate, ready for card rendering."""
 
     records: list[PropertyRecord]
-    entity_labels: dict[Pid, EntityLabel]
+    entity_labels: dict[EntityId, EntityLabel]
     meta: RecordsProvenance
     records_path: Path
 
@@ -139,7 +140,7 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: Path | str) 
     out_dir.mkdir(parents=True, exist_ok=True)
 
     records_path = out_dir / "records.jsonl"
-    ordered = sorted(result.records, key=lambda record: pid_number(record.pid))
+    ordered = sorted(result.records, key=lambda record: entity_number(record.pid))
     with records_path.open("w", encoding="utf-8") as records_file:
         records_file.writelines(
             canonical_json_bytes(record).decode("utf-8") + "\n" for record in ordered
@@ -154,7 +155,7 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: Path | str) 
         },
     )
 
-    excluded_sorted = dict(sorted(result.excluded.items(), key=lambda item: pid_number(item[0])))
+    excluded_sorted = dict(sorted(result.excluded.items(), key=lambda item: entity_number(item[0])))
     meta_path = out_dir / "records.meta.json"
     RecordsProvenance.make(
         producer="wikidata.extract-properties",
@@ -171,20 +172,20 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: Path | str) 
             ),
             flags=LadderFlags(
                 example_ladder_fallbacks=dict(sorted(result.example_fallbacks.items())),
-                example_ladder_skips=sorted(result.example_skips, key=pid_number),
+                example_ladder_skips=sorted(result.example_skips, key=entity_number),
                 example_rows_filtered=dict(
                     sorted(
                         result.example_filtered.items(),
-                        key=lambda item: pid_number(item[0]),
+                        key=lambda item: entity_number(item[0]),
                     )
                 ),
                 example_other_candidates=dict(
                     sorted(
                         result.example_other.items(),
-                        key=lambda item: pid_number(item[0]),
+                        key=lambda item: entity_number(item[0]),
                     )
                 ),
-                example_other_fallbacks=sorted(result.example_other_fallbacks, key=pid_number),
+                example_other_fallbacks=sorted(result.example_other_fallbacks, key=entity_number),
             ),
             excluded=excluded_sorted,
             content_hashes={

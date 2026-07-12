@@ -36,7 +36,7 @@ from atlas_tools.common.provenance import (
 )
 from atlas_tools.wikidata.config import Config, StratificationConfig
 from atlas_tools.wikidata.dump import EntityRow
-from atlas_tools.wikidata.model import pid_number
+from atlas_tools.wikidata.model import entity_number
 
 
 class ClassSampleCount(BaseModel):
@@ -154,13 +154,13 @@ def build_sampling_plan(
     selected: list[PlanRow] = []
     class_counts: dict[str, ClassSampleCount] = {}
     for row_class in sorted(by_class):
-        members = sorted(by_class[row_class], key=lambda row: pid_number(row.qid))
+        members = sorted(by_class[row_class], key=lambda row: entity_number(row.qid))
         total = len(members)
         if total <= floor:
             chosen = members
         else:
             sample_size = min(total, class_cap(row_class, stratification))
-            rng = np.random.default_rng([seed, pid_number(row_class)])
+            rng = np.random.default_rng([seed, entity_number(row_class)])
             indices = np.sort(rng.choice(total, size=sample_size, replace=False))
             chosen = [members[i] for i in indices]
         class_counts[row_class] = ClassSampleCount(total=total, sampled=len(chosen))
@@ -178,7 +178,7 @@ def build_sampling_plan(
             for row in chosen
         )
 
-    selected.sort(key=lambda row: pid_number(row.qid))
+    selected.sort(key=lambda row: entity_number(row.qid))
     plan = _plan_table(selected)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(plan, out_path)

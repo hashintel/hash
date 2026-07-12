@@ -28,6 +28,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, NonNegativeInt
 
+from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.provenance import (
     Provenance,
     canonical_json_bytes,
@@ -36,7 +37,7 @@ from atlas_tools.common.provenance import (
 from atlas_tools.wikidata import CARD_FORMAT_VERSION
 from atlas_tools.wikidata.card import Card, build_card
 from atlas_tools.wikidata.config import Config, SentenceSplitterName, TokenizerName
-from atlas_tools.wikidata.model import Pid, pid_number
+from atlas_tools.wikidata.model import Pid, entity_number
 from atlas_tools.wikidata.properties import ExtractionResult
 from atlas_tools.wikidata.records import (
     LadderFlags,
@@ -54,7 +55,7 @@ class CardRow(BaseModel):
 
     pid: Pid
     card_text: str
-    card_hash: str
+    card_hash: Sha256Hex
     token_count: NonNegativeInt
     truncations: list[str]
     severely_truncated: bool
@@ -62,7 +63,7 @@ class CardRow(BaseModel):
 
 
 class CardEntry(BaseModel):
-    card_hash: str
+    card_hash: Sha256Hex
     token_count: NonNegativeInt
     severely_truncated: bool
 
@@ -150,8 +151,8 @@ def render_cards(
             untitled.append(record.pid)
         else:
             cards.append(card)
-    cards.sort(key=lambda card: pid_number(card.pid))
-    untitled.sort(key=pid_number)
+    cards.sort(key=lambda card: entity_number(card.pid))
+    untitled.sort(key=entity_number)
 
     cards_path = out_dir / "cards.jsonl"
     with cards_path.open("w", encoding="utf-8") as cards_file:

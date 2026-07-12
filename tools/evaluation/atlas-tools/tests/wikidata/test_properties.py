@@ -17,7 +17,7 @@ from atlas_tools.wikidata.examples import (
     collect_candidates,
     select_examples,
 )
-from atlas_tools.wikidata.model import Constraints, Pid, PropertyRecord
+from atlas_tools.wikidata.model import Constraints, Pid, PropertyRecord, Qid
 from atlas_tools.wikidata.properties import (
     LadderSkip,
     LadderSuccess,
@@ -82,8 +82,8 @@ _TAXONOMY = Taxonomy.from_edges(
     ]
 )
 
-SETTLEMENT = Pid("Q486972")
-WRITTEN_WORK = Pid("Q47461344")
+SETTLEMENT = Qid("Q486972")
+WRITTEN_WORK = Qid("Q47461344")
 
 
 def _row(
@@ -128,9 +128,9 @@ def test_stratum_assignment_uses_subclass_closure() -> None:
     [candidate] = collect_candidates([_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")])
     assert assign_stratum(candidate, (SETTLEMENT, WRITTEN_WORK), _TAXONOMY) == (SETTLEMENT)
     # Declaration order wins when several classes subsume the subject.
-    assert assign_stratum(candidate, (Pid("Q35120"), SETTLEMENT), _TAXONOMY) == Pid("Q35120")
+    assert assign_stratum(candidate, (Qid("Q35120"), SETTLEMENT), _TAXONOMY) == Qid("Q35120")
     # Reflexive: a subject typed exactly as the constraint class matches.
-    assert assign_stratum(candidate, (Pid("Q515"),), _TAXONOMY) == Pid("Q515")
+    assert assign_stratum(candidate, (Qid("Q515"),), _TAXONOMY) == Qid("Q515")
 
 
 def _mixed_pool() -> list[ExampleRow]:

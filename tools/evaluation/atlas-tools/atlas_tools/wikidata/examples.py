@@ -56,7 +56,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from atlas_tools.wikidata.model import Example, Pid, pid_number
+from atlas_tools.wikidata.model import Example, Qid, entity_number
 from atlas_tools.wikidata.sparql import ExampleRow
 from atlas_tools.wikidata.taxonomy import Taxonomy
 
@@ -73,7 +73,7 @@ class Candidate:
     object_qid: str
     subject_label: str
     object_label: str
-    subject_types: tuple[str, ...]  # order-preserving union across pool rows
+    subject_types: tuple[Qid, ...]  # order-preserving union across pool rows
     subject_sitelinks: int
     object_sitelinks: int
 
@@ -97,13 +97,13 @@ class _PairAccumulator:
     """Mutable per-pair state while collapsing multiplied pool rows."""
 
     first_row: ExampleRow
-    types: list[str]
+    types: list[Qid]
     subject_sitelinks: int
     object_sitelinks: int
 
     def merge(self, row: ExampleRow) -> None:
         if row.subject_type and row.subject_type not in self.types:
-            self.types.append(row.subject_type)
+            self.types.append(Qid(row.subject_type))
         self.subject_sitelinks = max(self.subject_sitelinks, row.subject_sitelinks)
         self.object_sitelinks = max(self.object_sitelinks, row.object_sitelinks)
 
@@ -137,7 +137,9 @@ def collect_candidates(rows: Sequence[ExampleRow]) -> list[Candidate]:
         if entry is None:
             by_pair[key] = _PairAccumulator(
                 first_row=row,
-                types=[row.subject_type] if row.subject_type else [],
+                # The parse boundary: pool rows carry plain strings, the
+                # candidate carries branded (never-empty) class QIDs.
+                types=[Qid(row.subject_type)] if row.subject_type else [],
                 subject_sitelinks=row.subject_sitelinks,
                 object_sitelinks=row.object_sitelinks,
             )
@@ -150,18 +152,16 @@ def collect_candidates(rows: Sequence[ExampleRow]) -> list[Candidate]:
 
 def assign_stratum(
     candidate: Candidate,
-    constraint_classes: tuple[Pid, ...],
+    constraint_classes: tuple[Qid, ...],
     taxonomy: Taxonomy,
-) -> Pid | None:
+) -> Qid | None:
     """Assign the first declaration-order constraint class subsuming any subject type.
 
     Subsumption uses the reflexive P279 closure; ``None`` means the
     ``other`` bucket.
     """
     closures = [
-        taxonomy.closure(Pid(subject_type))
-        for subject_type in candidate.subject_types
-        if subject_type
+        taxonomy.closure(subject_type) for subject_type in candidate.subject_types if subject_type
     ]
 
     for constraint_class in constraint_classes:
@@ -220,7 +220,7 @@ class ExampleSelection:
 class _Stratum:
     """Selection state for one stratum (or the unstratified pool)."""
 
-    key: Pid | None
+    key: Qid | None
     order: list[Candidate]
     pointer: int = 0
     picks: list[Candidate] = field(default_factory=list)
@@ -323,7 +323,7 @@ def _select_from_strata(strata: list[_Stratum], count: int) -> None:
     _redistribute_shortfall(strata, count, used_tokens)
 
 
-def _example(candidate: Candidate, stratum: Pid | None) -> Example:
+def _example(candidate: Candidate, stratum: Qid | None) -> Example:
     return Example(
         subject_qid=candidate.subject_qid,
         object_qid=candidate.object_qid,
@@ -337,7 +337,7 @@ def _example(candidate: Candidate, stratum: Pid | None) -> Example:
 def select_examples(
     rows: Sequence[ExampleRow],
     *,
-    constraint_classes: tuple[Pid, ...],
+    constraint_classes: tuple[Qid, ...],
     taxonomy: Taxonomy | None,
     count: int,
     seed: int,
@@ -354,7 +354,7 @@ def select_examples(
     candidates = collect_candidates(rows)
 
     def rng_for(stratum_index: int) -> np.random.Generator:
-        return np.random.default_rng([seed, pid_number(pid), stratum_index])
+        return np.random.default_rng([seed, entity_number(pid), stratum_index])
 
     if not constraint_classes or taxonomy is None:
         pool = _Stratum(key=None, order=_preference_order(candidates, rng_for(0)))
@@ -369,7 +369,7 @@ def select_examples(
 
     untyped: list[Candidate] = []
     other: list[Candidate] = []
-    pools: dict[Pid, list[Candidate]] = {key: [] for key in constraint_classes}
+    pools: dict[Qid, list[Candidate]] = {key: [] for key in constraint_classes}
     for candidate in candidates:
         if not candidate.subject_types:
             untyped.append(candidate)

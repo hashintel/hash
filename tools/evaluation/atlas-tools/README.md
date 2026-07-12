@@ -1,86 +1,112 @@
 # atlas-tools
 
-Python tooling for the Semantic Atlas pipeline (see
-`libs/@local/graph/atlas/SPEC.md` and `tools/evaluation/PRD.md`):
+Python tooling for the Semantic Atlas pipeline:
 
-- **`audit/` (W1)** — prefix representation audit. Measures the information
-  ceiling of truncated-and-renormalized embedding prefixes against the full
-  vectors (recall@k, intrusion rate, rank displacement, stratified by group).
-- **`wikidata/` (W2)** — Wikidata miner. W2a extracts entity-valued property
-  inventories via SPARQL/wbgetentities and emits relation cards (API path, no
-  dump). W2b streams the JSON dump (never stored) into a P31-stratified
-  entity sampling manifest for vec2slug.
-- **`battery/` (W3)** — engine-agnostic layout gate battery. Planted-shape
+- **`audit/`** measures the information ceiling of truncated-and-renormalized
+  embedding prefixes against the full vectors (recall@k, intrusion rate, rank
+  displacement, stratified by group). Map neighbor recall can never exceed
+  prefix neighbor recall, so this number bounds every projector downstream.
+- **`wikidata/`** mines Wikidata on two paths. The API path extracts
+  entity-valued property inventories via SPARQL and wbgetentities and emits
+  relation cards without touching the dump. The dump path streams the JSON
+  dump (never storing it) into a P31-stratified entity sampling manifest for
+  vec2slug retraining.
+- **`battery/`** is the engine-agnostic layout gate battery: planted-shape
   generators, structure metrics (merge-tree leaf persistence, kNN recall,
-  trustworthiness/continuity, pendant diffusion, edge binding, contraction),
-  baselines (PCA-2D, umap-learn), rerun-noise floors, and pass/fail gates
-  including the no-structure-from-noise differential.
-- **`common/`** — shared contracts: raw f32 matrix + layout artifact I/O,
-  provenance envelopes, blockwise exact cosine kNN, the prefix transform.
+  trustworthiness and continuity, pendant diffusion, edge binding,
+  contraction), baselines (PCA-2D, umap-learn), rerun-noise floors, and
+  pass/fail gates including the no-structure-from-noise differential.
+- **`common/`** holds the shared contracts: raw f32 matrix and layout
+  artifact I/O, provenance envelopes, blockwise exact cosine kNN, and the
+  prefix transform.
 
 ## Setup and development
 
-Requires Python 3.14 (pinned in `.python-version`) and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.14 (pinned in `.python-version`) and
+[uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv sync --extra dev          # create/refresh the venv
-uv run pytest -q             # full test suite (offline, deterministic, ~90s)
-uvx ty check atlas_tools tests   # type check — must report "All checks passed!"
+uv sync --extra dev                 # create/refresh the venv
+uv run pytest -q                    # full test suite (offline, deterministic, ~90s)
+uvx ty check atlas_tools tests      # type check
+uvx ruff check                      # lint
+uvx ruff format --check             # formatting
 ```
 
-Both gates are required before merging: **tests green** and **`ty` clean**.
-There is no allowlist; new diagnostics are regressions.
+All three gates are required before merging: tests green, `ty` clean, and
+`ruff` clean (check and format). There is no allowlist; new diagnostics are
+regressions. Ruff runs with `select = ["ALL"]`; every disabled rule in
+`pyproject.toml` carries a comment explaining why, and `# noqa` needs an
+inline justification.
 
 ## Design conventions
 
-The codebase is fully typed, and the types are the design — not decoration:
+The codebase is fully typed, and the types are the design rather than
+decoration:
 
-- **No `typing.Any`.** Genuinely opaque JSON is `JsonValue` / `JsonDict`
-  (from `atlas_tools.common.provenance`); values merely passed through are
-  `object`. The current count of `Any` in `atlas_tools/` is zero; keep it
-  there.
+- **No `typing.Any`** (enforced by lint). Genuinely opaque JSON is
+  `JsonValue` / `JsonDict`; values merely passed through are `object`.
+- **Shared type vocabulary** (`atlas_tools.common.data`): values that cross
+  package boundaries carry branded or validated types instead of bare
+  primitives. `Sha256Hex` pattern-validates every digest field at model
+  boundaries, `Fraction` pins proportions to [0, 1], and the `Dim`/`K`
+  NewTypes keep dimensionalities and neighborhood sizes from silently
+  swapping. Domain vocabulary stays in its package: `wikidata.model` brands
+  property ids (`Pid`), item ids (`Qid`), and their union (`EntityId`), so
+  a QID flowing into a PID slot is a type error. Brands are applied at
+  genuine entry points (parsers, sidecar loads, CLI); wrapping deep inside
+  arithmetic is noise, not safety.
 - **Discriminated unions are the dispatch.** Polymorphic configuration is a
-  pydantic union tagged by a `Literal` field — no registries, no string
-  comparisons. See `battery/generators.py` (`Generator`, tag `shape`) and
-  `battery/gates.py` (`GateConfig`, tag `type`); evaluation uses
-  `match`/`assert_never`. Closed string sets are `Literal` or `StrEnum`.
+  pydantic union tagged by a `Literal` field; there are no registries and no
+  string comparisons. See `battery/generators.py` (`Generator`, tag `shape`)
+  and `battery/gates.py` (`GateConfig`, tag `type`); evaluation uses
+  `match` with `assert_never`. Closed string sets are `Literal` or `StrEnum`.
 - **Structured payloads are models.** Anything crossing a function or file
   boundary is a pydantic model (`extra="forbid"` for config-like models) or
-  a frozen dataclass. Plain dataclasses/NamedTuples carry numpy arrays and
-  hot-path rows (e.g. `battery.datasets.Dataset`, `wikidata.dump.EntityRow`
-  — the dump stream is deliberately not pydantic-validated).
-- **Determinism.** Everything is seeded (`np.random.default_rng(seed)`);
+  a frozen dataclass. Plain dataclasses carry numpy arrays and hot-path rows
+  (for example `battery.datasets.Dataset` and `wikidata.dump.EntityRow`; the
+  dump stream is deliberately not pydantic-validated).
+- **Determinism.** Everything is seeded via `np.random.default_rng(seed)`;
   identical (config, seed) yields identical bytes. Tests make no network
   calls and read no wall clock. `created_at` is the only wall-clock field
   anywhere and is excluded from all hashes.
-- **Python 3.14 idioms.** PEP 695 (`type X = ...`, `class C[T]`), `Self`,
-  no bare `# type: ignore`, no non-math abbreviations in names.
+- **Python 3.14 idioms.** PEP 695 (`type X = ...`, `class C[T]`) and `Self`.
+  Annotations evaluate lazily under PEP 649, so
+  `from __future__ import annotations` is banned by lint. No bare
+  `# type: ignore`. Names avoid abbreviations unless they are universally
+  understood or mathematical.
+- **Docs.** Comments and docstrings are ASCII (mathematical notation
+  excepted), title-first (one-line summary, blank line, details), affirmative
+  (state what something is and guarantees, in concrete terms), and
+  self-contained (no citations of external design documents). Inline comments
+  exist to carry intent, constraints, or tradeoffs; a comment that narrates
+  the code should be deleted.
 
 ## Shared contracts (`atlas_tools/common`)
 
-- **Raw f32 matrices** (`common.matrix`): headerless row-major
-  little-endian float32 with a `<name>.meta.json` sidecar appended to the
-  full filename (`X.f32` → `X.f32.meta.json`). Loaders validate
-  `file size == rows * dim * 4` and reject mismatches by name.
-- **Layouts** (`common.layout`): `layout.npz` with `xy` (n, 2) float32 +
-  `row_id` (n,) int64 and a `layout.meta.json` sidecar. A missing sidecar is
-  a hard error (`require_provenance=False` for ad-hoc inspection). The
+- **Raw f32 matrices** (`common.matrix`): headerless row-major little-endian
+  float32 with a `<name>.meta.json` sidecar appended to the full filename
+  (`X.f32` and `X.f32.meta.json`). Loaders validate that the file size equals
+  `rows * dim * 4` and reject mismatches with an error naming the mismatch.
+- **Layouts** (`common.layout`): `layout.npz` with `xy` (n, 2) float32 plus
+  `row_id` (n,) int64, and a `layout.meta.json` sidecar. A missing sidecar is
+  a hard error (`require_provenance=False` exists for ad-hoc inspection). The
   battery consumes only this format and never imports engine code.
-- **Provenance envelopes** (`common.provenance`): every artifact sidecar is
-  a `Provenance[TDetails, TConfig]` — producer, `created_at`, tool version,
-  typed `config` + `config_hash` (validated on load, so tampering is
-  detected), `input_hashes`, `seed`, and artifact-specific fields nested
-  under `details`. Build with `SomeProvenance.make(...)`, persist with
-  `.write(path)` / `.load(path)`. The nesting is deliberate: adding envelope
-  fields never breaks existing loaders. Only `producer`, `created_at`, and
-  `details` are required, so foreign producers (e.g. the Rust pipeline) can
-  write minimal sidecars.
+- **Provenance envelopes** (`common.provenance`): every artifact sidecar is a
+  `Provenance[TDetails, TConfig]` carrying producer, `created_at`, tool
+  version, typed `config` with a `config_hash` that is validated on load (so
+  tampering is detected), `input_hashes`, `seed`, and artifact-specific
+  fields nested under `details`. Build with `SomeProvenance.make(...)`,
+  persist with `.write(path)` and `.load(path)`. The nesting is deliberate:
+  adding envelope fields never breaks existing loaders. Only `producer`,
+  `created_at`, and `details` are required, so foreign producers (for
+  example a Rust pipeline) can write minimal sidecars.
 
 ## CLIs
 
 Console scripts are installed in the venv (`uv run <name> ...`).
 
-### `audit` (W1)
+### `audit`
 
 ```sh
 uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
@@ -88,11 +114,11 @@ uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
 uv run audit synth-fixture --out X.f32   # synthetic acceptance fixture
 ```
 
-Writes `report.json` (source of truth — `report.md` and the returned
+Writes `report.json` (the source of truth; `report.md` and the returned
 `RunnerReport` are both derived from the file on disk) plus a
 `report.meta.json` provenance envelope.
 
-### `battery` (W3)
+### `battery`
 
 ```sh
 uv run battery run --suite suites/smoke.yaml --engines engines/default.yaml \
@@ -101,21 +127,21 @@ uv run battery calibrate --layout layout.npz --manifest calibration.yaml
 uv run battery generate --shape chains --n 800 --seed 0 --out dataset/
 ```
 
-- Suites (`suites/*.yaml`) validate into `harness.Suite`; dataset entries
-  are `{shape, n, params}` and validate directly into `Generator` union
-  instances. `suites/smoke.yaml` runs in seconds; `suites/phase2.yaml` is
-  the PRD-scale default suite.
-- Engines (`engines/*.yaml`) are subprocess commands that read
-  `embeddings/edges` and write `layout.npz` — the battery never imports
-  engine code. `command_no_edges` is required to evaluate the noise
-  differential; an edges-consuming engine without it **fails closed**.
-- A run writes `results.parquet` (tidy long format), `report.md` (every
-  cell annotated with the rerun-noise spread), `gates.json` (typed
-  `GatesReport`), and `manifest.json` (provenance envelope: config hashes,
-  dataset hashes, seeds, library versions) — every reported number is
-  reproducible from the manifest alone.
+- Suites (`suites/*.yaml`) validate into `harness.Suite`; dataset entries are
+  `{shape, n, params}` and validate directly into `Generator` union
+  instances. `suites/smoke.yaml` runs in seconds; `suites/phase2.yaml` is the
+  full release-gate suite.
+- Engines (`engines/*.yaml`) are subprocess commands that read embeddings and
+  edges and write `layout.npz`; the battery never imports engine code.
+  `command_no_edges` is required to evaluate the noise differential, and an
+  edges-consuming engine without it fails closed.
+- A run writes `results.parquet` (tidy long format), `report.md` (every cell
+  annotated with the rerun-noise spread), `gates.json` (typed `GatesReport`),
+  and `manifest.json` (a provenance envelope with config hashes, dataset
+  hashes, seeds, and library versions). Every reported number is reproducible
+  from the manifest alone.
 
-### `wikidata` (W2)
+### `wikidata`
 
 ```sh
 uv run wikidata taxonomy --config config.yaml --out taxonomy.parquet --checkpoint tax-ckpt/
@@ -126,72 +152,73 @@ uv run wikidata sampling-plan --config config.yaml --input entities.parquet --ou
 ```
 
 `wikidata taxonomy` pages Wikidata's full P279 (subclass-of) edge list
-(~5.2M edges) from QLever into a two-column parquet — the local subsumption
-oracle. It bypasses the response cache on purpose (each page is ~48 MB of
-JSON; the checkpointed parquet is the persistence) and is restartable like
-the W2b extractor. `extract-properties` needs `--taxonomy` while
-`extraction.filter_examples_by_subject_type` (default: on) is enabled.
+(about 5.2M edges) from QLever into a two-column parquet, the local
+subsumption oracle. It bypasses the response cache on purpose (each page is
+about 48 MB of JSON and the checkpointed parquet is the persistence) and is
+restartable like the dump extractor. `extract-properties` needs `--taxonomy`
+while `extraction.filter_examples_by_subject_type` (default: on) is enabled.
 
-Example selection (`atlas_tools/wikidata/examples.py`) is **stratified by
-the property's subject-type constraint classes**: pool rows collapse into
-distinct (subject, object) candidate pairs, each pair is assigned to the
-first constraint class that subsumes any of its P31 types under the local
-P279 closure, and the example budget goes one slot per non-empty stratum
-first, remainder by candidate volume. Within a stratum the most
-recognizable pair leads (weight ∝ `log1p(subject sitelinks) +
-log1p(object sitelinks)`), one slot is a uniform draw so the famous/obscure
-contrast survives, and no entity QID appears twice on a card (one Erdoğan).
-Cards render each example prefixed with its stratum's label
-(`municipality: Cluj-Napoca -> Emil Boc`); unconstrained properties select
-from one unstratified pool and render bare pairs.
+Example selection (`atlas_tools/wikidata/examples.py`) is stratified by the
+property's subject-type constraint classes: pool rows collapse into distinct
+(subject, object) candidate pairs, each pair is assigned to the first
+constraint class that subsumes any of its P31 types under the local P279
+closure, and the example budget goes one slot per non-empty stratum first,
+remainder by candidate volume. Within a stratum the most recognizable pair
+leads (weight proportional to `log1p(subject sitelinks) + log1p(object
+sitelinks)`), one slot is a uniform draw so the famous/obscure contrast
+survives, and each entity appears at most once per card. Cards render each
+example prefixed with its stratum's label (`municipality: Cluj-Napoca ->
+Emil Boc`); unconstrained properties select from one unstratified pool and
+render bare pairs.
 
-Two guard rails around stratification: **untyped** candidates (no P31 at
-all) are dropped — live runs surfaced semantically reversed statements in
-the long tail (a person with empty P31 as the SUBJECT of P6) — and typed
-candidates matching no constraint class land in a diagnostic `other`
-bucket that reaches cards only when every declared stratum is empty (a
-stale constraint list must not produce an example-less card, but must not
-smuggle constraint-violating pairs onto cards either). Per-property drop
-and `other` counts land in the manifests' ladder flags, and extraction
-logs a warning when `other` exceeds 25% of a property's typed candidates.
+Stratification has two guard rails. Untyped candidates (no P31 at all) are
+dropped, because live runs surfaced semantically reversed statements in the
+long tail (a person with empty P31 appearing as the subject of P6). Typed
+candidates matching no constraint class land in a diagnostic `other` bucket
+that reaches cards only when every declared stratum is empty: a stale
+constraint list should not produce an example-less card, and it also should
+not smuggle constraint-violating pairs onto cards. Per-property drop and
+`other` counts land in the manifests' ladder flags, and extraction logs a
+warning when `other` exceeds 25% of a property's typed candidates.
 
-Config is a typed tree (`extraction:` + `cards:` — see
+Config is a typed tree (`extraction:` plus `cards:`; see
 `fixtures/wikidata/config.yaml`). The pipeline is layered so card-format
 changes never re-run mining:
 
-1. raw API responses → disk cache (a warm cache makes zero network calls);
-2. `records.jsonl` + `entity_labels.json` — structured, format-independent
-   (its config hash covers `extraction` only, so it is card-independent by
-   construction);
-3. `cards.jsonl` — the versioned text projection (never raw JSON), with
+1. raw API responses land in the disk cache (a warm cache makes zero
+   network calls);
+2. `records.jsonl` plus `entity_labels.json` are the structured,
+   format-independent intermediate (their config hash covers `extraction`
+   only, so they are card-independent by construction);
+3. `cards.jsonl` is the versioned text projection (never raw JSON), with
    token budgets, deterministic truncation, and pinned golden hashes.
 
-Card descriptions are split into a lead sentence and truncatable detail by
-a pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk,
-the production default — handles abbreviations like "Dr." and "p.m.") or
-`naive` (offline regex; used by tests). punkt needs its tokenizer data once
+Card descriptions are split into a lead sentence and truncatable detail by a
+pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk, the
+production default, which handles abbreviations like "Dr." and "p.m.") or
+`naive` (offline regex, used by tests). punkt needs its tokenizer data once
 per machine:
 
 ```sh
 uv run python -m nltk.downloader punkt_tab
 ```
 
-Without it, `punkt` fails fast at startup with a pointer to this command
-(or set `cards.sentence_splitter: naive`).
+Without it, `punkt` fails fast at startup with a pointer to this command (or
+set `cards.sentence_splitter: naive`).
 
-W2b streams the dump (`download | bzip2 -dc | extractor`), checkpoints by
+The dump path streams (`download | bzip2 -dc | extractor`), checkpoints by
 byte offset, and survives kill -9 with byte-identical output; the dump date
 and SHA come from the mirror's checksum file, never from hashing the stream.
-Throughput notes: `atlas_tools/wikidata/BENCHMARK.md`.
+Throughput notes live in `atlas_tools/wikidata/BENCHMARK.md`.
 
 ## Repository layout
 
 ```
 atlas_tools/
   common/       shared contracts (matrix, layout, provenance, knn)
-  audit/        W1 prefix representation audit
-  battery/      W3 generators, metrics, merge tree, harness, gates, engines
-  wikidata/     W2 miner: transport/cache/sparql/properties/cards/dump
+  audit/        prefix representation audit
+  battery/      generators, metrics, merge tree, harness, gates, engines
+  wikidata/     miner: transport/cache/sparql/properties/cards/dump
 suites/         battery suite configs (smoke, phase2)
 engines/        battery engine configs (default, adversarial for tests)
 fixtures/       small committed fixtures (< 5 MB total)

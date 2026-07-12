@@ -22,7 +22,7 @@ Extraction (:func:`extract_taxonomy`):
   persistence. Pass the plain transport.
 
 Artifact schema: two int64 columns ``child``, ``parent`` (numeric QIDs;
-``Pid`` branding happens at the API boundary). Sidecar: a typed provenance
+``Qid`` branding happens at the API boundary). Sidecar: a typed provenance
 envelope with snapshot date, page size, page/edge counts, and the parquet
 content hash.
 
@@ -41,9 +41,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
+from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.provenance import Provenance, sha256_file
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Pid, pid_number
+from atlas_tools.wikidata.model import Qid, entity_number
 from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.wikidata.sparql import SparqlResponse, sparql_params
 from atlas_tools.wikidata.transport import Transport
@@ -119,7 +120,7 @@ class TaxonomyDetails(BaseModel):
     page_size: PositiveInt
     snapshot_date: str
     endpoint: str
-    parquet_sha256: str
+    parquet_sha256: Sha256Hex
 
 
 TaxonomyProvenance = Provenance[TaxonomyDetails, Config]
@@ -300,15 +301,15 @@ class Taxonomy:
         self._closure_cache[start] = closure
         return closure
 
-    def closure(self, type_qid: Pid) -> frozenset[Pid]:
+    def closure(self, type_qid: Qid) -> frozenset[Qid]:
         """All classes reachable upward from ``type_qid``, itself included."""
         return frozenset(
-            Pid(f"Q{number}") for number in self._closure_numbers(pid_number(type_qid))
+            Qid(f"Q{number}") for number in self._closure_numbers(entity_number(type_qid))
         )
 
-    def is_subclass_of(self, type_qid: Pid, permitted: frozenset[Pid]) -> bool:
+    def is_subclass_of(self, type_qid: Qid, permitted: frozenset[Qid]) -> bool:
         """Report whether ``type_qid`` is (a subclass of) any permitted class."""
         if type_qid in permitted:
             return True
-        permitted_numbers = {pid_number(entity_id) for entity_id in permitted}
-        return not permitted_numbers.isdisjoint(self._closure_numbers(pid_number(type_qid)))
+        permitted_numbers = {entity_number(entity_id) for entity_id in permitted}
+        return not permitted_numbers.isdisjoint(self._closure_numbers(entity_number(type_qid)))

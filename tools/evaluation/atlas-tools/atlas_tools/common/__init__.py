@@ -1,5 +1,12 @@
 """Shared contracts: raw f32 matrices, layout artifacts, provenance, kNN."""
 
+from atlas_tools.common.data import (
+    Dim,
+    Fraction,
+    JsonDict,
+    K,
+    Sha256Hex,
+)
 from atlas_tools.common.knn import (
     exact_cosine_knn,
     l2_normalize,
@@ -19,7 +26,6 @@ from atlas_tools.common.matrix import (
     write_matrix,
 )
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     canonical_json_bytes,
     read_sidecar,
@@ -29,13 +35,17 @@ from atlas_tools.common.provenance import (
 )
 
 __all__ = [
+    "Dim",
+    "Fraction",
     "JsonDict",
+    "K",
     "LayoutArtifact",
     "LayoutDetails",
     "LayoutProvenance",
     "MatrixDetails",
     "MatrixProvenance",
     "Provenance",
+    "Sha256Hex",
     "canonical_json_bytes",
     "exact_cosine_knn",
     "l2_normalize",

@@ -69,9 +69,16 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 
-from atlas_tools.common import sha256_bytes
+from atlas_tools.common import Sha256Hex, sha256_bytes
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, EntityLabel, Pid, PropertyRecord
+from atlas_tools.wikidata.model import (
+    Constraints,
+    EntityId,
+    EntityLabel,
+    Pid,
+    PropertyRecord,
+    Qid,
+)
 from atlas_tools.wikidata.sentence import SentenceSplitter
 from atlas_tools.wikidata.tokens import TokenCounter
 
@@ -120,8 +127,8 @@ class Phrase(BaseModel):
     @classmethod
     def make(
         cls,
-        entity_id: Pid,
-        labels: Mapping[Pid, EntityLabel],
+        entity_id: EntityId,
+        labels: Mapping[EntityId, EntityLabel],
         *,
         language: LanguageAlpha2,
         splitter: SentenceSplitter,
@@ -206,7 +213,7 @@ class CardContents(BaseModel):
         cls,
         *,
         record: PropertyRecord,
-        labels: Mapping[Pid, EntityLabel],
+        labels: Mapping[EntityId, EntityLabel],
         config: Config,
         splitter: SentenceSplitter,
     ) -> Self | None:
@@ -217,7 +224,7 @@ class CardContents(BaseModel):
             # No title in the primary language: nothing embeddable.
             return None
 
-        def phrase(entity_id: Pid) -> Phrase | None:
+        def phrase(entity_id: EntityId) -> Phrase | None:
             return Phrase.make(entity_id, labels, language=language, splitter=splitter)
 
         this = cls()
@@ -247,7 +254,7 @@ class CardContents(BaseModel):
 
         this.constraints = list(_render_constraints(record.constraints))
 
-        def stratum_label(stratum: Pid | None) -> str | None:
+        def stratum_label(stratum: Qid | None) -> str | None:
             # An unlabeled constraint class carries no transferable signal;
             # its examples render bare, like unstratified ones.
             if stratum is None:
@@ -280,7 +287,7 @@ class Card(BaseModel):
 
     contents: CardContents
     card_text: str
-    card_hash: str  # sha256 of the UTF-8 card text
+    card_hash: Sha256Hex  # sha256 of the UTF-8 card text
 
     token_count: int
 
@@ -438,7 +445,7 @@ def _run_passes(
 def build_card(
     *,
     record: PropertyRecord,
-    labels: Mapping[Pid, EntityLabel],
+    labels: Mapping[EntityId, EntityLabel],
     config: Config,
     counter: TokenCounter,
     splitter: SentenceSplitter,

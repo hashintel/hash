@@ -11,6 +11,7 @@ from collections.abc import Sequence
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from atlas_tools.battery.merge_tree import (
     MergeTreeConfig,
@@ -152,6 +153,15 @@ def test_tiny_and_degenerate_inputs() -> None:
     assert merge_tree_persistence(np.zeros((0, 2)), small_grid).leaf_count == 0
     assert merge_tree_persistence(np.array([[1.0, 1.0]]), small_grid).leaf_count == 1
     assert merge_tree_persistence(np.ones((50, 2)), small_grid).leaf_count == 1
+
+
+@pytest.mark.parametrize("field", ["floor_frac", "persistence_frac"])
+@pytest.mark.parametrize("bad_value", [0.0, -0.1, 1.0000001])
+def test_out_of_range_fractions_rejected(field: str, bad_value: float) -> None:
+    # floor_frac and persistence_frac are fractions of the density maximum:
+    # zero disables the floor/filter entirely and values above 1 select nothing.
+    with pytest.raises(ValidationError, match=field):
+        MergeTreeConfig.model_validate({field: bad_value})
 
 
 def test_density_raster_shape_and_mass() -> None:

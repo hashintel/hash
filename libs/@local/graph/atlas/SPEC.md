@@ -1,4 +1,8 @@
-# Semantic Atlas + Canvas: unified specification
+# SALT Atlas: Semantic-Anchor-Link-Type Atlas, unified specification
+
+> The name enumerates the objective: **S**emantic attraction
+> ($\mathcal{L}_S$), **A**nchors, temporal and landmark ($\mathcal{L}_A$),
+> and **L**ink-**T**ype relation energies ($\mathcal{L}_R$).
 
 **Status:** revised reconciled baseline. This document supersedes
 `semantic-atlas-implementation-spec.md` on atlas architecture and supersedes the
@@ -23,6 +27,10 @@ release contract.
 **Provenance markers:** `[measured]` ran against the real 986k-point corpus;
 `[tested]` has executable tests in delivered artifacts; `[staged]` is deferred
 behind an explicit trigger; `[open]` requires an experiment or sign-off.
+
+**Relation-policy revision:** v1 is open-world. A shared calibrated classifier
+assigns geometry-class probabilities to known and newly minted relation types;
+no exhaustive per-type strength table is assumed.
 
 ---
 
@@ -53,18 +61,18 @@ collapsed into a single field named `level`.
 
 ## 0. Decision log
 
-| decision                   | resolution                                                                                                                                                                           | basis                                                                                                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| projector prefix           | **512 components, L2-renormalized after truncation**                                                                                                                                 | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard    |
-| layout engine              | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                   | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger |
-| relation influence         | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                             | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                |
-| relation-strength control  | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                      | all choices use the same variant-aware storage and client interpolation contract                                                                                                |
-| LOD / far field            | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                              | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                               |
-| versioning / storage       | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                            | avoids in-place coordinate mutation and supports rollback                                                                                                                       |
-| permissions                | **delegated to the existing HASH authorization system**                                                                                                                              | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                 |
-| relation-policy classifier | **[staged]** v1 uses a human policy table, Coincident allow-list, and Overlay default; soft LLM annotation and calibration activate only after the configured ontology-scale trigger | minimizes unsafe geometric automation while preserving the migration path                                                                                                       |
-| landmark fit               | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                   | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                            |
-| release gates              | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                    | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                |
+| decision                   | resolution                                                                                                                                                                                                                                                                                       | basis                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| projector prefix           | **512 components, L2-renormalized after truncation**                                                                                                                                                                                                                                             | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard        |
+| layout engine              | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                                                                                                                               | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger     |
+| relation influence         | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                                                                                                                                         | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                    |
+| relation-strength control  | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                                                                                                                                  | all choices use the same variant-aware storage and client interpolation contract                                                                                                    |
+| LOD / far field            | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                                                                                                                                          | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                                   |
+| versioning / storage       | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                                                                                                                                        | avoids in-place coordinate mutation and supports rollback                                                                                                                           |
+| permissions                | **delegated to the existing HASH authorization system**                                                                                                                                                                                                                                          | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                     |
+| relation-policy classifier | **open-world v1 default:** diversified synthetic soft labels train a calibrated full-embedding multinomial logistic-regression classifier; every relation type without a higher-precedence override is classified at generation time, and low-applicability predictions fall back toward Overlay | the relation-type universe is not known or enumerable at release time; one shared classifier and shared class coefficients generalize to newly minted types without per-type tuning |
+| landmark fit               | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                                                                                                                               | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                                |
+| release gates              | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                                                                                                                                | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                    |
 
 ---
 
@@ -75,7 +83,8 @@ collapsed into a single field named `level`.
    input is
 
    $$
-   \hat{x}_i =
+   \hat{x}_i
+   =
    \frac{x_i[0{:}512]}
         {\max\left(\left\lVert x_i[0{:}512]\right\rVert_2,\varepsilon\right)},
    \qquad \varepsilon = 10^{-12}.
@@ -114,23 +123,48 @@ collapsed into a single field named `level`.
    row IDs are generation-scoped. They MUST NOT be treated as durable public
    identifiers.
 
-8. **Negative exclusions.** Semantic neighbors and endpoints connected by an
-   active Coincident or Proximal relation MUST NOT be sampled as hard negatives
-   for one another.
+8. **Negative exclusions.** Semantic neighbors and endpoints connected by a
+   security-permitted link instance whose effective active mass
+   $c_{ijr}s_r$ meets the global threshold $\eta_R$ MUST NOT be sampled as
+   hard negatives for one another. Tiny softmax tails and negligible-confidence
+   links below $\eta_R$ do not create exclusions.
 
 9. **Relation quantities remain separate.** The following MUST remain distinct
    end to end:
-   - policy distribution $p_r$ over geometry classes;
+   - raw classifier logits $\ell_r$;
+   - calibrated policy distribution $p_r$ over geometry classes;
    - policy applicability $a_r$;
-   - relation-type strength $\sigma_r$;
+   - applicability-adjusted distribution $\widetilde{p}_r$;
+   - effective distribution $p_r^{\star}$ after the global Coincident gate;
+   - globally shared geometry coefficients
+     $\kappa=(\kappa_C,\kappa_P,\kappa_O)$ with $\kappa_O=0$;
+   - derived active strength
+
+     $$
+     s_r
+     =
+     \kappa_C p^{\star}_{r,C}
+     +
+     \kappa_P p^{\star}_{r,P},
+     $$
+
+     which is diagnostic and MUST NOT be an independently fitted type
+     parameter;
+
    - link-instance confidence $c_{ijr}$;
    - degree normalization $\nu_{ijr}$;
    - global relation coefficient $\lambda_R$;
    - per-node relation-gradient cap $\beta$.
 
+   The system MUST NOT store or optimize an unconstrained free strength
+   parameter per relation type. A human override MAY replace a predicted
+   distribution, disable a class, or force Overlay, but ordinary operation
+   MUST NOT require an exhaustive relation-type table.
+
 10. **Per-node gradient budget.** Relation gradients are capped relative to
-    semantic gradients after policy, confidence, strength, and degree factors
-    have been applied. The initial experiment range is $\beta \in
+    semantic gradients after policy, applicability, globally shared class
+    coefficients, instance confidence, and degree normalization have been
+    applied. The initial experiment range is $\beta \in
     \{0.05,0.10,0.20\}$; $0.10$ is the default candidate, not a permanent
     constant.
 
@@ -226,7 +260,9 @@ A generation begins by freezing:
 - knowledge transaction time;
 - knowledge decision time or decision-time policy;
 - embedding model and serialization template;
-- relation-policy table and classifier version;
+- relation-policy annotation corpus, classifier model and calibration,
+  applicability configuration, shared class coefficients, and optional
+  override records;
 - relation-influence security mode;
 - ANN configuration;
 - landmark-selection configuration;
@@ -296,27 +332,97 @@ minimum local separation, but it is not active in v1.
 The source of truth follows this strict precedence:
 
 ```text
-human override
-> human-reviewed soft label
-> direct synthetic soft label
+explicit human override, when present
+> human-reviewed soft label, when present
+> direct synthetic soft label, when present
 > calibrated classifier prediction
-> Overlay fallback
+> Overlay fallback for unsupported or inapplicable inputs
 ```
 
-Coincident is initially restricted to a human-reviewed allow-list.
+The calibrated classifier is the default operational source for every relation
+that lacks a higher-precedence record. No exhaustive policy table is required,
+and a relation type minted after release receives a policy as soon as its
+relation card is embedded and classified.
+
+Coincident is conservative but is not controlled by a per-type allow-list. The
+initial production candidate disables Coincident geometry globally by setting
+$\kappa_C=0$. A later generation MAY enable it only after satisfying the
+Coincident precision release gate in §6.4. When enabled, one global gate is
+applied to every relation type:
+
+$$
+g_r^C
+=
+\mathbf{1}
+\left[
+\widetilde{p}_{r,C}\ge\tau_C
+\;\land\;
+a_r\ge\tau_A
+\right].
+$$
+
+The effective policy distribution is
+
+$$
+p^{\star}_{r,C}=g_r^C\widetilde{p}_{r,C},
+$$
+
+$$
+p^{\star}_{r,P}=\widetilde{p}_{r,P},
+$$
+
+$$
+p^{\star}_{r,O}
+=
+\widetilde{p}_{r,O}
++
+(1-g_r^C)\widetilde{p}_{r,C}.
+$$
+
+Thus a Coincident prediction that does not pass the global confidence and
+applicability thresholds becomes Overlay rather than Proximal. The gate,
+thresholds, and enablement state are generation-level configuration, not
+per-type parameters.
 
 #### 3.3.3 Relation cards
 
 A relation card is deterministic text constructed from, in descending priority:
 
 1. title, description, and aliases;
-2. inverse title and inverse description;
+2. inverse title and inverse description when the ontology names an
+   inverse; otherwise the literal line "Inverse Name: none recorded" (a claim
+   about the ontology record, not about invertibility). Card fields are
+   never synthesized: the card reports the ontology as-is, with nothing
+   added, so a missing record renders as explicit absence rather than
+   generated content;
 3. closed ancestor titles and descriptions;
 4. permitted source type titles and descriptions;
 5. permitted destination type titles and descriptions;
 6. relation constraints and directionality;
 7. a bounded, diverse set of examples;
 8. normalized URL slug as a fallback lexical feature.
+
+The embedded card text MUST be identifier-free: no source-ontology
+identifiers (QIDs, PIDs), no URLs, no database keys of any scheme may
+appear in the serialized text. Identifiers live in card sidecar metadata
+for provenance and joins. Rationale: identifiers are semantically
+redundant next to the mandatory titles and descriptions, but they are a
+systematic surface watermark distinguishing one ontology source from
+another, creating train/serve format skew that the applicability score
+would misread as semantic OOD. The card is a canonical rendering target;
+each ontology source (Wikidata, native SemType, future imports) supplies
+an adapter into it, sharing the constraint vocabulary verbatim. Format
+parity is enforced by (a) a linter over embedded text forbidding
+identifier patterns, and (b) a skew canary: the same logical relation
+rendered through two adapters MUST embed to near-identical vectors.
+Example sampling within a card is deterministic per relation (seeded by
+the relation's stable id), stratified by source type, deduplicated by
+endpoint, and resampled only when the relation's own data materially
+changes; a drift canary tracks card-embedding movement of relations whose
+titles and descriptions are unchanged between generations, which should
+sit near zero. The annotation corpus MUST mix ontology sources (native
+SemType cards alongside Wikidata bootstrap volume) so no single source's
+prose style defines the training distribution.
 
 The card MUST NOT be raw JSON. The card format is versioned. Its default target
 budget is 6,000 tokens and its hard budget is 7,500 tokens, leaving headroom
@@ -326,7 +432,7 @@ endpoint-type summary.
 
 Relation cards are embedded with the full 3,072-dimensional embedding.
 
-#### 3.3.4 Synthetic soft labels and classifier `[staged]`
+#### 3.3.4 Synthetic soft labels and open-world classifier
 
 For relation $r$, repeated diversified LLM annotations produce counts $n_{rk}$
 for class $k$. With $K=3$ and Dirichlet smoothing $\alpha=0.5$, the soft target
@@ -348,48 +454,90 @@ label order, and examples. The default adaptive schedule is 6 initial votes,
 human review.
 
 The baseline classifier is L2-regularized multinomial logistic regression over
-the full relation embedding $e_r \in \mathbb{R}^{3072}$:
+the full relation embedding $e_r \in \mathbb{R}^{3072}$. With
 
 $$
-p_{\phi}(k\mid e_r)
-=
-\operatorname{softmax}(We_r+b)_k,
+W\in\mathbb{R}^{3\times3072},
+\qquad
+b\in\mathbb{R}^{3},
 $$
+
+the rows of $W$ are the learned Coincident, Proximal, and Overlay linear
+classifiers. They produce raw class logits
+
+$$
+\ell_r=We_r+b.
+$$
+
+Training minimizes soft-label cross-entropy:
 
 $$
 \mathcal{L}_{\mathrm{policy}}(W,b)
 =
 -\sum_r \omega_r \sum_{k=1}^{K}
-q_{rk}\log p_{\phi}(k\mid e_r)
+q_{rk}\log
+\left(
+\operatorname{softmax}(\ell_r)_k
+\right)
 +
 \frac{\lambda}{2}\lVert W\rVert_F^2.
 $$
 
 Splits MUST be grouped by relation family, inverse pair, base URL, publisher,
-and near-duplicate card family.
+and near-duplicate card family. A disjoint calibration split fits a scalar
+temperature $T>0$, giving the operational distribution
 
-The model returns both a class distribution $p_r$ and an applicability score
-$a_r \in [0,1]$. Out-of-distribution predictions are mixed toward Overlay:
+$$
+p_r
+=
+\operatorname{softmax}
+\left(
+\frac{\ell_r}{T}
+\right).
+$$
+
+The classifier softmax and the geometry coefficients serve different purposes.
+The globally shared geometry coefficients $\kappa$ in §3.6.5 MUST NOT multiply
+or rescale classifier logits. If a global class-prior correction is ever
+required, it MUST be represented separately as
+
+$$
+p_r
+=
+\operatorname{softmax}
+\left(
+\frac{\ell_r}{T}+\log \pi
+\right),
+$$
+
+where $\pi$ is a versioned class prior. Such a prior changes the classifier;
+it is not a force coefficient and requires independent calibration.
+
+The policy system also returns an applicability score $a_r\in[0,1]$ derived
+from held-out calibration and out-of-distribution diagnostics. Unsupported or
+out-of-distribution predictions are mixed toward Overlay:
 
 $$
 \widetilde{p}_r
 =
-a_r p_r
+a_rp_r
 +
 (1-a_r)
 \begin{bmatrix}0\\0\\1\end{bmatrix}.
 $$
 
-Classifier activation becomes eligible when any configured trigger fires. The
-initial staged defaults are:
+The classifier is active in version 1. The annotation corpus bootstraps the
+shared model; it is not an enumeration of the production type universe. At
+generation time every relation card without a higher-precedence policy record
+is classified. A candidate generation MUST fail if the required classifier or
+calibration artifact is unavailable. During ingestion, a card that cannot be
+constructed or whose applicability is effectively zero falls back to Overlay
+and emits a structured audit event.
 
-- at least 500 unresolved relation types;
-- human-reviewed policy coverage below 95% of relation-edge volume;
-- an imported ontology contributes at least 100 new relation families; or
-- manual policy maintenance exceeds the approved operational budget.
-
-These thresholds are configuration, not training features, and are recorded in
-the manifest.
+The generation manifest records at least the annotation-corpus hash, prompt
+family and vote schedule, grouped split hashes, model hash, calibration
+temperature, applicability method and thresholds, human-reviewed holdout hash,
+and class-prior configuration when present.
 
 #### 3.3.5 Relation-influence security mode
 
@@ -403,9 +551,11 @@ Every generation chooses exactly one:
 - `all-snapshot-links`: all relation instances in the frozen generation input
   may affect coordinates.
 
-The default candidate is `atlas-safe-links`. The selected mode, allow-list hash,
-relation-policy hash, and relation-edge snapshot hash are immutable generation
-metadata.
+The default candidate is `atlas-safe-links`. The selected mode, security
+allow-list hash, relation-policy hash, and relation-edge snapshot hash are
+immutable generation metadata. This security allow-list controls which link
+instances may influence coordinates; it is distinct from geometry coefficients
+and does not assign a force strength to a relation type.
 
 ### 3.4 Build and audit the semantic graph
 
@@ -473,8 +623,8 @@ Optional inputs are:
 - pooled closed-type context $t_i$;
 - a learned role embedding for knowledge entity, ontology type, or other
   supported role;
-- relation-strength condition $\lambda_r$ when a conditioned variant model is
-  enabled.
+- global atlas-variant relation condition $\eta_v$ when a conditioned variant
+  model is enabled; $\eta_v$ is not indexed by relation type.
 
 For type embedding $e_{\tau}\in\mathbb{R}^{3072}$ and inheritance depth
 $d_{i\tau}$, the deterministic baseline pool is
@@ -522,15 +672,19 @@ The default candidate is width 512 with four residual blocks. Widths
 $\{256,512,1024\}$ and depths $\{3,4,6\}$ are benchmark axes. The smallest
 model satisfying all quality and throughput gates wins.
 
-When relation-strength conditioning is enabled, feature-wise modulation is
+When relation-strength conditioning is enabled, feature-wise modulation uses
+the global atlas-variant condition $\eta_v$:
 
 $$
-\operatorname{FiLM}_{\ell}(h_i,t_i,\lambda_r)
+\operatorname{FiLM}_{\ell}(h_i,t_i,\eta_v)
 =
-\gamma_{\ell}(t_i,\lambda_r)\odot h_i
+\gamma_{\ell}(t_i,\eta_v)\odot h_i
 +
-\beta_{\ell}(t_i,\lambda_r).
+\beta_{\ell}(t_i,\eta_v).
 $$
+
+The condition $\eta_v$ scales the generation-level relation lens. It MUST NOT
+encode or look up a per-relation-type force parameter.
 
 #### 3.6.2 Composite objective
 
@@ -618,8 +772,12 @@ $$
 \right),
 $$
 
-where $\mathcal{R}^{\mathrm{active}}_i$ contains Coincident and Proximal
-endpoints. Hard-negative weights are rank-based and MUST satisfy
+where $\mathcal{R}^{\mathrm{active}}_i$ contains endpoints of
+security-permitted link instances satisfying $c_{ijr}s_r\ge\eta_R$. The
+threshold $\eta_R$ is global, versioned, and used only to define exclusions
+and optional sampling shortcuts; it does not replace the continuous
+probability-weighted relation loss. Hard-negative weights are rank-based and
+MUST satisfy
 $0\le\omega^H_{ij}\le\omega^H_{\max}$. Their loss uses the same bounded
 negative energy as $\mathcal{L}_N$.
 
@@ -693,22 +851,100 @@ $$
 {\sqrt{(1+\deg_r(i))(1+\deg_r(j))}}.
 $$
 
-With relation-type strength $\sigma_r$ and policy distribution
-$\widetilde{p}_r$, the relation loss is
+The classifier and geometry layers are deliberately separate. Let
+$p_r^{\star}$ be the effective distribution after applicability fallback and
+the global Coincident gate in §3.3.2. Let
+
+$$
+\kappa
+=
+(\kappa_C,\kappa_P,\kappa_O),
+\qquad
+\kappa_C\ge0,
+\quad
+\kappa_P\ge0,
+\quad
+\kappa_O=0,
+$$
+
+be globally shared, generation-level geometry coefficients. They are not
+relation-type parameters. The relation objective is
+
+$$
+\boxed{
+\mathcal{L}_{R}
+=
+\sum_{(i,r,j)\in E_R}
+c_{ijr}\nu_{ijr}
+\left[
+\kappa_C p^{\star}_{r,C}E_C(z_{ij})
++
+\kappa_P p^{\star}_{r,P}E_P(z_{ij})
+\right]
+}.
+$$
+
+The class probability is applied exactly once to its corresponding class
+energy. There is no additional outer scalar such as
+$\left(\kappa\cdot p_r^{\star}\right)$ multiplying the same mixture,
+because that would introduce quadratic probabilities and cross-class terms.
+
+For diagnostics, indexing, and reporting, the implementation MAY expose the
+derived active strength
+
+$$
+s_r
+=
+\kappa_C p^{\star}_{r,C}
++
+\kappa_P p^{\star}_{r,P}.
+$$
+
+Because softmax probabilities are strictly positive, the system defines a
+single generation-level effective-edge threshold $\eta_R\ge0$:
+
+$$
+A_{ijr}
+=
+\mathbf{1}[c_{ijr}s_r\ge\eta_R].
+$$
+
+$A_{ijr}$ controls hard-negative exclusions and MAY skip numerically negligible
+relation edges during sampling. It MUST NOT be multiplied into the continuous
+relation objective unless the generation explicitly declares a hard-pruning
+policy and validates the resulting discontinuity.
+
+When $s_r>0$, define the normalized active mixture
+
+$$
+q_{r,C}
+=
+\frac{\kappa_Cp^{\star}_{r,C}}{s_r},
+\qquad
+q_{r,P}
+=
+\frac{\kappa_Pp^{\star}_{r,P}}{s_r}.
+$$
+
+The same objective can then be written as
 
 $$
 \mathcal{L}_{R}
 =
 \sum_{(i,r,j)\in E_R}
-\sigma_r c_{ijr}\nu_{ijr}
-\left(
-\widetilde{p}_{r,C}E_C(z_{ij})
+c_{ijr}\nu_{ijr}s_r
+\left[
+q_{r,C}E_C(z_{ij})
 +
-\widetilde{p}_{r,P}E_P(z_{ij})
-+
-\widetilde{p}_{r,O}E_O(z_{ij})
-\right).
+q_{r,P}E_P(z_{ij})
+\right].
 $$
+
+This factorization is descriptive only: $s_r$ and $q_r$ are deterministic
+functions of the classifier output and shared coefficients. They MUST NOT be
+independently fitted, manually tuned, or persisted as authoritative per-type
+parameters. Radii $u_C,u_P$, Huber parameters, and temperatures are likewise
+shared class constants, never per-type settings.
 
 Edge minibatches MUST cap per-relation-type representation. Relation types are
 sampled approximately uniformly or proportional to the square root of edge
@@ -769,6 +1005,65 @@ Training metrics MUST report:
 - unclipped and clipped relation/semantic norm ratios;
 - the ratios by relation type, degree decile, and subgroup;
 - semantic fidelity at each tested $\beta$.
+
+#### 3.6.6a Shared class-coefficient calibration and tuning protocol
+
+The relation energies use normalized distance, so fix $\kappa_P=1$ as the unit
+convention: a Proximal policy with probability one has the same order of
+unclipped force as one semantic edge. Set $\kappa_O=0$ by definition. The
+initial Coincident candidate is $\kappa_C\in[3,5]$ after Coincident is enabled;
+its hinge-like energy is sparse-active, so a larger coefficient does not act on
+already-satisfied pairs. Before that release gate is met, $\kappa_C=0$.
+
+The effective-edge threshold $\eta_R$ is selected on a validation stream. The
+default rule chooses the largest threshold whose excluded edges account for no
+more than 1% of total unclipped relation-gradient mass, then verifies that
+hard-negative exclusions remain stable by relation family and degree decile.
+The chosen threshold is recorded in the generation manifest.
+
+Radii are set from data before tuning $\kappa$. Run the semantic-only baseline,
+compute the $z$ distribution over reviewed-good Proximal pairs, and set $u_P$
+near its 75th percentile so the loss acts primarily on the outlying quarter.
+Set $u_C$ analogously from reviewed Coincident pairs. This is identifiability
+hygiene: $\kappa$, $u$, and $\tau$ trade off, and free-floating radii turn the
+search into a degenerate valley.
+
+**Degeneracy rule (MUST):** the shared coefficients $\kappa$ MUST NOT be
+learned by minimizing the same geometry loss they weight. Relation energies are
+non-negative, so joint descent over geometry and $\kappa$ has the trivial
+minimizer $\kappa\to0$. Permitted procedures, in ascending machinery, are:
+
+1. **Outer-loop grid (default).** After the per-node cap absorbs most absolute
+   scale, the free interpretable parameters are $\beta$ and the ratio
+   $\kappa_C/\kappa_P$. Once Coincident is eligible, grid
+
+   $$
+   \beta\in\{0.05,0.10,0.20\},
+   \qquad
+   \frac{\kappa_C}{\kappa_P}\in\{2,4,8\},
+   $$
+
+   with at least two seeds per cell. Select the validation Pareto knee between
+   relation satisfaction and semantic-fidelity change, including neighbor
+   recall, merge-tree persistence, subgroup results, and the
+   no-structure-from-noise differential. Before Coincident is enabled, tune
+   only $\beta$ with $\kappa_C=0$ and $\kappa_P=1$.
+
+2. **Constraint ascent (documented upgrade).** State requirements such as
+   $\operatorname{median}(z\mid P)\le u_P$ over reviewed families and treat
+   the shared class coefficients as global dual variables updated by ascent on
+   constraint violation while geometry descends. The per-node cap remains the
+   hard ceiling. This turns coefficient selection into a signed product
+   requirement rather than a per-type tuning exercise.
+
+3. **True bilevel optimization with hypergradients is excluded in v1.** With
+   only three classes it adds machinery without resolving a demonstrated
+   product problem.
+
+A type-specific or embedding-conditioned strength head is outside v1 and
+requires an explicit specification amendment, a separately identified training
+signal, and new calibration and release gates. Unconstrained per-type scalars
+remain prohibited.
 
 #### 3.6.7 Temporal anchors and landmarks
 
@@ -1271,28 +1566,52 @@ The relation classifier is evaluated on a human-reviewed grouped holdout using:
 - log loss and Brier score;
 - calibration curves;
 - abstention/applicability coverage;
-- performance by ontology, relation family, and domain shift.
+- performance by ontology, relation family, and domain shift;
+- behavior on relation types created after the classifier training cutoff.
 
-False Coincident predictions are assigned the highest cost. Coincident remains
-allow-listed until its configured precision gate is met.
+False Coincident predictions are assigned the highest cost. Coincident geometry
+is globally disabled with $\kappa_C=0$ until the grouped holdout establishes
+
+$$
+\operatorname{LCB}_{95\%}
+\left(
+\operatorname{Precision}_C
+\right)
+\ge
+\tau_{\mathrm{precision},C},
+$$
+
+where the initial threshold candidate is
+$\tau_{\mathrm{precision},C}=0.98$ and the exact value requires product and
+security sign-off. An enabled generation MUST also declare global thresholds
+$\tau_C$ and $\tau_A$ for the gate in §3.3.2 and report the fraction of
+relation types and edge volume passing that gate. There is no per-type
+Coincident allow-list requirement.
 
 Map-level relation diagnostics include:
 
 $$
 \mathrm{Violation}_C
 =
-\Pr(z_{ij}>u_C\mid r\text{ is Coincident}),
+\Pr(z_{ij}>u_C\mid p^{\star}_{r,C}>0),
 $$
 
 $$
 \mathrm{Violation}_P
 =
-\Pr(z_{ij}>u_P\mid r\text{ is Proximal}),
+\Pr(z_{ij}>u_P\mid p^{\star}_{r,P}>0),
 $$
 
-plus semantic-fidelity change, relation-gradient clipping rate, and results by
-degree decile. A classifier score alone is never sufficient to enable relation
-forces.
+plus semantic-fidelity change, relation-gradient clipping rate, derived
+strength $s_r$ distributions, and results by degree decile and subgroup. The
+release suite MUST verify that classifier probabilities are applied exactly
+once in the objective and that no authoritative free per-type strength scalar
+is present in configuration, artifacts, or serving metadata.
+
+A classifier score alone is never sufficient to enable Coincident force: the
+holdout precision gate, applicability gate, class-probability gate, relation
+security mode, map-level fidelity gates, and per-node gradient budget all
+remain active.
 
 ### 6.5 Incremental-placement gates
 
@@ -1361,6 +1680,9 @@ mode require explicit security sign-off per generation family.
    generation approaches the v2 limit.
 8. **Companion pin:** populate the exact client/wire document hash and version
    before normative release.
+9. **Coincident activation:** confirm the precision lower-bound threshold,
+   class-probability threshold $\tau_C$, applicability threshold $\tau_A$, and
+   initial $\kappa_C/\kappa_P$ ratio before enabling Coincident geometry.
 
 ---
 
@@ -1443,11 +1765,35 @@ projector:
 
 relations:
   security_mode: public-links-only | atlas-safe-links | all-snapshot-links
-  policy_hash: ...
-  allow_list_hash: ...
+  security_allow_list_hash: ...
   edge_snapshot_hash: ...
+  relation_card_format_version: ...
+  relation_card_corpus_hash: ...
+  annotation_corpus_hash: ...
+  annotation_prompt_family_version: ...
+  annotation_vote_schedule: ...
+  reviewed_holdout_hash: ...
+  policy_precedence_version: ...
+  policy_hash: ...
   classifier_version: ...
-  policy_coverage_by_edge_volume: ...
+  classifier_model_hash: ...
+  classifier_temperature: ...
+  class_prior: null | [...]
+  applicability_method_version: ...
+  applicability_config_hash: ...
+  classifier_ood_edge_volume_fraction: ...
+  reviewed_edge_volume_fraction: ...
+  geometry_coefficients:
+    coincident: ...
+    proximal: 1.0
+    overlay: 0.0
+  active_relation_edge_threshold: ...
+  coincident_gate:
+    enabled: true | false
+    class_probability_threshold: ...
+    applicability_threshold: ...
+    precision_lcb_threshold: ...
+  derived_strength_persisted_as_authority: false
 
 variants:
   canonical_variant: ...
@@ -1455,7 +1801,7 @@ variants:
   max_published_variants: 8
   entries:
     - id: ...
-      relation_strength: ...
+      global_relation_condition: ...
       procrustes_transform: ...
       quantization_step: ...
       clamp_count: ...

@@ -25,10 +25,12 @@ from atlas_tools.wikidata.cards import emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import (
     Constraints,
+    EntityId,
     EntityLabel,
     Example,
     Pid,
     PropertyRecord,
+    Qid,
 )
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.records import load_records
@@ -338,18 +340,18 @@ class TestUntitledRecords:
 
 # --- crafted records for truncation tests -------------------------------------
 
-LABELS: dict[Pid, EntityLabel] = {
+LABELS: dict[EntityId, EntityLabel] = {
     Pid("P527"): EntityLabel(label="has part", description="this item has the listed part"),
     Pid("P1000"): EntityLabel(
         label="umbrella relation",
         description="Lead sentence of the ancestor description."
         " Expendable ancestor detail sentence.",
     ),
-    Pid("Q1"): EntityLabel(
+    Qid("Q1"): EntityLabel(
         label="alpha type",
         description="Lead alpha sentence. Expendable alpha detail.",
     ),
-    Pid("Q2"): EntityLabel(
+    Qid("Q2"): EntityLabel(
         label="beta type",
         description="Lead beta sentence. Expendable beta detail.",
     ),
@@ -367,7 +369,7 @@ def _crafted_record(n_examples: int) -> PropertyRecord:
         aliases={EN: ["test rel"]},
         ancestors=(Pid("P1000"),),
         inverse_pid=Pid("P527"),
-        constraints=Constraints(subject_types=(Pid("Q1"),), value_types=(Pid("Q2"),)),
+        constraints=Constraints(subject_types=(Qid("Q1"),), value_types=(Qid("Q2"),)),
         examples=[
             Example(
                 subject_label=f"Subject Item Number {i:02d} With A Long Label",
@@ -509,7 +511,7 @@ def _stratified_record(alpha_examples: int, beta_examples: int) -> PropertyRecor
             subject_label=f"Subject Item Number {i:02d} With A Long Label",
             object_label=f"Object Item Number {i:02d} With A Long Label",
             subject_type=f"Q10{i}",
-            stratum=Pid(f"Q{stratum}"),
+            stratum=Qid(f"Q{stratum}"),
         )
 
     return PropertyRecord(
@@ -517,7 +519,7 @@ def _stratified_record(alpha_examples: int, beta_examples: int) -> PropertyRecor
         datatype="wikibase-item",
         labels={EN: "test relation"},
         descriptions={EN: "a synthetic relation used to exercise truncation"},
-        constraints=Constraints(subject_types=(Pid("Q1"), Pid("Q2"))),
+        constraints=Constraints(subject_types=(Qid("Q1"), Qid("Q2"))),
         examples=[example("1", i) for i in range(alpha_examples)]
         + [example("2", i) for i in range(beta_examples)],
     )
@@ -569,7 +571,7 @@ class TestStratifiedTruncation:
 
 class TestPhrase:
     def test_lead_detail_split(self) -> None:
-        phrase = Phrase.make(Pid("Q1"), LABELS, language=EN, splitter=NaiveSentenceSplitter())
+        phrase = Phrase.make(Qid("Q1"), LABELS, language=EN, splitter=NaiveSentenceSplitter())
         assert phrase is not None
         assert phrase.label == "alpha type"
         assert phrase.lead == "Lead alpha sentence."
@@ -577,12 +579,12 @@ class TestPhrase:
         assert phrase.render() == ("alpha type (Lead alpha sentence. Expendable alpha detail.)")
 
     def test_whitespace_collapsed(self) -> None:
-        labels = {
-            Pid("Q7"): EntityLabel(
+        labels: dict[EntityId, EntityLabel] = {
+            Qid("Q7"): EntityLabel(
                 label="  spaced\t label ", description="One   sentence.\n\nTwo  here."
             )
         }
-        phrase = Phrase.make(Pid("Q7"), labels, language=EN, splitter=NaiveSentenceSplitter())
+        phrase = Phrase.make(Qid("Q7"), labels, language=EN, splitter=NaiveSentenceSplitter())
         assert phrase is not None
         assert phrase.label == "spaced label"
         assert phrase.lead == "One sentence."
@@ -590,12 +592,12 @@ class TestPhrase:
 
     def test_unlabeled_reference_is_none(self) -> None:
         assert (
-            Phrase.make(Pid("Q404"), LABELS, language=EN, splitter=NaiveSentenceSplitter()) is None
+            Phrase.make(Qid("Q404"), LABELS, language=EN, splitter=NaiveSentenceSplitter()) is None
         )
 
     def test_label_only_render(self) -> None:
-        labels = {Pid("Q8"): EntityLabel(label="plain")}
-        phrase = Phrase.make(Pid("Q8"), labels, language=EN, splitter=NaiveSentenceSplitter())
+        labels: dict[EntityId, EntityLabel] = {Qid("Q8"): EntityLabel(label="plain")}
+        phrase = Phrase.make(Qid("Q8"), labels, language=EN, splitter=NaiveSentenceSplitter())
         assert phrase is not None
         assert phrase.lead is None
         assert phrase.detail is None

@@ -86,11 +86,13 @@ from atlas_tools.wikidata.examples import OTHER_WARNING_FRACTION, select_example
 from atlas_tools.wikidata.model import (
     ConstraintKind,
     Constraints,
+    EntityId,
     EntityLabel,
     ExampleSource,
     Pid,
     PropertyRecord,
-    pid_number,
+    Qid,
+    entity_number,
 )
 from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.wikidata.sparql import (
@@ -188,7 +190,12 @@ def _qualifier_entity_ids(statement: Statement, qualifier: str) -> tuple[str, ..
     return tuple(ids)
 
 
-def _extend_unique(target: list[str], entity_ids: tuple[str, ...]) -> None:
+def _qualifier_class_qids(statement: Statement) -> tuple[Qid, ...]:
+    """P2308 class qualifiers, branded at the parse boundary."""
+    return tuple(Qid(entity_id) for entity_id in _qualifier_entity_ids(statement, _QUALIFIER_CLASS))
+
+
+def _extend_unique[IdT: str](target: list[IdT], entity_ids: tuple[IdT, ...]) -> None:
     for entity_id in entity_ids:
         if entity_id not in target:
             target.append(entity_id)
@@ -202,9 +209,9 @@ class _ConstraintsInProgress:
     transitive: bool = False
     single_value: bool = False
     distinct_values: bool = False
-    subject_types: list[str] = field(default_factory=list)
-    value_types: list[str] = field(default_factory=list)
-    inverse_pid: str | None = None
+    subject_types: list[Qid] = field(default_factory=list)
+    value_types: list[Qid] = field(default_factory=list)
+    inverse_pid: Pid | None = None
     ignored: list[str] = field(default_factory=list)
 
     def apply(self, kind: ConstraintKind, statement: Statement) -> None:
@@ -218,16 +225,13 @@ class _ConstraintsInProgress:
             case ConstraintKind.DISTINCT_VALUES:
                 self.distinct_values = True
             case ConstraintKind.SUBJECT_TYPE:
-                _extend_unique(
-                    self.subject_types,
-                    _qualifier_entity_ids(statement, _QUALIFIER_CLASS),
-                )
+                _extend_unique(self.subject_types, _qualifier_class_qids(statement))
             case ConstraintKind.VALUE_TYPE:
-                _extend_unique(self.value_types, _qualifier_entity_ids(statement, _QUALIFIER_CLASS))
+                _extend_unique(self.value_types, _qualifier_class_qids(statement))
             case ConstraintKind.INVERSE:
                 pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
                 if pids and self.inverse_pid is None:
-                    self.inverse_pid = pids[0]
+                    self.inverse_pid = Pid(pids[0])
 
     def build(self) -> Constraints:
         return Constraints(
@@ -320,7 +324,7 @@ def chunk_ids[IdT: str](
     The tiebreak on the full id keeps mixed P/Q batches deterministic
     (P50 and Q50 share the numeric key 50).
     """
-    ordered = sorted(ids, key=lambda entity_id: (pid_number(entity_id), entity_id))
+    ordered = sorted(ids, key=lambda entity_id: (entity_number(entity_id), entity_id))
     return [ordered[i : i + size] for i in range(0, len(ordered), size)]
 
 
@@ -349,7 +353,7 @@ def merge_closed_ancestors(
     """
     direct = record.ancestors
     closure_members = set(closure.get(record.pid, ())) - set(direct) - {record.pid}
-    return direct + tuple(sorted(closure_members, key=pid_number))
+    return direct + tuple(sorted(closure_members, key=entity_number))
 
 
 @dataclass(frozen=True)
@@ -410,7 +414,7 @@ class ExtractionResult(BaseModel):
     records: list[PropertyRecord]  # retained, numeric-PID order
     inventory_rows: list[InventoryRow]
     excluded: dict[str, str]  # pid -> exclusion reason
-    entity_labels: dict[Pid, EntityLabel]
+    entity_labels: dict[EntityId, EntityLabel]
     example_fallbacks: dict[str, ExampleSource]  # pid -> rescuing endpoint
     example_skips: list[str]  # pids where the whole ladder failed
     # pid -> untyped candidates dropped under stratification (the
@@ -595,7 +599,7 @@ def _fetch_property_records(
 
         progress.advance()
 
-    records.sort(key=lambda record: pid_number(record.pid))
+    records.sort(key=lambda record: entity_number(record.pid))
     return records
 
 
@@ -604,7 +608,7 @@ def _collect_entity_labels(
     extraction: ExtractionConfig,
     transport: Transport,
     progress: ProgressReporter,
-) -> dict[Pid, EntityLabel]:
+) -> dict[EntityId, EntityLabel]:
     """Resolve labels and descriptions for every entity a card references.
 
     Retained properties are covered by their own documents; the remaining
@@ -612,7 +616,7 @@ def _collect_entity_labels(
     retained properties) are fetched in wbgetentities batches so cards can
     render titles and descriptions for them.
     """
-    entity_labels: dict[Pid, EntityLabel] = {}
+    entity_labels: dict[EntityId, EntityLabel] = {}
     primary = extraction.primary_language
     for record in records:
         entity_labels[record.pid] = EntityLabel(
@@ -620,7 +624,7 @@ def _collect_entity_labels(
             description=record.descriptions.get(primary, ""),
         )
 
-    referenced_ids = {
+    referenced_ids: set[EntityId] = {
         qid
         for record in records
         for qid in record.constraints.subject_types + record.constraints.value_types

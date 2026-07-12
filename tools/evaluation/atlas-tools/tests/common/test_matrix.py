@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from atlas_tools.common.matrix import load_matrix, meta_path_for, write_matrix
 
@@ -97,6 +98,22 @@ def test_minimal_foreign_sidecar_accepted(tmp_path: Path) -> None:
     loaded, meta = load_matrix(path, verify_hash=True)
     assert loaded.shape == (2, 3)
     assert meta.dim == 3
+
+
+def test_corrupted_sidecar_hash_rejected_at_load(tmp_path: Path) -> None:
+    # content_sha256 is validated as a sha256 hex digest: a truncated or
+    # uppercase value must fail sidecar validation before any file check runs.
+    path = tmp_path / "embeddings.f32"
+    write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
+    meta_path = meta_path_for(path)
+    meta = json.loads(meta_path.read_text())
+    good_hash = meta["details"]["content_sha256"]
+
+    for bad_hash in (good_hash[:-1], good_hash.upper()):
+        meta["details"]["content_sha256"] = bad_hash
+        meta_path.write_text(json.dumps(meta))
+        with pytest.raises(ValidationError, match="content_sha256"):
+            load_matrix(path)
 
 
 def test_hash_verification_detects_corruption(tmp_path: Path) -> None:

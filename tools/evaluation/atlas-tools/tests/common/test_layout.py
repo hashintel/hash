@@ -5,6 +5,10 @@ import pytest
 
 from atlas_tools.common.layout import load_layout, write_layout
 
+# source_embedding_hash is validated as a sha256 hex digest, so the test value
+# must have the real shape (64 lowercase hex characters).
+SOURCE_HASH = "deadbeef" * 8
+
 
 def test_roundtrip_with_sidecar(tmp_path: Path) -> None:
     xy = np.array([[0.0, 1.0], [2.0, 3.0]], dtype=np.float32)
@@ -15,7 +19,7 @@ def test_roundtrip_with_sidecar(tmp_path: Path) -> None:
         engine="test-engine",
         config={"a": 1},
         seed=7,
-        source_embedding_hash="deadbeef",
+        source_embedding_hash=SOURCE_HASH,
     )
 
     artifact = load_layout(path)
@@ -24,7 +28,7 @@ def test_roundtrip_with_sidecar(tmp_path: Path) -> None:
     assert artifact.provenance is not None
     assert artifact.provenance.details.engine == "test-engine"
     assert artifact.provenance.seed == 7
-    assert artifact.provenance.details.source_embedding_hash == "deadbeef"
+    assert artifact.provenance.details.source_embedding_hash == SOURCE_HASH
     assert artifact.provenance.config_hash is not None
 
 

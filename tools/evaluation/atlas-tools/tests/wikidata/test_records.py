@@ -15,7 +15,7 @@ from atlas_tools.common.provenance import sha256_file
 from atlas_tools.wikidata.cache import CachingTransport
 from atlas_tools.wikidata.cards import ExtractPaths, emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, Example, Pid, PropertyRecord
+from atlas_tools.wikidata.model import Constraints, Example, Pid, PropertyRecord, Qid
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.taxonomy import Taxonomy
@@ -101,8 +101,8 @@ def test_record_round_trip_exercising_all_fields() -> None:
             transitive=True,
             single_value=True,
             distinct_values=True,
-            subject_types=(Pid("Q35120"), Pid("Q571")),
-            value_types=(Pid("Q5"),),
+            subject_types=(Qid("Q35120"), Qid("Q571")),
+            value_types=(Qid("Q5"),),
             inverse_pid="P527",
             ignored_types=("Q99999999",),
         ),

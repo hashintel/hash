@@ -55,11 +55,9 @@ from pydantic import (
 from pydantic.fields import FieldInfo
 
 from atlas_tools.battery.datasets import Dataset
-from atlas_tools.common import JsonDict
+from atlas_tools.common import Fraction, JsonDict
 
 CHAIN_TYPE_NAMES = ("order", "item", "movement", "delivery")
-
-type Fraction = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
 def _cluster_embeddings(

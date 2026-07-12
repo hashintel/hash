@@ -6,19 +6,15 @@ validation, so a report re-validated from disk is equal to the model that produc
 """
 
 from pathlib import Path
-from typing import Annotated, NewType
+from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, NonNegativeInt
+from pydantic import AfterValidator, BaseModel, Field, NonNegativeInt
 
-from atlas_tools.common import Provenance
+from atlas_tools.common import Dim, K, Provenance, Sha256Hex
 
 
 def round_to(ndigits: int, /) -> AfterValidator:
     return AfterValidator(lambda v: round(v, ndigits))
-
-
-Dim = NewType("Dim", int)
-K = NewType("K", int)
 
 
 class FlagReport(BaseModel):
@@ -69,7 +65,7 @@ class RunnerConfig(BaseModel):
 
 class RunnerCorpus(BaseModel):
     rows: NonNegativeInt
-    dim: NonNegativeInt
+    dim: Annotated[Dim, Field(ge=0)]
     n_sampled: NonNegativeInt
     full_truth_k: NonNegativeInt
 
@@ -85,8 +81,8 @@ class RunnerReport(BaseModel):
 
 
 class RunnerDetails(BaseModel):
-    sample_rows_sha256: str
-    report_sha256: str
+    sample_rows_sha256: Sha256Hex
+    report_sha256: Sha256Hex
 
 
 RunnerProvenance = Provenance[RunnerDetails, RunnerConfig]

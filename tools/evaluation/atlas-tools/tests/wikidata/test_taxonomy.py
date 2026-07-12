@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Pid
+from atlas_tools.wikidata.model import Qid
 from atlas_tools.wikidata.sparql import sparql_params
 from atlas_tools.wikidata.taxonomy import (
     Taxonomy,
@@ -29,37 +29,37 @@ class TestTaxonomySemantics:
     def test_diamond_closure(self) -> None:
         # 1 -> 2, 1 -> 3, 2 -> 4, 3 -> 4: both paths converge on 4.
         taxonomy = Taxonomy.from_edges([(1, 2), (1, 3), (2, 4), (3, 4)])
-        assert taxonomy.closure(Pid("Q1")) == frozenset(
-            {Pid("Q1"), Pid("Q2"), Pid("Q3"), Pid("Q4")}
+        assert taxonomy.closure(Qid("Q1")) == frozenset(
+            {Qid("Q1"), Qid("Q2"), Qid("Q3"), Qid("Q4")}
         )
-        assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q4")}))
-        assert not taxonomy.is_subclass_of(Pid("Q4"), frozenset({Pid("Q1")}))
+        assert taxonomy.is_subclass_of(Qid("Q1"), frozenset({Qid("Q4")}))
+        assert not taxonomy.is_subclass_of(Qid("Q4"), frozenset({Qid("Q1")}))
 
     def test_cycle_terminates(self) -> None:
         # Wikidata P279 has real cycles; BFS must terminate.
         taxonomy = Taxonomy.from_edges([(1, 2), (2, 3), (3, 1)])
-        assert taxonomy.closure(Pid("Q1")) == frozenset({Pid("Q1"), Pid("Q2"), Pid("Q3")})
-        assert taxonomy.is_subclass_of(Pid("Q3"), frozenset({Pid("Q2")}))
+        assert taxonomy.closure(Qid("Q1")) == frozenset({Qid("Q1"), Qid("Q2"), Qid("Q3")})
+        assert taxonomy.is_subclass_of(Qid("Q3"), frozenset({Qid("Q2")}))
 
     def test_disconnected_type_closure_is_itself(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2)])
-        assert taxonomy.closure(Pid("Q99")) == frozenset({Pid("Q99")})
-        assert not taxonomy.is_subclass_of(Pid("Q99"), frozenset({Pid("Q2")}))
+        assert taxonomy.closure(Qid("Q99")) == frozenset({Qid("Q99")})
+        assert not taxonomy.is_subclass_of(Qid("Q99"), frozenset({Qid("Q2")}))
 
     def test_subsumption_is_reflexive(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2)])
-        assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q1")}))
+        assert taxonomy.is_subclass_of(Qid("Q1"), frozenset({Qid("Q1")}))
 
     def test_memoization_is_stable(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2), (2, 3)])
-        assert taxonomy.closure(Pid("Q1")) == taxonomy.closure(Pid("Q1"))
+        assert taxonomy.closure(Qid("Q1")) == taxonomy.closure(Qid("Q1"))
 
     def test_fixture_taxonomy_paths(self) -> None:
         taxonomy = Taxonomy.load(TAXONOMY_PATH)
         # Depth-2 chain: city -> human settlement -> entity.
-        assert taxonomy.is_subclass_of(Pid("Q515"), frozenset({Pid("Q35120")}))
+        assert taxonomy.is_subclass_of(Qid("Q515"), frozenset({Qid("Q35120")}))
         # Film is deliberately not under book: the P50 filter relies on this.
-        assert not taxonomy.is_subclass_of(Pid("Q11424"), frozenset({Pid("Q571")}))
+        assert not taxonomy.is_subclass_of(Qid("Q11424"), frozenset({Qid("Q571")}))
 
 
 class TestPageParsing:
@@ -163,7 +163,7 @@ class TestExtraction:
         assert sidecar["details"]["page_size"] == 3
 
         taxonomy = Taxonomy.load(tmp_path / "taxonomy.parquet")
-        assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q4")}))
+        assert taxonomy.is_subclass_of(Qid("Q1"), frozenset({Qid("Q4")}))
 
     def test_interrupted_extraction_resumes_identically(self, tmp_path: Path) -> None:
         config = _taxonomy_config(page_size=3)

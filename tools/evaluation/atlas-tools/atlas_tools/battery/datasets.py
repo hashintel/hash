@@ -26,9 +26,9 @@ from typing import Final
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt
 
+from atlas_tools.common.data import JsonDict, Sha256Hex
 from atlas_tools.common.matrix import load_matrix, write_matrix
 from atlas_tools.common.provenance import (
-    JsonDict,
     Provenance,
     sha256_file,
 )
@@ -115,10 +115,10 @@ class Dataset:
 class DatasetHashes(BaseModel):
     """Content hashes of one dataset artifact directory (manifest currency)."""
 
-    embeddings_sha256: str
-    edges_sha256: str
-    labels_sha256: str
-    truth_config_hash: str
+    embeddings_sha256: Sha256Hex
+    edges_sha256: Sha256Hex
+    labels_sha256: Sha256Hex
+    truth_config_hash: Sha256Hex
 
 
 def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
