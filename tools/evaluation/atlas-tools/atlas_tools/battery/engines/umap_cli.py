@@ -1,29 +1,25 @@
 """umap-learn baseline engine CLI.
 
-Reads embeddings (common.matrix contract) and writes layout.npz
-(common.layout contract). ``random_state`` is set to ``--seed``, which puts
-umap-learn on its deterministic single-threaded path; we deliberately do
-NOT try to make umap deterministic under parallelism — the battery's
-rerun-noise floor machinery handles spread across seeds.
+Reads embeddings (common.matrix contract) and writes layout.npz (common.layout contract).
+``random_state`` is set to ``--seed``, which puts umap-learn on its deterministic
+single-threaded path. Making umap deterministic under parallelism is a non-goal: the battery's
+rerun-noise floor machinery absorbs spread across seeds instead.
 
-``--edges`` / ``--labels`` are accepted and IGNORED: this baseline embeds
-the vectors only. Consequently an engines.yaml entry that passes
-``{edges}`` here has identical with-edges and no-edges behavior, and the
-no-structure-from-noise differential trivially (and correctly) passes for
-it.
+``--edges`` and ``--labels`` are accepted and ignored; this baseline embeds the vectors only.
+Consequently an engines.yaml entry that passes ``{edges}`` here has identical with-edges and
+no-edges behavior, and the no-structure-from-noise differential trivially (and correctly)
+passes for it.
 
-Tuning grid for the ``umap_tuned`` default-engine config (documented per
-W3.3): n_neighbors in {15, 30, 50} x min_dist in {0.05, 0.1, 0.25} x
-metric in {cosine}; n_neighbors=30, min_dist=0.1, metric=cosine was
-selected on the smoke shapes for the best recall/persistence balance. The
-grid is config-driven: any cell is reachable through the CLI flags below.
+Tuning grid behind the ``umap_tuned`` default-engine config: n_neighbors in {15, 30, 50} x
+min_dist in {0.05, 0.1, 0.25} x metric in {cosine}; n_neighbors=30, min_dist=0.1, metric=cosine
+was selected on the smoke shapes for the best recall/persistence balance. The grid is
+config-driven: any cell is reachable through the CLI flags below.
 """
-
-from __future__ import annotations
 
 from pathlib import Path
 
 import click
+import numpy as np
 
 from atlas_tools.common.layout import write_layout
 from atlas_tools.common.matrix import load_matrix
@@ -31,8 +27,8 @@ from atlas_tools.common.matrix import load_matrix
 
 @click.command()
 @click.option("--embeddings", required=True, type=click.Path(exists=True))
-@click.option("--edges", default=None, type=click.Path(), help="Accepted and ignored.")
-@click.option("--labels", default=None, type=click.Path(), help="Accepted and ignored.")
+@click.option("--edges", "_edges", default=None, type=click.Path(), help="Accepted and ignored.")
+@click.option("--labels", "_labels", default=None, type=click.Path(), help="Accepted and ignored.")
 @click.option("--out", required=True, type=click.Path())
 @click.option("--seed", type=int, default=0)
 @click.option("--n-neighbors", type=int, default=15)
@@ -40,16 +36,16 @@ from atlas_tools.common.matrix import load_matrix
 @click.option("--metric", type=str, default="cosine")
 def main(
     embeddings: str,
-    edges: str | None,
-    labels: str | None,
     out: str,
     seed: int,
     n_neighbors: int,
     min_dist: float,
     metric: str,
+    _edges: str | None,
+    _labels: str | None,
 ) -> None:
-    import numpy as np
-    import umap  # heavy import (numba); keep local to the command
+    # umap pulls in numba and pays JIT compilation on import; keep it out of --help.
+    import umap
 
     matrix, meta = load_matrix(Path(embeddings), mmap=False)
     reducer = umap.UMAP(

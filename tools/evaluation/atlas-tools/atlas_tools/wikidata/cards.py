@@ -2,13 +2,13 @@
 
 Layering (mining is decoupled from card formatting):
 
-1. raw response cache (``cache.py``) — provenance of every API byte;
-2. ``records.jsonl`` (``records.py``) — structured, card-format-independent
+1. raw response cache (``cache.py``): provenance of every API byte;
+2. ``records.jsonl`` (``records.py``): structured, card-format-independent
    property records;
-3. ``card.py`` — one card: structured :class:`~atlas_tools.wikidata.card.CardContents`,
+3. ``card.py``: one card: structured :class:`~atlas_tools.wikidata.card.CardContents`,
    the text projection, and the truncation passes (the current card format
    lives there);
-4. ``cards.jsonl`` (this module) — corpus emission: iterate the record set,
+4. ``cards.jsonl`` (this module): corpus emission: iterate the record set,
    build each card, and write the JSONL corpus plus its provenance
    manifest. ``render_cards`` is a pure records -> cards step with zero
    transport/network involvement, so the card format can change and be
@@ -18,12 +18,10 @@ Records without a primary-language title produce no card (nothing
 embeddable); they are counted and listed in the manifest instead of being
 silently dropped.
 
-``card_hash`` = sha256 of the UTF-8 bytes of the card text. NO embedding
-calls happen anywhere here: embedding is a separate, budgeted step outside
-this tool.
+``card_hash`` is the sha256 of the UTF-8 bytes of the card text. No
+embedding calls happen anywhere here: embedding is a separate, budgeted
+step outside this tool.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,8 +76,10 @@ class CardsCounts(BaseModel):
 
 
 class CardsManifestDetails(BaseModel):
-    """Details of the cards.jsonl projection; the records.jsonl input hash
-    lives in the envelope's ``input_hashes``."""
+    """Details of the cards.jsonl projection.
+
+    The records.jsonl input hash lives in the envelope's ``input_hashes``.
+    """
 
     card_format_version: int
     card_hash_canonicalization: str
@@ -87,7 +87,8 @@ class CardsManifestDetails(BaseModel):
     sentence_splitter: SentenceSplitterName
     token_budget: int
     hard_token_budget: int
-    # API-snapshot date stands in for a dump SHA in W2a (no dump).
+    # The API miner reads no dump, so the API-snapshot date stands in for
+    # a dump SHA here.
     api_snapshot_date: str
     cards: dict[str, CardEntry]
     counts: CardsCounts
@@ -97,8 +98,8 @@ class CardsManifestDetails(BaseModel):
     untitled: list[str]
 
 
-# The rendering config is the FULL config (card-format keys included here,
-# unlike the records envelope: they change the projection).
+# The rendering config is the full config: card-format keys change the
+# projection, so unlike the records envelope they belong in this hash.
 CardsManifestProvenance = Provenance[CardsManifestDetails, Config]
 
 
@@ -153,7 +154,7 @@ def render_cards(
     untitled.sort(key=pid_number)
 
     cards_path = out_dir / "cards.jsonl"
-    with open(cards_path, "w", encoding="utf-8") as f:
+    with cards_path.open("w", encoding="utf-8") as cards_file:
         for card in cards:
             row = CardRow(
                 pid=card.pid,
@@ -164,7 +165,7 @@ def render_cards(
                 severely_truncated=card.severely_truncated,
                 retrieved_at=card.retrieved_at,
             )
-            f.write(canonical_json_bytes(row).decode("utf-8") + "\n")
+            cards_file.write(canonical_json_bytes(row).decode("utf-8") + "\n")
 
     manifest_path = out_dir / "cards.manifest.json"
     CardsManifestProvenance.make(
@@ -209,11 +210,12 @@ def emit_cards(
     config: Config,
     out_dir: Path | str,
 ) -> ExtractPaths:
-    """Extraction-side emitter: persist the structured intermediate
-    (records.jsonl + entity_labels.json + records.meta.json + inventory.json)
-    and then render cards through the SAME load+render path that the
-    ``render-cards`` CLI command uses — there is a single code path for card
-    emission.
+    """Persist the structured intermediate, then render cards from it.
+
+    The intermediate is records.jsonl + entity_labels.json +
+    records.meta.json + inventory.json. Rendering goes through the same
+    load-and-render path that the ``render-cards`` CLI command uses, so
+    there is a single code path for card emission.
     """
     out_dir = Path(out_dir)
     records_paths = emit_records(result, config, out_dir)

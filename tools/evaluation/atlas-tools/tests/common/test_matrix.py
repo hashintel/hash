@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -6,10 +7,10 @@ import pytest
 from atlas_tools.common.matrix import load_matrix, meta_path_for, write_matrix
 
 
-def test_roundtrip(tmp_path):
+def test_roundtrip(tmp_path: Path) -> None:
     rng = np.random.default_rng(0)
     original = rng.standard_normal((17, 5)).astype(np.float32)
-    path = tmp_path / "emb.f32"
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, original, producer="test")
 
     loaded, meta = load_matrix(path, verify_hash=True)
@@ -20,8 +21,8 @@ def test_roundtrip(tmp_path):
     assert meta.byte_order == "little"
 
 
-def test_size_mismatch_names_mismatch(tmp_path):
-    path = tmp_path / "emb.f32"
+def test_size_mismatch_names_mismatch(tmp_path: Path) -> None:
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.zeros((4, 3), dtype=np.float32), producer="test")
     # Truncate the binary without touching the sidecar.
     data = path.read_bytes()
@@ -31,8 +32,8 @@ def test_size_mismatch_names_mismatch(tmp_path):
         load_matrix(path)
 
 
-def test_rejects_unsupported_dtype_and_byte_order(tmp_path):
-    path = tmp_path / "emb.f32"
+def test_rejects_unsupported_dtype_and_byte_order(tmp_path: Path) -> None:
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
 
@@ -49,8 +50,8 @@ def test_rejects_unsupported_dtype_and_byte_order(tmp_path):
         load_matrix(path)
 
 
-def test_missing_sidecar_fields_rejected(tmp_path):
-    path = tmp_path / "emb.f32"
+def test_missing_sidecar_fields_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.zeros((2, 2), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
     meta = json.loads(meta_path.read_text())
@@ -60,14 +61,14 @@ def test_missing_sidecar_fields_rejected(tmp_path):
         load_matrix(path)
 
 
-def test_sidecar_shape_and_filename(tmp_path):
-    # PRD section 0.1: the sidecar is a Provenance envelope named
-    # <binary filename>.meta.json with the matrix contract under "details".
-    path = tmp_path / "emb.f32"
+def test_sidecar_shape_and_filename(tmp_path: Path) -> None:
+    # The sidecar is a Provenance envelope named <binary filename>.meta.json with the
+    # matrix contract under "details".
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.zeros((2, 3), dtype=np.float32), producer="test")
 
     meta_path = meta_path_for(path)
-    assert meta_path.name == "emb.f32.meta.json"
+    assert meta_path.name == "embeddings.f32.meta.json"
 
     raw = json.loads(meta_path.read_text())
     for key in ("producer", "created_at", "details"):
@@ -76,10 +77,10 @@ def test_sidecar_shape_and_filename(tmp_path):
         assert key in raw["details"], key
 
 
-def test_minimal_foreign_sidecar_accepted(tmp_path):
+def test_minimal_foreign_sidecar_accepted(tmp_path: Path) -> None:
     # A sidecar without tool_version/config/seed (e.g. written by the Rust
     # producer) must load: only producer, created_at, and details are required.
-    path = tmp_path / "emb.f32"
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.zeros((2, 3), dtype=np.float32), producer="test")
     meta_path = meta_path_for(path)
     raw = json.loads(meta_path.read_text())
@@ -98,8 +99,8 @@ def test_minimal_foreign_sidecar_accepted(tmp_path):
     assert meta.dim == 3
 
 
-def test_hash_verification_detects_corruption(tmp_path):
-    path = tmp_path / "emb.f32"
+def test_hash_verification_detects_corruption(tmp_path: Path) -> None:
+    path = tmp_path / "embeddings.f32"
     write_matrix(path, np.ones((2, 2), dtype=np.float32), producer="test")
     raw = bytearray(path.read_bytes())
     raw[0] ^= 0xFF

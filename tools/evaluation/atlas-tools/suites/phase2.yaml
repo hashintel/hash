@@ -1,8 +1,7 @@
-# Phase 2 release-gate suite: the 7 planted shapes at n=20k, 3 seed reruns,
-# PRD merge-tree parameters (grid 1024, blur 4 px, floor 0.005, persistence
-# 0.05). With engines/default.yaml (pca2d + umap_tuned + umap_default) this
-# is the "7 shapes x 3 engines x 3 seeds" default; budget < 60 minutes on
-# 8 cores (run with --jobs 8).
+# The default full release-gate suite: the 7 planted shapes at n=20k, 3 seed reruns, and the
+# production merge-tree parameters (grid 1024, blur 4 px, floor 0.005, persistence 0.05). With
+# engines/default.yaml (pca2d + umap_tuned + umap_default) this is the "7 shapes x 3 engines
+# x 3 seeds" default; budget under 60 minutes on 8 cores (run with --jobs 8).
 #
 # Gate thresholds are versioned; this v1 set carries over the smoke-tuned
 # values (see suites/smoke.yaml for the tuning notes and scoping rationale)

@@ -1,54 +1,54 @@
-"""Stratified example selection for relation cards (W2a).
+"""Stratified example selection for relation cards.
 
 Turns the raw example pool (``ExampleRow``s from the offset ladder) into
 the bounded, diverse example set a card renders. The selection is a pure
-deterministic function of (pool, constraints, taxonomy, seed, pid) — no
-wall clock, no network — so a warm-cache rerun reproduces every card
+deterministic function of (pool, constraints, taxonomy, seed, pid): no
+wall clock, no network. A warm-cache rerun therefore reproduces every card
 byte-for-byte.
 
 Pipeline:
 
 1. **Candidates.** Pool rows are collapsed into distinct (subject QID,
    object QID) pairs. The example query multiplies rows (one per P31 type
-   of the subject), so a candidate carries the order-preserving UNION of
+   of the subject), so a candidate carries the order-preserving union of
    its subject types. ``wdt:`` in the query already restricts the pool to
    truthy (best-rank) statements.
 2. **Strata.** The strata are the property's subject-type constraint
-   classes, in declaration order — the same list the card renders under
-   ``Source types:``. A candidate belongs to the first constraint class
-   that subsumes any of its subject types under the REFLEXIVE local P279
-   closure (:class:`~atlas_tools.wikidata.taxonomy.Taxonomy`); without the
-   closure most candidates match nothing (Mariupol's P31 is "urban
-   hromada", not "municipality").
+   classes, in declaration order, which is the same list the card renders
+   under ``Source types:``. A candidate belongs to the first constraint
+   class that subsumes any of its subject types under the reflexive local
+   P279 closure (:class:`~atlas_tools.wikidata.taxonomy.Taxonomy`);
+   without the closure most candidates match nothing (Mariupol's P31 is
+   "urban hromada", not "municipality").
 3. **``other`` / untyped.** Typed candidates matching no constraint class
-   land in an explicit ``other`` bucket. ``other`` is DIAGNOSTIC +
-   FALLBACK-ONLY: it is counted (a persistently large ``other`` means the
-   constraint list is stale — the caller logs a warning above
+   land in an explicit ``other`` bucket, which is diagnostic and
+   fallback-only: it is counted (a persistently large ``other`` means the
+   constraint list is stale, and the caller logs a warning above
    :data:`OTHER_WARNING_FRACTION`) and its candidates reach the card only
-   when EVERY constraint stratum is empty. Granting ``other`` a regular
-   slot would put constraint-VIOLATING pairs back on cards — the
-   live-verified reversed P6 statement class of bug the subject-type
-   filter exists to stop. Untyped candidates (no P31 at all — the
-   reversed-statement signature) are always dropped under stratification.
+   when every constraint stratum is empty. Granting ``other`` a regular
+   slot would put constraint-violating pairs back on cards, which is
+   exactly the live-verified reversed-P6-statement class of bug the
+   subject-type filter exists to stop. Untyped candidates (no P31 at all,
+   the reversed-statement signature) are always dropped under
+   stratification.
 4. **Slots.** Example budget ``count``: one slot per non-empty stratum
    first (declaration order), remaining slots round-robin in
    volume-descending order. Empty strata are skipped silently (a
    constraint class with no usage is ontology aspiration, not extension).
 5. **Within-stratum order.** Deterministic seeded preference order:
-   the weighted HEAD first (argmax of ``log1p(subject sitelinks) +
-   log1p(object sitelinks)``, ties to earliest arrival), then one UNIFORM
+   the weighted head first (argmax of ``log1p(subject sitelinks) +
+   log1p(object sitelinks)``, ties to earliest arrival), then one uniform
    draw (so the famous/obscure contrast survives), then weighted draws
    without replacement. Selection walks that order, skipping any candidate
-   whose subject or object was already used ANYWHERE on the card (one
-   Erdoğan); shortfalls from dedup are redistributed to the other strata.
+   whose subject or object was already used anywhere on the card, so each
+   entity appears at most once per card; shortfalls from dedup are
+   redistributed to the other strata.
 
 Properties without subject-type constraints (or runs without a taxonomy)
 select from a single unstratified pool with the same weighted order and
 dedup; their examples carry ``stratum=None`` and render without a stratum
 prefix.
 """
-
-from __future__ import annotations
 
 import math
 from collections.abc import Sequence
@@ -153,8 +153,11 @@ def assign_stratum(
     constraint_classes: tuple[Pid, ...],
     taxonomy: Taxonomy,
 ) -> Pid | None:
-    """First declaration-order constraint class subsuming any subject type
-    (reflexive P279 closure); ``None`` = the ``other`` bucket."""
+    """Assign the first declaration-order constraint class subsuming any subject type.
+
+    Subsumption uses the reflexive P279 closure; ``None`` means the
+    ``other`` bucket.
+    """
     closures = [
         taxonomy.closure(Pid(subject_type))
         for subject_type in candidate.subject_types
@@ -168,10 +171,11 @@ def assign_stratum(
     return None
 
 
-def _preference_order(
-    pool: Sequence[Candidate], rng: np.random.Generator
-) -> list[Candidate]:
-    """Weighted head, one uniform draw, then weighted draws w/o replacement."""
+def _preference_order(pool: Sequence[Candidate], rng: np.random.Generator) -> list[Candidate]:
+    """Order candidates: weighted head, one uniform draw, then weighted draws.
+
+    The weighted draws run without replacement.
+    """
     if len(pool) <= 1:
         return list(pool)
 
@@ -231,10 +235,7 @@ class _Stratum:
             candidate = self.order[self.pointer]
             self.pointer += 1
 
-            if (
-                candidate.subject_token in used_tokens
-                or candidate.object_token in used_tokens
-            ):
+            if candidate.subject_token in used_tokens or candidate.object_token in used_tokens:
                 continue
 
             used_tokens.add(candidate.subject_token)
@@ -246,13 +247,14 @@ class _Stratum:
         return False
 
 
-def _select_from_strata(strata: list[_Stratum], count: int) -> None:
-    """Fill ``picks`` in place: guaranteed slots, volume round-robin, and
-    redistribution of dedup shortfalls."""
-    used_tokens: set[str] = set()
-    budget = count
+def _allocate_slots(strata: Sequence[_Stratum], count: int) -> dict[int, int]:
+    """Allocate the example budget: one slot per stratum, then volume rounds.
 
-    # One slot per non-empty stratum, declaration order.
+    Every non-empty stratum gets one guaranteed slot in declaration order;
+    remaining budget is dealt in rounds over strata sorted by descending
+    volume, never exceeding a stratum's pool size.
+    """
+    budget = count
     slots = dict.fromkeys(range(len(strata)), 0)
     for index in range(len(strata)):
         if budget == 0:
@@ -260,10 +262,7 @@ def _select_from_strata(strata: list[_Stratum], count: int) -> None:
         slots[index] = 1
         budget -= 1
 
-    # Remaining slots: rounds in volume-descending order.
-    volume_order = sorted(
-        range(len(strata)), key=lambda index: (-strata[index].volume, index)
-    )
+    volume_order = _volume_order(strata)
     while budget > 0:
         progressed = False
         for index in volume_order:
@@ -275,14 +274,21 @@ def _select_from_strata(strata: list[_Stratum], count: int) -> None:
                 progressed = True
         if not progressed:
             break
+    return slots
 
-    # Draw the allocated slots (declaration order: earlier strata win
-    # dedup conflicts), then redistribute shortfalls by volume order.
-    for index, stratum in enumerate(strata):
-        for _ in range(slots[index]):
-            if not stratum.take(used_tokens):
-                break
 
+def _volume_order(strata: Sequence[_Stratum]) -> list[int]:
+    """Order stratum indices by descending volume, declaration order on ties."""
+    return sorted(range(len(strata)), key=lambda index: (-strata[index].volume, index))
+
+
+def _redistribute_shortfall(strata: Sequence[_Stratum], count: int, used_tokens: set[str]) -> None:
+    """Refill picks lost to dedup by drawing more from the other strata.
+
+    Draws round-robin in volume order until the budget is met or every
+    stratum is exhausted.
+    """
+    volume_order = _volume_order(strata)
     total = sum(len(stratum.picks) for stratum in strata)
     while total < count:
         progressed = False
@@ -297,6 +303,24 @@ def _select_from_strata(strata: list[_Stratum], count: int) -> None:
 
         if not progressed:
             break
+
+
+def _select_from_strata(strata: list[_Stratum], count: int) -> None:
+    """Fill each stratum's ``picks`` in place.
+
+    Guaranteed slots first, then volume round-robin, then redistribution
+    of dedup shortfalls. Earlier strata draw first, so they win dedup
+    conflicts (declaration order).
+    """
+    used_tokens: set[str] = set()
+    slots = _allocate_slots(strata, count)
+
+    for index, stratum in enumerate(strata):
+        for _ in range(slots[index]):
+            if not stratum.take(used_tokens):
+                break
+
+    _redistribute_shortfall(strata, count, used_tokens)
 
 
 def _example(candidate: Candidate, stratum: Pid | None) -> Example:
@@ -319,12 +343,12 @@ def select_examples(
     seed: int,
     pid: str,
 ) -> ExampleSelection:
-    """The full selection (see module docstring).
+    """Select the bounded example set for one property (see module docstring).
 
     Stratification engages only when the property declares subject-type
-    constraints AND a taxonomy is available; otherwise the whole pool is
+    constraints and a taxonomy is available; otherwise the whole pool is
     one unstratified stratum and nothing is dropped. RNG streams are
-    ``default_rng([seed, pid number, stratum index])`` — stable per
+    ``default_rng([seed, pid number, stratum index])``: stable per
     stratum, independent of the other strata's pool sizes.
     """
     candidates = collect_candidates(rows)
@@ -383,9 +407,7 @@ def select_examples(
 
     return ExampleSelection(
         examples=[
-            _example(candidate, stratum.key)
-            for stratum in strata
-            for candidate in stratum.picks
+            _example(candidate, stratum.key) for stratum in strata for candidate in stratum.picks
         ],
         candidates=len(candidates),
         untyped_dropped=len(untyped),

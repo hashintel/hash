@@ -1,3 +1,10 @@
+"""Typed report and provenance models for the prefix audit.
+
+:class:`RunnerReport` is the schema of ``report.json``; :data:`RunnerProvenance` is the
+envelope written to ``report.meta.json``. Metric fields round to six decimal places on
+validation, so a report re-validated from disk is equal to the model that produced it.
+"""
+
 from pathlib import Path
 from typing import Annotated, NewType
 

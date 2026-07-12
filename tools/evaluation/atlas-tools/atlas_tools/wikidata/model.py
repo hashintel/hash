@@ -1,11 +1,10 @@
-"""Shared data model for the W2a property pipeline.
+"""Shared data model for the property-mining pipeline.
 
-:class:`PropertyRecord` doubles as the records.jsonl v1 row schema: its
-JSON-mode dump (canonical key order via ``canonical_json_bytes``) IS the
-on-disk line format, so field names here are a stable file contract.
+:class:`PropertyRecord` doubles as the records.jsonl row schema: its
+JSON-mode dump (canonical key order via ``canonical_json_bytes``) is
+itself the on-disk line format, so field names here are a stable file
+contract.
 """
-
-from __future__ import annotations
 
 from enum import StrEnum
 from typing import Literal, NewType
@@ -36,8 +35,10 @@ class ConstraintKind(StrEnum):
 
 
 class Constraints(BaseModel):
-    """Parsed subset of P2302 property constraints (see properties.py for
-    the authoritative parse-scope documentation)."""
+    """Parsed subset of P2302 property constraints.
+
+    The authoritative parse-scope documentation lives in ``properties.py``.
+    """
 
     symmetric: bool = False
     transitive: bool = False
@@ -54,11 +55,11 @@ class Constraints(BaseModel):
 class Example(BaseModel):
     """One subject/object pair shown on a card.
 
-    QIDs and the stratum are record METADATA — card text renders labels
+    QIDs and the stratum are record metadata: card text renders labels
     only (identifier-free), with the stratum resolved to its label. A
     ``None`` stratum means the example was selected without stratification
     (property without subject-type constraints, no taxonomy, or the
-    all-strata-empty fallback — see ``examples.py``).
+    all-strata-empty fallback; see ``examples.py``).
     """
 
     subject_qid: str = ""  # "" only for records predating query v4
@@ -95,10 +96,11 @@ class PropertyRecord(BaseModel):
     ancestors: tuple[Pid, ...] = ()  # P1647 subproperty-of targets
     inverse_pid: Pid | None = None  # P1696, else the inverse constraint
     constraints: Constraints = Field(default_factory=Constraints)
-    # NOT a usage count despite the PRD's original intent: sourced from
-    # ``wikibase:statements``, which counts statements on the property's
-    # own page (P6 -> 34). Kept as a weak prominence signal / diagnostic;
-    # never used for sampling and never emitted in card text.
+    # Not a true usage count: sourced from ``wikibase:statements``, which
+    # counts statements on the property's own page (P6 -> 34), not how
+    # often the property is used in claims. Kept as a weak prominence
+    # signal for diagnostics; never used for sampling and never emitted in
+    # card text.
     usage_count: int | None = None
     examples: list[Example] = Field(default_factory=list)
     example_source: ExampleSource | None = None  # None = ladder skipped

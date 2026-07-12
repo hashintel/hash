@@ -1,16 +1,16 @@
-# Default engine roster for the layout gate battery (W3.3).
+# Default engine roster for the layout gate battery.
 #
 # The engine interface is "a command that reads embeddings/edges and writes
 # layout.npz". Placeholders ({python}, {embeddings}, {edges}, {labels},
 # {out}, {seed}) are substituted per token after shlex splitting; commands
 # run via subprocess without a shell. See atlas_tools/battery/engine_runner.py.
 #
-# umap_tuned tuning grid (documented per PRD W3.3): n_neighbors {15, 30, 50}
-# x min_dist {0.05, 0.1, 0.25} x metric {cosine}; n_neighbors=30,
-# min_dist=0.1 selected on the smoke shapes for the best recall/persistence
-# balance. Both umap baselines accept-and-ignore edges (umap_cli embeds the
-# vectors only), so umap_tuned's command_no_edges is identical behavior and
-# the noise differential trivially — and correctly — passes for it.
+# umap_tuned tuning grid: n_neighbors {15, 30, 50} x min_dist {0.05, 0.1,
+# 0.25} x metric {cosine}; n_neighbors=30, min_dist=0.1 selected on the
+# smoke shapes for the best recall/persistence balance. Both umap baselines
+# accept-and-ignore edges (umap_cli embeds the vectors only), so umap_tuned's
+# command_no_edges is identical behavior and the noise differential
+# trivially (and correctly) passes for it.
 version: 1
 engines:
   - name: pca2d

@@ -2,10 +2,11 @@
 
 Card format v5
 --------------
-A card is deterministic labeled TEXT (never JSON), one section per block,
-blank-line separated, in the atlas-spec priority order. All Wikidata
-identifiers stay OUT of the text (train/inference distribution match: the
-classifier later scores cards built from ontologies that have no PIDs/QIDs).
+A card is deterministic labeled text, never JSON: one section per block,
+blank-line separated, in a fixed priority order. Wikidata identifiers stay
+out of the text to keep the training and inference distributions matched:
+the classifier later scores cards built from ontologies that have no
+PIDs or QIDs.
 
     Relation: <title>
     Description: <description>
@@ -31,30 +32,30 @@ classifier later scores cards built from ontologies that have no PIDs/QIDs).
 
     Slug: <normalized-title>
 
-Examples arrive grouped by SOURCE-TYPE STRATUM (``examples.py``): each
+Examples arrive grouped by source-type stratum (``examples.py``): each
 line is prefixed with the label of the subject-type constraint class its
-subject belongs to (e.g. ``municipality: Cluj-Napoca -> Emil Boc``).
+subject belongs to (for example ``municipality: Cluj-Napoca -> Emil Boc``).
 Unstratified selections (property without constraints, or the fallback
 pool) render the bare ``<subject> -> <object>`` form. The stratum label
 vocabulary is part of the card-format version.
 
 Truncation is structural, not textual: descriptions are split into a
 ``lead`` sentence and the remaining ``detail`` at construction time
-(:class:`Phrase`), so truncation drops *fields*, never mid-sentence text.
-Passes run in spec order while the card exceeds the token budget:
+(:class:`Phrase`), so truncation drops whole fields, never mid-sentence
+text. Passes run in a fixed order while the card exceeds the token budget:
 
-1. ``example[<index>]`` — drop example SLOTS round-robin from the largest
+1. ``example[<index>]``: drop example slots round-robin from the largest
    strata (lowest draw rank within the stratum first); a stratum is never
    emptied while any stratum still holds two or more examples;
-2. ``ancestor_details`` / ``source_type_details`` / ``target_type_details``
-   — reduce ancestor/endpoint descriptions to their lead sentence;
-3. ``example_stratum[<index>]`` — only after detail-stripping, drop whole
+2. ``ancestor_details`` / ``source_type_details`` / ``target_type_details``:
+   reduce ancestor/endpoint descriptions to their lead sentence;
+3. ``example_stratum[<index>]``: only after detail-stripping, drop whole
    single-example strata from the end (at least one example survives);
 4. hard budget only: ``example_section`` / ``ancestors_section``.
 
 The title, description, inverse, and endpoint-type summaries are never
-dropped. ``severely_truncated`` = the card still exceeds the hard budget
-after every pass, or more than half of its examples were dropped.
+dropped. ``severely_truncated`` means the card still exceeds the hard
+budget after every pass, or more than half of its examples were dropped.
 
 Sentence splitting is pluggable and lives in ``sentence.py``
 (:class:`~atlas_tools.wikidata.sentence.SentenceSplitter`), mirroring
@@ -76,11 +77,11 @@ from atlas_tools.wikidata.tokens import TokenCounter
 
 
 def slugify(label: str) -> str:
-    """Normalized URL slug: lowercase, non-alphanumeric runs -> '-'."""
+    """Normalize a label into a URL slug (lowercase; non-alphanumeric runs become '-')."""
     return re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
 
 
-def yes_no(flag: bool) -> str:
+def yes_no(*, flag: bool) -> str:
     return "yes" if flag else "no"
 
 
@@ -91,16 +92,20 @@ def _collapse_whitespace(text: str) -> str:
 def _render_constraints(constraints: Constraints) -> Generator[str]:
     direction = "symmetric" if constraints.symmetric else "source -> target"
 
-    yield f"symmetric? {yes_no(constraints.symmetric)}"
-    yield f"transitive? {yes_no(constraints.transitive)}"
-    yield f"single value? {yes_no(constraints.single_value)}"
-    yield f"distinct values? {yes_no(constraints.distinct_values)}"
+    yield f"symmetric? {yes_no(flag=constraints.symmetric)}"
+    yield f"transitive? {yes_no(flag=constraints.transitive)}"
+    yield f"single value? {yes_no(flag=constraints.single_value)}"
+    yield f"distinct values? {yes_no(flag=constraints.distinct_values)}"
     yield f"direction: {direction}"
 
 
 class Phrase(BaseModel):
-    """A referenced entity as text: label plus a description split into the
-    lead sentence and truncatable detail (the remaining sentences)."""
+    """A referenced entity rendered as text.
+
+    The label plus a description split at construction time into the lead
+    sentence and the truncatable ``detail`` (the remaining sentences), so
+    truncation later drops whole fields rather than mid-sentence text.
+    """
 
     label: str
 
@@ -138,8 +143,11 @@ class Phrase(BaseModel):
 
 
 class ExampleLine(BaseModel):
-    """One Examples bullet: rendered pair text plus its stratum label
-    (``None`` on unstratified cards — no prefix is rendered)."""
+    """One Examples bullet.
+
+    The rendered pair text plus its stratum label; the label is ``None``
+    on unstratified cards, and then no prefix is rendered.
+    """
 
     text: str
     stratum_label: str | None = None
@@ -187,7 +195,7 @@ class CardContents(BaseModel):
             yield self.epilogue
 
     def render(self) -> str:
-        """The card text: blank-line separated blocks, trailing newline."""
+        """Render the card text: blank-line separated blocks, trailing newline."""
         return "\n\n".join("\n".join(block) for block in self._blocks()) + "\n"
 
     def tokens(self, *, counter: TokenCounter) -> int:
@@ -226,9 +234,7 @@ class CardContents(BaseModel):
         else:
             this.prelude.append("Inverse Name: none recorded")
 
-        this.ancestors = [
-            entry for ancestor in record.ancestors if (entry := phrase(ancestor))
-        ]
+        this.ancestors = [entry for ancestor in record.ancestors if (entry := phrase(ancestor))]
 
         this.source_types = [
             entry
@@ -236,9 +242,7 @@ class CardContents(BaseModel):
             if (entry := phrase(subject_type))
         ]
         this.target_types = [
-            entry
-            for value_type in record.constraints.value_types
-            if (entry := phrase(value_type))
+            entry for value_type in record.constraints.value_types if (entry := phrase(value_type))
         ]
 
         this.constraints = list(_render_constraints(record.constraints))
@@ -249,9 +253,7 @@ class CardContents(BaseModel):
             if stratum is None:
                 return None
 
-            return (
-                _collapse_whitespace(labels.get(stratum, EntityLabel()).label) or None
-            )
+            return _collapse_whitespace(labels.get(stratum, EntityLabel()).label) or None
 
         this.examples = [
             ExampleLine(
@@ -266,8 +268,11 @@ class CardContents(BaseModel):
 
 
 class Card(BaseModel):
-    """One finished card: structured contents plus the rendered projection
-    (frozen together at build time so they cannot drift)."""
+    """One finished card.
+
+    Structured contents plus the rendered projection, frozen together at
+    build time so they cannot drift.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -292,8 +297,10 @@ type TruncationPass = Callable[[CardContents], str | None]
 def _example_groups(
     examples: list[ExampleLine],
 ) -> list[tuple[str | None, list[int]]]:
-    """Example indices grouped by stratum label, in first-seen order.
-    (Selection emits examples grouped, so groups are contiguous.)"""
+    """Group example indices by stratum label, in first-seen order.
+
+    Selection emits examples already grouped, so groups are contiguous.
+    """
     order: list[str | None] = []
     groups: dict[str | None, list[int]] = {}
 
@@ -307,14 +314,16 @@ def _example_groups(
 
 
 def _drop_example_slot(contents: CardContents) -> str | None:
-    """Drop one example from the currently-largest stratum (its lowest draw
-    rank first). Ties go to the LATEST group, which makes repeated calls
-    round-robin across equally-sized strata. Never empties a stratum —
-    groups of one are left to :func:`_drop_example_stratum`."""
+    """Drop one example from the currently-largest stratum (lowest draw rank first).
+
+    Ties go to the latest group, which makes repeated calls round-robin
+    across equally-sized strata. This pass never empties a stratum; groups
+    of one are left to :func:`_drop_example_stratum`.
+    """
     eligible = [
         (label, indices)
         for label, indices in _example_groups(contents.examples)
-        if len(indices) >= 2
+        if len(indices) > 1
     ]
 
     if not eligible:
@@ -328,9 +337,11 @@ def _drop_example_slot(contents: CardContents) -> str | None:
 
 
 def _drop_example_stratum(contents: CardContents) -> str | None:
-    """Drop the LAST whole stratum (runs after detail-stripping, when every
-    stratum is down to one example). At least one example always survives
-    the soft passes."""
+    """Drop the last whole stratum.
+
+    Runs after detail-stripping, when every stratum is down to one
+    example. At least one example always survives the soft passes.
+    """
     if len(contents.examples) <= 1:
         return None
 
@@ -387,10 +398,10 @@ def _drop_examples_section(contents: CardContents) -> str | None:
     return "example_section"
 
 
-# Spec order: example SLOTS first (round-robin from the largest strata),
+# Pass order: example slots first (round-robin from the largest strata),
 # then sentence-level detail in ancestor -> source -> target priority, and
-# only then whole single-example strata — a stratum outlives every
-# expendable description sentence. Title, description, inverse, and
+# only then whole single-example strata, so a stratum outlives every
+# expendable description sentence. The title, description, inverse, and
 # endpoint-type summaries are never dropped.
 _BUDGET_PASSES: tuple[TruncationPass, ...] = (
     _drop_example_slot,
@@ -400,7 +411,7 @@ _BUDGET_PASSES: tuple[TruncationPass, ...] = (
     _drop_example_stratum,
 )
 
-# Only when even that leaves the card above the HARD budget.
+# Run only when the soft passes leave the card above the hard budget.
 _HARD_BUDGET_PASSES: tuple[TruncationPass, ...] = (
     _drop_examples_section,
     _drop_ancestors_section,
@@ -432,11 +443,9 @@ def build_card(
     counter: TokenCounter,
     splitter: SentenceSplitter,
 ) -> Card | None:
-    """Construct + budget one card; ``None`` for untitled records."""
+    """Construct and budget one card; returns ``None`` for untitled records."""
     budgets = config.cards
-    contents = CardContents.make(
-        record=record, labels=labels, config=config, splitter=splitter
-    )
+    contents = CardContents.make(record=record, labels=labels, config=config, splitter=splitter)
     if contents is None:
         return None
 

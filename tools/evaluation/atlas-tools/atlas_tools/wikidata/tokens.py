@@ -4,8 +4,9 @@ The manifest records which counter was used.
 
 - ``cl100k`` (production default): tiktoken cl100k_base as a budget proxy.
   It downloads its BPE file on first use, so tests never select it.
-- ``heuristic`` (tests/offline): ``tokens = ceil(len(utf8_bytes) / 4)`` — the
-  standard "~4 bytes per token" approximation. Deterministic and documented.
+- ``heuristic`` (tests/offline): ``tokens = ceil(len(utf8_bytes) / 4)``,
+  the standard "~4 bytes per token" approximation. Deterministic and
+  documented.
 """
 
 import math
@@ -35,7 +36,10 @@ class Cl100kTokenCounter:
     name: TokenizerName = "cl100k"
 
     def __init__(self) -> None:
-        import tiktoken
+        # Imported lazily: tiktoken downloads its BPE file on first use,
+        # and runs configured with the heuristic counter must not pay for
+        # (or depend on) that.
+        import tiktoken  # noqa: PLC0415
 
         self._encoding = tiktoken.get_encoding("cl100k_base")
 

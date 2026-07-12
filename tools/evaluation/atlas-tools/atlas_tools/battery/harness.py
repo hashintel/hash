@@ -1,29 +1,27 @@
-"""Suite harness (W3.3): ``battery run --suite ... --engines ... --out ...``.
+"""Suite harness behind ``battery run --suite ... --engines ... --out ...``.
 
-Executes generators x engines x seeds, computes all metrics, and emits into
-the output directory:
+Executes generators x engines x seeds, computes all metrics, and emits into the output
+directory:
 
-- ``datasets/<shape>-s<seed>/`` — dataset artifacts (see battery.datasets)
-- ``layouts/<engine>/<shape>-s<seed>/<variant>/layout.npz`` — engine output
-- ``results.parquet`` — tidy long format: one row per
-  (shape, engine, seed, variant, metric) with a float ``value``
-- ``report.md`` — per-shape tables; every number is annotated with the
-  rerun-noise floor (spread = max - min across seed reruns)
-- ``gates.json`` — the :class:`atlas_tools.battery.gates.GatesReport` dump:
-  structured pass/fail per configured threshold plus the hard noise
-  differential
-- ``manifest.json`` — suite/engine config hashes, dataset content hashes,
-  seeds and library versions, so every number is reproducible from the
-  manifest alone
+- ``datasets/<shape>-s<seed>/``: dataset artifacts (see :mod:`atlas_tools.battery.datasets`).
+- ``layouts/<engine>/<shape>-s<seed>/<variant>/layout.npz``: engine output.
+- ``results.parquet``: tidy long format, one row per (shape, engine, seed, variant, metric)
+  with a float ``value``.
+- ``report.md``: per-shape tables; every number is annotated with the rerun-noise floor
+  (spread = max - min across seed reruns).
+- ``gates.json``: the :class:`atlas_tools.battery.gates.GatesReport` dump, structured pass/fail
+  per configured threshold plus the hard noise differential.
+- ``manifest.json``: suite and engine config hashes, dataset content hashes, seeds, and library
+  versions, so every number is reproducible from the manifest alone.
 
 Suite YAML schema (version 1)::
 
     version: 1
     name: smoke
-    seeds: [0, 1]                    # dataset AND engine seed per rerun
+    seeds: [0, 1]                    # seeds both the dataset and the engine per rerun
     knn_ks: [15, 30, 50]
     tc_neighbors: 15                 # trustworthiness/continuity k
-    tc_sample: 500                   # seeded query sample for trust/cont
+    tc_sample: 500                   # seeded query sample for trustworthiness/continuity
     silhouette_sample: 1000          # seeded sample for silhouette
     merge_tree: {grid_size: 256, bandwidth_px: 3.0,
                  floor_frac: 0.005, persistence_frac: 0.05}
@@ -31,21 +29,20 @@ Suite YAML schema (version 1)::
       - {shape: clique_communities, n: 800, params: {dim: 32}}
     gates: [...]                     # see battery.gates
 
-Rerun-noise floor (W3.2.7): each of the ``seeds`` seeds a full rerun —
-dataset generation AND the engine command — and the per-metric spread
-(max - min) across reruns is reported as the noise floor. This floor is
-slightly conservative (it includes dataset resampling variation, not just
-engine nondeterminism), which only makes gates harder to pass.
+Rerun-noise floor: each entry in ``seeds`` seeds a full rerun, covering dataset generation and
+the engine command, and the per-metric spread (max - min) across reruns is reported as the
+noise floor. This floor is slightly conservative (it includes dataset resampling variation, not
+just engine nondeterminism), which only makes gates harder to pass.
 
-No-edges variants: for every engine whose command consumes ``{edges}`` and
-that defines ``command_no_edges``, the harness additionally runs the
-edges-disabled variant on the ``noise_edges`` datasets. Those runs feed the
-noise differential and the ``contraction_factor`` metric (layout std of the
-with-edges layout relative to its same-seed no-relation twin); on shapes
-without a no-edges twin, ``contraction_factor`` is null.
+No-edges variants: for every engine whose command consumes ``{edges}`` and that defines
+``command_no_edges``, the harness additionally runs the edges-disabled variant on the
+``noise_edges`` datasets. Those runs feed the noise differential and the ``contraction_factor``
+metric (layout std of the with-edges layout relative to its same-seed no-relation twin); on
+shapes without a no-edges twin, ``contraction_factor`` is null.
 """
 
 import os
+import platform
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
@@ -149,7 +146,7 @@ class Suite(BaseModel):
 
     @model_validator(mode="after")
     def check_gates_scoped_to_suite(self) -> Self:
-        """Gate shapes must be suite shapes; gated knn ks must be computed."""
+        """Reject gates naming shapes or knn ks that the suite does not compute."""
         shapes = set(self.shapes())
         ks = set(self.knn_ks)
 
@@ -158,14 +155,10 @@ class Suite(BaseModel):
 
             unknown = [shape for shape in gate.shapes or [] if shape not in shapes]
             if unknown:
-                raise ValueError(
-                    f"{label}: shapes {unknown} not in suite shapes {sorted(shapes)}"
-                )
+                raise ValueError(f"{label}: shapes {unknown} not in suite shapes {sorted(shapes)}")
 
             if isinstance(gate.metric, KnnRecallMetric) and gate.metric.k not in ks:
-                raise ValueError(
-                    f"{label}: k={gate.metric.k} not in suite knn_ks {sorted(ks)}"
-                )
+                raise ValueError(f"{label}: k={gate.metric.k} not in suite knn_ks {sorted(ks)}")
 
         return self
 
@@ -175,8 +168,7 @@ class Suite(BaseModel):
 
 def load_suite(path: StrPath) -> Suite:
     """Load and validate a versioned suite YAML; fill defaults."""
-    with open(path, encoding="utf-8") as file:
-        data = yaml.safe_load(file)
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     suite = Suite.model_validate(data)
     if not suite.name:
@@ -186,8 +178,10 @@ def load_suite(path: StrPath) -> Suite:
 
 
 class RunDetails(BaseModel):
-    """Run-level facts recorded in ``manifest.json`` (the reproducibility
-    contract: every reported number is derivable from this manifest)."""
+    """Run-level facts recorded in ``manifest.json``.
+
+    This is the reproducibility contract: every reported number is derivable from the manifest.
+    """
 
     suite_path: Path
     engines_path: Path
@@ -201,8 +195,10 @@ class RunDetails(BaseModel):
 
 
 class RunConfig(BaseModel):
-    """The resolved suite + engine configs, embedded verbatim in the
-    manifest and hashed into ``config_hash``."""
+    """The resolved suite and engine configs, embedded verbatim in the manifest.
+
+    The pair is hashed into the manifest's ``config_hash``.
+    """
 
     suite: Suite
     engines: EngineFile
@@ -242,8 +238,11 @@ def _compute_metrics(
     *,
     baseline_xy: np.ndarray | None,
 ) -> LayoutMetrics:
-    """All metrics of one run; ``baseline_xy`` is the same-seed no-edges
-    twin layout (None when the engine has no such twin on this shape)."""
+    """Compute all metrics of one run.
+
+    ``baseline_xy`` is the same-seed no-edges twin layout; ``None`` (when the engine has no such
+    twin on this shape) makes the contraction factor not applicable.
+    """
     merge_tree = merge_tree_persistence(xy, suite.merge_tree)
     trust, continuity = trustworthiness_continuity(
         dataset.embeddings,
@@ -271,23 +270,10 @@ def _compute_metrics(
     )
 
 
-def run_suite(
-    suite_path: StrPath,
-    engines_path: StrPath,
-    out_dir: StrPath,
-    *,
-    jobs: int | None = None,
-) -> RunResult:
-    """Run the full battery; returns paths, the results frame and gates."""
-    suite = load_suite(suite_path)
-    engine_file = load_engine_file(engines_path)
-    engines = engine_file.engines
-
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    jobs = jobs or min(8, os.cpu_count() or 1)
-
-    # 1. Generate all datasets (deterministic in (generator, seed)).
+def _generate_datasets(
+    suite: Suite, out: Path
+) -> tuple[dict[tuple[str, int], tuple[Dataset, Path]], dict[str, DatasetHashes]]:
+    """Generate and write every (shape, seed) dataset; deterministic in (generator, seed)."""
     datasets: dict[tuple[str, int], tuple[Dataset, Path]] = {}
     dataset_hashes: dict[str, DatasetHashes] = {}
 
@@ -295,14 +281,21 @@ def run_suite(
         for seed in suite.seeds:
             dataset = generator.run(seed)
             dataset_directory = out / "datasets" / f"{dataset.shape}-s{seed}"
-            dataset_hashes[f"{dataset.shape}-s{seed}"] = write_dataset(
-                dataset, dataset_directory
-            )
+            dataset_hashes[f"{dataset.shape}-s{seed}"] = write_dataset(dataset, dataset_directory)
 
             datasets[(dataset.shape, seed)] = (dataset, dataset_directory)
 
-    # 2. Build the run matrix (plus no-edges twins on noise_edges).
+    return datasets, dataset_hashes
+
+
+def _build_tasks(
+    engines: list[EngineSpec],
+    datasets: dict[tuple[str, int], tuple[Dataset, Path]],
+    out: Path,
+) -> list[_Task]:
+    """Build the run matrix: every engine on every dataset, plus no-edges twins on noise_edges."""
     tasks: list[_Task] = []
+
     for spec in engines:
         for (shape, seed), (_, dataset_directory) in datasets.items():
             base = out / "layouts" / spec.name / f"{shape}-s{seed}"
@@ -318,11 +311,7 @@ def run_suite(
                 )
             )
 
-            if (
-                shape == NOISE_SHAPE
-                and spec.uses_edges
-                and spec.command_no_edges is not None
-            ):
+            if shape == NOISE_SHAPE and spec.uses_edges and spec.command_no_edges is not None:
                 tasks.append(
                     _Task(
                         spec=spec,
@@ -334,7 +323,12 @@ def run_suite(
                     )
                 )
 
-    # 3. Execute engine commands (parallel subprocesses).
+    return tasks
+
+
+def _execute_tasks(tasks: list[_Task], jobs: int) -> None:
+    """Execute the engine commands as parallel subprocesses."""
+
     def _execute(task: _Task) -> None:
         run_engine(
             task.spec,
@@ -347,8 +341,17 @@ def run_suite(
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(_execute, tasks))
 
-    # 4. Load + align layouts, then compute metrics (the with-edges variant
-    # sees its same-seed no-edges twin for the contraction factor).
+
+def _results_frame(
+    tasks: list[_Task],
+    datasets: dict[tuple[str, int], tuple[Dataset, Path]],
+    suite: Suite,
+) -> pd.DataFrame:
+    """Load and align the produced layouts, compute all metrics, and build the tidy frame.
+
+    The with-edges variant sees its same-seed no-edges twin (when one was run) so the
+    contraction factor can compare against it.
+    """
     layouts: dict[tuple[str, str, int, Variant], np.ndarray] = {}
 
     for task in tasks:
@@ -367,9 +370,7 @@ def run_suite(
             else None
         )
 
-        metrics = _compute_metrics(
-            dataset, xy, suite, task.seed, baseline_xy=baseline_xy
-        )
+        metrics = _compute_metrics(dataset, xy, suite, task.seed, baseline_xy=baseline_xy)
 
         for column, value in metrics.column_values().items():
             rows.append(
@@ -383,26 +384,54 @@ def run_suite(
                 )
             )
 
-    frame = pd.DataFrame(rows, columns=pd.Index(_RESULT_COLUMNS))
-    results_path = out / "results.parquet"
-    frame.to_parquet(results_path, index=False)
+    return pd.DataFrame(rows, columns=pd.Index(_RESULT_COLUMNS))
 
-    # 5. Gates.
-    gates_report = evaluate_gates(
-        frame, engines, suite_shapes=suite.shapes(), gate_configs=suite.gates
-    )
-    gates_path = write_sidecar(out / "gates.json", gates_report.model_dump(mode="json"))
 
-    # 6. Manifest (hashes exclude created_at by provenance convention).
-    suite_hash = sha256_bytes(canonical_json_bytes(suite))
-    engines_hash = sha256_bytes(canonical_json_bytes(engine_file))
-    versions = {"python": _python_version()}
+def _library_versions() -> dict[str, str]:
+    """Collect the python and library versions recorded in the manifest."""
+    versions = {"python": platform.python_version()}
 
     for library in _VERSIONED_LIBS:
         try:
             versions[library] = importlib_metadata.version(library)
         except importlib_metadata.PackageNotFoundError:  # pragma: no cover
             versions[library] = "unknown"
+
+    return versions
+
+
+def run_suite(
+    suite_path: StrPath,
+    engines_path: StrPath,
+    out_dir: StrPath,
+    *,
+    jobs: int | None = None,
+) -> RunResult:
+    """Run the full battery; return paths, the results frame, and the gates report."""
+    suite = load_suite(suite_path)
+    engine_file = load_engine_file(engines_path)
+    engines = engine_file.engines
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    jobs = jobs or min(8, os.cpu_count() or 1)
+
+    datasets, dataset_hashes = _generate_datasets(suite, out)
+    tasks = _build_tasks(engines, datasets, out)
+    _execute_tasks(tasks, jobs)
+
+    frame = _results_frame(tasks, datasets, suite)
+    results_path = out / "results.parquet"
+    frame.to_parquet(results_path, index=False)
+
+    gates_report = evaluate_gates(
+        frame, engines, suite_shapes=suite.shapes(), gate_configs=suite.gates
+    )
+    gates_path = write_sidecar(out / "gates.json", gates_report.model_dump(mode="json"))
+
+    # Manifest hashes exclude created_at by provenance convention.
+    suite_hash = sha256_bytes(canonical_json_bytes(suite))
+    engines_hash = sha256_bytes(canonical_json_bytes(engine_file))
 
     manifest = RunProvenance.make(
         producer="battery.run",
@@ -414,15 +443,12 @@ def run_suite(
             engines_config_hash=engines_hash,
             seeds=suite.seeds,
             datasets=dataset_hashes,
-            versions=versions,
+            versions=_library_versions(),
         ),
     )
     manifest_path = manifest.write(out / "manifest.json")
 
-    # 7. Report.
-    report = _render_report(
-        frame, suite, engines, gates_report, suite_hash, engines_hash
-    )
+    report = _render_report(frame, suite, engines, gates_report, suite_hash, engines_hash)
     report_path = out / "report.md"
     report_path.write_text(report, encoding="utf-8")
 
@@ -438,12 +464,6 @@ def run_suite(
     )
 
 
-def _python_version() -> str:
-    import platform
-
-    return platform.python_version()
-
-
 def _render_report(
     frame: pd.DataFrame,
     suite: Suite,
@@ -452,8 +472,11 @@ def _render_report(
     suite_hash: str,
     engines_hash: str,
 ) -> str:
-    """Per-shape tables. Every cell is ``mean ±spread`` where the spread
-    (max - min across seed reruns) is the rerun-noise floor annotation."""
+    """Render the Markdown report: per-shape metric tables plus the gate verdicts.
+
+    Every cell shows the mean across seed reruns and its spread (max - min), the rerun-noise
+    floor that annotates all comparative claims.
+    """
     metric_names = metric_columns(suite.knn_ks)
     engine_names = [spec.name for spec in engines]
 
@@ -465,7 +488,7 @@ def _render_report(
         f"- seeds (reruns): {list(suite.seeds)}",
         "",
         "Every value is `mean ±spread` across seed reruns; the spread"
-        " (max − min) is the rerun-noise floor that annotates all"
+        " (max - min) is the rerun-noise floor that annotates all"
         " comparative claims. `—` marks a metric that is not applicable"
         " to a shape.",
         "",
@@ -490,8 +513,7 @@ def _render_report(
                     cells.append("—")
                 else:
                     cells.append(
-                        f"{selection.mean():.4f}"
-                        f" ±{(selection.max() - selection.min()):.4f}"
+                        f"{selection.mean():.4f} ±{(selection.max() - selection.min()):.4f}"
                     )
             lines.append(f"| {metric} | " + " | ".join(cells) + " |")
         lines.append("")
@@ -508,20 +530,18 @@ def _render_report(
         failed = [outcome for outcome in engine_report.gates if not outcome.passed]
         if failed:
             lines.append("Failed gate entries:")
-            for outcome in failed:
-                lines.append(
-                    f"- `{metric_column(outcome.gate.metric)}`"
-                    f" [{outcome.gate.type}] on `{outcome.shape}`:"
-                    f" {outcome.reason}"
-                )
+            lines.extend(
+                f"- `{metric_column(outcome.gate.metric)}`"
+                f" [{outcome.gate.type}] on `{outcome.shape}`:"
+                f" {outcome.reason}"
+                for outcome in failed
+            )
         else:
             lines.append("All configured gate entries passed.")
 
         differential = engine_report.noise_differential
         differential_status = "PASS" if differential.passed else "FAIL"
-        lines.append(
-            f"- noise differential: {differential_status} — {differential.reason}"
-        )
+        lines.append(f"- noise differential: {differential_status} — {differential.reason}")
         lines.append("")
 
     return "\n".join(lines) + "\n"

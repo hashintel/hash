@@ -45,6 +45,68 @@ packages = ["atlas_tools"]
 testpaths = ["tests"]
 addopts   = "-q"
 
+[tool.ruff]
+target-version = "py314"
+line-length    = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # Formatter conflicts (ruff's own recommendation).
+    "COM812",
+    "ISC001",
+    # Docstring-style pair choices: summary on the first line, no blank
+    # line before the class docstring.
+    "D203",
+    "D213",
+    # Docstring presence is judged in review, not by rule: a docstring has
+    # to earn its keep, and mandatory-docstring rules breed filler that
+    # restates the signature. Module docstrings (D100) stay required.
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    # Inline f-string messages at the raise site read better than the
+    # msg-variable indirection these rules force.
+    "EM101",
+    "EM102",
+    "TRY003",
+    # Keyword-only argument passing is the house style; argument-count
+    # limits fight it without adding safety.
+    "PLR0913",
+    # Typing-only import blocks are a hazard here: pydantic models and
+    # TypeAdapters evaluate their annotations at runtime, so moving those
+    # imports under TYPE_CHECKING breaks model building.
+    "TC001",
+    "TC002",
+    "TC003",
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python 3.14 evaluates annotations lazily (PEP 649); the future import is redundant and subtly changes annotation semantics."
+"typing.Any".msg             = "Any is banned: use object for pass-through values, a TypeVar for generic code, or pydantic's JsonValue for opaque JSON."
+
+[tool.ruff.lint.isort]
+known-first-party = ["atlas_tools", "tests"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert by design, compare against literal expectations, reach into
+# private state to pin behavior, and run subprocesses built from local
+# argv (the kill-resume tests).
+"tests/**" = ["S101", "PLR2004", "SLF001", "D100", "S603"]
+# Fixture generators are standalone scripts: they print, they live outside
+# the package tree, and they assert their own arithmetic.
+"fixtures/**" = ["T201", "INP001", "S101", "PLR2004", "D100"]
+# CLI modules import heavy dependencies inside command bodies on purpose:
+# --help must not pay for numpy/sklearn/umap/pyarrow.
+"**/cli.py"   = ["PLC0415"]
+"**/*_cli.py" = ["PLC0415"]
+
 [tool.pyright]
 venvPath = "."
 venv     = ".venv"

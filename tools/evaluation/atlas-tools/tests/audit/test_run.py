@@ -1,8 +1,8 @@
 """End-to-end audit tests on the synthetic acceptance fixture.
 
-The fixture is generated in-test (never committed): 10 well-separated cluster
-centroids with signal only in dims 400..512 plus small iid noise, so a d=512
-prefix keeps the signal while a d=256 prefix sees mostly noise.
+The fixture is generated in-test (never committed): 10 well-separated cluster centroids
+with signal only in dimensions 400..512 plus small independent noise, so a d=512 prefix
+keeps the signal while a d=256 prefix sees mostly noise.
 """
 
 import json
@@ -12,7 +12,7 @@ import pytest
 
 from atlas_tools.audit.evaluation import Dim, K
 from atlas_tools.audit.runner import run_audit
-from atlas_tools.audit.synth import make_synthetic, write_cluster_labels
+from atlas_tools.audit.synthetic import make_synthetic, write_cluster_labels
 from atlas_tools.common.knn import DEFAULT_MEMORY_CAP_BYTES
 from atlas_tools.common.matrix import write_matrix
 
@@ -22,7 +22,7 @@ DIM = 512
 
 @pytest.fixture(scope="module")
 def cluster_fixture(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
-    """(embeddings path, strata path) for the signal-in-dims-400..512 corpus."""
+    """Embeddings and strata paths for the corpus with signal in dimensions 400..512."""
     root = tmp_path_factory.mktemp("audit_fixture")
     corpus = make_synthetic(N_ROWS, DIM, n_clusters=10, signal_band=(400, 512), seed=0)
 
@@ -33,9 +33,7 @@ def cluster_fixture(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Pat
     return embeddings, strata
 
 
-def test_prefix_ordering_acceptance(
-    cluster_fixture: tuple[Path, Path], tmp_path: Path
-) -> None:
+def test_prefix_ordering_acceptance(cluster_fixture: tuple[Path, Path], tmp_path: Path) -> None:
     embeddings, _ = cluster_fixture
     report = run_audit(
         embeddings,
@@ -51,7 +49,7 @@ def test_prefix_ordering_acceptance(
 
     metrics_256 = report.overall[Dim(256)][K(15)]
     metrics_512 = report.overall[Dim(512)][K(15)]
-    # Signal lives in dims 400..512: d=512 keeps it, d=256 provably loses it.
+    # Signal lives in dimensions 400..512: d=512 keeps it, d=256 provably loses it.
     assert metrics_512.recall > 0.8
     assert metrics_256.recall < metrics_512.recall - 0.2
     # Intrusion moves the opposite direction: more truncation, more intruders.
@@ -60,9 +58,7 @@ def test_prefix_ordering_acceptance(
     assert metrics_256.mean_rank_displacement > metrics_512.mean_rank_displacement
 
 
-def test_deterministic_across_runs(
-    cluster_fixture: tuple[Path, Path], tmp_path: Path
-) -> None:
+def test_deterministic_across_runs(cluster_fixture: tuple[Path, Path], tmp_path: Path) -> None:
     embeddings, strata = cluster_fixture
     outputs: list[Path] = []
     for name in ("first", "second"):

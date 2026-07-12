@@ -1,15 +1,15 @@
-"""Merge-tree calibration against a reference layout (W3.2.1 calibration).
+"""Merge-tree calibration against a reference layout.
 
-``battery calibrate --layout <layout.npz> --manifest <yaml>`` computes
-merge-tree leaves and normalized persistence with the PRD default
-parameters (grid 1024, blur 4 px, floor_frac 0.005, persistence_frac 0.05,
-overridable in the manifest) and checks them against recorded reference
-values within tolerances: leaves ±3 %, normalized persistence ±5 %.
+``battery calibrate --layout <layout.npz> --manifest <yaml>`` computes merge-tree leaves and
+normalized persistence with the production default parameters (grid 1024, blur 4 px, floor_frac
+0.005, persistence_frac 0.05; overridable in the manifest) and checks them against recorded
+reference values within relative tolerances (defaults: leaf count within 3 percent, normalized
+persistence within 5 percent).
 
 Calibration manifest schema (version 1, :class:`CalibrationManifest`)::
 
     version: 1
-    merge_tree:            # optional overrides of the PRD defaults
+    merge_tree:            # optional overrides of the production defaults
       grid_size: 1024
       bandwidth_px: 4.0
       floor_frac: 0.005
@@ -17,14 +17,14 @@ Calibration manifest schema (version 1, :class:`CalibrationManifest`)::
     expected:
       leaf_count: 4
       normalized_persistence: 3.21
-    tolerances:            # optional; PRD defaults shown
+    tolerances:            # optional; defaults shown
       leaf_count_frac: 0.03
       normalized_persistence_frac: 0.05
 
-The committed fixture ``fixtures/battery/calibration/`` is a small
-deterministic synthetic reference (a few blobs, ~2k points). The operator's
-real 986k-point reference layout drops in later using exactly this
-mechanism: same command, a bigger layout.npz, and its recorded values.
+The committed fixture ``fixtures/battery/calibration/`` is a small deterministic synthetic
+reference (a few blobs, about 2k points). The operator's real large-scale reference layout
+drops in later using exactly this mechanism: the same command, a bigger layout.npz, and its
+recorded values.
 """
 
 from pathlib import Path
@@ -49,7 +49,7 @@ class CalibrationExpected(BaseModel):
 
 
 class CalibrationTolerances(BaseModel):
-    """Relative tolerances (PRD defaults: leaves ±3 %, persistence ±5 %)."""
+    """Relative tolerances (defaults: leaves within 3 percent, persistence within 5 percent)."""
 
     leaf_count_frac: PositiveFloat = 0.03
     normalized_persistence_frac: PositiveFloat = 0.05
@@ -91,8 +91,7 @@ class CalibrationReport(BaseModel):
 
 def load_calibration_manifest(path: StrPath) -> CalibrationManifest:
     """Load and validate a versioned calibration manifest YAML."""
-    with open(path, encoding="utf-8") as file:
-        data = yaml.safe_load(file)
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     return CalibrationManifest.model_validate(data)
 
@@ -113,7 +112,7 @@ def _check(
 
 
 def run_calibration(layout_path: StrPath, manifest_path: StrPath) -> CalibrationReport:
-    """Compute merge-tree stats and compare with the reference manifest."""
+    """Compute merge-tree statistics and compare them with the reference manifest."""
     manifest = load_calibration_manifest(manifest_path)
 
     artifact = load_layout(Path(layout_path))

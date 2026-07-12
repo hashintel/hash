@@ -6,31 +6,30 @@ Run from the atlas-tools root:
 
 Outputs (all committed):
 
-- ``dump_excerpt.jsondump`` — 200 synthetic entities in exact Wikidata JSON dump
-  (the extension is deliberately NOT ``.json``: the dump format is
-  line-oriented and editor/CI JSON formatters must never reflow it)
-  line format ("[", one entity per line with trailing comma, "]"). Entities
-  span 10 P31 classes with skewed sizes, en/de (and occasional fr) labels,
-  sitelinks, and claims using P361, P50, P212 (external-id) and P527.
-- ``responses/`` — fixture HTTP responses (SPARQL inventory, wbgetentities
+- ``dump_excerpt.jsondump``: 200 synthetic entities in the exact Wikidata
+  JSON dump line format ("[", one entity per line with trailing comma,
+  "]"). The extension is deliberately not ``.json``: the dump format is
+  line-oriented and editor/CI JSON formatters must never reflow it.
+  Entities span 10 P31 classes with skewed sizes, en/de (and occasional
+  fr) labels, sitelinks, and claims using P361, P50, P212 (external-id)
+  and P527.
+- ``responses/``: fixture HTTP responses (SPARQL inventory, wbgetentities
   batches, example queries) plus ``index.json`` keyed by
   ``transport.request_key`` so ``FixtureTransport`` stays in sync with the
   real query builders by construction.
 
-Every rule below is pure arithmetic on the entity index — no RNG is needed,
+Every rule below is pure arithmetic on the entity index, with no RNG,
 which makes expectations hand-computable in tests.
 
 Entity rules (index i in 0..199, qid = Q<9000+i>):
 - class: consecutive blocks per ``CLASSES`` below.
 - secondary P31 "Q99999999" when i % 10 == 5.
-- labels: en always ("<ClassName> <i:03d>"); de when i % 3 != 0; fr when
-  i % 7 == 0 ("Entité <i:03d>").
+- labels: en always ("<ClassName> <i:03d>"); de when i % 3 != 0; a French
+  label when i % 7 == 0.
 - sitelinks: i % 7 entries.
 - claims: P361 when i % 5 == 0; P527 when i % 11 == 0; books additionally
   carry P50 (author) and a P212 external-id claim.
 """
-
-from __future__ import annotations
 
 import json
 from dataclasses import dataclass
@@ -50,7 +49,7 @@ from atlas_tools.wikidata.transport import request_key
 HERE = Path(__file__).parent
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
-# (class QID, en name, de name, count) — skewed sizes summing to 200.
+# (class QID, en name, de name, count): skewed sizes summing to 200.
 CLASSES = [
     ("Q5", "Person", "Person", 80),
     ("Q4830453", "Company", "Unternehmen", 40),
@@ -153,7 +152,7 @@ def write_dump_excerpt() -> None:
 # --- fixture HTTP responses --------------------------------------------------
 
 INVENTORY_ROWS = [
-    # (pid, datatype URI, usage) — response order mimics ORDER BY ?property.
+    # (pid, datatype URI, usage): response order mimics ORDER BY ?property.
     ("P212", EXTERNAL_ID, 900000),
     ("P361", WIKIBASE_ITEM, 500000),
     ("P50", WIKIBASE_ITEM, 300000),
@@ -170,9 +169,7 @@ def _label(lang: str, value: str) -> dict:
     return {"language": lang, "value": value}
 
 
-def _constraint(
-    constraint_type: str, qualifiers: dict[str, list[str]] | None = None
-) -> dict:
+def _constraint(constraint_type: str, qualifiers: dict[str, list[str]] | None = None) -> dict:
     statement = {
         "mainsnak": {
             "snaktype": "value",
@@ -246,10 +243,8 @@ PROPERTY_DOCS = {
             "en": _label("en", "this item is a part of that item"),
             "de": _label("de", "dieses Objekt ist Teil jenes Objekts"),
         },
-        "aliases": {
-            "en": [_label("en", "contained within"), _label("en", "component of")]
-        },
-        # TWO subject-type constraint classes -> the example selector
+        "aliases": {"en": [_label("en", "contained within"), _label("en", "component of")]},
+        # Two subject-type constraint classes -> the example selector
         # stratifies P361 into settlement + written-work strata; the
         # film-typed pairs match neither and land in `other`.
         "claims": {
@@ -306,9 +301,7 @@ PROPERTY_DOCS = {
         "type": "property",
         "datatype": "wikibase-item",
         "labels": {"en": _label("en", "Wikimedia list linkage")},
-        "descriptions": {
-            "en": _label("en", "Wikimedia-maintenance synthetic property")
-        },
+        "descriptions": {"en": _label("en", "Wikimedia-maintenance synthetic property")},
         "claims": {"P31": [_item_snak("P31", "Q18644435")]},
     },
     "P9005": {
@@ -317,19 +310,17 @@ PROPERTY_DOCS = {
         "datatype": "wikibase-item",
         "labels": {"en": _label("en", "creative contributor")},
         "descriptions": {
-            "en": _label(
-                "en", "synthetic ancestor property for creative contribution relations"
-            )
+            "en": _label("en", "synthetic ancestor property for creative contribution relations")
         },
-        # Direct parent P9006 -> P50's CLOSED ancestor set gains a
+        # Direct parent P9006 -> P50's closed ancestor set gains a
         # grandparent (depth-2 P1647 chain).
         "claims": {"P1647": [_property_snak("P1647", "P9006")]},
     },
 }
 
-# P1647 closure pairs served by the ancestors query fixture. P9006 is NOT a
-# retained property (absent from the inventory), so its card label must be
-# resolved through the wbgetentities label batch.
+# P1647 closure pairs served by the ancestors query fixture. P9006 is not a
+# retained property (it is absent from the inventory), so its card label
+# must be resolved through the wbgetentities label batch.
 ANCESTOR_CLOSURE_PAIRS = [
     ("P50", "P9005"),
     ("P50", "P9006"),
@@ -342,9 +333,7 @@ ITEM_DOCS = {
         "id": "P9006",
         "labels": {"en": _label("en", "abstract involvement")},
         "descriptions": {
-            "en": _label(
-                "en", "synthetic grandparent property for involvement relations"
-            )
+            "en": _label("en", "synthetic grandparent property for involvement relations")
         },
     },
     "Q5": {
@@ -358,8 +347,7 @@ ITEM_DOCS = {
         "descriptions": {
             "en": _label(
                 "en",
-                "written medium of text bound as pages. Includes physical and"
-                " digital volumes.",
+                "written medium of text bound as pages. Includes physical and digital volumes.",
             )
         },
     },
@@ -377,9 +365,7 @@ ITEM_DOCS = {
     "Q486972": {
         "id": "Q486972",
         "labels": {"en": _label("en", "human settlement")},
-        "descriptions": {
-            "en": _label("en", "community of people living in a particular place")
-        },
+        "descriptions": {"en": _label("en", "community of people living in a particular place")},
     },
     "Q47461344": {
         "id": "Q47461344",
@@ -392,7 +378,7 @@ ITEM_DOCS = {
 # One example-pool row: entity QIDs, labels, subject P31 (or ""), and the
 # sitelink counts that drive recognizability weighting. A shared entity
 # always reuses the same QID + sitelink count across pairs and properties
-# (a consistent synthetic snapshot); sitelinks of 0 OMIT the binding to
+# (a consistent synthetic snapshot); sitelinks of 0 omit the binding to
 # exercise the parser's OPTIONAL path.
 @dataclass(frozen=True)
 class ExamplePair:
@@ -415,13 +401,9 @@ EXAMPLE_PAIRS = {
         ExamplePair("Q9001001", "Left Bank", 40, "Q9001002", "Paris", 300, "Q515"),
         ExamplePair("Q9001003", "Old Town", 15, "Q9001004", "Prague", 250, "Q515"),
         ExamplePair("Q9001005", "Montmartre", 25, "Q9001002", "Paris", 300, "Q515"),
-        ExamplePair(
-            "Q9001010", "Chapter One", 2, "Q9001011", "Synthetic Novel", 8, "Q571"
-        ),
+        ExamplePair("Q9001010", "Chapter One", 2, "Q9001011", "Synthetic Novel", 8, "Q571"),
         ExamplePair("Q9001012", "Appendix", 1, "Q9001013", "Field Guide", 5, "Q571"),
-        ExamplePair(
-            "Q9001020", "Opening Scene", 3, "Q9001021", "Synthetic Film", 12, "Q11424"
-        ),
+        ExamplePair("Q9001020", "Opening Scene", 3, "Q9001021", "Synthetic Film", 12, "Q11424"),
         ExamplePair("Q9001022", "Finale", 2, "Q9001023", "Concert Film", 9, "Q11424"),
         ExamplePair("Q9001030", "Engine", 4, "Q9001031", "Car", 60),
         ExamplePair("Q9001032", "Wheel", 2, "Q9001033", "Bicycle", 30),
@@ -431,22 +413,12 @@ EXAMPLE_PAIRS = {
     # stratum is non-empty), the untyped row is dropped (the P6-style
     # reversed-statement scenario).
     "P50": [
-        ExamplePair(
-            "Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"
-        ),
+        ExamplePair("Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"),
         ExamplePair("Q9001013", "Field Guide", 5, "Q9002002", "Person 002", 2, "Q571"),
-        ExamplePair(
-            "Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"
-        ),
-        ExamplePair(
-            "Q9001023", "Concert Film", 9, "Q9002004", "Person 004", 1, "Q11424"
-        ),
-        ExamplePair(
-            "Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"
-        ),
-        ExamplePair(
-            "Q9001015", "Essay Anthology", 2, "Q9002006", "Person 006", 0, "Q571"
-        ),
+        ExamplePair("Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"),
+        ExamplePair("Q9001023", "Concert Film", 9, "Q9002004", "Person 004", 1, "Q11424"),
+        ExamplePair("Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"),
+        ExamplePair("Q9001015", "Essay Anthology", 2, "Q9002006", "Person 006", 0, "Q571"),
         ExamplePair("Q9001016", "Anonymous Manuscript", 0, "Q9002007", "Person 007", 0),
         ExamplePair("Q9002008", "Some Human", 30, "Q9002009", "Person 008", 1, "Q5"),
     ],
@@ -458,31 +430,19 @@ EXAMPLE_PAIRS = {
         ExamplePair("Q9001002", "Paris", 300, "Q9001001", "Left Bank", 40, "Q515"),
         ExamplePair("Q9001002", "Paris", 300, "Q9001005", "Montmartre", 25, "Q515"),
         ExamplePair("Q9001004", "Prague", 250, "Q9001003", "Old Town", 15, "Q515"),
-        ExamplePair(
-            "Q9001011", "Synthetic Novel", 8, "Q9001010", "Chapter One", 2, "Q571"
-        ),
+        ExamplePair("Q9001011", "Synthetic Novel", 8, "Q9001010", "Chapter One", 2, "Q571"),
         ExamplePair("Q9001031", "Car", 60, "Q9001030", "Engine", 4),
     ],
     "P9001": [
-        ExamplePair(
-            "Q9003001", "Company 081", 3, "Q9003002", "Company 082", 2, "Q4830453"
-        ),
-        ExamplePair(
-            "Q9003003", "Company 083", 1, "Q9003004", "Company 084", 1, "Q4830453"
-        ),
+        ExamplePair("Q9003001", "Company 081", 3, "Q9003002", "Company 082", 2, "Q4830453"),
+        ExamplePair("Q9003003", "Company 083", 1, "Q9003004", "Company 084", 1, "Q4830453"),
         ExamplePair("Q9002001", "Person 001", 5, "Q9003005", "Company 085", 0, "Q5"),
         ExamplePair("Q9002002", "Person 002", 2, "Q9003006", "Company 086", 0, "Q5"),
     ],
     "P9005": [
-        ExamplePair(
-            "Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"
-        ),
-        ExamplePair(
-            "Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"
-        ),
-        ExamplePair(
-            "Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"
-        ),
+        ExamplePair("Q9001011", "Synthetic Novel", 8, "Q9002001", "Person 001", 5, "Q571"),
+        ExamplePair("Q9001021", "Synthetic Film", 12, "Q9002003", "Person 003", 7, "Q11424"),
+        ExamplePair("Q9001014", "Poem Collection", 3, "Q9002005", "Person 005", 0, "Q571"),
     ],
 }
 
@@ -569,9 +529,7 @@ def write_responses(config: Config) -> None:
         stale.unlink()
     index: dict[str, dict] = {}
 
-    def add(
-        name: str, url: str, params: dict[str, str], body: dict, status: int = 200
-    ) -> None:
+    def add(name: str, url: str, params: dict[str, str], body: dict, status: int = 200) -> None:
         (responses_dir / name).write_text(
             json.dumps(body, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -628,9 +586,7 @@ def write_responses(config: Config) -> None:
     # 4. Example ladder responses.
     def example_params(pid: str, offset: int) -> dict[str, str]:
         return sparql_params(
-            example_pairs_query(
-                pid, limit=config.extraction.example_pool_limit, offset=offset
-            )
+            example_pairs_query(pid, limit=config.extraction.example_pool_limit, offset=offset)
         )
 
     # Ladder scenario (QLever-first, per config.example_endpoint_ladder):
@@ -682,7 +638,7 @@ def write_responses(config: Config) -> None:
 # Synthetic P279 edges (numeric QIDs) covering the fixture classes. Depth-2
 # chains (city -> human settlement -> entity; book -> written work ->
 # entity) exercise transitive subsumption in the live pipeline; film/human/
-# business attach directly under entity. Q11424 is deliberately NOT under
+# business attach directly under entity. Q11424 is deliberately not under
 # Q571, so film-typed subjects violate P50's book-only constraint.
 TAXONOMY_EDGES = [
     (515, 486972),  # city -> human settlement

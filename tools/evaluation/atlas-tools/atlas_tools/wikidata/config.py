@@ -3,21 +3,21 @@
 All behaviour that affects output content is driven by this config so that
 runs are reproducible. The tree mirrors the mining/formatting decoupling:
 
-- ``extraction`` (:class:`ExtractionConfig`) — everything that shapes the
-  MINED artifacts: languages, endpoints, politeness, snapshot date, example
-  sampling, exclusion class lists, plus the W2b dump/stratification knobs.
-  The records provenance envelope hashes exactly this sub-model, so the
-  records config hash is card-format-independent by construction.
-- ``cards`` (:class:`CardsConfig`) — the card-format knobs (token budgets,
+- ``extraction`` (:class:`ExtractionConfig`): everything that shapes the
+  mined artifacts: languages, endpoints, politeness, snapshot date, example
+  sampling, exclusion class lists, plus the dump and stratification knobs
+  of the entity-manifest pipeline. The records provenance envelope hashes
+  exactly this sub-model, so the records config hash is
+  card-format-independent by construction.
+- ``cards`` (:class:`CardsConfig`): the card-format knobs (token budgets,
   tokenizer). Changing these re-renders cards without invalidating records.
 
 Every model rejects unknown keys (``extra="forbid"``); config hashes are
 computed with ``canonical_json_bytes(model)``, which dumps JSON-mode first.
 """
 
-from __future__ import annotations
-
 from os import PathLike
+from pathlib import Path
 from typing import Literal, Self
 
 import yaml
@@ -68,15 +68,17 @@ class EndpointsConfig(ForbidExtraModel):
 
 
 class DumpIdentity(ForbidExtraModel):
-    """Dump identity, taken from the mirror's checksum file, never computed
-    by hashing the stream locally."""
+    """Dump identity, taken from the mirror's checksum file.
+
+    Never computed by hashing the stream locally.
+    """
 
     date: str = ""
     sha256: str = ""
 
 
 class StratificationConfig(ForbidExtraModel):
-    """Rules for the vec2slug sampling plan (W2b)."""
+    """Rules for the vec2slug sampling plan."""
 
     default_cap: PositiveInt = 5000
     rare_floor: NonNegativeInt = 50
@@ -88,40 +90,41 @@ class ExtractionConfig(ForbidExtraModel):
 
     languages: tuple[LanguageAlpha2, ...] = (LanguageAlpha2("en"), LanguageAlpha2("de"))
     seed: int = 0
-    # W2a: endpoints + politeness
+    # Endpoints and politeness for the API miner.
     endpoints: EndpointsConfig = Field(default_factory=EndpointsConfig)
     politeness: RetryPolicy = Field(default_factory=RetryPolicy)
     snapshot_date: str = ""
-    # W2a: examples. The geometric offset ladder reaches the long tail of
-    # each property's statement stream (endpoints stream in ~QID order =
-    # prominence order; shallow offsets only ever see countries and heads
-    # of state). Empty deep slices are cheap and contribute nothing.
+    # Example mining. The geometric offset ladder reaches the long tail of
+    # each property's statement stream (endpoints stream in roughly QID
+    # order, which is prominence order; shallow offsets only ever see
+    # countries and heads of state). Empty deep slices are cheap and
+    # contribute nothing.
     example_count: PositiveInt = 8
     example_pool_limit: PositiveInt = 50
     example_offsets: tuple[NonNegativeInt, ...] = (0, 1_000, 10_000, 100_000)
-    # Endpoint ladder ORDER, first rung first. QLever-first reverses the
-    # PRD's WDQS-first prescription on live evidence: Blazegraph (WDQS)
-    # structurally times out (>40 s) on the deep-offset subquery form that
-    # QLever answers in ~0.2 s, and every WDQS timeout costs the full
-    # client timeout before the ladder can fall through.
+    # Endpoint ladder order, first rung first. QLever comes first on live
+    # evidence: Blazegraph (WDQS) structurally times out (over 40 s) on the
+    # deep-offset subquery form that QLever answers in about 0.2 s, and
+    # every WDQS timeout costs the full client timeout before the ladder
+    # can fall through.
     example_endpoint_ladder: tuple[ExampleSource, ...] = Field(
         default=("qlever", "wdqs"), min_length=1
     )
     # Stratify example selection by the property's subject-type constraint
     # classes (needs a local P279 taxonomy, see `wikidata taxonomy`):
     # untyped candidates are dropped (live-verified reversed statements in
-    # the long tail, e.g. a person with EMPTY P31 as the SUBJECT of P6) and
-    # typed candidates outside every constraint class land in a diagnostic
-    # `other` bucket (see examples.py). Disabled, selection runs over one
-    # unstratified pool and nothing is dropped.
+    # the long tail, such as a person with an empty P31 as the subject of
+    # P6) and typed candidates outside every constraint class land in a
+    # diagnostic `other` bucket (see examples.py). When disabled, selection
+    # runs over one unstratified pool and nothing is dropped.
     filter_examples_by_subject_type: bool = True
     # Page size for the `wikidata taxonomy` P279 pull (~48 MB JSON and
     # ~1.0 s per 500k page on QLever, measured live).
     taxonomy_page_size: PositiveInt = 500_000
-    # W2a: exclusions
+    # Property exclusion class lists (see properties.py for the rules).
     maintenance_classes: tuple[str, ...] = DEFAULT_MAINTENANCE_CLASSES
     deprecated_classes: tuple[str, ...] = DEFAULT_DEPRECATED_CLASSES
-    # W2b
+    # Dump streaming and sampling-plan knobs.
     checkpoint_interval: PositiveInt = 10_000
 
     dump: DumpIdentity = Field(default_factory=DumpIdentity)
@@ -143,16 +146,19 @@ class CardsConfig(ForbidExtraModel):
 
 
 class Config(ForbidExtraModel):
-    """Top-level miner config: mining (``extraction``) vs formatting
-    (``cards``)."""
+    """Top-level miner config.
+
+    ``extraction`` holds the mining knobs; ``cards`` holds the formatting
+    knobs.
+    """
 
     extraction: ExtractionConfig = Field(default_factory=ExtractionConfig)
     cards: CardsConfig = Field(default_factory=CardsConfig)
 
     @classmethod
     def load(cls, path: PathLike | str) -> Self:
-        with open(path, encoding="utf-8") as f:
-            loaded = yaml.safe_load(f) or {}
+        with Path(path).open(encoding="utf-8") as config_file:
+            loaded = yaml.safe_load(config_file) or {}
         if not isinstance(loaded, dict):
-            raise ValueError(f"config {path} is not a YAML mapping")
+            raise TypeError(f"config {path} is not a YAML mapping")
         return cls.model_validate(loaded)

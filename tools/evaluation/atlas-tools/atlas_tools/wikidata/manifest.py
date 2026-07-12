@@ -1,4 +1,4 @@
-"""W2b: P31-stratified sampling plan for vec2slug retraining.
+"""P31-stratified sampling plan for vec2slug retraining.
 
 Consumes the per-entity parquet produced by ``dump.py`` and emits a sampling
 plan parquet. No entity documents are fetched or serialized; the downstream
@@ -6,22 +6,20 @@ corpus builder consumes this plan.
 
 Documented decisions:
 
-- Primary class: the lexicographically smallest P31 QID string (e.g. an
-  entity with P31 = [Q515, Q11424] gets primary class "Q11424"). Entities
-  with an empty P31 list are excluded from the plan; their count is recorded
-  in the sidecar as ``excluded_no_p31``.
+- Primary class: the lexicographically smallest P31 QID string (for
+  example, an entity with P31 = [Q515, Q11424] gets primary class
+  "Q11424"). Entities with an empty P31 list are excluded from the plan;
+  their count is recorded in the sidecar as ``excluded_no_p31``.
 - Only sampled rows are emitted (no ``sampled`` bool column).
-- Per class of size n: if ``n <= rare_floor`` ALL entities are kept (the
+- Per class of size n: if ``n <= rare_floor`` every entity is kept (the
   floor takes precedence over any cap); otherwise ``min(n, cap)`` entities
   are sampled, where cap is the per-class override or ``default_cap``.
 - Determinism: within a class, entities are sorted by numeric QID and
-  sampled with ``np.random.default_rng([seed, class_number])`` — the
+  sampled with ``np.random.default_rng([seed, class_number])``. The
   per-class seed derivation makes each class's sample independent of
   iteration order and of other classes. Output rows are sorted by numeric
   QID globally.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,8 +45,11 @@ class ClassSampleCount(BaseModel):
 
 
 class SamplingPlanDetails(BaseModel):
-    """Sidecar details for the sampling plan; the entities parquet input
-    hash lives in the envelope's ``input_hashes``."""
+    """Sidecar details for the sampling plan.
+
+    The entities parquet input hash lives in the envelope's
+    ``input_hashes``.
+    """
 
     rows: NonNegativeInt
     classes: dict[str, ClassSampleCount]
@@ -163,19 +164,19 @@ def build_sampling_plan(
             indices = np.sort(rng.choice(total, size=sample_size, replace=False))
             chosen = [members[i] for i in indices]
         class_counts[row_class] = ClassSampleCount(total=total, sampled=len(chosen))
-        for row in chosen:
-            selected.append(
-                PlanRow(
-                    qid=row.qid,
-                    p31_class=row_class,
-                    sitelink_count=row.sitelink_count,
-                    label_count=row.label_count,
-                    label_len_primary=row.label_len_primary,
-                    label_len_min=row.label_len_min,
-                    label_len_mean=row.label_len_mean,
-                    label_len_max=row.label_len_max,
-                )
+        selected.extend(
+            PlanRow(
+                qid=row.qid,
+                p31_class=row_class,
+                sitelink_count=row.sitelink_count,
+                label_count=row.label_count,
+                label_len_primary=row.label_len_primary,
+                label_len_min=row.label_len_min,
+                label_len_mean=row.label_len_mean,
+                label_len_max=row.label_len_max,
             )
+            for row in chosen
+        )
 
     selected.sort(key=lambda row: pid_number(row.qid))
     plan = _plan_table(selected)

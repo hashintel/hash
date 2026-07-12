@@ -3,11 +3,11 @@
 All network access in the miner goes through a ``Transport`` so tests never
 touch the network:
 
-- ``RequestsTransport`` — production transport with a rate limiter and
+- ``RequestsTransport``: production transport with a rate limiter and
   exponential backoff (a :class:`RetryPolicy` value). The sleep function and
   monotonic clock are injectable so backoff/rate-limit behaviour is
   unit-testable without sleeping.
-- ``FixtureTransport`` — serves committed response files keyed by request and
+- ``FixtureTransport``: serves committed response files keyed by request and
   counts calls; raises ``FixtureMissError`` on a miss.
 
 A transport returns a :class:`Response`. Non-200 statuses are returned
@@ -19,8 +19,9 @@ triggers.
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
+from http import HTTPStatus
 from pathlib import Path
 from typing import Protocol
 
@@ -38,7 +39,7 @@ from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 
 # Statuses that RequestsTransport retries with exponential backoff before
 # giving up and returning the final status to the caller. 500 is deliberately
-# NOT retryable: WDQS/QLever signal deterministic query timeouts as 500, the
+# excluded: WDQS/QLever signal deterministic query timeouts as 500, the
 # example ladder treats them as fallback triggers, and retrying multiplies a
 # 60-second server-side timeout by max_retries for zero benefit.
 RETRYABLE_STATUSES = frozenset({429, 502, 503, 504})
@@ -47,8 +48,8 @@ RETRYABLE_STATUSES = frozenset({429, 502, 503, 504})
 CONNECTION_FAILED_STATUS = 599
 
 # Transient failures: retrying later can succeed, so these must never be
-# cached (see cache.py). Deterministic failures (e.g. a WDQS query that
-# always times out with 500) ARE cached, which the example-ladder fallback
+# cached (see cache.py). Deterministic failures (a WDQS query that always
+# times out with 500, say) are cached, which the example-ladder fallback
 # semantics rely on.
 TRANSIENT_STATUSES = frozenset({429, 503, CONNECTION_FAILED_STATUS})
 
@@ -65,7 +66,7 @@ class Response:
 
     @property
     def ok(self) -> bool:
-        return self.status == 200
+        return self.status == HTTPStatus.OK
 
 
 class _RequestKey(BaseModel):
@@ -77,9 +78,7 @@ class _RequestKey(BaseModel):
 
 def request_key(url: str, params: Mapping[str, str] | None) -> str:
     """Deterministic key for a GET request: sha256 of canonical JSON."""
-    return sha256_bytes(
-        canonical_json_bytes(_RequestKey(url=url, params=dict(params or {})))
-    )
+    return sha256_bytes(canonical_json_bytes(_RequestKey(url=url, params=dict(params or {}))))
 
 
 class Transport(Protocol):
@@ -102,9 +101,7 @@ class RetryPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-def retry_after_seconds(
-    headers: Mapping[str, str], now: Callable[[], datetime]
-) -> float | None:
+def retry_after_seconds(headers: Mapping[str, str], now: Callable[[], datetime]) -> float | None:
     """Parse a ``Retry-After`` header: delta-seconds or an HTTP date.
 
     Returns the non-negative wait in seconds, or ``None`` when the header is
@@ -125,7 +122,7 @@ def retry_after_seconds(
     except TypeError, ValueError:
         return None
     if at.tzinfo is None:
-        at = at.replace(tzinfo=timezone.utc)
+        at = at.replace(tzinfo=UTC)
 
     return max(0.0, (at - now()).total_seconds())
 
@@ -155,7 +152,8 @@ class Session(Protocol):
 
 
 def _requests_session() -> Session:
-    import requests
+    # Imported lazily: tests inject fake sessions and never need requests.
+    import requests  # noqa: PLC0415
 
     return requests.Session()
 
@@ -168,7 +166,7 @@ class RequestsTransport:
     - Backoff: on retryable statuses or connection errors, sleeps and
       retries up to ``policy.max_retries`` times, then returns the final
       response (or a synthesized status-599 response for a connection
-      error) — never raises. The wait honors the server's ``Retry-After``
+      error); it never raises. The wait honors the server's ``Retry-After``
       header when present (delta-seconds or HTTP date, capped at
       ``policy.max_retry_after_seconds``), falling back to exponential
       backoff (``policy.backoff_base_seconds * 2**attempt``).
@@ -181,14 +179,12 @@ class RequestsTransport:
         session: Session | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
-        now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._policy = policy if policy is not None else RetryPolicy()
         self._session = session if session is not None else _requests_session()
         self._min_interval = (
-            1.0 / self._policy.rate_limit_per_sec
-            if self._policy.rate_limit_per_sec > 0
-            else 0.0
+            1.0 / self._policy.rate_limit_per_sec if self._policy.rate_limit_per_sec > 0 else 0.0
         )
         self._sleep = sleep
         self._clock = clock
@@ -216,12 +212,14 @@ class RequestsTransport:
                 )
                 response = Response(
                     status=int(reply.status_code),
-                    headers={
-                        key.lower(): value for key, value in reply.headers.items()
-                    },
+                    headers={key.lower(): value for key, value in reply.headers.items()},
                     body=reply.content,
                 )
-            except Exception:  # connection error / timeout
+            except OSError:
+                # Connection errors and timeouts: every requests transport
+                # failure derives from OSError (requests.RequestException
+                # subclasses IOError). Anything else is a programming
+                # error and propagates.
                 response = Response(status=CONNECTION_FAILED_STATUS)
             if (
                 response.status not in RETRYABLE_STATUSES
@@ -268,9 +266,7 @@ class FixtureTransport:
 
     def __init__(self, fixture_dir: Path | str) -> None:
         self._dir = Path(fixture_dir)
-        self._index = _FIXTURE_INDEX_ADAPTER.validate_json(
-            (self._dir / "index.json").read_bytes()
-        )
+        self._index = _FIXTURE_INDEX_ADAPTER.validate_json((self._dir / "index.json").read_bytes())
 
         self.calls = 0
 

@@ -1,7 +1,5 @@
 """Stratified sampling plan tests: caps, floors, overrides, determinism."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 
@@ -17,7 +15,7 @@ from atlas_tools.wikidata.manifest import (
 from tests.wikidata.conftest import DUMP_EXCERPT
 
 
-def test_primary_class_is_lexicographically_smallest():
+def test_primary_class_is_lexicographically_smallest() -> None:
     assert primary_class(("Q515", "Q11424")) == "Q11424"  # string order
     assert primary_class(("Q5",)) == "Q5"
     assert primary_class(()) is None
@@ -68,11 +66,9 @@ def _config(stratification: StratificationConfig | None = None) -> Config:
     )
 
 
-def test_caps_floors_and_overrides_honored(tmp_path):
+def test_caps_floors_and_overrides_honored(tmp_path: Path) -> None:
     entities = _synthetic_entities(tmp_path)
-    summary = build_sampling_plan(
-        entities, config=_config(), out_path=tmp_path / "plan.parquet"
-    )
+    summary = build_sampling_plan(entities, config=_config(), out_path=tmp_path / "plan.parquet")
     # Q1: 100 entities + 1 multi-P31 -> capped at default 10.
     # Q2: 4 <= rare_floor 5 -> all kept.
     # Q3: 30 -> per-class override cap 3.
@@ -94,22 +90,20 @@ def test_caps_floors_and_overrides_honored(tmp_path):
     qids = [row["qid"] for row in rows]
     assert qids == sorted(qids, key=lambda q: int(q[1:]))
 
-    with open(tmp_path / "plan.parquet.meta.json", encoding="utf-8") as f:
-        sidecar = json.load(f)
+    with (tmp_path / "plan.parquet.meta.json").open(encoding="utf-8") as sidecar_file:
+        sidecar = json.load(sidecar_file)
     assert sidecar["details"]["excluded_no_p31"] == 1
     assert sidecar["seed"] == 3  # seed lives in the provenance envelope
 
 
-def test_plan_is_deterministic_across_runs(tmp_path):
+def test_plan_is_deterministic_across_runs(tmp_path: Path) -> None:
     entities = _synthetic_entities(tmp_path)
     build_sampling_plan(entities, config=_config(), out_path=tmp_path / "a.parquet")
     build_sampling_plan(entities, config=_config(), out_path=tmp_path / "b.parquet")
-    assert (tmp_path / "a.parquet").read_bytes() == (
-        tmp_path / "b.parquet"
-    ).read_bytes()
+    assert (tmp_path / "a.parquet").read_bytes() == (tmp_path / "b.parquet").read_bytes()
 
 
-def test_seed_changes_selection_for_capped_classes(tmp_path):
+def test_seed_changes_selection_for_capped_classes(tmp_path: Path) -> None:
     entities = _synthetic_entities(tmp_path)
     build_sampling_plan(entities, config=_config(), out_path=tmp_path / "a.parquet")
     base = _config()
@@ -130,7 +124,7 @@ def test_seed_changes_selection_for_capped_classes(tmp_path):
     assert a != b  # 10-of-101 draws with different seeds coincide with p ~ 1e-13
 
 
-def test_per_class_override_is_respected_end_to_end(tmp_path):
+def test_per_class_override_is_respected_end_to_end(tmp_path: Path) -> None:
     entities = _synthetic_entities(tmp_path)
     summary = build_sampling_plan(
         entities,
@@ -142,8 +136,8 @@ def test_per_class_override_is_respected_end_to_end(tmp_path):
     assert summary.classes["Q3"] == ClassSampleCount(total=30, sampled=7)
 
 
-def test_plan_on_committed_excerpt(config, tmp_path):
-    with open(DUMP_EXCERPT, "rb") as stream:
+def test_plan_on_committed_excerpt(config: Config, tmp_path: Path) -> None:
+    with DUMP_EXCERPT.open("rb") as stream:
         extract_entities(
             stream,
             config=config,

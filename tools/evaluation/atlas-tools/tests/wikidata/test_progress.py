@@ -1,8 +1,7 @@
 """Progress reporting: phases/advances during extraction, stderr throttling."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.progress import StderrProgress
@@ -29,7 +28,7 @@ class RecordingProgress:
         self.notes.append(message)
 
 
-def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
+def test_extraction_reports_every_phase_with_correct_totals(tmp_path: Path) -> None:
     config = Config.load(CONFIG_PATH)
     progress = RecordingProgress()
     result = extract_properties(
@@ -65,7 +64,7 @@ def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
     assert any("reversed-statement guard" in note for note in progress.notes)
 
 
-def test_extraction_notes_checkpoint_resume(tmp_path):
+def test_extraction_notes_checkpoint_resume(tmp_path: Path) -> None:
     config = Config.load(CONFIG_PATH)
     taxonomy = Taxonomy.load(TAXONOMY_PATH)
     checkpoint_path = tmp_path / "checkpoint.json"
@@ -87,7 +86,7 @@ def test_extraction_notes_checkpoint_resume(tmp_path):
     assert any("replayed from checkpoint" in note for note in progress.notes)
 
 
-def test_stderr_progress_throttles_and_always_prints_completion():
+def test_stderr_progress_throttles_and_always_prints_completion() -> None:
     lines: list[str] = []
     clock_value = 0.0
     progress = StderrProgress(
@@ -106,7 +105,7 @@ def test_stderr_progress_throttles_and_always_prints_completion():
     assert lines[-1] == "[01:01]   work: 100/100"
 
 
-def test_stderr_progress_reports_interval_ticks():
+def test_stderr_progress_reports_interval_ticks() -> None:
     lines: list[str] = []
     clock_value = 0.0
 

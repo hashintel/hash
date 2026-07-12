@@ -17,69 +17,70 @@ class TestRankInReference:
         rng = np.random.default_rng(0)
         candidates = rng.integers(0, 50, size=(10, 4))
         reference = rng.integers(0, 50, size=(10, 12))
-        a = rank_in_reference(candidates, reference, absent_rank=12, chunk=3)
-        b = rank_in_reference(candidates, reference, absent_rank=12, chunk=1000)
-        np.testing.assert_array_equal(a, b)
+        chunked = rank_in_reference(candidates, reference, absent_rank=12, chunk=3)
+        unchunked = rank_in_reference(candidates, reference, absent_rank=12, chunk=1000)
+        np.testing.assert_array_equal(chunked, unchunked)
 
 
 class TestRecall:
     def test_recall_by_hand(self) -> None:
-        # k=3. Query 0: prefix {1,2,3} vs full top-3 {1,4,3} -> overlap 2 -> 2/3.
-        # Query 1: prefix {5,6,7} vs full top-3 {7,6,5} -> overlap 3 -> 1.
-        prefix_idx = np.array([[1, 2, 3], [5, 6, 7]])
-        full_idx = np.array(
+        # k=3. Query 0: prefix {1,2,3} vs full top-3 {1,4,3} overlaps in 2, so recall
+        # is 2/3. Query 1: prefix {5,6,7} vs full top-3 {7,6,5} overlaps in 3: recall 1.
+        prefix_indices = np.array([[1, 2, 3], [5, 6, 7]])
+        full_indices = np.array(
             [
                 [1, 4, 3, 10, 11, 12, 13, 14, 15],
                 [7, 6, 5, 20, 21, 22, 23, 24, 25],
             ]
         )
-        m = per_query_metrics(prefix_idx, full_idx, 3)
-        assert m.recall[0] == pytest.approx(2 / 3, abs=1e-12)
-        assert m.recall[1] == pytest.approx(1.0, abs=1e-12)
+        metrics = per_query_metrics(prefix_indices, full_indices, 3)
+        assert metrics.recall[0] == pytest.approx(2 / 3, abs=1e-12)
+        assert metrics.recall[1] == pytest.approx(1.0, abs=1e-12)
 
 
 class TestIntrusionRate:
     def test_known_intruder(self) -> None:
-        # k=1, so the reference is the full top-3. Query 0's prefix neighbor 9
-        # is nowhere in the full top-3: a known intruder. Query 1's neighbor 5
-        # is the full top-1: no intrusion.
-        prefix_idx = np.array([[9], [5]])
-        full_idx = np.array([[5, 6, 7], [5, 6, 7]])
-        m = per_query_metrics(prefix_idx, full_idx, 1)
-        assert m.intrusion_rate[0] == pytest.approx(1.0, abs=1e-12)
-        assert m.intrusion_rate[1] == pytest.approx(0.0, abs=1e-12)
+        # k=1, so the reference is the full top-3. Query 0's prefix neighbor 9 is
+        # nowhere in the full top-3: a known intruder. Query 1's neighbor 5 is the
+        # full top-1: no intrusion.
+        prefix_indices = np.array([[9], [5]])
+        full_indices = np.array([[5, 6, 7], [5, 6, 7]])
+        metrics = per_query_metrics(prefix_indices, full_indices, 1)
+        assert metrics.intrusion_rate[0] == pytest.approx(1.0, abs=1e-12)
+        assert metrics.intrusion_rate[1] == pytest.approx(0.0, abs=1e-12)
 
     def test_neighbor_outside_topk_but_inside_top3k_is_not_intrusion(self) -> None:
-        # k=1: prefix neighbor is at full rank 2 (< 3k=3): recall misses it
-        # but it is NOT an intruder.
-        prefix_idx = np.array([[7]])
-        full_idx = np.array([[5, 6, 7]])
-        m = per_query_metrics(prefix_idx, full_idx, 1)
-        assert m.recall[0] == pytest.approx(0.0, abs=1e-12)
-        assert m.intrusion_rate[0] == pytest.approx(0.0, abs=1e-12)
+        # k=1: the prefix neighbor sits at full rank 2 (below 3k=3), so recall misses
+        # it, yet it does not count as an intruder.
+        prefix_indices = np.array([[7]])
+        full_indices = np.array([[5, 6, 7]])
+        metrics = per_query_metrics(prefix_indices, full_indices, 1)
+        assert metrics.recall[0] == pytest.approx(0.0, abs=1e-12)
+        assert metrics.intrusion_rate[0] == pytest.approx(0.0, abs=1e-12)
 
 
 class TestMeanRankDisplacement:
     def test_crafted_permutation_exact_value(self) -> None:
-        # k=3, cap=9. Full list [10,11,12,...]; prefix is the permutation
-        # [12,10,11] with full ranks [2,0,1] and prefix ranks [0,1,2]:
-        # displacements max(2-0,0)=2, max(0-1,0)=0, max(1-2,0)=0 -> mean 2/3.
-        prefix_idx = np.array([[12, 10, 11]])
-        full_idx = np.array([[10, 11, 12, 13, 14, 15, 16, 17, 18]])
-        m = per_query_metrics(prefix_idx, full_idx, 3)
-        assert m.mean_rank_displacement[0] == pytest.approx(2 / 3, abs=1e-12)
+        # k=3, cap=9. Full list [10,11,12,...]; prefix is the permutation [12,10,11]
+        # with full ranks [2,0,1] and prefix ranks [0,1,2]. The displacements are
+        # max(2-0,0)=2, max(0-1,0)=0, max(1-2,0)=0, so the mean is 2/3.
+        prefix_indices = np.array([[12, 10, 11]])
+        full_indices = np.array([[10, 11, 12, 13, 14, 15, 16, 17, 18]])
+        metrics = per_query_metrics(prefix_indices, full_indices, 3)
+        assert metrics.mean_rank_displacement[0] == pytest.approx(2 / 3, abs=1e-12)
 
     def test_intruder_gets_the_cap(self) -> None:
-        # k=1, cap=3: absent neighbor gets rank_full=3, rank_prefix=0 -> 3.0.
-        prefix_idx = np.array([[9]])
-        full_idx = np.array([[5, 6, 7]])
-        m = per_query_metrics(prefix_idx, full_idx, 1)
-        assert m.mean_rank_displacement[0] == pytest.approx(3.0, abs=1e-12)
+        # k=1, cap=3: the absent neighbor gets rank_full=3 and rank_prefix=0, so its
+        # displacement is 3.0.
+        prefix_indices = np.array([[9]])
+        full_indices = np.array([[5, 6, 7]])
+        metrics = per_query_metrics(prefix_indices, full_indices, 1)
+        assert metrics.mean_rank_displacement[0] == pytest.approx(3.0, abs=1e-12)
 
     def test_identity_permutation_is_zero(self) -> None:
-        prefix_idx = np.array([[5, 6, 7]])
-        full_idx = np.array([[5, 6, 7, 8, 9, 10, 11, 12, 13]])
-        m = per_query_metrics(prefix_idx, full_idx, 3)
-        assert m.mean_rank_displacement[0] == pytest.approx(0.0, abs=1e-12)
-        assert m.recall[0] == pytest.approx(1.0, abs=1e-12)
-        assert m.intrusion_rate[0] == pytest.approx(0.0, abs=1e-12)
+        prefix_indices = np.array([[5, 6, 7]])
+        full_indices = np.array([[5, 6, 7, 8, 9, 10, 11, 12, 13]])
+        metrics = per_query_metrics(prefix_indices, full_indices, 3)
+        assert metrics.mean_rank_displacement[0] == pytest.approx(0.0, abs=1e-12)
+        assert metrics.recall[0] == pytest.approx(1.0, abs=1e-12)
+        assert metrics.intrusion_rate[0] == pytest.approx(0.0, abs=1e-12)

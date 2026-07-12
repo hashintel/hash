@@ -18,39 +18,35 @@ Gate config schema (version 1), embedded in the suite YAML::
         direction: higher          # optional; 'lower' flips to
                                    # candidate <= baseline + margin
 
-``type`` discriminates the :data:`GateConfig` union (:class:`MinGate`,
-:class:`MaxGate`, :class:`BaselineMarginGate`) — the union IS the dispatch.
-Cross-field consistency with the suite (gate shapes ⊆ suite shapes, gated
-knn ks ⊆ ``knn_ks``) is enforced by the ``Suite`` model at load time.
+``type`` discriminates the :data:`GateConfig` union (:class:`MinGate`, :class:`MaxGate`,
+:class:`BaselineMarginGate`); the union itself is the dispatch mechanism. Cross-field
+consistency with the suite (every gate shape is a suite shape, every gated knn k is a computed
+``knn_ks`` entry) is enforced by the ``Suite`` model at load time.
 
 Semantics:
 
-- Gate values aggregate the with-edges variant as the *mean across seed
-  reruns* per (engine, shape). The per-metric spread (max - min across
-  seeds) is the rerun-noise floor; it annotates every gate outcome and
-  every comparative number in the report (W3.2.7).
-- A gated metric that is unavailable on a gated shape (value None/NaN)
-  fails that gate outcome: the battery fails closed rather than skipping.
-- ``baseline_margin`` fails closed when the baseline engine is not part of
-  the run.
-- An engine passes overall iff every applicable gate outcome passes AND
-  the noise differential passes.
+- Gate values aggregate the with-edges variant as the *mean across seed reruns* per (engine,
+  shape). The per-metric spread (max - min across seeds) is the rerun-noise floor; it annotates
+  every gate outcome and every comparative number in the report.
+- A gated metric that is unavailable on a gated shape (value None/NaN) fails that gate outcome:
+  the battery fails closed rather than skipping.
+- ``baseline_margin`` fails closed when the baseline engine is not part of the run.
+- An engine passes overall exactly when every applicable gate outcome passes and the noise
+  differential passes.
 
-No-structure-from-noise differential (W3.2.8, hard, always on):
+No-structure-from-noise differential (hard, always on):
 
-On every ``noise_edges`` dataset in the suite, an engine configuration that
-uses edges MUST NOT improve community separation (silhouette) or merge-tree
-normalized persistence beyond the rerun-noise floor relative to the same
-engine with edges disabled. Rules per engine:
+On every ``noise_edges`` dataset in the suite, an engine configuration that uses edges may not
+improve community separation (silhouette) or merge-tree normalized persistence beyond the
+rerun-noise floor relative to the same engine with edges disabled. Rules per engine:
 
-- command does not reference ``{edges}``: trivially passes (the engine
-  cannot manufacture structure from edges it never sees).
-- command references ``{edges}`` but no ``command_no_edges`` is defined:
-  FAILS as "not evaluable" — fail closed.
-- otherwise: for silhouette and normalized_persistence,
-  ``mean_with_edges <= mean_no_edges + floor + eps`` must hold, where
-  ``floor`` is the no-edges spread across seed reruns. This is a pass/fail
-  gate, not a reported number.
+- A command that never references ``{edges}`` passes trivially: the engine cannot manufacture
+  structure from edges it never sees.
+- A command that references ``{edges}`` without defining ``command_no_edges`` fails as "not
+  evaluable"; the differential fails closed.
+- Otherwise ``mean_with_edges <= mean_no_edges + floor + eps`` must hold for silhouette and for
+  normalized_persistence, where ``floor`` is the no-edges spread across seed reruns. This is a
+  pass/fail verdict, not a reported number.
 
 ``gates.json`` is the JSON dump of :class:`GatesReport`.
 """
@@ -104,8 +100,9 @@ class MaxGate(AbstractGate):
 class BaselineMarginGate(AbstractGate):
     """Candidate must stay within ``margin`` of a baseline engine's mean.
 
-    ``direction='higher'``: candidate >= baseline - margin (guards against
-    structure LOSS); ``'lower'``: candidate <= baseline + margin.
+    With ``direction='higher'`` the candidate mean must satisfy ``candidate >= baseline -
+    margin``, guarding against loss of structure relative to the baseline. With
+    ``direction='lower'`` it must satisfy ``candidate <= baseline + margin``.
     """
 
     type: Literal["baseline_margin"] = "baseline_margin"
@@ -118,14 +115,14 @@ type GateConfig = Annotated[
     MinGate | MaxGate | BaselineMarginGate,
     Field(discriminator="type"),
 ]
-"""Discriminated union over the gate kinds: the union IS the dispatch."""
+"""Discriminated union over the gate kinds; the union itself is the dispatch mechanism."""
 
 
 class MetricStat(BaseModel):
     """A metric aggregated across seed reruns for one (engine, shape)."""
 
     mean: float
-    # max - min across seed reruns: the rerun-noise floor (W3.2.7).
+    # max - min across seed reruns: the rerun-noise floor.
     spread: float
     n_reruns: int
 
@@ -156,7 +153,7 @@ class NoiseDifferentialCheck(BaseModel):
 
 
 class NoiseDifferential(BaseModel):
-    """The hard no-structure-from-noise verdict for one engine (W3.2.8)."""
+    """The hard no-structure-from-noise verdict for one engine."""
 
     passed: bool
     evaluated: bool
@@ -186,7 +183,7 @@ def _rerun_stat(
     column: str,
     variant: Variant = "edges",
 ) -> MetricStat | None:
-    """Mean + rerun-noise spread across seed reruns, or None if absent."""
+    """Aggregate a metric's mean and rerun-noise spread across seed reruns; None when absent."""
     selection = frame[
         (frame["engine"] == engine)
         & (frame["shape"] == shape)
@@ -200,7 +197,7 @@ def _rerun_stat(
     return MetricStat(
         mean=float(selection.mean()),
         spread=float(selection.max() - selection.min()),
-        n_reruns=int(len(selection)),
+        n_reruns=len(selection),
     )
 
 
@@ -213,9 +210,7 @@ def _evaluate_gate(
 ) -> GateOutcome:
     observed = _rerun_stat(frame, engine, shape, metric_column(gate.metric))
 
-    def outcome(
-        *, passed: bool, reason: str, baseline: MetricStat | None = None
-    ) -> GateOutcome:
+    def outcome(*, passed: bool, reason: str, baseline: MetricStat | None = None) -> GateOutcome:
         return GateOutcome(
             gate=gate,
             engine=engine,
@@ -253,24 +248,18 @@ def _evaluate_gate(
                 f" rerun floor) {comparator} max {threshold}",
             )
 
-        case BaselineMarginGate(
-            baseline=baseline_name, margin=margin, direction=direction
-        ):
+        case BaselineMarginGate(baseline=baseline_name, margin=margin, direction=direction):
             if baseline_name not in engine_names:
                 return outcome(
                     passed=False,
-                    reason=f"baseline engine {baseline_name!r} not in run"
-                    " (fail closed)",
+                    reason=f"baseline engine {baseline_name!r} not in run (fail closed)",
                 )
 
-            baseline = _rerun_stat(
-                frame, baseline_name, shape, metric_column(gate.metric)
-            )
+            baseline = _rerun_stat(frame, baseline_name, shape, metric_column(gate.metric))
             if baseline is None:
                 return outcome(
                     passed=False,
-                    reason=f"baseline {baseline_name!r} has no value for this"
-                    " shape (fail closed)",
+                    reason=f"baseline {baseline_name!r} has no value for this shape (fail closed)",
                 )
 
             if direction == "higher":
@@ -308,8 +297,7 @@ def _noise_differential(
         return NoiseDifferential(
             passed=True,
             evaluated=True,
-            reason="engine command does not consume {edges};"
-            " differential trivially passes",
+            reason="engine command does not consume {edges}; differential trivially passes",
         )
 
     if spec.command_no_edges is None:
@@ -324,12 +312,8 @@ def _noise_differential(
 
     for shape in noise_shapes:
         for metric in NOISE_DIFFERENTIAL_METRICS:
-            with_edges = _rerun_stat(
-                frame, spec.name, shape, metric.value, variant="edges"
-            )
-            no_edges = _rerun_stat(
-                frame, spec.name, shape, metric.value, variant="no_edges"
-            )
+            with_edges = _rerun_stat(frame, spec.name, shape, metric.value, variant="edges")
+            no_edges = _rerun_stat(frame, spec.name, shape, metric.value, variant="no_edges")
 
             if with_edges is None or no_edges is None:
                 checks.append(

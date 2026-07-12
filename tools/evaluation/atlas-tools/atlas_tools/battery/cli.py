@@ -2,15 +2,15 @@
 
 Commands:
 
-- ``battery run --suite suites/phase2.yaml --engines engines/default.yaml
-  --out runs/<ts>/`` — full harness (see battery.harness). Always exits 0
-  when the harness itself completes; per-engine pass/fail lives in
-  ``gates.json`` (adversarial engines failing is an expected outcome, not
-  an error).
-- ``battery calibrate --layout <layout.npz> --manifest <yaml>`` — merge-tree
-  calibration check; exits 1 when out of tolerance.
-- ``battery generate --shape ... --n ... --seed ... --out ...`` — write one
-  dataset artifact directory.
+- ``battery run --suite suites/phase2.yaml --engines engines/default.yaml --out runs/<ts>/``
+  runs the full harness (see :mod:`atlas_tools.battery.harness`) with the default full suite.
+  It always exits 0 when the harness itself completes; per-engine pass/fail lives in
+  ``gates.json``, so an adversarial engine failing its gates is an expected outcome, not an
+  error.
+- ``battery calibrate --layout <layout.npz> --manifest <yaml>`` checks merge-tree calibration
+  and exits 1 when out of tolerance.
+- ``battery generate --shape ... --n ... --seed ... --out ...`` writes one dataset artifact
+  directory.
 """
 
 import json
@@ -44,9 +44,7 @@ def main() -> None:
 )
 @click.option("--out", "out_dir", required=True, type=click.Path(file_okay=False))
 @click.option("--jobs", type=int, default=None, help="Parallel engine runs.")
-def run_command(
-    suite_path: str, engines_path: str, out_dir: str, jobs: int | None
-) -> None:
+def run_command(suite_path: str, engines_path: str, out_dir: str, jobs: int | None) -> None:
     """Run generators x engines x seeds; write results, report, gates."""
     result = run_suite(suite_path, engines_path, out_dir, jobs=jobs)
     click.echo(f"results: {result.results_path}")
@@ -59,9 +57,7 @@ def run_command(
 
 @main.command("calibrate")
 @click.option("--layout", "layout_path", required=True, type=click.Path(exists=True))
-@click.option(
-    "--manifest", "manifest_path", required=True, type=click.Path(exists=True)
-)
+@click.option("--manifest", "manifest_path", required=True, type=click.Path(exists=True))
 def calibrate_command(layout_path: str, manifest_path: str) -> None:
     """Check merge-tree leaves + persistence against reference values."""
     report = run_calibration(layout_path, manifest_path)

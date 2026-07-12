@@ -1,4 +1,4 @@
-"""Calibration fixture + CLI tests (W3.2.1 calibration mechanism)."""
+"""Calibration fixture and CLI tests for the merge-tree calibration mechanism."""
 
 from pathlib import Path
 
@@ -39,7 +39,7 @@ def test_perturbation_beyond_tolerance_fails(tmp_path: Path) -> None:
     reference = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
     expected_persistence = reference["expected"]["normalized_persistence"]
 
-    # +10 % persistence: outside the ±5 % tolerance
+    # persistence raised by 10 percent: outside the 5 percent tolerance
     bad_persistence = _perturbed_manifest(
         tmp_path, normalized_persistence=expected_persistence * 1.10
     )
@@ -48,22 +48,18 @@ def test_perturbation_beyond_tolerance_fails(tmp_path: Path) -> None:
     failing = {check.name for check in report.checks if not check.passed}
     assert failing == {MetricName.normalized_persistence}
 
-    # wrong leaf count: 4 vs 5 is far outside ±3 %
+    # wrong leaf count: 4 against 5 is far outside the 3 percent tolerance
     bad_leaves = _perturbed_manifest(tmp_path, leaf_count=5)
     assert not run_calibration(LAYOUT, bad_leaves).passed
 
-    # +4 % persistence stays within the ±5 % tolerance
-    ok = _perturbed_manifest(
-        tmp_path, normalized_persistence=expected_persistence * 1.04
-    )
+    # persistence raised by 4 percent stays within the 5 percent tolerance
+    ok = _perturbed_manifest(tmp_path, normalized_persistence=expected_persistence * 1.04)
     assert run_calibration(LAYOUT, ok).passed
 
 
 def test_calibrate_cli_exit_codes(tmp_path: Path) -> None:
     runner = CliRunner()
-    good = runner.invoke(
-        main, ["calibrate", "--layout", str(LAYOUT), "--manifest", str(MANIFEST)]
-    )
+    good = runner.invoke(main, ["calibrate", "--layout", str(LAYOUT), "--manifest", str(MANIFEST)])
     assert good.exit_code == 0, good.output
     assert '"passed": true' in good.output
 

@@ -1,17 +1,20 @@
-"""Taxonomy artifact tests: in-memory BFS semantics on synthetic graphs
-(diamond, cycle, disconnected), paged extraction with checkpoint resume,
-and the committed fixture parquet."""
+"""Taxonomy artifact tests.
 
-from __future__ import annotations
+In-memory BFS semantics on synthetic graphs (diamond, cycle,
+disconnected), paged extraction with checkpoint resume, and the committed
+fixture parquet.
+"""
 
 import json
 from collections.abc import Mapping
+from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
 
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Pid
+from atlas_tools.wikidata.sparql import sparql_params
 from atlas_tools.wikidata.taxonomy import (
     Taxonomy,
     extract_taxonomy,
@@ -23,7 +26,7 @@ from tests.wikidata.conftest import CONFIG_PATH, TAXONOMY_PATH
 
 
 class TestTaxonomySemantics:
-    def test_diamond_closure(self):
+    def test_diamond_closure(self) -> None:
         # 1 -> 2, 1 -> 3, 2 -> 4, 3 -> 4: both paths converge on 4.
         taxonomy = Taxonomy.from_edges([(1, 2), (1, 3), (2, 4), (3, 4)])
         assert taxonomy.closure(Pid("Q1")) == frozenset(
@@ -32,43 +35,41 @@ class TestTaxonomySemantics:
         assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q4")}))
         assert not taxonomy.is_subclass_of(Pid("Q4"), frozenset({Pid("Q1")}))
 
-    def test_cycle_terminates(self):
+    def test_cycle_terminates(self) -> None:
         # Wikidata P279 has real cycles; BFS must terminate.
         taxonomy = Taxonomy.from_edges([(1, 2), (2, 3), (3, 1)])
-        assert taxonomy.closure(Pid("Q1")) == frozenset(
-            {Pid("Q1"), Pid("Q2"), Pid("Q3")}
-        )
+        assert taxonomy.closure(Pid("Q1")) == frozenset({Pid("Q1"), Pid("Q2"), Pid("Q3")})
         assert taxonomy.is_subclass_of(Pid("Q3"), frozenset({Pid("Q2")}))
 
-    def test_disconnected_type_closure_is_itself(self):
+    def test_disconnected_type_closure_is_itself(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2)])
         assert taxonomy.closure(Pid("Q99")) == frozenset({Pid("Q99")})
         assert not taxonomy.is_subclass_of(Pid("Q99"), frozenset({Pid("Q2")}))
 
-    def test_subsumption_is_reflexive(self):
+    def test_subsumption_is_reflexive(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2)])
         assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q1")}))
 
-    def test_memoization_is_stable(self):
+    def test_memoization_is_stable(self) -> None:
         taxonomy = Taxonomy.from_edges([(1, 2), (2, 3)])
         assert taxonomy.closure(Pid("Q1")) == taxonomy.closure(Pid("Q1"))
 
-    def test_fixture_taxonomy_paths(self):
+    def test_fixture_taxonomy_paths(self) -> None:
         taxonomy = Taxonomy.load(TAXONOMY_PATH)
         # Depth-2 chain: city -> human settlement -> entity.
         assert taxonomy.is_subclass_of(Pid("Q515"), frozenset({Pid("Q35120")}))
-        # Film is NOT under book: the P50 filter relies on this.
+        # Film is deliberately not under book: the P50 filter relies on this.
         assert not taxonomy.is_subclass_of(Pid("Q11424"), frozenset({Pid("Q571")}))
 
 
 class TestPageParsing:
-    def test_query_contains_subquery_slice(self):
+    def test_query_contains_subquery_slice(self) -> None:
         query = taxonomy_page_query(limit=500_000, offset=1_000_000)
         assert "LIMIT 500000 OFFSET 1000000" in query
         assert "wdt:P279" in query
         assert "ORDER BY" not in query  # streaming-safe
 
-    def test_parse_page_skips_non_item_rows(self):
+    def test_parse_page_skips_non_item_rows(self) -> None:
         body = json.dumps(
             {
                 "results": {
@@ -81,7 +82,7 @@ class TestPageParsing:
         ).encode("utf-8")
         page = parse_taxonomy_page(body)
         assert page.edges == ((515, 486972),)
-        assert page.row_count == 2  # termination counts RAW rows
+        assert page.row_count == 2  # termination counts raw rows
 
 
 def _page_body(edges: list[tuple[int, int]]) -> bytes:
@@ -93,12 +94,13 @@ def _page_body(edges: list[tuple[int, int]]) -> bytes:
 
 
 class PagedTransport:
-    """Serves taxonomy pages keyed by request; counts calls; optional
-    failure on a specific offset's first attempt (kill-and-resume tests)."""
+    """Serves taxonomy pages keyed by request and counts calls.
 
-    def __init__(
-        self, pages: Mapping[str, Response], fail_keys: set[str] | None = None
-    ):
+    Optionally fails a specific offset's first attempt (for the
+    kill-and-resume tests).
+    """
+
+    def __init__(self, pages: Mapping[str, Response], fail_keys: set[str] | None = None) -> None:
         self._pages = dict(pages)
         self._fail_keys = set(fail_keys or ())
         self.calls = 0
@@ -119,8 +121,6 @@ def _taxonomy_config(page_size: int) -> Config:
 
 
 def _page_key(config: Config, *, page_size: int, offset: int) -> str:
-    from atlas_tools.wikidata.sparql import sparql_params
-
     return request_key(
         config.extraction.endpoints.qlever,
         sparql_params(taxonomy_page_query(limit=page_size, offset=offset)),
@@ -140,7 +140,7 @@ def _pages(config: Config, page_size: int) -> dict[str, Response]:
 
 
 class TestExtraction:
-    def test_paged_extraction_until_short_page(self, tmp_path):
+    def test_paged_extraction_until_short_page(self, tmp_path: Path) -> None:
         config = _taxonomy_config(page_size=3)
         transport = PagedTransport(_pages(config, 3))
         summary = extract_taxonomy(
@@ -157,9 +157,7 @@ class TestExtraction:
         assert table.column("child").to_pylist() == [1, 2, 3, 5]
         assert table.column("parent").to_pylist() == [2, 3, 4, 4]
 
-        sidecar = json.loads(
-            (tmp_path / "taxonomy.parquet.meta.json").read_text(encoding="utf-8")
-        )
+        sidecar = json.loads((tmp_path / "taxonomy.parquet.meta.json").read_text(encoding="utf-8"))
         assert sidecar["details"]["edges"] == 4
         assert sidecar["details"]["pages"] == 2
         assert sidecar["details"]["page_size"] == 3
@@ -167,7 +165,7 @@ class TestExtraction:
         taxonomy = Taxonomy.load(tmp_path / "taxonomy.parquet")
         assert taxonomy.is_subclass_of(Pid("Q1"), frozenset({Pid("Q4")}))
 
-    def test_interrupted_extraction_resumes_identically(self, tmp_path):
+    def test_interrupted_extraction_resumes_identically(self, tmp_path: Path) -> None:
         config = _taxonomy_config(page_size=3)
 
         baseline_dir = tmp_path / "baseline"
@@ -203,7 +201,7 @@ class TestExtraction:
             baseline_dir / "taxonomy.parquet"
         ).read_bytes()
 
-    def test_completed_run_reruns_with_zero_fetches(self, tmp_path):
+    def test_completed_run_reruns_with_zero_fetches(self, tmp_path: Path) -> None:
         config = _taxonomy_config(page_size=3)
         extract_taxonomy(
             PagedTransport(_pages(config, 3)),
@@ -225,7 +223,7 @@ class TestExtraction:
         assert (tmp_path / "taxonomy.parquet").read_bytes() == first_bytes
 
 
-def test_fixture_taxonomy_matches_generator_edges():
+def test_fixture_taxonomy_matches_generator_edges() -> None:
     table = pq.read_table(TAXONOMY_PATH)
     assert table.num_rows == 7
     edges = set(

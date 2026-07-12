@@ -5,17 +5,17 @@ from pathlib import Path
 import click
 
 from atlas_tools.audit.runner import run_audit
-from atlas_tools.audit.synth import make_synthetic, write_cluster_labels
+from atlas_tools.audit.synthetic import make_synthetic, write_cluster_labels
 from atlas_tools.common.matrix import write_matrix
 
 
 def _parse_int_list(value: str, name: str) -> list[int]:
     try:
         items = [int(part) for part in value.split(",") if part.strip()]
-    except ValueError as exc:
+    except ValueError as error:
         raise click.BadParameter(
             f"{name} must be a comma-separated list of integers, got {value!r}"
-        ) from exc
+        ) from error
 
     if not items:
         raise click.BadParameter(f"{name} must not be empty")
@@ -25,7 +25,7 @@ def _parse_int_list(value: str, name: str) -> list[int]:
 
 @click.group()
 def main() -> None:
-    """Prefix representation audit (W1)."""
+    """Prefix representation audit."""
 
 
 @main.command("run")
@@ -78,8 +78,8 @@ def run(
             memory_cap_bytes=int(memory_cap_gb * (1 << 30)),
             min_group_size=min_group_size,
         )
-    except ValueError as exc:
-        raise click.ClickException(str(exc)) from exc
+    except ValueError as error:
+        raise click.ClickException(str(error)) from error
     click.echo(f"wrote {out / 'report.json'}")
     click.echo(f"wrote {out / 'report.md'}")
     click.echo(f"wrote {out / 'report.meta.json'}")
@@ -123,7 +123,7 @@ def synth_fixture(
     seed: int,
     labels_out: Path | None,
 ) -> None:
-    """Write a synthetic fixture whose signal lives in a dim band."""
+    """Write a synthetic fixture whose signal lives in a dimension band."""
     band = (signal_start, dim if signal_end is None else signal_end)
     try:
         corpus = make_synthetic(
@@ -135,8 +135,8 @@ def synth_fixture(
             noise_scale=noise_scale,
             seed=seed,
         )
-    except ValueError as exc:
-        raise click.ClickException(str(exc)) from exc
+    except ValueError as error:
+        raise click.ClickException(str(error)) from error
     write_matrix(
         out,
         corpus.vectors,

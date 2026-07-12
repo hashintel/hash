@@ -1,8 +1,8 @@
 """Shared fixtures for the battery tests.
 
-The expensive end-to-end harness run (smoke suite x {pca2d, shuffle,
-collapse}) is session-scoped and shared by several acceptance tests; the
-umap acceptance test (marked ``slow``) runs its own suite.
+The expensive end-to-end harness run (smoke suite x {pca2d, shuffle, collapse}) is
+session-scoped and shared by several acceptance tests; the umap acceptance test (marked
+``slow``) runs its own suite.
 """
 
 from pathlib import Path
@@ -22,9 +22,7 @@ SMOKE_SUITE = SUITES_DIR / "smoke.yaml"
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line(
-        "markers", "slow: long-running end-to-end tests (umap subprocesses)"
-    )
+    config.addinivalue_line("markers", "slow: long-running end-to-end tests (umap subprocesses)")
 
 
 def engine_entries() -> dict[str, EngineSpec]:
@@ -50,7 +48,5 @@ def write_engines_yaml(path: Path, names: list[str]) -> Path:
 def adversarial_run(tmp_path_factory: pytest.TempPathFactory) -> RunResult:
     """Smoke suite run with pca2d + shuffle + collapse (one shared run)."""
     root = tmp_path_factory.mktemp("battery-adversarial")
-    engines_yaml = write_engines_yaml(
-        root / "engines.yaml", ["pca2d", "shuffle", "collapse"]
-    )
+    engines_yaml = write_engines_yaml(root / "engines.yaml", ["pca2d", "shuffle", "collapse"])
     return run_suite(SMOKE_SUITE, engines_yaml, root / "run", jobs=4)

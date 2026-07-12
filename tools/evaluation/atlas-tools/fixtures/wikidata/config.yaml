@@ -1,6 +1,6 @@
 # Fixture config for offline wikidata-miner tests.
-# cards.tokenizer MUST be "heuristic" here: cl100k downloads its BPE on
-# first use.
+# cards.tokenizer has to stay "heuristic" here: cl100k downloads its BPE
+# on first use.
 extraction:
   languages: [en, de]
   seed: 7

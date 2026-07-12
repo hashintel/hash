@@ -1,34 +1,35 @@
-"""W2b: streaming entity extractor over the Wikidata JSON dump.
+"""Streaming entity extractor over the Wikidata JSON dump.
 
-STREAM, NEVER STORE: the dump is read as a stream (seekable file or stdin);
-nothing is persisted except part files, checkpoints, and the final parquet.
-In production the stream is ``download | parallel bzip2 -dc | wikidata
-entity-manifest --input -``; this module never writes the dump to disk.
+The dump is never written to disk: the extractor reads a stream (seekable
+file or stdin) and persists only part files, checkpoints, and the final
+parquet. In production the stream is ``download | parallel bzip2 -dc |
+wikidata entity-manifest --input -``.
 
 Input format (Wikidata JSON dump): first line ``[``, then one entity JSON
 per line with a trailing comma (the last entity may omit it), final ``]``.
 
-Field extraction only (orjson): each line is parsed once and ONLY the needed
-keys are accessed — id, claims.P31[].mainsnak.datavalue.value.id, sitelinks
-(count only), labels (count + per-language lengths). No full-document model.
+Each line is parsed once (orjson) and only the needed keys are accessed:
+id, claims.P31[].mainsnak.datavalue.value.id, sitelinks (count only), and
+labels (count plus per-language lengths). There is no full-document model.
 Only items (ids starting with ``Q``) are emitted. Each line becomes one
-:class:`EntityRow` — deliberately a ``NamedTuple``, not a pydantic model:
-this is the streaming hot path and per-entity validation of a 100M-row
-stream would dominate the run; the CONFIG is validated, the stream is not.
+:class:`EntityRow`, deliberately a ``NamedTuple`` rather than a pydantic
+model: this is the streaming hot path, and per-entity validation of a
+100M-row stream would dominate the run. The config is validated; the
+stream is not.
 
 Checkpointing / restartability
 ------------------------------
 Every ``checkpoint_interval`` entities the buffered rows are flushed to a
-numbered part file (write tmp + rename) and ``checkpoint.json`` (a
+numbered part file (write tmp, then rename) and ``checkpoint.json`` (a
 :class:`DumpCheckpoint`) is updated atomically with byte offset, entity
 count, part list, and next part index. Byte offsets are tracked by summing
-line lengths (works for pipes too).
+line lengths, which works for pipes too.
 
 Resume: for a seekable file the extractor seeks to ``byte_offset``. For
-stdin the caller must position the stream, i.e. production wraps the
-download with an HTTP range request (``curl -r <byte_offset>-``) using the
-offset stored in the checkpoint; the extractor then continues counting from
-that offset.
+stdin the caller must position the stream; production wraps the download
+with an HTTP range request (``curl -r <byte_offset>-``) using the offset
+stored in the checkpoint, and the extractor continues counting from that
+offset.
 
 Because flushes happen at fixed entity intervals and the checkpoint only
 advances at flush points, a killed-and-resumed run reproduces the exact same
@@ -38,14 +39,11 @@ Checkpoints are never deleted: rerunning a completed extraction is a no-op
 rebuild that rewrites identical outputs.
 
 Dump identity: the dump date and SHA come from the mirror's checksum file
-via config; the stream is NEVER hashed locally.
+via config; the stream is never hashed locally.
 """
 
-from __future__ import annotations
-
 import hashlib
-import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NamedTuple, Protocol
 
@@ -66,7 +64,7 @@ class EntityManifestDetails(BaseModel):
     """Sidecar details for the per-entity manifest parquet.
 
     ``dump_date``/``dump_sha256`` come from the mirror's checksum file via
-    config; the stream is NEVER hashed locally.
+    config; the stream is never hashed locally.
     """
 
     rows: NonNegativeInt
@@ -89,7 +87,7 @@ ENTITY_SCHEMA = pa.schema(
         pa.field("sitelink_count", pa.int32()),
         pa.field("label_count", pa.int32()),
         # Length of the label in the primary configured language (null when
-        # absent); min/mean/max are over ALL labels in the document.
+        # absent); min/mean/max are over every label in the document.
         pa.field("label_len_primary", pa.int32()),
         pa.field("label_len_min", pa.int32()),
         pa.field("label_len_mean", pa.float64()),
@@ -99,9 +97,11 @@ ENTITY_SCHEMA = pa.schema(
 
 
 class ByteLineStream(Protocol):
-    """What the extractor needs from its input: line reads + (for resume on
-    seekable files) absolute seeks. Satisfied by binary files, stdin.buffer,
-    and test doubles."""
+    """Input protocol for the extractor.
+
+    Line reads plus absolute seeks (used for resume on seekable files).
+    Satisfied by binary files, ``sys.stdin.buffer``, and test doubles.
+    """
 
     def readline(self) -> bytes: ...
 
@@ -126,8 +126,11 @@ class EntityRow(NamedTuple):
 
 
 def extract_entity_row(line: bytes, primary_language: str) -> EntityRow | None:
-    """Extract one manifest row from one dump line, or None for non-entity
-    lines ('[', ']', blanks) and non-item entities."""
+    """Extract one manifest row from one dump line.
+
+    Returns None for structural lines ('[', ']', blanks) and for
+    non-item entities.
+    """
     stripped = line.strip()
     if stripped.endswith(b","):
         stripped = stripped[:-1]
@@ -183,7 +186,7 @@ class DumpCheckpoint(BaseModel):
 
 @dataclass(frozen=True)
 class ExtractionSummary:
-    """What ``extract_entities`` produced (mirrored in the sidecar)."""
+    """What :func:`extract_entities` produced (mirrored in the sidecar)."""
 
     rows: int
     parts: int
@@ -193,19 +196,151 @@ class ExtractionSummary:
 def _atomic_write_checkpoint(path: Path, checkpoint: DumpCheckpoint) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(checkpoint.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    tmp.replace(path)
 
 
 def _write_part(part_path: Path, rows: list[EntityRow]) -> None:
     tmp = part_path.with_name(part_path.name + ".tmp")
     pq.write_table(rows_to_table(rows), tmp)
-    os.replace(tmp, part_path)
+    tmp.replace(part_path)
 
 
 def _load_checkpoint(path: Path) -> DumpCheckpoint | None:
     if not path.exists():
         return None
     return DumpCheckpoint.model_validate_json(path.read_bytes())
+
+
+@dataclass
+class _StreamState:
+    """Mutable extraction position; mirrors :class:`DumpCheckpoint` at flush points."""
+
+    byte_offset: int = 0
+    entities_processed: int = 0
+    parts: list[str] = field(default_factory=list)
+    next_part_index: int = 0
+
+
+def _resume_state(
+    checkpoint_path: Path,
+    input_stream: ByteLineStream,
+    *,
+    seekable: bool,
+    progress: ProgressReporter,
+) -> _StreamState:
+    """Load the checkpointed position, seeking the stream when possible.
+
+    Without a checkpoint the state starts at zero. With one, a seekable
+    stream is positioned at the checkpointed byte offset; a non-seekable
+    stream must already be positioned by the caller (HTTP range request in
+    production, see module docstring).
+    """
+    checkpoint = _load_checkpoint(checkpoint_path)
+    if checkpoint is None:
+        return _StreamState()
+    if seekable:
+        input_stream.seek(checkpoint.byte_offset)
+    progress.note(
+        f"resuming at byte {checkpoint.byte_offset:,}"
+        f" ({checkpoint.entities_processed:,} entities already processed)"
+    )
+    return _StreamState(
+        byte_offset=checkpoint.byte_offset,
+        entities_processed=checkpoint.entities_processed,
+        parts=list(checkpoint.parts),
+        next_part_index=checkpoint.next_part_index,
+    )
+
+
+def _flush_part(
+    state: _StreamState,
+    buffered: list[EntityRow],
+    checkpoint_dir: Path,
+    checkpoint_path: Path,
+) -> None:
+    """Write one durable part file, then advance the checkpoint atomically."""
+    part_name = f"part-{state.next_part_index:05d}.parquet"
+    _write_part(checkpoint_dir / part_name, buffered)
+    if part_name not in state.parts:
+        state.parts.append(part_name)
+    state.next_part_index += 1
+    _atomic_write_checkpoint(
+        checkpoint_path,
+        DumpCheckpoint(
+            byte_offset=state.byte_offset,
+            entities_processed=state.entities_processed,
+            parts=state.parts,
+            next_part_index=state.next_part_index,
+        ),
+    )
+
+
+def _stream_dump(
+    input_stream: ByteLineStream,
+    state: _StreamState,
+    *,
+    interval: int,
+    primary_language: str,
+    checkpoint_dir: Path,
+    checkpoint_path: Path,
+    progress: ProgressReporter,
+) -> None:
+    """Consume the stream, flushing a part file every ``interval`` entities.
+
+    Flushing at fixed entity counts (never wall-clock or buffer size) is
+    what makes an interrupted-and-resumed run reproduce the exact same part
+    files as an uninterrupted one.
+    """
+    buffered: list[EntityRow] = []
+    while True:
+        line = input_stream.readline()
+        if not line:
+            break
+        state.byte_offset += len(line)
+        row = extract_entity_row(line, primary_language)
+        if row is None:
+            continue
+        buffered.append(row)
+        state.entities_processed += 1
+        if len(buffered) >= interval:
+            _flush_part(state, buffered, checkpoint_dir, checkpoint_path)
+            buffered = []
+            progress.note(
+                f"{state.entities_processed:,} entities,"
+                f" {state.byte_offset / 1_000_000:,.0f} MB read"
+            )
+
+    if buffered:
+        _flush_part(state, buffered, checkpoint_dir, checkpoint_path)
+    progress.note(
+        f"stream done: {state.entities_processed:,} entities,"
+        f" {state.byte_offset / 1_000_000:,.0f} MB; combining part files"
+    )
+
+
+def _combine_parts(checkpoint_dir: Path, parts: list[str], out_path: Path) -> pa.Table:
+    """Write the final parquet from the part files, in dump order.
+
+    A single ``write_table`` call over the concatenated parts makes
+    interrupted and uninterrupted runs produce byte-identical files.
+    """
+    if parts:
+        table = pa.concat_tables([pq.read_table(checkpoint_dir / name) for name in parts])
+    else:
+        table = ENTITY_SCHEMA.empty_table()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out_path.with_name(out_path.name + ".tmp")
+    pq.write_table(table, tmp)
+    tmp.replace(out_path)
+    return table
+
+
+def _rows_digest(table: pa.Table) -> str:
+    """Hash every row's canonical JSON: a row-level content fingerprint."""
+    digest = hashlib.sha256()
+    for row in table.to_pylist():
+        digest.update(canonical_json_bytes(row))
+    return digest.hexdigest()
 
 
 def extract_entities(
@@ -219,103 +354,32 @@ def extract_entities(
     hash_rows: bool = True,
     progress: ProgressReporter = NO_PROGRESS,
 ) -> ExtractionSummary:
-    """Stream the dump, write the entity manifest parquet + sidecar.
+    """Stream the dump and write the entity manifest parquet plus sidecar.
 
     ``input_stream`` is a binary stream. If ``seekable`` and a checkpoint
-    exists, the stream is seek()ed to the checkpointed byte offset; otherwise
-    (stdin) the caller must have positioned the stream (HTTP range request in
-    production, see module docstring).
+    exists, the stream is seek()ed to the checkpointed byte offset;
+    otherwise (stdin) the caller must have positioned the stream (HTTP
+    range request in production, see module docstring).
     """
     out_path = Path(out_path)
     checkpoint_dir = Path(checkpoint_dir)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = checkpoint_dir / "checkpoint.json"
 
-    checkpoint = _load_checkpoint(checkpoint_path)
     progress.phase("streaming dump entities")
-    if checkpoint is not None:
-        byte_offset = checkpoint.byte_offset
-        entities_processed = checkpoint.entities_processed
-        parts = list(checkpoint.parts)
-        next_part_index = checkpoint.next_part_index
-        if seekable:
-            input_stream.seek(byte_offset)
-        progress.note(
-            f"resuming at byte {byte_offset:,}"
-            f" ({entities_processed:,} entities already processed)"
-        )
-    else:
-        byte_offset = 0
-        entities_processed = 0
-        parts = []
-        next_part_index = 0
-
-    interval = config.extraction.checkpoint_interval
-    primary_language = config.extraction.primary_language
-    buffered: list[EntityRow] = []
-
-    def flush(offset: int) -> None:
-        nonlocal next_part_index, buffered
-        part_name = f"part-{next_part_index:05d}.parquet"
-        _write_part(checkpoint_dir / part_name, buffered)
-        if part_name not in parts:
-            parts.append(part_name)
-        next_part_index += 1
-        buffered = []
-        _atomic_write_checkpoint(
-            checkpoint_path,
-            DumpCheckpoint(
-                byte_offset=offset,
-                entities_processed=entities_processed,
-                parts=parts,
-                next_part_index=next_part_index,
-            ),
-        )
-
-    while True:
-        line = input_stream.readline()
-        if not line:
-            break
-        byte_offset += len(line)
-        row = extract_entity_row(line, primary_language)
-        if row is None:
-            continue
-        buffered.append(row)
-        entities_processed += 1
-        if len(buffered) >= interval:
-            flush(byte_offset)
-            progress.note(
-                f"{entities_processed:,} entities,"
-                f" {byte_offset / 1_000_000:,.0f} MB read"
-            )
-
-    if buffered:
-        flush(byte_offset)
-    progress.note(
-        f"stream done: {entities_processed:,} entities,"
-        f" {byte_offset / 1_000_000:,.0f} MB; combining part files"
+    state = _resume_state(checkpoint_path, input_stream, seekable=seekable, progress=progress)
+    _stream_dump(
+        input_stream,
+        state,
+        interval=config.extraction.checkpoint_interval,
+        primary_language=config.extraction.primary_language,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_path=checkpoint_path,
+        progress=progress,
     )
 
-    # Combine part files into the single final parquet, in dump order, with
-    # one write_table call so interrupted and uninterrupted runs produce
-    # byte-identical files.
-    if parts:
-        table = pa.concat_tables(
-            [pq.read_table(checkpoint_dir / name) for name in parts]
-        )
-    else:
-        table = ENTITY_SCHEMA.empty_table()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out_path.with_name(out_path.name + ".tmp")
-    pq.write_table(table, tmp)
-    os.replace(tmp, out_path)
-
-    rows_sha256 = None
-    if hash_rows:
-        digest = hashlib.sha256()
-        for row in table.to_pylist():
-            digest.update(canonical_json_bytes(row))
-        rows_sha256 = digest.hexdigest()
+    table = _combine_parts(checkpoint_dir, state.parts, out_path)
+    rows_sha256 = _rows_digest(table) if hash_rows else None
 
     EntityManifestProvenance.make(
         producer="wikidata.entity-manifest",
@@ -329,10 +393,8 @@ def extract_entities(
             dump_sha256=config.extraction.dump.sha256,
             input=input_name,
             rows_sha256=rows_sha256,
-            parts=len(parts),
-            checkpoint_interval=interval,
+            parts=len(state.parts),
+            checkpoint_interval=config.extraction.checkpoint_interval,
         ),
     ).write(out_path.with_name(out_path.name + ".meta.json"))
-    return ExtractionSummary(
-        rows=table.num_rows, parts=len(parts), rows_sha256=rows_sha256
-    )
+    return ExtractionSummary(rows=table.num_rows, parts=len(state.parts), rows_sha256=rows_sha256)

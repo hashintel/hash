@@ -1,5 +1,4 @@
-"""Engine interface: "a command that reads embeddings/edges and writes
-layout.npz" (W3.3).
+"""Subprocess engine interface: a command that reads embeddings/edges and writes layout.npz.
 
 Engines are configured in a versioned YAML file::
 
@@ -11,21 +10,19 @@ Engines are configured in a versioned YAML file::
                   --seed {seed} --n-neighbors 30 --min-dist 0.1"
         command_no_edges: "{python} -m ... (same, without --edges)"
 
-Placeholders — substituted per token AFTER shlex splitting, so paths with
-spaces are safe: ``{python}`` (sys.executable), ``{embeddings}`` (path to
-the raw .f32 matrix), ``{edges}`` (edges.npy), ``{labels}`` (labels.npy),
-``{out}`` (layout.npz path the engine must write), ``{seed}``.
+Placeholders are substituted per token after shlex splitting, so paths with spaces are safe:
+``{python}`` (sys.executable), ``{embeddings}`` (path to the raw .f32 matrix), ``{edges}``
+(edges.npy), ``{labels}`` (labels.npy), ``{out}`` (the layout.npz path the engine writes), and
+``{seed}``.
 
-Commands run via subprocess with shell=False. The produced layout is loaded
-through :func:`atlas_tools.common.layout.load_layout`, validated (row count
-matches the dataset, ``row_id`` is a permutation of ``arange(n)``), and the
-coordinates are re-aligned by ``row_id`` so metrics always see node ``i``
-at row ``i``.
+Commands run as subprocesses without a shell. The produced layout is loaded through
+:func:`atlas_tools.common.layout.load_layout`, validated (row count matches the dataset,
+``row_id`` is a permutation of ``arange(n)``), and the coordinates are re-aligned by ``row_id``
+so metrics always see node ``i`` at row ``i``.
 
-``command_no_edges`` is required to evaluate the no-structure-from-noise
-differential for engines whose ``command`` consumes ``{edges}``. If such an
-engine omits it, the differential gate fails as "not evaluable" — the gate
-fails closed (see :mod:`atlas_tools.battery.gates`).
+``command_no_edges`` is required to evaluate the no-structure-from-noise differential for
+engines whose ``command`` consumes ``{edges}``. If such an engine omits it, the differential
+gate fails as "not evaluable"; the gate fails closed (see :mod:`atlas_tools.battery.gates`).
 """
 
 import shlex
@@ -71,12 +68,11 @@ class EngineSpec(BaseModel):
         return "{edges}" in self.command
 
     def resolve_no_edges_command(self) -> str | None:
-        """Command for the edges-disabled variant.
+        """Resolve the command for the edges-disabled variant.
 
-        Engines that never consume ``{edges}`` are their own no-edges
-        variant. Engines that consume edges must define
-        ``command_no_edges`` explicitly; otherwise ``None`` (not
-        evaluable — the differential gate fails closed).
+        Engines that never consume ``{edges}`` are their own no-edges variant. Engines that
+        consume edges must define ``command_no_edges`` explicitly; otherwise the result is
+        ``None`` (not evaluable, and the differential gate fails closed).
         """
         if self.command_no_edges is not None:
             return self.command_no_edges
@@ -89,28 +85,27 @@ class EngineSpec(BaseModel):
 
 def load_engine_file(path: StrPath) -> EngineFile:
     """Load and validate a versioned engines YAML file."""
-    with open(path, encoding="utf-8") as file:
-        data = yaml.safe_load(file)
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     return EngineFile.model_validate(data)
 
 
 def load_engines(path: StrPath) -> list[EngineSpec]:
-    """The engine specs of a versioned engines YAML file."""
+    """Load the engine specs of a versioned engines YAML file."""
     return load_engine_file(path).engines
 
 
 def render_command(template: str, mapping: dict[str, str]) -> list[str]:
-    """shlex-split the template, then substitute placeholders per token."""
+    """Split the template with shlex, then substitute placeholders per token."""
     argv = []
 
     for token in shlex.split(template):
         try:
             argv.append(token.format(**mapping))
-        except KeyError as exc:
+        except KeyError as error:
             raise ValueError(
-                f"unknown placeholder {exc} in engine command: {template}"
-            ) from exc
+                f"unknown placeholder {error} in engine command: {template}"
+            ) from error
 
     return argv
 
@@ -123,7 +118,12 @@ def run_engine(
     seed: int,
     use_edges: bool = True,
 ) -> None:
-    """Execute the engine command as a subprocess (no shell)."""
+    """Execute the engine command as a subprocess (no shell).
+
+    Raises :class:`RuntimeError` when the command exits non-zero or exits zero without writing
+    a layout at ``out_path``, and :class:`ValueError` when the edges-disabled variant is
+    requested but not runnable.
+    """
     dataset_dir = Path(dataset_dir)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -145,7 +145,9 @@ def run_engine(
     }
 
     argv = render_command(template, mapping)
-    result = subprocess.run(argv, capture_output=True, text=True)
+    # Running operator-configured engine commands is this module's purpose; argv is a list, no
+    # shell is involved, and the exit code is checked explicitly below.
+    result = subprocess.run(argv, capture_output=True, text=True, check=False)  # noqa: S603
 
     if result.returncode != 0:
         raise RuntimeError(
@@ -154,13 +156,11 @@ def run_engine(
         )
 
     if not out_path.exists():
-        raise RuntimeError(
-            f"engine {spec.name!r} exited 0 but wrote no layout at {out_path}"
-        )
+        raise RuntimeError(f"engine {spec.name!r} exited 0 but wrote no layout at {out_path}")
 
 
 def load_aligned_layout(path: StrPath, expected_n: int) -> LayoutArtifact:
-    """Load a layout, validate it against the dataset, align xy by row_id."""
+    """Load a layout, validate it against the dataset, and align xy by row_id."""
     artifact = load_layout(Path(path))
 
     n = artifact.xy.shape[0]

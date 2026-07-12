@@ -1,14 +1,18 @@
-"""Unit tests for inventory parsing, batching, exclusions, the example
-ladder, stratified example selection, and the extraction checkpoint."""
+"""Property-extraction unit tests.
 
-from __future__ import annotations
+Inventory parsing, batching, exclusions, the example ladder, stratified
+example selection, and the extraction checkpoint.
+"""
 
 import json
+from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 
-from atlas_tools.wikidata.config import ExtractionConfig
+from atlas_tools.wikidata.config import Config, ExtractionConfig
 from atlas_tools.wikidata.examples import (
+    ExampleSelection,
     assign_stratum,
     collect_candidates,
     select_examples,
@@ -34,31 +38,25 @@ from atlas_tools.wikidata.transport import FixtureTransport, Response, request_k
 from tests.wikidata.conftest import RESPONSES
 
 
-def _record(
-    datatype: str = "wikibase-item", p31: tuple[str, ...] = ()
-) -> PropertyRecord:
-    return PropertyRecord(
-        pid="P1", datatype=datatype, p31=p31, constraints=Constraints()
-    )
+def _record(datatype: str = "wikibase-item", p31: tuple[str, ...] = ()) -> PropertyRecord:
+    return PropertyRecord(pid="P1", datatype=datatype, p31=p31, constraints=Constraints())
 
 
-def test_exclusion_reasons():
+def test_exclusion_reasons() -> None:
     extraction = ExtractionConfig()
     assert exclusion_reason(_record(), extraction) is None
-    assert exclusion_reason(_record(datatype="external-id"), extraction) == (
-        "datatype:external-id"
-    )
+    assert exclusion_reason(_record(datatype="external-id"), extraction) == ("datatype:external-id")
     assert exclusion_reason(_record(p31=("Q18644435",)), extraction) == "maintenance"
     assert exclusion_reason(_record(p31=("Q18644427",)), extraction) == "deprecated"
 
 
-def test_exclusion_class_lists_are_configurable():
+def test_exclusion_class_lists_are_configurable() -> None:
     extraction = ExtractionConfig(maintenance_classes=("Q42",), deprecated_classes=())
     assert exclusion_reason(_record(p31=("Q42",)), extraction) == "maintenance"
     assert exclusion_reason(_record(p31=("Q18644435",)), extraction) is None
 
 
-def test_chunk_ids_sorts_numerically_and_batches():
+def test_chunk_ids_sorts_numerically_and_batches() -> None:
     ids = [f"P{i}" for i in range(1, 121)]
     chunks = chunk_ids(ids[::-1])  # shuffle-ish: reverse order in
     assert [len(chunk) for chunk in chunks] == [50, 50, 20]
@@ -109,7 +107,7 @@ def _row(
     )
 
 
-def test_candidates_collapse_multiplied_rows():
+def test_candidates_collapse_multiplied_rows() -> None:
     # Seen live: the same (subject, object) pair arrives once per P31 type
     # of the subject (Switzerland -> Swiss Federal Council under two
     # types); the candidate unions the types instead of duplicating.
@@ -123,20 +121,14 @@ def test_candidates_collapse_multiplied_rows():
     assert candidates[0].subject_types == ("Q3624078", "Q6256")
 
 
-def test_stratum_assignment_uses_subclass_closure():
+def test_stratum_assignment_uses_subclass_closure() -> None:
     # The Mariupol scenario: the subject's P31 is a subclass (city), not
     # the constraint class itself (human settlement); without the closure
     # it would land in `other`.
-    [candidate] = collect_candidates(
-        [_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")]
-    )
-    assert assign_stratum(candidate, (SETTLEMENT, WRITTEN_WORK), _TAXONOMY) == (
-        SETTLEMENT
-    )
+    [candidate] = collect_candidates([_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")])
+    assert assign_stratum(candidate, (SETTLEMENT, WRITTEN_WORK), _TAXONOMY) == (SETTLEMENT)
     # Declaration order wins when several classes subsume the subject.
-    assert assign_stratum(candidate, (Pid("Q35120"), SETTLEMENT), _TAXONOMY) == Pid(
-        "Q35120"
-    )
+    assert assign_stratum(candidate, (Pid("Q35120"), SETTLEMENT), _TAXONOMY) == Pid("Q35120")
     # Reflexive: a subject typed exactly as the constraint class matches.
     assert assign_stratum(candidate, (Pid("Q515"),), _TAXONOMY) == Pid("Q515")
 
@@ -185,7 +177,7 @@ def _mixed_pool() -> list[ExampleRow]:
     ]
 
 
-def test_stratified_selection_covers_all_nonempty_strata():
+def test_stratified_selection_covers_all_nonempty_strata() -> None:
     selection = select_examples(
         _mixed_pool(),
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
@@ -201,7 +193,7 @@ def test_stratified_selection_covers_all_nonempty_strata():
     ]
 
 
-def test_other_bucket_is_counted_but_never_selected():
+def test_other_bucket_is_counted_but_never_selected() -> None:
     selection = select_examples(
         _mixed_pool(),
         constraint_classes=(SETTLEMENT, WRITTEN_WORK),
@@ -219,7 +211,7 @@ def test_other_bucket_is_counted_but_never_selected():
     assert selection.candidates == 5
 
 
-def test_other_fallback_when_every_stratum_is_empty():
+def test_other_fallback_when_every_stratum_is_empty() -> None:
     rows = [
         _row(
             "Q31",
@@ -242,15 +234,13 @@ def test_other_fallback_when_every_stratum_is_empty():
     )
     # A stale constraint list must not produce an example-less card, but
     # the fallback stays unstratified (no stratum prefix) and is flagged.
-    assert [example.subject_label for example in selection.examples] == [
-        "Opening Scene"
-    ]
+    assert [example.subject_label for example in selection.examples] == ["Opening Scene"]
     assert selection.examples[0].stratum is None
     assert selection.other_used
     assert selection.untyped_dropped == 1  # untyped stays dropped even here
 
 
-def test_weighted_head_is_the_most_recognizable_pair():
+def test_weighted_head_is_the_most_recognizable_pair() -> None:
     selection = select_examples(
         _mixed_pool(),
         constraint_classes=(SETTLEMENT,),
@@ -263,9 +253,9 @@ def test_weighted_head_is_the_most_recognizable_pair():
     assert [example.subject_label for example in selection.examples] == ["Left Bank"]
 
 
-def test_endpoint_dedup_across_the_whole_card():
-    # One Erdoğan: a shared endpoint QID appears at most once on a card,
-    # even across strata.
+def test_endpoint_dedup_across_the_whole_card() -> None:
+    # A shared endpoint QID appears at most once on a card, even across
+    # strata: each entity appears at most once per card.
     rows = [
         _row(
             "Q11",
@@ -312,7 +302,7 @@ def test_endpoint_dedup_across_the_whole_card():
     ]
 
 
-def test_remainder_slots_go_to_larger_strata_first():
+def test_remainder_slots_go_to_larger_strata_first() -> None:
     rows = [
         _row(
             "Q11",
@@ -365,8 +355,8 @@ def test_remainder_slots_go_to_larger_strata_first():
     assert strata.count(WRITTEN_WORK) == 1
 
 
-def test_selection_is_deterministic():
-    def run():
+def test_selection_is_deterministic() -> None:
+    def run() -> ExampleSelection:
         return select_examples(
             _mixed_pool(),
             constraint_classes=(SETTLEMENT, WRITTEN_WORK),
@@ -379,7 +369,7 @@ def test_selection_is_deterministic():
     assert run() == run()
 
 
-def test_unconstrained_selection_keeps_untyped_and_sets_no_stratum():
+def test_unconstrained_selection_keeps_untyped_and_sets_no_stratum() -> None:
     selection = select_examples(
         _mixed_pool(),
         constraint_classes=(),
@@ -395,7 +385,7 @@ def test_unconstrained_selection_keeps_untyped_and_sets_no_stratum():
     assert all(example.stratum is None for example in selection.examples)
 
 
-def test_selection_without_taxonomy_is_unstratified():
+def test_selection_without_taxonomy_is_unstratified() -> None:
     selection = select_examples(
         _mixed_pool(),
         constraint_classes=(SETTLEMENT,),
@@ -411,7 +401,9 @@ def test_selection_without_taxonomy_is_unstratified():
 # --- example ladder ------------------------------------------------------------
 
 
-def test_example_ladder_falls_back_to_wdqs(config, fixture_transport):
+def test_example_ladder_falls_back_to_wdqs(
+    config: Config, fixture_transport: FixtureTransport
+) -> None:
     # QLever is the first rung; the P9001 fixture times out there and is
     # rescued by WDQS (the ladder reversal is evidence-based, see config.py).
     outcome = fetch_example_rows("P9001", config.extraction, fixture_transport)
@@ -420,7 +412,9 @@ def test_example_ladder_falls_back_to_wdqs(config, fixture_transport):
     assert outcome.rows, "WDQS fixture rows expected"
 
 
-def test_example_ladder_records_skip_when_both_fail(config, fixture_transport):
+def test_example_ladder_records_skip_when_both_fail(
+    config: Config, fixture_transport: FixtureTransport
+) -> None:
     outcome = fetch_example_rows("P9002", config.extraction, fixture_transport)
     assert isinstance(outcome, LadderSkip)
 
@@ -428,16 +422,16 @@ def test_example_ladder_records_skip_when_both_fail(config, fixture_transport):
 class RecordingTransport:
     """Scripted responses keyed by request; records request URLs in order."""
 
-    def __init__(self, responses: dict[str, Response] | None = None):
+    def __init__(self, responses: dict[str, Response] | None = None) -> None:
         self._responses = responses or {}
         self.urls: list[str] = []
 
-    def get(self, url, params=None) -> Response:
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
         self.urls.append(url)
         return self._responses.get(request_key(url, params), Response(status=500))
 
 
-def test_ladder_order_follows_config_qlever_first(config):
+def test_ladder_order_follows_config_qlever_first(config: Config) -> None:
     transport = RecordingTransport()  # every request fails -> full ladder walk
     outcome = fetch_example_rows("P361", config.extraction, transport)
     assert isinstance(outcome, LadderSkip)
@@ -445,10 +439,8 @@ def test_ladder_order_follows_config_qlever_first(config):
     assert transport.urls == [endpoints.qlever, endpoints.wdqs]
 
 
-def test_ladder_order_is_configurable(config):
-    extraction = config.extraction.model_copy(
-        update={"example_endpoint_ladder": ("wdqs",)}
-    )
+def test_ladder_order_is_configurable(config: Config) -> None:
+    extraction = config.extraction.model_copy(update={"example_endpoint_ladder": ("wdqs",)})
     transport = RecordingTransport()
     outcome = fetch_example_rows("P361", extraction, transport)
     assert isinstance(outcome, LadderSkip)
@@ -456,8 +448,11 @@ def test_ladder_order_is_configurable(config):
 
 
 def _sparql_body(rows: list[tuple[str, str, str]]) -> bytes:
-    """Label-only bindings (no QIDs/sitelinks): the pre-v4 response shape,
-    which the parser must still accept with defaults."""
+    """Build label-only bindings (no QIDs/sitelinks).
+
+    This is the pre-v4 response shape, which the parser still accepts
+    with defaults.
+    """
     bindings = []
     for subject_label, object_label, subject_type in rows:
         binding = {
@@ -465,25 +460,25 @@ def _sparql_body(rows: list[tuple[str, str, str]]) -> bytes:
             "objectLabel": {"value": object_label},
         }
         if subject_type:
-            binding["subjectType"] = {
-                "value": f"http://www.wikidata.org/entity/{subject_type}"
-            }
+            binding["subjectType"] = {"value": f"http://www.wikidata.org/entity/{subject_type}"}
         bindings.append(binding)
     return json.dumps({"results": {"bindings": bindings}}).encode("utf-8")
 
 
-def test_parse_of_empty_results_is_harmless():
+def test_parse_of_empty_results_is_harmless() -> None:
     assert parse_example_results(b'{"results": {"bindings": []}}') == []
 
 
-def test_parse_of_label_only_bindings_defaults_ids_and_sitelinks():
+def test_parse_of_label_only_bindings_defaults_ids_and_sitelinks() -> None:
     [row] = parse_example_results(_sparql_body([("Left Bank", "Paris", "Q515")]))
-    assert row.subject_qid == "" and row.object_qid == ""
-    assert row.subject_sitelinks == 0 and row.object_sitelinks == 0
+    assert row.subject_qid == ""
+    assert row.object_qid == ""
+    assert row.subject_sitelinks == 0
+    assert row.object_sitelinks == 0
     assert row.subject_type == "Q515"
 
 
-def test_empty_deep_offset_slices_contribute_nothing(config):
+def test_empty_deep_offset_slices_contribute_nothing(config: Config) -> None:
     # Geometric ladder: the deep slice is past the end of a small property
     # and returns an empty result; the pool is just the shallow slice.
     extraction = config.extraction.model_copy(update={"example_offsets": (0, 1000)})
@@ -500,9 +495,7 @@ def test_empty_deep_offset_slices_contribute_nothing(config):
 
     transport = RecordingTransport(
         {
-            key_for(0): Response(
-                status=200, body=_sparql_body([("Left Bank", "Paris", "Q515")])
-            ),
+            key_for(0): Response(status=200, body=_sparql_body([("Left Bank", "Paris", "Q515")])),
             key_for(1000): Response(status=200, body=b'{"results":{"bindings":[]}}'),
         }
     )
@@ -516,7 +509,9 @@ def test_empty_deep_offset_slices_contribute_nothing(config):
 # --- extraction checkpoint ------------------------------------------------------
 
 
-def test_checkpoint_replay_skips_ladder_probing(config, taxonomy, tmp_path):
+def test_checkpoint_replay_skips_ladder_probing(
+    config: Config, taxonomy: Taxonomy, tmp_path: Path
+) -> None:
     checkpoint_path = tmp_path / "checkpoint.json"
 
     transport1 = FixtureTransport(RESPONSES)
@@ -543,12 +538,12 @@ def test_checkpoint_replay_skips_ladder_probing(config, taxonomy, tmp_path):
     assert result2.example_filtered == result1.example_filtered == {"P361": 2, "P50": 1}
     assert result2.example_other == result1.example_other == {"P361": 2, "P50": 3}
     assert result2.example_other_fallbacks == result1.example_other_fallbacks == []
-    assert [r.examples for r in result2.records] == [
-        r.examples for r in result1.records
-    ]
+    assert [r.examples for r in result2.records] == [r.examples for r in result1.records]
 
 
-def test_stale_checkpoint_with_other_config_is_discarded(config, taxonomy, tmp_path):
+def test_stale_checkpoint_with_other_config_is_discarded(
+    config: Config, taxonomy: Taxonomy, tmp_path: Path
+) -> None:
     checkpoint_path = tmp_path / "checkpoint.json"
     extract_properties(
         config,
@@ -557,18 +552,16 @@ def test_stale_checkpoint_with_other_config_is_discarded(config, taxonomy, tmp_p
         checkpoint_path=checkpoint_path,
     )
 
-    other_extraction = config.extraction.model_copy(
-        update={"seed": config.extraction.seed + 1}
-    )
+    other_extraction = config.extraction.model_copy(update={"seed": config.extraction.seed + 1})
     other = config.model_copy(update={"extraction": other_extraction})
     transport = FixtureTransport(RESPONSES)
-    extract_properties(
-        other, transport, taxonomy=taxonomy, checkpoint_path=checkpoint_path
-    )
+    extract_properties(other, transport, taxonomy=taxonomy, checkpoint_path=checkpoint_path)
     assert transport.calls == 12  # full probe again, checkpoint was stale
 
 
-def test_unconstrained_properties_never_filter(config, taxonomy, fixture_transport):
+def test_unconstrained_properties_never_filter(
+    config: Config, taxonomy: Taxonomy, fixture_transport: FixtureTransport
+) -> None:
     # End-to-end: P527 has no subject-type constraints; its untyped pool
     # rows (Car -> Engine) survive into the selected examples.
     result = extract_properties(config, fixture_transport, taxonomy=taxonomy)
@@ -578,15 +571,17 @@ def test_unconstrained_properties_never_filter(config, taxonomy, fixture_transpo
     assert "P527" not in result.example_other
 
 
-def test_fail_fast_without_taxonomy_when_filter_enabled(config, fixture_transport):
+def test_fail_fast_without_taxonomy_when_filter_enabled(
+    config: Config, fixture_transport: FixtureTransport
+) -> None:
     with pytest.raises(RuntimeError, match="wikidata taxonomy"):
         extract_properties(config, fixture_transport, taxonomy=None)
 
 
-def test_filter_disabled_needs_no_taxonomy(config, fixture_transport):
-    extraction = config.extraction.model_copy(
-        update={"filter_examples_by_subject_type": False}
-    )
+def test_filter_disabled_needs_no_taxonomy(
+    config: Config, fixture_transport: FixtureTransport
+) -> None:
+    extraction = config.extraction.model_copy(update={"filter_examples_by_subject_type": False})
     relaxed = config.model_copy(update={"extraction": extraction})
     result = extract_properties(relaxed, fixture_transport, taxonomy=None)
     assert result.example_filtered == {}
@@ -601,7 +596,7 @@ def test_filter_disabled_needs_no_taxonomy(config, fixture_transport):
 # --- closed ancestors -----------------------------------------------------------
 
 
-def test_closed_ancestors_merge_order():
+def test_closed_ancestors_merge_order() -> None:
     record = PropertyRecord(
         pid=Pid("P50"),
         datatype="wikibase-item",
@@ -612,9 +607,7 @@ def test_closed_ancestors_merge_order():
     assert merge_closed_ancestors(record, closure) == ("P9005", "P9006")
 
 
-def test_closed_ancestors_cycle_safe():
-    record = PropertyRecord(
-        pid=Pid("P1"), datatype="wikibase-item", ancestors=(Pid("P2"),)
-    )
+def test_closed_ancestors_cycle_safe() -> None:
+    record = PropertyRecord(pid=Pid("P1"), datatype="wikibase-item", ancestors=(Pid("P2"),))
     closure = {Pid("P1"): (Pid("P2"), Pid("P1"), Pid("P2"))}  # cycle back to self
     assert merge_closed_ancestors(record, closure) == ("P2",)

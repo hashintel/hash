@@ -1,9 +1,9 @@
-# W2b extractor throughput
+# Dump extractor throughput
 
 Measured with `atlas_tools/wikidata/benchmarks/measure_throughput.py`, which
 generates a synthetic dump slice and streams it through `extract_entities`
 (orjson field extraction only, row hashing disabled, checkpoint interval
-100k). Not run in tests.
+100k). Excluded from the test suite.
 
 ## Measured (local)
 
@@ -26,22 +26,22 @@ decompression, which this benchmark deliberately excludes.
 
 ```
 projected_parse_hours = dump_uncompressed_MB / measured_MB_per_s / 3600
-                      = 140_000 / 165 / 3600  ≈ 0.24 h  (parse only)
+                      = 140_000 / 165 / 3600  ~= 0.24 h  (parse only)
 ```
 
 End-to-end wall time is bounded by the slowest pipeline stage of
 `download | parallel bzip2 -dc | wikidata entity-manifest --input -`:
 
-- download: ~40 GB compressed; ≈ 0.1 h at 1 Gbps, longer if the mirror
-  throttles;
+- download: ~40 GB compressed; roughly 0.1 h at 1 Gbps, longer if the
+  mirror throttles;
 - decompression: single-stream `bzip2 -dc` (~20 MB/s output) would dominate
-  at ~2 h — use `lbzip2`/`pbzip2`, which scale to roughly the parse rate on
+  at ~2 h. Use `lbzip2`/`pbzip2`, which scale to roughly the parse rate on
   8+ cores;
 - parse: ~0.2 h at the measured local rate.
 
-**Honest projection: ~0.5–2 h end to end** on a well-provisioned host with
-parallel bzip2; a laptop on home bandwidth would instead be dominated by the
-download (many hours).
+**Honest projection: ~0.5 to 2 h end to end** on a well-provisioned host
+with parallel bzip2; a laptop on home bandwidth would instead be dominated
+by the download (many hours).
 
 ## Deployment note
 
@@ -49,4 +49,5 @@ Run on a high-bandwidth EU host near the Wikimedia dump mirrors (the dump is
 served from Europe; transatlantic fetches routinely halve throughput). The
 dump is never written to disk: peak local storage is the manifest parquet
 plus part files/checkpoints. Resume after interruption uses the checkpointed
-byte offset via an HTTP range request (`curl -r <offset>- | lbzip2 -dc | …`).
+byte offset via an HTTP range request
+(`curl -r <offset>- | lbzip2 -dc | ...`).

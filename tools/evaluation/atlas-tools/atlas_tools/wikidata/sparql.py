@@ -15,26 +15,27 @@ Two query families:
   sitelink counts (recognizability weighting) for the stratified example
   selector (``examples.py``).
 
-The example query is written for STREAMING evaluation: no ORDER BY (which
+The example query is written for streaming evaluation: no ORDER BY, which
 would force the endpoint to materialize every statement of the property
-before applying LIMIT — a guaranteed timeout for high-usage properties)
-and plain ``rdfs:label`` + LANG filters instead of the WDQS-only
+before applying LIMIT (a guaranteed timeout for high-usage properties),
+and plain ``rdfs:label`` plus LANG filters instead of the WDQS-only
 ``SERVICE wikibase:label`` (QLever does not support the label service).
 Row-order determinism is provided by the response cache keyed on
-(query, endpoint, snapshot date), not by the query itself — live endpoints
+(query, endpoint, snapshot date), not by the query itself: live endpoints
 never promise stable order across cold fetches.
 
-Deep offsets via a SUBQUERY: the inner ``SELECT ?subject ?object … LIMIT
-… OFFSET …`` slices the raw statement stream FIRST; the P31 and label
-joins run only on the sliced rows. Endpoints stream statements in roughly
-QID order = prominence order, so shallow offsets only ever see prominent
-subjects (countries, heads of state); the geometric offset ladder in
-``ExtractionConfig.example_offsets`` reaches the long tail (small-town
-mayors live tens of thousands of statements deep). Verified live: QLever
-answers the subquery form at offset 10 000 in ~0.2 s (and empty deep
-slices, e.g. offset 100 000 on a small property, return an empty result
-cheaply); WDQS/Blazegraph times out (>40 s) on the same query — hence the
-QLever-first endpoint ladder in config.py.
+Deep offsets go through a subquery: the inner ``SELECT ?subject ?object
+... LIMIT ... OFFSET ...`` slices the raw statement stream first, and the
+P31 and label joins run only on the sliced rows. Endpoints stream
+statements in roughly QID order, which is prominence order, so shallow
+offsets only ever see prominent subjects (countries, heads of state); the
+geometric offset ladder in ``ExtractionConfig.example_offsets`` reaches
+the long tail (small-town mayors live tens of thousands of statements
+deep). Verified live: QLever answers the subquery form at offset 10000 in
+about 0.2 s, and empty deep slices (offset 100000 on a small property,
+say) return an empty result cheaply, while WDQS/Blazegraph times out
+(over 40 s) on the same query. That evidence drives the QLever-first
+endpoint ladder in config.py.
 
 :data:`EXAMPLE_QUERY_VERSION` participates in the extraction checkpoint
 guard hash: bumping it on any semantic query change discards recorded
@@ -45,8 +46,6 @@ Responses are validated into typed models (:class:`SparqlResponse`) at the
 parse boundary; parsers return typed rows (:class:`InventoryRow`,
 :class:`ExampleRow`).
 """
-
-from __future__ import annotations
 
 from typing import Literal
 
@@ -59,20 +58,20 @@ WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 # Bump on any semantic change to example_pairs_query (see module docstring).
 EXAMPLE_QUERY_VERSION = 4
 
-# The SPARQL endpoints the example ladder can draw from. Ladder ORDER is
-# config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
+# The SPARQL endpoints the example ladder can draw from. The ladder order
+# is config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
 type SparqlEndpoint = Literal["wdqs", "qlever"]
 
 
 def property_inventory_query() -> str:
-    """All wikibase-item properties, plus the ``wikibase:statements`` count.
+    """Build the inventory query: all wikibase-item properties plus a count.
 
-    Honesty note: ``wikibase:statements`` is the number of statements ON THE
-    PROPERTY'S OWN PAGE (P6 → 34), NOT how often the property is used in
-    claims. It is kept in the inventory as a weak prominence signal and is
-    not used for sampling. A real whole-graph usage GROUP BY times out on
-    both public endpoints (verified live: QLever 599), so no usage-scaled
-    behaviour is attempted anywhere.
+    Honesty note: ``wikibase:statements`` is the number of statements on
+    the property's own page (P6 -> 34), not how often the property is used
+    in claims. It is kept in the inventory as a weak prominence signal and
+    is not used for sampling. A real whole-graph usage GROUP BY times out
+    on both public endpoints (verified live: QLever 599), so no
+    usage-scaled behaviour is attempted anywhere.
     """
     return (
         "SELECT ?property ?propertyType ?usage WHERE {\n"
@@ -86,10 +85,13 @@ def property_inventory_query() -> str:
 
 
 def property_ancestors_query() -> str:
-    """P1647 (subproperty-of) CLOSURE for every item-valued property, in one
-    query. Verified live on QLever: 200 in 0.3 s, 833 pairs total — small
-    enough that this one DOES go through the response cache. The atlas spec
-    (§3.3.3 item 3) requires closed ancestors, not just direct parents."""
+    """Build the P1647 (subproperty-of) closure query for all item-properties.
+
+    One query covers every item-valued property. Verified live on QLever:
+    200 in 0.3 s, 833 pairs total, small enough that this one does go
+    through the response cache. The closure exists so cards can state
+    every generalization of a relation, not just its direct parents.
+    """
     return (
         "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
         "PREFIX wikibase: <http://wikiba.se/ontology#>\n"
@@ -100,21 +102,20 @@ def property_ancestors_query() -> str:
     )
 
 
-def example_pairs_query(
-    pid: str, *, limit: int, offset: int, language: str = "en"
-) -> str:
-    """Subject/object pairs for ``pid``: QIDs, labels, subject P31 class,
-    and sitelink counts for both endpoints.
+def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "en") -> str:
+    """Build the example-pairs query for ``pid``.
 
-    The inner subquery slices the raw statement stream (LIMIT/OFFSET on
-    ``?subject wdt:PID ?object`` alone); P31, label, and sitelink joins
-    apply only to the sliced rows, which is what makes deep offsets
-    answerable in sub-second time on QLever (see module docstring; the
-    sitelink OPTIONALs were live-verified in the same subquery form). The
-    outer pattern can multiply rows (one per P31 type / label) —
-    deliberate: the stratified selector unions every subject type per pair.
+    It returns QIDs, labels, the subject's P31 class, and sitelink counts
+    for both endpoints. The inner subquery slices the raw statement stream
+    (LIMIT/OFFSET on ``?subject wdt:PID ?object`` alone); P31, label, and
+    sitelink joins apply only to the sliced rows, which is what makes deep
+    offsets answerable in sub-second time on QLever (see module docstring;
+    the sitelink OPTIONALs were live-verified in the same subquery form).
+    The outer pattern can multiply rows (one per P31 type / label). That
+    is deliberate: the stratified selector unions every subject type per
+    pair.
 
-    ``wdt:`` yields TRUTHY (best-rank) statements only, so deprecated and
+    ``wdt:`` yields truthy (best-rank) statements only, so deprecated and
     superseded statements never enter the candidate pool.
 
     Streaming-safe and portable: no ORDER BY anywhere, no WDQS-only label
@@ -174,7 +175,7 @@ class InventoryRow(BaseModel):
 
     pid: str
     datatype_uri: str
-    # ``wikibase:statements``: statements on the property's OWN page, not a
+    # ``wikibase:statements``: statements on the property's own page, not a
     # usage count (see ``property_inventory_query``). Weak prominence
     # signal; recorded in the inventory, never used for sampling.
     usage: int | None
@@ -202,8 +203,10 @@ def parse_inventory_results(body: bytes) -> list[InventoryRow]:
 
 
 def parse_ancestor_results(body: bytes) -> list[tuple[Pid, Pid]]:
-    """(property, ancestor) pairs from the P1647 closure query, in response
-    order."""
+    """Parse (property, ancestor) pairs from the P1647 closure query.
+
+    Pairs come back in response order.
+    """
     response = SparqlResponse.model_validate_json(body)
     return [
         (
@@ -223,7 +226,7 @@ class ExampleRow(BaseModel):
     object_label: str
     subject_type: str  # QID, or "" when the subject has no P31
     # ``wikibase:sitelinks``: how many Wikipedia-family pages the entity
-    # has — the recognizability proxy for weighted example selection.
+    # has; the recognizability proxy for weighted example selection.
     subject_sitelinks: int = 0
     object_sitelinks: int = 0
 
@@ -244,20 +247,12 @@ def parse_example_results(body: bytes) -> list[ExampleRow]:
 
         rows.append(
             ExampleRow(
-                subject_qid=(
-                    _entity_id_from_uri(subject_binding.value)
-                    if subject_binding
-                    else ""
-                ),
-                object_qid=(
-                    _entity_id_from_uri(object_binding.value) if object_binding else ""
-                ),
+                subject_qid=(_entity_id_from_uri(subject_binding.value) if subject_binding else ""),
+                object_qid=(_entity_id_from_uri(object_binding.value) if object_binding else ""),
                 subject_label=binding["subjectLabel"].value,
                 object_label=binding["objectLabel"].value,
                 subject_type=(
-                    _entity_id_from_uri(subject_type_binding.value)
-                    if subject_type_binding
-                    else ""
+                    _entity_id_from_uri(subject_type_binding.value) if subject_type_binding else ""
                 ),
                 subject_sitelinks=_sitelinks(binding, "subjectSitelinks"),
                 object_sitelinks=_sitelinks(binding, "objectSitelinks"),

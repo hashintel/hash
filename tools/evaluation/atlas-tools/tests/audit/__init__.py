@@ -1,1 +1,1 @@
-"""Tests for the W1 prefix representation audit."""
+"""Tests for the prefix representation audit."""

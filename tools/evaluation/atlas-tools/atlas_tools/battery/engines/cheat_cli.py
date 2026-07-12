@@ -1,18 +1,16 @@
-"""Adversarial toy engine (tests only): manufactures clusters from edges.
+"""Adversarial toy engine (tests only) that manufactures clusters from edges.
 
-With ``--edges``, every node that has at least one edge is assigned a
-pseudo-community derived from its minimum neighbor id (a deterministic
-stand-in for community detection on the edge graph) and the communities are
-placed as tight, well-separated blobs on a circle — i.e. the engine
-fabricates crisp layout structure purely from edge data while ignoring the
-embeddings entirely. On ``noise_edges`` (uniformly random edges) this
-"discovers" structure that does not exist.
+With ``--edges``, every node that has at least one edge is assigned a pseudo-community derived
+from its minimum neighbor id (a deterministic stand-in for community detection on the edge
+graph) and the communities are placed as tight, well-separated blobs on a circle. The engine
+fabricates crisp layout structure purely from edge data while ignoring the embeddings entirely;
+on ``noise_edges`` (uniformly random edges) it "discovers" structure that does not exist.
 
 Without ``--edges`` it emits an unstructured gaussian scatter.
 
-A correct no-structure-from-noise differential MUST fail this engine: its
-with-edges persistence/cluster structure on noise_edges vastly exceeds its
-no-edges output beyond any rerun-noise floor.
+A correct no-structure-from-noise differential fails this engine: its with-edges persistence
+and cluster structure on noise_edges vastly exceed its no-edges output, beyond any rerun-noise
+floor.
 """
 
 from pathlib import Path
@@ -27,7 +25,7 @@ from atlas_tools.common.matrix import load_matrix
 @click.command()
 @click.option("--embeddings", required=True, type=click.Path(exists=True))
 @click.option("--edges", default=None, type=click.Path(exists=True))
-@click.option("--labels", default=None, type=click.Path(), help="Accepted and ignored.")
+@click.option("--labels", "_labels", default=None, type=click.Path(), help="Accepted and ignored.")
 @click.option("--out", required=True, type=click.Path())
 @click.option("--seed", type=int, default=0)
 @click.option("--n-clusters", type=int, default=24)
@@ -36,12 +34,12 @@ from atlas_tools.common.matrix import load_matrix
 def main(
     embeddings: str,
     edges: str | None,
-    labels: str | None,
     out: str,
     seed: int,
     n_clusters: int,
     radius: float,
     jitter: float,
+    _labels: str | None,
 ) -> None:
     _, meta = load_matrix(Path(embeddings), mmap=True)
     n = meta.rows
@@ -58,9 +56,9 @@ def main(
         cluster = min_partner[has_edge] % n_clusters
         angle = 2.0 * np.pi * cluster / n_clusters
         centers = radius * np.stack([np.cos(angle), np.sin(angle)], axis=1)
-        xy[has_edge] = (
-            centers + jitter * rng.normal(size=(int(has_edge.sum()), 2))
-        ).astype(np.float32)
+        xy[has_edge] = (centers + jitter * rng.normal(size=(int(has_edge.sum()), 2))).astype(
+            np.float32
+        )
 
     write_layout(
         out,

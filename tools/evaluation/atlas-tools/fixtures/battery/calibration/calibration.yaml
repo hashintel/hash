@@ -5,12 +5,12 @@
 # points in 4 well-separated truncated-gaussian blobs, generated
 # deterministically (numpy default_rng(42); centers (-6,-6), (6,-5),
 # (-5,6), (6.5,6.5); sizes 700/500/450/350 before radius-2.5 truncation;
-# sigma 0.8 — the recipe is also recorded in layout.meta.json). The
-# merge_tree block overrides the PRD raster defaults (grid 1024, blur 4)
-# with density-appropriate values for a 2k-point layout; the PRD defaults
-# assume the operator's ~1M-point reference, which drops in later through
-# this same mechanism with its own recorded values (leaves +-3%,
-# normalized persistence +-5%).
+# sigma 0.8; the recipe is also recorded in layout.meta.json). The
+# merge_tree block overrides the production raster defaults (grid 1024,
+# blur 4) with density-appropriate values for a 2k-point layout; those
+# defaults assume the operator's roughly 1M-point reference, which drops
+# in later through this same mechanism with its own recorded values
+# (leaves within 3%, normalized persistence within 5%).
 version: 1
 merge_tree:
   grid_size: 128

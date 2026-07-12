@@ -1,1 +1,1 @@
-"""Throughput benchmarks for the W2b streaming extractor (not run in tests)."""
+"""Throughput benchmarks for the streaming dump extractor (excluded from the test suite)."""

@@ -1,18 +1,18 @@
-# Adversarial toy engines used ONLY by the battery's acceptance tests
+# Adversarial toy engines used solely by the battery's acceptance tests
 # (tests/battery). They keep the anti-cheat criteria honest, end to end,
 # through the same subprocess interface real engines use:
 #
 # - shuffle:  PCA-2D, then permutes xy rows relative to row_id. Identity-
 #             blind statistics (merge-tree persistence) are unchanged, but
-#             every neighbor/structure gate must fail.
-# - collapse: PCA-2D, then multiplies coordinates by 0.01. Must NOT gain
+#             every neighbor/structure gate has to fail.
+# - collapse: PCA-2D, then multiplies coordinates by 0.01. Gains no
 #             normalized persistence (raster over own extent + density-max
 #             normalization make contraction persistence-neutral).
 # - cheat:    manufactures clusters from edge data while ignoring
 #             embeddings; its no-edges variant is an unstructured scatter.
-#             Must trip the no-structure-from-noise differential.
+#             Has to trip the no-structure-from-noise differential.
 # - cheat_noeval: same cheat, but consumes {edges} without declaring a
-#             command_no_edges — the differential must fail it as
+#             command_no_edges; the differential fails it as
 #             "not evaluable" (fail closed).
 version: 1
 engines:

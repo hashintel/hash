@@ -1,4 +1,4 @@
-"""Planted-shape dataset artifact contract (W3.1).
+"""Planted-shape dataset artifact contract.
 
 A dataset directory written by :func:`write_dataset` contains::
 
@@ -8,20 +8,20 @@ A dataset directory written by :func:`write_dataset` contains::
     <dir>/labels.npy                int64 (n,); -1 marks "no label"
     <dir>/truth.json                ground-truth descriptor + provenance
 
-``truth.json`` carries the resolved generator config (hashed to
-``config_hash``), the generator seed, the planted-structure descriptor
-(community count, chain/type structure, ...), and content hashes of the
-sibling files, so a dataset directory is fully self-describing and every
-derived number is reproducible from it.
+``truth.json`` carries the resolved generator config (hashed to ``config_hash``), the generator
+seed, the planted-structure descriptor (community count, chain/type structure, ...), and content
+hashes of the sibling files, so a dataset directory is fully self-describing and every derived
+number is reproducible from it.
 
-``embeddings.f32``/``edges.npy``/``labels.npy`` bytes are deterministic
-functions of (config, seed); only sidecar ``created_at`` fields carry
-wall-clock time, and those are excluded from all hashes.
+``embeddings.f32``, ``edges.npy``, and ``labels.npy`` bytes are deterministic functions of
+(config, seed); only sidecar ``created_at`` fields carry wall-clock time, and those are excluded
+from all hashes.
 """
 
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from typing import Final
 
 import numpy as np
 from pydantic import BaseModel, NonNegativeInt
@@ -38,9 +38,17 @@ EDGES_FILE = "edges.npy"
 LABELS_FILE = "labels.npy"
 TRUTH_FILE = "truth.json"
 
+_MATRIX_NDIM: Final = 2
+"""Embeddings and edge lists are 2-D arrays."""
+
+_EDGE_ENDPOINTS: Final = 2
+"""Undirected relation edges are node-id pairs."""
+
 type StrPath = str | PathLike[str]
-"""A filesystem path as accepted at the battery's boundaries (CLI passes
-strings, tests pass ``Path`` objects)."""
+"""A filesystem path as accepted at the battery's boundaries.
+
+The CLI passes strings and tests pass :class:`~pathlib.Path` objects.
+"""
 
 
 class TruthDetails(BaseModel):
@@ -53,36 +61,38 @@ class TruthDetails(BaseModel):
     truth: JsonDict
 
 
-# Generator configs are shape-specific free-form JSON; the harness only
-# hashes and reproduces them.
+# Generator configs are shape-specific free-form JSON; the harness only hashes and reproduces
+# them.
 TruthProvenance = Provenance[TruthDetails, JsonDict]
 
 
 @dataclass
 class Dataset:
-    """In-memory planted-shape dataset. See module docstring for on-disk form."""
+    """In-memory planted-shape dataset.
+
+    The on-disk form is described in the module docstring.
+    """
 
     shape: str
     embeddings: np.ndarray  # (n, dim) float32
     edges: np.ndarray  # (m, 2) int64
     labels: np.ndarray  # (n,) int64; -1 = unlabeled
-    # Genuinely shape-specific free-form JSON: each generator plants its own
-    # descriptor (community counts, chain structure, ...); consumers narrow
-    # the keys they read.
+    # Genuinely shape-specific free-form JSON: each generator plants its own descriptor
+    # (community counts, chain structure, ...); consumers narrow the keys they read.
     truth: JsonDict
     # The producing generator's resolved config dump ({shape, n, params}).
     config: JsonDict
     seed: int
 
     def __post_init__(self) -> None:
-        if self.embeddings.ndim != 2 or self.embeddings.dtype != np.float32:
+        if self.embeddings.ndim != _MATRIX_NDIM or self.embeddings.dtype != np.float32:
             raise ValueError(
                 f"embeddings must be 2-d float32, got shape"
                 f" {self.embeddings.shape} dtype {self.embeddings.dtype}"
             )
 
         n = self.embeddings.shape[0]
-        if self.edges.ndim != 2 or self.edges.shape[1] != 2:
+        if self.edges.ndim != _MATRIX_NDIM or self.edges.shape[1] != _EDGE_ENDPOINTS:
             raise ValueError(f"edges must have shape (m, 2), got {self.edges.shape}")
 
         if self.edges.dtype != np.int64:
@@ -117,9 +127,7 @@ def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     producer = f"battery.generators.{dataset.shape}"
-    provenance = write_matrix(
-        out_dir / EMBEDDINGS_FILE, dataset.embeddings, producer=producer
-    )
+    provenance = write_matrix(out_dir / EMBEDDINGS_FILE, dataset.embeddings, producer=producer)
     np.save(out_dir / EDGES_FILE, dataset.edges)
     np.save(out_dir / LABELS_FILE, dataset.labels)
 
@@ -138,13 +146,17 @@ def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
             shape=dataset.shape,
             n=dataset.n,
             dim=int(dataset.embeddings.shape[1]),
-            n_edges=int(len(dataset.edges)),
+            n_edges=len(dataset.edges),
             truth=dataset.truth,
         ),
     )
     truth_payload.write(out_dir / TRUTH_FILE)
 
-    assert truth_payload.config_hash is not None
+    if truth_payload.config_hash is None:
+        # Unreachable: Provenance.make hashes every non-None config, and dataset.config is a
+        # dict. Raising keeps DatasetHashes honest without an assert.
+        raise RuntimeError("truth.json provenance is missing its config hash")
+
     return DatasetHashes(**input_hashes, truth_config_hash=truth_payload.config_hash)
 
 

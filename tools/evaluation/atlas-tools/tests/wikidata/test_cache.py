@@ -1,7 +1,8 @@
-"""Cache tests: a warm cache makes ZERO calls to the inner transport and the
-rerun's outputs are byte-identical except sidecar created_at."""
+"""Response cache tests.
 
-from __future__ import annotations
+A warm cache makes zero calls to the inner transport, and the rerun's
+outputs are byte-identical except for the sidecar created_at.
+"""
 
 import json
 from collections.abc import Mapping
@@ -11,19 +12,16 @@ from atlas_tools.wikidata.cache import CacheEntryMetadata, CachingTransport, cac
 from atlas_tools.wikidata.cards import ExtractPaths, emit_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.sparql import property_inventory_query, sparql_params
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport, Response
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 
 
-def _run_extract(
-    cache_dir: Path, out_dir: Path
-) -> tuple[FixtureTransport, ExtractPaths]:
+def _run_extract(cache_dir: Path, out_dir: Path) -> tuple[FixtureTransport, ExtractPaths]:
     config = Config.load(CONFIG_PATH)
     inner = FixtureTransport(RESPONSES)
-    transport = CachingTransport(
-        inner, cache_dir, snapshot_date=config.extraction.snapshot_date
-    )
+    transport = CachingTransport(inner, cache_dir, snapshot_date=config.extraction.snapshot_date)
     result = extract_properties(
         config,
         transport,
@@ -35,13 +33,13 @@ def _run_extract(
 
 
 def _without_created_at(path: Path) -> dict[str, object]:
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    with path.open(encoding="utf-8") as sidecar_file:
+        data = json.load(sidecar_file)
     data.pop("created_at", None)
     return data
 
 
-def test_warm_cache_rerun_makes_zero_transport_calls(tmp_path):
+def test_warm_cache_rerun_makes_zero_transport_calls(tmp_path: Path) -> None:
     cache_dir = tmp_path / "cache"
     inner1, paths1 = _run_extract(cache_dir, tmp_path / "run1")
     assert inner1.calls > 0
@@ -51,20 +49,16 @@ def test_warm_cache_rerun_makes_zero_transport_calls(tmp_path):
 
     # cards.jsonl is byte-identical (retrieved_at comes from cache metadata,
     # not the wall clock at emit time).
-    assert (
-        paths1.cards.cards_jsonl.read_bytes() == paths2.cards.cards_jsonl.read_bytes()
-    )
+    assert paths1.cards.cards_jsonl.read_bytes() == paths2.cards.cards_jsonl.read_bytes()
 
     # Sidecars identical except the provenance created_at timestamp.
-    assert _without_created_at(paths1.cards.manifest) == _without_created_at(
-        paths2.cards.manifest
-    )
+    assert _without_created_at(paths1.cards.manifest) == _without_created_at(paths2.cards.manifest)
     assert _without_created_at(paths1.records.inventory) == _without_created_at(
         paths2.records.inventory
     )
 
 
-def test_failed_responses_are_cached_too(tmp_path):
+def test_failed_responses_are_cached_too(tmp_path: Path) -> None:
     # P9002 fails on both endpoints; those failures must be cached so the
     # rerun does not re-hit failing endpoints.
     cache_dir = tmp_path / "cache"
@@ -76,18 +70,20 @@ def test_failed_responses_are_cached_too(tmp_path):
 class ScriptedTransport:
     """Returns scripted responses in order; counts calls."""
 
-    def __init__(self, responses: list[Response]):
+    def __init__(self, responses: list[Response]) -> None:
         self._responses = list(responses)
         self.calls = 0
 
-    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
+    # The Transport protocol's parameters are keyword-callable, so they
+    # cannot be underscore-renamed; scripted replies ignore the request.
+    def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:  # noqa: ARG002
         self.calls += 1
         return self._responses.pop(0)
 
 
-def test_transient_failures_are_never_cached(tmp_path):
-    # A 429 must not be written to the cache: the next call goes back to the
-    # inner transport and its success IS cached.
+def test_transient_failures_are_never_cached(tmp_path: Path) -> None:
+    # A 429 must not be written to the cache: the next call goes back to
+    # the inner transport, and that call's success is cached.
     inner = ScriptedTransport([Response(status=429), Response(status=200, body=b"ok")])
     transport = CachingTransport(inner, tmp_path / "cache", snapshot_date="d")
 
@@ -99,7 +95,9 @@ def test_transient_failures_are_never_cached(tmp_path):
     assert inner.calls == 2
 
 
-def test_poisoned_transient_cache_entry_is_evicted_and_refetched(tmp_path):
+def test_poisoned_transient_cache_entry_is_evicted_and_refetched(
+    tmp_path: Path,
+) -> None:
     # Entries cached by versions that stored 429s must self-heal on read.
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
@@ -126,9 +124,7 @@ def test_poisoned_transient_cache_entry_is_evicted_and_refetched(tmp_path):
     assert inner.calls == 1
 
 
-def test_cache_key_includes_snapshot_date(tmp_path):
-    from atlas_tools.wikidata.sparql import property_inventory_query, sparql_params
-
+def test_cache_key_includes_snapshot_date(tmp_path: Path) -> None:
     config = Config.load(CONFIG_PATH)
     cache_dir = tmp_path / "cache"
 

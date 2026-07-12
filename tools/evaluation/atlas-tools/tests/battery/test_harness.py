@@ -1,10 +1,9 @@
-"""Harness acceptance tests (W3.3): end-to-end subprocess runs against the
-committed smoke suite, including the adversarial engines.
+"""Harness acceptance tests.
 
-The `adversarial_run` session fixture runs the smoke suite once with
-pca2d + shuffle + collapse; several tests read from that single run. The
-umap acceptance test runs the full default engine roster and is marked
-``slow`` (umap subprocesses pay numba JIT costs).
+End-to-end subprocess runs against the committed smoke suite, including the adversarial
+engines. The ``adversarial_run`` session fixture runs the smoke suite once with pca2d, shuffle,
+and collapse; several tests read from that single run. The umap acceptance test runs the full
+default engine roster and is marked ``slow`` (umap subprocesses pay numba JIT costs).
 """
 
 import json
@@ -24,10 +23,9 @@ from atlas_tools.battery.metrics import KnnRecallMetric, MetricName
 
 from .conftest import SMOKE_SUITE, write_engines_yaml
 
-# Gates whose metrics depend on which node sits where. Merge-tree
-# persistence is deliberately NOT here: it is identity-blind (a row shuffle
-# preserves the multiset of positions), which is exactly why the suite
-# pairs it with these.
+# Gates whose metrics depend on which node sits where. Merge-tree persistence is deliberately
+# absent: it is identity-blind (a row shuffle preserves the multiset of positions), which is
+# exactly why the suite pairs it with these.
 STRUCTURE_METRICS = {
     KnnRecallMetric(k=15),
     KnnRecallMetric(k=30),
@@ -98,8 +96,7 @@ def test_artifacts_exist_and_are_self_consistent(adversarial_run: RunResult) -> 
     outcome = next(
         entry
         for entry in result.gates.engines["pca2d"].gates
-        if entry.gate.metric == KnnRecallMetric(k=15)
-        and entry.shape == "clique_communities"
+        if entry.gate.metric == KnnRecallMetric(k=15) and entry.shape == "clique_communities"
     )
     selection = frame[
         (frame["engine"] == "pca2d")
@@ -156,8 +153,8 @@ def test_shuffle_fails_every_structure_gate(adversarial_run: RunResult) -> None:
     assert structure_outcomes
     still_passing = [outcome for outcome in structure_outcomes if outcome.passed]
     assert not still_passing, f"shuffle passed structure gates: {still_passing}"
-    # Documented blind spot: persistence is identity-blind, so the shuffle
-    # sails through the persistence floor — the neighbor gates catch it.
+    # Documented blind spot: persistence is identity-blind, so the shuffle sails through the
+    # persistence floor; the neighbor gates are what catch it.
     persistence_outcomes = [
         outcome
         for outcome in shuffle.gates
@@ -170,8 +167,11 @@ def test_shuffle_fails_every_structure_gate(adversarial_run: RunResult) -> None:
 def test_collapse_gains_no_persistence_after_normalization(
     adversarial_run: RunResult,
 ) -> None:
-    """The contraction rig: normalized persistence must not exceed the pca
-    baseline beyond the rerun-noise floor (it is pca2d scaled by 0.01)."""
+    """Pin the contraction rig's verdict.
+
+    The collapse engine is pca2d scaled by 0.01, so its normalized persistence may not exceed
+    the pca baseline beyond the rerun-noise floor.
+    """
     frame = adversarial_run.results
 
     def stat(engine: str, shape: str) -> tuple[float, float]:
@@ -216,14 +216,14 @@ def _mini_noise_suite(path: Path) -> Path:
 
 
 def test_cheat_trips_noise_differential_and_fail_closed(tmp_path: Path) -> None:
-    """W3.2.8 acceptance: the cheating engine that manufactures clusters
-    from random edges fails the hard differential; an engine that consumes
-    edges without a no-edges command fails closed; an edges-ignoring engine
-    passes trivially."""
+    """Pin the three noise-differential outcomes.
+
+    The cheating engine that manufactures clusters from random edges fails the hard
+    differential; an engine that consumes edges without a no-edges command fails closed; an
+    edges-ignoring engine passes trivially.
+    """
     suite = _mini_noise_suite(tmp_path / "suite.yaml")
-    engines_yaml = write_engines_yaml(
-        tmp_path / "engines.yaml", ["pca2d", "cheat", "cheat_noeval"]
-    )
+    engines_yaml = write_engines_yaml(tmp_path / "engines.yaml", ["pca2d", "cheat", "cheat_noeval"])
     result = run_suite(suite, engines_yaml, tmp_path / "run", jobs=4)
     gates = result.gates.engines
 
@@ -258,9 +258,11 @@ def test_cheat_trips_noise_differential_and_fail_closed(tmp_path: Path) -> None:
 
 @pytest.mark.slow
 def test_umap_baselines_pass_smoke_gates(tmp_path: Path) -> None:
-    """Acceptance: the tuned umap-learn baseline PASSES the default suite
-    (smoke scale). Exercises the real with/no-edges differential path for
-    umap_tuned, whose command consumes {edges} (and ignores them)."""
+    """Accept the tuned umap-learn baseline against the default suite at smoke scale.
+
+    This also exercises the real with/no-edges differential path for umap_tuned, whose command
+    consumes {edges} (and ignores them).
+    """
     engines_yaml = write_engines_yaml(
         tmp_path / "engines.yaml", ["pca2d", "umap_tuned", "umap_default"]
     )
@@ -273,7 +275,8 @@ def test_umap_baselines_pass_smoke_gates(tmp_path: Path) -> None:
         assert engine_report.passed
     # umap_tuned's differential was actually evaluated from real runs
     tuned = result.gates.engines["umap_tuned"].noise_differential
-    assert tuned.evaluated and tuned.checks
+    assert tuned.evaluated
+    assert tuned.checks
 
 
 def test_suite_loading_validation(tmp_path: Path) -> None:
@@ -300,7 +303,7 @@ def test_suite_loading_validation(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     # Discriminated-union rejection names the bad tag and the known ones.
-    with pytest.raises(ValueError, match="'nope'.*does not match any of the"):
+    with pytest.raises(ValueError, match=r"'nope'.*does not match any of the"):
         load_suite(bad_shape)
 
     bad_gate = tmp_path / "g.yaml"
@@ -316,7 +319,7 @@ def test_suite_loading_validation(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     # The gate union rejects the tag the same way the shape union does.
-    with pytest.raises(ValueError, match="'between'.*does not match any of the"):
+    with pytest.raises(ValueError, match=r"'between'.*does not match any of the"):
         load_suite(bad_gate)
 
     gate_shape_not_in_suite = tmp_path / "gs.yaml"

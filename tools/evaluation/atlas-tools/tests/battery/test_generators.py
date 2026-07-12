@@ -1,4 +1,6 @@
-"""Generator tests (W3.1): shapes/dtypes, determinism, planted structure."""
+"""Generator tests: shapes and dtypes, determinism, and planted structure."""
+
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,6 +15,7 @@ from atlas_tools.battery.generators import (
     ChainsParams,
     CliqueCommunitiesGenerator,
     CliqueCommunitiesParams,
+    Generator,
     IsolatesGenerator,
     IsolatesParams,
     LatticeProductGenerator,
@@ -31,7 +34,7 @@ SMALL_DIM = 16
 
 
 def truth_int(dataset: Dataset, key: str) -> int:
-    """An integer field of the free-form truth descriptor, narrowed."""
+    """Return an integer field of the free-form truth descriptor, narrowed."""
     value = dataset.truth[key]
     assert isinstance(value, int)
     return value
@@ -41,9 +44,7 @@ def small_mixed_components() -> list[MixedComponent]:
     return [
         MixedComponent(
             weight=0.35,
-            generator=CliqueCommunitiesGenerator(
-                params=CliqueCommunitiesParams(dim=SMALL_DIM)
-            ),
+            generator=CliqueCommunitiesGenerator(params=CliqueCommunitiesParams(dim=SMALL_DIM)),
         ),
         MixedComponent(
             weight=0.25,
@@ -62,9 +63,7 @@ def small_mixed_components() -> list[MixedComponent]:
 
 SMALL_GENERATORS = [
     BipartiteStarGenerator(n=SMALL_N, params=BipartiteStarParams(dim=SMALL_DIM)),
-    CliqueCommunitiesGenerator(
-        n=SMALL_N, params=CliqueCommunitiesParams(dim=SMALL_DIM)
-    ),
+    CliqueCommunitiesGenerator(n=SMALL_N, params=CliqueCommunitiesParams(dim=SMALL_DIM)),
     ChainsGenerator(n=SMALL_N, params=ChainsParams(dim=SMALL_DIM)),
     LatticeProductGenerator(n=SMALL_N, params=LatticeProductParams(dim=SMALL_DIM)),
     NoiseEdgesGenerator(n=SMALL_N, params=NoiseEdgesParams(dim=SMALL_DIM)),
@@ -73,24 +72,22 @@ SMALL_GENERATORS = [
 ]
 
 
-def test_union_covers_all_generators():
-    assert generator_shapes() == tuple(
-        sorted(generator.shape for generator in SMALL_GENERATORS)
-    )
+def test_union_covers_all_generators() -> None:
+    assert generator_shapes() == tuple(sorted(generator.shape for generator in SMALL_GENERATORS))
 
 
-@pytest.mark.parametrize(
-    "generator", SMALL_GENERATORS, ids=lambda generator: generator.shape
-)
-def test_shapes_and_dtypes(generator):
+@pytest.mark.parametrize("generator", SMALL_GENERATORS, ids=lambda generator: generator.shape)
+def test_shapes_and_dtypes(generator: Generator) -> None:
     dataset = generator.run(0)
     assert dataset.shape == generator.shape
     assert dataset.embeddings.shape == (SMALL_N, SMALL_DIM)
     assert dataset.embeddings.dtype == np.float32
     assert dataset.edges.dtype == np.int64
-    assert dataset.edges.ndim == 2 and dataset.edges.shape[1] == 2
+    assert dataset.edges.ndim == 2
+    assert dataset.edges.shape[1] == 2
     if len(dataset.edges):
-        assert dataset.edges.min() >= 0 and dataset.edges.max() < SMALL_N
+        assert dataset.edges.min() >= 0
+        assert dataset.edges.max() < SMALL_N
         # canonical undirected form: sorted pairs, no self loops, unique
         assert (dataset.edges[:, 0] < dataset.edges[:, 1]).all()
         assert len(np.unique(dataset.edges, axis=0)) == len(dataset.edges)
@@ -99,10 +96,8 @@ def test_shapes_and_dtypes(generator):
     assert dataset.truth  # non-empty descriptor
 
 
-@pytest.mark.parametrize(
-    "generator", SMALL_GENERATORS, ids=lambda generator: generator.shape
-)
-def test_determinism_same_seed_identical_bytes(generator):
+@pytest.mark.parametrize("generator", SMALL_GENERATORS, ids=lambda generator: generator.shape)
+def test_determinism_same_seed_identical_bytes(generator: Generator) -> None:
     a = generator.run(7)
     b = generator.run(7)
     assert a.embeddings.tobytes() == b.embeddings.tobytes()
@@ -113,14 +108,14 @@ def test_determinism_same_seed_identical_bytes(generator):
     assert a.embeddings.tobytes() != c.embeddings.tobytes()
 
 
-def test_unknown_param_rejected():
+def test_unknown_param_rejected() -> None:
     with pytest.raises(ValidationError, match="typo_key"):
         CliqueCommunitiesParams.model_validate({"typo_key": 1})
     with pytest.raises(ValidationError, match="not_a_shape"):
         generator_adapter.validate_python({"shape": "not_a_shape", "n": 100})
 
 
-def test_adapter_dispatches_on_shape():
+def test_adapter_dispatches_on_shape() -> None:
     generator = generator_adapter.validate_python(
         {"shape": "chains", "n": 100, "params": {"dim": 8, "depth": 2}}
     )
@@ -129,7 +124,7 @@ def test_adapter_dispatches_on_shape():
     assert generator.params.depth == 2
 
 
-def test_mixed_components_must_share_dim():
+def test_mixed_components_must_share_dim() -> None:
     with pytest.raises(ValidationError, match="share one embedding dim"):
         MixedParams(
             components=[
@@ -145,21 +140,19 @@ def test_mixed_components_must_share_dim():
         )
 
 
-def test_mixed_inside_mixed_is_unrepresentable():
+def test_mixed_inside_mixed_is_unrepresentable() -> None:
     # The component union is leaf-only: 'mixed' is not a valid component tag.
     with pytest.raises(ValidationError, match="mixed"):
         generator_adapter.validate_python(
             {
                 "shape": "mixed",
                 "n": 100,
-                "params": {
-                    "components": [{"weight": 1.0, "generator": {"shape": "mixed"}}]
-                },
+                "params": {"components": [{"weight": 1.0, "generator": {"shape": "mixed"}}]},
             }
         )
 
 
-def test_bipartite_star_items_have_degree_one():
+def test_bipartite_star_items_have_degree_one() -> None:
     dataset = SMALL_GENERATORS[0].run(0)
     n_docs = truth_int(dataset, "n_docs")
     degree = np.bincount(dataset.edges.ravel(), minlength=dataset.n)
@@ -169,7 +162,7 @@ def test_bipartite_star_items_have_degree_one():
     assert degree[:n_docs].sum() == len(dataset.edges)
 
 
-def test_bipartite_star_multi_parent_fraction():
+def test_bipartite_star_multi_parent_fraction() -> None:
     generator = BipartiteStarGenerator(
         n=SMALL_N, params=BipartiteStarParams(dim=SMALL_DIM, multi_parent_frac=0.25)
     )
@@ -184,17 +177,15 @@ def test_bipartite_star_multi_parent_fraction():
     assert (item_degrees == 1).sum() == n_items - expected_multi
 
 
-def test_clique_communities_embeddings_cluster_by_community():
+def test_clique_communities_embeddings_cluster_by_community() -> None:
     dataset = SMALL_GENERATORS[1].run(0)
     score = silhouette_score(dataset.embeddings, dataset.labels)
     assert score > 0.2
     # every edge is intra-community
-    assert (
-        dataset.labels[dataset.edges[:, 0]] == dataset.labels[dataset.edges[:, 1]]
-    ).all()
+    assert (dataset.labels[dataset.edges[:, 0]] == dataset.labels[dataset.edges[:, 1]]).all()
 
 
-def test_chains_labels_reflect_type_and_edges_stay_in_chain():
+def test_chains_labels_reflect_type_and_edges_stay_in_chain() -> None:
     generator = ChainsGenerator(n=SMALL_N, params=ChainsParams(dim=SMALL_DIM, depth=4))
     dataset = generator.run(0)
     assert np.array_equal(dataset.labels, np.arange(SMALL_N, dtype=np.int64) % 4)
@@ -207,7 +198,7 @@ def test_chains_labels_reflect_type_and_edges_stay_in_chain():
     assert silhouette_score(dataset.embeddings, chain_ids) < 0.05
 
 
-def test_lattice_product_same_cell_pairs_are_close():
+def test_lattice_product_same_cell_pairs_are_close() -> None:
     generator = LatticeProductGenerator(
         n=SMALL_N,
         params=LatticeProductParams(dim=SMALL_DIM, factor_a=4, factor_b=5),
@@ -218,14 +209,12 @@ def test_lattice_product_same_cell_pairs_are_close():
     embeddings = dataset.embeddings.astype(np.float64)
     same_dists, rand_dists = [], []
     for cell in np.unique(dataset.labels):
-        idx = np.nonzero(dataset.labels == cell)[0]
-        if len(idx) < 2:
+        members = np.nonzero(dataset.labels == cell)[0]
+        if len(members) < 2:
             continue
-        pick = rng.choice(idx, size=(20, 2))
+        pick = rng.choice(members, size=(20, 2))
         pick = pick[pick[:, 0] != pick[:, 1]]
-        same_dists.append(
-            np.linalg.norm(embeddings[pick[:, 0]] - embeddings[pick[:, 1]], axis=1)
-        )
+        same_dists.append(np.linalg.norm(embeddings[pick[:, 0]] - embeddings[pick[:, 1]], axis=1))
     i = rng.integers(0, dataset.n, 500)
     j = rng.integers(0, dataset.n, 500)
     keep = i != j
@@ -233,23 +222,17 @@ def test_lattice_product_same_cell_pairs_are_close():
     assert np.mean(np.concatenate(same_dists)) < 0.5 * np.mean(rand_dists)
 
 
-def test_noise_edges_are_independent_of_labels():
-    generator = NoiseEdgesGenerator(
-        n=SMALL_N, params=NoiseEdgesParams(dim=SMALL_DIM, n_clusters=8)
-    )
+def test_noise_edges_are_independent_of_labels() -> None:
+    generator = NoiseEdgesGenerator(n=SMALL_N, params=NoiseEdgesParams(dim=SMALL_DIM, n_clusters=8))
     dataset = generator.run(0)
-    intra = (
-        dataset.labels[dataset.edges[:, 0]] == dataset.labels[dataset.edges[:, 1]]
-    ).mean()
+    intra = (dataset.labels[dataset.edges[:, 0]] == dataset.labels[dataset.edges[:, 1]]).mean()
     # random edges land intra-cluster ~1/c of the time; far from clustered (~1)
     assert intra < 0.25
     assert dataset.truth["edges_random"] is True
 
 
-def test_isolates_have_zero_edges():
-    generator = IsolatesGenerator(
-        n=SMALL_N, params=IsolatesParams(dim=SMALL_DIM, isolate_frac=0.3)
-    )
+def test_isolates_have_zero_edges() -> None:
+    generator = IsolatesGenerator(n=SMALL_N, params=IsolatesParams(dim=SMALL_DIM, isolate_frac=0.3))
     dataset = generator.run(0)
     degree = np.bincount(dataset.edges.ravel(), minlength=dataset.n)
     assert (degree == 0).sum() >= truth_int(dataset, "n_isolates")
@@ -269,7 +252,7 @@ class ComponentTruth(BaseModel):
 component_truth_adapter = TypeAdapter(list[ComponentTruth])
 
 
-def test_mixed_concatenates_components_with_offsets():
+def test_mixed_concatenates_components_with_offsets() -> None:
     dataset = SMALL_GENERATORS[-1].run(0)
     assert dataset.n == SMALL_N
     components = component_truth_adapter.validate_python(dataset.truth["components"])
@@ -284,12 +267,10 @@ def test_mixed_concatenates_components_with_offsets():
     # edges never cross component boundaries
     starts = np.array([component.node_offset for component in components] + [SMALL_N])
     component_of = np.searchsorted(starts, np.arange(SMALL_N), side="right")
-    assert (
-        component_of[dataset.edges[:, 0]] == component_of[dataset.edges[:, 1]]
-    ).all()
+    assert (component_of[dataset.edges[:, 0]] == component_of[dataset.edges[:, 1]]).all()
 
 
-def test_dataset_roundtrip_and_deterministic_artifact_bytes(tmp_path):
+def test_dataset_roundtrip_and_deterministic_artifact_bytes(tmp_path: Path) -> None:
     generator = CliqueCommunitiesGenerator(n=120, params=CliqueCommunitiesParams(dim=8))
     dataset = generator.run(3)
     hashes_a = write_dataset(dataset, tmp_path / "a")

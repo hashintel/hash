@@ -1,27 +1,29 @@
 """Command-line interface for the Wikidata miner.
 
-W2a is layered so mining is decoupled from card formatting:
+The relation-card pipeline is layered so mining is decoupled from card
+formatting:
 
-1. raw response cache (``--cache-dir``) — provenance of every API byte;
-2. ``records.jsonl`` — structured, card-format-independent property records
+1. raw response cache (``--cache-dir``): provenance of every API byte;
+2. ``records.jsonl``: structured, card-format-independent property records
    (plus ``entity_labels.json`` and provenance sidecars);
-3. ``cards.jsonl`` — the versioned text projection of the records.
+3. ``cards.jsonl``: the versioned text projection of the records.
 
 Commands:
 
-- ``wikidata extract-properties`` (W2a): mine records via APIs, then render
-  cards from them (single render code path shared with ``render-cards``).
-- ``wikidata render-cards`` (W2a): re-render cards from an existing
-  ``records.jsonl`` with zero transport/network involvement — changing the
+- ``wikidata extract-properties``: mine records via the SPARQL and
+  wbgetentities APIs, then render cards from them (single render code path
+  shared with ``render-cards``).
+- ``wikidata render-cards``: re-render cards from an existing
+  ``records.jsonl`` with zero transport/network involvement; changing the
   card format or token budget never requires re-extraction.
-- ``wikidata taxonomy`` (W2a): pull the full P279 edge list from QLever into
-  ``taxonomy.parquet`` — the local subsumption oracle for the subject-type
+- ``wikidata taxonomy``: pull the full P279 edge list from QLever into
+  ``taxonomy.parquet``, the local subsumption oracle for the subject-type
   example filter (in-query subsumption times out on public endpoints).
-- ``wikidata entity-manifest`` (W2b): streamed per-entity manifest parquet.
-- ``wikidata sampling-plan`` (W2b): P31-stratified sampling plan parquet.
+- ``wikidata entity-manifest``: stream the JSON dump into the per-entity
+  manifest parquet.
+- ``wikidata sampling-plan``: emit the P31-stratified sampling plan parquet
+  from the entity manifest.
 """
-
-from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -34,10 +36,10 @@ from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter, StderrP
 
 @click.group()
 def main() -> None:
-    """Wikidata miner (W2): relation cards + vec2slug sampling manifest."""
+    """Wikidata miner: relation cards and the vec2slug sampling manifest."""
 
 
-def _progress_reporter(quiet: bool) -> ProgressReporter:
+def _progress_reporter(*, quiet: bool) -> ProgressReporter:
     return NO_PROGRESS if quiet else StderrProgress()
 
 
@@ -49,8 +51,7 @@ def _progress_reporter(quiet: bool) -> ProgressReporter:
     "--fixture-dir",
     default=None,
     type=click.Path(exists=True),
-    help="Serve responses from committed fixtures instead of the network"
-    " (offline testing).",
+    help="Serve responses from committed fixtures instead of the network (offline testing).",
 )
 @click.option(
     "--taxonomy",
@@ -62,6 +63,7 @@ def _progress_reporter(quiet: bool) -> ProgressReporter:
 )
 @click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
 def extract_properties_command(
+    *,
     config_path: str,
     out_dir: str,
     cache_dir: str | None,
@@ -69,7 +71,7 @@ def extract_properties_command(
     taxonomy_path: str | None,
     quiet: bool,
 ) -> None:
-    """W2a: mine relation cards (cards.jsonl + manifest + inventory)."""
+    """Mine relation cards (cards.jsonl + manifest + inventory)."""
     from atlas_tools.wikidata.cards import emit_cards
     from atlas_tools.wikidata.properties import extract_properties
     from atlas_tools.wikidata.taxonomy import Taxonomy
@@ -92,7 +94,7 @@ def extract_properties_command(
             transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
     taxonomy = Taxonomy.load(taxonomy_path) if taxonomy_path is not None else None
-    progress = _progress_reporter(quiet)
+    progress = _progress_reporter(quiet=quiet)
     result = extract_properties(
         config,
         transport,
@@ -112,12 +114,12 @@ def extract_properties_command(
     "records_path",
     required=True,
     type=click.Path(exists=True),
-    help="records.jsonl or the extract out dir containing it.",
+    help="records.jsonl or the extraction output directory containing it.",
 )
 @click.option("--config", "config_path", required=True, type=click.Path(exists=True))
 @click.option("--out", "out_dir", required=True, type=click.Path())
 def render_cards_command(records_path: str, config_path: str, out_dir: str) -> None:
-    """W2a: render cards.jsonl from records.jsonl (no network, ever)."""
+    """Render cards.jsonl from records.jsonl (no network, ever)."""
     from atlas_tools.wikidata.cards import render_cards
     from atlas_tools.wikidata.records import load_records
 
@@ -132,15 +134,13 @@ def render_cards_command(records_path: str, config_path: str, out_dir: str) -> N
 @click.option("--out", "out_path", required=True, type=click.Path())
 @click.option("--checkpoint", "checkpoint_dir", required=True, type=click.Path())
 @click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
-def taxonomy_command(
-    config_path: str, out_path: str, checkpoint_dir: str, quiet: bool
-) -> None:
-    """W2a: pull the full P279 edge list into taxonomy.parquet (QLever)."""
+def taxonomy_command(*, config_path: str, out_path: str, checkpoint_dir: str, quiet: bool) -> None:
+    """Pull the full P279 edge list into taxonomy.parquet (QLever)."""
     from atlas_tools.wikidata.taxonomy import extract_taxonomy
     from atlas_tools.wikidata.transport import RequestsTransport
 
     config = Config.load(config_path)
-    # Deliberately the PLAIN transport: each page body is ~48 MB of JSON and
+    # Deliberately the plain transport: each page body is ~48 MB of JSON and
     # the parquet + checkpoint parts are the persistence; a CachingTransport
     # here would roughly double local storage for zero benefit.
     transport = RequestsTransport(policy=config.extraction.politeness)
@@ -149,7 +149,7 @@ def taxonomy_command(
         config=config,
         out_path=out_path,
         checkpoint_dir=checkpoint_dir,
-        progress=_progress_reporter(quiet),
+        progress=_progress_reporter(quiet=quiet),
     )
     click.echo(f"wrote {out_path} ({summary.edges} edges, {summary.pages} pages)")
 
@@ -167,6 +167,7 @@ def taxonomy_command(
 @click.option("--no-row-hash", is_flag=True, default=False)
 @click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
 def entity_manifest_command(
+    *,
     config_path: str,
     input_path: str,
     out_path: str,
@@ -174,11 +175,11 @@ def entity_manifest_command(
     no_row_hash: bool,
     quiet: bool,
 ) -> None:
-    """W2b: stream the dump into the per-entity manifest parquet."""
+    """Stream the dump into the per-entity manifest parquet."""
     from atlas_tools.wikidata.dump import extract_entities
 
     config = Config.load(config_path)
-    progress = _progress_reporter(quiet)
+    progress = _progress_reporter(quiet=quiet)
     if input_path == "-":
         summary = extract_entities(
             sys.stdin.buffer,
@@ -191,7 +192,7 @@ def entity_manifest_command(
             progress=progress,
         )
     else:
-        with open(input_path, "rb") as stream:
+        with Path(input_path).open("rb") as stream:
             summary = extract_entities(
                 stream,
                 config=config,
@@ -210,7 +211,7 @@ def entity_manifest_command(
 @click.option("--input", "input_path", required=True, type=click.Path(exists=True))
 @click.option("--out", "out_path", required=True, type=click.Path())
 def sampling_plan_command(config_path: str, input_path: str, out_path: str) -> None:
-    """W2b: emit the P31-stratified sampling plan parquet."""
+    """Emit the P31-stratified sampling plan parquet."""
     from atlas_tools.wikidata.manifest import build_sampling_plan
 
     config = Config.load(config_path)

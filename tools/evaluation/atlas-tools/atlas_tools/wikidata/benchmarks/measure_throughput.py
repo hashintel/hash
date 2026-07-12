@@ -1,18 +1,16 @@
-"""Measure W2b extractor throughput on a generated dump slice.
+"""Measure dump-extractor throughput on a generated dump slice.
 
-NOT run in tests. Usage (from the atlas-tools root):
+Excluded from the test suite. Usage (from the atlas-tools root):
 
     uv run --no-sync python -m atlas_tools.wikidata.benchmarks.measure_throughput \
         --target-mb 50
 
-Generates a synthetic dump slice of roughly ``--target-mb`` MB in a temp
-directory, streams it through ``extract_entities`` (row hashing disabled, as
-a production run at scale would), and reports MB/s plus the projected
-end-to-end wall time for a ~140 GB uncompressed dump. Record results in
-``atlas_tools/wikidata/BENCHMARK.md``.
+Generates a synthetic dump slice of roughly ``--target-mb`` MB in a
+temporary directory, streams it through ``extract_entities`` (row hashing
+disabled, as a production run at scale would), and reports MB/s plus the
+projected end-to-end wall time for a ~140 GB uncompressed dump. Record
+results in ``atlas_tools/wikidata/BENCHMARK.md``.
 """
-
-from __future__ import annotations
 
 import json
 import tempfile
@@ -29,7 +27,7 @@ DUMP_UNCOMPRESSED_GB = 140
 _CLASSES = ["Q5", "Q4830453", "Q515", "Q571", "Q11424", "Q3305213"]
 
 
-def _entity_line(i: int, last: bool) -> str:
+def _entity_line(i: int, *, last: bool) -> str:
     cls = _CLASSES[i % len(_CLASSES)]
     entity = {
         "type": "item",
@@ -92,14 +90,14 @@ def _entity_line(i: int, last: bool) -> str:
 
 def generate_slice(path: Path, target_bytes: int) -> int:
     written = 0
-    with open(path, "w", encoding="utf-8") as f:
-        written += f.write("[\n")
+    with path.open("w", encoding="utf-8") as slice_file:
+        written += slice_file.write("[\n")
         i = 0
         while written < target_bytes:
             i += 1
-            written += f.write(_entity_line(i, last=False))
-        written += f.write(_entity_line(i + 1, last=True))
-        written += f.write("]\n")
+            written += slice_file.write(_entity_line(i, last=False))
+        written += slice_file.write(_entity_line(i + 1, last=True))
+        written += slice_file.write("]\n")
     return written
 
 
@@ -107,9 +105,7 @@ def generate_slice(path: Path, target_bytes: int) -> int:
 @click.option("--target-mb", default=50, type=int, help="Slice size to generate.")
 @click.option("--checkpoint-interval", default=100_000, type=int)
 def main(target_mb: int, checkpoint_interval: int) -> None:
-    config = Config.model_validate(
-        {"extraction": {"checkpoint_interval": checkpoint_interval}}
-    )
+    config = Config.model_validate({"extraction": {"checkpoint_interval": checkpoint_interval}})
     with tempfile.TemporaryDirectory(prefix="wikidata-bench-") as tmp:
         tmpdir = Path(tmp)
         slice_path = tmpdir / "slice.json"
@@ -117,7 +113,7 @@ def main(target_mb: int, checkpoint_interval: int) -> None:
         size_mb = size / 1_000_000
 
         start = time.perf_counter()
-        with open(slice_path, "rb") as stream:
+        with slice_path.open("rb") as stream:
             summary = extract_entities(
                 stream,
                 config=config,

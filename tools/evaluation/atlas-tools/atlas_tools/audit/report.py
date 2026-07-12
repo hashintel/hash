@@ -1,9 +1,8 @@
-"""Human-readable report.md rendered from the typed report.
+"""Human-readable ``report.md`` rendered from the typed report.
 
-Every number in report.md comes from report.json: the runner passes the
-:class:`~atlas_tools.audit.evaluation.RunnerReport` re-validated from the
-written report.json, and the renderer only formats values already present
-on that model.
+Every number in ``report.md`` comes from ``report.json``: the renderer receives the
+:class:`~atlas_tools.audit.evaluation.RunnerReport` re-validated from the written
+``report.json`` and only formats values already present on that model.
 """
 
 from atlas_tools.audit.evaluation import RunnerReport
@@ -28,9 +27,7 @@ def render_markdown(report: RunnerReport) -> str:
 
     for k in report.config.ks:
         lines += [f"## k = {k}", ""]
-        lines.append(
-            f"| dim | recall@{k} | intrusion_rate@{k} | mean_rank_displacement@{k} |"
-        )
+        lines.append(f"| dim | recall@{k} | intrusion_rate@{k} | mean_rank_displacement@{k} |")
         lines.append("| ---: | ---: | ---: | ---: |")
 
         for dim in report.config.dims:
@@ -50,8 +47,7 @@ def render_markdown(report: RunnerReport) -> str:
         n_groups = sum(len(values.columns) for values in report.groups.values())
 
         lines.append(
-            f"{n_groups} group(s) evaluated"
-            f" (min group size {report.config.min_group_size})."
+            f"{n_groups} group(s) evaluated (min group size {report.config.min_group_size})."
         )
         lines.append("")
         flags = report.flags

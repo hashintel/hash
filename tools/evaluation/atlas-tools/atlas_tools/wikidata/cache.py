@@ -1,37 +1,35 @@
 """Disk cache for HTTP responses.
 
-Cache key = sha256 of the canonical JSON of a :class:`_CacheKey` (endpoint
-url, params, snapshot date); value = the response body (``<key>.body``) plus
-a metadata JSON (``<key>.meta.json``, a :class:`CacheEntryMetadata`)
-recording status, headers, and ``retrieved_at``.
+The cache key is the sha256 of the canonical JSON of a :class:`_CacheKey`
+(endpoint url, params, snapshot date); the value is the response body
+(``<key>.body``) plus a metadata JSON (``<key>.meta.json``, a
+:class:`CacheEntryMetadata`) recording status, headers, and
+``retrieved_at``.
 
-``CachingTransport`` wraps an inner transport: once every request of a run is
-cached, a full rerun makes ZERO calls to the inner transport.
+``CachingTransport`` wraps an inner transport: once every request of a run
+is cached, a full rerun makes zero calls to the inner transport.
 
 Failure caching is deliberate but split by kind:
 
-- Deterministic failures (e.g. a WDQS query that reliably times out with
-  500) ARE cached — the example-ladder fallback semantics rely on reruns
-  not re-hitting endpoints that will fail again.
+- Deterministic failures (for example a WDQS query that reliably times out
+  with 500) are cached. The example-ladder fallback semantics rely on
+  reruns not re-hitting endpoints that will fail again.
 - Transient failures (:data:`~atlas_tools.wikidata.transport.TRANSIENT_STATUSES`:
-  429 rate limiting, 503, connection failures) are NEVER cached, and a
-  previously cached transient entry is evicted and refetched on read —
-  a rate-limited run must not poison every future warm rerun.
+  429 rate limiting, 503, connection failures) are never cached, and a
+  previously cached transient entry is evicted and refetched on read. A
+  rate-limited run must not poison every future warm rerun.
 
 ``retrieved_at`` semantics: if the inner response carries a ``date`` header
 it is stored verbatim (fixtures set an ISO date so tests are fully
-deterministic; real HTTP dates are stored as-is). Otherwise the wall clock at
-fetch time is stored. Consumers read ``retrieved_at`` from cache metadata —
-never the wall clock at emit time — via the synthesized
-``x-atlas-retrieved-at`` response header.
+deterministic; real HTTP dates are stored as-is). Otherwise the wall clock
+at fetch time is stored. Consumers read ``retrieved_at`` from cache
+metadata via the synthesized ``x-atlas-retrieved-at`` response header,
+never from the wall clock at emit time.
 """
 
-from __future__ import annotations
-
 import json
-import os
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -53,9 +51,7 @@ class _CacheKey(BaseModel):
 def cache_key(url: str, params: Mapping[str, str] | None, snapshot_date: str) -> str:
     return sha256_bytes(
         canonical_json_bytes(
-            _CacheKey(
-                endpoint=url, params=dict(params or {}), snapshot_date=snapshot_date
-            )
+            _CacheKey(endpoint=url, params=dict(params or {}), snapshot_date=snapshot_date)
         )
     )
 
@@ -79,7 +75,7 @@ class CacheEntryMetadata(BaseModel):
 def _atomic_write_bytes(path: Path, data: bytes) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_bytes(data)
-    os.replace(tmp, path)
+    tmp.replace(path)
 
 
 class CachingTransport:
@@ -104,9 +100,7 @@ class CachingTransport:
         key = cache_key(url, params, self._snapshot_date)
         body_path, metadata_path = self._paths(key)
         if body_path.exists() and metadata_path.exists():
-            metadata = CacheEntryMetadata.model_validate_json(
-                metadata_path.read_bytes()
-            )
+            metadata = CacheEntryMetadata.model_validate_json(metadata_path.read_bytes())
             if metadata.status not in TRANSIENT_STATUSES:
                 return metadata.response(body_path.read_bytes())
             # Self-heal entries poisoned before transient statuses were
@@ -117,9 +111,7 @@ class CachingTransport:
         fetched = self._inner.get(url, params)
         if fetched.status in TRANSIENT_STATUSES:
             return fetched
-        retrieved_at = (
-            fetched.headers.get("date") or datetime.now(timezone.utc).isoformat()
-        )
+        retrieved_at = fetched.headers.get("date") or datetime.now(UTC).isoformat()
         metadata = CacheEntryMetadata(
             status=fetched.status,
             headers={key.lower(): value for key, value in fetched.headers.items()},

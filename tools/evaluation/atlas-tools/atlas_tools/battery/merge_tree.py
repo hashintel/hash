@@ -1,41 +1,37 @@
-"""Merge-tree leaf persistence over a 2-D layout density raster (W3.2.1).
+"""Merge-tree leaf persistence over a 2-D layout density raster.
 
-Pipeline (PRD defaults in parentheses):
+This is the battery's primary structure metric. Pipeline (defaults in parentheses):
 
-1. Density raster: 2-D histogram of the layout at ``grid_size`` (1024) bins
-   per axis over the *layout's own extent*, then a gaussian blur of
-   ``bandwidth_px`` (4) pixels sigma (``scipy.ndimage.gaussian_filter``).
-2. Superlevel-set sweep: pixels with density >= ``floor_frac`` (0.005) of
-   the density max are processed in descending density order — equivalent
-   to a threshold sweep descending over the unique density levels above the
-   floor — with ties broken by flat pixel index, using a union-find with a
-   per-component birth level. A pixel with no activated 8-neighbors births
-   a new component at its own level. When components meet at level ``v``,
-   the elder (higher birth; ties to lower component id) survives; each
-   younger component with peak persistence ``birth - v >=
-   persistence_frac * birth`` (0.05) is recorded as a leaf, otherwise it is
-   merged silently. Components still alive at the floor are finalized the
+1. Density raster: a 2-D histogram of the layout at ``grid_size`` (1024) bins per axis over the
+   layout's own extent, then a gaussian blur of ``bandwidth_px`` (4) pixels sigma
+   (``scipy.ndimage.gaussian_filter``). Calibrated reference values are recorded against these
+   defaults; changing them invalidates every recorded reference.
+2. Superlevel-set sweep: pixels with density at or above ``floor_frac`` (0.005) of the density
+   maximum are processed in descending density order, which is equivalent to a threshold sweep
+   descending over the unique density levels above the floor, with ties broken by flat pixel
+   index, using a union-find with a per-component birth level. A pixel with no activated
+   8-neighbors births a new component at its own level. When components meet at level ``v``, the
+   elder (higher birth; ties go to the lower component id) survives; each younger component
+   whose persistence ``birth - v`` reaches ``persistence_frac * birth`` (0.05) is recorded as a
+   leaf, otherwise it is merged silently. Components still alive at the floor are finalized the
    same way against the floor level.
-3. A leaf born at ``B`` and merged/finalized at ``D`` has persistence
-   ``P = B - D``. ``normalized_persistence`` is the sum of leaf
-   persistences divided by the density max.
+3. A leaf born at ``B`` and merged or finalized at ``D`` has persistence ``P = B - D``.
+   ``normalized_persistence`` is the sum of leaf persistences divided by the density maximum.
 
-Anti-cheat property: because the histogram is taken over the layout's own
-extent and persistence is normalized by the density max, uniformly
-contracting the layout (multiplying all coordinates by a constant) leaves
-the raster — and therefore leaf count and normalized persistence — exactly
-unchanged (up to float rounding of bin assignment). Inflating density
+Anti-cheat property: because the histogram is taken over the layout's own extent and persistence
+is normalized by the density maximum, uniformly contracting the layout (multiplying all
+coordinates by a constant) leaves the raster, and therefore leaf count and normalized
+persistence, exactly unchanged (up to float rounding of bin assignment). Inflating density
 contrast by collapsing points buys nothing.
 
-Blind spot (by design): the metric is a pure function of the *multiset* of
-layout positions and is blind to which node sits where. A row-shuffled
-layout scores identically to its unshuffled source, so persistence gates
-must always be paired with neighbor-identity metrics (kNN recall,
-trustworthiness/continuity), per the atlas spec: "Persistence does not
-replace neighbor metrics; both are required."
+Blind spot (by design): the metric is a pure function of the *multiset* of layout positions and
+is blind to which node sits where. A row-shuffled layout scores identically to its unshuffled
+source, so persistence gates never stand alone; suites pair them with neighbor-identity metrics
+such as kNN recall and trustworthiness/continuity.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Final
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, PositiveFloat, PositiveInt
@@ -46,9 +42,19 @@ DEFAULT_BANDWIDTH_PX = 4.0
 DEFAULT_FLOOR_FRAC = 0.005
 DEFAULT_PERSISTENCE_FRAC = 0.05
 
+_LAYOUT_AXES: Final = 2
+"""Layouts are (n, 2) point sets and density rasters are 2-D grids."""
+
+_MIN_GRID_SIZE: Final = 2
+"""A raster needs at least two bins per axis to resolve any structure."""
+
 
 class MergeTreeConfig(BaseModel):
-    """Raster + sweep parameters (PRD defaults)."""
+    """Density raster and superlevel-sweep parameters.
+
+    The defaults are the calibrated production values; recorded reference values (see
+    :mod:`atlas_tools.battery.calibrate`) assume them.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -73,13 +79,19 @@ def density_raster(
     grid_size: int = DEFAULT_GRID_SIZE,
     bandwidth_px: float = DEFAULT_BANDWIDTH_PX,
 ) -> np.ndarray:
-    """2-D histogram over the layout's own extent + gaussian blur (pixels)."""
+    """Rasterize a layout into a blurred 2-D density histogram over its own extent.
 
+    The histogram spans exactly the layout's bounding box (a degenerate axis is widened by 0.5
+    on each side) with ``grid_size`` bins per axis, then receives a gaussian blur of
+    ``bandwidth_px`` pixels sigma. Rasterizing over the layout's own extent makes the raster
+    invariant to uniform scaling. An empty layout yields an all-zero raster; raises
+    :class:`ValueError` for non-(n, 2) input or ``grid_size < 2``.
+    """
     xy = np.asarray(xy, dtype=np.float64)
-    if xy.ndim != 2 or xy.shape[1] != 2:
+    if xy.ndim != _LAYOUT_AXES or xy.shape[1] != _LAYOUT_AXES:
         raise ValueError(f"xy must have shape (n, 2), got {xy.shape}")
 
-    if grid_size < 2:
+    if grid_size < _MIN_GRID_SIZE:
         raise ValueError("grid_size must be >= 2")
 
     if len(xy) == 0:
@@ -94,11 +106,122 @@ def density_raster(
     if ymax <= ymin:
         ymin, ymax = ymin - 0.5, ymax + 0.5
 
-    hist, _, _ = np.histogram2d(
+    histogram, _, _ = np.histogram2d(
         xy[:, 0], xy[:, 1], bins=grid_size, range=[[xmin, xmax], [ymin, ymax]]
     )
 
-    return gaussian_filter(hist, sigma=bandwidth_px)
+    return gaussian_filter(histogram, sigma=bandwidth_px)
+
+
+@dataclass
+class _Components:
+    """Union-find over sweep components, each carrying the density level it was born at."""
+
+    parent: list[int] = field(default_factory=list)
+    birth: list[float] = field(default_factory=list)
+
+    def add(self, birth_level: float) -> int:
+        """Create a new root component born at ``birth_level`` and return its id."""
+        component = len(self.parent)
+        self.parent.append(component)
+        self.birth.append(birth_level)
+
+        return component
+
+    def find(self, child: int) -> int:
+        """Return the root of ``child``, compressing the path along the way."""
+        root = child
+
+        while self.parent[root] != root:
+            root = self.parent[root]
+
+        while self.parent[child] != root:
+            self.parent[child], child = root, self.parent[child]
+
+        return root
+
+
+def _neighbor_roots(
+    components: _Components,
+    component_of: list[int],
+    pixel: int,
+    height: int,
+    width: int,
+) -> list[int]:
+    """Collect the distinct component roots among a pixel's activated 8-neighbors."""
+    row, col = divmod(pixel, width)
+    roots: list[int] = []
+
+    for row_offset in (-1, 0, 1):
+        neighbor_row = row + row_offset
+        if not 0 <= neighbor_row < height:
+            continue
+        base = neighbor_row * width
+
+        for col_offset in (-1, 0, 1):
+            if row_offset == 0 and col_offset == 0:
+                continue
+
+            neighbor_col = col + col_offset
+            if not 0 <= neighbor_col < width:
+                continue
+
+            neighbor_component = component_of[base + neighbor_col]
+
+            if neighbor_component >= 0:
+                root = components.find(neighbor_component)
+                if root not in roots:
+                    roots.append(root)
+
+    return roots
+
+
+def _merge_roots(
+    components: _Components,
+    roots: list[int],
+    level: float,
+    persistence_frac: float,
+    leaves: list[tuple[float, float]],
+) -> int:
+    """Merge the meeting components into the eldest at ``level``; return the survivor.
+
+    The elder (higher birth; ties go to the lower component id) survives. Each younger component
+    whose persistence ``birth - level`` reaches ``persistence_frac * birth`` is recorded as a
+    leaf; the rest merge silently.
+    """
+    eldest = roots[0]
+    for root in roots[1:]:
+        if components.birth[root] > components.birth[eldest] or (
+            components.birth[root] == components.birth[eldest] and root < eldest
+        ):
+            eldest = root
+
+    for root in roots:
+        if root == eldest:
+            continue
+
+        persistence = components.birth[root] - level
+        if persistence >= persistence_frac * components.birth[root]:
+            leaves.append((components.birth[root], level))
+
+        components.parent[root] = eldest
+
+    return eldest
+
+
+def _finalize_survivors(
+    components: _Components,
+    floor: float,
+    persistence_frac: float,
+    leaves: list[tuple[float, float]],
+) -> None:
+    """Record components still alive at the floor as leaves, under the same persistence filter."""
+    for component in range(len(components.parent)):
+        if components.parent[component] == component:
+            birth = components.birth[component]
+
+            if birth - floor >= persistence_frac * birth:
+                leaves.append((birth, floor))
 
 
 def merge_tree_from_density(
@@ -107,103 +230,46 @@ def merge_tree_from_density(
     floor_frac: float = DEFAULT_FLOOR_FRAC,
     persistence_frac: float = DEFAULT_PERSISTENCE_FRAC,
 ) -> MergeTreeResult:
-    """Persistence-style superlevel sweep over a density raster.
+    """Run the persistence superlevel sweep over a density raster.
 
-    Deterministic: pixels are processed in (descending density, ascending
-    flat index) order and all tie-breaks are index-based.
+    Deterministic: pixels are processed in (descending density, ascending flat index) order and
+    all tie-breaks are index-based. Raises :class:`ValueError` for a non-2-D raster; an all-zero
+    raster yields zero leaves.
     """
-    d = np.asarray(density, dtype=np.float64)
-    if d.ndim != 2:
-        raise ValueError(f"density must be 2-d, got shape {d.shape}")
+    density = np.asarray(density, dtype=np.float64)
+    if density.ndim != _LAYOUT_AXES:
+        raise ValueError(f"density must be 2-d, got shape {density.shape}")
 
-    density_max = float(d.max()) if d.size else 0.0
+    density_max = float(density.max()) if density.size else 0.0
     if density_max <= 0.0:
         return MergeTreeResult(0, 0.0, 0.0, density_max, ())
 
     floor = floor_frac * density_max
-    h, w = d.shape
+    height, width = density.shape
 
-    flat = d.ravel()
+    flat = density.ravel()
     active = np.nonzero(flat >= floor)[0]
 
     # Primary: descending density; ties: ascending flat index.
     order: list[int] = active[np.lexsort((active, -flat[active]))].tolist()
     values: list[float] = flat.tolist()
 
-    comp_of: list[int] = [-1] * (h * w)
-    parent: list[int] = []
-    birth: list[float] = []
+    component_of: list[int] = [-1] * (height * width)
+    components = _Components()
     leaves: list[tuple[float, float]] = []
 
-    def find(child: int) -> int:
-        root = child
+    for pixel in order:
+        level = values[pixel]
+        roots = _neighbor_roots(components, component_of, pixel, height, width)
 
-        while parent[root] != root:
-            root = parent[root]
+        if roots:
+            component_of[pixel] = _merge_roots(components, roots, level, persistence_frac, leaves)
+        else:
+            component_of[pixel] = components.add(level)
 
-        while parent[child] != root:
-            parent[child], child = root, parent[child]
+    _finalize_survivors(components, floor, persistence_frac, leaves)
 
-        return root
-
-    for p in order:
-        v = values[p]
-        row, col = divmod(p, w)
-        roots: list[int] = []
-
-        for dir_row in (-1, 0, 1):
-            row_neighbour = row + dir_row
-            if not 0 <= row_neighbour < h:
-                continue
-            base = row_neighbour * w
-
-            for dir_col in (-1, 0, 1):
-                if dir_row == 0 and dir_col == 0:
-                    continue
-
-                col_neighbour = col + dir_col
-                if not 0 <= col_neighbour < w:
-                    continue
-
-                q = comp_of[base + col_neighbour]
-
-                if q >= 0:
-                    root = find(q)
-                    if root not in roots:
-                        roots.append(root)
-
-        if not roots:
-            comp_of[p] = len(parent)
-            parent.append(len(parent))
-            birth.append(v)
-
-            continue
-
-        eldest = roots[0]
-        for r in roots[1:]:
-            if birth[r] > birth[eldest] or (birth[r] == birth[eldest] and r < eldest):
-                eldest = r
-
-        comp_of[p] = eldest
-        for r in roots:
-            if r == eldest:
-                continue
-
-            persistence = birth[r] - v
-            if persistence >= persistence_frac * birth[r]:
-                leaves.append((birth[r], v))
-
-            parent[r] = eldest
-
-    # Finalize survivors at the floor with the same persistence filter.
-    for c in range(len(parent)):
-        if parent[c] == c:
-            persistence = birth[c] - floor
-
-            if persistence >= persistence_frac * birth[c]:
-                leaves.append((birth[c], floor))
-
-    total = float(sum(b - death for b, death in leaves))
+    total = float(sum(birth - death for birth, death in leaves))
 
     return MergeTreeResult(
         leaf_count=len(leaves),
@@ -217,11 +283,9 @@ def merge_tree_from_density(
 def merge_tree_persistence(
     xy: np.ndarray, config: MergeTreeConfig | None = None
 ) -> MergeTreeResult:
-    """Merge-tree leaf persistence of a layout (raster + sweep composed)."""
+    """Compute merge-tree leaf persistence of a layout (raster and sweep composed)."""
     config = config if config is not None else MergeTreeConfig()
-    raster = density_raster(
-        xy, grid_size=config.grid_size, bandwidth_px=config.bandwidth_px
-    )
+    raster = density_raster(xy, grid_size=config.grid_size, bandwidth_px=config.bandwidth_px)
 
     return merge_tree_from_density(
         raster,

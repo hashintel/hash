@@ -1,5 +1,4 @@
-"""W2a property extraction: inventory, wbgetentities batching, P2302 parsing,
-example ladder, and the extraction orchestrator.
+"""Property mining: inventory, wbgetentities batching, P2302 parsing, example ladder.
 
 P2302 constraint parse scope (authoritative)
 --------------------------------------------
@@ -17,62 +16,64 @@ The parsed constraint types are the members of
 - ``Q21510855`` inverse constraint           -> ``Constraints.inverse_pid``
   (property from qualifier ``P2306``)
 
-ALL OTHER constraint types (format, allowed-qualifiers, citation-needed,
+Every other constraint type (format, allowed-qualifiers, citation-needed,
 property-scope, allowed-units, one-of, none-of, contemporary, integer, range,
-etc.) are explicitly ignored; their type QIDs are recorded in
+and so on) is ignored; the ignored type QIDs are recorded in
 ``Constraints.ignored_types`` and never affect output.
 
-Exclusion rules (configurable, applied in this order; first match wins)
+Exclusion rules (configurable; applied in this order, first match wins)
 -----------------------------------------------------------------------
-1. ``datatype:<dt>`` — datatype is not ``wikibase-item``. The inventory
-   SPARQL query already restricts to wikibase-item, but the parser
+1. ``datatype:<datatype>``: the datatype is not ``wikibase-item``. The
+   inventory SPARQL query already restricts to wikibase-item, but the parser
    defensively re-filters so external-identifier properties (P212-style)
    can never leak through.
-2. ``maintenance`` — the property's P31 intersects
-   ``extraction.maintenance_classes`` (Q18644435 "Wikimedia property…"-style
-   classes).
-3. ``deprecated`` — the property's P31 intersects
+2. ``maintenance``: the property's P31 intersects
+   ``extraction.maintenance_classes`` (Q18644435-style "Wikidata property
+   for Wikimedia" classes).
+3. ``deprecated``: the property's P31 intersects
    ``extraction.deprecated_classes`` (Q18644427-style obsolete-property
    classes; this is the owl:deprecated proxy available in entity documents).
 
 Example fallback ladder
 -----------------------
-Endpoints are tried in ``extraction.example_endpoint_ladder`` order
-(config, default QLever -> WDQS), then skip with a recorded flag; the
-outcome is a :data:`LadderOutcome` (``LadderSuccess`` tagged with its
-source endpoint, or ``LadderSkip``). ``example_fallbacks`` records every
-property NOT served by the first rung. An endpoint "fails" for a property
-when any of its offset requests returns a non-200 status
-(``RequestsTransport`` has already retried with backoff by then). Failures
-are cached like successes, so a warm-cache rerun makes zero network calls
-even for failing properties.
+Endpoints are tried in ``extraction.example_endpoint_ladder`` order (QLever
+first by default, then WDQS); when every rung fails the property records a
+skip. The outcome is a :data:`LadderOutcome`: a ``LadderSuccess`` tagged
+with its source endpoint, or a ``LadderSkip``. ``example_fallbacks``
+records every property that the first rung did not serve. An endpoint
+fails for a property when any of its offset requests returns a non-200
+status (``RequestsTransport`` has already retried with backoff by then).
+Failures are cached like successes, so a warm-cache rerun makes zero
+network calls even for failing properties.
 
-QLever-first reverses the PRD's WDQS-first prescription deliberately: the
-deep-offset subquery form (see sparql.py) times out structurally on
-WDQS/Blazegraph while QLever answers it in sub-second time, and each WDQS
-timeout costs the full client timeout per offset before falling through.
+The QLever-first ladder order is evidence-based: the deep-offset subquery
+form (see sparql.py) times out structurally on WDQS/Blazegraph while
+QLever answers it in sub-second time, and each WDQS timeout costs the full
+client timeout per offset before the ladder can fall through.
 
 Inverse resolution: an explicit P1696 (inverse property) statement wins;
 otherwise the inverse constraint (Q21510855, qualifier P2306) is used.
 
-Closed ancestors (atlas spec §3.3.3 item 3): property documents carry only
-DIRECT P1647 parents; the full closure for every item-property is fetched
-in ONE QLever query (0.3 s, 833 pairs live) and merged per record as
-direct parents (document order) first, then the remaining closure members
-in numeric-PID order. Cycle-safe (self and duplicates dropped).
+Closed ancestors: cards carry the full P1647 subproperty closure rather
+than only direct parents, so a card states every generalization of the
+relation. Property documents list direct parents only; the closure for
+every item-property is fetched in one QLever query (0.3 s, 833 pairs
+measured live) and merged per record as direct parents (document order)
+first, then the remaining closure members in numeric-PID order. The merge
+is cycle-safe: the record's own PID and duplicates are dropped.
 
 Example selection lives in ``examples.py`` (stratified by subject-type
 constraint class, sitelink-weighted, endpoint-deduplicated). Under
-stratification, untyped candidates are dropped (live-verified motivation:
-reversed statements in the long tail, e.g. Q100151929, a person with EMPTY
-P31, as the SUBJECT of P6) and typed candidates matching no constraint
-class land in the diagnostic ``other`` bucket. Properties without
-constraints keep every candidate, typed or not.
+stratification, untyped candidates are dropped; the motivation is
+live-verified: the long tail contains reversed statements, for example
+Q100151929, a person with an empty P31, appearing as the subject of P6.
+Typed candidates matching no constraint class land in the diagnostic
+``other`` bucket. Properties without constraints keep every candidate,
+typed or not.
 """
 
-import os
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from pydantic import BaseModel, Field, JsonValue, ValidationError
@@ -187,21 +188,68 @@ def _qualifier_entity_ids(statement: Statement, qualifier: str) -> tuple[str, ..
     return tuple(ids)
 
 
-def parse_constraints(p2302_statements: Sequence[Statement]) -> Constraints:
-    """Parse the P2302 statements of one property (scope documented above).
+def _extend_unique(target: list[str], entity_ids: tuple[str, ...]) -> None:
+    for entity_id in entity_ids:
+        if entity_id not in target:
+            target.append(entity_id)
 
-    Unknown constraint types are ignored without error and recorded in
+
+@dataclass
+class _ConstraintsInProgress:
+    """Mutable accumulator for one property's P2302 statements."""
+
+    symmetric: bool = False
+    transitive: bool = False
+    single_value: bool = False
+    distinct_values: bool = False
+    subject_types: list[str] = field(default_factory=list)
+    value_types: list[str] = field(default_factory=list)
+    inverse_pid: str | None = None
+    ignored: list[str] = field(default_factory=list)
+
+    def apply(self, kind: ConstraintKind, statement: Statement) -> None:
+        match kind:
+            case ConstraintKind.SYMMETRIC:
+                self.symmetric = True
+            case ConstraintKind.TRANSITIVE:
+                self.transitive = True
+            case ConstraintKind.SINGLE_VALUE:
+                self.single_value = True
+            case ConstraintKind.DISTINCT_VALUES:
+                self.distinct_values = True
+            case ConstraintKind.SUBJECT_TYPE:
+                _extend_unique(
+                    self.subject_types,
+                    _qualifier_entity_ids(statement, _QUALIFIER_CLASS),
+                )
+            case ConstraintKind.VALUE_TYPE:
+                _extend_unique(self.value_types, _qualifier_entity_ids(statement, _QUALIFIER_CLASS))
+            case ConstraintKind.INVERSE:
+                pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
+                if pids and self.inverse_pid is None:
+                    self.inverse_pid = pids[0]
+
+    def build(self) -> Constraints:
+        return Constraints(
+            symmetric=self.symmetric,
+            transitive=self.transitive,
+            single_value=self.single_value,
+            distinct_values=self.distinct_values,
+            subject_types=tuple(self.subject_types),
+            value_types=tuple(self.value_types),
+            inverse_pid=self.inverse_pid,
+            ignored_types=tuple(self.ignored),
+        )
+
+
+def parse_constraints(p2302_statements: Sequence[Statement]) -> Constraints:
+    """Parse the P2302 statements of one property.
+
+    The parse scope is documented in the module docstring. Unknown
+    constraint types are ignored without error and recorded in
     ``ignored_types`` (deduplicated, statement order preserved).
     """
-    symmetric = False
-    transitive = False
-    single_value = False
-    distinct_values = False
-    subject_types: list[str] = []
-    value_types: list[str] = []
-    inverse_pid: str | None = None
-    ignored: list[str] = []
-
+    accumulator = _ConstraintsInProgress()
     for statement in p2302_statements:
         type_qid = _snak_entity_id(statement.mainsnak)
         if type_qid is None:
@@ -209,47 +257,21 @@ def parse_constraints(p2302_statements: Sequence[Statement]) -> Constraints:
         try:
             kind = ConstraintKind(type_qid)
         except ValueError:
-            if type_qid not in ignored:
-                ignored.append(type_qid)
+            if type_qid not in accumulator.ignored:
+                accumulator.ignored.append(type_qid)
             continue
-        match kind:
-            case ConstraintKind.SYMMETRIC:
-                symmetric = True
-            case ConstraintKind.TRANSITIVE:
-                transitive = True
-            case ConstraintKind.SINGLE_VALUE:
-                single_value = True
-            case ConstraintKind.DISTINCT_VALUES:
-                distinct_values = True
-            case ConstraintKind.SUBJECT_TYPE:
-                for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
-                    if qid not in subject_types:
-                        subject_types.append(qid)
-            case ConstraintKind.VALUE_TYPE:
-                for qid in _qualifier_entity_ids(statement, _QUALIFIER_CLASS):
-                    if qid not in value_types:
-                        value_types.append(qid)
-            case ConstraintKind.INVERSE:
-                pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
-                if pids and inverse_pid is None:
-                    inverse_pid = pids[0]
-
-    return Constraints(
-        symmetric=symmetric,
-        transitive=transitive,
-        single_value=single_value,
-        distinct_values=distinct_values,
-        subject_types=tuple(subject_types),
-        value_types=tuple(value_types),
-        inverse_pid=inverse_pid,
-        ignored_types=tuple(ignored),
-    )
+        accumulator.apply(kind, statement)
+    return accumulator.build()
 
 
 def parse_property_document(
     document: EntityDocument, languages: tuple[LanguageAlpha2, ...]
 ) -> PropertyRecord:
-    """Build a PropertyRecord (sans examples/usage) from a wbgetentities doc."""
+    """Build a :class:`PropertyRecord` from one wbgetentities entity document.
+
+    Usage, examples, and retrieval metadata are filled in by later
+    extraction phases.
+    """
     constraints = parse_constraints(document.claims.get("P2302", []))
     p1696 = _statement_entity_ids(document.claims, "P1696")
     inverse_pid = p1696[0] if p1696 else constraints.inverse_pid
@@ -278,10 +300,8 @@ def parse_property_document(
     )
 
 
-def exclusion_reason(
-    record: PropertyRecord, extraction: ExtractionConfig
-) -> str | None:
-    """First matching exclusion rule, or None if the property is retained."""
+def exclusion_reason(record: PropertyRecord, extraction: ExtractionConfig) -> str | None:
+    """Return the first matching exclusion rule, or None when the property is retained."""
     if record.datatype != "wikibase-item":
         return f"datatype:{record.datatype}"
     p31 = set(record.p31)
@@ -295,7 +315,7 @@ def exclusion_reason(
 def chunk_ids[IdT: str](
     ids: Sequence[IdT], size: int = WBGETENTITIES_BATCH_SIZE
 ) -> list[list[IdT]]:
-    """Numeric-sorted ids in fixed-size chunks (deterministic batching).
+    """Chunk ids into fixed-size batches in deterministic numeric order.
 
     The tiebreak on the full id keeps mixed P/Q batches deterministic
     (P50 and Q50 share the numeric key 50).
@@ -319,11 +339,13 @@ def wbgetentities_params(
 def merge_closed_ancestors(
     record: PropertyRecord, closure: Mapping[Pid, tuple[Pid, ...]]
 ) -> tuple[Pid, ...]:
-    """CLOSED ancestor set for one record (atlas spec §3.3.3 item 3).
+    """Merge a record's direct parents with the fetched ancestor closure.
 
-    Direct P1647 parents keep their document order and come first; the
-    remaining closure members follow in numeric-PID order. The record's own
-    PID and duplicates are dropped, which also makes P1647 cycles safe.
+    Cards carry the full subproperty closure rather than only direct
+    parents, so a card states every generalization of the relation. Direct
+    P1647 parents keep their document order and come first; the remaining
+    closure members follow in numeric-PID order. The record's own PID and
+    duplicates are dropped, which also makes P1647 cycles safe.
     """
     direct = record.ancestors
     closure_members = set(closure.get(record.pid, ())) - set(direct) - {record.pid}
@@ -354,8 +376,12 @@ def fetch_example_rows(
     endpoints: tuple[ExampleSource, ...] | None = None,
     progress: ProgressReporter = NO_PROGRESS,
 ) -> LadderOutcome:
-    """Run the fallback ladder; ``endpoints`` defaults to the configured
-    ``extraction.example_endpoint_ladder`` (checkpoint replay narrows it)."""
+    """Run the example fallback ladder for one property.
+
+    ``endpoints`` defaults to the configured
+    ``extraction.example_endpoint_ladder``; checkpoint replay passes a
+    narrowed tuple instead.
+    """
     if endpoints is None:
         endpoints = extraction.example_endpoint_ladder
     for endpoint in endpoints:
@@ -371,9 +397,7 @@ def fetch_example_rows(
             )
             response = transport.get(url, sparql_params(query))
             if not response.ok:
-                progress.note(
-                    f"{pid}: {endpoint} example query failed (status {response.status})"
-                )
+                progress.note(f"{pid}: {endpoint} example query failed (status {response.status})")
                 endpoint_ok = False
                 break
             rows.extend(parse_example_results(response.body))
@@ -424,9 +448,7 @@ class ExtractionCheckpoint:
         self._state = ExtractionCheckpointState(config_hash=config_hash)
         if path.exists():
             try:
-                loaded = ExtractionCheckpointState.model_validate_json(
-                    path.read_bytes()
-                )
+                loaded = ExtractionCheckpointState.model_validate_json(path.read_bytes())
             except ValidationError:
                 loaded = None
             if loaded is not None and loaded.config_hash == config_hash:
@@ -447,15 +469,16 @@ class ExtractionCheckpoint:
             self._state.model_dump_json(indent=2) + "\n",
             encoding="utf-8",
         )
-        os.replace(tmp, self.path)
+        tmp.replace(self.path)
 
 
 def extraction_config_hash(config: Config) -> str:
-    """Checkpoint guard hash: extraction sub-config + example-query version.
+    """Hash the extraction sub-config plus the example-query version.
 
-    Card-format-independent. Including :data:`EXAMPLE_QUERY_VERSION` means a
-    semantic query fix discards recorded ladder outcomes instead of
-    replaying results of the old, possibly-broken query.
+    This is the checkpoint guard hash, and it is card-format-independent.
+    Including :data:`EXAMPLE_QUERY_VERSION` means a semantic query fix
+    discards recorded ladder outcomes instead of replaying results of the
+    old, possibly-broken query.
     """
     return sha256_bytes(
         canonical_json_bytes(
@@ -467,80 +490,79 @@ def extraction_config_hash(config: Config) -> str:
     )
 
 
-def extract_properties(
-    config: Config,
-    transport: Transport,
-    *,
-    taxonomy: Taxonomy | None = None,
-    checkpoint_path: Path | str | None = None,
-    progress: ProgressReporter = NO_PROGRESS,
-) -> ExtractionResult:
-    """Full W2a extraction: inventory -> ancestors closure -> documents ->
-    exclusions -> labels -> example ladder. All HTTP goes through
-    ``transport``; wrap it in a ``CachingTransport`` for warm-cache reruns
-    with zero network calls. ``taxonomy`` is required whenever the
-    subject-type example filter is enabled."""
-    extraction = config.extraction
-    if extraction.filter_examples_by_subject_type and taxonomy is None:
-        raise RuntimeError(
-            "subject-type example filtering is enabled"
-            " (extraction.filter_examples_by_subject_type) but no taxonomy was"
-            " provided; build one with `wikidata taxonomy --config … --out"
-            " taxonomy.parquet --checkpoint …` and pass it via --taxonomy"
-            " (or disable the filter)"
-        )
+@dataclass
+class _Inventory:
+    """Partitioned inventory: raw rows, exclusions so far, and retained PIDs."""
 
-    checkpoint = (
-        ExtractionCheckpoint(Path(checkpoint_path), extraction_config_hash(config))
-        if checkpoint_path is not None
-        else None
-    )
+    rows: list[InventoryRow]
+    excluded: dict[str, str]
+    retained_pids: list[Pid]
+    usage_by_pid: dict[str, int | None]
 
-    # 1. Property inventory via SPARQL.
+
+def _fetch_inventory(
+    extraction: ExtractionConfig, transport: Transport, progress: ProgressReporter
+) -> _Inventory:
+    """Fetch the property inventory and partition it by datatype."""
     progress.phase("property inventory (SPARQL)")
-    response = transport.get(
-        extraction.endpoints.wdqs, sparql_params(property_inventory_query())
-    )
+    response = transport.get(extraction.endpoints.wdqs, sparql_params(property_inventory_query()))
     if not response.ok:
-        raise RuntimeError(
-            f"property inventory query failed with status {response.status}"
-        )
+        raise RuntimeError(f"property inventory query failed with status {response.status}")
 
-    inventory_rows = parse_inventory_results(response.body)
-
+    rows = parse_inventory_results(response.body)
     excluded: dict[str, str] = {}
     retained_pids: list[Pid] = []
     usage_by_pid: dict[str, int | None] = {}
-
-    for row in inventory_rows:
+    for row in rows:
         usage_by_pid[row.pid] = row.usage
         if row.datatype_uri != WIKIBASE_ITEM_DATATYPE:
             excluded[row.pid] = f"datatype:{row.datatype_uri.rsplit('#', 1)[-1]}"
         else:
             retained_pids.append(Pid(row.pid))
-
-    # 1b. P1647 ancestor CLOSURE for all item-properties, one small query
-    # (goes through the cache, unlike taxonomy pages).
-    response = transport.get(
-        extraction.endpoints.qlever, sparql_params(property_ancestors_query())
+    return _Inventory(
+        rows=rows,
+        excluded=excluded,
+        retained_pids=retained_pids,
+        usage_by_pid=usage_by_pid,
     )
+
+
+def _fetch_ancestor_closure(
+    extraction: ExtractionConfig, transport: Transport
+) -> dict[Pid, tuple[Pid, ...]]:
+    """Fetch the P1647 ancestor closure for all item-properties in one query.
+
+    The response is small (833 pairs measured live), so unlike taxonomy
+    pages it goes through the response cache.
+    """
+    response = transport.get(extraction.endpoints.qlever, sparql_params(property_ancestors_query()))
     if not response.ok:
-        raise RuntimeError(
-            f"property ancestors query failed with status {response.status}"
-        )
+        raise RuntimeError(f"property ancestors query failed with status {response.status}")
 
-    ancestor_closure: dict[Pid, tuple[Pid, ...]] = {}
+    closure: dict[Pid, list[Pid]] = {}
     for property_pid, ancestor_pid in parse_ancestor_results(response.body):
-        ancestor_closure[property_pid] = ancestor_closure.get(property_pid, ()) + (
-            ancestor_pid,
-        )
+        closure.setdefault(property_pid, []).append(ancestor_pid)
+    return {pid: tuple(ancestors) for pid, ancestors in closure.items()}
 
-    # 2. Full property documents via wbgetentities, batches of 50.
+
+def _fetch_property_records(
+    inventory: _Inventory,
+    ancestor_closure: Mapping[Pid, tuple[Pid, ...]],
+    extraction: ExtractionConfig,
+    transport: Transport,
+    progress: ProgressReporter,
+) -> list[PropertyRecord]:
+    """Fetch full property documents in batches and parse the retained ones.
+
+    Exclusions found at the document level (missing document, datatype,
+    maintenance, deprecated) are recorded in ``inventory.excluded``. The
+    returned records are sorted by numeric PID.
+    """
     progress.note(
-        f"{len(inventory_rows)} properties in inventory,"
-        f" {len(retained_pids)} entity-valued retained"
+        f"{len(inventory.rows)} properties in inventory,"
+        f" {len(inventory.retained_pids)} entity-valued retained"
     )
-    property_batches = chunk_ids(retained_pids)
+    property_batches = chunk_ids(inventory.retained_pids)
     progress.phase("property documents (wbgetentities)", total=len(property_batches))
     records: list[PropertyRecord] = []
 
@@ -551,36 +573,45 @@ def extract_properties(
         )
 
         if not response.ok:
-            raise RuntimeError(
-                f"wbgetentities batch failed with status {response.status}"
-            )
+            raise RuntimeError(f"wbgetentities batch failed with status {response.status}")
 
-        retrieved_at = response.headers.get(
-            RETRIEVED_AT_HEADER
-        ) or response.headers.get("date")
+        retrieved_at = response.headers.get(RETRIEVED_AT_HEADER) or response.headers.get("date")
         documents = WbGetEntitiesResponse.model_validate_json(response.body)
 
         for pid in batch:
             document = documents.entities.get(pid)
             if document is None:
-                excluded[pid] = "missing-document"
+                inventory.excluded[pid] = "missing-document"
                 continue
             record = parse_property_document(document, extraction.languages)
-            record.usage_count = usage_by_pid.get(pid)
+            record.usage_count = inventory.usage_by_pid.get(pid)
             record.retrieved_at = retrieved_at
             record.ancestors = merge_closed_ancestors(record, ancestor_closure)
             reason = exclusion_reason(record, extraction)
             if reason is not None:
-                excluded[pid] = reason
+                inventory.excluded[pid] = reason
             else:
                 records.append(record)
 
         progress.advance()
 
     records.sort(key=lambda record: pid_number(record.pid))
+    return records
 
-    # 3. Labels/descriptions for referenced items (endpoint types) so cards
-    # can render titles+descriptions. Property labels come from step 2.
+
+def _collect_entity_labels(
+    records: Sequence[PropertyRecord],
+    extraction: ExtractionConfig,
+    transport: Transport,
+    progress: ProgressReporter,
+) -> dict[Pid, EntityLabel]:
+    """Resolve labels and descriptions for every entity a card references.
+
+    Retained properties are covered by their own documents; the remaining
+    references (endpoint-type QIDs, plus closed-ancestor PIDs that are not
+    retained properties) are fetched in wbgetentities batches so cards can
+    render titles and descriptions for them.
+    """
     entity_labels: dict[Pid, EntityLabel] = {}
     primary = extraction.primary_language
     for record in records:
@@ -589,8 +620,6 @@ def extract_properties(
             description=record.descriptions.get(primary, ""),
         )
 
-    # Endpoint-type QIDs plus closed-ancestor PIDs that are not retained
-    # properties (their labels are not in entity_labels yet).
     referenced_ids = {
         qid
         for record in records
@@ -612,9 +641,7 @@ def extract_properties(
         )
 
         if not response.ok:
-            raise RuntimeError(
-                f"wbgetentities item batch failed with status {response.status}"
-            )
+            raise RuntimeError(f"wbgetentities item batch failed with status {response.status}")
 
         documents = WbGetEntitiesResponse.model_validate_json(response.body)
         for qid in batch:
@@ -630,31 +657,104 @@ def extract_properties(
             )
         progress.advance()
 
-    # 4. Example ladder per retained property.
+    return entity_labels
+
+
+@dataclass
+class _LadderDiagnostics:
+    """Per-run example-ladder outcomes, mirrored into :class:`ExtractionResult`."""
+
+    fallbacks: dict[str, ExampleSource] = field(default_factory=dict)
+    skips: list[str] = field(default_factory=list)
+    filtered: dict[str, int] = field(default_factory=dict)
+    other: dict[str, int] = field(default_factory=dict)
+    other_fallbacks: list[str] = field(default_factory=list)
+
+
+def _replay_endpoints(
+    checkpoint: ExtractionCheckpoint | None, pid: str, extraction: ExtractionConfig
+) -> tuple[ExampleSource, ...]:
+    """Choose the endpoints to probe for one property.
+
+    A checkpointed outcome narrows the ladder to the recorded endpoint (or
+    to nothing for a recorded skip), so a rerun replays results through the
+    response cache instead of re-probing.
+    """
+    if checkpoint is not None and pid in checkpoint.examples_done:
+        replay_source = checkpoint.examples_done[pid]
+        return (replay_source,) if replay_source is not None else ()
+    return extraction.example_endpoint_ladder
+
+
+def _apply_ladder_success(
+    record: PropertyRecord,
+    source: ExampleSource,
+    rows: tuple[ExampleRow, ...],
+    extraction: ExtractionConfig,
+    taxonomy: Taxonomy | None,
+    diagnostics: _LadderDiagnostics,
+    progress: ProgressReporter,
+) -> None:
+    """Select examples from fetched rows and record the selection diagnostics."""
+    record.example_source = source
+    if source != extraction.example_endpoint_ladder[0]:
+        diagnostics.fallbacks[record.pid] = source
+    selection = select_examples(
+        rows,
+        constraint_classes=record.constraints.subject_types,
+        taxonomy=taxonomy,
+        count=extraction.example_count,
+        seed=extraction.seed,
+        pid=record.pid,
+    )
+
+    record.examples = selection.examples
+
+    if selection.untyped_dropped:
+        diagnostics.filtered[record.pid] = selection.untyped_dropped
+        progress.note(
+            f"{record.pid}: {selection.untyped_dropped} untyped"
+            " candidates dropped (reversed-statement guard)"
+        )
+
+    if selection.other_candidates:
+        diagnostics.other[record.pid] = selection.other_candidates
+
+    if selection.other_used:
+        diagnostics.other_fallbacks.append(record.pid)
+        progress.note(
+            f"{record.pid}: every subject-type constraint stratum"
+            " is empty; examples fell back to the `other` pool"
+        )
+    elif selection.other_fraction > OTHER_WARNING_FRACTION:
+        progress.note(
+            f"{record.pid}: {selection.other_candidates} of"
+            f" {selection.candidates} candidates match no"
+            " subject-type constraint class; the constraint list"
+            " may be stale"
+        )
+
+
+def _mine_examples(
+    records: Sequence[PropertyRecord],
+    extraction: ExtractionConfig,
+    transport: Transport,
+    taxonomy: Taxonomy | None,
+    checkpoint: ExtractionCheckpoint | None,
+    progress: ProgressReporter,
+) -> _LadderDiagnostics:
+    """Run the example ladder for every retained property."""
     progress.phase("example ladder (per property)", total=len(records))
     if checkpoint is not None and checkpoint.examples_done:
         progress.note(
-            f"resuming: {len(checkpoint.examples_done)} example outcomes"
-            " replayed from checkpoint"
+            f"resuming: {len(checkpoint.examples_done)} example outcomes replayed from checkpoint"
         )
 
-    example_fallbacks: dict[str, ExampleSource] = {}
-    example_skips: list[str] = []
-    example_filtered: dict[str, int] = {}
-    example_other: dict[str, int] = {}
-    example_other_fallbacks: list[str] = []
-
+    diagnostics = _LadderDiagnostics()
     for record in records:
-        if checkpoint is not None and record.pid in checkpoint.examples_done:
-            replay_source = checkpoint.examples_done[record.pid]
-            endpoints: tuple[ExampleSource, ...] = (
-                (replay_source,) if replay_source is not None else ()
-            )
-        else:
-            endpoints = extraction.example_endpoint_ladder
+        endpoints = _replay_endpoints(checkpoint, record.pid, extraction)
 
         outcome: LadderOutcome = LadderSkip()
-
         if endpoints:
             outcome = fetch_example_rows(
                 record.pid,
@@ -666,49 +766,12 @@ def extract_properties(
 
         match outcome:
             case LadderSuccess(source=source, rows=rows):
-                record.example_source = source
-                if source != extraction.example_endpoint_ladder[0]:
-                    example_fallbacks[record.pid] = source
-                selection = select_examples(
-                    rows,
-                    constraint_classes=record.constraints.subject_types,
-                    taxonomy=(
-                        taxonomy if extraction.filter_examples_by_subject_type else None
-                    ),
-                    count=extraction.example_count,
-                    seed=extraction.seed,
-                    pid=record.pid,
+                _apply_ladder_success(
+                    record, source, rows, extraction, taxonomy, diagnostics, progress
                 )
-
-                record.examples = selection.examples
-
-                if selection.untyped_dropped:
-                    example_filtered[record.pid] = selection.untyped_dropped
-                    progress.note(
-                        f"{record.pid}: {selection.untyped_dropped} untyped"
-                        " candidates dropped (reversed-statement guard)"
-                    )
-
-                if selection.other_candidates:
-                    example_other[record.pid] = selection.other_candidates
-
-                if selection.other_used:
-                    example_other_fallbacks.append(record.pid)
-                    progress.note(
-                        f"{record.pid}: every subject-type constraint stratum"
-                        " is empty; examples fell back to the `other` pool"
-                    )
-                elif selection.other_fraction > OTHER_WARNING_FRACTION:
-                    progress.note(
-                        f"{record.pid}: {selection.other_candidates} of"
-                        f" {selection.candidates} candidates match no"
-                        " subject-type constraint class — the constraint list"
-                        " may be stale"
-                    )
-
             case LadderSkip():
                 record.example_skipped = True
-                example_skips.append(record.pid)
+                diagnostics.skips.append(record.pid)
                 progress.note(f"{record.pid}: example ladder exhausted, skipped")
 
         if checkpoint is not None:
@@ -716,15 +779,63 @@ def extract_properties(
 
         progress.advance()
 
+    return diagnostics
+
+
+def extract_properties(
+    config: Config,
+    transport: Transport,
+    *,
+    taxonomy: Taxonomy | None = None,
+    checkpoint_path: Path | str | None = None,
+    progress: ProgressReporter = NO_PROGRESS,
+) -> ExtractionResult:
+    """Mine property records through the full pipeline.
+
+    Phases: inventory, ancestor closure, property documents, entity
+    labels, example ladder. All HTTP goes through ``transport``; wrap it
+    in a :class:`~atlas_tools.wikidata.cache.CachingTransport` for
+    warm-cache reruns with zero network calls. ``taxonomy`` is required
+    whenever the subject-type example filter is enabled.
+    """
+    extraction = config.extraction
+    if extraction.filter_examples_by_subject_type and taxonomy is None:
+        raise RuntimeError(
+            "subject-type example filtering is enabled"
+            " (extraction.filter_examples_by_subject_type) but no taxonomy was"
+            " provided; build one with `wikidata taxonomy --config ... --out"
+            " taxonomy.parquet --checkpoint ...` and pass it via --taxonomy"
+            " (or disable the filter)"
+        )
+
+    checkpoint = (
+        ExtractionCheckpoint(Path(checkpoint_path), extraction_config_hash(config))
+        if checkpoint_path is not None
+        else None
+    )
+
+    inventory = _fetch_inventory(extraction, transport, progress)
+    ancestor_closure = _fetch_ancestor_closure(extraction, transport)
+    records = _fetch_property_records(inventory, ancestor_closure, extraction, transport, progress)
+    entity_labels = _collect_entity_labels(records, extraction, transport, progress)
+    diagnostics = _mine_examples(
+        records,
+        extraction,
+        transport,
+        taxonomy if extraction.filter_examples_by_subject_type else None,
+        checkpoint,
+        progress,
+    )
+
     return ExtractionResult(
         records=records,
-        inventory_rows=inventory_rows,
-        excluded=excluded,
+        inventory_rows=inventory.rows,
+        excluded=inventory.excluded,
         entity_labels=entity_labels,
-        example_fallbacks=example_fallbacks,
-        example_skips=example_skips,
-        example_filtered=example_filtered,
-        example_other=example_other,
-        example_other_fallbacks=example_other_fallbacks,
+        example_fallbacks=diagnostics.fallbacks,
+        example_skips=diagnostics.skips,
+        example_filtered=diagnostics.filtered,
+        example_other=diagnostics.other,
+        example_other_fallbacks=diagnostics.other_fallbacks,
         api_snapshot_date=extraction.snapshot_date,
     )

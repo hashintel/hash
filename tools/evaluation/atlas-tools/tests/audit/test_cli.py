@@ -40,7 +40,7 @@ def test_synth_fixture_writes_valid_matrix(tmp_path: Path) -> None:
 
     vectors, details = load_matrix(out)
     assert (details.rows, details.dim) == (200, 32)
-    # Signal lives only in dims 16..32: the low block is pure small noise.
+    # Signal lives only in dimensions 16..32: the low block is pure small noise.
     assert np.abs(vectors[:, :16]).max() < 1.0
     assert np.abs(vectors[:, 16:]).max() > 1.0
     assert labels.exists()

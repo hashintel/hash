@@ -49,9 +49,9 @@ datasets:
 # measured worst case, while a row-shuffled layout lands at chance and fails
 # every one of the structure gates below. The normalized_persistence gate is
 # a baseline-margin floor: merge-tree persistence is identity-blind (a row
-# shuffle preserves the position multiset), so it guards against structure
-# LOSS and pairs with the neighbor gates above; unsupported structure GAIN
-# is policed by the always-on noise differential.
+# shuffle preserves the position multiset), so this gate guards against loss
+# of structure and pairs with the neighbor gates above; unsupported gain of
+# structure is policed by the always-on noise differential.
 # Scoping notes:
 # - silhouette excludes bipartite_star (umap_default legitimately scores
 #   ~0.08 there: 8 topic macro-clusters fragment into ~100 star clumps).

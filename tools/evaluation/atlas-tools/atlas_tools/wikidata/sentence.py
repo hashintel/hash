@@ -3,11 +3,12 @@
 Card truncation reduces descriptions to their lead sentence, so the split
 point matters. The manifest records which splitter was used.
 
-- ``punkt`` (production default): nltk's punkt — linguistically aware
-  (abbreviations, ordinals, "5 p.m."). Requires the ``punkt_tab`` tokenizer
-  data: ``uv run python -m nltk.downloader punkt_tab`` (see README).
+- ``punkt`` (production default): nltk's punkt, which is linguistically
+  aware (abbreviations, ordinals, "5 p.m."). Requires the ``punkt_tab``
+  tokenizer data: ``uv run python -m nltk.downloader punkt_tab`` (see
+  README).
 - ``naive`` (tests/offline): deterministic regex split after ``.``/``!``/``?``
-  + whitespace. Dependency-free but blind to abbreviations.
+  plus whitespace. Dependency-free but blind to abbreviations.
 """
 
 import re
@@ -30,7 +31,9 @@ class PunktSentenceSplitter:
     name: SentenceSplitterName = "punkt"
 
     def __init__(self) -> None:
-        from nltk.tokenize import sent_tokenize
+        # Imported lazily: nltk is heavy, and runs configured with the
+        # naive splitter must not pay for it.
+        from nltk.tokenize import sent_tokenize  # noqa: PLC0415
 
         self._tokenize = sent_tokenize
         self._probe()
@@ -50,11 +53,13 @@ class PunktSentenceSplitter:
 
 
 class NaiveSentenceSplitter:
-    """Deterministic regex split after ``.``/``!``/``?`` + whitespace."""
+    """Deterministic regex split after ``.``/``!``/``?`` plus whitespace."""
 
     name: SentenceSplitterName = "naive"
 
-    def split(self, text: str, *, language: LanguageAlpha2) -> list[str]:
+    # The SentenceSplitter protocol passes ``language`` by keyword, so it
+    # cannot be underscore-renamed; the naive splitter is language-blind.
+    def split(self, text: str, *, language: LanguageAlpha2) -> list[str]:  # noqa: ARG002
         return [part for part in re.split(r"(?<=[.!?])\s+", text) if part]
 
 

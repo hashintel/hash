@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from atlas_tools.common.layout import load_layout, write_layout
 
 
-def test_roundtrip_with_sidecar(tmp_path):
+def test_roundtrip_with_sidecar(tmp_path: Path) -> None:
     xy = np.array([[0.0, 1.0], [2.0, 3.0]], dtype=np.float32)
     path = tmp_path / "layout.npz"
     write_layout(
@@ -26,7 +28,7 @@ def test_roundtrip_with_sidecar(tmp_path):
     assert artifact.provenance.config_hash is not None
 
 
-def test_missing_sidecar_fails_closed(tmp_path):
+def test_missing_sidecar_fails_closed(tmp_path: Path) -> None:
     path = tmp_path / "layout.npz"
     np.savez(
         path,
@@ -41,7 +43,7 @@ def test_missing_sidecar_fails_closed(tmp_path):
     assert artifact.provenance is None
 
 
-def test_shape_and_dtype_validation(tmp_path):
+def test_shape_and_dtype_validation(tmp_path: Path) -> None:
     path = tmp_path / "layout.npz"
     np.savez(
         path,
@@ -64,7 +66,7 @@ def test_shape_and_dtype_validation(tmp_path):
         load_layout(path)
 
 
-def test_non_finite_rejected(tmp_path):
+def test_non_finite_rejected(tmp_path: Path) -> None:
     path = tmp_path / "layout.npz"
     xy = np.zeros((2, 2), dtype=np.float32)
     xy[0, 0] = np.nan

@@ -1,15 +1,15 @@
 """Synthetic acceptance fixture for the prefix audit.
 
-Construction (per PRD W1 acceptance): well-separated cluster centroids whose
-coordinates are zero outside a configurable ``signal_band`` (default dims
-400..512) and Gaussian inside it, plus small iid noise everywhere. With the
-default band:
+The corpus consists of well-separated cluster centroids whose coordinates are zero outside
+a configurable ``signal_band`` (default dimensions 400..512) and Gaussian inside it, plus
+small independent noise everywhere. With the default band:
 
 - full-vector kNN respects clusters (signal dominates the noise);
-- a prefix that covers the band (e.g. d=512) keeps the signal;
-- a prefix that misses the band (e.g. d=256) sees mostly noise.
+- a prefix that covers the band (for example d=512) keeps the signal;
+- a prefix that misses the band (for example d=256) sees mostly noise.
 
-The tool is dim-agnostic: nothing here or in the runner hardcodes 3072.
+The construction is dimension-agnostic: nothing here or in the runner hardcodes a
+particular embedding width.
 """
 
 from dataclasses import dataclass
@@ -23,8 +23,10 @@ import pyarrow.parquet as pq
 
 @dataclass(frozen=True)
 class SyntheticCorpus:
-    """Generated corpus: ``vectors`` is ``(n, dim)`` float32;
-    ``cluster_labels`` is ``(n,)`` int64."""
+    """Generated corpus with cluster structure.
+
+    ``vectors`` is ``(n, dim)`` float32; ``cluster_labels`` is ``(n,)`` int64.
+    """
 
     vectors: np.ndarray
     cluster_labels: np.ndarray
@@ -40,13 +42,15 @@ def make_synthetic(
     noise_scale: float = 0.1,
     seed: int = 0,
 ) -> SyntheticCorpus:
-    """Generate a corpus whose signal lives only in a dim band.
+    """Generate a corpus whose signal lives only in a dimension band.
 
-    Cluster assignment is the balanced deterministic ``i % n_clusters``; all
-    randomness flows through ``np.random.default_rng(seed)``.
+    Cluster assignment is the balanced deterministic ``i % n_clusters``; all randomness
+    flows through ``np.random.default_rng(seed)``. Raises ``ValueError`` when
+    ``signal_band`` is out of range for ``dim`` or when ``n`` or ``n_clusters`` is not
+    positive.
     """
-    lo, hi = signal_band
-    if not 0 <= lo < hi <= dim:
+    low, high = signal_band
+    if not 0 <= low < high <= dim:
         raise ValueError(f"signal_band {signal_band} out of range for dim {dim}")
 
     if n_clusters <= 0 or n <= 0:
@@ -54,7 +58,7 @@ def make_synthetic(
 
     rng = np.random.default_rng(seed)
     centroids = np.zeros((n_clusters, dim), dtype=np.float64)
-    centroids[:, lo:hi] = rng.standard_normal((n_clusters, hi - lo)) * signal_scale
+    centroids[:, low:high] = rng.standard_normal((n_clusters, high - low)) * signal_scale
 
     cluster_labels = np.arange(n, dtype=np.int64) % n_clusters
     vectors = centroids[cluster_labels] + rng.standard_normal((n, dim)) * noise_scale
@@ -68,17 +72,15 @@ def make_synthetic(
 def write_cluster_labels(path: PathLike, cluster_labels: np.ndarray) -> Path:
     """Write a strata parquet mapping every row to its cluster label.
 
-    Columns: ``row`` (int64, 0..n-1) and ``cluster`` (string, ``"c<label>"``)
-    — directly consumable as ``--strata`` by ``audit run``.
+    The columns are ``row`` (int64, 0..n-1) and ``cluster`` (string, ``"c<label>"``); the
+    resulting table is directly consumable as ``--strata`` by ``audit run``.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     table = pa.table(
         {
-            "row": pa.array(
-                np.arange(len(cluster_labels), dtype=np.int64), type=pa.int64()
-            ),
+            "row": pa.array(np.arange(len(cluster_labels), dtype=np.int64), type=pa.int64()),
             "cluster": pa.array([f"c{int(label)}" for label in cluster_labels]),
         }
     )

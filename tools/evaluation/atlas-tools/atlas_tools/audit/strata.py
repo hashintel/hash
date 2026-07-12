@@ -1,9 +1,8 @@
-"""Strata tables: corpus row -> group labels, loaded from parquet.
+"""Strata tables mapping corpus rows to group labels, loaded from parquet.
 
-The on-disk contract is a parquet table with an integer ``row`` column
-(unique, non-null corpus row indices) plus one or more string group columns
-(e.g. role, language, source, density_decile). Null labels mean "row not in
-this group column".
+The on-disk contract is a parquet table with an integer ``row`` column (unique, non-null
+corpus row indices) plus one or more string group columns (for example role, language,
+source, density_decile). Null labels mean "row not in this group column".
 """
 
 from dataclasses import dataclass
@@ -19,10 +18,9 @@ import pyarrow.parquet as pq
 class StrataTable:
     """Row-aligned group labels.
 
-    ``row`` is a ``(n,)`` int64 array of unique corpus row indices, sorted
-    ascending. ``label_columns`` maps each group column name to a ``(n,)``
-    object array aligned with ``row`` whose entries are ``str`` labels or
-    ``None`` where the source cell was null.
+    ``row`` is a ``(n,)`` int64 array of unique corpus row indices, sorted ascending.
+    ``label_columns`` maps each group column name to a ``(n,)`` object array aligned with
+    ``row`` whose entries are ``str`` labels or ``None`` where the source cell was null.
     """
 
     row: np.ndarray
@@ -30,7 +28,12 @@ class StrataTable:
 
     @classmethod
     def from_parquet(cls, path: PathLike) -> Self:
-        """Load and validate a strata parquet, naming errors clearly."""
+        """Load and validate a strata parquet table.
+
+        Raises ``ValueError`` when the ``row`` column is missing, non-integer, null-
+        bearing, or contains duplicates; when a group column holds non-string labels; or
+        when no group column exists besides ``row``.
+        """
         table = pq.read_table(path)
 
         if "row" not in table.column_names:
@@ -39,8 +42,7 @@ class StrataTable:
         row_type = table.schema.field("row").type
         if not pa.types.is_integer(row_type):
             raise ValueError(
-                f"strata table {path}: 'row' column must be an integer type,"
-                f" got {row_type}"
+                f"strata table {path}: 'row' column must be an integer type, got {row_type}"
             )
 
         row_column = table.column("row")
@@ -75,11 +77,11 @@ class StrataTable:
         return cls(row=row_sorted, label_columns=label_columns)
 
     def labels_for(self, column: str, rows: np.ndarray) -> np.ndarray:
-        """Labels of ``column`` aligned with ``rows``.
+        """Look up the labels of ``column`` aligned with ``rows``.
 
-        Returns a ``(len(rows),)`` object array: the ``str`` label where the
-        corpus row is present (and non-null) in the table, ``None`` where it
-        is absent or its label cell was null.
+        Returns a ``(len(rows),)`` object array: the ``str`` label where the corpus row
+        is present (and non-null) in the table, ``None`` where it is absent or its label
+        cell was null.
         """
         values = self.label_columns[column]
         labels = np.full(len(rows), None, dtype=object)

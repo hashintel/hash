@@ -2,8 +2,8 @@
 
 Wikidata's full P279 edge list is ~5.2M edges (measured live on QLever).
 In-query subsumption filtering (FILTER EXISTS + P279* inside the example
-pool query) TIMES OUT on both public endpoints (~80 s on QLever), so
-subsumption is done LOCALLY: pull the whole edge list once into
+pool query) times out on both public endpoints (~80 s on QLever), so
+subsumption is done locally: pull the whole edge list once into
 ``taxonomy.parquet`` and answer subclass queries in memory.
 
 Extraction (:func:`extract_taxonomy`):
@@ -11,15 +11,15 @@ Extraction (:func:`extract_taxonomy`):
 - pages the edge list from QLever with a deterministic OFFSET ladder
   (``LIMIT <page_size> OFFSET k*page_size``; measured ~1.0 s / ~48 MB JSON
   per 500k-row page, ~11 pages total) until a short page signals the end;
-- follows the W2b dump-extractor pattern: each page becomes an atomic part
-  file, ``checkpoint.json`` advances only after the part is durable, the
-  final parquet is a single ``write_table`` over the concatenated parts, and
-  a completed run is marked ``complete`` so a rerun rebuilds identical
-  outputs with ZERO further fetches;
-- deliberately BYPASSES ``CachingTransport``: each page body is ~48 MB of
-  JSON and caching them would roughly double local storage for no benefit —
-  the parquet + checkpoint parts ARE the persistence. Pass the plain
-  transport.
+- follows the dump extractor's checkpoint pattern: each page becomes an
+  atomic part file, ``checkpoint.json`` advances only after the part is
+  durable, the final parquet is a single ``write_table`` over the
+  concatenated parts, and a completed run is marked ``complete`` so a
+  rerun rebuilds identical outputs with no further fetches;
+- deliberately bypasses ``CachingTransport``: each page body is ~48 MB of
+  JSON and caching them would roughly double local storage for no
+  benefit, because the parquet plus checkpoint parts already provide the
+  persistence. Pass the plain transport.
 
 Artifact schema: two int64 columns ``child``, ``parent`` (numeric QIDs;
 ``Pid`` branding happens at the API boundary). Sidecar: a typed provenance
@@ -32,9 +32,6 @@ per-type memoization. Cycle-safe (Wikidata P279 has cycles) and reflexive
 (a type subsumes itself).
 """
 
-from __future__ import annotations
-
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -60,9 +57,12 @@ TAXONOMY_SCHEMA = pa.schema(
 
 
 def taxonomy_page_query(*, limit: int, offset: int) -> str:
-    """One page of the full P279 edge list (verified live on QLever: 200 in
-    ~1.0 s per 500k page). The inner subquery slices the raw edge stream;
-    ``BIND(STRAFTER(...))`` projects bare QID strings to shrink the JSON."""
+    """Build the query for one page of the full P279 edge list.
+
+    Verified live on QLever: 200 in ~1.0 s per 500k page. The inner
+    subquery slices the raw edge stream; ``BIND(STRAFTER(...))`` projects
+    bare QID strings to shrink the JSON.
+    """
     return (
         "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
         "SELECT ?child ?parent WHERE {\n"
@@ -80,8 +80,11 @@ def taxonomy_page_query(*, limit: int, offset: int) -> str:
 
 @dataclass(frozen=True)
 class TaxonomyPage:
-    """One parsed page: numeric edges plus the raw binding count (the raw
-    count drives short-page termination even if non-item rows were skipped)."""
+    """One parsed page: numeric edges plus the raw binding count.
+
+    The raw count drives short-page termination even if non-item rows
+    were skipped.
+    """
 
     edges: tuple[tuple[int, int], ...]
     row_count: int
@@ -137,12 +140,10 @@ def _edges_table(edges: tuple[tuple[int, int], ...]) -> pa.Table:
 def _atomic_write_checkpoint(path: Path, checkpoint: TaxonomyCheckpoint) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(checkpoint.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    tmp.replace(path)
 
 
-def write_taxonomy_parquet(
-    edges: tuple[tuple[int, int], ...], out_path: Path | str
-) -> None:
+def write_taxonomy_parquet(edges: tuple[tuple[int, int], ...], out_path: Path | str) -> None:
     """Write a taxonomy parquet directly (fixtures/tests)."""
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,9 +160,9 @@ def extract_taxonomy(
 ) -> TaxonomySummary:
     """Page the full P279 edge list into ``out_path`` (see module docstring).
 
-    ``transport`` must be the PLAIN transport (no ``CachingTransport``):
-    page bodies are ~48 MB each and the parquet + checkpoint parts are the
-    persistence layer; caching the JSON would double storage.
+    ``transport`` must be the plain transport (no ``CachingTransport``):
+    page bodies are ~48 MB each and the parquet plus checkpoint parts are
+    the persistence layer; caching the JSON would double storage.
     """
     out_path = Path(out_path)
     checkpoint_dir = Path(checkpoint_dir)
@@ -172,17 +173,14 @@ def extract_taxonomy(
     page_size = extraction.taxonomy_page_size
     checkpoint = TaxonomyCheckpoint(next_offset=0, edges=0)
     if checkpoint_path.exists():
-        checkpoint = TaxonomyCheckpoint.model_validate_json(
-            checkpoint_path.read_bytes()
-        )
+        checkpoint = TaxonomyCheckpoint.model_validate_json(checkpoint_path.read_bytes())
 
     progress.phase("taxonomy pages (QLever)")
     if checkpoint.complete:
         progress.note("checkpoint marked complete: rebuilding from parts only")
     elif checkpoint.next_offset:
         progress.note(
-            f"resuming at offset {checkpoint.next_offset}"
-            f" ({checkpoint.edges} edges so far)"
+            f"resuming at offset {checkpoint.next_offset} ({checkpoint.edges} edges so far)"
         )
 
     while not checkpoint.complete:
@@ -199,7 +197,7 @@ def extract_taxonomy(
         part_path = checkpoint_dir / part_name
         tmp = part_path.with_name(part_path.name + ".tmp")
         pq.write_table(_edges_table(page.edges), tmp)
-        os.replace(tmp, part_path)
+        tmp.replace(part_path)
 
         parts = list(checkpoint.parts)
         if part_name not in parts:
@@ -228,7 +226,7 @@ def extract_taxonomy(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = out_path.with_name(out_path.name + ".tmp")
     pq.write_table(table, tmp)
-    os.replace(tmp, out_path)
+    tmp.replace(out_path)
 
     TaxonomyProvenance.make(
         producer="wikidata.taxonomy",
@@ -251,7 +249,7 @@ class Taxonomy:
     Edges are held as two int64 arrays sorted by child; ``_parents_of`` is a
     binary-search slice. ``closure``/``is_subclass_of`` run upward BFS with
     per-type memoization; cycles terminate via the visited set. The closure
-    is REFLEXIVE: every type subsumes itself, so a subject typed exactly as
+    is reflexive: every type subsumes itself, so a subject typed exactly as
     a permitted class passes the filter.
     """
 
@@ -278,7 +276,7 @@ class Taxonomy:
 
     @property
     def edge_count(self) -> int:
-        return int(len(self._children))
+        return len(self._children)
 
     def _parents_of(self, type_number: int) -> np.ndarray:
         low = int(np.searchsorted(self._children, type_number, side="left"))
@@ -309,10 +307,8 @@ class Taxonomy:
         )
 
     def is_subclass_of(self, type_qid: Pid, permitted: frozenset[Pid]) -> bool:
-        """True iff ``type_qid`` is (a subclass of) any permitted class."""
+        """Report whether ``type_qid`` is (a subclass of) any permitted class."""
         if type_qid in permitted:
             return True
         permitted_numbers = {pid_number(entity_id) for entity_id in permitted}
-        return not permitted_numbers.isdisjoint(
-            self._closure_numbers(pid_number(type_qid))
-        )
+        return not permitted_numbers.isdisjoint(self._closure_numbers(pid_number(type_qid)))

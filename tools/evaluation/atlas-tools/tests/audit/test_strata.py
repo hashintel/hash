@@ -1,12 +1,11 @@
-"""Stratified reporting: parsing, lookup, and flagging.
+"""Stratified reporting tests: parsing, lookup, and flagging.
 
-Flag test construction: group "low" (660 rows, 60 clusters of 11) carries its
-signal in dims 0..112, which a d=256 prefix keeps. Group "high" (220 rows,
-20 clusters of 11) carries its signal in dims 400..512, which a d=256 prefix
-destroys. With k=10 and 10 same-cluster mates per query, full-vector and
-kept-prefix top-10 are exactly the cluster mates, so group "high" degrades
-~1.0 while overall degradation stays near 0.25 — well past the 2x flag
-threshold.
+Flag test construction: group "low" (660 rows, 60 clusters of 11) carries its signal in
+dimensions 0..112, which a d=256 prefix keeps. Group "high" (220 rows, 20 clusters of 11)
+carries its signal in dimensions 400..512, which a d=256 prefix destroys. With k=10 and 10
+same-cluster mates per query, full-vector and kept-prefix top-10 are exactly the cluster
+mates, so group "high" degrades to roughly 1.0 while overall degradation stays near 0.25,
+well past the 2x flag threshold.
 """
 
 from pathlib import Path
@@ -19,7 +18,7 @@ import pytest
 from atlas_tools.audit.evaluation import Dim, K
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.strata import StrataTable
-from atlas_tools.audit.synth import make_synthetic
+from atlas_tools.audit.synthetic import make_synthetic
 from atlas_tools.common.matrix import write_matrix
 
 

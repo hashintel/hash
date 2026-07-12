@@ -6,8 +6,6 @@ tiny protocol rather than logging so tests can assert progress semantics
 (phases seen, counts advanced) without parsing formatted strings.
 """
 
-from __future__ import annotations
-
 import sys
 import time
 from collections.abc import Callable
@@ -42,9 +40,12 @@ NO_PROGRESS = NoProgress()
 
 
 class StderrProgress:
-    """Human-oriented progress lines on stderr, throttled to one per
-    ``min_interval_seconds`` (a warm-cache run advances thousands of items
-    per second; unthrottled output would drown the terminal)."""
+    """Human-oriented progress lines on stderr.
+
+    Output is throttled to one line per ``min_interval_seconds``: a
+    warm-cache run advances thousands of items per second, and
+    unthrottled output would drown the terminal.
+    """
 
     def __init__(
         self,
@@ -64,7 +65,8 @@ class StderrProgress:
 
     @staticmethod
     def _write_stderr(line: str) -> None:
-        print(line, file=sys.stderr, flush=True)
+        sys.stderr.write(line + "\n")
+        sys.stderr.flush()
 
     def _elapsed(self) -> str:
         seconds = int(self._clock() - self._started_at)
