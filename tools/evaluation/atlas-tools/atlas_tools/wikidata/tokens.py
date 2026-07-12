@@ -8,8 +8,6 @@ The manifest records which counter was used.
   standard "~4 bytes per token" approximation. Deterministic and documented.
 """
 
-from __future__ import annotations
-
 import math
 from typing import Protocol
 

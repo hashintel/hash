@@ -47,81 +47,23 @@ The title, description, inverse, and endpoint-type summaries are never
 dropped. ``severely_truncated`` = the card still exceeds the hard budget
 after every pass, or more than half of its examples were dropped.
 
-Sentence splitting is pluggable (:class:`SentenceSplitter`), mirroring
-``TokenCounter``: ``punkt`` (nltk, production default — requires the
-``punkt_tab`` data, see README) or ``naive`` (deterministic regex, used by
-offline tests).
+Sentence splitting is pluggable and lives in ``sentence.py``
+(:class:`~atlas_tools.wikidata.sentence.SentenceSplitter`), mirroring
+``tokens.TokenCounter``.
 """
-
-from __future__ import annotations
 
 import re
 from collections.abc import Callable, Generator, Mapping
-from typing import Protocol, Self
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 from atlas_tools.common import sha256_bytes
-from atlas_tools.wikidata.config import Config, SentenceSplitterName
+from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, EntityLabel, Pid, PropertyRecord
+from atlas_tools.wikidata.sentence import SentenceSplitter
 from atlas_tools.wikidata.tokens import TokenCounter
-
-
-class SentenceSplitter(Protocol):
-    name: SentenceSplitterName
-
-    def split(self, text: str, *, language: LanguageAlpha2) -> list[str]: ...
-
-
-class PunktSentenceSplitter:
-    """nltk punkt: linguistically aware (abbreviations, ordinals, ...).
-
-    Requires the ``punkt_tab`` tokenizer data; see README setup.
-    """
-
-    name: SentenceSplitterName = "punkt"
-
-    def __init__(self) -> None:
-        from nltk.tokenize import sent_tokenize
-
-        self._tokenize = sent_tokenize
-        self._probe()
-
-    def _probe(self) -> None:
-        try:
-            self._tokenize("probe.", language="english")
-        except LookupError as error:
-            raise RuntimeError(
-                "the punkt sentence splitter needs its tokenizer data;"
-                " run `uv run python -m nltk.downloader punkt_tab`"
-                " (or configure cards.sentence_splitter: naive)"
-            ) from error
-
-    def split(self, text: str, *, language: LanguageAlpha2) -> list[str]:
-        return self._tokenize(text, language=language.name.lower())
-
-
-class NaiveSentenceSplitter:
-    """Deterministic regex split after ``.``/``!``/``?`` + whitespace.
-
-    Offline and dependency-free for tests; blind to abbreviations.
-    """
-
-    name: SentenceSplitterName = "naive"
-
-    # Bugfix (wiring pass): stray newline between the return annotation and
-    # the colon was a SyntaxError.
-    def split(self, text: str, *, language: LanguageAlpha2) -> list[str]:
-        return [part for part in re.split(r"(?<=[.!?])\s+", text) if part]
-
-
-def make_sentence_splitter(name: SentenceSplitterName) -> SentenceSplitter:
-    match name:
-        case "punkt":
-            return PunktSentenceSplitter()
-        case "naive":
-            return NaiveSentenceSplitter()
 
 
 def slugify(label: str) -> str:
@@ -259,6 +201,7 @@ class CardContents(BaseModel):
         this.ancestors = [
             entry for ancestor in record.ancestors if (entry := phrase(ancestor))
         ]
+
         this.source_types = [
             entry
             for subject_type in record.constraints.subject_types
@@ -316,8 +259,10 @@ def _drop_example(contents: CardContents) -> str | None:
 def _strip_details(phrases: list[Phrase], label: str) -> str | None:
     if not any(phrase.detail for phrase in phrases):
         return None
+
     for phrase in phrases:
         phrase.detail = None
+
     return label
 
 
@@ -336,6 +281,7 @@ def _strip_target_type_details(contents: CardContents) -> str | None:
 def _drop_ancestors_section(contents: CardContents) -> str | None:
     if not contents.ancestors:
         return None
+
     contents.ancestors.clear()
     return "ancestors_section"
 
@@ -343,6 +289,7 @@ def _drop_ancestors_section(contents: CardContents) -> str | None:
 def _drop_examples_section(contents: CardContents) -> str | None:
     if not contents.examples:
         return None
+
     contents.examples.clear()
     return "example_section"
 

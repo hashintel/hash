@@ -7,15 +7,19 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 from atlas_tools.wikidata.cache import CachingTransport
 from atlas_tools.wikidata.cards import ExtractPaths, emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Constraints, Example, PropertyRecord
+from atlas_tools.wikidata.model import Constraints, Example, Pid, PropertyRecord
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.transport import FixtureTransport
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
+
+EN = LanguageAlpha2("en")
+DE = LanguageAlpha2("de")
 
 
 def _extract(
@@ -78,7 +82,7 @@ def test_render_cards_never_constructs_a_transport(tmp_path, monkeypatch):
         json.loads(line)
         for line in paths.cards_jsonl.read_text(encoding="utf-8").splitlines()
     ]
-    assert any(row["omitted_fields"] for row in rows)  # budget actually bit
+    assert any(row["truncations"] for row in rows)  # budget actually bit
 
     manifest = json.loads(paths.manifest.read_text(encoding="utf-8"))
     assert manifest["details"]["token_budget"] == 40
@@ -92,21 +96,21 @@ def test_render_cards_never_constructs_a_transport(tmp_path, monkeypatch):
 
 def test_record_round_trip_exercising_all_fields():
     record = PropertyRecord(
-        pid="P361",
+        pid=Pid("P361"),
         datatype="wikibase-item",
-        labels={"en": "part of", "de": "ist Teil von"},
-        descriptions={"en": "this item is a part of that item"},
-        aliases={"en": ["contained within", "component of"], "de": ["Teil von"]},
+        labels={EN: "part of", DE: "ist Teil von"},
+        descriptions={EN: "this item is a part of that item"},
+        aliases={EN: ["contained within", "component of"], DE: ["Teil von"]},
         p31=("Q107738",),
-        ancestors=("P9005",),
-        inverse_pid="P527",
+        ancestors=(Pid("P9005"),),
+        inverse_pid=Pid("P527"),
         constraints=Constraints(
             symmetric=True,
             transitive=True,
             single_value=True,
             distinct_values=True,
-            subject_types=("Q35120", "Q571"),
-            value_types=("Q5",),
+            subject_types=(Pid("Q35120"), Pid("Q571")),
+            value_types=(Pid("Q5"),),
             inverse_pid="P527",
             ignored_types=("Q99999999",),
         ),
@@ -128,9 +132,9 @@ def test_record_round_trip_exercising_all_fields():
 
 def test_record_round_trip_with_null_and_skip_fields():
     record = PropertyRecord(
-        pid="P9002",
+        pid=Pid("P9002"),
         datatype="wikibase-item",
-        labels={"en": "sponsors"},
+        labels={EN: "sponsors"},
         example_source=None,
         example_skipped=True,
         usage_count=None,

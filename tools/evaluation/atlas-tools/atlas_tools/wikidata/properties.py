@@ -65,6 +65,7 @@ from pathlib import Path
 
 import numpy as np
 from pydantic import BaseModel, Field, JsonValue, ValidationError
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 from atlas_tools.wikidata.cache import RETRIEVED_AT_HEADER
@@ -75,6 +76,7 @@ from atlas_tools.wikidata.model import (
     EntityLabel,
     Example,
     ExampleSource,
+    Pid,
     PropertyRecord,
     pid_number,
 )
@@ -231,7 +233,7 @@ def parse_constraints(p2302_statements: Sequence[Statement]) -> Constraints:
 
 
 def parse_property_document(
-    document: EntityDocument, languages: tuple[str, ...]
+    document: EntityDocument, languages: tuple[LanguageAlpha2, ...]
 ) -> PropertyRecord:
     """Build a PropertyRecord (sans examples/usage) from a wbgetentities doc."""
     constraints = parse_constraints(document.claims.get("P2302", []))
@@ -276,16 +278,16 @@ def exclusion_reason(
     return None
 
 
-def chunk_ids(
-    ids: Sequence[str], size: int = WBGETENTITIES_BATCH_SIZE
-) -> list[list[str]]:
+def chunk_ids[IdT: str](
+    ids: Sequence[IdT], size: int = WBGETENTITIES_BATCH_SIZE
+) -> list[list[IdT]]:
     """Numeric-sorted ids in fixed-size chunks (deterministic batching)."""
     ordered = sorted(ids, key=pid_number)
     return [ordered[i : i + size] for i in range(0, len(ordered), size)]
 
 
 def wbgetentities_params(
-    ids: Sequence[str], languages: tuple[str, ...]
+    ids: Sequence[str], languages: tuple[LanguageAlpha2, ...]
 ) -> dict[str, str]:
     return {
         "action": "wbgetentities",
@@ -413,7 +415,7 @@ class ExtractionResult(BaseModel):
     records: list[PropertyRecord]  # retained, numeric-PID order
     inventory_rows: list[InventoryRow]
     excluded: dict[str, str]  # pid -> exclusion reason
-    entity_labels: dict[str, EntityLabel]
+    entity_labels: dict[Pid, EntityLabel]
     example_fallbacks: dict[str, ExampleSource]  # pid -> rescuing endpoint
     example_skips: list[str]  # pids where the whole ladder failed
     api_snapshot_date: str = ""
@@ -513,14 +515,14 @@ def extract_properties(
     inventory_rows = parse_inventory_results(response.body)
 
     excluded: dict[str, str] = {}
-    retained_pids: list[str] = []
+    retained_pids: list[Pid] = []
     usage_by_pid: dict[str, int | None] = {}
     for row in inventory_rows:
         usage_by_pid[row.pid] = row.usage
         if row.datatype_uri != WIKIBASE_ITEM_DATATYPE:
             excluded[row.pid] = f"datatype:{row.datatype_uri.rsplit('#', 1)[-1]}"
         else:
-            retained_pids.append(row.pid)
+            retained_pids.append(Pid(row.pid))
 
     # 2. Full property documents via wbgetentities, batches of 50.
     progress.note(
@@ -561,7 +563,7 @@ def extract_properties(
 
     # 3. Labels/descriptions for referenced items (endpoint types) so cards
     # can render titles+descriptions. Property labels come from step 2.
-    entity_labels: dict[str, EntityLabel] = {}
+    entity_labels: dict[Pid, EntityLabel] = {}
     primary = extraction.primary_language
     for record in records:
         entity_labels[record.pid] = EntityLabel(

@@ -1,4 +1,7 @@
-"""Golden card tests (pinned hashes from committed fixtures) + truncation."""
+"""Golden card tests (pinned hashes from committed fixtures) + card format
+v3 unit tests: phrases, sentence splitters, truncation passes, untitled
+records. All offline; the sentence splitter under test is always ``naive``
+except one guarded punkt test that SKIPS when punkt_tab data is missing."""
 
 from __future__ import annotations
 
@@ -8,34 +11,44 @@ import re
 from types import SimpleNamespace
 
 import pytest
+from pydantic_extra_types.language_code import LanguageAlpha2
 
-from atlas_tools.wikidata.cards import (
-    HeuristicTokenCounter,
+from atlas_tools.wikidata.card import (
+    Phrase,
     build_card,
-    emit_cards,
-    first_sentence,
-    make_token_counter,
     slugify,
 )
+from atlas_tools.wikidata.cards import emit_cards, render_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import (
     Constraints,
     EntityLabel,
     Example,
+    Pid,
     PropertyRecord,
 )
 from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.records import load_records
+from atlas_tools.wikidata.sentence import (
+    NaiveSentenceSplitter,
+    PunktSentenceSplitter,
+    make_sentence_splitter,
+)
+from atlas_tools.wikidata.tokens import HeuristicTokenCounter, make_token_counter
 from atlas_tools.wikidata.transport import FixtureTransport
 from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
 
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
 # from the committed fixtures. Any change to the card format, the fixtures,
 # or the truncation/sampling logic must be a conscious re-pin.
-# Re-pinned for card format v2 (Wikidata identifiers stripped from text).
-P361_CARD_HASH = "97cec85b0a57821a41becc22c78d4e9e0cec9fa19355364555291ae8c56e7348"
-P50_CARD_HASH = "55314bc9f5bef29175f153ff0fb1c9825f96f57b3a5835726204eecb279e3920"
+# Re-pinned for card format v3 (blank-line blocks, bulleted sections,
+# parenthesized descriptions, constraints as `symmetric? yes` bullets).
+P361_CARD_HASH = "d985914d45e9816c0a96188f2824acb9af877a2576305141f3fd571918db5216"
+P50_CARD_HASH = "49b71d856233b5ec9e87f9265df679541fddc0fd57ad217ccad254835ce4ebbe"
 
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
+
+EN = LanguageAlpha2("en")
 
 
 @pytest.fixture(scope="module")
@@ -87,27 +100,41 @@ class TestGoldenCards:
             with pytest.raises(json.JSONDecodeError):
                 json.loads(row["card_text"])
 
+    def test_v3_block_structure(self, pipeline):
+        text = pipeline.rows["P361"]["card_text"]
+        assert text.endswith("\n") and not text.endswith("\n\n")
+        assert "\n\nConstraints:\n  - symmetric? no\n" in text
+        assert "Aliases:\n  - contained within\n  - component of" in text
+        assert "\n\nExamples:\n  - Engine -> Car\n" in text
+        assert "Target types:" in text and "Destination types:" not in text
+        assert text.rstrip().endswith("Slug: part-of")
+
     def test_token_budget_respected_with_heuristic_counter(self, pipeline):
         counter = make_token_counter(pipeline.config.cards.tokenizer)
         assert counter.name == "heuristic"
         for row in pipeline.rows.values():
             assert row["token_count"] <= pipeline.config.cards.token_budget
             assert counter.count(row["card_text"]) == row["token_count"]
+            assert row["truncations"] == []  # fixture cards fit comfortably
 
     def test_inverse_linkage_names_both_directions(self, pipeline):
-        assert "Inverse: has part —" in pipeline.rows["P361"]["card_text"]
-        assert "Inverse: part of —" in pipeline.rows["P527"]["card_text"]
+        assert (
+            "Inverse: has part (this item has the listed part)"
+            in pipeline.rows["P361"]["card_text"]
+        )
+        assert (
+            "Inverse: part of (this item is a part of that item)"
+            in pipeline.rows["P527"]["card_text"]
+        )
 
     def test_no_wikidata_identifiers_in_any_card_text(self, pipeline):
-        # v2: PIDs/QIDs are a non-transferable lexical feature; the pid
-        # lives only in JSONL/manifest metadata.
+        # PIDs/QIDs are a non-transferable lexical feature; the pid lives
+        # only in JSONL/manifest metadata.
         identifier = re.compile(r"(?<![A-Za-z0-9])[PQ][0-9]+")
         for pid, row in pipeline.rows.items():
             assert pid not in row["card_text"], pid
             match = identifier.search(row["card_text"])
             assert match is None, f"{pid}: identifier {match.group() if match else ''}"
-        assert "P527" not in pipeline.rows["P361"]["card_text"]  # inverse id
-        assert "Q35120" not in pipeline.rows["P361"]["card_text"]  # type id
 
     def test_retrieved_at_comes_from_response_metadata(self, pipeline):
         # The fixture Date header, not the wall clock at emit time.
@@ -115,7 +142,10 @@ class TestGoldenCards:
 
     def test_manifest_hashes_match_rows(self, pipeline):
         details = pipeline.manifest["details"]
-        assert details["card_format_version"] == 2  # v2: identifier-free text
+        assert details["card_format_version"] == 3
+        assert details["sentence_splitter"] == "naive"
+        assert details["untitled"] == []
+        assert details["counts"]["untitled"] == 0
         for pid, row in pipeline.rows.items():
             assert details["cards"][pid]["card_hash"] == row["card_hash"]
 
@@ -135,14 +165,12 @@ class TestExclusions:
         assert "P9004" not in pipeline.rows
 
     def test_usage_count_never_appears_in_card_text(self, pipeline):
-        # Usage is a sampling aid only (P361 fixture usage = 500000).
+        # Usage is diagnostic metadata only (P361 fixture usage = 500000).
         assert "500000" not in pipeline.rows["P361"]["card_text"]
 
 
 class TestExampleLadder:
     def test_qlever_timeout_falls_back_to_wdqs(self, pipeline):
-        # QLever is the first rung (config ladder); P9001 times out there
-        # and is rescued by WDQS, so it is recorded as a fallback.
         flags = pipeline.manifest["details"]["flags"]
         assert flags["example_ladder_fallbacks"] == {"P9001": "wdqs"}
         assert "Examples:" in pipeline.rows["P9001"]["card_text"]
@@ -154,20 +182,61 @@ class TestExampleLadder:
         assert "Examples:" not in pipeline.rows["P9002"]["card_text"]
 
 
-# --- truncation ---------------------------------------------------------------
+class TestUntitledRecords:
+    def test_build_card_returns_none_without_primary_language_title(self):
+        record = PropertyRecord(
+            pid=Pid("P9998"),
+            datatype="wikibase-item",
+            labels={LanguageAlpha2("de"): "nur Deutsch"},  # no en title
+        )
+        card = build_card(
+            record=record,
+            labels={},
+            config=_config(BIG, BIG),
+            counter=HeuristicTokenCounter(),
+            splitter=NaiveSentenceSplitter(),
+        )
+        assert card is None
 
-LABELS = {
-    "P527": EntityLabel(label="has part", description="this item has the listed part"),
-    "P1000": EntityLabel(
+    def test_untitled_records_skipped_and_counted_in_manifest(self, pipeline, tmp_path):
+        record_set = load_records(pipeline.paths.records.records_jsonl.parent)
+        record_set.records.append(
+            PropertyRecord(
+                pid=Pid("P9998"),
+                datatype="wikibase-item",
+                labels={LanguageAlpha2("de"): "nur Deutsch"},
+            )
+        )
+        paths = render_cards(record_set, pipeline.config, tmp_path)
+        manifest = json.loads(paths.manifest.read_text(encoding="utf-8"))
+        assert manifest["details"]["untitled"] == ["P9998"]
+        assert manifest["details"]["counts"]["untitled"] == 1
+        pids = [
+            json.loads(line)["pid"]
+            for line in paths.cards_jsonl.read_text(encoding="utf-8").splitlines()
+        ]
+        assert "P9998" not in pids
+        assert len(pids) == manifest["details"]["counts"]["cards"]
+
+
+# --- crafted records for truncation tests -------------------------------------
+
+LABELS: dict[Pid, EntityLabel] = {
+    Pid("P527"): EntityLabel(
+        label="has part", description="this item has the listed part"
+    ),
+    Pid("P1000"): EntityLabel(
         label="umbrella relation",
-        description="first sentence of the ancestor description. second sentence"
-        " with extra ancestor detail that is expendable.",
+        description="Lead sentence of the ancestor description."
+        " Expendable ancestor detail sentence.",
     ),
-    "Q1": EntityLabel(
-        label="alpha type", description="first alpha sentence. second alpha sentence."
+    Pid("Q1"): EntityLabel(
+        label="alpha type",
+        description="Lead alpha sentence. Expendable alpha detail.",
     ),
-    "Q2": EntityLabel(
-        label="beta type", description="first beta sentence. second beta sentence."
+    Pid("Q2"): EntityLabel(
+        label="beta type",
+        description="Lead beta sentence. Expendable beta detail.",
     ),
 }
 
@@ -176,14 +245,14 @@ BIG = 10_000_000
 
 def _crafted_record(n_examples: int) -> PropertyRecord:
     return PropertyRecord(
-        pid="P9999",
+        pid=Pid("P9999"),
         datatype="wikibase-item",
-        labels={"en": "test relation"},
-        descriptions={"en": "a synthetic relation used to exercise truncation"},
-        aliases={"en": ["test rel"]},
-        ancestors=("P1000",),
-        inverse_pid="P527",
-        constraints=Constraints(subject_types=("Q1",), value_types=("Q2",)),
+        labels={EN: "test relation"},
+        descriptions={EN: "a synthetic relation used to exercise truncation"},
+        aliases={EN: ["test rel"]},
+        ancestors=(Pid("P1000"),),
+        inverse_pid=Pid("P527"),
+        constraints=Constraints(subject_types=(Pid("Q1"),), value_types=(Pid("Q2"),)),
         examples=[
             Example(
                 subject_label=f"Subject Item Number {i:02d} With A Long Label",
@@ -201,6 +270,7 @@ def _config(token_budget: int, hard_token_budget: int) -> Config:
             "extraction": {"languages": ["en"]},
             "cards": {
                 "tokenizer": "heuristic",
+                "sentence_splitter": "naive",
                 "token_budget": token_budget,
                 "hard_token_budget": hard_token_budget,
             },
@@ -208,151 +278,194 @@ def _config(token_budget: int, hard_token_budget: int) -> Config:
     )
 
 
+def _build(record: PropertyRecord, config: Config):
+    card = build_card(
+        record=record,
+        labels=LABELS,
+        config=config,
+        counter=HeuristicTokenCounter(),
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert card is not None
+    return card
+
+
 def _card_examples(card_text: str) -> list[str]:
-    lines = card_text.splitlines()
-    return [line[2:] for line in lines if line.startswith("- ")]
+    """The bullet contents of the Examples block only."""
+    examples: list[str] = []
+    in_examples = False
+    for line in card_text.splitlines():
+        if line == "Examples:":
+            in_examples = True
+        elif in_examples and line.startswith("  - "):
+            examples.append(line[4:])
+        elif in_examples and not line.strip():
+            break
+    return examples
 
 
-def test_examples_dropped_from_end_and_recorded():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(10)
-    full = build_card(record, LABELS, _config(BIG, BIG), counter)
-    assert full.omitted_fields == ()
+class TestTruncation:
+    def test_examples_dropped_from_end_and_recorded(self):
+        record = _crafted_record(10)
+        full = _build(record, _config(BIG, BIG))
+        assert full.truncations == []
 
-    budget = full.token_count - 25  # forces at least one example drop
-    card = build_card(record, LABELS, _config(budget, BIG), counter)
-    assert card.token_count <= budget
+        budget = full.token_count - 25  # forces at least one example drop
+        card = _build(record, _config(budget, BIG))
+        assert card.token_count <= budget
 
-    dropped = [f for f in card.omitted_fields if f.startswith("example[")]
-    assert dropped, "expected at least one dropped example"
-    kept = 10 - len(dropped)
-    # Dropped from the END: rank 9 first, then 8, ...
-    assert dropped == [f"example[{i}]" for i in range(9, kept - 1, -1)]
-    # Survivors are exactly the highest-diversity-rank prefix, in order.
-    expected = [
-        f"{ex.subject_label} -> {ex.object_label}" for ex in record.examples[:kept]
-    ]
-    assert _card_examples(card.card_text) == expected
-    # Required fields never dropped.
-    for prefix in ("Relation: ", "Description: ", "Inverse: ", "Slug: "):
-        assert prefix in card.card_text
-    assert not card.severely_truncated  # only a few examples lost
+        dropped = [label for label in card.truncations if label.startswith("example[")]
+        assert dropped, "expected at least one dropped example"
+        kept = 10 - len(dropped)
+        # Dropped from the END: rank 9 first, then 8, ...
+        assert dropped == [f"example[{i}]" for i in range(9, kept - 1, -1)]
+        # Survivors are exactly the highest-diversity-rank prefix, in order.
+        expected = [
+            f"{ex.subject_label} -> {ex.object_label}" for ex in record.examples[:kept]
+        ]
+        assert _card_examples(card.card_text) == expected
+        assert not card.severely_truncated  # only a few examples lost
 
+    def test_soft_passes_strip_details_and_keep_one_example(self):
+        # An impossible soft budget: every soft pass runs to exhaustion, but
+        # the ancestors SECTION survives (hard-budget-only) and at least one
+        # example is always preserved.
+        record = _crafted_record(10)
+        card = _build(record, _config(1, BIG))
+        assert len(_card_examples(card.card_text)) == 1
+        assert "ancestor_details" in card.truncations
+        assert "source_type_details" in card.truncations
+        assert "target_type_details" in card.truncations
+        assert "ancestors_section" not in card.truncations
+        # Leads survive detail stripping; details are gone.
+        assert "Lead sentence of the ancestor description." in card.card_text
+        assert "Expendable ancestor detail" not in card.card_text
+        assert "Lead alpha sentence." in card.card_text
+        assert "Expendable alpha detail" not in card.card_text
+        assert "Lead beta sentence." in card.card_text
+        assert "Expendable beta detail" not in card.card_text
+        # 9 of 10 examples dropped -> severe by the >50% rule.
+        assert card.severely_truncated
 
-def test_severe_flag_when_more_than_half_of_examples_dropped():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(10)
-    # Budget that fits exactly the 3-example rendering of the same record.
-    three = build_card(_crafted_record(3), LABELS, _config(BIG, BIG), counter)
-    card = build_card(record, LABELS, _config(three.token_count, BIG), counter)
-    kept = 10 - sum(1 for f in card.omitted_fields if f.startswith("example["))
-    assert kept <= 3
-    assert card.severely_truncated
+    def test_ancestors_section_dropped_only_above_hard_budget(self):
+        record = _crafted_record(10)
+        card = _build(record, _config(1, 1))
+        assert "example_section" in card.truncations
+        assert "ancestors_section" in card.truncations
+        assert "Ancestors:" not in card.card_text
+        assert "Examples:" not in card.card_text
+        # Title, description, inverse, and endpoint-type summaries survive.
+        assert "Relation: test relation" in card.card_text
+        assert "Description: " in card.card_text
+        assert "Inverse: has part (this item has the listed part)" in card.card_text
+        assert "Source types:\n  - alpha type" in card.card_text
+        assert "Target types:\n  - beta type" in card.card_text
+        assert "Slug: test-relation" in card.card_text
+        # Still above the hard budget -> severely truncated.
+        assert card.severely_truncated
 
+    def test_severe_flag_when_more_than_half_of_examples_dropped(self):
+        record = _crafted_record(10)
+        # Budget sized to the 3-example rendering of the same record: the
+        # sampler order is stable, so truncation stops at 3 examples.
+        three = _build(_crafted_record(3), _config(BIG, BIG))
+        card = _build(record, _config(three.token_count, BIG))
+        kept = len(_card_examples(card.card_text))
+        assert kept <= 3
+        assert card.severely_truncated
 
-def test_severe_case_drops_example_and_ancestor_sections_only():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(10)
-    card = build_card(record, LABELS, _config(1, 1), counter)
-    assert card.severely_truncated
-    assert "examples_section" in card.omitted_fields
-    assert "ancestors_section" in card.omitted_fields
-    assert "Examples:" not in card.card_text
-    assert "Ancestors:" not in card.card_text
-    # Title, description, inverse, and endpoint-type summaries survive.
-    assert "Relation: test relation" in card.card_text
-    assert "Description: " in card.card_text
-    assert "Inverse: has part —" in card.card_text
-    assert "Source types: alpha type —" in card.card_text
-    assert "Destination types: beta type —" in card.card_text
-    assert "Constraints: " in card.card_text
-    assert "Slug: test-relation" in card.card_text
-
-
-def test_sentence_boundary_truncation_of_ancestor_descriptions():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(0)  # no examples: truncation goes to stage (b)
-    full = build_card(record, LABELS, _config(BIG, BIG), counter)
-    assert "second sentence with extra ancestor detail" in full.card_text
-
-    card = build_card(record, LABELS, _config(full.token_count - 1, BIG), counter)
-    assert "ancestor_descriptions_truncated" in card.omitted_fields
-    # Exactly the first sentence survives, terminal period restored — never a
-    # mid-sentence cut.
-    assert "first sentence of the ancestor description." in card.card_text
-    assert "second sentence with extra ancestor detail" not in card.card_text
-
-
-def test_all_description_truncation_stages_without_severe_flag():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(0)
-    card = build_card(record, LABELS, _config(1, BIG), counter)
-    assert "ancestor_descriptions_truncated" in card.omitted_fields
-    assert "source_type_descriptions_truncated" in card.omitted_fields
-    assert "destination_type_descriptions_truncated" in card.omitted_fields
-    assert "first alpha sentence." in card.card_text
-    assert "second alpha sentence" not in card.card_text
-    assert "first beta sentence." in card.card_text
-    assert "second beta sentence" not in card.card_text
-    # Under the hard budget and no examples existed: not severe.
-    assert not card.severely_truncated
+    def test_same_record_same_hash(self):
+        record = _crafted_record(5)
+        first = _build(record, _config(BIG, BIG))
+        second = _build(record, _config(BIG, BIG))
+        assert first.card_hash == second.card_hash
+        assert first.card_text == second.card_text
 
 
-# --- v2: unlabeled references never reach card text ---------------------------
+# --- Phrase + sentence splitters ----------------------------------------------
 
 
-def test_unlabeled_references_dropped_from_text():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(0)
-    # "QX" has no entry in LABELS: it must vanish; the labeled Q1 stays.
-    record.constraints = record.constraints.model_copy(
-        update={"subject_types": ("Q1", "QX")}
-    )
-    card = build_card(record, LABELS, _config(BIG, BIG), counter)
-    assert "QX" not in card.card_text
-    assert "Source types: alpha type —" in card.card_text
-    # Data absence is not truncation.
-    assert card.omitted_fields == ()
+class TestPhrase:
+    def test_lead_detail_split(self):
+        phrase = Phrase.make(
+            Pid("Q1"), LABELS, language=EN, splitter=NaiveSentenceSplitter()
+        )
+        assert phrase is not None
+        assert phrase.label == "alpha type"
+        assert phrase.lead == "Lead alpha sentence."
+        assert phrase.detail == "Expendable alpha detail."
+        assert phrase.render() == (
+            "alpha type (Lead alpha sentence. Expendable alpha detail.)"
+        )
+
+    def test_whitespace_collapsed(self):
+        labels = {
+            Pid("Q7"): EntityLabel(
+                label="  spaced\t label ", description="One   sentence.\n\nTwo  here."
+            )
+        }
+        phrase = Phrase.make(
+            Pid("Q7"), labels, language=EN, splitter=NaiveSentenceSplitter()
+        )
+        assert phrase is not None
+        assert phrase.label == "spaced label"
+        assert phrase.lead == "One sentence."
+        assert phrase.detail == "Two here."
+
+    def test_unlabeled_reference_is_none(self):
+        assert (
+            Phrase.make(
+                Pid("Q404"), LABELS, language=EN, splitter=NaiveSentenceSplitter()
+            )
+            is None
+        )
+
+    def test_label_only_render(self):
+        labels = {Pid("Q8"): EntityLabel(label="plain")}
+        phrase = Phrase.make(
+            Pid("Q8"), labels, language=EN, splitter=NaiveSentenceSplitter()
+        )
+        assert phrase is not None
+        assert phrase.lead is None and phrase.detail is None
+        assert phrase.render() == "plain"
 
 
-def test_section_with_only_unlabeled_references_is_omitted():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(0)
-    record.ancestors = ("P777",)  # not in LABELS
-    record.constraints = record.constraints.model_copy(
-        update={"subject_types": ("Q888",)}  # not in LABELS
-    )
-    card = build_card(record, LABELS, _config(BIG, BIG), counter)
-    assert "Ancestors:" not in card.card_text
-    assert "Source types:" not in card.card_text
-    assert "P777" not in card.card_text
-    assert "Q888" not in card.card_text
-    assert card.omitted_fields == ()  # data absence, not truncation
+ABBREVIATION_TEXT = "Dr. Smith went to Washington. He arrived at 5 p.m. sharp."
 
 
-def test_unlabeled_inverse_line_omitted():
-    counter = HeuristicTokenCounter()
-    record = _crafted_record(0)
-    record.inverse_pid = "P4242"  # not in LABELS
-    card = build_card(record, LABELS, _config(BIG, BIG), counter)
-    assert "Inverse:" not in card.card_text
-    assert "P4242" not in card.card_text
+class TestSentenceSplitters:
+    def test_naive_splits_after_terminal_punctuation(self):
+        splitter = NaiveSentenceSplitter()
+        assert splitter.split("One. Two! Three?", language=EN) == [
+            "One.",
+            "Two!",
+            "Three?",
+        ]
+        assert splitter.split("No boundary here", language=EN) == ["No boundary here"]
+
+    def test_naive_is_blind_to_abbreviations(self):
+        # Documents the naive splitter's known weakness (and why punkt is
+        # the production default): it cuts at "Dr." and "p.m.".
+        parts = NaiveSentenceSplitter().split(ABBREVIATION_TEXT, language=EN)
+        assert len(parts) == 4
+
+    def test_punkt_handles_abbreviations(self):
+        # The one allowed punkt test: SKIPS (never downloads) when the
+        # punkt_tab data is not installed on this machine.
+        try:
+            splitter = PunktSentenceSplitter()
+        except RuntimeError:
+            pytest.skip("nltk punkt_tab data not installed")
+        assert splitter.split(ABBREVIATION_TEXT, language=EN) == [
+            "Dr. Smith went to Washington.",
+            "He arrived at 5 p.m. sharp.",
+        ]
+
+    def test_make_sentence_splitter(self):
+        assert make_sentence_splitter("naive").name == "naive"
 
 
 # --- small pure helpers -------------------------------------------------------
-
-
-def test_heuristic_counter_is_ceil_utf8_bytes_over_4():
-    counter = HeuristicTokenCounter()
-    assert counter.count("") == 0
-    assert counter.count("abcd") == 1
-    assert counter.count("abcde") == 2
-    assert counter.count("é" * 4) == 2  # 8 UTF-8 bytes
-
-
-def test_first_sentence():
-    assert first_sentence("One. Two. Three.") == "One."
-    assert first_sentence("No boundary here") == "No boundary here"
 
 
 def test_slugify():

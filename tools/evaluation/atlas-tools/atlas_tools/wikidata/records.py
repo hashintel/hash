@@ -50,6 +50,7 @@ from atlas_tools.wikidata.config import Config, ExtractionConfig
 from atlas_tools.wikidata.model import (
     EntityLabel,
     ExampleSource,
+    Pid,
     PropertyRecord,
     pid_number,
 )
@@ -57,7 +58,7 @@ from atlas_tools.wikidata.properties import ExtractionResult
 
 RECORDS_FORMAT_VERSION = 1
 
-_ENTITY_LABELS_ADAPTER = TypeAdapter(dict[str, EntityLabel])
+_ENTITY_LABELS_ADAPTER = TypeAdapter(dict[Pid, EntityLabel])
 
 
 class LadderFlags(BaseModel):
@@ -118,7 +119,7 @@ class RecordSet:
     """The loaded structured intermediate, ready for card rendering."""
 
     records: list[PropertyRecord]
-    entity_labels: dict[str, EntityLabel]
+    entity_labels: dict[Pid, EntityLabel]
     meta: RecordsProvenance
     records_path: Path
 

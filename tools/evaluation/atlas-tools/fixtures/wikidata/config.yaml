@@ -29,3 +29,5 @@ cards:
   token_budget: 6000
   hard_token_budget: 7500
   tokenizer: heuristic
+  # naive: offline tests must not depend on the nltk punkt_tab data.
+  sentence_splitter: naive

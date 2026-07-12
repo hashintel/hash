@@ -135,6 +135,19 @@ changes never re-run mining:
 3. `cards.jsonl` — the versioned text projection (never raw JSON), with
    token budgets, deterministic truncation, and pinned golden hashes.
 
+Card descriptions are split into a lead sentence and truncatable detail by
+a pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk,
+the production default — handles abbreviations like "Dr." and "p.m.") or
+`naive` (offline regex; used by tests). punkt needs its tokenizer data once
+per machine:
+
+```sh
+uv run python -m nltk.downloader punkt_tab
+```
+
+Without it, `punkt` fails fast at startup with a pointer to this command
+(or set `cards.sentence_splitter: naive`).
+
 W2b streams the dump (`download | bzip2 -dc | extractor`), checkpoints by
 byte offset, and survives kill -9 with byte-identical output; the dump date
 and SHA come from the mirror's checksum file, never from hashing the stream.
