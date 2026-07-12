@@ -135,14 +135,113 @@ def test_stratum_assignment_prefers_the_most_specific_class() -> None:
     # Constraint lists overlap at wildly different granularity (seen live
     # on P6: "political territorial entity" and "administrative
     # territorial entity" both subsume municipalities, and the broad class
-    # absorbed everything). The smallest downward closure wins regardless
-    # of declaration order; the root class stops stealing members.
+    # absorbed everything). Among equally near classes the smallest
+    # downward closure wins regardless of declaration order; the root
+    # class stops stealing members.
+    #
+    # Depth tweak: Q515 sits two hops from both SETTLEMENT-PARENT and the
+    # root in this fixture, so give it a direct edge to a broad and a
+    # narrow class at the SAME depth.
+    taxonomy = Taxonomy.from_edges(
+        [
+            (515, 486972),  # city -> human settlement (narrow)
+            (515, 35120),  # city -> entity (broad), same hop distance
+            (486972, 35120),
+            (571, 35120),
+        ]
+    )
     [candidate] = collect_candidates([_row("Q1", "Mariupol", "Q2", "Mayor", subject_type="Q515")])
-    root = Qid("Q35120")  # subsumes everything in the fixture taxonomy
-    assert assign_stratum(candidate, (root, SETTLEMENT), _TAXONOMY) == SETTLEMENT
-    assert assign_stratum(candidate, (SETTLEMENT, root), _TAXONOMY) == SETTLEMENT
+    root = Qid("Q35120")
+    assert assign_stratum(candidate, (root, SETTLEMENT), taxonomy) == SETTLEMENT
+    assert assign_stratum(candidate, (SETTLEMENT, root), taxonomy) == SETTLEMENT
     # Exact specificity ties fall back to declaration order.
-    assert assign_stratum(candidate, (root, root), _TAXONOMY) == root
+    assert assign_stratum(candidate, (root, root), taxonomy) == root
+
+
+def test_stratum_assignment_prefers_the_nearest_class() -> None:
+    # The live P6 tangle: municipality chains upward into BOTH the
+    # territorial-entity branch (2 hops) and, through local-government
+    # classes, a "government" branch (3 hops) whose downward closure is
+    # SMALLER. Closure size alone mis-files Boston under "government";
+    # hop distance routes it to the territorial branch. Numeric cast:
+    # 100=municipality, 200=territorial entity (big closure: many
+    # children), 300=local government, 400=government (small closure).
+    taxonomy = Taxonomy.from_edges(
+        [
+            (100, 200),  # municipality -> territorial entity
+            (100, 300),  # municipality -> local government
+            (300, 400),  # local government -> government
+            # Fatten the territorial-entity closure so descendant_count
+            # alone would pick "government".
+            (201, 200),
+            (202, 200),
+            (203, 200),
+            (204, 200),
+        ]
+    )
+    territorial = Qid("Q200")
+    government = Qid("Q400")
+    assert taxonomy.descendant_count(government) < taxonomy.descendant_count(territorial)
+    [candidate] = collect_candidates([_row("Q1", "Boston", "Q2", "Mayor", subject_type="Q100")])
+    # Nearest wins in both declaration orders.
+    assert assign_stratum(candidate, (government, territorial), taxonomy) == territorial
+    assert assign_stratum(candidate, (territorial, government), taxonomy) == territorial
+
+
+def test_taxonomy_hop_distance() -> None:
+    assert _TAXONOMY.hop_distance(Qid("Q515"), Qid("Q515")) == 0  # reflexive
+    assert _TAXONOMY.hop_distance(Qid("Q515"), SETTLEMENT) == 1
+    assert _TAXONOMY.hop_distance(Qid("Q515"), Qid("Q35120")) == 2
+    assert _TAXONOMY.hop_distance(Qid("Q515"), WRITTEN_WORK) is None  # other branch
+    # Cycle-safe and shortest-path: a diamond with a long and a short arm.
+    diamond = Taxonomy.from_edges([(1, 2), (2, 3), (3, 4), (1, 5), (5, 4), (4, 1)])
+    assert diamond.hop_distance(Qid("Q1"), Qid("Q4")) == 2  # via Q5, not Q2-Q3
+
+
+def test_tangled_strata_diagnostic() -> None:
+    # Every candidate is subsumed by both classes: the co-match fraction
+    # crosses the warning threshold and names the pair.
+    taxonomy = Taxonomy.from_edges(
+        [
+            (100, 200),
+            (100, 300),
+            (300, 400),
+            (201, 200),
+        ]
+    )
+    territorial = Qid("Q200")
+    government = Qid("Q400")
+    rows = [
+        _row(
+            f"Q9{i}",
+            f"Town {i}",
+            f"Q8{i}",
+            f"Mayor {i}",
+            subject_type="Q100",
+            subject_sitelinks=i,
+        )
+        for i in range(4)
+    ]
+    selection = select_examples(
+        rows,
+        constraint_classes=(territorial, government),
+        taxonomy=taxonomy,
+        count=2,
+    )
+    tangle = selection.tangled_strata
+    assert tangle is not None
+    first, second, fraction = tangle
+    assert (first, second) == (territorial, government)
+    assert fraction == 1.0
+
+    # Disjoint branches never co-match: no tangle reported.
+    clean = select_examples(
+        _mixed_pool(),
+        constraint_classes=(SETTLEMENT, WRITTEN_WORK),
+        taxonomy=_TAXONOMY,
+        count=4,
+    )
+    assert clean.tangled_strata is None
 
 
 def _mixed_pool() -> list[ExampleRow]:

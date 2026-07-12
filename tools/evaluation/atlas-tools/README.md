@@ -109,12 +109,22 @@ Console scripts are installed in the venv (`uv run <name> ...`).
 ### `audit`
 
 ```sh
+uv run audit export-postgres --out X.f32 --strata-out strata.parquet
 uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
     --sample 20000 --strata strata.parquet --out report/
 uv run audit synth-fixture --out X.f32   # synthetic acceptance fixture
 ```
 
-Writes `report.json` (the source of truth; `report.md` and the returned
+`export-postgres` streams whole-entity rows (`property IS NULL`) directly from
+the graph database. It writes the raw little-endian f32 matrix and provenance
+sidecar required by `audit run` without holding the corpus in memory. With
+`--strata-out`, the same cursor writes a row-aligned parquet containing `web_id`,
+`entity_type_title`, and `entity_type_base_url`; missing type metadata is null.
+Connection options read `HASH_GRAPH_PG_HOST`, `HASH_GRAPH_PG_PORT`,
+`HASH_GRAPH_PG_USER`, `HASH_GRAPH_PG_PASSWORD`, and `HASH_GRAPH_PG_DATABASE`, with
+the local development defaults available through `--help`.
+
+`run` writes `report.json` (the source of truth; `report.md` and the returned
 `RunnerReport` are both derived from the file on disk) plus a
 `report.meta.json` provenance envelope.
 
@@ -161,10 +171,12 @@ while `extraction.filter_examples_by_subject_type` (default: on) is enabled.
 Example selection (`atlas_tools/wikidata/examples.py`) is stratified by the
 property's subject-type constraint classes and fully deterministic (no
 randomness anywhere). Pool rows collapse into distinct (subject, object)
-candidate pairs; each pair is assigned to the most specific constraint
-class that subsumes any of its P31 types under the local P279 closure
-(specificity is the size of the class's downward closure, so overlapping
-constraint lists no longer let the broadest class absorb everything). The
+candidate pairs; each pair is assigned to the nearest constraint class
+that subsumes any of its P31 types under the local P279 closure (minimum
+hop distance first, so tangled local-government chains cannot steal
+municipalities from the territorial branch; smallest downward closure
+among equally near classes, so the broadest class cannot absorb its own
+subclasses' members; declaration order last). The
 example budget goes one slot per non-empty stratum, then round-robin with
 a per-stratum cap of three; leftover budget relaxes the cap so lone strata
 still fill their card. Within a stratum the most recognizable pair leads
@@ -174,10 +186,13 @@ the remainder interleaves distinct direct P31 classes before any repeats
 (one country, one municipality, one commune), and each entity appears at
 most once per card. Cards render each example prefixed with its stratum's
 label (`municipality: Cluj-Napoca -> Emil Boc`); unconstrained properties
-select from one unstratified pool and render bare pairs. A stratum holding
-more than half of a property's assigned candidates is logged: the
-constraint ontology is coarser than the extension there, and the
-scale-diverse interleave is what keeps such cards readable anyway.
+select from one unstratified pool and render bare pairs. Two log lines
+surface ontology trouble per property: a stratum holding more than half of
+the assigned candidates (the constraint ontology is coarser than the
+extension; the scale-diverse interleave is what keeps such cards readable
+anyway), and a stratum pair both subsuming more than 30% of the assigned
+candidates (a class-graph tangle where the hop-distance tie-break is
+load-bearing).
 
 Stratification has two guard rails. Untyped candidates (no P31 at all) are
 dropped, because live runs surfaced semantically reversed statements in the

@@ -4,6 +4,11 @@ from pathlib import Path
 
 import click
 
+from atlas_tools.audit.postgres import (
+    DatabaseConnectionInfo,
+    PostgresExportError,
+    export_entity_embeddings,
+)
 from atlas_tools.audit.runner import run_audit
 from atlas_tools.audit.synthetic import make_synthetic, write_cluster_labels
 from atlas_tools.common.matrix import write_matrix
@@ -83,6 +88,86 @@ def run(
     click.echo(f"wrote {out / 'report.json'}")
     click.echo(f"wrote {out / 'report.md'}")
     click.echo(f"wrote {out / 'report.meta.json'}")
+
+
+@main.command("export-postgres")
+@click.option(
+    "--out",
+    required=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Output raw f32 matrix path (sidecar written next to it).",
+)
+@click.option(
+    "--strata-out",
+    default=None,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Optional row-aligned parquet with web and entity-type strata.",
+)
+@click.option(
+    "--host",
+    default="localhost",
+    envvar="HASH_GRAPH_PG_HOST",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    default=5432,
+    envvar="HASH_GRAPH_PG_PORT",
+    show_default=True,
+    type=click.IntRange(min=1, max=65535),
+)
+@click.option(
+    "--user",
+    default="graph",
+    envvar="HASH_GRAPH_PG_USER",
+    show_default=True,
+)
+@click.option(
+    "--password",
+    default="graph",
+    envvar="HASH_GRAPH_PG_PASSWORD",
+    show_default=False,
+)
+@click.option(
+    "--database",
+    default="graph",
+    envvar="HASH_GRAPH_PG_DATABASE",
+    show_default=True,
+)
+@click.option("--batch-size", default=1000, show_default=True, type=click.IntRange(min=1))
+def export_postgres(
+    out: Path,
+    strata_out: Path | None,
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    database: str,
+    batch_size: int,
+) -> None:
+    """Export whole-entity embeddings from the HASH graph database."""
+    try:
+        provenance = export_entity_embeddings(
+            out,
+            connection_info=DatabaseConnectionInfo(
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                database=database,
+            ),
+            strata_path=strata_out,
+            batch_size=batch_size,
+        )
+    except (OSError, PostgresExportError, ValueError) as error:
+        raise click.ClickException(str(error)) from error
+
+    click.echo(
+        f"wrote {out} ({provenance.details.rows} rows x {provenance.details.dim} dimensions)"
+    )
+    click.echo(f"wrote {out.name}.meta.json")
+    if strata_out is not None:
+        click.echo(f"wrote {strata_out}")
 
 
 @main.command("synth-fixture")

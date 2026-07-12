@@ -262,7 +262,11 @@ class Taxonomy:
         reverse_order = np.argsort(parents, kind="stable")
         self._parents_sorted = np.ascontiguousarray(parents[reverse_order], dtype=np.int64)
         self._children_by_parent = np.ascontiguousarray(children[reverse_order], dtype=np.int64)
-        self._closure_cache: dict[int, frozenset[int]] = {}
+        # Upward closure with minimum hop depth per ancestor. Upward
+        # closures are small (tens to hundreds of classes), so the depth
+        # annotation is nearly free; downward closures are the ones that
+        # explode, which is why descendants are only ever counted.
+        self._closure_depth_cache: dict[int, dict[int, int]] = {}
         self._descendant_count_cache: dict[int, int] = {}
 
     @classmethod
@@ -289,27 +293,36 @@ class Taxonomy:
         high = int(np.searchsorted(self._children, type_number, side="right"))
         return self._parents[low:high]
 
-    def _closure_numbers(self, start: int) -> frozenset[int]:
-        cached = self._closure_cache.get(start)
+    def _closure_depths(self, start: int) -> dict[int, int]:
+        """Map every upward-reachable class to its minimum P279 hop count.
+
+        Breadth-first by layer, so the recorded depth is the shortest hop
+        distance; cycles terminate because visited nodes are never
+        re-entered. Reflexive: ``start`` maps to depth 0.
+        """
+        cached = self._closure_depth_cache.get(start)
         if cached is not None:
             return cached
-        visited: set[int] = {start}
+        depths: dict[int, int] = {start: 0}
         frontier: list[int] = [start]
+        depth = 0
         while frontier:
-            node = frontier.pop()
-            for parent in self._parents_of(node):
-                parent_number = int(parent)
-                if parent_number not in visited:
-                    visited.add(parent_number)
-                    frontier.append(parent_number)
-        closure = frozenset(visited)
-        self._closure_cache[start] = closure
-        return closure
+            depth += 1
+            next_frontier: list[int] = []
+            for node in frontier:
+                for parent in self._parents_of(node):
+                    parent_number = int(parent)
+                    if parent_number not in depths:
+                        depths[parent_number] = depth
+                        next_frontier.append(parent_number)
+            frontier = next_frontier
+        self._closure_depth_cache[start] = depths
+        return depths
 
     def closure(self, type_qid: Qid) -> frozenset[Qid]:
         """All classes reachable upward from ``type_qid``, itself included."""
         return frozenset(
-            Qid(f"Q{number}") for number in self._closure_numbers(entity_number(type_qid))
+            Qid(f"Q{number}") for number in self._closure_depths(entity_number(type_qid))
         )
 
     def is_subclass_of(self, type_qid: Qid, permitted: frozenset[Qid]) -> bool:
@@ -317,7 +330,19 @@ class Taxonomy:
         if type_qid in permitted:
             return True
         permitted_numbers = {entity_number(entity_id) for entity_id in permitted}
-        return not permitted_numbers.isdisjoint(self._closure_numbers(entity_number(type_qid)))
+        return not permitted_numbers.isdisjoint(self._closure_depths(entity_number(type_qid)))
+
+    def hop_distance(self, type_qid: Qid, ancestor: Qid) -> int | None:
+        """Return the minimum P279 hops from ``type_qid`` up to ``ancestor``.
+
+        ``0`` when the two are the same class, ``None`` when ``ancestor``
+        is not in the upward closure. Hop distance is the specificity
+        signal that downward-closure size cannot provide: a commune is one
+        or two hops from the territorial-entity chain but several from a
+        "government" class whose closure happens to be smaller, so
+        distance routes it correctly where set size lies.
+        """
+        return self._closure_depths(entity_number(type_qid)).get(entity_number(ancestor))
 
     def _children_of(self, type_number: int) -> np.ndarray:
         low = int(np.searchsorted(self._parents_sorted, type_number, side="left"))

@@ -15,15 +15,17 @@ Pipeline:
    truthy (best-rank) statements.
 2. **Strata.** The strata are the property's subject-type constraint
    classes, which is the same list the card renders under ``Source
-   types:``. A candidate belongs to the most specific constraint class
-   that subsumes any of its subject types under the reflexive local P279
+   types:``. A candidate belongs to the nearest constraint class that
+   subsumes any of its subject types under the reflexive local P279
    closure (:class:`~atlas_tools.wikidata.taxonomy.Taxonomy`); without
    the closure most candidates match nothing (Mariupol's P31 is "urban
-   hromada", not "municipality"). Specificity is the size of the class's
-   downward closure (:meth:`Taxonomy.descendant_count`), so overlapping
-   constraint lists assign a municipality to "administrative territorial
-   entity" rather than the broader "political territorial entity" that
-   also subsumes it; declaration order breaks exact ties.
+   hromada", not "municipality"). Nearness is minimum P279 hop distance,
+   with the smallest downward closure and then declaration order breaking
+   ties (:func:`assign_stratum` documents why the order matters: closure
+   size alone mis-files municipalities under "government" through Wikidata's
+   local-government subclass chains, and distance alone cannot separate a
+   class from its own superclass at equal depth). Per-property co-match
+   counts are kept as tangle evidence (:data:`STRATUM_OVERLAP_WARNING_FRACTION`).
 3. **``other`` / untyped.** Typed candidates matching no constraint class
    land in an explicit ``other`` bucket, which is diagnostic and
    fallback-only: it is counted (a persistently large ``other`` means the
@@ -89,6 +91,13 @@ STRATUM_SLOT_CAP = 3
 # Fraction of assigned candidates in one stratum above which the caller
 # should log that the constraint ontology is coarser than the extension.
 DOMINANT_STRATUM_FRACTION = 0.5
+
+# Fraction of assigned candidates matching one specific PAIR of strata
+# above which the caller should log a class-graph tangle. Local-government
+# subclass chains pollute much of the civic ontology, so two constraint
+# classes silently competing for the same members is a recurring shape
+# worth surfacing property by property.
+STRATUM_OVERLAP_WARNING_FRACTION = 0.3
 
 # Dominance is only meaningful against at least one sibling stratum; a
 # single-constraint property trivially holds its whole extension.
@@ -180,36 +189,67 @@ def collect_candidates(rows: Sequence[ExampleRow]) -> list[Candidate]:
     return [entry.candidate() for entry in by_pair.values()]
 
 
+def matching_classes(
+    candidate: Candidate,
+    constraint_classes: tuple[Qid, ...],
+    taxonomy: Taxonomy,
+) -> dict[Qid, int]:
+    """Map each constraint class subsuming the candidate to its hop distance.
+
+    Subsumption uses the reflexive P279 closure; the distance is the
+    minimum hop count over the candidate's subject types. An empty map
+    means the ``other`` bucket.
+    """
+    distances: dict[Qid, int] = {}
+    for constraint_class in constraint_classes:
+        hops = [
+            distance
+            for subject_type in candidate.subject_types
+            if (distance := taxonomy.hop_distance(subject_type, constraint_class)) is not None
+        ]
+        if hops:
+            distances[constraint_class] = min(hops)
+    return distances
+
+
 def assign_stratum(
     candidate: Candidate,
     constraint_classes: tuple[Qid, ...],
     taxonomy: Taxonomy,
 ) -> Qid | None:
-    """Assign the most specific constraint class subsuming any subject type.
+    """Assign the nearest, then most specific, constraint class.
 
-    Subsumption uses the reflexive P279 closure; ``None`` means the
-    ``other`` bucket. Constraint lists routinely contain overlapping
-    classes at very different granularity ("political territorial entity"
-    and "administrative territorial entity" both subsume municipalities),
-    so among the matching classes the one with the smallest downward
-    closure wins; declaration order breaks exact ties. Without this
-    tie-break the broadest class absorbs every candidate and the narrower
-    strata sit empty.
+    ``None`` means the ``other`` bucket. Constraint lists routinely
+    contain overlapping classes at very different granularity and
+    tangled class chains ("municipality" reaches both "political
+    territorial entity" and, through local-government chains,
+    "government"), so the tie-break is layered:
+
+    1. minimum P279 hop distance from the candidate's subject types (the
+       nearest class describes the candidate best; a commune is one or
+       two hops from the territorial-entity chain but several from a
+       government class whose closure merely happens to be small);
+    2. smallest downward closure (most specific) among equally near
+       classes, so a broad root never absorbs members of its own
+       subclasses;
+    3. declaration order for exact ties.
     """
-    closures = [
-        taxonomy.closure(subject_type) for subject_type in candidate.subject_types if subject_type
-    ]
-    matches = [
-        constraint_class
-        for constraint_class in constraint_classes
-        if any(constraint_class in closure for closure in closures)
-    ]
+    matches = matching_classes(candidate, constraint_classes, taxonomy)
     if not matches:
         return None
+    return _choose_stratum(matches, constraint_classes, taxonomy)
 
+
+def _choose_stratum(
+    matches: dict[Qid, int],
+    constraint_classes: tuple[Qid, ...],
+    taxonomy: Taxonomy,
+) -> Qid:
+    """Pick from a non-empty match map: nearest, most specific, first declared."""
     return min(
         matches,
         key=lambda match: (
+            matches[match],
             taxonomy.descendant_count(match),
             constraint_classes.index(match),
         ),
@@ -265,6 +305,12 @@ class ExampleSelection:
     other_used: bool  # the all-strata-empty fallback engaged
     # Post-assignment pool size per non-empty stratum, declaration order.
     stratum_candidates: dict[Qid, int] = field(default_factory=dict)
+    # Candidates subsumed by BOTH classes of a stratum pair, keyed in
+    # declaration order. Evidence of class-graph tangles, weighted by the
+    # property's actual extension rather than by structural closure
+    # overlap (which is dominated by near-root classes and priced in
+    # millions of set members).
+    stratum_overlaps: dict[tuple[Qid, Qid], int] = field(default_factory=dict)
 
     @property
     def other_fraction(self) -> float:
@@ -289,6 +335,26 @@ class ExampleSelection:
         if fraction <= DOMINANT_STRATUM_FRACTION:
             return None
         return largest, fraction
+
+    @property
+    def tangled_strata(self) -> tuple[Qid, Qid, float] | None:
+        """Return the most co-matched stratum pair and its candidate share.
+
+        ``None`` unless some pair of constraint classes both subsume more
+        than :data:`STRATUM_OVERLAP_WARNING_FRACTION` of the assigned
+        candidates. Such a pair means the class graph funnels the same
+        members through both classes and the hop-distance tie-break is
+        doing load-bearing work there.
+        """
+        assigned = sum(self.stratum_candidates.values())
+        if not assigned or not self.stratum_overlaps:
+            return None
+        pair = max(self.stratum_overlaps, key=lambda key: self.stratum_overlaps[key])
+        fraction = self.stratum_overlaps[pair] / assigned
+        if fraction <= STRATUM_OVERLAP_WARNING_FRACTION:
+            return None
+        first, second = pair
+        return first, second, fraction
 
 
 @dataclass
@@ -444,16 +510,23 @@ def select_examples(
     untyped: list[Candidate] = []
     other: list[Candidate] = []
     pools: dict[Qid, list[Candidate]] = {key: [] for key in constraint_classes}
+    overlaps: dict[tuple[Qid, Qid], int] = {}
     for candidate in candidates:
         if not candidate.subject_types:
             untyped.append(candidate)
             continue
 
-        stratum_key = assign_stratum(candidate, constraint_classes, taxonomy)
-        if stratum_key is None:
+        matches = matching_classes(candidate, constraint_classes, taxonomy)
+        if not matches:
             other.append(candidate)
-        else:
-            pools[stratum_key].append(candidate)
+            continue
+
+        pools[_choose_stratum(matches, constraint_classes, taxonomy)].append(candidate)
+        matched = [key for key in constraint_classes if key in matches]
+        for first_index, first in enumerate(matched):
+            for second in matched[first_index + 1 :]:
+                pair = (first, second)
+                overlaps[pair] = overlaps.get(pair, 0) + 1
 
     if all(not pool for pool in pools.values()):
         # Every declared stratum is empty: the constraint list does not
@@ -485,4 +558,5 @@ def select_examples(
         other_candidates=len(other),
         other_used=False,
         stratum_candidates={key: len(pools[key]) for key in constraint_classes if pools[key]},
+        stratum_overlaps=overlaps,
     )

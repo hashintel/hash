@@ -744,6 +744,14 @@ def _apply_ladder_success(
             " the property's extension"
         )
 
+    if (tangle := selection.tangled_strata) is not None:
+        first, second, fraction = tangle
+        progress.note(
+            f"{record.pid}: strata {first} and {second} both subsume"
+            f" {fraction:.0%} of the assigned candidates; the class graph is"
+            " tangled there and the hop-distance tie-break is load-bearing"
+        )
+
 
 def _mine_examples(
     records: Sequence[PropertyRecord],
