@@ -1,0 +1,101 @@
+"""Calibration fixture and CLI tests for the merge-tree calibration mechanism."""
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+import yaml
+
+from atlas_tools.battery.calibrate import run_calibration
+from atlas_tools.battery.cli import main
+from atlas_tools.battery.datasets import load_dataset
+from atlas_tools.battery.metrics import MetricName
+
+from .conftest import FIXTURES_DIR
+
+CALIBRATION_DIR = FIXTURES_DIR / "calibration"
+LAYOUT = CALIBRATION_DIR / "layout.npz"
+MANIFEST = CALIBRATION_DIR / "calibration.yaml"
+
+
+def _perturbed_manifest(tmp_path: Path, **overrides: float) -> Path:
+    manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    manifest["expected"] = {**manifest["expected"], **overrides}
+    path = tmp_path / "perturbed.yaml"
+    path.write_text(yaml.safe_dump(manifest), encoding="utf-8")
+    return path
+
+
+def test_committed_fixture_passes_calibration() -> None:
+    report = run_calibration(LAYOUT, MANIFEST)
+    assert report.passed, report.checks
+    by_name = {check.name: check for check in report.checks}
+    assert by_name[MetricName.leaf_count].actual == 4.0
+    assert by_name[MetricName.leaf_count].tolerance_frac == 0.03
+    assert by_name[MetricName.normalized_persistence].tolerance_frac == 0.05
+
+
+def test_perturbation_beyond_tolerance_fails(tmp_path: Path) -> None:
+    reference = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    expected_persistence = reference["expected"]["normalized_persistence"]
+
+    # persistence raised by 10 percent: outside the 5 percent tolerance
+    bad_persistence = _perturbed_manifest(
+        tmp_path, normalized_persistence=expected_persistence * 1.10
+    )
+    report = run_calibration(LAYOUT, bad_persistence)
+    assert not report.passed
+    failing = {check.name for check in report.checks if not check.passed}
+    assert failing == {MetricName.normalized_persistence}
+
+    # wrong leaf count: 4 against 5 is far outside the 3 percent tolerance
+    bad_leaves = _perturbed_manifest(tmp_path, leaf_count=5)
+    assert not run_calibration(LAYOUT, bad_leaves).passed
+
+    # persistence raised by 4 percent stays within the 5 percent tolerance
+    ok = _perturbed_manifest(tmp_path, normalized_persistence=expected_persistence * 1.04)
+    assert run_calibration(LAYOUT, ok).passed
+
+
+def test_calibrate_cli_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    main(["calibrate", "--layout", str(LAYOUT), "--manifest", str(MANIFEST)])
+    assert '"passed": true' in capsys.readouterr().out
+
+    bad_manifest = _perturbed_manifest(tmp_path, leaf_count=40)
+    with pytest.raises(SystemExit) as exit_info:
+        main(["calibrate", "--layout", str(LAYOUT), "--manifest", str(bad_manifest)])
+    assert exit_info.value.code == 1
+
+
+def test_generate_cli_writes_dataset(tmp_path: Path) -> None:
+    out = tmp_path / "dataset"
+    main(
+        [
+            "generate",
+            "--shape",
+            "bipartite_star",
+            "--n",
+            "200",
+            "--dim",
+            "8",
+            "--seed",
+            "5",
+            "--params",
+            '{"items_per_doc": 4}',
+            "--out",
+            str(out),
+        ],
+    )
+    dataset = load_dataset(out)
+    assert dataset.shape == "bipartite_star"
+    assert dataset.n == 200
+    assert dataset.embeddings.shape == (200, 8)
+    # config is the generator's model dump: {shape, n, params}.
+    params = dataset.config["params"]
+    assert isinstance(params, dict)
+    assert params["items_per_doc"] == 4
+    assert dataset.seed == 5
+    n_docs = dataset.truth["n_docs"]
+    assert isinstance(n_docs, int)
+    degree = np.bincount(dataset.edges.ravel(), minlength=200)
+    assert (degree[n_docs:] == 1).all()
