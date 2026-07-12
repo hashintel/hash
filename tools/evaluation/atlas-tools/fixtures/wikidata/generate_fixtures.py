@@ -39,9 +39,11 @@ from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.properties import chunk_ids, wbgetentities_params
 from atlas_tools.wikidata.sparql import (
     example_pairs_query,
+    property_ancestors_query,
     property_inventory_query,
     sparql_params,
 )
+from atlas_tools.wikidata.taxonomy import write_taxonomy_parquet
 from atlas_tools.wikidata.transport import request_key
 
 HERE = Path(__file__).parent
@@ -315,11 +317,32 @@ PROPERTY_DOCS = {
                 "en", "synthetic ancestor property for creative contribution relations"
             )
         },
-        "claims": {},
+        # Direct parent P9006 -> P50's CLOSED ancestor set gains a
+        # grandparent (depth-2 P1647 chain).
+        "claims": {"P1647": [_property_snak("P1647", "P9006")]},
     },
 }
 
+# P1647 closure pairs served by the ancestors query fixture. P9006 is NOT a
+# retained property (absent from the inventory), so its card label must be
+# resolved through the wbgetentities label batch.
+ANCESTOR_CLOSURE_PAIRS = [
+    ("P50", "P9005"),
+    ("P50", "P9006"),
+    ("P9005", "P9006"),
+]
+
 ITEM_DOCS = {
+    # A non-retained ancestor property: labels come from this batch.
+    "P9006": {
+        "id": "P9006",
+        "labels": {"en": _label("en", "abstract involvement")},
+        "descriptions": {
+            "en": _label(
+                "en", "synthetic grandparent property for involvement relations"
+            )
+        },
+    },
     "Q5": {
         "id": "Q5",
         "labels": {"en": _label("en", "human")},
@@ -361,6 +384,9 @@ EXAMPLE_PAIRS = {
         ("Engine", "Car", ""),
         ("Wheel", "Bicycle", ""),
     ],
+    # P50 constrains subjects to Q571 (book). The film rows, the untyped
+    # row, and the Q5-typed row all violate it and are dropped by the
+    # subject-type filter (the P6-style reversed-statement scenario).
     "P50": [
         ("Synthetic Novel", "Person 001", "Q571"),
         ("Field Guide", "Person 002", "Q571"),
@@ -368,6 +394,8 @@ EXAMPLE_PAIRS = {
         ("Concert Film", "Person 004", "Q11424"),
         ("Poem Collection", "Person 005", "Q571"),
         ("Essay Anthology", "Person 006", "Q571"),
+        ("Anonymous Manuscript", "Person 007", ""),
+        ("Some Human", "Person 008", "Q5"),
     ],
     "P527": [
         ("Paris", "Left Bank", "Q515"),
@@ -405,6 +433,24 @@ def inventory_response() -> dict:
                 },
                 "propertyType": {"type": "uri", "value": datatype_uri},
                 "usage": {"type": "literal", "value": str(usage)},
+            }
+        )
+    return sparql_results(bindings)
+
+
+def ancestors_response() -> dict:
+    bindings = []
+    for property_pid, ancestor_pid in ANCESTOR_CLOSURE_PAIRS:
+        bindings.append(
+            {
+                "property": {
+                    "type": "uri",
+                    "value": f"http://www.wikidata.org/entity/{property_pid}",
+                },
+                "ancestor": {
+                    "type": "uri",
+                    "value": f"http://www.wikidata.org/entity/{ancestor_pid}",
+                },
             }
         )
     return sparql_results(bindings)
@@ -466,6 +512,14 @@ def write_responses(config: Config) -> None:
         inventory_response(),
     )
 
+    # 1b. P1647 ancestor closure for all item-properties (QLever).
+    add(
+        "ancestors.json",
+        qlever,
+        sparql_params(property_ancestors_query()),
+        ancestors_response(),
+    )
+
     # 2. wbgetentities property batch (all wikibase-item pids, one batch).
     item_pids = [pid for pid, dt, _ in INVENTORY_ROWS if dt == WIKIBASE_ITEM]
     for batch_index, batch in enumerate(chunk_ids(item_pids)):
@@ -476,10 +530,10 @@ def write_responses(config: Config) -> None:
             {"entities": {pid: PROPERTY_DOCS[pid] for pid in batch}, "success": 1},
         )
 
-    # 3. wbgetentities item batch for constraint-referenced QIDs.
-    for batch_index, batch in enumerate(
-        chunk_ids(sorted(ITEM_DOCS, key=lambda q: int(q[1:])))
-    ):
+    # 3. wbgetentities label batch: constraint-referenced QIDs plus the
+    # non-retained closed ancestor P9006 (mixed P/Q batch, like the real
+    # pipeline builds).
+    for batch_index, batch in enumerate(chunk_ids(list(ITEM_DOCS))):
         add(
             f"items_batch_{batch_index}.json",
             api,
@@ -541,10 +595,27 @@ def write_responses(config: Config) -> None:
     )
 
 
+# Synthetic P279 edges (numeric QIDs) covering the fixture classes. Depth-2
+# chains (city -> human settlement -> entity; book -> written work ->
+# entity) exercise transitive subsumption in the live pipeline; film/human/
+# business attach directly under entity. Q11424 is deliberately NOT under
+# Q571, so film-typed subjects violate P50's book-only constraint.
+TAXONOMY_EDGES = [
+    (515, 486972),  # city -> human settlement
+    (486972, 35120),  # human settlement -> entity
+    (571, 47461344),  # book -> written work
+    (47461344, 35120),  # written work -> entity
+    (11424, 35120),  # film -> entity
+    (5, 35120),  # human -> entity
+    (4830453, 35120),  # business -> entity
+]
+
+
 def main() -> None:
     config = Config.load(HERE / "config.yaml")
     write_dump_excerpt()
     write_responses(config)
+    write_taxonomy_parquet(tuple(TAXONOMY_EDGES), HERE / "taxonomy.parquet")
     print(f"wrote fixtures under {HERE}")
 
 

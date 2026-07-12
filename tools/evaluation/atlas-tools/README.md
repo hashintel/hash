@@ -118,11 +118,24 @@ uv run battery generate --shape chains --n 800 --seed 0 --out dataset/
 ### `wikidata` (W2)
 
 ```sh
-uv run wikidata extract-properties --config config.yaml --out extract/ --cache-dir cache/
+uv run wikidata taxonomy --config config.yaml --out taxonomy.parquet --checkpoint tax-ckpt/
+uv run wikidata extract-properties --config config.yaml --out extract/ --cache-dir cache/ --taxonomy taxonomy.parquet
 uv run wikidata render-cards --records extract/ --config config.yaml --out cards/
 uv run wikidata entity-manifest --config config.yaml --input dump.json --out entities.parquet --checkpoint ckpt/
 uv run wikidata sampling-plan --config config.yaml --input entities.parquet --out plan.parquet
 ```
+
+`wikidata taxonomy` pages Wikidata's full P279 (subclass-of) edge list
+(~5.2M edges) from QLever into a two-column parquet — the local subsumption
+oracle. It bypasses the response cache on purpose (each page is ~48 MB of
+JSON; the checkpointed parquet is the persistence) and is restartable like
+the W2b extractor. `extract-properties` needs `--taxonomy` while
+`extraction.filter_examples_by_subject_type` (default: on) is enabled: pool
+rows whose subject is untyped or typed outside the property's subject-type
+constraints are dropped before sampling — live runs surfaced semantically
+reversed statements in the long tail (a person with empty P31 as the
+SUBJECT of P6). Properties without constraints keep every row; per-property
+drop counts land in the manifests' ladder flags.
 
 Config is a typed tree (`extraction:` + `cards:` — see
 `fixtures/wikidata/config.yaml`). The pipeline is layered so card-format

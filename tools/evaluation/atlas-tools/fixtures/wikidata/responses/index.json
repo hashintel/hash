@@ -1,4 +1,17 @@
 {
+  "193e24b130cfcbcf61a1c30a13e1b155f8c1c2be53189eb96b23df8b6661ba32": {
+    "file": "ancestors.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?property ?ancestor WHERE {\n  ?property wikibase:propertyType wikibase:WikibaseItem .\n  ?property wdt:P1647+ ?ancestor .\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.cs.uni-freiburg.de/api/wikidata"
+  },
   "25f3bb129fb79c42d5c3d82fbf03c02ad4326b1e2655f01427f56010f6a146a4": {
     "file": "examples_P9001_wdqs_0.json",
     "headers": {
@@ -106,6 +119,22 @@
     "status": 200,
     "url": "https://www.wikidata.org/w/api.php"
   },
+  "a605c7546c2bd14207dd82f0197af1f1ed624b088a8531a69a8db228b0b99aa5": {
+    "file": "items_batch_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "action": "wbgetentities",
+      "format": "json",
+      "ids": "Q5|Q571|P9006|Q35120",
+      "languages": "en|de",
+      "props": "labels|descriptions|aliases|claims|datatype"
+    },
+    "status": 200,
+    "url": "https://www.wikidata.org/w/api.php"
+  },
   "cfdd6bb1f0b24f0835d08fb294a4e5d3f5bfc7949c480b533d24049bce73a181": {
     "file": "examples_P9001_qlever_0.json",
     "headers": {
@@ -131,21 +160,5 @@
     },
     "status": 200,
     "url": "https://query.wikidata.org/sparql"
-  },
-  "d6f71f9161e9ad8f83dca9ffba2e688e78608bb31e4bc90213124798809d6039": {
-    "file": "items_batch_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "action": "wbgetentities",
-      "format": "json",
-      "ids": "Q5|Q571|Q35120",
-      "languages": "en|de",
-      "props": "labels|descriptions|aliases|claims|datatype"
-    },
-    "status": 200,
-    "url": "https://www.wikidata.org/w/api.php"
   }
 }

@@ -5,15 +5,20 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from atlas_tools.wikidata.config import ExtractionConfig
-from atlas_tools.wikidata.model import Constraints, PropertyRecord
+from atlas_tools.wikidata.model import Constraints, Pid, PropertyRecord
 from atlas_tools.wikidata.properties import (
     LadderSkip,
     LadderSuccess,
+    PooledExampleRow,
     chunk_ids,
     exclusion_reason,
     extract_properties,
     fetch_example_rows,
+    filter_example_rows,
+    merge_closed_ancestors,
     sample_diverse_examples,
 )
 from atlas_tools.wikidata.sparql import (
@@ -61,12 +66,17 @@ def test_chunk_ids_sorts_numerically_and_batches():
     assert chunk_ids(["P10", "P9"])[0] == ["P9", "P10"]
 
 
-def _rows(n_per_type: int, types: tuple[str, ...]) -> list[ExampleRow]:
+def _rows(
+    n_per_type: int, types: tuple[str, ...], *, stratum: int = 0
+) -> list[PooledExampleRow]:
     return [
-        ExampleRow(
-            subject_label=f"subject {subject_type}-{i}",
-            object_label=f"object {subject_type}-{i}",
-            subject_type=subject_type,
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label=f"subject {subject_type}-{i}",
+                object_label=f"object {subject_type}-{i}",
+                subject_type=subject_type,
+            ),
+            stratum=stratum,
         )
         for subject_type in types
         for i in range(n_per_type)
@@ -86,6 +96,35 @@ def test_diverse_sampling_is_deterministic_and_dedupes():
     assert a == b
     assert len(a) == 6
     assert len({(e.subject_label, e.object_label) for e in a}) == 6
+
+
+def test_sampling_spans_prominence_strata_before_types():
+    """Seen live on P6: type-only round-robin let dozens of deep-stratum
+    municipal micro-types crowd every country (one head-stratum type) out of
+    the 8-example set. Strata are sampled round-robin FIRST, so every
+    stratum lands examples before any stratum lands its second."""
+    # Head stratum: 5 rows, ONE type (countries). Deep strata: 20 micro-types.
+    head = _rows(5, ("Q6256",), stratum=0)
+    deep_types_a = tuple(f"Q10{i:02d}" for i in range(10))
+    deep_types_b = tuple(f"Q20{i:02d}" for i in range(10))
+    pool = head + _rows(3, deep_types_a, stratum=1) + _rows(3, deep_types_b, stratum=2)
+
+    sampled = sample_diverse_examples(pool, count=6, seed=0, pid="P6")
+    assert len(sampled) == 6
+    # Two full stratum rounds: each of the 3 strata contributes exactly 2.
+    head_labels = {f"subject Q6256-{i}" for i in range(5)}
+    from_head = sum(1 for example in sampled if example.subject_label in head_labels)
+    from_a = sum(1 for example in sampled if example.subject_type in deep_types_a)
+    from_b = sum(1 for example in sampled if example.subject_type in deep_types_b)
+    assert (from_head, from_a, from_b) == (2, 2, 2)
+
+
+def test_sampling_exhausted_stratum_yields_to_others():
+    # A stratum with a single row contributes it, then the rest fill up.
+    pool = _rows(1, ("Q6256",), stratum=0) + _rows(4, ("Q515",), stratum=1)
+    sampled = sample_diverse_examples(pool, count=4, seed=0, pid="P6")
+    assert len(sampled) == 4
+    assert sum(1 for example in sampled if example.subject_type == "Q6256") == 1
 
 
 def test_example_ladder_falls_back_to_wdqs(config, fixture_transport):
@@ -186,18 +225,29 @@ def test_sampler_dedupes_pairs_across_subject_types():
     # of the subject; the card must not show it twice. First (highest
     # diversity rank) occurrence wins.
     rows = [
-        ExampleRow(
-            subject_label="Switzerland",
-            object_label="Swiss Federal Council",
-            subject_type="Q3624078",
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Switzerland",
+                object_label="Swiss Federal Council",
+                subject_type="Q3624078",
+            ),
+            stratum=0,
         ),
-        ExampleRow(
-            subject_label="Switzerland",
-            object_label="Swiss Federal Council",
-            subject_type="Q6256",
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Switzerland",
+                object_label="Swiss Federal Council",
+                subject_type="Q6256",
+            ),
+            stratum=0,
         ),
-        ExampleRow(
-            subject_label="Uster", object_label="Town council", subject_type="Q6256"
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Uster",
+                object_label="Town council",
+                subject_type="Q6256",
+            ),
+            stratum=0,
         ),
     ]
     sampled = sample_diverse_examples(rows, count=8, seed=0, pid="P6")
@@ -206,31 +256,47 @@ def test_sampler_dedupes_pairs_across_subject_types():
     assert pairs.count(("Switzerland", "Swiss Federal Council")) == 1
 
 
-def test_checkpoint_replay_skips_ladder_probing(config, tmp_path):
+def test_checkpoint_replay_skips_ladder_probing(config, taxonomy, tmp_path):
     checkpoint_path = tmp_path / "checkpoint.json"
 
     transport1 = FixtureTransport(RESPONSES)
-    result1 = extract_properties(config, transport1, checkpoint_path=checkpoint_path)
-    # 1 inventory + 1 property batch + 1 item batch + examples (qlever-first):
-    # P50/P361/P527/P9005 (1 each) + P9001 (2: qlever fail + wdqs) + P9002 (2).
-    assert transport1.calls == 11
+    result1 = extract_properties(
+        config, transport1, taxonomy=taxonomy, checkpoint_path=checkpoint_path
+    )
+    # 1 inventory + 1 ancestors closure + 1 property batch + 1 label batch +
+    # examples (qlever-first): P50/P361/P527/P9005 (1 each) + P9001 (2:
+    # qlever fail + wdqs) + P9002 (2).
+    assert transport1.calls == 12
 
     transport2 = FixtureTransport(RESPONSES)
-    result2 = extract_properties(config, transport2, checkpoint_path=checkpoint_path)
+    result2 = extract_properties(
+        config, transport2, taxonomy=taxonomy, checkpoint_path=checkpoint_path
+    )
     # Replay: P9001 goes straight to wdqs (1 call saved), P9002 is skipped
     # without probing either endpoint (2 calls saved).
-    assert transport2.calls == 8
+    assert transport2.calls == 9
     assert result2.example_skips == result1.example_skips == ["P9002"]
     assert result2.example_fallbacks == result1.example_fallbacks == {"P9001": "wdqs"}
+    assert (
+        result2.example_filtered
+        == result1.example_filtered
+        == {
+            "P361": 2,
+            "P50": 4,
+        }
+    )
     assert [r.examples for r in result2.records] == [
         r.examples for r in result1.records
     ]
 
 
-def test_stale_checkpoint_with_other_config_is_discarded(config, tmp_path):
+def test_stale_checkpoint_with_other_config_is_discarded(config, taxonomy, tmp_path):
     checkpoint_path = tmp_path / "checkpoint.json"
     extract_properties(
-        config, FixtureTransport(RESPONSES), checkpoint_path=checkpoint_path
+        config,
+        FixtureTransport(RESPONSES),
+        taxonomy=taxonomy,
+        checkpoint_path=checkpoint_path,
     )
 
     other_extraction = config.extraction.model_copy(
@@ -238,5 +304,106 @@ def test_stale_checkpoint_with_other_config_is_discarded(config, tmp_path):
     )
     other = config.model_copy(update={"extraction": other_extraction})
     transport = FixtureTransport(RESPONSES)
-    extract_properties(other, transport, checkpoint_path=checkpoint_path)
-    assert transport.calls == 11  # full probe again, checkpoint was stale
+    extract_properties(
+        other, transport, taxonomy=taxonomy, checkpoint_path=checkpoint_path
+    )
+    assert transport.calls == 12  # full probe again, checkpoint was stale
+
+
+def test_filter_drops_untyped_and_violating_rows(taxonomy):
+    """The P6-style reversed-statement scenario (live-verified: Q100151929,
+    a person with EMPTY P31, is the SUBJECT of `P6 -> Q5114243` on live
+    Wikidata — semantically inverted). Constraint filtering drops both the
+    untyped subject and the wrongly-typed subject."""
+    rows = (
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Cristesti", object_label="Mayor", subject_type="Q515"
+            ),
+            stratum=0,
+        ),
+        # Untyped subject (empty P31) — the reversed-statement signature.
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Pintili Vlad-Mihai",
+                object_label="Cristesti",
+                subject_type="",
+            ),
+            stratum=0,
+        ),
+        # A human as subject of a place-only property: wrongly typed.
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="Some Person",
+                object_label="Somewhere",
+                subject_type="Q5",
+            ),
+            stratum=1,
+        ),
+    )
+    kept, dropped = filter_example_rows(
+        rows, permitted=frozenset({Pid("Q486972")}), taxonomy=taxonomy
+    )
+    # Q515 (city) is subsumed by Q486972 (human settlement) via P279.
+    assert [pooled.row.subject_label for pooled in kept] == ["Cristesti"]
+    assert dropped == 2
+
+
+def test_filter_is_reflexive_on_exact_type_match(taxonomy):
+    rows = (
+        PooledExampleRow(
+            row=ExampleRow(
+                subject_label="A Book", object_label="An Author", subject_type="Q571"
+            ),
+            stratum=0,
+        ),
+    )
+    kept, dropped = filter_example_rows(
+        rows, permitted=frozenset({Pid("Q571")}), taxonomy=taxonomy
+    )
+    assert len(kept) == 1 and dropped == 0
+
+
+def test_unconstrained_properties_never_filter(config, taxonomy, fixture_transport):
+    # End-to-end: P527 has no subject-type constraints; its untyped pool
+    # rows (Car -> Engine) survive into the sampled examples.
+    result = extract_properties(config, fixture_transport, taxonomy=taxonomy)
+    p527 = next(record for record in result.records if record.pid == "P527")
+    assert any(example.subject_label == "Car" for example in p527.examples)
+    assert "P527" not in result.example_filtered
+
+
+def test_fail_fast_without_taxonomy_when_filter_enabled(config, fixture_transport):
+    with pytest.raises(RuntimeError, match="wikidata taxonomy"):
+        extract_properties(config, fixture_transport, taxonomy=None)
+
+
+def test_filter_disabled_needs_no_taxonomy(config, fixture_transport):
+    extraction = config.extraction.model_copy(
+        update={"filter_examples_by_subject_type": False}
+    )
+    relaxed = config.model_copy(update={"extraction": extraction})
+    result = extract_properties(relaxed, fixture_transport, taxonomy=None)
+    assert result.example_filtered == {}
+    # Without the filter, P50 keeps its film-typed examples in the pool.
+    p50 = next(record for record in result.records if record.pid == "P50")
+    assert any(example.subject_type == "Q11424" for example in p50.examples)
+
+
+def test_closed_ancestors_merge_order():
+    record = PropertyRecord(
+        pid=Pid("P50"),
+        datatype="wikibase-item",
+        ancestors=(Pid("P9005"),),  # direct parent, document order
+    )
+    closure = {Pid("P50"): (Pid("P9006"), Pid("P9005"), Pid("P50"))}
+    # Self and duplicates dropped; closure extras follow in numeric order.
+    assert merge_closed_ancestors(record, closure) == ("P9005", "P9006")
+
+
+def test_closed_ancestors_cycle_safe():
+    record = PropertyRecord(
+        pid=Pid("P1"), datatype="wikibase-item", ancestors=(Pid("P2"),)
+    )
+    closure = {Pid("P1"): (Pid("P2"), Pid("P1"), Pid("P2"))}  # cycle back to self
+    assert merge_closed_ancestors(record, closure) == ("P2",)

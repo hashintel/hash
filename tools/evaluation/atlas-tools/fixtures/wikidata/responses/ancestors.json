@@ -1,0 +1,39 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "ancestor": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9005"
+        },
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P50"
+        }
+      },
+      {
+        "ancestor": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9006"
+        },
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P50"
+        }
+      },
+      {
+        "ancestor": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9006"
+        },
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9005"
+        }
+      }
+    ]
+  }
+}

@@ -11,8 +11,9 @@ from atlas_tools.wikidata.cache import CacheEntryMetadata, CachingTransport, cac
 from atlas_tools.wikidata.cards import ExtractPaths, emit_cards
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport, Response
-from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
+from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 
 
 def _run_extract(
@@ -24,7 +25,10 @@ def _run_extract(
         inner, cache_dir, snapshot_date=config.extraction.snapshot_date
     )
     result = extract_properties(
-        config, transport, checkpoint_path=out_dir / "checkpoint.json"
+        config,
+        transport,
+        taxonomy=Taxonomy.load(TAXONOMY_PATH),
+        checkpoint_path=out_dir / "checkpoint.json",
     )
     paths = emit_cards(result, config, out_dir)
     return inner, paths

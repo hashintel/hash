@@ -15,8 +15,9 @@ from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, Example, Pid, PropertyRecord
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.records import load_records
+from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport
-from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
+from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 
 EN = LanguageAlpha2("en")
 DE = LanguageAlpha2("de")
@@ -31,7 +32,9 @@ def _extract(
         transport = CachingTransport(
             transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
-    result = extract_properties(config, transport)
+    result = extract_properties(
+        config, transport, taxonomy=Taxonomy.load(TAXONOMY_PATH)
+    )
     return config, emit_cards(result, config, out_dir)
 
 

@@ -16,6 +16,9 @@ extraction:
   example_count: 4
   example_pool_limit: 10
   example_offsets: [0]
+  # Explicit (matches the default): pool rows violating subject-type
+  # constraints are dropped; tests pass fixtures/wikidata/taxonomy.parquet.
+  filter_examples_by_subject_type: true
   checkpoint_interval: 20
   dump:
     date: "2025-06-01"

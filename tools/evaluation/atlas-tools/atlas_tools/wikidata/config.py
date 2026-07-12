@@ -107,6 +107,14 @@ class ExtractionConfig(ForbidExtraModel):
     example_endpoint_ladder: tuple[ExampleSource, ...] = Field(
         default=("qlever", "wdqs"), min_length=1
     )
+    # Drop pool rows whose subject type is empty or not subsumed by the
+    # property's subject-type constraints (needs a local P279 taxonomy, see
+    # `wikidata taxonomy`). Motivated by live-verified reversed statements
+    # in the long tail (e.g. a person with EMPTY P31 as the SUBJECT of P6).
+    filter_examples_by_subject_type: bool = True
+    # Page size for the `wikidata taxonomy` P279 pull (~48 MB JSON and
+    # ~1.0 s per 500k page on QLever, measured live).
+    taxonomy_page_size: PositiveInt = 500_000
     # W2a: exclusions
     maintenance_classes: tuple[str, ...] = DEFAULT_MAINTENANCE_CLASSES
     deprecated_classes: tuple[str, ...] = DEFAULT_DEPRECATED_CLASSES

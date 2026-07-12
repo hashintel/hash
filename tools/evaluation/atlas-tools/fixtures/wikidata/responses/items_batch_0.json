@@ -1,5 +1,20 @@
 {
   "entities": {
+    "P9006": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic grandparent property for involvement relations"
+        }
+      },
+      "id": "P9006",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "abstract involvement"
+        }
+      }
+    },
     "Q35120": {
       "descriptions": {
         "en": {

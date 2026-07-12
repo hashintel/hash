@@ -87,6 +87,30 @@
           "type": "uri",
           "value": "http://www.wikidata.org/entity/Q571"
         }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 007"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Anonymous Manuscript"
+        }
+      },
+      {
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 008"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Some Human"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5"
+        }
       }
     ]
   }

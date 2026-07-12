@@ -34,17 +34,19 @@ from atlas_tools.wikidata.sentence import (
     PunktSentenceSplitter,
     make_sentence_splitter,
 )
+from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.tokens import HeuristicTokenCounter, make_token_counter
 from atlas_tools.wikidata.transport import FixtureTransport
-from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
+from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 
 # Pinned golden digests: sha256 of the UTF-8 card text bytes, generated once
 # from the committed fixtures. Any change to the card format, the fixtures,
 # or the truncation/sampling logic must be a conscious re-pin.
-# Re-pinned for card format v3 (blank-line blocks, bulleted sections,
-# parenthesized descriptions, constraints as `symmetric? yes` bullets).
-P361_CARD_HASH = "d985914d45e9816c0a96188f2824acb9af877a2576305141f3fd571918db5216"
-P50_CARD_HASH = "49b71d856233b5ec9e87f9265df679541fddc0fd57ad217ccad254835ce4ebbe"
+# Re-pinned for the subject-type example filter (P361 loses its untyped
+# rows, P50 its film/untyped/human rows) + closed P1647 ancestors (P50
+# gains the grandparent "abstract involvement").
+P361_CARD_HASH = "a3306138734cb57f1a2b2e917eeb99e267f329e57c8a89ddeb645c157b6dd85a"
+P50_CARD_HASH = "abcedb6714b209ce4b0aadb47982329448d699763bbaf939bf6d7741a3d19f97"
 
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
@@ -54,7 +56,11 @@ EN = LanguageAlpha2("en")
 @pytest.fixture(scope="module")
 def pipeline(tmp_path_factory):
     config = Config.load(CONFIG_PATH)
-    result = extract_properties(config, FixtureTransport(RESPONSES))
+    result = extract_properties(
+        config,
+        FixtureTransport(RESPONSES),
+        taxonomy=Taxonomy.load(TAXONOMY_PATH),
+    )
     out_dir = tmp_path_factory.mktemp("cards_out")
     paths = emit_cards(result, config, out_dir)
     rows = {}
@@ -87,7 +93,11 @@ class TestGoldenCards:
 
     def test_rerun_is_byte_identical(self, pipeline, tmp_path):
         config = Config.load(CONFIG_PATH)
-        result = extract_properties(config, FixtureTransport(RESPONSES))
+        result = extract_properties(
+            config,
+            FixtureTransport(RESPONSES),
+            taxonomy=Taxonomy.load(TAXONOMY_PATH),
+        )
         paths = emit_cards(result, config, tmp_path)
         assert (
             paths.cards.cards_jsonl.read_bytes()
@@ -105,7 +115,7 @@ class TestGoldenCards:
         assert text.endswith("\n") and not text.endswith("\n\n")
         assert "\n\nConstraints:\n  - symmetric? no\n" in text
         assert "Aliases:\n  - contained within\n  - component of" in text
-        assert "\n\nExamples:\n  - Engine -> Car\n" in text
+        assert "\n\nExamples:\n  - Opening Scene -> Synthetic Film\n" in text
         assert "Target types:" in text and "Destination types:" not in text
         assert text.rstrip().endswith("Slug: part-of")
 
@@ -119,13 +129,19 @@ class TestGoldenCards:
 
     def test_inverse_linkage_names_both_directions(self, pipeline):
         assert (
-            "Inverse: has part (this item has the listed part)"
+            "Inverse Name: has part (this item has the listed part)"
             in pipeline.rows["P361"]["card_text"]
         )
         assert (
-            "Inverse: part of (this item is a part of that item)"
+            "Inverse Name: part of (this item is a part of that item)"
             in pipeline.rows["P527"]["card_text"]
         )
+
+    def test_missing_inverse_renders_explicit_fallback(self, pipeline):
+        # Inverse-less relations say so explicitly rather than omitting the
+        # line: absence is signal, not ambiguity (P50 author has no inverse
+        # in the fixtures).
+        assert "Inverse Name: none recorded" in pipeline.rows["P50"]["card_text"]
 
     def test_no_wikidata_identifiers_in_any_card_text(self, pipeline):
         # PIDs/QIDs are a non-transferable lexical feature; the pid lives
@@ -142,7 +158,7 @@ class TestGoldenCards:
 
     def test_manifest_hashes_match_rows(self, pipeline):
         details = pipeline.manifest["details"]
-        assert details["card_format_version"] == 3
+        assert details["card_format_version"] == 4
         assert details["sentence_splitter"] == "naive"
         assert details["untitled"] == []
         assert details["counts"]["untitled"] == 0
@@ -167,6 +183,61 @@ class TestExclusions:
     def test_usage_count_never_appears_in_card_text(self, pipeline):
         # Usage is diagnostic metadata only (P361 fixture usage = 500000).
         assert "500000" not in pipeline.rows["P361"]["card_text"]
+
+
+class TestClosedAncestors:
+    """Atlas spec §3.3.3 item 3: CLOSED ancestors, not just direct parents.
+    P50's fixture chain is P50 -P1647-> P9005 -P1647-> P9006."""
+
+    def test_p50_records_carry_the_closed_set(self, pipeline):
+        p50 = next(r for r in pipeline.result.records if r.pid == "P50")
+        # Direct parent (document order) first, closure member after.
+        assert p50.ancestors == ("P9005", "P9006")
+
+    def test_p50_card_prints_the_grandparent(self, pipeline):
+        text = pipeline.rows["P50"]["card_text"]
+        assert (
+            "creative contributor (synthetic ancestor property for creative"
+            " contribution relations)" in text
+        )
+        assert (
+            "abstract involvement (synthetic grandparent property for"
+            " involvement relations)" in text
+        )
+        assert text.index("creative contributor") < text.index("abstract involvement")
+
+    def test_non_retained_ancestor_label_resolved(self, pipeline):
+        # P9006 is not in the inventory; its label rides the wbgetentities
+        # label batch and still renders identifier-free.
+        assert "P9006" not in pipeline.rows["P50"]["card_text"]
+        assert "abstract involvement" in pipeline.rows["P9005"]["card_text"]
+
+
+class TestSubjectTypeFilter:
+    """Reversed statements live in the long tail (live-verified: Q100151929,
+    a person with EMPTY P31, appears as the SUBJECT of P6 — semantically
+    inverted). Pool rows violating subject-type constraints are dropped
+    before sampling; see test_properties for the row-level unit tests."""
+
+    def test_filtered_counts_recorded_in_manifest_flags(self, pipeline):
+        flags = pipeline.manifest["details"]["flags"]
+        # P361 (constraint Q35120): 2 untyped rows dropped.
+        # P50 (constraint Q571): 2 film rows + 1 untyped + 1 human dropped.
+        assert flags["example_rows_filtered"] == {"P361": 2, "P50": 4}
+
+    def test_p50_examples_are_all_book_subjects(self, pipeline):
+        text = pipeline.rows["P50"]["card_text"]
+        for dropped_subject in (
+            "Synthetic Film ->",
+            "Concert Film ->",
+            "Anonymous Manuscript ->",
+            "Some Human ->",
+        ):
+            assert dropped_subject not in text
+
+    def test_unconstrained_property_keeps_untyped_rows(self, pipeline):
+        # P527 has no subject-type constraints: its untyped rows survive.
+        assert "Car -> Engine" in pipeline.rows["P527"]["card_text"]
 
 
 class TestExampleLadder:
@@ -357,7 +428,9 @@ class TestTruncation:
         # Title, description, inverse, and endpoint-type summaries survive.
         assert "Relation: test relation" in card.card_text
         assert "Description: " in card.card_text
-        assert "Inverse: has part (this item has the listed part)" in card.card_text
+        assert (
+            "Inverse Name: has part (this item has the listed part)" in card.card_text
+        )
         assert "Source types:\n  - alpha type" in card.card_text
         assert "Target types:\n  - beta type" in card.card_text
         assert "Slug: test-relation" in card.card_text

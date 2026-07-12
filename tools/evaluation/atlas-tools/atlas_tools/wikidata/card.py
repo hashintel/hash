@@ -11,7 +11,7 @@ classifier later scores cards built from ontologies that have no PIDs/QIDs).
     Description: <description>
     Aliases:
       - <alias>
-    Inverse: <label> (<description>)
+    Inverse Name: <label> (<description>)
 
     Ancestors:
       - <label> (<description>)
@@ -196,7 +196,9 @@ class CardContents(BaseModel):
             this.prelude.extend(f"  - {alias}" for alias in aliases)
 
         if record.inverse_pid and (inverse := phrase(record.inverse_pid)):
-            this.prelude.append(f"Inverse: {inverse.render()}")
+            this.prelude.append(f"Inverse Name: {inverse.render()}")
+        else:
+            this.prelude.append("Inverse Name: none recorded")
 
         this.ancestors = [
             entry for ancestor in record.ancestors if (entry := phrase(ancestor))

@@ -66,6 +66,8 @@ class LadderFlags(BaseModel):
 
     example_ladder_fallbacks: dict[str, ExampleSource]
     example_ladder_skips: list[str]
+    # pid -> pool rows dropped by the subject-type filter (diagnostics).
+    example_rows_filtered: dict[str, int]
 
 
 class ExtractionCounts(BaseModel):
@@ -166,6 +168,12 @@ def emit_records(
             flags=LadderFlags(
                 example_ladder_fallbacks=dict(sorted(result.example_fallbacks.items())),
                 example_ladder_skips=sorted(result.example_skips, key=pid_number),
+                example_rows_filtered=dict(
+                    sorted(
+                        result.example_filtered.items(),
+                        key=lambda item: pid_number(item[0]),
+                    )
+                ),
             ),
             excluded=excluded_sorted,
             content_hashes={

@@ -7,8 +7,9 @@ from dataclasses import dataclass, field
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.progress import StderrProgress
 from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport
-from tests.wikidata.conftest import CONFIG_PATH, RESPONSES
+from tests.wikidata.conftest import CONFIG_PATH, RESPONSES, TAXONOMY_PATH
 
 
 @dataclass
@@ -34,6 +35,7 @@ def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
     result = extract_properties(
         config,
         FixtureTransport(RESPONSES),
+        taxonomy=Taxonomy.load(TAXONOMY_PATH),
         checkpoint_path=tmp_path / "checkpoint.json",
         progress=progress,
     )
@@ -42,7 +44,7 @@ def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
     assert phase_names == [
         "property inventory (SPARQL)",
         "property documents (wbgetentities)",
-        "endpoint-type labels (wbgetentities)",
+        "entity labels (wbgetentities)",
         "example ladder (per property)",
     ]
 
@@ -52,25 +54,32 @@ def test_extraction_reports_every_phase_with_correct_totals(tmp_path):
     assert progress.advances["example ladder (per property)"] == len(result.records)
     for name in (
         "property documents (wbgetentities)",
-        "endpoint-type labels (wbgetentities)",
+        "entity labels (wbgetentities)",
     ):
         assert progress.advances[name] == totals[name]
 
     # The exhausted-ladder property is called out by PID.
     assert any("P9002" in note and "skipped" in note for note in progress.notes)
+    # The subject-type filter announces what it dropped.
+    assert any("subject-type filter" in note for note in progress.notes)
 
 
 def test_extraction_notes_checkpoint_resume(tmp_path):
     config = Config.load(CONFIG_PATH)
+    taxonomy = Taxonomy.load(TAXONOMY_PATH)
     checkpoint_path = tmp_path / "checkpoint.json"
     extract_properties(
-        config, FixtureTransport(RESPONSES), checkpoint_path=checkpoint_path
+        config,
+        FixtureTransport(RESPONSES),
+        taxonomy=taxonomy,
+        checkpoint_path=checkpoint_path,
     )
 
     progress = RecordingProgress()
     extract_properties(
         config,
         FixtureTransport(RESPONSES),
+        taxonomy=taxonomy,
         checkpoint_path=checkpoint_path,
         progress=progress,
     )

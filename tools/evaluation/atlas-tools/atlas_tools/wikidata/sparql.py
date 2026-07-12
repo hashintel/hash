@@ -50,6 +50,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from atlas_tools.wikidata.model import Pid
+
 WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 
 # Bump on any semantic change to example_pairs_query (see module docstring).
@@ -78,6 +80,21 @@ def property_inventory_query() -> str:
         "  OPTIONAL { ?property wikibase:statements ?usage . }\n"
         "}\n"
         "ORDER BY ?property"
+    )
+
+
+def property_ancestors_query() -> str:
+    """P1647 (subproperty-of) CLOSURE for every item-valued property, in one
+    query. Verified live on QLever: 200 in 0.3 s, 833 pairs total — small
+    enough that this one DOES go through the response cache. The atlas spec
+    (§3.3.3 item 3) requires closed ancestors, not just direct parents."""
+    return (
+        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
+        "PREFIX wikibase: <http://wikiba.se/ontology#>\n"
+        "SELECT ?property ?ancestor WHERE {\n"
+        "  ?property wikibase:propertyType wikibase:WikibaseItem .\n"
+        "  ?property wdt:P1647+ ?ancestor .\n"
+        "}"
     )
 
 
@@ -171,6 +188,19 @@ def parse_inventory_results(body: bytes) -> list[InventoryRow]:
         )
 
     return rows
+
+
+def parse_ancestor_results(body: bytes) -> list[tuple[Pid, Pid]]:
+    """(property, ancestor) pairs from the P1647 closure query, in response
+    order."""
+    response = SparqlResponse.model_validate_json(body)
+    return [
+        (
+            Pid(_entity_id_from_uri(binding["property"].value)),
+            Pid(_entity_id_from_uri(binding["ancestor"].value)),
+        )
+        for binding in response.results.bindings
+    ]
 
 
 class ExampleRow(BaseModel):

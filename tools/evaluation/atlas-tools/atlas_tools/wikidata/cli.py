@@ -14,6 +14,9 @@ Commands:
 - ``wikidata render-cards`` (W2a): re-render cards from an existing
   ``records.jsonl`` with zero transport/network involvement — changing the
   card format or token budget never requires re-extraction.
+- ``wikidata taxonomy`` (W2a): pull the full P279 edge list from QLever into
+  ``taxonomy.parquet`` — the local subsumption oracle for the subject-type
+  example filter (in-query subsumption times out on public endpoints).
 - ``wikidata entity-manifest`` (W2b): streamed per-entity manifest parquet.
 - ``wikidata sampling-plan`` (W2b): P31-stratified sampling plan parquet.
 """
@@ -49,17 +52,27 @@ def _progress_reporter(quiet: bool) -> ProgressReporter:
     help="Serve responses from committed fixtures instead of the network"
     " (offline testing).",
 )
+@click.option(
+    "--taxonomy",
+    "taxonomy_path",
+    default=None,
+    type=click.Path(exists=True),
+    help="taxonomy.parquet from `wikidata taxonomy` (required while"
+    " extraction.filter_examples_by_subject_type is enabled).",
+)
 @click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
 def extract_properties_command(
     config_path: str,
     out_dir: str,
     cache_dir: str | None,
     fixture_dir: str | None,
+    taxonomy_path: str | None,
     quiet: bool,
 ) -> None:
     """W2a: mine relation cards (cards.jsonl + manifest + inventory)."""
     from atlas_tools.wikidata.cards import emit_cards
     from atlas_tools.wikidata.properties import extract_properties
+    from atlas_tools.wikidata.taxonomy import Taxonomy
     from atlas_tools.wikidata.transport import (
         FixtureTransport,
         RequestsTransport,
@@ -78,10 +91,12 @@ def extract_properties_command(
         transport = CachingTransport(
             transport, cache_dir, snapshot_date=config.extraction.snapshot_date
         )
+    taxonomy = Taxonomy.load(taxonomy_path) if taxonomy_path is not None else None
     progress = _progress_reporter(quiet)
     result = extract_properties(
         config,
         transport,
+        taxonomy=taxonomy,
         checkpoint_path=Path(out_dir) / "checkpoint.json",
         progress=progress,
     )
@@ -110,6 +125,33 @@ def render_cards_command(records_path: str, config_path: str, out_dir: str) -> N
     record_set = load_records(records_path)
     paths = render_cards(record_set, config, out_dir)
     click.echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} cards)")
+
+
+@main.command("taxonomy")
+@click.option("--config", "config_path", required=True, type=click.Path(exists=True))
+@click.option("--out", "out_path", required=True, type=click.Path())
+@click.option("--checkpoint", "checkpoint_dir", required=True, type=click.Path())
+@click.option("--quiet", is_flag=True, default=False, help="No progress on stderr.")
+def taxonomy_command(
+    config_path: str, out_path: str, checkpoint_dir: str, quiet: bool
+) -> None:
+    """W2a: pull the full P279 edge list into taxonomy.parquet (QLever)."""
+    from atlas_tools.wikidata.taxonomy import extract_taxonomy
+    from atlas_tools.wikidata.transport import RequestsTransport
+
+    config = Config.load(config_path)
+    # Deliberately the PLAIN transport: each page body is ~48 MB of JSON and
+    # the parquet + checkpoint parts are the persistence; a CachingTransport
+    # here would roughly double local storage for zero benefit.
+    transport = RequestsTransport(policy=config.extraction.politeness)
+    summary = extract_taxonomy(
+        transport,
+        config=config,
+        out_path=out_path,
+        checkpoint_dir=checkpoint_dir,
+        progress=_progress_reporter(quiet),
+    )
+    click.echo(f"wrote {out_path} ({summary.edges} edges, {summary.pages} pages)")
 
 
 @main.command("entity-manifest")

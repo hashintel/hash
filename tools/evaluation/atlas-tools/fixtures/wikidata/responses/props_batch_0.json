@@ -505,7 +505,25 @@
       "type": "property"
     },
     "P9005": {
-      "claims": {},
+      "claims": {
+        "P1647": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "property",
+                  "id": "P9006"
+                }
+              },
+              "property": "P1647",
+              "snaktype": "value"
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ]
+      },
       "datatype": "wikibase-item",
       "descriptions": {
         "en": {
