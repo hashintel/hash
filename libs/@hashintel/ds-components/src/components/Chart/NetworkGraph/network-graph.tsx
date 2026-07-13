@@ -103,8 +103,9 @@ const hexToRgb = (hex: string): [number, number, number] => {
  * Clamp an orthographic pan `target` so the viewport never shows more than
  * {@link PAN_PADDING_PX} beyond the network's bounding box. `scale` is the
  * world→pixel factor (`2 ** zoom`); `viewport{Width,Height}` are in CSS pixels.
- * When the viewport is larger than the padded network on an axis (e.g. when
- * zoomed out), that axis is locked to the network's centre.
+ * Works both when the viewport is smaller than the network (pan within it) and
+ * when it is larger (pan the network around inside it) — in either case the
+ * network can be nudged until only the padding remains on the trailing side.
  */
 const clampPanTarget = (
   target: number[],
@@ -121,9 +122,14 @@ const clampPanTarget = (
     viewportPx: number,
   ) => {
     const half = viewportPx / (2 * scale);
-    const lo = min - pad + half;
-    const hi = max + pad - half;
-    return lo <= hi ? Math.min(hi, Math.max(lo, center)) : (min + max) / 2;
+    // The two per-side limits (viewport may show at most `pad` beyond each
+    // edge). Zoomed in they order as [lo, hi]; zoomed out they swap — sorting
+    // covers both, so panning is always allowed right up to the padding.
+    const a = min - pad + half;
+    const b = max + pad - half;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    return Math.min(hi, Math.max(lo, center));
   };
   return [
     clampAxis(target[0] ?? 0, bounds.minX, bounds.maxX, viewportWidth),
