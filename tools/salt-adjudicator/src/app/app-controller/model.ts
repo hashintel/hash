@@ -1,6 +1,4 @@
 import {
-  type AdjudicationRecord,
-  AdjudicationRecordSchema,
   type Card,
   type EmbeddedPayload,
   type GenericEmbeddedPayload,
@@ -8,15 +6,19 @@ import {
   LabelSchema,
   type QualificationCard,
   type SessionSnapshot,
+  SaltValidationError,
   type Study,
   type StudyManifest,
-  StudyManifestSchema,
+  type StoredAdjudicationRecord,
+  StoredAdjudicationRecordSchema,
   createStudy,
   createSwipeEvent,
   formatZodIssues,
   safeParseEmbeddedPayload,
   SessionSnapshotSchema,
 } from "../../core.ts";
+
+import type { QualificationDraft, StudyPlan } from "../../study-planning.ts";
 
 export type { EmbeddedPayload, GenericEmbeddedPayload, SessionSnapshot };
 
@@ -30,9 +32,15 @@ export type AppMode =
   | "workspace";
 
 export type WorkspaceTab = "adjudicate" | "progress" | "merge" | "resolve";
-export type BuilderFileKind = "cards" | "qualification";
+export type BuilderFileKind = "cards";
 export type MergeFileKind = "swipes" | "manifest" | "adjudications";
 export type DropKind = BuilderFileKind | MergeFileKind;
+export type BuilderStep =
+  | "import"
+  | "qualification"
+  | "planning"
+  | "review"
+  | "result";
 export type VerificationManifest = StudyManifest;
 export type StudyBuildResult = ReturnType<typeof createStudy>;
 export type SwipeEvent = ReturnType<typeof createSwipeEvent>;
@@ -40,7 +48,7 @@ export type ImportedSwipeRecord = ReturnType<
   typeof import("../../core.ts").parseSwipesJsonl
 >[number];
 export type MergeStudy = Study | VerificationManifest;
-export type StoredAdjudicationRecord = AdjudicationRecord;
+export type { StoredAdjudicationRecord };
 
 export type RetractionEvent = ReturnType<
   typeof import("../../core.ts").createRetractionEvent
@@ -48,9 +56,11 @@ export type RetractionEvent = ReturnType<
 
 export interface BuilderState {
   cards: Card[] | null;
-  qualificationCards: QualificationCard[];
   cardsName: string;
-  qualificationName: string;
+  qualificationDrafts: QualificationDraft[];
+  selectedRelationId: string | null;
+  step: BuilderStep;
+  plan: StudyPlan | null;
   result: StudyBuildResult | null;
   error: unknown | null;
 }
@@ -136,18 +146,10 @@ export interface AppState {
 export const isLabel = (value: unknown): value is Label =>
   LabelSchema.safeParse(value).success;
 
-export const isVerificationManifest = (
-  value: unknown,
-): value is VerificationManifest =>
-  StudyManifestSchema.safeParse(value).success;
-
 export const isStoredAdjudicationRecord = (
   value: unknown,
 ): value is StoredAdjudicationRecord =>
-  AdjudicationRecordSchema.safeParse(value).success;
-
-export const isSessionSnapshot = (value: unknown): value is SessionSnapshot =>
-  SessionSnapshotSchema.safeParse(value).success;
+  StoredAdjudicationRecordSchema.safeParse(value).success;
 
 export const parseEmbeddedPayload = (
   serializedPayload: string | null,
@@ -184,9 +186,28 @@ export class SessionRepository {
     localStorage.removeItem(probeKey);
   }
 
-  load(): unknown {
+  load(): SessionSnapshot | null {
     const serialized = localStorage.getItem(this.key);
-    return serialized ? JSON.parse(serialized) : null;
+    if (!serialized) {
+      return null;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(serialized);
+    } catch (error) {
+      throw new SaltValidationError(
+        "The saved session contains invalid JSON.",
+        [error instanceof Error ? error.message : String(error)],
+      );
+    }
+    const result = SessionSnapshotSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new SaltValidationError(
+        "The saved session does not match the SALT session contract.",
+        formatZodIssues(result.error),
+      );
+    }
+    return result.data;
   }
 
   save(snapshot: SessionSnapshot): void {
@@ -238,9 +259,11 @@ export const createInitialState = (
   guideOpen: false,
   builder: {
     cards: null,
-    qualificationCards: [],
     cardsName: "",
-    qualificationName: "",
+    qualificationDrafts: [],
+    selectedRelationId: null,
+    step: "import",
+    plan: null,
     result: null,
     error: null,
   },

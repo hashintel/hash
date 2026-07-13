@@ -8,6 +8,7 @@ import {
 } from "preact/hooks";
 
 import {
+  type PlanningMode,
   type Label,
   type Study,
   DecisionTimer,
@@ -21,6 +22,7 @@ import {
   createStudy,
   createSwipeEvent,
   edgeCaseMarkdown,
+  formatZodIssues,
   getProductionDeck,
   getQualificationDeck,
   manifestForExport,
@@ -34,9 +36,18 @@ import {
   relationSummaries,
   resolveAnnotatorCode,
   safeFilenamePart,
+  safeParseStudyManifest,
   serializePayload,
+  StoredAdjudicationRecordSchema,
   swipesToJsonl,
 } from "../core.ts";
+import {
+  type QualificationDraft,
+  type StudyPlan,
+  partitionQualificationCards,
+  planStudy,
+  prepareStudySelection,
+} from "../study-planning.ts";
 import {
   activeStudy,
   computeMerge,
@@ -46,6 +57,7 @@ import {
 import {
   type AppState,
   type BuilderFileKind,
+  type BuilderStep,
   type EmbeddedPayload,
   type SessionSnapshot,
   type StoredAdjudicationRecord,
@@ -54,9 +66,7 @@ import {
   createInitialState,
   createSessionSnapshot,
   isLabel,
-  isSessionSnapshot,
   isStoredAdjudicationRecord,
-  isVerificationManifest,
   SessionRepository,
 } from "./app-controller/model.ts";
 
@@ -86,8 +96,10 @@ export interface BuilderFormValues {
   rubricVersion: string;
   seed: string;
   roster: string;
+  plannerMode: PlanningMode;
   coverageTarget: number;
-  sliceSize: number;
+  productionCardsPerAnnotator: number;
+  sampleSize: number;
   coincidentTarget: number;
 }
 
@@ -130,6 +142,12 @@ export interface AppActions {
     file: File | undefined,
   ) => Promise<void>;
   clearBuilder: () => void;
+  setBuilderStep: (step: BuilderStep) => void;
+  invalidateBuilderPlan: () => void;
+  selectBuilderCard: (relationId: string) => void;
+  saveQualificationDraft: (draft: QualificationDraft) => void;
+  removeQualificationDraft: (relationId: string) => void;
+  reviewStudy: (values: BuilderFormValues) => void;
   generateStudy: (values: BuilderFormValues) => void;
   downloadStudy: () => void;
   downloadCodes: () => void;
@@ -243,6 +261,44 @@ const downloadText = (filename: string, text: string, type: string): void => {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
+const calculateBuilderPlan = (
+  state: AppState,
+  values: BuilderFormValues,
+  annotatorCount: number,
+): StudyPlan => {
+  if (!state.builder.cards) {
+    throw new SaltValidationError("Load a source card pool first.");
+  }
+  const common = {
+    annotatorCount,
+    eligiblePoolSize:
+      state.builder.cards.length - state.builder.qualificationDrafts.length,
+    qualificationSize: state.builder.qualificationDrafts.length,
+  };
+  if (values.plannerMode === "budget-first") {
+    return planStudy({
+      ...common,
+      mode: values.plannerMode,
+      productionCardsPerAnnotator: values.productionCardsPerAnnotator,
+      coverageTarget: values.coverageTarget,
+    });
+  }
+  if (values.plannerMode === "sample-first") {
+    return planStudy({
+      ...common,
+      mode: values.plannerMode,
+      productionCardsPerAnnotator: values.productionCardsPerAnnotator,
+      sampleSize: values.sampleSize,
+    });
+  }
+  return planStudy({
+    ...common,
+    mode: values.plannerMode,
+    sampleSize: values.sampleSize,
+    coverageTarget: values.coverageTarget,
+  });
+};
+
 export const buildStudyHtml = (study: Study): string => {
   if (
     document.querySelector('script[src], link[rel="stylesheet"][href]') ||
@@ -289,12 +345,14 @@ const loadSavedAdjudications = (
       return state;
     }
     const parsed: unknown = JSON.parse(serialized);
-    if (!Array.isArray(parsed)) {
-      return state;
+    const result = StoredAdjudicationRecordSchema.array().safeParse(parsed);
+    if (!result.success) {
+      throw new SaltValidationError(
+        "Saved adjudications do not match the SALT adjudication contract.",
+        formatZodIssues(result.error),
+      );
     }
-    const records = parsed.filter((record) =>
-      isStoredAdjudicationRecord(record),
-    );
+    const records = result.data;
     const knownRecords = new Set(
       state.merge.adjudications.map(
         (record) => `${record.relation_id}:${record.ts}`,
@@ -312,8 +370,21 @@ const loadSavedAdjudications = (
         ],
       },
     };
-  } catch {
-    return state;
+  } catch (error) {
+    return {
+      ...state,
+      merge: {
+        ...state.merge,
+        error:
+          error instanceof SaltValidationError
+            ? error
+            : new SaltValidationError(
+                `Saved adjudications could not be read: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+              ),
+      },
+    };
   }
 };
 
@@ -325,6 +396,20 @@ export const useAppController = (
   const stateRef = useRef(state);
   const timerRef = useRef(new DecisionTimer());
   const timerCardKeyRef = useRef("");
+
+  const resumeDecisionTimer = useCallback((candidateState: AppState): void => {
+    if (
+      candidateState.mode === "workspace" &&
+      candidateState.activeTab === "adjudicate" &&
+      !candidateState.noteOpen &&
+      !candidateState.guideOpen &&
+      !candidateState.rubricOpen &&
+      !document.hidden &&
+      getSwipeContext(candidateState)?.card
+    ) {
+      timerRef.current.resume();
+    }
+  }, []);
 
   const publish = useCallback((nextState: AppState): void => {
     stateRef.current = nextState;
@@ -416,16 +501,20 @@ export const useAppController = (
         return;
       }
 
-      let savedSession: unknown;
+      let savedSession: SessionSnapshot | null;
       try {
         savedSession = repository.load();
       } catch (error) {
+        const details =
+          error instanceof SaltValidationError && error.issues.length > 0
+            ? `${error.message} ${error.issues.join(" ")}`
+            : error instanceof Error
+              ? error.message
+              : String(error);
         publish({
           ...currentState,
           study,
-          fatalError: `The saved session could not be read. Export or clear this site's storage before continuing. ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          fatalError: `The saved session could not be read. Preserve this site's storage before continuing. ${details}`,
         });
         return;
       }
@@ -438,10 +527,17 @@ export const useAppController = (
         accessError: "",
       };
       if (
-        isSessionSnapshot(savedSession) &&
-        savedSession.study_id === study.study_id &&
-        savedSession.deck_hash === study.deck_hash
+        savedSession &&
+        (savedSession.study_id !== study.study_id ||
+          savedSession.deck_hash !== study.deck_hash ||
+          savedSession.annotator_id !== annotatorId)
       ) {
+        publish({
+          ...nextState,
+          fatalError:
+            "The saved session identity does not match this study, deck, and annotator. Preserve this site's storage before continuing.",
+        });
+      } else if (savedSession) {
         publish({
           ...nextState,
           resumeCandidate: savedSession,
@@ -496,6 +592,8 @@ export const useAppController = (
       } else if (
         returningToAdjudication &&
         !currentState.noteOpen &&
+        !currentState.guideOpen &&
+        !currentState.rubricOpen &&
         !document.hidden
       ) {
         timerRef.current.resume();
@@ -520,6 +618,8 @@ export const useAppController = (
         currentState.mode !== "workspace" ||
         currentState.activeTab !== "adjudicate" ||
         currentState.transition ||
+        currentState.guideOpen ||
+        currentState.rubricOpen ||
         currentState.storageError ||
         !currentState.study ||
         !currentState.snapshot ||
@@ -693,14 +793,16 @@ export const useAppController = (
         !nextRubricVersion ||
         nextRubricVersion === currentState.snapshot.rubric_version
       ) {
-        publish({ ...currentState, rubricOpen: false });
+        const nextState = { ...currentState, rubricOpen: false };
+        resumeDecisionTimer(nextState);
+        publish(nextState);
         return;
       }
       const timestamp = nextMonotoneTimestamp(
         currentState.snapshot.last_timestamp_ms,
       );
       const snapshot = currentState.snapshot;
-      persistAndPublish({
+      const nextState: AppState = {
         ...currentState,
         rubricOpen: false,
         snapshot: {
@@ -719,10 +821,12 @@ export const useAppController = (
             },
           ],
         },
-      });
+      };
+      persistAndPublish(nextState);
+      resumeDecisionTimer(nextState);
       announce(`Rubric changed to ${nextRubricVersion}.`);
     },
-    [announce, persistAndPublish, publish],
+    [announce, persistAndPublish, publish, resumeDecisionTimer],
   );
 
   const loadBuilderFile = useCallback(
@@ -732,32 +836,25 @@ export const useAppController = (
       }
       try {
         const fileText = await file.text();
+        const cards = parseCardsJsonl(fileText);
         const currentState = stateRef.current;
-        if (kind === "cards") {
-          publish({
-            ...currentState,
-            builder: {
-              ...currentState.builder,
-              cards: parseCardsJsonl(fileText),
-              cardsName: file.name,
-              error: null,
-              result: null,
-            },
-          });
-        } else {
-          publish({
-            ...currentState,
-            builder: {
-              ...currentState.builder,
-              qualificationCards: parseCardsJsonl(fileText, {
-                qualification: true,
-              }),
-              qualificationName: file.name,
-              error: null,
-              result: null,
-            },
-          });
-        }
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            cards,
+            cardsName: file.name,
+            qualificationDrafts: [],
+            selectedRelationId: cards[0]?.relation_id ?? null,
+            step: "import",
+            plan: null,
+            error: null,
+            result: null,
+          },
+        });
+        announce(
+          `${cards.length.toLocaleString()} source cards loaded from ${file.name}.`,
+        );
       } catch (error) {
         const currentState = stateRef.current;
         publish({
@@ -766,30 +863,122 @@ export const useAppController = (
         });
       }
     },
-    [publish],
+    [announce, publish],
+  );
+
+  const saveQualificationDraft = useCallback(
+    (draft: QualificationDraft): void => {
+      const currentState = stateRef.current;
+      try {
+        if (!currentState.builder.cards) {
+          throw new SaltValidationError("Load a source card pool first.");
+        }
+        partitionQualificationCards(currentState.builder.cards, [draft]);
+        const qualificationDrafts = [
+          ...currentState.builder.qualificationDrafts.filter(
+            (existingDraft) => existingDraft.relationId !== draft.relationId,
+          ),
+          { ...draft, rationale: draft.rationale.trim() },
+        ];
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            qualificationDrafts,
+            plan: null,
+            result: null,
+            error: null,
+          },
+        });
+        announce(`${draft.relationId} saved as a qualification anchor.`);
+      } catch (error) {
+        publish({
+          ...currentState,
+          builder: { ...currentState.builder, error },
+        });
+      }
+    },
+    [announce, publish],
+  );
+
+  const reviewStudy = useCallback(
+    (values: BuilderFormValues): void => {
+      const currentState = stateRef.current;
+      try {
+        const annotatorIds = parseRoster(values.roster);
+        const plan = calculateBuilderPlan(
+          currentState,
+          values,
+          annotatorIds.length,
+        );
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            plan,
+            step: "review",
+            result: null,
+            error: null,
+          },
+        });
+        announce(
+          `Plan ready: ${plan.sampleSize.toLocaleString()} cards at ${plan.coverageTarget}× coverage.`,
+        );
+      } catch (error) {
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            plan: null,
+            error,
+          },
+        });
+      }
+    },
+    [announce, publish],
   );
 
   const generateStudy = useCallback(
     (values: BuilderFormValues): void => {
       const currentState = stateRef.current;
       try {
-        if (!currentState.builder.cards) {
-          throw new SaltValidationError("Load production cards.jsonl first.");
+        const cards = currentState.builder.cards;
+        if (!cards) {
+          throw new SaltValidationError("Load a source card pool first.");
         }
-        const result = createStudy({
-          cards: currentState.builder.cards,
-          qualificationCards: currentState.builder.qualificationCards,
-          annotatorIds: parseRoster(values.roster),
+        const annotatorIds = parseRoster(values.roster);
+        const plan = calculateBuilderPlan(
+          currentState,
+          values,
+          annotatorIds.length,
+        );
+        const selection = prepareStudySelection({
+          sourcePool: cards,
+          qualificationDrafts: currentState.builder.qualificationDrafts,
+          plan,
           seed: values.seed,
-          coverageTarget: values.coverageTarget,
-          sliceSize: values.sliceSize,
+        });
+        const result = createStudy({
+          cards: selection.productionCards,
+          qualificationCards: selection.qualificationCards,
+          annotatorIds,
+          seed: values.seed,
+          coverageTarget: plan.coverageTarget,
+          sliceSize: plan.productionCardsPerAnnotator,
           rubricVersion: values.rubricVersion,
           coincidentTarget: values.coincidentTarget,
           title: values.title,
+          sampling: selection.sampling,
         });
         publish({
           ...currentState,
-          builder: { ...currentState.builder, result, error: null },
+          builder: {
+            ...currentState.builder,
+            plan,
+            step: "result",
+            result,
+            error: null,
+          },
         });
         announce(`Study ${result.study.study_id} generated.`);
       } catch (error) {
@@ -848,9 +1037,11 @@ export const useAppController = (
       }
       try {
         const parsedManifest: unknown = JSON.parse(await file.text());
-        if (!isVerificationManifest(parsedManifest)) {
+        const result = safeParseStudyManifest(parsedManifest);
+        if (!result.success) {
           throw new SaltValidationError(
-            `Could not load ${file.name}: expected a SALT verification manifest.`,
+            `Could not load ${file.name}.`,
+            formatZodIssues(result.error),
           );
         }
         const currentState = stateRef.current;
@@ -858,7 +1049,7 @@ export const useAppController = (
           ...currentState,
           merge: {
             ...currentState.merge,
-            manifest: parsedManifest,
+            manifest: result.data,
             manifestName: file.name,
             error: null,
             warning: activeStudy(currentState, embeddedPayload)
@@ -872,11 +1063,14 @@ export const useAppController = (
           ...currentState,
           merge: {
             ...currentState.merge,
-            error: new SaltValidationError(
-              `Could not load ${file.name}: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            ),
+            error:
+              error instanceof SaltValidationError
+                ? error
+                : new SaltValidationError(
+                    `Could not load ${file.name}: ${
+                      error instanceof Error ? error.message : String(error)
+                    }`,
+                  ),
           },
         });
       }
@@ -931,6 +1125,14 @@ export const useAppController = (
   const adjudicate = useCallback(
     (values: AdjudicationFormValues): void => {
       const currentState = stateRef.current;
+      if (currentState.merge.error) {
+        publish({
+          ...currentState,
+          adjudicationError:
+            "Resolve the loaded evidence error before writing a binding adjudication.",
+        });
+        return;
+      }
       if (
         !isLabel(values.label) ||
         !values.rationale.trim() ||
@@ -1102,8 +1304,8 @@ export const useAppController = (
         const noteOpen = !currentState.noteOpen;
         if (noteOpen) {
           timerRef.current.pause();
-        } else if (!document.hidden) {
-          timerRef.current.resume();
+        } else {
+          resumeDecisionTimer({ ...currentState, noteOpen });
         }
         publish({ ...currentState, noteOpen });
       },
@@ -1114,21 +1316,19 @@ export const useAppController = (
       },
       keepNote: () => {
         const currentState = stateRef.current;
-        if (!document.hidden) {
-          timerRef.current.resume();
-        }
-        publish({ ...currentState, noteOpen: false });
+        const nextState = { ...currentState, noteOpen: false };
+        resumeDecisionTimer(nextState);
+        publish(nextState);
       },
       clearNote: () => {
         const currentState = stateRef.current;
-        if (!document.hidden) {
-          timerRef.current.resume();
-        }
-        publish({
+        const nextState = {
           ...currentState,
           noteDraft: "",
           noteOpen: false,
-        });
+        };
+        resumeDecisionTimer(nextState);
+        publish(nextState);
       },
       setNoteDraft: (note) => {
         const currentState = stateRef.current;
@@ -1141,10 +1341,9 @@ export const useAppController = (
       },
       closeGuide: () => {
         const currentState = stateRef.current;
-        if (!currentState.noteOpen && !document.hidden) {
-          timerRef.current.resume();
-        }
-        publish({ ...currentState, guideOpen: false });
+        const nextState = { ...currentState, guideOpen: false };
+        resumeDecisionTimer(nextState);
+        publish(nextState);
       },
       undoLastSwipe,
       exportSwipes,
@@ -1204,11 +1403,14 @@ export const useAppController = (
       },
       openRubric: () => {
         const currentState = stateRef.current;
+        timerRef.current.pause();
         publish({ ...currentState, rubricOpen: true });
       },
       closeRubric: () => {
         const currentState = stateRef.current;
-        publish({ ...currentState, rubricOpen: false });
+        const nextState = { ...currentState, rubricOpen: false };
+        resumeDecisionTimer(nextState);
+        publish(nextState);
       },
       changeRubric,
       loadBuilderFile,
@@ -1218,14 +1420,82 @@ export const useAppController = (
           ...currentState,
           builder: {
             cards: null,
-            qualificationCards: [],
             cardsName: "",
-            qualificationName: "",
+            qualificationDrafts: [],
+            selectedRelationId: null,
+            step: "import",
+            plan: null,
             result: null,
             error: null,
           },
         });
       },
+      setBuilderStep: (step) => {
+        const currentState = stateRef.current;
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            step,
+            error: null,
+          },
+        });
+      },
+      invalidateBuilderPlan: () => {
+        const currentState = stateRef.current;
+        if (
+          currentState.builder.plan === null &&
+          currentState.builder.result === null
+        ) {
+          return;
+        }
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            plan: null,
+            result: null,
+            error: null,
+          },
+        });
+      },
+      selectBuilderCard: (relationId) => {
+        const currentState = stateRef.current;
+        if (
+          !currentState.builder.cards?.some(
+            (card) => card.relation_id === relationId,
+          )
+        ) {
+          return;
+        }
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            selectedRelationId: relationId,
+          },
+        });
+      },
+      saveQualificationDraft,
+      removeQualificationDraft: (relationId) => {
+        const currentState = stateRef.current;
+        const qualificationDrafts =
+          currentState.builder.qualificationDrafts.filter(
+            (draft) => draft.relationId !== relationId,
+          );
+        publish({
+          ...currentState,
+          builder: {
+            ...currentState.builder,
+            qualificationDrafts,
+            plan: null,
+            result: null,
+            error: null,
+          },
+        });
+        announce(`${relationId} removed from qualification anchors.`);
+      },
+      reviewStudy,
       generateStudy,
       downloadStudy: () => {
         const currentState = stateRef.current;
@@ -1325,6 +1595,9 @@ export const useAppController = (
       persistAndPublish,
       publish,
       resetTransientCardState,
+      reviewStudy,
+      resumeDecisionTimer,
+      saveQualificationDraft,
       selectTab,
       undoLastSwipe,
     ],
@@ -1357,7 +1630,12 @@ export const useAppController = (
       timerRef.current.start();
       timerCardKeyRef.current = timerCardKey;
     }
-    if (state.noteOpen || state.guideOpen || document.hidden) {
+    if (
+      state.noteOpen ||
+      state.guideOpen ||
+      state.rubricOpen ||
+      document.hidden
+    ) {
       timerRef.current.pause();
     } else {
       timerRef.current.resume();
@@ -1367,6 +1645,7 @@ export const useAppController = (
     state.guideOpen,
     state.mode,
     state.noteOpen,
+    state.rubricOpen,
     state.transition,
     timerCardKey,
   ]);
@@ -1403,7 +1682,11 @@ export const useAppController = (
       }
       if (document.hidden) {
         timerRef.current.pause();
-      } else if (!currentState.noteOpen && !currentState.guideOpen) {
+      } else if (
+        !currentState.noteOpen &&
+        !currentState.guideOpen &&
+        !currentState.rubricOpen
+      ) {
         timerRef.current.resume();
       }
     };

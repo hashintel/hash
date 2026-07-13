@@ -6,6 +6,11 @@ export const ADJUDICATION_SCHEMA_VERSION = "salt-adjudications-v1" as const;
 
 export const LABELS = Object.freeze(["C", "P", "O", "U"] as const);
 export const PRESCREENS = Object.freeze(["equivalence", "normal"] as const);
+export const PLANNING_MODES = Object.freeze([
+  "budget-first",
+  "sample-first",
+  "coverage-first",
+] as const);
 
 const nonEmptyString = (message: string = "must be a non-empty string.") =>
   z.string({ error: message }).trim().min(1, { error: message });
@@ -53,6 +58,10 @@ export const PrescreenSchema = z.enum(PRESCREENS, {
 
 export type Prescreen = z.infer<typeof PrescreenSchema>;
 
+export const PlanningModeSchema = z.enum(PLANNING_MODES);
+
+export type PlanningMode = z.infer<typeof PlanningModeSchema>;
+
 export const AnnotatorIdSchema = z
   .string({
     error:
@@ -77,17 +86,63 @@ export const MonotoneTimestampSchema = z.strictObject({
 
 export type MonotoneTimestamp = z.infer<typeof MonotoneTimestampSchema>;
 
+export const CardSourceMetadataSchema = z.strictObject({
+  kind: z.literal("wikidata-extract"),
+  retrieved_at: preservedNonEmptyString(),
+  severely_truncated: z.boolean(),
+  token_count: nonNegativeInteger(),
+  truncations: z.array(z.string()),
+});
+
+export type CardSourceMetadata = z.infer<typeof CardSourceMetadataSchema>;
+
 const cardShape = {
   relation_id: nonEmptyString(),
   family_id: nonEmptyString(),
   card_text: nonEmptyString(),
   card_hash: nonEmptyString(),
   prescreen: PrescreenSchema,
+  source_metadata: CardSourceMetadataSchema.optional(),
 };
 
 export const CardSchema = z.strictObject(cardShape);
 
 export type Card = z.infer<typeof CardSchema>;
+
+export const WikidataCardRecordSchema = z
+  .looseObject({
+    card_hash: nonEmptyString(),
+    card_text: nonEmptyString(),
+    pid: z
+      .string({ error: "must be a Wikidata property ID such as P6." })
+      .regex(/^P[1-9]\d*$/u, {
+        error: "must be a Wikidata property ID such as P6.",
+      }),
+    retrieved_at: preservedNonEmptyString(),
+    severely_truncated: z.boolean(),
+    token_count: nonNegativeInteger(),
+    truncations: z.array(z.string()),
+    family_id: nonEmptyString().optional(),
+    prescreen: PrescreenSchema.optional().default("normal"),
+  })
+  .transform((record) =>
+    CardSchema.parse({
+      relation_id: record.pid,
+      family_id: record.family_id ?? record.pid,
+      card_text: record.card_text,
+      card_hash: record.card_hash,
+      prescreen: record.prescreen,
+      source_metadata: {
+        kind: "wikidata-extract",
+        retrieved_at: record.retrieved_at,
+        severely_truncated: record.severely_truncated,
+        token_count: record.token_count,
+        truncations: record.truncations,
+      },
+    }),
+  );
+
+export type WikidataCardRecord = z.input<typeof WikidataCardRecordSchema>;
 
 const qualificationRationaleSchema = nonEmptyString(
   'qualification "rationale" must be a non-empty string.',
@@ -106,6 +161,7 @@ export const QualificationCardSchema = z
     card_text: z.unknown().optional(),
     card_hash: z.unknown().optional(),
     prescreen: z.unknown().optional(),
+    source_metadata: z.unknown().optional(),
     answer: z.unknown().optional(),
     gold_label: z.unknown().optional(),
     rationale: z.unknown().optional(),
@@ -117,6 +173,7 @@ export const QualificationCardSchema = z
       card_text: card.card_text,
       card_hash: card.card_hash,
       prescreen: card.prescreen,
+      source_metadata: card.source_metadata,
     });
     if (!cardResult.success) {
       cardResult.error.issues.forEach((issue) => {
@@ -153,6 +210,9 @@ export const QualificationCardSchema = z
       card_text: card.card_text,
       card_hash: card.card_hash,
       prescreen: card.prescreen,
+      ...(card.source_metadata === undefined
+        ? {}
+        : { source_metadata: card.source_metadata }),
     });
     return {
       ...parsedCard,
@@ -222,6 +282,48 @@ export const StudyManifestCardSchema = z.strictObject({
 
 export type StudyManifestCard = z.infer<typeof StudyManifestCardSchema>;
 
+export const StudySamplingSchema = z
+  .strictObject({
+    strategy: z.literal("prescreen-stratified-v1"),
+    planner_mode: PlanningModeSchema,
+    source_pool_hash: nonEmptyString(),
+    source_pool_size: positiveInteger(),
+    eligible_pool_size: positiveInteger(),
+    sample_size: positiveInteger(),
+    qualification_size: nonNegativeInteger(),
+    annotator_count: positiveInteger(),
+    production_cards_per_annotator: positiveInteger(),
+    coverage_target: positiveInteger(),
+    spare_capacity: nonNegativeInteger(),
+    seconds_per_card: positiveInteger(),
+    sampling_seed: nonEmptyString(),
+  })
+  .superRefine((sampling, context) => {
+    if (sampling.eligible_pool_size > sampling.source_pool_size) {
+      context.addIssue({
+        code: "custom",
+        path: ["eligible_pool_size"],
+        message: "cannot exceed source_pool_size.",
+      });
+    }
+    if (sampling.sample_size > sampling.eligible_pool_size) {
+      context.addIssue({
+        code: "custom",
+        path: ["sample_size"],
+        message: "cannot exceed eligible_pool_size.",
+      });
+    }
+    if (sampling.coverage_target > sampling.annotator_count) {
+      context.addIssue({
+        code: "custom",
+        path: ["coverage_target"],
+        message: "cannot exceed annotator_count.",
+      });
+    }
+  });
+
+export type StudySampling = z.infer<typeof StudySamplingSchema>;
+
 interface CardIdentifier {
   relation_id: string;
   card_hash: string;
@@ -268,6 +370,7 @@ const studyMetadataShape = {
   slice_size: positiveInteger(),
   coincident_target: positiveInteger(),
   required_production_passes: positiveInteger(),
+  sampling: StudySamplingSchema.optional(),
 };
 
 export const StudySchema = z
@@ -301,6 +404,97 @@ export const StudySchema = z
         });
       },
     );
+    const productionRelationIds = new Set(
+      study.cards.map((card) => card.relation_id),
+    );
+    const productionCardHashes = new Set(
+      study.cards.map((card) => card.card_hash),
+    );
+    study.qualification_cards.forEach((card, cardIndex) => {
+      if (productionRelationIds.has(card.relation_id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["qualification_cards", cardIndex, "relation_id"],
+          message: `also appears in the production deck as "${card.relation_id}".`,
+        });
+      }
+      if (productionCardHashes.has(card.card_hash)) {
+        context.addIssue({
+          code: "custom",
+          path: ["qualification_cards", cardIndex, "card_hash"],
+          message: `also appears in the production deck as "${card.card_hash}".`,
+        });
+      }
+    });
+    if (study.sampling) {
+      if (study.sampling.sample_size !== study.cards.length) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "sample_size"],
+          message: `must equal the ${study.cards.length} embedded production cards.`,
+        });
+      }
+      if (
+        study.sampling.qualification_size !== study.qualification_cards.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "qualification_size"],
+          message: `must equal the ${study.qualification_cards.length} embedded qualification cards.`,
+        });
+      }
+      if (study.sampling.coverage_target !== study.coverage_target) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "coverage_target"],
+          message: "must match coverage_target.",
+        });
+      }
+      if (study.sampling.production_cards_per_annotator !== study.slice_size) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "production_cards_per_annotator"],
+          message: "must match slice_size.",
+        });
+      }
+      if (
+        study.sampling.annotator_count !== study.manifest.annotator_ids.length
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "annotator_count"],
+          message: "must match the assignment manifest roster.",
+        });
+      }
+      if (study.sampling.sampling_seed !== study.seed) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "sampling_seed"],
+          message: "must match the study seed.",
+        });
+      }
+      if (
+        study.sampling.source_pool_size !==
+        study.sampling.eligible_pool_size + study.sampling.qualification_size
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "source_pool_size"],
+          message: "must equal eligible_pool_size plus qualification_size.",
+        });
+      }
+      const expectedSpareCapacity =
+        study.sampling.annotator_count *
+          study.sampling.production_cards_per_annotator -
+        study.sampling.sample_size * study.sampling.coverage_target;
+      if (study.sampling.spare_capacity !== expectedSpareCapacity) {
+        context.addIssue({
+          code: "custom",
+          path: ["sampling", "spare_capacity"],
+          message: `must equal the ${expectedSpareCapacity} unused assignment slots.`,
+        });
+      }
+    }
     const accessAnnotatorIds = new Set<string>();
     study.access.forEach((entry, entryIndex) => {
       if (accessAnnotatorIds.has(entry.annotator_id)) {
@@ -332,6 +526,27 @@ export const StudyManifestSchema = z
         message,
       });
     });
+    if (
+      manifest.sampling &&
+      manifest.sampling.sample_size !== manifest.cards.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["sampling", "sample_size"],
+        message: `must equal the ${manifest.cards.length} manifest cards.`,
+      });
+    }
+    if (
+      manifest.sampling &&
+      manifest.sampling.annotator_count !==
+        manifest.manifest.annotator_ids.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["sampling", "annotator_count"],
+        message: "must match the assignment manifest roster.",
+      });
+    }
   });
 
 export type StudyManifest = z.infer<typeof StudyManifestSchema>;
@@ -492,6 +707,15 @@ export const ImportedAdjudicationRecordSchema = z.looseObject(
 
 export type ImportedAdjudicationRecord = z.infer<
   typeof ImportedAdjudicationRecordSchema
+>;
+
+export const StoredAdjudicationRecordSchema = z.looseObject({
+  ...adjudicationDecisionShape,
+  ts: DateTimeSchema,
+});
+
+export type StoredAdjudicationRecord = z.infer<
+  typeof StoredAdjudicationRecordSchema
 >;
 
 export const StudyEmbeddedPayloadSchema = z.strictObject({

@@ -16,6 +16,7 @@ example-ladder logic in ``properties.py`` interprets them as fallback
 triggers.
 """
 
+import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from http import HTTPStatus
 from os import PathLike
 from pathlib import Path
 from typing import Protocol
+from urllib.parse import urlsplit
 
 from pydantic import (
     BaseModel,
@@ -89,7 +91,12 @@ class Transport(Protocol):
 
 
 class RetryPolicy(BaseModel):
-    """Politeness knobs for the production transport (also a config value)."""
+    """Politeness knobs for the production transport (also a config value).
+
+    ``rate_limit_per_sec`` is enforced *per host*: politeness is a
+    property of the server being asked, so pacing QLever never slows the
+    WDQS fallback rung or the wikibase API, and vice versa.
+    """
 
     rate_limit_per_sec: NonNegativeFloat = 1.0
     max_retries: NonNegativeInt = 3
@@ -159,11 +166,48 @@ def _requests_session() -> Session:
     return requests.Session()
 
 
+class _HostRateLimiter:
+    """Thread-safe per-host request pacing.
+
+    Politeness is a property of the server, not of the client process:
+    each host gets its own schedule at the configured rate, so pacing one
+    endpoint never slows another. Slots are reserved under a lock and
+    slept for outside it, so concurrent workers queue politely on the
+    same host instead of racing the interval check.
+    """
+
+    def __init__(
+        self,
+        *,
+        min_interval: float,
+        clock: Callable[[], float],
+        sleep: Callable[[float], None],
+    ) -> None:
+        self._min_interval = min_interval
+        self._clock = clock
+        self._sleep = sleep
+        self._lock = threading.Lock()
+        self._next_slot_at: dict[str, float] = {}
+
+    def wait(self, url: str) -> None:
+        """Block until the reserved slot for ``url``'s host arrives."""
+        if self._min_interval <= 0:
+            return
+        host = urlsplit(url).netloc
+        with self._lock:
+            now = self._clock()
+            slot = max(self._next_slot_at.get(host, now), now)
+            self._next_slot_at[host] = slot + self._min_interval
+        if (delay := slot - now) > 0:
+            self._sleep(delay)
+
+
 class RequestsTransport:
     """Polite production transport: rate limit + exponential backoff.
 
-    - Rate limit: at most ``policy.rate_limit_per_sec`` requests per second,
-      enforced by sleeping for the remaining inter-request interval.
+    - Rate limit: at most ``policy.rate_limit_per_sec`` requests per second
+      *per host* (see :class:`_HostRateLimiter`), safe under concurrent
+      callers.
     - Backoff: on retryable statuses or connection errors, sleeps and
       retries up to ``policy.max_retries`` times, then returns the final
       response (or a synthesized status-599 response for a connection
@@ -171,6 +215,9 @@ class RequestsTransport:
       header when present (delta-seconds or HTTP date, capped at
       ``policy.max_retry_after_seconds``), falling back to exponential
       backoff (``policy.backoff_base_seconds * 2**attempt``).
+    - Sessions: ``requests.Session`` is not thread-safe, so each thread
+      lazily gets its own unless an explicit ``session`` was injected
+      (tests inject fakes and drive them single-threaded).
     """
 
     def __init__(
@@ -183,29 +230,35 @@ class RequestsTransport:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._policy = policy if policy is not None else RetryPolicy()
-        self._session = session if session is not None else _requests_session()
-        self._min_interval = (
-            1.0 / self._policy.rate_limit_per_sec if self._policy.rate_limit_per_sec > 0 else 0.0
+        self._injected_session = session
+        self._thread_sessions = threading.local()
+        self._limiter = _HostRateLimiter(
+            min_interval=(
+                1.0 / self._policy.rate_limit_per_sec
+                if self._policy.rate_limit_per_sec > 0
+                else 0.0
+            ),
+            clock=clock,
+            sleep=sleep,
         )
         self._sleep = sleep
-        self._clock = clock
         self._now = now
-        self._last_request_at: float | None = None
 
-    def _respect_rate_limit(self) -> None:
-        if self._last_request_at is not None and self._min_interval > 0:
-            elapsed = self._clock() - self._last_request_at
-            remaining = self._min_interval - elapsed
-            if remaining > 0:
-                self._sleep(remaining)
-        self._last_request_at = self._clock()
+    def _session(self) -> Session:
+        if self._injected_session is not None:
+            return self._injected_session
+        session: Session | None = getattr(self._thread_sessions, "session", None)
+        if session is None:
+            session = _requests_session()
+            self._thread_sessions.session = session
+        return session
 
     def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
         response = Response(status=CONNECTION_FAILED_STATUS)
         for attempt in range(self._policy.max_retries + 1):
-            self._respect_rate_limit()
+            self._limiter.wait(url)
             try:
-                reply = self._session.get(
+                reply = self._session().get(
                     url,
                     params=dict(params or {}),
                     headers={"User-Agent": USER_AGENT},
@@ -270,9 +323,13 @@ class FixtureTransport:
         self._index = _FIXTURE_INDEX_ADAPTER.validate_json((self._dir / "index.json").read_bytes())
 
         self.calls = 0
+        # Concurrent example mining hits fixtures from worker threads; the
+        # call counter must not under-count in those tests.
+        self._lock = threading.Lock()
 
     def get(self, url: str, params: Mapping[str, str] | None = None) -> Response:
-        self.calls += 1
+        with self._lock:
+            self.calls += 1
         key = request_key(url, params)
         entry = self._index.get(key)
 

@@ -108,6 +108,14 @@ class ExtractionConfig(ForbidExtraModel):
     example_endpoint_ladder: tuple[ExampleSource, ...] = Field(
         default=("qlever", "wdqs"), min_length=1
     )
+    # Concurrent example-ladder workers. Pure pacing: mined content is a
+    # deterministic function of the cached responses regardless of worker
+    # count, and per-host politeness is enforced by the shared transport
+    # limiter, so extra workers overlap request latency without raising
+    # the request rate against any endpoint. Excluded from the extraction
+    # checkpoint guard hash for the same reason (see
+    # ``properties.extraction_config_hash``).
+    example_workers: PositiveInt = 1
     # Stratify example selection by the property's subject-type constraint
     # classes (needs a local P279 taxonomy, see `wikidata taxonomy`):
     # untyped candidates are dropped (live-verified reversed statements in

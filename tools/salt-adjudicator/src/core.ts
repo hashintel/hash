@@ -1,3 +1,4 @@
+import { shufflableExampleLineIndexes } from "./card-text.ts";
 import {
   ADJUDICATION_SCHEMA_VERSION,
   AnnotatorIdSchema,
@@ -8,7 +9,9 @@ import {
   LabelSchema,
   QualificationCardSchema,
   SCHEMA_VERSION,
+  StudySchema,
   SWIPE_SCHEMA_VERSION,
+  WikidataCardRecordSchema,
   formatZodIssues,
   type AdjudicationDecision,
   type Card,
@@ -24,11 +27,13 @@ import {
   type RetractionEvent,
   type Study,
   type StudyManifest,
+  type StudySampling,
   type SwipeEvent,
   type SwipeRecord,
 } from "./data-contracts.ts";
 
 export * from "./data-contracts.ts";
+export * from "./card-text.ts";
 
 export type LabelDirection = "up" | "right" | "left" | "down";
 
@@ -96,6 +101,7 @@ export interface CreateStudyOptions {
   rubricVersion?: string;
   coincidentTarget?: number;
   title?: string;
+  sampling?: StudySampling;
 }
 
 export interface CreateStudyResult {
@@ -276,34 +282,17 @@ export const parseCardsJsonl = <Qualification extends boolean = false>(
       parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
         ? (parsed as Record<string, unknown>)
         : null;
-    const relationId =
-      typeof parsedRecord?.relation_id === "string"
-        ? parsedRecord.relation_id.trim()
-        : "";
-    const cardHash =
-      typeof parsedRecord?.card_hash === "string"
-        ? parsedRecord.card_hash.trim()
-        : "";
-
-    if (relationId !== "") {
-      if (relationIds.has(relationId)) {
-        issues.push(
-          `Line ${lineIndex + 1}: duplicate relation_id "${relationId}".`,
-        );
-      }
-      relationIds.add(relationId);
-    }
-    if (cardHash !== "") {
-      if (cardHashes.has(cardHash)) {
-        issues.push(
-          `Line ${lineIndex + 1}: duplicate card_hash "${cardHash}".`,
-        );
-      }
-      cardHashes.add(cardHash);
-    }
-
+    const isWikidataRecord =
+      !qualification &&
+      parsedRecord !== null &&
+      "pid" in parsedRecord &&
+      !("relation_id" in parsedRecord);
     const result = (
-      qualification ? QualificationCardSchema : CardSchema
+      qualification
+        ? QualificationCardSchema
+        : isWikidataRecord
+          ? WikidataCardRecordSchema
+          : CardSchema
     ).safeParse(parsed);
     if (!result.success) {
       const schemaIssues =
@@ -316,6 +305,18 @@ export const parseCardsJsonl = <Qualification extends boolean = false>(
       return;
     }
     const card = result.data;
+    if (relationIds.has(card.relation_id)) {
+      issues.push(
+        `Line ${lineIndex + 1}: duplicate relation_id "${card.relation_id}".`,
+      );
+    }
+    relationIds.add(card.relation_id);
+    if (cardHashes.has(card.card_hash)) {
+      issues.push(
+        `Line ${lineIndex + 1}: duplicate card_hash "${card.card_hash}".`,
+      );
+    }
+    cardHashes.add(card.card_hash);
     cards.push(card);
   });
 
@@ -487,12 +488,19 @@ export const shuffled = <Value>(
 };
 
 export const shuffleCardText = (cardText: string, seed: number): string => {
-  const [heading, ...exampleLines] = cardText.split(/\r?\n/u);
-  const examples = exampleLines.filter((line) => line.trim() !== "");
-  if (examples.length < 2) {
+  const { lines, indexes } = shufflableExampleLineIndexes(cardText);
+  if (indexes.length < 2) {
     return cardText;
   }
-  return [heading, ...shuffled(examples, seed)].join("\n");
+  const randomizedExamples = shuffled(
+    indexes.map((lineIndex) => lines[lineIndex]!),
+    seed,
+  );
+  const randomizedLines = [...lines];
+  indexes.forEach((lineIndex, exampleIndex) => {
+    randomizedLines[lineIndex] = randomizedExamples[exampleIndex]!;
+  });
+  return randomizedLines.join("\n");
 };
 
 const compareAssignmentCandidates = (
@@ -667,6 +675,7 @@ export const createStudy = ({
   rubricVersion = "v0.3",
   coincidentTarget = 300,
   title = "SALT geometry adjudication",
+  sampling,
 }: CreateStudyOptions): CreateStudyResult => {
   if (!Array.isArray(cards) || cards.length === 0) {
     throw new SaltValidationError(
@@ -714,15 +723,17 @@ export const createStudy = ({
   const studyId = `salt-${sha256Hex(
     stableStringify({
       deckHash,
+      qualificationCards,
       seed: normalizedSeed,
       coverageTarget,
       sliceSize,
       assignments: assignmentResult.assignments,
+      sampling,
     })!,
   ).slice(0, 12)}`;
 
   const codeSheet: CodeSheetEntry[] = annotatorIds.map((annotatorId) => {
-    const code = createAccessCode(normalizedSeed, annotatorId);
+    const code = createAccessCode(studyId, annotatorId);
     return {
       annotator_id: annotatorId,
       code,
@@ -730,7 +741,7 @@ export const createStudy = ({
     };
   });
 
-  const study: Study = {
+  const studyResult = StudySchema.safeParse({
     schema_version: SCHEMA_VERSION,
     kind: "study",
     study_id: studyId,
@@ -742,6 +753,7 @@ export const createStudy = ({
     slice_size: sliceSize,
     coincident_target: coincidentTarget,
     required_production_passes: 1,
+    ...(sampling === undefined ? {} : { sampling }),
     cards,
     qualification_cards: qualificationCards,
     manifest: {
@@ -754,9 +766,15 @@ export const createStudy = ({
       annotator_id: annotatorId,
       code_hash: accessCodeHash(studyId, code),
     })),
-  };
+  });
+  if (!studyResult.success) {
+    throw new SaltValidationError(
+      "The generated study is invalid.",
+      formatZodIssues(studyResult.error),
+    );
+  }
 
-  return { study, codeSheet };
+  return { study: studyResult.data, codeSheet };
 };
 
 export const manifestForExport = (study: Study): StudyManifest => ({
@@ -770,6 +788,7 @@ export const manifestForExport = (study: Study): StudyManifest => ({
   slice_size: study.slice_size,
   coincident_target: study.coincident_target,
   required_production_passes: study.required_production_passes,
+  ...(study.sampling === undefined ? {} : { sampling: study.sampling }),
   cards: study.cards.map(
     ({ relation_id, family_id, card_hash, prescreen }) => ({
       relation_id,

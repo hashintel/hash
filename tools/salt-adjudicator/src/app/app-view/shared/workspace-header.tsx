@@ -161,7 +161,7 @@ export const WorkspaceHeader = ({
             <SessionClock controller={controller} />
           </div>
           <div class={unsaved > 0 ? "is-warning" : ""}>
-            <dt>Unsaved</dt>
+            <dt>Not exported</dt>
             <dd>{unsaved}</dd>
           </div>
         </dl>
@@ -188,7 +188,7 @@ export const WorkspaceHeader = ({
             Rubric {state.snapshot.rubric_version}
           </button>
           <button
-            class="icon-text-button"
+            class="icon-text-button bar-export-action"
             type="button"
             title="Export all swipes"
             onClick={actions.exportSwipes}
@@ -196,7 +196,7 @@ export const WorkspaceHeader = ({
             Export
           </button>
           <button
-            class="icon-text-button"
+            class="icon-text-button bar-exit-action"
             type="button"
             title="Leave this session"
             onClick={actions.endSession}

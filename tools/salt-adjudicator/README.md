@@ -7,14 +7,18 @@ self-contained document with no runtime dependencies or external requests.
 ## Recommended distribution
 
 1. Open `salt-adjudicator.html` and choose **Study builder**.
-2. Load the production cards and optional qualification deck.
-3. Enter one opaque annotator ID per line, the coverage target, slice cap,
-   rubric version, quota, and study seed.
-4. Generate and download:
+2. Load the full candidate card pool.
+3. Select qualification anchors from that pool, assign each a reference
+   C/P/O/U answer, and write the required rationale. SALT recommends about 20
+   without inventing answers or forcing equal class counts.
+4. Enter one opaque annotator ID per line and choose a planning mode. Review
+   the exact sample, uniform coverage, load range, spare capacity, and
+   10-seconds-per-card estimate.
+5. Generate and download:
    - one study-specific HTML file;
    - the private annotator-code TSV;
    - the assignment manifest JSON.
-5. Put the study HTML at one stable static HTTPS URL and send each annotator
+6. Put the study HTML at one stable static HTTPS URL and send each annotator
    that URL plus only their code.
 
 Emailing or otherwise sharing the HTML file directly also works. A stable URL
@@ -30,6 +34,34 @@ reveal is a trust-based calibration aid rather than a secure exam.
 Use opaque annotator IDs if the bundle will be hosted publicly. If the card data
 is sensitive, distribute the file directly or use an access-controlled static
 host.
+
+## Qualification and sample planning
+
+Qualification anchors are copied from the imported source pool and remain
+read-only except for the coordinator-authored answer and rationale. They are
+excluded from the production pool by both relation ID and card hash.
+
+The planner offers three equivalent views of one uniform assignment model:
+
+- **Budget first** sets `n` annotators, `m` production cards per annotator, and
+  coverage `c`; SALT samples
+  `M = min(eligible pool, floor(n × m / c))` cards.
+- **Exact sample first** sets `M` and `m`; SALT reports the greatest feasible
+  uniform coverage `c = min(n, floor(n × m / M))`.
+- **Coverage first** sets `M` and `c`; SALT derives the smallest cap
+  `m = ceil(M × c / n)`.
+
+Three-fold coverage is the default. Two-fold coverage is allowed with a
+caution because disagreement cannot produce a majority; coverage below two or
+above the annotator count is rejected. SALT never spends spare slots by giving
+only some cards extra reviews.
+
+The final production subset is sampled deterministically from the study seed.
+SALT preserves equivalence/normal prescreen proportions when those strata are
+present and uses seeded uniform sampling for an all-normal atlas pool. The
+study and verification manifest record the source-pool hash and count,
+eligible count, exact sample size, strategy version, planner mode, assumptions,
+and unused capacity.
 
 ## Annotator flow
 
@@ -54,8 +86,9 @@ Primary shortcuts:
 - `Z`: append a retraction and re-queue the previous swipe
 - `E`: export the full swipe log
 
-Touch users can swipe the relation card or use the four always-visible
-direction buttons.
+Touch users can swipe horizontally for Overlay or Proximal. Vertical pans
+scroll long relation documents; the four always-visible direction buttons
+cover every class.
 
 ## Coordinator merge and adjudication
 
@@ -88,10 +121,30 @@ Production `cards.jsonl` has one object per line:
 }
 ```
 
-The first line of `card_text` remains fixed. Its subsequent non-empty example
-lines are deterministically re-ordered per annotator and pass.
+The Study Builder also accepts atlas Wikidata extraction records directly:
 
-Qualification JSONL uses the same fields plus:
+```json
+{
+  "pid": "P6",
+  "card_text": "Relation: head of government\nDescription: ...\n\nSource types:\n  - ...\n\nTarget types:\n  - ...\n\nConstraints:\n  - direction: source -> target\n\nExamples:\n  - country: Germany -> Friedrich Merz\n\nSlug: head-of-government\n",
+  "card_hash": "sha256...",
+  "retrieved_at": "Sat, 11 Jul 2026 21:49:16 GMT",
+  "severely_truncated": false,
+  "token_count": 559,
+  "truncations": []
+}
+```
+
+These records are normalized to `relation_id = pid`, `family_id = pid`, and
+`prescreen = normal`; extraction metadata remains attached to the study card.
+The renderer preserves the canonical hierarchy of descriptions, aliases,
+ancestors, source and target types, constraints, examples, and slugs. Only the
+bullet items inside `Examples:` are deterministically re-ordered per annotator
+and pass. Legacy cards containing only a relation heading and example lines
+remain supported.
+
+Qualification JSONL parsing remains available for compatibility and tests. A
+record uses the same fields plus:
 
 ```json
 {
@@ -100,8 +153,11 @@ Qualification JSONL uses the same fields plus:
 }
 ```
 
-The parser rejects malformed lines, missing fields, unsupported prescreen
-values, and duplicate relation IDs or card hashes before a study is generated.
+The coordinator UI now creates these records in place from the imported pool
+rather than accepting a separate qualification upload. The parser rejects
+malformed lines, missing fields, unsupported prescreen values, and duplicate
+relation IDs or card hashes before a study is generated. The final study also
+rejects any identifier or hash shared by qualification and production.
 
 ## Persistence and evidence
 
@@ -134,16 +190,16 @@ tool package; it is intentionally not registered as a monorepo workspace.
 
 ```sh
 cd tools/salt-adjudicator
-npm ci
+yarn install --immutable
 
 # Rebuild the committed single-file artifact
-npm run build
+yarn build
 
 # Write an artifact elsewhere
-npm run build -- --out /tmp/salt-adjudicator.html
+yarn build --out /tmp/salt-adjudicator.html
 
 # Typecheck, test, and rebuild
-npm run verify
+yarn verify
 ```
 
 The Preact/TypeScript source and Zod contracts live in [`src/`](./src/).

@@ -68,15 +68,30 @@ surface. Borders are full-perimeter 1px hairlines.
 ## Layout
 
 During swiping, a compact top rail carries study identity and session status, a
-large centered relation specimen owns the viewport, four labeled decision zones
-occupy the cardinal edges, and a bottom rail carries secondary actions. Notes
-open inline beneath the card and do not cover it.
+large centered relation document owns the viewport, four labeled decision zones
+occupy the cardinal edges, and a bottom rail carries secondary actions. The
+document follows the atlas card hierarchy: relation and description first,
+source-to-target types as the semantic axis, examples as primary evidence, then
+constraints, ancestors, aliases, and additional context. Long taxonomy lists
+show four entries before an inline native disclosure; card metadata remains
+sticky while the document scrolls. Notes open inline beneath the card and do
+not cover it.
 
 Setup, progress, merge, adjudication, and study-building views use a bounded
 two-column instrument layout where useful. They collapse to one column before
 content becomes cramped. On coarse pointers, decision zones become explicit
-44px-or-larger buttons around the card while the swipe gesture remains
-available.
+44px-or-larger buttons around the card. Vertical pans scroll long relation
+documents; horizontal swipe gestures remain available for Overlay and
+Proximal.
+
+The coordinator builder is a five-step instrument flow: source import,
+qualification-anchor curation, production planning, final review, and bundle
+handoff. Its step rail stays compact and textual. Anchor curation pairs a
+paginated/searchable pool list with one full relation preview and a required
+class-and-rationale editor. Planning keeps inputs and the live `N/n/M/m`
+readout in one view; metrics use tabular numerals, full labels, and a restrained
+cobalt boundary rather than decorative charts. At narrow widths the browser,
+preview, editor, and readouts stack in task order without hiding controls.
 
 ## Components and states
 
@@ -85,12 +100,17 @@ available.
 - Focus uses a consistent 2px cobalt outline with a 2px offset.
 - Errors sit next to the field or import that caused them and state how to
   recover.
-- Persistence and unsaved counts are always textual, never color-only.
+- Persistence and not-yet-exported counts are always textual, never color-only.
 - Geometry class controls expose a short operational definition on hover and
   keyboard focus. A dedicated class guide provides the same definitions for
   touch users and pauses decision timing while open.
 - Empty states explain the next concrete action and accept drag-and-drop plus a
   visible file-picker alternative.
+- Builder plans expose infeasible constraints inline, announce recalculated
+  coverage and time through an `aria-live` readout, and never use color alone
+  for qualification classes or warnings.
+- Qualification card text is always read-only. A selected answer and rationale
+  are visibly editable, removable, and summarized by textual per-class counts.
 - Historical distributions are withheld while a pass is active.
 
 ## Motion
@@ -109,7 +129,8 @@ crossfade and never delays input.
 ## North-star composition
 
 The approved direction keeps the swipe view free of a sidebar. The relation
-text is a large, readable specimen rather than a conventional dashboard card.
-Decision labels remain visible at the four edges, metadata is compressed into
-the top rail, and flag/note/undo/export remain in the bottom rail. Mobile
-retains the same information architecture with thumb-sized edge controls.
+document is a readable semantic specimen rather than a raw preformatted dump
+or conventional dashboard card. Decision labels remain visible at the four
+edges, metadata is compressed into the top rail, and flag/note/undo/export
+remain in the bottom rail. Mobile stacks the source-to-target axis and evidence
+sections while retaining thumb-sized edge controls.

@@ -11,6 +11,7 @@ import {
   QualificationCardSchema,
   SaltValidationError,
   SessionSnapshotSchema,
+  StoredAdjudicationRecordSchema,
   SwipeRecordSchema,
   createStudy,
   manifestForExport,
@@ -183,6 +184,17 @@ describe("import data contracts", () => {
     });
 
     assert.equal(result.review_round, 2);
+
+    const storedResult = StoredAdjudicationRecordSchema.parse({
+      ...result,
+      ts: "2026-07-13T08:00:00.000Z",
+      reviewer_tool: "legacy-adjudicator",
+    });
+    assert.equal(storedResult.reviewer_tool, "legacy-adjudicator");
+    assert.equal(
+      StoredAdjudicationRecordSchema.safeParse(result).success,
+      false,
+    );
   });
 });
 

@@ -8,16 +8,37 @@ import type { AppController } from "../app-controller.ts";
 
 export const HomeView = ({ controller }: { controller: AppController }) => {
   const demoAvailable = controller.embeddedPayload.kind === "generic";
+  useEffect(() => {
+    if (!demoAvailable) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target;
+      if (
+        event.key !== "Enter" ||
+        event.repeat ||
+        event.defaultPrevented ||
+        (target instanceof HTMLElement && target !== document.body)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      controller.actions.openDemo();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [controller.actions, demoAvailable]);
+
   return (
     <>
       <PublicHeader controller={controller} />
       <main class="home-view" id="main-content">
         <section class="home-intro">
-          <p class="system-label">Offline relation evidence</p>
-          <h1>One file in. Independent judgments out.</h1>
+          <p class="system-label">Offline annotation</p>
+          <h1>Build, share, and review a relation study.</h1>
           <p class="lede">
-            Build a reproducible study, label with the keyboard, and merge
-            append-only evidence without an account or backend.
+            Create one study file, collect independent labels, and combine the
+            results—without accounts or a server.
           </p>
           <div class="home-actions">
             {demoAvailable ? (
@@ -47,30 +68,30 @@ export const HomeView = ({ controller }: { controller: AppController }) => {
         </section>
         <section class="capability-strip" aria-label="Operating guarantees">
           <div>
-            <strong>1 HTML</strong>
-            <span>CSS, JS, deck, and manifest inline</span>
+            <strong>One shareable file</strong>
+            <span>Everything needed is included</span>
           </div>
           <div>
-            <strong>0 requests</strong>
-            <span>No runtime service or account</span>
+            <strong>Works offline</strong>
+            <span>No account or server required</span>
           </div>
           <div>
-            <strong>Crash-safe</strong>
-            <span>Every decision stored immediately</span>
+            <strong>Saves as you go</strong>
+            <span>Each decision is stored in this browser</span>
           </div>
         </section>
         <section class="trust-note">
-          <h2>Distribution recommendation</h2>
+          <h2>How to share a study</h2>
           <p>
-            Host the generated HTML at one stable static URL and send each
-            annotator their short code. Sending the file directly also works,
-            but keeping it in one location makes browser resume storage more
-            predictable.
+            Put the generated study file at one stable URL, then send each
+            annotator that link and their individual code. You can send the file
+            directly instead, but one stable URL makes it easier to resume
+            interrupted work.
           </p>
           <p>
-            Codes select an assignment and catch typos. They are not
-            authentication, and qualification answers remain inspectable in an
-            offline bundle.
+            A code assigns the correct cards and helps catch typing mistakes. It
+            does not restrict access: anyone with the study file can inspect its
+            contents, including qualification answers.
           </p>
         </section>
       </main>
@@ -193,7 +214,7 @@ export const ResumeView = ({ controller }: { controller: AppController }) => {
               </dd>
             </div>
             <div>
-              <dt>Unsaved</dt>
+              <dt>Not exported</dt>
               <dd>
                 {Math.max(
                   0,

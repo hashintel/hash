@@ -163,7 +163,7 @@ export const ProgressView = ({ controller }: { controller: AppController }) => {
             <strong>{formatDuration(sessionElapsed)}</strong>
           </div>
           <div>
-            <span>Unsaved changes</span>
+            <span>Not yet exported</span>
             <strong>{controller.getUnsavedEventCount()}</strong>
           </div>
         </section>

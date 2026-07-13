@@ -26,6 +26,7 @@ import {
   nextMonotoneTimestamp,
   nominalKrippendorffAlpha,
   parseAdjudicationsJsonl,
+  parseCardText,
   parseCardsJsonl,
   parseRoster,
   parseSwipesJsonl,
@@ -109,6 +110,32 @@ describe("JSONL contracts", () => {
     assert.equal(qualification[0].answer, "P");
   });
 
+  test("normalizes atlas Wikidata records into production cards", () => {
+    const cards = parseCardsJsonl(
+      `${JSON.stringify({
+        card_hash: "wikidata-p6-hash",
+        card_text:
+          "Relation: head of government\nDescription: head of the executive power\n\nExamples:\n  - country: Germany -> Friedrich Merz\n\nSlug: head-of-government\n",
+        pid: "P6",
+        retrieved_at: "Sat, 11 Jul 2026 21:49:16 GMT",
+        severely_truncated: false,
+        token_count: 42,
+        truncations: [],
+      })}\n`,
+    );
+
+    assert.equal(cards[0]?.relation_id, "P6");
+    assert.equal(cards[0]?.family_id, "P6");
+    assert.equal(cards[0]?.prescreen, "normal");
+    assert.deepEqual(cards[0]?.source_metadata, {
+      kind: "wikidata-extract",
+      retrieved_at: "Sat, 11 Jul 2026 21:49:16 GMT",
+      severely_truncated: false,
+      token_count: 42,
+      truncations: [],
+    });
+  });
+
   test("reports malformed lines and duplicate identifiers together", () => {
     const card = makeCard(1);
     assert.throws(
@@ -190,6 +217,84 @@ describe("hashing and deterministic randomization", () => {
       "one",
       "three",
       "two",
+    ]);
+  });
+
+  test("shuffles only the Examples section in structured cards", () => {
+    const text = [
+      "Relation: head of government",
+      "Description: head of executive power",
+      "Aliases:",
+      "  - mayor",
+      "  - prime minister",
+      "",
+      "Source types:",
+      "  - country (sovereign state)",
+      "",
+      "Examples:",
+      "  - country: Germany -> Friedrich Merz",
+      "  - country: Japan -> Shigeru Ishiba",
+      "  - city: Boston -> Michelle Wu",
+      "",
+      "Slug: head-of-government",
+      "",
+    ].join("\n");
+
+    const randomized = shuffleCardText(text, 17);
+    const randomizedLines = randomized.split("\n");
+    assert.deepEqual(
+      randomizedLines.slice(0, 10),
+      text.split("\n").slice(0, 10),
+    );
+    assert.deepEqual(randomizedLines.slice(10, 13).sort(), [
+      "  - city: Boston -> Michelle Wu",
+      "  - country: Germany -> Friedrich Merz",
+      "  - country: Japan -> Shigeru Ishiba",
+    ]);
+    assert.deepEqual(randomizedLines.slice(13), text.split("\n").slice(13));
+  });
+
+  test("parses the canonical Wikidata card hierarchy", () => {
+    const parsed = parseCardText(
+      [
+        "Relation: head of government",
+        "Description: head of executive power",
+        "Aliases:",
+        "  - prime minister",
+        "Inverse Name: government headed by",
+        "",
+        "Source types:",
+        "  - country (sovereign state)",
+        "",
+        "Target types:",
+        "  - human (member of Homo sapiens)",
+        "",
+        "Constraints:",
+        "  - direction: source -> target",
+        "",
+        "Examples:",
+        "  - country: Germany -> Friedrich Merz",
+        "",
+        "Slug: head-of-government",
+      ].join("\n"),
+    );
+
+    assert.equal(parsed.relation, "head of government");
+    assert.equal(parsed.description, "head of executive power");
+    assert.equal(parsed.inverseName, "government headed by");
+    assert.equal(parsed.slug, "head-of-government");
+    assert.deepEqual(parsed.sections.aliases, ["prime minister"]);
+    assert.deepEqual(parsed.sections.sourceTypes, [
+      "country (sovereign state)",
+    ]);
+    assert.deepEqual(parsed.sections.targetTypes, [
+      "human (member of Homo sapiens)",
+    ]);
+    assert.deepEqual(parsed.sections.constraints, [
+      "direction: source -> target",
+    ]);
+    assert.deepEqual(parsed.sections.examples, [
+      "country: Germany -> Friedrich Merz",
     ]);
   });
 });

@@ -9,11 +9,15 @@ Two query families:
   optional usage-count proxy. The query restricts by datatype already, but
   the parser defensively re-filters (see ``parse_inventory_results``) so
   external-identifier rows (P212-style) can never leak through.
-- example pairs: subject/object pairs for one property with LIMIT/OFFSET
-  for the diversity ladder, plus the subject's P31 class (stratum
-  assignment), both entity QIDs (endpoint dedup across a card), and both
-  sitelink counts (recognizability weighting) for the stratified example
-  selector (``examples.py``).
+- example pairs: subject/object pairs for one property, every offset
+  slice of the diversity ladder UNIONed into one request, plus the
+  subject's P31 class (stratum assignment), both entity QIDs (endpoint
+  dedup across a card), and both sitelink counts (recognizability
+  weighting) for the stratified example selector (``examples.py``).
+  Batching the slices matters operationally: one request per property
+  per endpoint instead of one per offset cuts a cold-cache mining run
+  by the ladder length (4x with the default offsets) at unchanged
+  per-host politeness.
 
 The example query is written for streaming evaluation: no ORDER BY, which
 would force the endpoint to materialize every statement of the property
@@ -24,9 +28,9 @@ Row-order determinism is provided by the response cache keyed on
 (query, endpoint, snapshot date), not by the query itself: live endpoints
 never promise stable order across cold fetches.
 
-Deep offsets go through a subquery: the inner ``SELECT ?subject ?object
+Deep offsets go through subqueries: each inner ``SELECT ?subject ?object
 ... LIMIT ... OFFSET ...`` slices the raw statement stream first, and the
-P31 and label joins run only on the sliced rows. Endpoints stream
+P31 and label joins run only on the sliced (unioned) rows. Endpoints stream
 statements in roughly QID order, which is prominence order, so shallow
 offsets only ever see prominent subjects (countries, heads of state); the
 geometric offset ladder in ``ExtractionConfig.example_offsets`` reaches
@@ -47,6 +51,7 @@ parse boundary; parsers return typed rows (:class:`InventoryRow`,
 :class:`ExampleRow`).
 """
 
+from collections.abc import Sequence
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,7 +65,9 @@ WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 # truthy statements too (external-ID properties state the country of
 # their database, say), and those pairs are Wikidata bookkeeping, not
 # examples of the relation.
-EXAMPLE_QUERY_VERSION = 5
+# v6: all offset slices of the ladder UNIONed into one query, so a
+# property costs one request per endpoint instead of one per offset.
+EXAMPLE_QUERY_VERSION = 6
 
 # The SPARQL endpoints the example ladder can draw from. The ladder order
 # is config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
@@ -106,22 +113,39 @@ def property_ancestors_query() -> str:
     )
 
 
-def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "en") -> str:
-    """Build the example-pairs query for ``pid``.
+def _example_slice(pid: str, *, limit: int, offset: int) -> str:
+    """One inner LIMIT/OFFSET slice of the raw statement stream."""
+    return (
+        "    {\n"
+        "      SELECT ?subject ?object WHERE {\n"
+        f"        ?subject wdt:{pid} ?object .\n"
+        '        FILTER(STRSTARTS(STR(?subject), "http://www.wikidata.org/entity/Q"))\n'
+        "      }\n"
+        f"      LIMIT {limit} OFFSET {offset}\n"
+        "    }"
+    )
+
+
+def example_pairs_query(
+    pid: str, *, limit: int, offsets: Sequence[int], language: str = "en"
+) -> str:
+    """Build the example-pairs query for ``pid``, one slice per offset.
 
     It returns QIDs, labels, the subject's P31 class, and sitelink counts
-    for both endpoints. The inner subquery slices the raw statement stream
-    (LIMIT/OFFSET on ``?subject wdt:PID ?object`` alone); P31, label, and
-    sitelink joins apply only to the sliced rows, which is what makes deep
-    offsets answerable in sub-second time on QLever (see module docstring;
-    the sitelink OPTIONALs were live-verified in the same subquery form).
-    The outer pattern can multiply rows (one per P31 type / label). That
-    is deliberate: the stratified selector unions every subject type per
-    pair.
+    for both endpoints. Each inner subquery slices the raw statement
+    stream (LIMIT/OFFSET on ``?subject wdt:PID ?object`` alone) and the
+    slices are UNIONed; P31, label, and sitelink joins apply only to the
+    sliced rows, which is what makes deep offsets answerable in
+    sub-second time on QLever (see module docstring; the sitelink
+    OPTIONALs were live-verified in the same subquery form). The outer
+    pattern can multiply rows (one per P31 type / label). That is
+    deliberate: the stratified selector unions every subject type per
+    pair. The ladder pools all offsets' rows anyway, so batching the
+    slices into one request changes the request count, not the pool.
 
     ``wdt:`` yields truthy (best-rank) statements only, so deprecated and
     superseded statements never enter the candidate pool. The subject is
-    restricted to the item namespace inside the inner subquery: property
+    restricted to the item namespace inside each inner subquery: property
     and lexeme pages carry truthy statements of their own (an external-ID
     property stating its database's country, say), and such pairs are
     statements about Wikidata's bookkeeping, not examples of the relation.
@@ -131,6 +155,12 @@ def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "e
     Streaming-safe and portable: no ORDER BY anywhere, no WDQS-only label
     service, explicit prefixes for QLever.
     """
+    if not offsets:
+        raise ValueError("example_pairs_query needs at least one offset")
+
+    slices = "\n    UNION\n".join(
+        _example_slice(pid, limit=limit, offset=offset) for offset in offsets
+    )
     return (
         "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
         "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
@@ -138,11 +168,7 @@ def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "e
         "SELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType"
         " ?subjectSitelinks ?objectSitelinks WHERE {\n"
         "  {\n"
-        "    SELECT ?subject ?object WHERE {\n"
-        f"      ?subject wdt:{pid} ?object .\n"
-        '      FILTER(STRSTARTS(STR(?subject), "http://www.wikidata.org/entity/Q"))\n'
-        "    }\n"
-        f"    LIMIT {limit} OFFSET {offset}\n"
+        f"{slices}\n"
         "  }\n"
         "  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n"
         "  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n"

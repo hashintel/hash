@@ -10,6 +10,7 @@ import {
   serializePayload,
   sha256Hex,
 } from "./src/core.ts";
+import { partitionQualificationCards } from "./src/study-planning.ts";
 
 const toolRoot = dirname(fileURLToPath(import.meta.url));
 const sourceRoot = resolve(toolRoot, "src");
@@ -63,10 +64,19 @@ const build = async (): Promise<void> => {
       read("fixtures/demo-qualification.jsonl"),
     ]);
 
-  const demoCards = parseCardsJsonl(demoCardsText);
-  const qualificationCards = parseCardsJsonl(qualificationText, {
+  const demoSourcePool = parseCardsJsonl(demoCardsText);
+  const qualificationReferences = parseCardsJsonl(qualificationText, {
     qualification: true,
   });
+  const { eligibleCards: demoCards, qualificationCards } =
+    partitionQualificationCards(
+      demoSourcePool,
+      qualificationReferences.map((card) => ({
+        relationId: card.relation_id,
+        answer: card.answer,
+        rationale: card.rationale,
+      })),
+    );
   const { study: demoStudy, codeSheet } = createStudy({
     cards: demoCards,
     qualificationCards,

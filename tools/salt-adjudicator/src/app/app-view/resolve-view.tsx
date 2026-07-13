@@ -1,13 +1,14 @@
 import { useEffect, useState } from "preact/hooks";
 
 import {
-  type Label,
   LABELS,
   LABEL_DETAILS,
+  LabelSchema,
   perAnnotatorGoldAgreement,
 } from "../../core.ts";
 import { Issues, LabelTooltip, formatPercent } from "./shared/presentation.tsx";
 import { PublicHeader } from "./shared/public-header.tsx";
+import { RelationCardContent } from "./shared/relation-card-content.tsx";
 import { WorkspaceHeader } from "./shared/workspace-header.tsx";
 
 import type { AppController } from "../app-controller.ts";
@@ -61,7 +62,10 @@ export const ResolveView = ({ controller }: { controller: AppController }) => {
         </header>
         <Issues
           error={
-            state.adjudicationError ? new Error(state.adjudicationError) : null
+            state.merge.error ??
+            (state.adjudicationError
+              ? new Error(state.adjudicationError)
+              : null)
           }
         />
         {!current ? (
@@ -97,10 +101,13 @@ export const ResolveView = ({ controller }: { controller: AppController }) => {
                 <span>Entropy {current.entropy.toFixed(3)}</span>
                 <span>{current.labels.length} votes</span>
               </div>
-              <pre>
-                {current.card?.card_text ??
-                  `Relation: ${current.relation_id}\nCard text is not present in the loaded exports.`}
-              </pre>
+              <RelationCardContent
+                cardText={
+                  current.card?.card_text ??
+                  `Relation: ${current.relation_id}\nCard text is not present in the loaded exports.`
+                }
+                compact
+              />
               <div class="evidence-sequence" aria-label="Label evidence">
                 {current.swipes.map((swipe) => (
                   <span
@@ -136,8 +143,12 @@ export const ResolveView = ({ controller }: { controller: AppController }) => {
                 const submitter = event.submitter;
                 const label =
                   submitter instanceof HTMLButtonElement ? submitter.value : "";
+                const labelResult = LabelSchema.safeParse(label);
+                if (!labelResult.success) {
+                  return;
+                }
                 actions.adjudicate({
-                  label: label as Label,
+                  label: labelResult.data,
                   rationale,
                   adjudicatorId,
                 });

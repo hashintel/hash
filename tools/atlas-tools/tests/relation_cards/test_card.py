@@ -292,6 +292,84 @@ def test_sanitize_never_guesses_on_unknown_tokens() -> None:
     assert result.dropped_tokens == ()
 
 
+def test_sanitize_handles_slash_separated_cross_reference_lists() -> None:
+    # P6978 ("Scandinavian middle family name") live-hit: its description
+    # says 'use P734/P1950'. A "/" before another identifier is a
+    # cross-reference list, not Hermann-Mauguin notation, so both ids must
+    # tokenize and resolve -- the P690 slash fix must not swallow them.
+    labels: dict[EntityId, EntityLabel] = {
+        Pid("P734"): EntityLabel(label="family name"),
+        Pid("P1950"): EntityLabel(label="second family name in Spanish name"),
+    }
+    result = sanitize_prose(
+        "for Spanish names, use P734/P1950",
+        labels=labels,
+        language=EN,
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert result.text == (
+        'for Spanish names, use "family name"/"second family name in Spanish name"'
+    )
+    assert result.substitutions == 2
+    assert "P734" not in (result.text or "")
+    assert "P1950" not in (result.text or "")
+
+
+def test_sanitize_leaves_hermann_mauguin_notation_untouched() -> None:
+    # The other side of the same boundary: "/" + lowercase is a space-group
+    # name, not a reference. It must not tokenize even when its fragment
+    # collides with a real property (P6 = head of government, P2 = ...).
+    labels: dict[EntityId, EntityLabel] = {
+        Pid("P6"): EntityLabel(label="head of government"),
+        Pid("P2"): EntityLabel(label="head of state"),
+    }
+    result = sanitize_prose(
+        "crystallizes in P6/mmm and P2\u2081/n forms",
+        labels=labels,
+        language=EN,
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert result.text == "crystallizes in P6/mmm and P2\u2081/n forms"
+    assert result.substitutions == 0
+    assert result.dropped_sentences == 0
+
+
+def test_sanitize_strips_urls_keeping_the_surrounding_gloss() -> None:
+    # P1060's live shape: a trailing link-out to a source ontology. The
+    # URL is deleted (not sentence-dropped: it is trailing provenance),
+    # the gloss survives, and the removal is reported.
+    url = "http://purl.obolibrary.org/obo/RO_0002451"
+    result = _sanitize(
+        f'process by which a pathogen is transmitted, equivalent to "transmitted by" in {url}'
+    )
+    assert result.text == (
+        'process by which a pathogen is transmitted, equivalent to "transmitted by" in'
+    )
+    assert result.removed_urls == (url,)
+
+
+def test_sanitize_strips_urls_before_identifier_substitution() -> None:
+    # A Wikidata entity URL embeds a QID; stripping the URL first stops
+    # the identifier pass from rewriting "Q42" inside the link into a label.
+    labels: dict[EntityId, EntityLabel] = {Qid("Q42"): EntityLabel(label="Douglas Adams")}
+    result = sanitize_prose(
+        "see http://www.wikidata.org/entity/Q42 for details",
+        labels=labels,
+        language=EN,
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert result.text == "see for details"
+    assert result.substitutions == 0
+    assert result.removed_urls == ("http://www.wikidata.org/entity/Q42",)
+    assert "Douglas Adams" not in (result.text or "")
+
+
+def test_sanitize_repairs_punctuation_after_a_mid_sentence_url() -> None:
+    result = _sanitize("defined at https://example.org/spec. It applies broadly.")
+    assert result.text == "defined at. It applies broadly."
+    assert result.removed_urls == ("https://example.org/spec",)
+
+
 def test_sanitize_leaves_identifier_free_prose_byte_identical() -> None:
     prose = "sovereign state that this subject item is in  (two spaces kept)"
     assert _sanitize(prose).text == prose
@@ -374,17 +452,204 @@ def _build_inhibits_card(labels: dict[EntityId, EntityLabel]) -> WikidataCard | 
     )
 
 
-def test_known_identifier_in_a_label_fails_through_the_shared_linter() -> None:
-    # Sanitization rewrites prose, never labels. A *known* id surviving in
-    # a label is fed to the shared linter's forbidden_identifiers, so the
-    # one existing lint path rejects the card.
+def test_record_local_identifier_in_a_label_fails_through_the_shared_linter() -> None:
+    # Sanitization rewrites prose, never labels. The record's *own*
+    # resolved ids are the lint-fatal set: one of them surviving in a
+    # label means this record's rendering leaked something it resolved.
+    record = _inhibits_record().model_copy(update={"ancestors": (Pid("P276"),)})
     labels: dict[EntityId, EntityLabel] = {
         Qid("Q1"): EntityLabel(label="subtype of P276 locations"),
         Pid("P276"): EntityLabel(label="location"),
     }
 
     with pytest.raises(IdentifierLeakError, match="P276"):
-        _build_inhibits_card(labels)
+        build_wikidata_card(
+            record=record,
+            labels=labels,
+            config=Config(extraction={"languages": ["en"]}, cards=_cards_config()),
+            counter=HeuristicTokenCounter(),
+            splitter=NaiveSentenceSplitter(),
+        )
+
+
+def test_globally_known_id_inside_a_name_ships_and_is_reported() -> None:
+    # An id-shaped fragment inside an entity's *name* is part of the name,
+    # not a reference: it ships and is histogrammed for triage. Only
+    # record-local ids are fatal.
+    labels: dict[EntityId, EntityLabel] = {
+        Qid("Q1"): EntityLabel(label="subtype of P276 locations"),
+        Pid("P276"): EntityLabel(label="location"),
+    }
+
+    card = _build_inhibits_card(labels)
+    assert card is not None
+    assert "subtype of P276 locations" in card.card_text
+    assert card.sanitization.known_tokens_retained == {"P276": 1}
+
+
+def test_notation_like_names_never_tokenize_or_corrupt() -> None:
+    # Live regression (P690 "space group"): Hermann-Mauguin names such as
+    # "P6\u2083/mmc" and "P2\u2081/n" embed fragments that collide with real
+    # property ids (P6 = head of government). A trailing "/" or subscript
+    # digit disqualifies the token, so the names render untouched, the
+    # linter stays quiet, and prose mentioning the notation is not
+    # "substituted" into nonsense.
+    record = PropertyRecord(
+        pid=Pid("P690"),
+        datatype="wikibase-item",
+        labels={EN: "space group"},
+        descriptions={EN: "symmetry classification such as P6/mmm for crystals"},
+        constraints=Constraints(value_types=(Qid("Q899033"),)),
+        examples=[
+            Example(
+                subject_qid="Q83180",
+                object_qid="Q13365573",
+                subject_label="albite",
+                object_label="space group P2\u2081/n",
+                subject_type="",
+            ),
+        ],
+    )
+    labels: dict[EntityId, EntityLabel] = {
+        Pid("P6"): EntityLabel(label="head of government"),
+        Pid("P2"): EntityLabel(label="head of state"),
+        Qid("Q899033"): EntityLabel(label="space group P6\u2083/mmc"),
+    }
+
+    card = build_wikidata_card(
+        record=record,
+        labels=labels,
+        config=Config(extraction={"languages": ["en"]}, cards=_cards_config()),
+        counter=HeuristicTokenCounter(),
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert card is not None
+    assert "P6/mmm" in card.card_text  # prose notation untouched
+    assert "space group P2\u2081/n" in card.card_text
+    assert "space group P6\u2083/mmc" in card.card_text
+    assert "head of government" not in card.card_text  # no corrupt substitution
+    assert card.sanitization.substituted_tokens == {}
+    assert card.sanitization.known_tokens_retained == {}
+    assert card.sanitization.unknown_tokens == {}
+
+
+def test_record_example_labels_resolve_ids_the_linter_would_forbid() -> None:
+    # Live regression: P517 ("interaction") describes itself as "strong
+    # (Q11415), ..., weak (Q11418)", and those QIDs are the record's own
+    # example objects, so the linter forbids them. The example rows carry
+    # their display labels, so the mentions are substitutable rather than
+    # fatal: the sanitizer's universe must cover the linter's forbidden set.
+    record = PropertyRecord(
+        pid=Pid("P517"),
+        datatype="wikibase-item",
+        labels={EN: "interaction"},
+        descriptions={
+            EN: "subset of the fundamental forces (strong (Q11415), weak"
+            " (Q11418)) with which a particle interacts"
+        },
+        examples=[
+            Example(
+                subject_qid="Q2225",
+                object_qid="Q11418",
+                subject_label="electron",
+                object_label="weak interaction",
+                subject_type="",
+            ),
+            Example(
+                subject_qid="Q6718",
+                object_qid="Q11415",
+                subject_label="quark",
+                object_label="strong interaction",
+                subject_type="",
+            ),
+        ],
+    )
+
+    card = build_wikidata_card(
+        record=record,
+        labels={},
+        config=Config(extraction={"languages": ["en"]}, cards=_cards_config()),
+        counter=HeuristicTokenCounter(),
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert card is not None
+    assert "Q11418" not in card.card_text
+    assert "Q11415" not in card.card_text
+    assert (
+        'Description: subset of the fundamental forces (strong ("strong interaction"),'
+        ' weak ("weak interaction")) with which a particle interacts' in card.card_text
+    )
+    assert card.sanitization.substitutions == 2
+    assert card.sanitization.dropped_sentences == 0
+
+
+def test_record_local_ancestor_in_slash_list_does_not_reach_the_linter() -> None:
+    # The exact P6978 failure path: a record-local ancestor (P734, the
+    # subproperty-of target) mentioned as "P734/P1950" in the description.
+    # It must be substituted before the linter's forbidden set (which is
+    # the record's own ids) ever sees it.
+    record = PropertyRecord(
+        pid=Pid("P6978"),
+        datatype="wikibase-item",
+        labels={EN: "Scandinavian middle family name"},
+        descriptions={EN: "a middle family name; for Spanish names, use P734/P1950"},
+        ancestors=(Pid("P734"),),
+    )
+    labels: dict[EntityId, EntityLabel] = {
+        Pid("P734"): EntityLabel(label="family name"),
+        Pid("P1950"): EntityLabel(label="second family name in Spanish name"),
+    }
+
+    card = build_wikidata_card(
+        record=record,
+        labels=labels,
+        config=Config(extraction={"languages": ["en"]}, cards=_cards_config()),
+        counter=HeuristicTokenCounter(),
+        splitter=NaiveSentenceSplitter(),
+    )
+    assert card is not None
+    assert "P734" not in card.card_text
+    assert "P1950" not in card.card_text
+    assert '"family name"' in card.card_text
+
+
+def test_placeholder_labels_are_treated_as_absent() -> None:
+    # Bot-imported labels that literally read "Q9000" carry no words:
+    # rendering one would expose only an identifier. Phrases skip, examples
+    # drop, and strata render bare.
+    record = PropertyRecord(
+        pid=Pid("P17"),
+        datatype="wikibase-item",
+        labels={EN: "country"},
+        constraints=Constraints(subject_types=(Qid("Q9000"),)),
+        examples=[
+            Example(
+                subject_qid="Q77",
+                object_qid="Q30",
+                subject_label="Q77",  # placeholder
+                object_label="United States",
+                subject_type="",
+            ),
+            Example(
+                subject_qid="Q64",
+                object_qid="Q183",
+                subject_label="Berlin",
+                object_label="Germany",
+                subject_type="Q515",
+                stratum=Qid("Q9000"),
+            ),
+        ],
+    )
+    labels: dict[EntityId, EntityLabel] = {Qid("Q9000"): EntityLabel(label="Q9000")}
+
+    card_input = make_card_input(
+        record=record, labels=labels, language=EN, splitter=NaiveSentenceSplitter()
+    )
+    assert card_input is not None
+    assert card_input.source_types == ()  # placeholder-labeled phrase skipped
+    (example,) = card_input.examples  # placeholder-labeled example dropped
+    assert example.subject_label == "Berlin"
+    assert example.stratum_label is None  # placeholder stratum renders bare
 
 
 def test_unknown_id_shaped_label_ships_and_is_reported() -> None:

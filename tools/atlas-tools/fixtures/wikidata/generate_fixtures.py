@@ -583,10 +583,16 @@ def write_responses(config: Config) -> None:
             {"entities": {qid: ITEM_DOCS[qid] for qid in batch}, "success": 1},
         )
 
-    # 4. Example ladder responses.
-    def example_params(pid: str, offset: int) -> dict[str, str]:
+    # 4. Example ladder responses. Since query v6 every offset slice of a
+    # property travels in one UNION query, so each (pid, endpoint) rung is
+    # exactly one fixture entry.
+    def example_params(pid: str) -> dict[str, str]:
         return sparql_params(
-            example_pairs_query(pid, limit=config.extraction.example_pool_limit, offset=offset)
+            example_pairs_query(
+                pid,
+                limit=config.extraction.example_pool_limit,
+                offsets=config.extraction.example_offsets,
+            )
         )
 
     # Ladder scenario (QLever-first, per config.example_endpoint_ladder):
@@ -594,41 +600,40 @@ def write_responses(config: Config) -> None:
     #   fixtures exist for them, so an unexpected WDQS probe fails loudly.
     # - P9001 times out on QLever and falls back to WDQS (fallback flag).
     # - P9002 fails on both endpoints -> recorded skip flag.
-    for offset in config.extraction.example_offsets:
-        for pid in ("P361", "P50", "P527", "P9005"):
-            add(
-                f"examples_{pid}_qlever_{offset}.json",
-                qlever,
-                example_params(pid, offset),
-                example_response(pid),
-            )
+    for pid in ("P361", "P50", "P527", "P9005"):
         add(
-            f"examples_P9001_qlever_{offset}.json",
+            f"examples_{pid}_qlever.json",
             qlever,
-            example_params("P9001", offset),
-            QLEVER_FAILURE_BODY,
-            status=500,
+            example_params(pid),
+            example_response(pid),
         )
-        add(
-            f"examples_P9001_wdqs_{offset}.json",
-            wdqs,
-            example_params("P9001", offset),
-            example_response("P9001"),
-        )
-        add(
-            f"examples_P9002_qlever_{offset}.json",
-            qlever,
-            example_params("P9002", offset),
-            QLEVER_FAILURE_BODY,
-            status=500,
-        )
-        add(
-            f"examples_P9002_wdqs_{offset}.json",
-            wdqs,
-            example_params("P9002", offset),
-            TIMEOUT_BODY,
-            status=500,
-        )
+    add(
+        "examples_P9001_qlever.json",
+        qlever,
+        example_params("P9001"),
+        QLEVER_FAILURE_BODY,
+        status=500,
+    )
+    add(
+        "examples_P9001_wdqs.json",
+        wdqs,
+        example_params("P9001"),
+        example_response("P9001"),
+    )
+    add(
+        "examples_P9002_qlever.json",
+        qlever,
+        example_params("P9002"),
+        QLEVER_FAILURE_BODY,
+        status=500,
+    )
+    add(
+        "examples_P9002_wdqs.json",
+        wdqs,
+        example_params("P9002"),
+        TIMEOUT_BODY,
+        status=500,
+    )
 
     (responses_dir / "index.json").write_text(
         json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8"

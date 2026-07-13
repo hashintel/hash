@@ -73,6 +73,7 @@ typed or not.
 """
 
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
@@ -388,31 +389,26 @@ def fetch_example_rows(
 ) -> LadderOutcome:
     """Run the example fallback ladder for one property.
 
-    ``endpoints`` defaults to the configured
+    Every offset slice travels in one UNION query, so a rung costs one
+    request. ``endpoints`` defaults to the configured
     ``extraction.example_endpoint_ladder``; checkpoint replay passes a
     narrowed tuple instead.
     """
     if endpoints is None:
         endpoints = extraction.example_endpoint_ladder
+    query = example_pairs_query(
+        pid,
+        limit=extraction.example_pool_limit,
+        offsets=extraction.example_offsets,
+        language=extraction.primary_language,
+    )
     for endpoint in endpoints:
         url = extraction.endpoints.sparql_url(endpoint)
-        rows: list[ExampleRow] = []
-        endpoint_ok = True
-        for offset in extraction.example_offsets:
-            query = example_pairs_query(
-                pid,
-                limit=extraction.example_pool_limit,
-                offset=offset,
-                language=extraction.primary_language,
-            )
-            response = transport.get(url, sparql_params(query))
-            if not response.ok:
-                progress.note(f"{pid}: {endpoint} example query failed (status {response.status})")
-                endpoint_ok = False
-                break
-            rows.extend(parse_example_results(response.body))
-        if endpoint_ok:
-            return LadderSuccess(source=endpoint, rows=tuple(rows))
+        response = transport.get(url, sparql_params(query))
+        if not response.ok:
+            progress.note(f"{pid}: {endpoint} example query failed (status {response.status})")
+            continue
+        return LadderSuccess(source=endpoint, rows=tuple(parse_example_results(response.body)))
     return LadderSkip()
 
 
@@ -489,11 +485,19 @@ def extraction_config_hash(config: Config) -> str:
     Including :data:`EXAMPLE_QUERY_VERSION` means a semantic query fix
     discards recorded ladder outcomes instead of replaying results of the
     old, possibly-broken query.
+
+    Pacing knobs are excluded: politeness and worker count change how
+    fast responses arrive, never what they contain, so tuning them must
+    not discard recorded progress. Recorded outcomes stay valid
+    observations under any pacing.
     """
+    extraction = config.extraction.model_dump(mode="json")
+    for pacing_knob in ("politeness", "example_workers"):
+        extraction.pop(pacing_knob, None)
     return sha256_bytes(
         canonical_json_bytes(
             {
-                "extraction": config.extraction.model_dump(mode="json"),
+                "extraction": extraction,
                 "example_query_version": EXAMPLE_QUERY_VERSION,
             }
         )
@@ -759,6 +763,80 @@ def _apply_ladder_success(
         )
 
 
+@dataclass
+class _NoteCollector:
+    """ProgressReporter that only buffers notes, for use inside workers.
+
+    Workers must not write to the shared reporter directly: interleaved
+    stderr lines are unreadable and note order would depend on scheduling.
+    The coordinator replays buffered notes in record order instead.
+    """
+
+    notes: list[str] = field(default_factory=list)
+
+    def phase(self, name: str, *, total: int | None = None) -> None: ...
+
+    def advance(self, count: int = 1) -> None: ...
+
+    def note(self, message: str) -> None:
+        self.notes.append(message)
+
+
+@dataclass(frozen=True)
+class _FetchedLadder:
+    """One property's ladder outcome plus the notes its fetch produced."""
+
+    outcome: LadderOutcome
+    notes: tuple[str, ...]
+
+
+def _fetch_ladders(
+    records: Sequence[PropertyRecord],
+    extraction: ExtractionConfig,
+    transport: Transport,
+    checkpoint: ExtractionCheckpoint | None,
+    progress: ProgressReporter,
+) -> dict[str, _FetchedLadder]:
+    """Fetch every property's ladder, up to ``example_workers`` at a time.
+
+    Concurrency is pure pacing: the transport enforces per-host politeness
+    across workers, responses land in the same keyed cache, and the caller
+    assembles results in record order, so the mined content is identical
+    at any worker count. Checkpoint writes and progress ticks happen only
+    here on the coordinating thread, as each future completes.
+    """
+
+    def fetch(record: PropertyRecord) -> _FetchedLadder:
+        endpoints = _replay_endpoints(checkpoint, record.pid, extraction)
+        if not endpoints:
+            return _FetchedLadder(outcome=LadderSkip(), notes=())
+        collector = _NoteCollector()
+        outcome = fetch_example_rows(
+            record.pid,
+            extraction,
+            transport,
+            endpoints=endpoints,
+            progress=collector,
+        )
+        return _FetchedLadder(outcome=outcome, notes=tuple(collector.notes))
+
+    fetched: dict[str, _FetchedLadder] = {}
+    with ThreadPoolExecutor(max_workers=extraction.example_workers) as pool:
+        futures = {pool.submit(fetch, record): record for record in records}
+        for future in as_completed(futures):
+            record = futures[future]
+            ladder = future.result()
+            fetched[record.pid] = ladder
+            if checkpoint is not None:
+                source = (
+                    ladder.outcome.source if isinstance(ladder.outcome, LadderSuccess) else None
+                )
+                checkpoint.record_example(record.pid, source)
+            progress.advance()
+
+    return fetched
+
+
 def _mine_examples(
     records: Sequence[PropertyRecord],
     extraction: ExtractionConfig,
@@ -767,28 +845,27 @@ def _mine_examples(
     checkpoint: ExtractionCheckpoint | None,
     progress: ProgressReporter,
 ) -> _LadderDiagnostics:
-    """Run the example ladder for every retained property."""
+    """Run the example ladder for every retained property.
+
+    Fetching is (optionally) concurrent; selection, diagnostics, and note
+    emission run afterwards in numeric-PID record order, so every output
+    artifact is byte-identical at any worker count.
+    """
     progress.phase("example ladder (per property)", total=len(records))
     if checkpoint is not None and checkpoint.examples_done:
         progress.note(
             f"resuming: {len(checkpoint.examples_done)} example outcomes replayed from checkpoint"
         )
 
+    fetched = _fetch_ladders(records, extraction, transport, checkpoint, progress)
+
     diagnostics = _LadderDiagnostics()
     for record in records:
-        endpoints = _replay_endpoints(checkpoint, record.pid, extraction)
+        ladder = fetched[record.pid]
+        for note in ladder.notes:
+            progress.note(note)
 
-        outcome: LadderOutcome = LadderSkip()
-        if endpoints:
-            outcome = fetch_example_rows(
-                record.pid,
-                extraction,
-                transport,
-                endpoints=endpoints,
-                progress=progress,
-            )
-
-        match outcome:
+        match ladder.outcome:
             case LadderSuccess(source=source, rows=rows):
                 _apply_ladder_success(
                     record, source, rows, extraction, taxonomy, diagnostics, progress
@@ -797,11 +874,6 @@ def _mine_examples(
                 record.example_skipped = True
                 diagnostics.skips.append(record.pid)
                 progress.note(f"{record.pid}: example ladder exhausted, skipped")
-
-        if checkpoint is not None:
-            checkpoint.record_example(record.pid, record.example_source)
-
-        progress.advance()
 
     return diagnostics
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 
 import {
   type Label,
@@ -9,6 +9,7 @@ import {
   shuffleCardText,
 } from "../../core.ts";
 import { LabelTooltip, formatPercent } from "./shared/presentation.tsx";
+import { RelationCardContent } from "./shared/relation-card-content.tsx";
 import {
   WorkspaceHeader,
   useNativeDialog,
@@ -173,12 +174,16 @@ const NoteComposer = ({ controller }: { controller: AppController }) => {
   );
 };
 
-const useSwipeKeyboardShortcuts = (controller: AppController): void => {
+const useSwipeKeyboardShortcuts = (
+  controller: AppController,
+  toggleDetails: () => void,
+): void => {
   const { actions } = controller;
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
         controller.state.guideOpen ||
+        controller.state.rubricOpen ||
         controller.state.mode !== "workspace" ||
         controller.state.activeTab !== "adjudicate" ||
         event.metaKey ||
@@ -217,6 +222,12 @@ const useSwipeKeyboardShortcuts = (controller: AppController): void => {
       } else if (event.key.toLowerCase() === "n") {
         event.preventDefault();
         actions.openNote();
+      } else if (
+        event.key.toLowerCase() === "d" &&
+        controller.swipeContext?.card
+      ) {
+        event.preventDefault();
+        toggleDetails();
       } else if (event.key === "?") {
         event.preventDefault();
         actions.openGuide();
@@ -235,6 +246,8 @@ const useSwipeKeyboardShortcuts = (controller: AppController): void => {
     controller.state.activeTab,
     controller.state.guideOpen,
     controller.state.mode,
+    controller.state.rubricOpen,
+    toggleDetails,
   ]);
 };
 
@@ -308,7 +321,7 @@ const QualificationReview = ({ controller }: { controller: AppController }) => {
                       </strong>
                     </span>
                   </div>
-                  <pre>{card.card_text}</pre>
+                  <RelationCardContent cardText={card.card_text} compact />
                   <p>{card.rationale}</p>
                 </li>
               );
@@ -339,6 +352,7 @@ const PassComplete = ({
     return null;
   }
   const isTargeted = context.pass >= 4;
+  const unexportedCount = controller.getUnsavedEventCount();
   const active = activeSwipes(state.snapshot.events).filter(
     (swipe) =>
       !swipe.qualification &&
@@ -362,7 +376,11 @@ const PassComplete = ({
         </h1>
         <p>
           {active.length} active swipe{active.length === 1 ? "" : "s"} recorded.
-          Export now; the downloaded JSONL is the system of record.
+          {unexportedCount === 0
+            ? " Everything recorded so far is included in your latest export."
+            : ` ${unexportedCount} new ${
+                unexportedCount === 1 ? "record is" : "records are"
+              } not included in your latest export.`}
         </p>
         <div class="completion-actions">
           <button
@@ -370,7 +388,9 @@ const PassComplete = ({
             type="button"
             onClick={actions.exportSwipes}
           >
-            Export swipes.jsonl
+            {unexportedCount === 0
+              ? "Download swipes.jsonl again"
+              : "Export swipes.jsonl"}
           </button>
           <button class="button" type="button" onClick={actions.startNextPass}>
             Start pass {context.pass + 1}
@@ -390,13 +410,23 @@ const PassComplete = ({
 };
 
 export const SwipeView = ({ controller }: { controller: AppController }) => {
-  useSwipeKeyboardShortcuts(controller);
+  const { state, swipeContext: context, actions } = controller;
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const toggleDetails = useCallback(() => {
+    setDetailsExpanded((expanded) => !expanded);
+  }, []);
+  const contextPass =
+    context?.phase === "qualification-review" ? null : context?.pass;
+  useEffect(() => {
+    setDetailsExpanded(false);
+  }, [context?.card?.relation_id, context?.phase, contextPass]);
+  useSwipeKeyboardShortcuts(controller, toggleDetails);
   const pointerStart = useRef<{
     x: number;
     y: number;
     id: number;
+    pointerType: string;
   } | null>(null);
-  const { state, swipeContext: context, actions } = controller;
   if (!state.study || !state.annotatorId || !context) {
     throw new Error("SALT cannot render a swipe without an active session.");
   }
@@ -458,10 +488,14 @@ export const SwipeView = ({ controller }: { controller: AppController }) => {
             class={`relation-card ${exitClass}`}
             data-swipe-card
             onPointerDown={(event) => {
+              if (typeof event.currentTarget.setPointerCapture === "function") {
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }
               pointerStart.current = {
                 x: event.clientX,
                 y: event.clientY,
                 id: event.pointerId,
+                pointerType: event.pointerType,
               };
             }}
             onPointerCancel={() => {
@@ -478,6 +512,12 @@ export const SwipeView = ({ controller }: { controller: AppController }) => {
               if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 56) {
                 return;
               }
+              if (
+                start.pointerType === "touch" &&
+                Math.abs(deltaY) >= Math.abs(deltaX)
+              ) {
+                return;
+              }
               if (Math.abs(deltaX) > Math.abs(deltaY)) {
                 actions.decide(deltaX > 0 ? "P" : "O");
               } else {
@@ -487,14 +527,29 @@ export const SwipeView = ({ controller }: { controller: AppController }) => {
           >
             <div class="card-meta">
               <span>{displayCard.relation_id}</span>
-              <span>{displayCard.family_id}</span>
               <span>
-                {displayCard.prescreen === "equivalence"
-                  ? "Coincident prescreen"
-                  : "Normal prescreen"}
+                {displayCard.source_metadata
+                  ? "Wikidata extract"
+                  : displayCard.family_id}
               </span>
+              <span>
+                {displayCard.source_metadata
+                  ? `${displayCard.source_metadata.token_count.toLocaleString()} tokens`
+                  : displayCard.prescreen === "equivalence"
+                    ? "Coincident prescreen"
+                    : "Normal prescreen"}
+              </span>
+              {displayCard.source_metadata?.severely_truncated ? (
+                <strong>Source truncated</strong>
+              ) : null}
             </div>
-            <pre>{renderedText}</pre>
+            <RelationCardContent
+              cardText={renderedText}
+              headingLevel="h1"
+              detailsExpanded={detailsExpanded}
+              detailsShortcut
+              onDetailsExpandedChange={setDetailsExpanded}
+            />
           </article>
           {state.noteOpen ? <NoteComposer controller={controller} /> : null}
         </section>

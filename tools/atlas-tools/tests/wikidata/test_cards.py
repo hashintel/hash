@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic_extra_types.language_code import LanguageAlpha2
 
-from atlas_tools.relation_cards.common.card import Phrase, slugify
+from atlas_tools.relation_cards.common.card import IdentifierLeakError, Phrase, slugify
 from atlas_tools.relation_cards.common.model import PhraseInput
 from atlas_tools.relation_cards.common.sentence import (
     NaiveSentenceSplitter,
@@ -373,21 +373,49 @@ class TestProseSanitizationDiagnostics:
         assert totals["substitutions"] == 0
         assert totals["dropped_sentences"] == 0
         assert totals["dropped_tokens"] == {}
+        assert totals["substituted_tokens"] == {}
+        assert totals["removed_urls"] == {}
         assert totals["unknown_tokens"] == {}
+        assert totals["known_tokens_retained"] == {}
 
     def test_dropped_sentences_are_counted_per_card_and_per_corpus(self, tmp_path: Path) -> None:
-        config, result = self._extraction_with_description(
-            "this item is a part of that item. Use P212 instead."
-        )
-        paths = emit_cards(result, config, tmp_path)
-        manifest = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))
-        totals = manifest["details"]["prose_sanitization"]
-        assert totals["dropped_sentences"] == 1
-        assert totals["dropped_tokens"] == {"P212": 1}
-        assert totals["fields_emptied"] == 0
-        per_card = manifest["details"]["cards"]["P361"]["sanitization"]
-        assert per_card["dropped_sentences"] == 1
-        assert per_card["dropped_tokens"] == {"P212": 1}
+        def test_dropped_sentences_are_counted_per_card_and_per_corpus(
+            self, tmp_path: Path
+        ) -> None:
+            config, result = self._extraction_with_description(
+                "this item is a part of that item. Use P212 instead."
+            )
+            paths = emit_cards(result, config, tmp_path)
+            manifest = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))
+            totals = manifest["details"]["prose_sanitization"]
+            assert totals["dropped_sentences"] == 1
+            assert totals["dropped_tokens"] == {"P212": 1}
+            assert totals["fields_emptied"] == 0
+            per_card = manifest["details"]["cards"]["P361"]["sanitization"]
+            assert per_card["dropped_sentences"] == 1
+            assert per_card["dropped_tokens"] == {"P212": 1}
+
+        def test_urls_are_stripped_from_prose_and_counted(self, tmp_path: Path) -> None:
+            # P1060's shape: a trailing link-out to a source ontology. The URL
+            # goes; the gloss before it stays; the linter's URL backstop stays
+            # quiet.
+            url = "http://purl.obolibrary.org/obo/RO_0002451"
+            config, result = self._extraction_with_description(
+                f'this item is a part of that item, equivalent to "part of" in the ontology {url}'
+            )
+            paths = emit_cards(result, config, tmp_path)
+            rows = {
+                json.loads(line)["pid"]: json.loads(line)
+                for line in paths.cards.cards_jsonl.read_text(encoding="utf-8").splitlines()
+            }
+            text = rows["P361"]["card_text"]
+            assert "http" not in text
+            assert 'equivalent to "part of" in the ontology' in text
+            totals = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))["details"][
+                "prose_sanitization"
+            ]
+            assert totals["removed_urls"] == {url: 1}
+            assert totals["fields_emptied"] == 0
 
     def test_emptied_field_over_budget_fails_the_run(self, tmp_path: Path) -> None:
         # The whole description is one confirmed-identifier sentence, so
@@ -395,6 +423,22 @@ class TestProseSanitizationDiagnostics:
         config, result = self._extraction_with_description("Use P212 instead.")
         config.cards.max_prose_field_empty_fraction = 0.0
         with pytest.raises(ProseSanitizationBudgetError, match="P212"):
+            emit_cards(result, config, tmp_path)
+
+    def test_lint_failures_name_the_failing_card(self, tmp_path: Path) -> None:
+        # Titles are never rewritten, so a known id there reaches the
+        # linter; a corpus-stopping error must say which card died (a
+        # bare "forbidden source identifier" cost a live run its triage).
+        config = Config.load(CONFIG_PATH)
+        result = extract_properties(
+            config,
+            FixtureTransport(RESPONSES),
+            taxonomy=Taxonomy.load(TAXONOMY_PATH),
+        )
+        record = next(record for record in result.records if record.pid == "P361")
+        record.labels[EN] = "part of (see P361)"
+
+        with pytest.raises(IdentifierLeakError, match="^P361: "):
             emit_cards(result, config, tmp_path)
 
 

@@ -409,10 +409,13 @@ for provenance and joins. Rationale: identifiers are semantically
 redundant next to the mandatory titles and descriptions, but they are a
 systematic surface watermark distinguishing one ontology source from
 another, creating train/serve format skew that the applicability score
-would misread as semantic OOD. The requirement covers identifiers
-embedded _inside_ ontology prose, not only structural references:
+would misread as semantic OOD. The requirement covers identifiers and
+URLs embedded _inside_ ontology prose, not only structural references:
 Wikidata descriptions routinely cross-reference other properties by PID
-("use P276 for ..."). Adapters MUST detect such mentions by membership
+("use P276 for ...") or link out to a source ontology by URL. A URL span
+is unambiguously a watermark and MUST be stripped from prose, before any
+identifier handling so an entity URL's embedded id is not misread as a
+reference. For identifiers, adapters MUST detect mentions by membership
 in the source's known-identifier universe (which the ingestion already
 enumerates), never by token shape alone, and MUST rewrite them
 meaning-preservingly rather than delete the token: an identifier
@@ -422,11 +425,17 @@ confirmed identifier with no title to substitute costs its whole
 sentence, since deleting only the token leaves meaningless prose. A
 token that merely looks like an identifier but is outside the known
 universe MUST be left untouched and reported, not destroyed on a guess.
-Sanitization activity (rewrites, dropped sentences, emptied fields,
-unknown-token histogram) MUST be recorded in the generation artifacts,
-and a generation MUST fail when sanitization empties more than a
-configured fraction of prose fields, so over-removal is a measured and
-gated quantity. The card is a canonical rendering target;
+Entity names bound this rule: titles, labels, and example names render
+as-is, and an identifier-shaped fragment inside a name is part of the
+name, not a reference ("space group P4", "Audi Q5"), so it MUST be
+retained and reported rather than rewritten or treated as fatal.
+Enforcement failure is reserved for a record's own resolved
+identifiers appearing in its serialized text, which can only mean the
+rendering leaked them. Sanitization activity (rewrites, dropped
+sentences, emptied fields, retained/unknown token histograms) MUST be
+recorded in the generation artifacts, and a generation MUST fail when
+sanitization empties more than a configured fraction of prose fields,
+so over-removal is a measured and gated quantity. The card is a canonical rendering target;
 each ontology source (Wikidata, native SemType, future imports) supplies
 an adapter into it, sharing the constraint vocabulary verbatim. Format
 parity is enforced by (a) a linter over embedded text forbidding

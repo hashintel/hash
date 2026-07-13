@@ -226,6 +226,26 @@ about 48 MB of JSON and the checkpointed parquet is the persistence) and is
 restartable like the dump extractor. `extract-properties` needs `--taxonomy`
 while `extraction.filter_examples_by_subject_type` (default: on) is enabled.
 
+Mining pace is governed by three independent levers, none of which can
+change mined content:
+
+- one request per property per endpoint rung: since example-query v6 the
+  whole geometric offset ladder travels as UNIONed inner slices of a
+  single query, so a cold-cache re-mine costs a quarter of the requests
+  it used to;
+- `extraction.politeness.rate_limit_per_sec` is enforced _per host_
+  (politeness is a property of the server being asked), so the WDQS
+  fallback rung and the wikibase API never queue behind QLever's
+  schedule;
+- `extraction.example_workers` (default 1) overlaps request latency with
+  a worker pool. The shared per-host limiter keeps the request rate
+  against each endpoint unchanged, fetches land in the same keyed
+  response cache, and selection/diagnostics assemble in numeric-PID
+  order afterwards, so every artifact is byte-identical at any worker
+  count. Pacing knobs (politeness, workers) are deliberately excluded
+  from the extraction checkpoint guard hash: retuning them never
+  discards recorded ladder outcomes.
+
 Example selection (`atlas_tools/wikidata/examples.py`) is stratified by the
 property's subject-type constraint classes and fully deterministic (no
 randomness anywhere). Pool rows collapse into distinct (subject, object)
@@ -288,25 +308,41 @@ identifiers, and UUID-shaped database keys before hashing.
 
 Identifier-freedom covers Wikidata _prose_, not just structural
 references: property descriptions cross-reference other properties by PID
-("use P276 for ...", 'inverse property of "has part" (P527)'). The
-Wikidata adapter sanitizes description/alias text before rendering, and
+("use P276 for ...", 'inverse property of "has part" (P527)') or link out
+to a source ontology by URL (P1060: "equivalent to ... in the relation
+ontology http://purl.obolibrary.org/obo/..."). URLs are stripped from
+prose first and unconditionally (a `scheme://` span is never ambiguously
+prose; deleting the span keeps the surrounding gloss, and each removal is
+reported in `removed_urls`); the strip precedes identifier handling so a
+Wikidata entity URL's embedded QID is not mistaken for a reference.
+Beyond that, detection is by _membership_, never token shape alone:
 detection is by _membership_, never token shape alone: the extraction
-already enumerates the identifier universe (`entity_labels.json` plus the
-exclusion table), so an id-shaped token is only a candidate until the
+already enumerates the identifier universe (`entity_labels.json`, the
+exclusion table, and each record's own resolved ids with their
+example-row labels), so an id-shaped token is only a candidate until the
 universe confirms it. Confirmed identifiers are rewritten
 meaning-preservingly: deleted when redundant beside their own label,
 replaced by their quoted label otherwise, and only a
 confirmed-but-unlabeled identifier costs its whole sentence (deleting
 just the token would leave nonsense). Unknown id-shaped tokens (a fiscal
 "Q1", a cytochrome "P450") are never touched on a guess: they stay in the
-text and are histogrammed for triage. Every decision is counted into
-per-card and corpus `prose_sanitization` blocks in the cards manifest,
-and `render_cards` fails with `ProseSanitizationBudgetError` when
-sanitization empties more than `cards.max_prose_field_empty_fraction` of
-the corpus's prose fields. Known identifiers surviving outside prose (in
-a title or label, which are never rewritten) are added to the shared
-linter's `forbidden_identifiers`, so leaks fail through the renderer's
-one existing lint path.
+text and are histogrammed for triage.
+
+Names are the boundary of both rewriting and enforcement. Titles,
+labels, and example names render as-is, and an id-shaped fragment inside
+a name is part of the name, not a reference: "space group P4" collides
+with the property P4 (P690's Hermann-Mauguin example names live-hit
+this), so tokens surviving in name surfaces are reported
+(`known_tokens_retained` / `unknown_tokens`), never fatal, and the token
+boundary itself disqualifies notation-like continuations ("P6/mmm",
+"P2\u2081/n"). Only a record's _own_ resolved ids are lint-fatal through the
+shared linter's `forbidden_identifiers`: one of those appearing as text
+means the rendering leaked something it resolved, and the error names
+the failing card. Every decision is counted into per-card and corpus
+`prose_sanitization` blocks in the cards manifest (substituted, dropped,
+retained, unknown histograms), and `render_cards` fails with
+`ProseSanitizationBudgetError` when sanitization empties more than
+`cards.max_prose_field_empty_fraction` of the corpus's prose fields.
 
 Card descriptions are split into a lead sentence and truncatable detail by a
 pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk, the

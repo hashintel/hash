@@ -24,6 +24,7 @@ from atlas_tools.wikidata.properties import (
     chunk_ids,
     exclusion_reason,
     extract_properties,
+    extraction_config_hash,
     fetch_example_rows,
     merge_closed_ancestors,
 )
@@ -737,12 +738,24 @@ def test_parse_drops_non_item_endpoints_defensively() -> None:
 
 
 def test_example_query_restricts_subjects_to_the_item_namespace() -> None:
-    query = example_pairs_query("P17", limit=10, offset=0)
+    query = example_pairs_query("P17", limit=10, offsets=(0,))
     # The filter must sit inside the inner subquery so the LIMIT/OFFSET
     # slice is taken over item-subject statements only.
     inner = query.split("SELECT ?subject ?object WHERE", 1)[1]
     inner = inner.split("LIMIT", 1)[0]
     assert 'FILTER(STRSTARTS(STR(?subject), "http://www.wikidata.org/entity/Q"))' in inner
+
+
+def test_example_query_unions_every_offset_slice() -> None:
+    # One request carries the whole ladder: each offset is its own inner
+    # slice (with its own namespace filter), UNIONed before the joins.
+    query = example_pairs_query("P17", limit=10, offsets=(0, 1000, 10000))
+    assert query.count("UNION") == 2
+    for offset in (0, 1000, 10000):
+        assert f"LIMIT 10 OFFSET {offset}" in query
+    assert query.count("FILTER(STRSTARTS") == 3
+    # Joins appear once, after the union block.
+    assert query.count("OPTIONAL { ?subject wdt:P31 ?subjectType . }") == 1
 
 
 def test_parse_of_label_only_bindings_defaults_ids_and_sitelinks() -> None:
@@ -754,35 +767,75 @@ def test_parse_of_label_only_bindings_defaults_ids_and_sitelinks() -> None:
     assert row.subject_type == "Q515"
 
 
-def test_empty_deep_offset_slices_contribute_nothing(config: Config) -> None:
-    # Geometric ladder: the deep slice is past the end of a small property
-    # and returns an empty result; the pool is just the shallow slice.
+def test_whole_offset_ladder_travels_in_one_request(config: Config) -> None:
+    # The geometric ladder is a single UNION query per endpoint rung: a
+    # property costs one request, not one per offset (this is what makes a
+    # cold-cache re-mine 4x cheaper at unchanged per-host politeness).
     extraction = config.extraction.model_copy(update={"example_offsets": (0, 1000)})
     url = extraction.endpoints.qlever
 
-    def key_for(offset: int) -> str:
-        query = example_pairs_query(
-            "P361",
-            limit=extraction.example_pool_limit,
-            offset=offset,
-            language=extraction.primary_language,
-        )
-        return request_key(url, sparql_params(query))
-
+    query = example_pairs_query(
+        "P361",
+        limit=extraction.example_pool_limit,
+        offsets=extraction.example_offsets,
+        language=extraction.primary_language,
+    )
     transport = RecordingTransport(
         {
-            key_for(0): Response(status=200, body=_sparql_body([("Left Bank", "Paris", "Q515")])),
-            key_for(1000): Response(status=200, body=b'{"results":{"bindings":[]}}'),
+            request_key(url, sparql_params(query)): Response(
+                status=200, body=_sparql_body([("Left Bank", "Paris", "Q515")])
+            ),
         }
     )
     outcome = fetch_example_rows("P361", extraction, transport)
     assert isinstance(outcome, LadderSuccess)
     assert outcome.source == "qlever"
     assert len(outcome.rows) == 1
-    assert transport.urls == [url, url]  # both offsets fetched, one endpoint
+    assert transport.urls == [url]  # the whole ladder in one request
 
 
 # --- extraction checkpoint ------------------------------------------------------
+
+
+def test_pacing_knobs_do_not_bust_the_checkpoint_guard(config: Config) -> None:
+    # Politeness and worker count change how fast responses arrive, never
+    # what they contain, so tuning them must not discard recorded ladder
+    # outcomes. Sampling knobs, by contrast, change mined content.
+    baseline = extraction_config_hash(config)
+
+    retuned = config.model_copy(deep=True)
+    retuned.extraction = config.extraction.model_copy(
+        update={
+            "politeness": config.extraction.politeness.model_copy(
+                update={"rate_limit_per_sec": 8.0}
+            ),
+            "example_workers": 4,
+        }
+    )
+    assert extraction_config_hash(retuned) == baseline
+
+    resampled = config.model_copy(deep=True)
+    resampled.extraction = config.extraction.model_copy(update={"example_count": 7})
+    assert extraction_config_hash(resampled) != baseline
+
+
+def test_concurrent_mining_is_byte_deterministic(config: Config, taxonomy: Taxonomy) -> None:
+    # Worker count is pure pacing: fetches overlap, but selection and
+    # diagnostics assemble in record order, so the mined result is
+    # identical at any concurrency.
+    def mine(workers: int):
+        run_config = config.model_copy(deep=True)
+        run_config.extraction = config.extraction.model_copy(update={"example_workers": workers})
+        return extract_properties(run_config, FixtureTransport(RESPONSES), taxonomy=taxonomy)
+
+    sequential = mine(1)
+    concurrent = mine(4)
+
+    assert concurrent.records == sequential.records
+    assert concurrent.example_fallbacks == sequential.example_fallbacks
+    assert concurrent.example_skips == sequential.example_skips
+    assert concurrent.example_filtered == sequential.example_filtered
+    assert concurrent.example_other == sequential.example_other
 
 
 def test_checkpoint_replay_skips_ladder_probing(

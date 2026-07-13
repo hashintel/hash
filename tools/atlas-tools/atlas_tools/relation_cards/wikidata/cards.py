@@ -35,6 +35,7 @@ from atlas_tools.common.provenance import (
     sha256_file,
 )
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
+from atlas_tools.relation_cards.common.card import IdentifierLeakError
 from atlas_tools.relation_cards.common.cards import CardRow
 from atlas_tools.relation_cards.common.config import SentenceSplitterName, TokenizerName
 from atlas_tools.relation_cards.common.sentence import make_sentence_splitter
@@ -163,14 +164,19 @@ def render_cards(
     cards: list[Card] = []
     untitled: list[Pid] = []
     for record in record_set.records:
-        card = build_card(
-            record=record,
-            labels=record_set.entity_labels,
-            known_identifiers=excluded_pids,
-            config=config,
-            counter=counter,
-            splitter=splitter,
-        )
+        try:
+            card = build_card(
+                record=record,
+                labels=record_set.entity_labels,
+                known_identifiers=excluded_pids,
+                config=config,
+                counter=counter,
+                splitter=splitter,
+            )
+        except IdentifierLeakError as error:
+            # The linter has no record context; a corpus-stopping failure
+            # must name the card that caused it.
+            raise IdentifierLeakError(f"{record.pid}: {error}") from error
         if card is None:
             untitled.append(record.pid)
         else:

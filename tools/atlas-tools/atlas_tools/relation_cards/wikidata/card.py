@@ -4,17 +4,29 @@ Besides resolving structural references (ancestors, endpoint types,
 inverse) into labels, the adapter sanitizes Wikidata *prose*: label and
 description text on Wikidata routinely cross-references other properties
 by identifier ("use P276 for ...", 'inverse property of "has part"
-(P527)'). Those identifiers are the exact surface watermark the
-identifier-free card contract forbids.
+(P527)') or links out to a source ontology by URL (P1060's "equivalent
+to ... in the relation ontology http://purl.obolibrary.org/obo/...").
+Both are the exact surface watermark the identifier-free card contract
+forbids.
 
-Detection is by membership, not shape. The extraction already
-enumerates the identifier universe: the ``labels`` map
-(``entity_labels.json``) holds every retained property PID and every
-structurally referenced entity, and the extraction's exclusion table
-names the property ids it saw but did not retain (external-ID,
-maintenance, deprecated). An identifier-shaped token
-(``_IDENTIFIER_TOKEN``) is only a *candidate*; membership decides what
-it is:
+URLs are handled first and unconditionally: a ``scheme://`` span is never
+ambiguously prose, so it is deleted (not sentence-dropped: URLs are
+overwhelmingly trailing provenance, and dropping just the span leaves
+the surrounding gloss intact) and its removal is counted. Stripping
+precedes identifier handling because a Wikidata entity URL embeds a QID
+(``.../entity/Q42``) that must not be mistaken for a prose reference.
+
+Detection is by membership, not shape. The known-identifier universe is
+everything the pipeline has already enumerated: the ``labels`` map
+(``entity_labels.json``, every retained property PID and structurally
+referenced entity), the extraction's exclusion table (property ids it
+saw but did not retain: external-ID, maintenance, deprecated), and the
+record's own resolved ids, whose example rows even carry display labels
+for their endpoint QIDs. The sanitizer's universe is deliberately a
+superset of the linter's forbidden set: anything the linter would
+reject must be resolvable or confirmable here first. An
+identifier-shaped token (``_IDENTIFIER_TOKEN``, after URL stripping) is
+only a *candidate*; membership decides what it is:
 
 1. in the map with a label, directly preceded by that label: redundant,
    deleted (``"has part" (P527)`` -> ``"has part"``);
@@ -29,21 +41,25 @@ it is:
    looks like an id (a fiscal "Q1", a cytochrome "P450") must never be
    destroyed on a guess.
 
+Names are the boundary of rewriting. Titles, labels, and example names
+are rendered as-is, and an id-shaped fragment inside a name is part of
+the name, not a reference: "space group P4" collides with the property
+P4, "Audi Q5" with the item Q5 (P690's Hermann-Mauguin example names
+live-hit this). So tokens surviving in those surfaces are histogrammed
+for triage (``known_tokens_retained`` / ``unknown_tokens``) rather than
+fatal. Only the record's *own* resolved ids stay lint-fatal, through the
+shared renderer's
+:func:`~atlas_tools.relation_cards.common.card.lint_card_text`
+``forbidden_identifiers`` path: one of those appearing as text means
+this record's rendering leaked something it resolved.
+
 Every decision is counted into a :class:`ProseSanitizationSummary`:
-per-card summaries land in the cards manifest next to corpus totals,
-unknown id-shaped tokens surviving anywhere in the finished card input
-are histogrammed for triage, and ``render_cards`` fails the run when
-sanitization empties too large a fraction of prose fields
+per-card summaries land in the cards manifest next to corpus totals
+(substituted, dropped, retained, and unknown token histograms), and
+``render_cards`` fails the run when sanitization empties too large a
+fraction of prose fields
 (``CardsConfig.max_prose_field_empty_fraction``), so over-removal is a
 measured, gated quantity rather than an invisible one.
-
-Enforcement stays in the one existing lint point: known ids that survive
-into any card-input string (titles and labels are never rewritten) are
-added to the ``forbidden_identifiers`` set that the shared renderer's
-:func:`~atlas_tools.relation_cards.common.card.lint_card_text` already
-checks, so a leak fails card construction through the same
-:class:`~atlas_tools.relation_cards.common.card.IdentifierLeakError` path
-as every other forbidden identifier.
 """
 
 import re
@@ -83,8 +99,22 @@ def _collapse_whitespace(text: str) -> str:
 # A PID/QID-shaped token in running text: a *candidate* identifier whose
 # meaning the labels map decides (see module docstring). The boundary
 # lookarounds keep fragments of longer words ("IP54", "Q10a") from
-# matching.
-_IDENTIFIER_TOKEN = re.compile(r"(?<![A-Za-z0-9])[PQ]\d+(?![A-Za-z0-9])")
+# matching. Two Wikidata-specific shapes are disqualified because they are
+# Hermann-Mauguin space-group *names*, not references: a trailing
+# subscript ("P6\u2083/mmc") and a trailing "/" that begins lowercase
+# notation ("P6/mmm", "P2/n"), both live-hit by P690 ("space group"). A
+# "/" before *another* identifier is a cross-reference list, not notation,
+# and must still tokenize ("P734/P1950", live-hit by P6978); only "/" +
+# lowercase is excluded, never "/" + an uppercase P/Q id.
+_IDENTIFIER_TOKEN = re.compile(r"(?<![A-Za-z0-9])[PQ]\d+(?![A-Za-z0-9\u2080-\u2089])(?!/[a-z])")
+
+# A URL span: the same ``scheme://`` prefix the shared linter forbids,
+# extended to the whole non-whitespace token. Matching the linter's
+# prefix exactly guarantees anything it would reject is stripped here
+# first. Trailing sentence punctuation is peeled back off the match so
+# the sentence splitter still sees intact boundaries.
+_URL_TOKEN = re.compile(r"(?i)(?<![A-Za-z0-9])[a-z][a-z0-9+.-]*://\S+")
+_URL_TRAILING_PUNCT = ".,;:!?)]}\"'“”‘’"
 
 # Characters that may sit between a label and its own parenthesized
 # identifier: whitespace, opening brackets, and straight or typographic
@@ -111,9 +141,15 @@ class ProseSanitization(BaseModel):
     substitutions: int = 0
     redundant_removals: int = 0
     dropped_sentences: int = 0
+    # Identifiers replaced by their quoted labels: itemized so a wrong
+    # rewrite (a name fragment that collides with a real id) is visible
+    # in the manifest rather than silent.
+    substituted_tokens: tuple[str, ...] = ()
     # Confirmed identifiers (known but unlabeled) whose sentences were
     # dropped.
     dropped_tokens: tuple[str, ...] = ()
+    # URLs deleted from the prose (any scheme://... span).
+    removed_urls: tuple[str, ...] = ()
 
 
 class ProseSanitizationSummary(BaseModel):
@@ -134,10 +170,21 @@ class ProseSanitizationSummary(BaseModel):
     # histogram of those tokens.
     dropped_sentences: int = 0
     dropped_tokens: dict[str, int] = Field(default_factory=dict)
+    # Prose identifiers replaced by their quoted labels, itemized.
+    substituted_tokens: dict[str, int] = Field(default_factory=dict)
+    # URLs deleted from prose, histogrammed for triage (each is a link-out
+    # watermark the card must not carry).
+    removed_urls: dict[str, int] = Field(default_factory=dict)
     # Id-shaped tokens outside the known universe, left untouched in the
     # finished card input. A non-empty histogram is the triage list for
     # possible watermarks the extraction does not know about.
     unknown_tokens: dict[str, int] = Field(default_factory=dict)
+    # Id-shaped tokens matching *known* ids that survive in never-rewritten
+    # surfaces (titles, labels, example names). Almost always an entity
+    # whose own name embeds an id-shaped fragment ("space group P4"), so
+    # they ship and are reported here; only the record's own resolved ids
+    # are fatal (the shared linter's forbidden set).
+    known_tokens_retained: dict[str, int] = Field(default_factory=dict)
 
     @property
     def empty_fraction(self) -> float:
@@ -151,12 +198,17 @@ class ProseSanitizationSummary(BaseModel):
         results: Iterable[ProseSanitization],
         *,
         unknown_tokens: Mapping[str, int] | None = None,
+        known_tokens_retained: Mapping[str, int] | None = None,
     ) -> Self:
         """Fold one card's per-field results into a summary."""
         results = list(results)
         dropped: Counter[str] = Counter()
+        substituted: Counter[str] = Counter()
+        urls: Counter[str] = Counter()
         for result in results:
             dropped.update(result.dropped_tokens)
+            substituted.update(result.substituted_tokens)
+            urls.update(result.removed_urls)
         return cls(
             fields_sanitized=len(results),
             fields_emptied=sum(result.text is None for result in results),
@@ -164,7 +216,10 @@ class ProseSanitizationSummary(BaseModel):
             redundant_removals=sum(result.redundant_removals for result in results),
             dropped_sentences=sum(result.dropped_sentences for result in results),
             dropped_tokens=dict(dropped),
+            substituted_tokens=dict(substituted),
+            removed_urls=dict(urls),
             unknown_tokens=dict(unknown_tokens or {}),
+            known_tokens_retained=dict(known_tokens_retained or {}),
         )
 
     @classmethod
@@ -172,10 +227,16 @@ class ProseSanitizationSummary(BaseModel):
         """Sum per-card summaries into one corpus-wide summary."""
         summaries = list(summaries)
         dropped: Counter[str] = Counter()
+        substituted: Counter[str] = Counter()
+        urls: Counter[str] = Counter()
         unknown: Counter[str] = Counter()
+        retained: Counter[str] = Counter()
         for summary in summaries:
             dropped.update(summary.dropped_tokens)
+            substituted.update(summary.substituted_tokens)
+            urls.update(summary.removed_urls)
             unknown.update(summary.unknown_tokens)
+            retained.update(summary.known_tokens_retained)
         return cls(
             fields_sanitized=sum(summary.fields_sanitized for summary in summaries),
             fields_emptied=sum(summary.fields_emptied for summary in summaries),
@@ -183,19 +244,25 @@ class ProseSanitizationSummary(BaseModel):
             redundant_removals=sum(summary.redundant_removals for summary in summaries),
             dropped_sentences=sum(summary.dropped_sentences for summary in summaries),
             dropped_tokens=dict(dropped),
+            substituted_tokens=dict(substituted),
+            removed_urls=dict(urls),
             unknown_tokens=dict(unknown),
+            known_tokens_retained=dict(retained),
         )
 
 
 def _cleanup_removals(text: str) -> str:
-    """Repair punctuation artifacts left by deleting identifier tokens."""
+    """Repair punctuation artifacts left by deleting identifier/URL tokens."""
     previous = None
     while previous != text:
         previous = text
         text = re.sub(r"\(\s*,\s*", "(", text)  # "(, see also ..." -> "(see also ..."
         text = re.sub(r"\s*,\s*\)", ")", text)  # "..., )" -> "...)"
         text = re.sub(r"\s*\(\s*\)", "", text)  # dangling empty parentheses
-    return _collapse_whitespace(re.sub(r"\s+\)", ")", re.sub(r"\(\s+", "(", text)))
+    text = re.sub(r"\(\s+", "(", text)
+    text = re.sub(r"\s+\)", ")", text)
+    text = re.sub(r"\s+([.,;:!?])", r"\1", text)  # "ontology ." -> "ontology."
+    return _collapse_whitespace(text)
 
 
 def sanitize_prose(
@@ -211,31 +278,46 @@ def sanitize_prose(
     ``known_identifiers`` extends the membership universe beyond the
     labels map with ids the extraction saw but did not resolve (the
     exclusion table). ``text`` is ``None`` in the result when nothing
-    sayable survives (the whole field was known identifiers, or every
-    sentence carried a confirmed-but-unlabeled one). Prose whose only
-    candidate tokens are outside the known universe passes through
+    sayable survives (the whole field was a URL, known identifiers, or
+    every sentence carried a confirmed-but-unlabeled one). Prose whose
+    only candidate tokens are outside the known universe passes through
     byte-identically.
     """
-    substitutions = 0
+    removed_urls: list[str] = []
+
+    def strip_url(match: re.Match[str]) -> str:
+        url = match.group(0)
+        trailing = ""
+        while url and url[-1] in _URL_TRAILING_PUNCT:
+            trailing = url[-1] + trailing
+            url = url[:-1]
+        removed_urls.append(url)
+        return trailing  # drop the URL, keep sentence-ending punctuation
+
+    # URLs first: a Wikidata entity URL embeds a QID that must not be read
+    # as a prose reference by the identifier pass below.
+    url_stripped = _URL_TOKEN.sub(strip_url, text)
+
+    substituted_tokens: list[str] = []
     redundant_removals = 0
 
     def substitute(match: re.Match[str]) -> str:
-        nonlocal substitutions, redundant_removals
+        nonlocal redundant_removals
         token = match.group(0)
         entry = labels.get(token)
         label = _collapse_whitespace(entry.label) if entry else ""
         if not label:
             return token  # confirmed-unlabeled or unknown: decided below
-        if _label_precedes(text[: match.start()], label):
+        if _label_precedes(url_stripped[: match.start()], label):
             redundant_removals += 1
             return ""  # redundant right next to its own label
-        substitutions += 1
+        substituted_tokens.append(token)
         return f'"{label}"'
 
-    substituted = _IDENTIFIER_TOKEN.sub(substitute, text)
+    rewritten = _IDENTIFIER_TOKEN.sub(substitute, url_stripped)
     # Untouched prose passes through byte-identically; punctuation repair
     # (and its whitespace collapse) applies only where tokens were removed.
-    sanitized = _cleanup_removals(substituted) if substituted != text else text
+    sanitized = _cleanup_removals(rewritten) if rewritten != text else text
 
     dropped_sentences = 0
     dropped: list[str] = []
@@ -257,11 +339,23 @@ def sanitize_prose(
 
     return ProseSanitization(
         text=sanitized or None,
-        substitutions=substitutions,
+        substitutions=len(substituted_tokens),
         redundant_removals=redundant_removals,
         dropped_sentences=dropped_sentences,
+        removed_urls=tuple(removed_urls),
+        substituted_tokens=tuple(substituted_tokens),
         dropped_tokens=tuple(dropped),
     )
+
+
+def _placeholder_label(label: str) -> bool:
+    """Whether a label is nothing but an identifier-shaped token.
+
+    Wikidata carries bot-imported placeholder labels that literally read
+    "Q11418"; rendering one exposes only an identifier, so such a label
+    is treated as absent.
+    """
+    return _IDENTIFIER_TOKEN.fullmatch(label) is not None
 
 
 def _phrase_input(
@@ -274,8 +368,10 @@ def _phrase_input(
     sanitizations: list[ProseSanitization],
 ) -> PhraseInput | None:
     entry = labels.get(entity_id, EntityLabel())
-    if not _collapse_whitespace(entry.label):
-        # An unlabeled reference would expose only its source identifier.
+    label = _collapse_whitespace(entry.label)
+    if not label or _placeholder_label(label):
+        # An unlabeled (or placeholder-labeled) reference would expose
+        # only its source identifier.
         return None
 
     description: str | None = None
@@ -347,10 +443,20 @@ def make_card_input(
     def stratum_label(stratum: Qid | None) -> str | None:
         if stratum is None:
             return None
-        return _collapse_whitespace(labels.get(stratum, EntityLabel()).label) or None
+        label = _collapse_whitespace(labels.get(stratum, EntityLabel()).label)
+        if not label or _placeholder_label(label):
+            return None
+        return label
 
-    def item_example(example: Example) -> bool:
-        return all(not qid or is_qid(qid) for qid in (example.subject_qid, example.object_qid))
+    def usable_example(example: Example) -> bool:
+        # Property/lexeme pages are Wikidata bookkeeping, not examples;
+        # placeholder labels would render only an identifier.
+        if any(qid and not is_qid(qid) for qid in (example.subject_qid, example.object_qid)):
+            return False
+        return not any(
+            _placeholder_label(_collapse_whitespace(label))
+            for label in (example.subject_label, example.object_label)
+        )
 
     constraints = record.constraints
     return RelationCardInput(
@@ -388,7 +494,7 @@ def make_card_input(
                 stratum_label=stratum_label(example.stratum),
             )
             for example in record.examples
-            if item_example(example)
+            if usable_example(example)
         ),
     )
 
@@ -461,25 +567,49 @@ def _partition_candidate_tokens(
     card_input: RelationCardInput,
     labels: Mapping[EntityId, EntityLabel],
     known_identifiers: Collection[str],
-) -> tuple[set[str], Counter[str]]:
-    """Split surviving id-shaped tokens into (known, unknown-histogram).
+) -> tuple[Counter[str], Counter[str]]:
+    """Histogram surviving id-shaped tokens: (known-retained, unknown).
 
-    Sanitization clears known ids from prose, so a known survivor sits in
-    a title or label, which is never rewritten; feeding those to the
-    shared linter's ``forbidden_identifiers`` fails the card through the
-    one existing lint path. Unknown tokens are not identifiers as far as
-    the extraction is concerned: they stay in the text and are reported
-    for triage.
+    Sanitization clears known ids from prose, so any survivor sits in a
+    title, label, or example name, which are never rewritten. Neither
+    histogram is fatal: a name that embeds an id-shaped fragment is a
+    name ("space group P4" collides with the property P4; live-hit by
+    P690, whose Hermann-Mauguin example names tripped the lint on P6 =
+    head of government). Both land in the manifest for triage. Only the
+    record's *own* resolved ids remain lint-fatal: those appearing as
+    text mean this record's rendering leaked something it resolved.
     """
-    known: set[str] = set()
+    retained: Counter[str] = Counter()
     unknown: Counter[str] = Counter()
     for text in _input_texts(card_input):
         for token in _IDENTIFIER_TOKEN.findall(text):
             if token in labels or token in known_identifiers:
-                known.add(token)
+                retained[token] += 1
             else:
                 unknown[token] += 1
-    return known, unknown
+    return retained, unknown
+
+
+def _example_labels(record: PropertyRecord) -> dict[EntityId, EntityLabel]:
+    """Display labels the record's own example rows carry for their QIDs.
+
+    The record is itself part of the membership map: a description like
+    P517's "weak (Q11418)" mentions the very item its examples resolve to
+    "weak interaction", so the id is substitutable without any extra
+    lookup. Live-hit by the first full mining run: Q11418 leaked past a
+    sanitizer whose universe was narrower than the linter's forbidden
+    set, and this map is what closes that gap meaning-preservingly.
+    """
+    entries: dict[EntityId, EntityLabel] = {}
+    for example in record.examples:
+        for qid, label in (
+            (example.subject_qid, example.subject_label),
+            (example.object_qid, example.object_label),
+        ):
+            clean = _collapse_whitespace(label)
+            if qid and clean and not _placeholder_label(clean) and Qid(qid) not in entries:
+                entries[Qid(qid)] = EntityLabel(label=clean)
+    return entries
 
 
 def build_card(
@@ -494,14 +624,23 @@ def build_card(
     """Adapt and render one property, or skip it when its title is absent.
 
     ``known_identifiers`` carries ids the extraction saw but did not
-    resolve into ``labels`` (the exclusion table); together they are the
-    membership universe sanitization and linting decide against.
+    resolve into ``labels`` (the exclusion table). The record's own
+    resolved ids and example-row labels are merged in here, keeping the
+    sanitizer's membership universe a superset of the linter's forbidden
+    set: every id the linter would reject is first given the chance to be
+    substituted (labeled) or confirmed and dropped (unlabeled) in prose.
     """
+    source_identifiers = _source_identifiers(record)
+    # Global entity labels win over example-row labels: wbgetentities
+    # entries also carry descriptions.
+    labels = {**_example_labels(record), **labels}
+    known = frozenset(known_identifiers) | source_identifiers
+
     sanitizations: list[ProseSanitization] = []
     card_input = make_card_input(
         record=record,
         labels=labels,
-        known_identifiers=known_identifiers,
+        known_identifiers=known,
         language=config.extraction.primary_language,
         splitter=splitter,
         sanitizations=sanitizations,
@@ -509,15 +648,16 @@ def build_card(
     if card_input is None:
         return None
 
-    known_mentions, unknown_tokens = _partition_candidate_tokens(
-        card_input, labels, known_identifiers
-    )
+    known_retained, unknown_tokens = _partition_candidate_tokens(card_input, labels, known)
     rendered = render_card(
         card_input,
         config=config.cards,
         counter=counter,
         splitter=splitter,
-        forbidden_identifiers=_source_identifiers(record) | known_mentions,
+        # Only the record's own resolved ids are fatal; globally-known
+        # tokens in names are reported, not forbidden (see
+        # _partition_candidate_tokens).
+        forbidden_identifiers=source_identifiers,
     )
 
     return Card(
@@ -529,5 +669,9 @@ def build_card(
         token_count=rendered.token_count,
         truncations=rendered.truncations,
         severely_truncated=rendered.severely_truncated,
-        sanitization=ProseSanitizationSummary.tally(sanitizations, unknown_tokens=unknown_tokens),
+        sanitization=ProseSanitizationSummary.tally(
+            sanitizations,
+            unknown_tokens=unknown_tokens,
+            known_tokens_retained=known_retained,
+        ),
     )

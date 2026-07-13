@@ -128,7 +128,11 @@ def test_run_end_to_end_with_strata(
     captured = capsys.readouterr()
     assert "FAISS backend" in captured.err
     assert "exact FAISS" in captured.err
-    assert "ETA" in captured.err
+    # Progress statistics reach stderr. Throughput/ETA need a full throttle
+    # interval of evidence and this run finishes in milliseconds, so assert
+    # the always-present percentage; ETA formatting is unit-tested with a
+    # controlled clock in tests/wikidata/test_progress.py.
+    assert "(100.0%)" in captured.err
 
     # On disk, dim/k map keys are JSON strings.
     raw_report = json.loads((out / "report.json").read_text())

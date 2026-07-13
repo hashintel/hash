@@ -166,7 +166,7 @@ def test_500_is_deterministic_and_never_retried() -> None:
 def test_rate_limit_sleeps_for_remaining_interval() -> None:
     session = FakeSession([FakeReply(200), FakeReply(200)])
     sleeps: list[float] = []
-    clock_values = [0.0, 0.2, 0.5]  # 1st stamp, elapsed check, 2nd stamp
+    clock_values = [0.0, 0.2]  # slot reservations for the two requests
     transport = RequestsTransport(
         policy=RetryPolicy(rate_limit_per_sec=2.0, max_retries=0),  # 0.5s interval
         session=session,
@@ -176,7 +176,27 @@ def test_rate_limit_sleeps_for_remaining_interval() -> None:
     transport.get("http://example.test")
     assert sleeps == []  # first request never waits
     transport.get("http://example.test")
-    assert sleeps == [pytest.approx(0.3)]  # 0.5 - elapsed 0.2
+    assert sleeps == [pytest.approx(0.3)]  # next slot at 0.5, now 0.2
+
+
+def test_rate_limit_is_per_host() -> None:
+    # Politeness is a property of the server being asked: pacing one host
+    # must never delay the first request to another (the WDQS fallback
+    # rung does not queue behind QLever's schedule).
+    session = FakeSession([FakeReply(200), FakeReply(200), FakeReply(200)])
+    sleeps: list[float] = []
+    clock_values = [0.0, 0.0, 0.0]
+    transport = RequestsTransport(
+        policy=RetryPolicy(rate_limit_per_sec=1.0, max_retries=0),
+        session=session,
+        sleep=sleeps.append,
+        clock=lambda: clock_values.pop(0),
+    )
+    transport.get("http://qlever.test/api")
+    transport.get("http://wdqs.test/sparql")  # different host: no wait
+    assert sleeps == []
+    transport.get("http://qlever.test/other-path")  # same host: full interval
+    assert sleeps == [pytest.approx(1.0)]
 
 
 def test_fixture_transport_counts_calls_and_raises_on_miss() -> None:
