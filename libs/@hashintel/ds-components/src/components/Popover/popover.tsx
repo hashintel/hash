@@ -170,6 +170,17 @@ const PopoverRoot = ({
   );
 };
 
+/**
+ * Positioned overlay panel for interactive, custom content anchored to a trigger.
+ *
+ * @remarks
+ * - Reach for this whenever the overlay needs custom layout, rich content, or its
+ *   own UX — forms, menus, detail panels, anything the user interacts with.
+ * - Use `Popover.Container`/`Header`/`Body`/`Footer` to frame a standard panel, or
+ *   pass plain `children` for bespoke content.
+ * - Not for short read-only hints — use {@link Tooltip} for a brief label or
+ *   definition shown on hover/focus.
+ */
 export const Popover = Object.assign(PopoverRoot, {
   Container: PopoverContainer,
   Header: PopoverHeader,

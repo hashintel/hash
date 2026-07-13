@@ -320,6 +320,12 @@ export const overlayPartsStyles = sva({
           paddingTop: "1",
           paddingBottom: "2",
         },
+        footerActions: {
+          gapY: "1",
+        },
+        footerSecondaryActions: {
+          gapY: "1",
+        },
       },
     },
     hasIcon: {

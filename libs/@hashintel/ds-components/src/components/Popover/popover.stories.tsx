@@ -160,13 +160,6 @@ export const Default: Story = () => (
               </Button>
             }
           />
-          <Popover.Footer
-            actions={
-              <Button size="xs" variant="ghost" onClick={close}>
-                A second footer panel
-              </Button>
-            }
-          />
         </Popover.Container>
       )}
     </PopoverExample>

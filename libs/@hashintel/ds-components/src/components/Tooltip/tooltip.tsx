@@ -48,6 +48,17 @@ function getPositioningOffset(position: Position, gapX: number, gapY: number) {
   };
 }
 
+/**
+ * Short, non-interactive informational overlay shown on hover or focus.
+ *
+ * @remarks
+ * - Use for brief, read-only hints: a label, a definition, a keyboard shortcut.
+ *   Keep `content` to a short phrase or sentence.
+ * - Content must stay non-interactive. Tooltips dismiss on blur/pointer-leave, so
+ *   buttons, links, or form fields inside one are effectively unreachable.
+ * - Prefer {@link Popover} for anything with custom layout, rich or interactive
+ *   content, or its own UX (menus, forms, multi-line panels).
+ */
 export const Tooltip = ({
   className,
   children,

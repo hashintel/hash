@@ -35,7 +35,7 @@ export const PopoverHeader = ({
 
   return (
     <div className={headerStyles}>
-      <div className={headerTitleStyles}>{title}</div>
+      {/* Float first in source order so the title wraps around it. */}
       {(actions || showCloseButton) && (
         <div className={headerActionsStyles}>
           {actions}
@@ -51,6 +51,7 @@ export const PopoverHeader = ({
           )}
         </div>
       )}
+      <div className={headerTitleStyles}>{title}</div>
     </div>
   );
 };

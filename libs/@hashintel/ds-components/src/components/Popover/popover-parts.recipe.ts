@@ -16,10 +16,6 @@ export const containerStyles = css({
 });
 
 export const headerStyles = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "2",
   paddingX: "3",
   paddingY: "2",
 });
@@ -33,8 +29,11 @@ export const headerTitleStyles = css({
 });
 
 export const headerActionsStyles = css({
+  // Floated (rather than a flex sibling) so a multi-line title wraps around the
+  // actions instead of pushing them to the vertical centre.
+  float: "end",
   display: "flex",
   alignItems: "center",
   gap: "1",
-  flex: "[0 0 auto]",
+  marginLeft: "2",
 });
