@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+    <title>SALT swipe adjudicator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div id="app">
+      <main class="boot-state" id="main-content">
+        <p>SALT is loading…</p>
+      </main>
+    </div>
+    <div
+      class="sr-only"
+      id="live-region"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <script id="salt-study" type="application/json">
+      { "kind": "source", "schema_version": "salt-study-v1" }
+    </script>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

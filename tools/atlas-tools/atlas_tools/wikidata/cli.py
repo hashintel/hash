@@ -77,6 +77,7 @@ class ExtractPropertiesCommand(BaseModel):
             transport = FixtureTransport(self.fixture_dir)
         else:
             transport = RequestsTransport(policy=config.extraction.politeness)
+
         if self.cache_dir is not None:
             from atlas_tools.wikidata.cache import CachingTransport
 
@@ -85,6 +86,7 @@ class ExtractPropertiesCommand(BaseModel):
                 self.cache_dir,
                 snapshot_date=config.extraction.snapshot_date,
             )
+
         taxonomy = Taxonomy.load(self.taxonomy) if self.taxonomy is not None else None
         progress = _progress_reporter(quiet=self.quiet)
         result = extract_properties(
@@ -94,8 +96,10 @@ class ExtractPropertiesCommand(BaseModel):
             checkpoint_path=self.out / "checkpoint.json",
             progress=progress,
         )
+
         progress.note("emitting records + cards")
         paths = emit_cards(result, config, self.out)
+
         echo(f"wrote {paths.records.records_jsonl} ({len(result.records)} records)")
         echo(f"wrote {paths.cards.cards_jsonl} ({len(result.records)} cards)")
 

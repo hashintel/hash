@@ -62,9 +62,11 @@ def lint_card_text(
     for label, pattern in _FORBIDDEN_TEXT_PATTERNS:
         if pattern.search(card_text):
             raise IdentifierLeakError(f"relation card contains a forbidden {label}")
+
     for identifier in set(forbidden_identifiers):
         if not identifier:
             continue
+
         pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(identifier)}(?![A-Za-z0-9])")
         if pattern.search(card_text):
             raise IdentifierLeakError(
@@ -84,6 +86,7 @@ def _collapse_whitespace(text: str) -> str:
 def _flag_value(*, flag: bool | None) -> str:
     if flag is None:
         return "not recorded"
+
     return "yes" if flag else "no"
 
 
@@ -222,6 +225,7 @@ class CardContents(BaseModel):
             )
             for example in card_input.examples
         ]
+
         slug = card_input.slug if card_input.slug is not None else slugify(card_input.title)
         this.epilogue.append(f"Slug: {slug}")
         return this
@@ -388,8 +392,10 @@ def build_card(
         contents.tokens(counter=counter) > config.hard_token_budget
         or dropped_examples * 2 > total_examples
     )
+
     card_text = contents.render()
     lint_card_text(card_text, forbidden_identifiers=forbidden_identifiers)
+
     return Card(
         contents=contents,
         card_text=card_text,

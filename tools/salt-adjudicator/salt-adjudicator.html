@@ -1,0 +1,5542 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+    <title>SALT swipe adjudicator</title>
+    <style>
+:root {
+  color-scheme: dark;
+  --color-bg: oklch(0.075 0 0);
+  --color-surface-1: oklch(0.12 0.006 260);
+  --color-surface-2: oklch(0.17 0.008 260);
+  --color-surface-3: oklch(0.22 0.01 260);
+  --color-border: oklch(0.31 0.012 260);
+  --color-border-strong: oklch(0.43 0.018 260);
+  --color-ink: oklch(0.93 0.008 260);
+  --color-muted: oklch(0.72 0.014 260);
+  --color-faint: oklch(0.58 0.014 260);
+  --color-primary: oklch(0.69 0.14 260);
+  --color-primary-fill: oklch(0.47 0.14 260);
+  --color-focus: oklch(0.76 0.15 260);
+  --color-coincident: oklch(0.78 0.13 180);
+  --color-proximal: oklch(0.72 0.15 260);
+  --color-overlay: oklch(0.8 0.14 80);
+  --color-unclear: oklch(0.73 0.14 330);
+  --color-danger: oklch(0.68 0.17 25);
+  --color-warning: oklch(0.8 0.14 80);
+  --color-success: oklch(0.78 0.13 180);
+  --font-mono:
+    ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo,
+    Consolas, monospace;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --z-sticky: 20;
+  --z-overlay: 40;
+  --z-modal: 60;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 20rem;
+  min-height: 100%;
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 100%;
+  font-kerning: normal;
+  font-variant-ligatures: none;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: inherit;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 0.125rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+code,
+kbd,
+pre {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+kbd {
+  display: inline-grid;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  place-items: center;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-1);
+  color: var(--color-ink);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-block-start: 0;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+h1 {
+  margin-block-end: var(--space-4);
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+h2 {
+  margin-block-end: var(--space-3);
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: var(--z-modal);
+  padding: var(--space-2) var(--space-3);
+  transform: translateY(-200%);
+  border: 1px solid var(--color-focus);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.system-label {
+  margin-block-end: var(--space-2);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.button,
+.text-button,
+.icon-text-button,
+.public-header button,
+.workspace-tabs button,
+.swipe-actions button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  color: var(--color-ink);
+  transition:
+    border-color 90ms var(--ease-out),
+    background-color 90ms var(--ease-out),
+    color 90ms var(--ease-out),
+    transform 70ms var(--ease-out);
+}
+
+.button {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.button:hover:not(:disabled),
+.icon-text-button:hover:not(:disabled),
+.swipe-actions button:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-2);
+}
+
+.button:active:not(:disabled),
+.icon-text-button:active:not(:disabled),
+.swipe-actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button-primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary-fill);
+  color: var(--color-ink);
+}
+
+.button-primary:hover:not(:disabled) {
+  border-color: var(--color-focus);
+  background: oklch(0.52 0.15 260);
+}
+
+.button-quiet,
+.text-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.button-danger {
+  border-color: var(--color-danger);
+  background: oklch(0.38 0.14 25);
+  color: var(--color-ink);
+}
+
+.button-danger-quiet {
+  border-color: color-mix(in oklch, var(--color-danger) 55%, transparent);
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.button-row,
+.home-actions,
+.completion-actions,
+.form-actions,
+.download-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+input {
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+}
+
+textarea {
+  padding: var(--space-3);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+input:hover,
+textarea:hover {
+  border-color: var(--color-border-strong);
+}
+
+.field-help,
+.field-error {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.field-help {
+  color: var(--color-muted);
+}
+
+.field-error {
+  color: var(--color-danger);
+}
+
+.notice {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  font-size: 0.875rem;
+}
+
+.notice > :last-child {
+  margin-block-end: 0;
+}
+
+.notice ul {
+  margin-block-end: 0;
+  padding-inline-start: var(--space-6);
+}
+
+.notice-error {
+  border-color: color-mix(
+    in oklch,
+    var(--color-danger) 65%,
+    var(--color-border)
+  );
+}
+
+.notice-error strong,
+.notice-error li::marker {
+  color: var(--color-danger);
+}
+
+.notice-warning {
+  border-color: color-mix(
+    in oklch,
+    var(--color-warning) 55%,
+    var(--color-border)
+  );
+}
+
+.notice-warning strong,
+.notice-warning li::marker {
+  color: var(--color-warning);
+}
+
+.notice-success {
+  border-color: color-mix(
+    in oklch,
+    var(--color-success) 55%,
+    var(--color-border)
+  );
+}
+
+.notice-success strong {
+  color: var(--color-success);
+}
+
+.boot-state,
+.fatal-view {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.fatal-view p:not(.system-label) {
+  max-width: 65ch;
+  color: var(--color-muted);
+}
+
+.fatal-view .button {
+  justify-self: center;
+}
+
+.public-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) clamp(var(--space-4), 4vw, var(--space-12));
+  border-block-end: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.public-header button {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.public-header button:hover,
+.public-header button.is-active {
+  color: var(--color-ink);
+}
+
+.public-header button.is-active {
+  border-block-end-color: var(--color-primary);
+}
+
+.public-header nav {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.wordmark {
+  font-weight: 700;
+}
+
+.wordmark span,
+.brand-mark {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.home-view,
+.builder-view,
+.merge-view,
+.analysis-view,
+.review-view,
+.resolve-view {
+  width: min(100% - 2rem, 80rem);
+  margin-inline: auto;
+  padding-block: clamp(var(--space-8), 6vw, var(--space-16));
+}
+
+.home-intro {
+  max-width: 56rem;
+  padding-block: clamp(var(--space-8), 8vw, 7rem);
+}
+
+.home-intro h1 {
+  max-width: 18ch;
+  margin-block-end: var(--space-6);
+  font-size: clamp(2.25rem, 6vw, 4.75rem);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.lede {
+  max-width: 65ch;
+  margin-block-end: var(--space-8);
+  color: var(--color-muted);
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.home-actions .button-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.capability-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-block: 1px solid var(--color-border);
+}
+
+.capability-strip div {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+}
+
+.capability-strip div + div {
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.capability-strip strong {
+  color: var(--color-primary);
+  font-size: 1.125rem;
+}
+
+.capability-strip span,
+.trust-note p {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.trust-note {
+  max-width: 68ch;
+  padding-block-start: var(--space-12);
+}
+
+.access-view {
+  display: grid;
+  min-height: calc(100dvh - 3.75rem);
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.access-panel {
+  width: min(100%, 42rem);
+  padding: clamp(var(--space-6), 5vw, var(--space-12));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.access-panel > p:not(.system-label) {
+  max-width: 65ch;
+  color: var(--color-muted);
+}
+
+.study-facts,
+.result-facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-block: var(--space-6);
+  border-block: 1px solid var(--color-border);
+}
+
+.study-facts div,
+.result-facts div {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.study-facts dt,
+.result-facts dt,
+.session-readouts dt,
+.resolve-heading dt {
+  color: var(--color-faint);
+  font-size: 0.75rem;
+}
+
+.study-facts dd,
+.result-facts dd,
+.session-readouts dd,
+.resolve-heading dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.access-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.access-form label {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.access-form input {
+  height: 3.5rem;
+  color: var(--color-primary);
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-form .button {
+  margin-block-start: var(--space-2);
+}
+
+.inline-confirm {
+  margin-block-start: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.inline-confirm p {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.instrument-bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-sticky);
+  display: grid;
+  min-height: 3.5rem;
+  grid-template-columns: minmax(12rem, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: 0.75rem;
+}
+
+.instrument-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.instrument-identity > :last-child {
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+}
+
+.bar-divider {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--color-border);
+}
+
+.session-readouts {
+  display: flex;
+  margin: 0;
+}
+
+.session-readouts div {
+  display: grid;
+  min-width: 4.5rem;
+  padding-inline: var(--space-3);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.session-readouts div.is-warning dd {
+  color: var(--color-warning);
+}
+
+.workspace-tabs {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+}
+
+.workspace-tabs button {
+  align-self: stretch;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.workspace-tabs button:hover {
+  color: var(--color-ink);
+}
+
+.workspace-tabs button.is-active {
+  border-block-end-color: var(--color-primary);
+  color: var(--color-ink);
+}
+
+.bar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.text-button,
+.icon-text-button {
+  min-height: 2.25rem;
+  padding-inline: var(--space-2);
+  font-size: 0.75rem;
+}
+
+.rubric-dialog {
+  width: min(100% - 2rem, 32rem);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.rubric-dialog::backdrop {
+  background: oklch(0.03 0 0 / 0.82);
+}
+
+.rubric-dialog form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.rubric-dialog p:not(.system-label) {
+  color: var(--color-muted);
+}
+
+.rubric-dialog label {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.storage-blocker {
+  position: fixed;
+  inset: 4.5rem var(--space-4) auto;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.storage-blocker strong {
+  color: var(--color-danger);
+}
+
+.storage-blocker p {
+  flex: 1;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.swipe-view {
+  position: relative;
+  display: grid;
+  min-height: calc(100dvh - 3.5rem);
+  grid-template-rows: auto minmax(32rem, 1fr) auto;
+  overflow: hidden;
+}
+
+.swipe-mode-banner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.swipe-mode-banner progress {
+  width: 100%;
+  height: 2px;
+  grid-column: 1 / -1;
+}
+
+progress {
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface-3);
+  color: var(--color-primary);
+  accent-color: var(--color-primary);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--color-surface-3);
+}
+
+progress::-webkit-progress-value {
+  background: var(--color-primary);
+}
+
+progress::-moz-progress-bar {
+  background: var(--color-primary);
+}
+
+.decision-zone {
+  --label-color: var(--color-primary);
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  min-width: 9.5rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in oklch, var(--label-color) 58%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--label-color);
+  font-size: 0.75rem;
+  transition:
+    border-color 90ms var(--ease-out),
+    box-shadow 90ms var(--ease-out),
+    background-color 90ms var(--ease-out),
+    transform 70ms var(--ease-out);
+}
+
+.decision-zone:hover,
+.decision-zone:focus-visible {
+  border-color: var(--label-color);
+  background: color-mix(in oklch, var(--label-color) 7%, var(--color-bg));
+  box-shadow: 0 0 1.25rem
+    color-mix(in oklch, var(--label-color) 24%, transparent);
+}
+
+.decision-zone:active {
+  transform: scale(0.98);
+}
+
+.decision-zone kbd {
+  border-color: color-mix(in oklch, var(--label-color) 60%, transparent);
+  color: var(--label-color);
+}
+
+.zone-top {
+  inset-block-start: 4.75rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+
+.zone-top:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.zone-right {
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-6);
+  transform: translateY(-50%);
+}
+
+.zone-right:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.zone-left {
+  inset-block-start: 50%;
+  inset-inline-start: var(--space-6);
+  transform: translateY(-50%);
+}
+
+.zone-left:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.zone-bottom {
+  inset-block-end: 5.25rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+
+.zone-bottom:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+.label-c {
+  --label-color: var(--color-coincident);
+}
+
+.label-p {
+  --label-color: var(--color-proximal);
+}
+
+.label-o {
+  --label-color: var(--color-overlay);
+}
+
+.label-u {
+  --label-color: var(--color-unclear);
+}
+
+.relation-stage {
+  display: grid;
+  width: min(100% - 24rem, 54rem);
+  max-width: 54rem;
+  align-content: center;
+  align-self: stretch;
+  justify-self: center;
+  gap: var(--space-3);
+  padding-block: 5.5rem;
+}
+
+.relation-card {
+  width: 100%;
+  min-height: 18rem;
+  max-height: min(62dvh, 42rem);
+  overflow: auto;
+  touch-action: none;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  transition:
+    transform 115ms var(--ease-out),
+    opacity 100ms var(--ease-out),
+    border-color 90ms var(--ease-out);
+}
+
+.relation-card.is-exiting {
+  opacity: 0.16;
+  border-color: var(--label-color);
+}
+
+.relation-card.exit-c {
+  --label-color: var(--color-coincident);
+  transform: translateY(-1.25rem);
+}
+
+.relation-card.exit-p {
+  --label-color: var(--color-proximal);
+  transform: translateX(1.25rem);
+}
+
+.relation-card.exit-o {
+  --label-color: var(--color-overlay);
+  transform: translateX(-1.25rem);
+}
+
+.relation-card.exit-u {
+  --label-color: var(--color-unclear);
+  transform: translateY(1.25rem);
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.card-meta span:first-child {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.relation-card pre {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(var(--space-4), 3vw, var(--space-8));
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 1.0625rem;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  line-height: 1.62;
+  white-space: pre-wrap;
+}
+
+.note-composer {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+}
+
+.note-heading,
+.note-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.note-heading label {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.note-heading label span {
+  margin-inline-start: var(--space-2);
+  color: var(--color-warning);
+  font-weight: 400;
+}
+
+.note-composer input {
+  min-height: 2.75rem;
+}
+
+.note-help .text-button {
+  padding: 0;
+}
+
+.swipe-actions {
+  z-index: 3;
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.swipe-actions button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-muted);
+}
+
+.swipe-actions button.is-active {
+  border-color: var(--color-warning);
+  background: color-mix(in oklch, var(--color-warning) 8%, var(--color-bg));
+  color: var(--color-warning);
+}
+
+.action-spacer {
+  flex: 1;
+}
+
+.view-heading {
+  max-width: 62rem;
+  margin-block-end: var(--space-8);
+}
+
+.view-heading > p:not(.system-label) {
+  max-width: 70ch;
+  color: var(--color-muted);
+}
+
+.metric-line {
+  display: flex;
+  flex-wrap: wrap;
+  margin-block-end: var(--space-8);
+  border-block: 1px solid var(--color-border);
+}
+
+.metric-line > div {
+  display: grid;
+  min-width: 11rem;
+  flex: 1;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.metric-line > div + div {
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.metric-line span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.metric-line strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-section,
+.form-section {
+  margin-block-end: var(--space-8);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.section-heading > span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.pass-progress {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.progress-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(12rem, 4fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.progress-row progress {
+  width: 100%;
+  height: 0.375rem;
+}
+
+.progress-row strong {
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.blind-analysis-lock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.blind-analysis-lock > span {
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.blind-analysis-lock h2 {
+  margin-block-end: var(--space-2);
+}
+
+.blind-analysis-lock p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.analysis-grid .analysis-section {
+  min-width: 0;
+}
+
+.analysis-section table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: start;
+}
+
+.analysis-section th,
+.analysis-section td {
+  padding: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  text-align: start;
+}
+
+.analysis-section thead th {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.quota-panel > strong,
+.coverage-panel > strong,
+.alpha-panel > strong {
+  display: block;
+  margin-block-end: var(--space-3);
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-panel progress,
+.coverage-panel progress {
+  width: 100%;
+  height: 0.375rem;
+}
+
+.quota-panel p,
+.coverage-panel p {
+  margin-block: var(--space-3) 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.data-table-wrap {
+  width: 100%;
+  margin-block-end: var(--space-4);
+  overflow-x: auto;
+}
+
+.data-table {
+  min-width: 48rem;
+}
+
+.distribution {
+  display: flex;
+  width: 10rem;
+  height: 0.375rem;
+  overflow: hidden;
+  background: var(--color-surface-3);
+}
+
+.distribution span {
+  width: var(--share);
+  background: var(--label-color);
+}
+
+.label-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.label-sequence span {
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--label-color) 65%, transparent);
+  border-radius: var(--radius-xs);
+  color: var(--label-color);
+  font-size: 0.75rem;
+}
+
+.empty-inline {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-6) 0;
+  color: var(--color-muted);
+}
+
+.empty-inline strong {
+  color: var(--color-ink);
+}
+
+.throughput-note {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.throughput-note strong {
+  color: var(--color-warning);
+  white-space: nowrap;
+}
+
+.review-view {
+  max-width: 62rem;
+}
+
+.missed-list {
+  display: grid;
+  gap: var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.missed-list li {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.missed-result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin-block-end: var(--space-4);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.missed-list pre {
+  padding-block: var(--space-4);
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 1rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.missed-list p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.label-text {
+  color: var(--label-color);
+}
+
+.completion-view {
+  display: grid;
+  min-height: calc(100dvh - 3.5rem);
+  place-content: center;
+  justify-items: center;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.completion-view.embedded {
+  min-height: 28rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.completion-view p:not(.system-label) {
+  max-width: 65ch;
+  color: var(--color-muted);
+}
+
+.completion-signal {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin-block-end: var(--space-6);
+  place-items: center;
+  border: 1px solid var(--color-success);
+  border-radius: 50%;
+  color: var(--color-success);
+}
+
+.builder-files,
+.merge-imports {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-block-end: var(--space-8);
+}
+
+.merge-imports {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.drop-zone {
+  display: grid;
+  min-height: 10rem;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  color: var(--color-muted);
+  text-align: center;
+  transition:
+    border-color 120ms var(--ease-out),
+    background-color 120ms var(--ease-out);
+}
+
+.drop-zone:hover,
+.drop-zone.is-dragging {
+  border-color: var(--color-primary);
+  background: color-mix(
+    in oklch,
+    var(--color-primary) 7%,
+    var(--color-surface-1)
+  );
+}
+
+.drop-zone.has-file {
+  border-style: solid;
+  border-color: color-mix(
+    in oklch,
+    var(--color-success) 55%,
+    var(--color-border)
+  );
+}
+
+.drop-zone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.drop-zone strong {
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.drop-zone span:last-child {
+  font-size: 0.75rem;
+}
+
+.drop-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-primary);
+}
+
+.builder-form {
+  margin-block-end: var(--space-12);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.form-grid.compact {
+  align-content: start;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.assignment-fields {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1.5fr) minmax(16rem, 1fr);
+  gap: var(--space-6);
+}
+
+.field-roster textarea {
+  min-height: 14rem;
+}
+
+.build-result {
+  padding: var(--space-8);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.build-result-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.build-result-heading h2 {
+  font-size: 1.5rem;
+}
+
+.build-result-heading code {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.download-stack {
+  margin-block-start: var(--space-6);
+}
+
+.result-warning {
+  max-width: 75ch;
+  margin-block: var(--space-4) 0;
+  color: var(--color-warning);
+  font-size: 0.75rem;
+}
+
+.file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.file-chips > span {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.file-chips strong {
+  max-width: 18rem;
+  overflow: hidden;
+  color: var(--color-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-chips button {
+  align-self: stretch;
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.merge-empty {
+  display: grid;
+  min-height: 24rem;
+  place-content: center;
+  justify-items: center;
+  padding: var(--space-8);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.merge-empty > div {
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.merge-empty h2 {
+  margin-block: var(--space-4) var(--space-2);
+  color: var(--color-ink);
+}
+
+.merge-empty p {
+  max-width: 60ch;
+}
+
+.alpha-panel > strong {
+  color: var(--color-primary);
+}
+
+.alpha-panel dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin: 0;
+}
+
+.alpha-panel dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+}
+
+.alpha-panel dt {
+  color: var(--color-muted);
+}
+
+.alpha-panel dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.resolve-heading {
+  display: flex;
+  max-width: none;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.resolve-heading dl {
+  display: flex;
+  margin: 0;
+}
+
+.resolve-heading dl div {
+  min-width: 6rem;
+  padding: var(--space-2) var(--space-4);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.resolve-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(20rem, 1fr);
+  gap: var(--space-6);
+  margin-block-end: var(--space-8);
+}
+
+.resolve-card,
+.resolve-form {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+}
+
+.resolve-card {
+  overflow: hidden;
+}
+
+.resolve-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.resolve-card-meta code {
+  color: var(--color-primary);
+}
+
+.resolve-card > pre {
+  min-height: 18rem;
+  margin: 0;
+  padding: var(--space-6);
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.evidence-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.evidence-sequence > span {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid
+    color-mix(in oklch, var(--label-color) 45%, var(--color-border));
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.evidence-sequence strong {
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--label-color);
+  font-size: 1.125rem;
+}
+
+.evidence-notes {
+  padding: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.evidence-notes blockquote {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.evidence-notes blockquote p {
+  margin-block-end: var(--space-2);
+}
+
+.evidence-notes cite {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.resolve-form {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.label-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+}
+
+.label-choice legend {
+  margin-block-end: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.label-choice button {
+  display: grid;
+  min-height: 4rem;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid
+    color-mix(in oklch, var(--label-color) 50%, var(--color-border));
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--label-color);
+  text-align: start;
+}
+
+.label-choice button:hover {
+  border-color: var(--label-color);
+  background: color-mix(in oklch, var(--label-color) 8%, var(--color-bg));
+}
+
+@media (max-width: 75rem) {
+  .instrument-bar {
+    grid-template-columns: minmax(9rem, 1fr) auto auto;
+  }
+
+  .session-readouts {
+    display: none;
+  }
+
+  .relation-stage {
+    width: min(100% - 18rem, 50rem);
+  }
+
+  .decision-zone {
+    min-width: 7rem;
+  }
+
+  .zone-left {
+    inset-inline-start: var(--space-4);
+  }
+
+  .zone-right {
+    inset-inline-end: var(--space-4);
+  }
+}
+
+@media (max-width: 58rem) {
+  .instrument-bar {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+  }
+
+  .workspace-tabs {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    min-height: 2.75rem;
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .workspace-tabs button {
+    flex: 1;
+  }
+
+  .bar-actions .text-button {
+    display: none;
+  }
+
+  .swipe-view {
+    min-height: calc(100dvh - 6.25rem);
+  }
+
+  .relation-stage {
+    width: min(100% - 3rem, 46rem);
+    padding-block: 7rem;
+  }
+
+  .zone-left,
+  .zone-right {
+    inset-block-start: auto;
+    inset-block-end: 4.75rem;
+    transform: none;
+  }
+
+  .zone-left {
+    inset-inline-start: var(--space-4);
+  }
+
+  .zone-right {
+    inset-inline-end: var(--space-4);
+  }
+
+  .zone-left:active,
+  .zone-right:active {
+    transform: scale(0.98);
+  }
+
+  .zone-bottom {
+    inset-block-end: 4.75rem;
+  }
+
+  .swipe-actions {
+    padding-block-end: max(var(--space-2), env(safe-area-inset-bottom));
+  }
+
+  .capability-strip,
+  .analysis-grid,
+  .builder-files,
+  .merge-imports,
+  .resolve-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .capability-strip div + div {
+    border-block-start: 1px solid var(--color-border);
+    border-inline-start: 0;
+  }
+
+  .assignment-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .resolve-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 42rem) {
+  .public-header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .public-header nav button {
+    flex: 1;
+  }
+
+  .home-view,
+  .builder-view,
+  .merge-view,
+  .analysis-view,
+  .review-view,
+  .resolve-view {
+    width: min(100% - 1.25rem, 80rem);
+    padding-block: var(--space-8);
+  }
+
+  .home-intro {
+    padding-block: var(--space-12);
+  }
+
+  .home-intro h1 {
+    font-size: 2.25rem;
+  }
+
+  .button-row > .button,
+  .home-actions > .button,
+  .completion-actions > .button,
+  .download-stack > .button {
+    width: 100%;
+  }
+
+  .study-facts,
+  .result-facts,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-wide {
+    grid-column: auto;
+  }
+
+  .instrument-identity > :last-child,
+  .bar-actions .icon-text-button:last-child {
+    display: none;
+  }
+
+  .instrument-bar {
+    padding-inline: var(--space-3);
+  }
+
+  .swipe-mode-banner {
+    padding-inline: var(--space-3);
+  }
+
+  .relation-stage {
+    width: calc(100% - 1rem);
+    padding-block: 5.5rem 8rem;
+  }
+
+  .relation-card {
+    min-height: 15rem;
+    max-height: 54dvh;
+  }
+
+  .relation-card pre {
+    padding: var(--space-4);
+    font-size: 1rem;
+  }
+
+  .decision-zone {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding-inline: var(--space-2);
+  }
+
+  .decision-zone strong {
+    font-size: 0.6875rem;
+  }
+
+  .zone-top {
+    inset-block-start: 4.25rem;
+  }
+
+  .zone-left,
+  .zone-right,
+  .zone-bottom {
+    inset-block-end: 4.5rem;
+  }
+
+  .zone-left {
+    inset-inline-start: var(--space-2);
+  }
+
+  .zone-right {
+    inset-inline-end: var(--space-2);
+  }
+
+  .swipe-actions {
+    padding-inline: var(--space-2);
+  }
+
+  .swipe-actions button {
+    min-width: 2.75rem;
+    justify-content: center;
+    padding-inline: var(--space-2);
+  }
+
+  .swipe-actions button span {
+    display: none;
+  }
+
+  .progress-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .progress-row progress {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .metric-line {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .metric-line > div {
+    min-width: 0;
+  }
+
+  .metric-line > div + div {
+    border-inline-start: 0;
+  }
+
+  .metric-line > div:nth-child(even) {
+    border-inline-start: 1px solid var(--color-border);
+  }
+
+  .metric-line > div:nth-child(n + 3) {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .analysis-section,
+  .form-section,
+  .build-result,
+  .resolve-form {
+    padding: var(--space-4);
+  }
+
+  .section-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .throughput-note {
+    align-items: start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .build-result-heading {
+    flex-direction: column;
+  }
+
+  .label-choice {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (pointer: coarse) {
+  .decision-zone,
+  .swipe-actions button,
+  .workspace-tabs button,
+  .public-header button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .relation-card.is-exiting {
+    transform: none;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div id="app">
+      <main class="boot-state" id="main-content">
+        <p>SALT is loading…</p>
+      </main>
+    </div>
+    <div
+      class="sr-only"
+      id="live-region"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <script id="salt-study" type="application/json">{"kind":"generic","schema_version":"salt-study-v1","build_hash":"7276cdd10a7c","demo_study":{"schema_version":"salt-study-v1","kind":"study","study_id":"salt-961b5d80205b","title":"SALT demonstration study","deck_hash":"5ef174b227611e691b4124e271886e87e3bea7c53367001ff488478f8380785a","seed":"salt-demo-v1","rubric_version":"v0.3-demo","coverage_target":1,"slice_size":11,"coincident_target":3,"required_production_passes":1,"cards":[{"relation_id":"P6","family_id":"P6-group","card_text":"Relation: head of government\nAngela Merkel is head of government of Germany.\nFumio Kishida is head of government of Japan.\nJustin Trudeau is head of government of Canada.\nNarendra Modi is head of government of India.","card_hash":"demo-p6-sha256","prescreen":"normal"},{"relation_id":"DEMO-C1","family_id":"demo-equivalence-1","card_text":"Relation: exact-match mapping\nSKU 1001 maps to catalog item 1001.\nISO alpha-2 US maps to United States.\nRecord A-17 resolves to canonical record A-17.","card_hash":"demo-c1-sha256","prescreen":"equivalence"},{"relation_id":"DEMO-C2","family_id":"demo-equivalence-2","card_text":"Relation: same canonical identifier\nAlias Q42 resolves to entity Q42.\nThe normalized key and stored key are identical.\nBoth references select the same row.","card_hash":"demo-c2-sha256","prescreen":"equivalence"},{"relation_id":"DEMO-P1","family_id":"demo-part-1","card_text":"Relation: component of\nA wheel is a component of a bicycle.\nA chapter is a component of a book.\nA processor core is a component of a CPU.","card_hash":"demo-p1-sha256","prescreen":"normal"},{"relation_id":"DEMO-P2","family_id":"demo-part-2","card_text":"Relation: member of collection\nA track belongs to an album.\nA file belongs to a directory.\nA district belongs to a city.","card_hash":"demo-p2-sha256","prescreen":"normal"},{"relation_id":"DEMO-O1","family_id":"demo-authorship-1","card_text":"Relation: authored by\nFrankenstein was authored by Mary Shelley.\nThe paper was authored by its listed researchers.\nThe module was authored by the commit signer.","card_hash":"demo-o1-sha256","prescreen":"normal"},{"relation_id":"DEMO-O2","family_id":"demo-attribution-2","card_text":"Relation: attributed to\nThe photograph is attributed to the studio.\nThe quotation is attributed to its speaker.\nThe design is attributed to the named architect.","card_hash":"demo-o2-sha256","prescreen":"normal"},{"relation_id":"DEMO-U1","family_id":"demo-ambiguous-1","card_text":"Relation: associated operationally with\nThe contractor is associated operationally with the agency.\nThe sensor is associated operationally with the platform.\nThe report is associated operationally with the program.","card_hash":"demo-u1-sha256","prescreen":"normal"},{"relation_id":"DEMO-U2","family_id":"demo-ambiguous-2","card_text":"Relation: supports\nThe team supports the service.\nThe bracket supports the shelf.\nThe evidence supports the conclusion.","card_hash":"demo-u2-sha256","prescreen":"normal"},{"relation_id":"DEMO-M1","family_id":"demo-mixed-1","card_text":"Relation: represents\nThe icon represents the application.\nThe delegate represents the district.\nThe record represents a physical shipment.","card_hash":"demo-m1-sha256","prescreen":"normal"},{"relation_id":"DEMO-M2","family_id":"demo-mixed-2","card_text":"Relation: linked to\nThe citation is linked to a source.\nThe account is linked to a device.\nThe station is linked to the main line.","card_hash":"demo-m2-sha256","prescreen":"normal"}],"qualification_cards":[{"relation_id":"QUAL-C1","family_id":"qual-equivalence","card_text":"Relation: identical canonical target\nBoth aliases resolve to the same canonical entity.\nThe normalized and stored identifiers select one record.\nThe two keys are exact redirects to one target.","card_hash":"qual-c1-sha256","prescreen":"equivalence","answer":"C","rationale":"Both sides collapse to the same canonical target, so their geometry is Coincident."},{"relation_id":"QUAL-P1","family_id":"qual-part","card_text":"Relation: structural part of\nA keyboard is part of a laptop.\nA scene is part of a film.\nA rack is part of a data center.","card_hash":"qual-p1-sha256","prescreen":"normal","answer":"P","rationale":"The first item occupies a contained structural role relative to the second, which is Proximal."},{"relation_id":"QUAL-O1","family_id":"qual-attribution","card_text":"Relation: created by\nThe novel was created by its author.\nThe mural was created by the artist.\nThe patch was created by the contributor.","card_hash":"qual-o1-sha256","prescreen":"normal","answer":"O","rationale":"Creation links distinct entities through attribution rather than containment, so it is Overlay."},{"relation_id":"QUAL-U1","family_id":"qual-ambiguous","card_text":"Relation: connected with\nThe initiative is connected with the department.\nThe device is connected with the service.\nThe person is connected with the event.","card_hash":"qual-u1-sha256","prescreen":"normal","answer":"U","rationale":"The relation is underspecified across examples, so no stable geometry class is justified."}],"manifest":{"annotator_ids":["DEMO"],"assignments":{"DEMO":["DEMO-C1","DEMO-C2","DEMO-M1","DEMO-M2","DEMO-O1","DEMO-O2","DEMO-P1","DEMO-P2","DEMO-U1","DEMO-U2","P6"]},"loads":{"DEMO":11},"stratum_loads":{"equivalence":{"DEMO":2},"normal":{"DEMO":9}}},"access":[{"annotator_id":"DEMO","code_hash":"4b9c16f8d03a763034a049f69b7ad84ace4ec852070e410b5a391c3e6d55e75b"}]},"demo_code":"0Q8Z-AGZQ"}</script>
+    <script>
+(() => {
+"use strict";
+
+const SCHEMA_VERSION = "salt-study-v1";
+const SWIPE_SCHEMA_VERSION = "salt-swipes-v1";
+const ADJUDICATION_SCHEMA_VERSION = "salt-adjudications-v1";
+
+const LABELS = Object.freeze(["C", "P", "O", "U"]);
+
+const LABEL_DETAILS = Object.freeze({
+  C: { name: "Coincident", direction: "up", arrow: "↑" },
+  P: { name: "Proximal", direction: "right", arrow: "→" },
+  O: { name: "Overlay", direction: "left", arrow: "←" },
+  U: { name: "Unclear", direction: "down", arrow: "↓" },
+});
+
+const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const ANNOTATOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
+
+class SaltValidationError extends Error {
+  constructor(message, issues = []) {
+    super(message);
+    this.name = "SaltValidationError";
+    this.issues = issues;
+  }
+}
+
+const isRecord = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const requireString = (record, key, lineNumber, issues) => {
+  const value = record[key];
+  if (typeof value !== "string" || value.trim() === "") {
+    issues.push(`Line ${lineNumber}: "${key}" must be a non-empty string.`);
+    return "";
+  }
+  return value.trim();
+};
+
+const isLabel = (value) => LABELS.includes(value);
+
+const normalizeCard = (record, lineNumber, qualification, issues) => {
+  if (!isRecord(record)) {
+    issues.push(`Line ${lineNumber}: expected a JSON object.`);
+    return null;
+  }
+
+  const relationId = requireString(record, "relation_id", lineNumber, issues);
+  const familyId = requireString(record, "family_id", lineNumber, issues);
+  const cardText = requireString(record, "card_text", lineNumber, issues);
+  const cardHash = requireString(record, "card_hash", lineNumber, issues);
+  const prescreen = record.prescreen;
+
+  if (prescreen !== "equivalence" && prescreen !== "normal") {
+    issues.push(
+      `Line ${lineNumber}: "prescreen" must be "equivalence" or "normal".`,
+    );
+  }
+
+  const card = {
+    relation_id: relationId,
+    family_id: familyId,
+    card_text: cardText,
+    card_hash: cardHash,
+    prescreen,
+  };
+
+  if (qualification) {
+    const answer = record.answer ?? record.gold_label;
+    const rationale = record.rationale;
+    if (!isLabel(answer)) {
+      issues.push(
+        `Line ${lineNumber}: qualification "answer" must be C/P/O/U.`,
+      );
+    }
+    if (typeof rationale !== "string" || rationale.trim() === "") {
+      issues.push(
+        `Line ${lineNumber}: qualification "rationale" must be a non-empty string.`,
+      );
+    }
+    return {
+      ...card,
+      answer,
+      rationale: typeof rationale === "string" ? rationale.trim() : "",
+    };
+  }
+
+  return card;
+};
+
+const parseCardsJsonl = (text, { qualification = false } = {}) => {
+  const issues = [];
+  const cards = [];
+  const relationIds = new Set();
+  const cardHashes = new Set();
+
+  text.split(/\r?\n/u).forEach((line, lineIndex) => {
+    if (line.trim() === "") {
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(line);
+    } catch (error) {
+      issues.push(
+        `Line ${lineIndex + 1}: invalid JSON (${error instanceof Error ? error.message : String(error)}).`,
+      );
+      return;
+    }
+
+    const card = normalizeCard(parsed, lineIndex + 1, qualification, issues);
+    if (!card) {
+      return;
+    }
+
+    if (relationIds.has(card.relation_id)) {
+      issues.push(
+        `Line ${lineIndex + 1}: duplicate relation_id "${card.relation_id}".`,
+      );
+    }
+    if (cardHashes.has(card.card_hash)) {
+      issues.push(
+        `Line ${lineIndex + 1}: duplicate card_hash "${card.card_hash}".`,
+      );
+    }
+    relationIds.add(card.relation_id);
+    cardHashes.add(card.card_hash);
+    cards.push(card);
+  });
+
+  if (cards.length === 0) {
+    issues.push("The file contains no cards.");
+  }
+  if (issues.length > 0) {
+    throw new SaltValidationError("Card import failed.", issues);
+  }
+  return cards;
+};
+
+const cardsToJsonl = (cards) =>
+  `${cards.map((card) => JSON.stringify(card)).join("\n")}\n`;
+
+const parseRoster = (text) => {
+  const ids = text
+    .split(/\r?\n|,/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+
+  if (ids.length === 0) {
+    throw new SaltValidationError("Add at least one annotator ID.");
+  }
+  if (duplicates.length > 0) {
+    throw new SaltValidationError(
+      `Annotator IDs must be unique: ${[...new Set(duplicates)].join(", ")}.`,
+    );
+  }
+  const invalidIds = ids.filter(
+    (annotatorId) => !ANNOTATOR_ID_PATTERN.test(annotatorId),
+  );
+  if (invalidIds.length > 0) {
+    throw new SaltValidationError(
+      `Annotator IDs may contain only letters, numbers, periods, underscores, and hyphens (maximum 64 characters): ${invalidIds.join(", ")}.`,
+    );
+  }
+  return ids;
+};
+
+const stableStringify = (value) => {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
+  }
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+    .join(",")}}`;
+};
+
+const rotateRight = (value, amount) =>
+  (value >>> amount) | (value << (32 - amount));
+
+const SHA256_CONSTANTS = Object.freeze([
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+]);
+
+const sha256Hex = (value) => {
+  const bytes = new TextEncoder().encode(value);
+  const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
+  const padded = new Uint8Array(paddedLength);
+  padded.set(bytes);
+  padded[bytes.length] = 0x80;
+
+  const paddedView = new DataView(padded.buffer);
+  const bitLength = bytes.length * 8;
+  paddedView.setUint32(paddedLength - 8, Math.floor(bitLength / 2 ** 32));
+  paddedView.setUint32(paddedLength - 4, bitLength >>> 0);
+
+  const hash = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+    0x1f83d9ab, 0x5be0cd19,
+  ];
+  const words = new Uint32Array(64);
+
+  for (let offset = 0; offset < paddedLength; offset += 64) {
+    for (let wordIndex = 0; wordIndex < 16; wordIndex += 1) {
+      words[wordIndex] = paddedView.getUint32(offset + wordIndex * 4);
+    }
+    for (let wordIndex = 16; wordIndex < 64; wordIndex += 1) {
+      const word15 = words[wordIndex - 15];
+      const word2 = words[wordIndex - 2];
+      const sigma0 =
+        rotateRight(word15, 7) ^ rotateRight(word15, 18) ^ (word15 >>> 3);
+      const sigma1 =
+        rotateRight(word2, 17) ^ rotateRight(word2, 19) ^ (word2 >>> 10);
+      words[wordIndex] =
+        (words[wordIndex - 16] + sigma0 + words[wordIndex - 7] + sigma1) >>> 0;
+    }
+
+    let [a, b, c, d, e, f, g, h] = hash;
+    for (let round = 0; round < 64; round += 1) {
+      const choice = (e & f) ^ (~e & g);
+      const majority = (a & b) ^ (a & c) ^ (b & c);
+      const bigSigma0 =
+        rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
+      const bigSigma1 =
+        rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
+      const first =
+        (h + bigSigma1 + choice + SHA256_CONSTANTS[round] + words[round]) >>> 0;
+      const second = (bigSigma0 + majority) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + first) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (first + second) >>> 0;
+    }
+
+    hash[0] = (hash[0] + a) >>> 0;
+    hash[1] = (hash[1] + b) >>> 0;
+    hash[2] = (hash[2] + c) >>> 0;
+    hash[3] = (hash[3] + d) >>> 0;
+    hash[4] = (hash[4] + e) >>> 0;
+    hash[5] = (hash[5] + f) >>> 0;
+    hash[6] = (hash[6] + g) >>> 0;
+    hash[7] = (hash[7] + h) >>> 0;
+  }
+
+  return hash.map((part) => part.toString(16).padStart(8, "0")).join("");
+};
+
+const deriveSeed = (seed, ...parts) =>
+  Number.parseInt(
+    sha256Hex([String(seed), ...parts.map(String)].join("\u001f")).slice(0, 8),
+    16,
+  ) >>> 0;
+
+const createRandom = (seed) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 2 ** 32;
+  };
+};
+
+const shuffled = (values, seed) => {
+  const result = [...values];
+  const random = createRandom(seed);
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+};
+
+const shuffleCardText = (cardText, seed) => {
+  const [heading, ...exampleLines] = cardText.split(/\r?\n/u);
+  const examples = exampleLines.filter((line) => line.trim() !== "");
+  if (examples.length < 2) {
+    return cardText;
+  }
+  return [heading, ...shuffled(examples, seed)].join("\n");
+};
+
+const compareAssignmentCandidates = (
+  left,
+  right,
+  totalLoads,
+  stratumLoads,
+  tieBreakers,
+) =>
+  totalLoads.get(left) - totalLoads.get(right) ||
+  stratumLoads.get(left) - stratumLoads.get(right) ||
+  tieBreakers.get(left) - tieBreakers.get(right) ||
+  left.localeCompare(right);
+
+const generateAssignments = ({
+  cards,
+  annotatorIds,
+  coverageTarget,
+  sliceSize,
+  seed,
+}) => {
+  if (!Number.isInteger(coverageTarget) || coverageTarget < 1) {
+    throw new SaltValidationError(
+      "Coverage target must be a positive integer.",
+    );
+  }
+  if (coverageTarget > annotatorIds.length) {
+    throw new SaltValidationError(
+      `Coverage ${coverageTarget} requires at least ${coverageTarget} annotators.`,
+    );
+  }
+  if (!Number.isInteger(sliceSize) || sliceSize < 1) {
+    throw new SaltValidationError("Slice cap must be a positive integer.");
+  }
+
+  const minimumLargestSlice = Math.ceil(
+    (cards.length * coverageTarget) / annotatorIds.length,
+  );
+  if (minimumLargestSlice > sliceSize) {
+    throw new SaltValidationError(
+      `The slice cap is too small. This study needs at least ${minimumLargestSlice} cards per annotator for ${coverageTarget}× coverage.`,
+    );
+  }
+
+  const assignments = new Map(
+    annotatorIds.map((annotatorId) => [annotatorId, []]),
+  );
+  const totalLoads = new Map(
+    annotatorIds.map((annotatorId) => [annotatorId, 0]),
+  );
+  const stratumLoadsByName = new Map();
+
+  for (const stratum of ["equivalence", "normal"]) {
+    const cardsInStratum = shuffled(
+      cards.filter((card) => card.prescreen === stratum),
+      deriveSeed(seed, "assignment-card-order", stratum),
+    );
+    const stratumLoads = new Map(
+      annotatorIds.map((annotatorId) => [annotatorId, 0]),
+    );
+    stratumLoadsByName.set(stratum, stratumLoads);
+
+    for (const card of cardsInStratum) {
+      const selected = new Set();
+      for (let copy = 0; copy < coverageTarget; copy += 1) {
+        const tieBreakers = new Map(
+          annotatorIds.map((annotatorId) => [
+            annotatorId,
+            deriveSeed(
+              seed,
+              "assignment-tie",
+              stratum,
+              card.relation_id,
+              copy,
+              annotatorId,
+            ),
+          ]),
+        );
+        const candidates = annotatorIds
+          .filter(
+            (annotatorId) =>
+              !selected.has(annotatorId) &&
+              totalLoads.get(annotatorId) < sliceSize,
+          )
+          .sort((left, right) =>
+            compareAssignmentCandidates(
+              left,
+              right,
+              totalLoads,
+              stratumLoads,
+              tieBreakers,
+            ),
+          );
+        const chosen = candidates[0];
+        if (!chosen) {
+          throw new SaltValidationError(
+            `Unable to assign ${card.relation_id} within the configured slice cap.`,
+          );
+        }
+        assignments.get(chosen).push(card.relation_id);
+        totalLoads.set(chosen, totalLoads.get(chosen) + 1);
+        stratumLoads.set(chosen, stratumLoads.get(chosen) + 1);
+        selected.add(chosen);
+      }
+    }
+  }
+
+  return {
+    assignments: Object.fromEntries(
+      annotatorIds.map((annotatorId) => [
+        annotatorId,
+        [...assignments.get(annotatorId)].sort(),
+      ]),
+    ),
+    loads: Object.fromEntries(totalLoads),
+    stratum_loads: Object.fromEntries(
+      [...stratumLoadsByName].map(([stratum, loads]) => [
+        stratum,
+        Object.fromEntries(loads),
+      ]),
+    ),
+  };
+};
+
+const normalizeAccessCode = (value) =>
+  value
+    .toUpperCase()
+    .replace(/[^0-9A-Z]/gu, "")
+    .replace(/[ILOU]/gu, "");
+
+const codeChecksum = (body) => {
+  let total = 0;
+  for (const character of body) {
+    total = (total * 33 + CROCKFORD.indexOf(character)) % CROCKFORD.length;
+  }
+  return CROCKFORD[total];
+};
+
+const createAccessCode = (studySeed, annotatorId) => {
+  const random = createRandom(
+    deriveSeed(studySeed, "annotator-access-code", annotatorId),
+  );
+  let body = "";
+  for (let index = 0; index < 7; index += 1) {
+    body += CROCKFORD[Math.floor(random() * CROCKFORD.length)];
+  }
+  const compact = `${body}${codeChecksum(body)}`;
+  return `${compact.slice(0, 4)}-${compact.slice(4)}`;
+};
+
+const isAccessCodeWellFormed = (value) => {
+  const compact = normalizeAccessCode(value);
+  if (compact.length !== 8) {
+    return false;
+  }
+  return codeChecksum(compact.slice(0, 7)) === compact.at(-1);
+};
+
+const accessCodeHash = (studyId, code) =>
+  sha256Hex(`${studyId}\u001f${normalizeAccessCode(code)}`);
+
+const createStudy = ({
+  cards,
+  qualificationCards = [],
+  annotatorIds,
+  seed,
+  coverageTarget = 2,
+  sliceSize = 150,
+  rubricVersion = "v0.3",
+  coincidentTarget = 300,
+  title = "SALT geometry adjudication",
+}) => {
+  if (!Array.isArray(cards) || cards.length === 0) {
+    throw new SaltValidationError(
+      "A study needs at least one production card.",
+    );
+  }
+  if (!Array.isArray(annotatorIds) || annotatorIds.length === 0) {
+    throw new SaltValidationError("A study needs at least one annotator.");
+  }
+  if (new Set(annotatorIds).size !== annotatorIds.length) {
+    throw new SaltValidationError("Annotator IDs must be unique.");
+  }
+  if (
+    annotatorIds.some(
+      (annotatorId) =>
+        typeof annotatorId !== "string" ||
+        !ANNOTATOR_ID_PATTERN.test(annotatorId),
+    )
+  ) {
+    throw new SaltValidationError(
+      "Annotator IDs may contain only letters, numbers, periods, underscores, and hyphens (maximum 64 characters).",
+    );
+  }
+  if (typeof rubricVersion !== "string" || rubricVersion.trim() === "") {
+    throw new SaltValidationError("Rubric version is required.");
+  }
+  if (!Number.isInteger(coincidentTarget) || coincidentTarget < 1) {
+    throw new SaltValidationError(
+      "The Coincident quota target must be a positive integer.",
+    );
+  }
+
+  const normalizedSeed = String(seed).trim();
+  if (normalizedSeed === "") {
+    throw new SaltValidationError("A study seed is required.");
+  }
+  const deckHash = sha256Hex(stableStringify(cards));
+  const assignmentResult = generateAssignments({
+    cards,
+    annotatorIds,
+    coverageTarget,
+    sliceSize,
+    seed: normalizedSeed,
+  });
+  const studyId = `salt-${sha256Hex(
+    stableStringify({
+      deckHash,
+      seed: normalizedSeed,
+      coverageTarget,
+      sliceSize,
+      assignments: assignmentResult.assignments,
+    }),
+  ).slice(0, 12)}`;
+
+  const codeSheet = annotatorIds.map((annotatorId) => {
+    const code = createAccessCode(normalizedSeed, annotatorId);
+    return {
+      annotator_id: annotatorId,
+      code,
+      assigned_cards: assignmentResult.loads[annotatorId],
+    };
+  });
+
+  const study = {
+    schema_version: SCHEMA_VERSION,
+    kind: "study",
+    study_id: studyId,
+    title: title.trim() || "SALT geometry adjudication",
+    deck_hash: deckHash,
+    seed: normalizedSeed,
+    rubric_version: rubricVersion.trim(),
+    coverage_target: coverageTarget,
+    slice_size: sliceSize,
+    coincident_target: coincidentTarget,
+    required_production_passes: 1,
+    cards,
+    qualification_cards: qualificationCards,
+    manifest: {
+      annotator_ids: annotatorIds,
+      assignments: assignmentResult.assignments,
+      loads: assignmentResult.loads,
+      stratum_loads: assignmentResult.stratum_loads,
+    },
+    access: codeSheet.map(({ annotator_id: annotatorId, code }) => ({
+      annotator_id: annotatorId,
+      code_hash: accessCodeHash(studyId, code),
+    })),
+  };
+
+  return { study, codeSheet };
+};
+
+const manifestForExport = (study) => ({
+  schema_version: study.schema_version,
+  study_id: study.study_id,
+  title: study.title,
+  deck_hash: study.deck_hash,
+  seed: study.seed,
+  rubric_version: study.rubric_version,
+  coverage_target: study.coverage_target,
+  slice_size: study.slice_size,
+  coincident_target: study.coincident_target,
+  required_production_passes: study.required_production_passes,
+  cards: study.cards.map(
+    ({ relation_id, family_id, card_hash, prescreen }) => ({
+      relation_id,
+      family_id,
+      card_hash,
+      prescreen,
+    }),
+  ),
+  manifest: study.manifest,
+});
+
+const codeSheetToTsv = (study, codeSheet) =>
+  [
+    "study_id\tannotator_id\tcode\tassigned_cards",
+    ...codeSheet.map(
+      (entry) =>
+        `${study.study_id}\t${entry.annotator_id}\t${entry.code}\t${entry.assigned_cards}`,
+    ),
+  ].join("\n") + "\n";
+
+const resolveAnnotatorCode = (study, code) => {
+  if (!isAccessCodeWellFormed(code)) {
+    return null;
+  }
+  const hash = accessCodeHash(study.study_id, code);
+  return (
+    study.access.find((entry) => entry.code_hash === hash)?.annotator_id ?? null
+  );
+};
+
+const deckSeedFor = (study, annotatorId, pass) =>
+  deriveSeed(study.seed, "production-deck", annotatorId, pass);
+
+const exampleSeedFor = (study, annotatorId, pass, card) =>
+  deriveSeed(study.seed, "card-examples", annotatorId, pass, card.card_hash);
+
+const qualificationSeedFor = (study, annotatorId) =>
+  deriveSeed(study.seed, "qualification-deck", annotatorId);
+
+const projectSwipes = (events) => {
+  const retractions = new Map(
+    events
+      .filter((event) => event.event_type === "retraction")
+      .map((event) => [event.swipe_id, event.ts]),
+  );
+
+  return events
+    .filter((event) => event.event_type === "swipe")
+    .map((event) => ({
+      ...event.swipe,
+      retracted: retractions.has(event.swipe.swipe_id),
+      ...(retractions.has(event.swipe.swipe_id)
+        ? { retracted_at: retractions.get(event.swipe.swipe_id) }
+        : {}),
+    }));
+};
+
+const activeSwipes = (eventsOrSwipes) => {
+  const swipes = eventsOrSwipes.some((entry) => entry.event_type)
+    ? projectSwipes(eventsOrSwipes)
+    : eventsOrSwipes;
+  return swipes.filter((swipe) => !swipe.retracted);
+};
+
+const relationHasLocalDisagreement = (
+  events,
+  relationId,
+  annotatorId,
+) => {
+  const labels = activeSwipes(events)
+    .filter(
+      (swipe) =>
+        !swipe.qualification &&
+        swipe.relation_id === relationId &&
+        swipe.annotator_id === annotatorId,
+    )
+    .map((swipe) => swipe.label);
+  return labels.includes("U") || new Set(labels).size > 1;
+};
+
+const getProductionDeck = ({
+  study,
+  annotatorId,
+  pass,
+  events = [],
+}) => {
+  const assignedIds = new Set(study.manifest.assignments[annotatorId] ?? []);
+  const completedIds = new Set(
+    activeSwipes(events)
+      .filter(
+        (swipe) =>
+          !swipe.qualification &&
+          swipe.annotator_id === annotatorId &&
+          swipe.pass === pass,
+      )
+      .map((swipe) => swipe.relation_id),
+  );
+  const ordered = shuffled(
+    study.cards.filter(
+      (card) =>
+        assignedIds.has(card.relation_id) &&
+        (pass < 4 ||
+          relationHasLocalDisagreement(events, card.relation_id, annotatorId)),
+    ),
+    deckSeedFor(study, annotatorId, pass),
+  );
+  return ordered.filter((card) => !completedIds.has(card.relation_id));
+};
+
+const getQualificationDeck = ({ study, annotatorId, events = [] }) => {
+  const completedIds = new Set(
+    activeSwipes(events)
+      .filter(
+        (swipe) => swipe.qualification && swipe.annotator_id === annotatorId,
+      )
+      .map((swipe) => swipe.relation_id),
+  );
+  return shuffled(
+    study.qualification_cards,
+    qualificationSeedFor(study, annotatorId),
+  ).filter((card) => !completedIds.has(card.relation_id));
+};
+
+const nextIncompletePass = (study, annotatorId, events) => {
+  const assignedCount = study.manifest.assignments[annotatorId]?.length ?? 0;
+  if (assignedCount === 0) {
+    return 1;
+  }
+  for (let pass = 1; pass < 10_000; pass += 1) {
+    const count = activeSwipes(events).filter(
+      (swipe) =>
+        !swipe.qualification &&
+        swipe.annotator_id === annotatorId &&
+        swipe.pass === pass,
+    ).length;
+    if (pass >= 4) {
+      const targetedCount = study.cards.filter((card) =>
+        relationHasLocalDisagreement(events, card.relation_id, annotatorId),
+      ).length;
+      if (count < targetedCount) {
+        return pass;
+      }
+    } else if (count < assignedCount) {
+      return pass;
+    }
+  }
+  return 1;
+};
+
+const nextMonotoneTimestamp = (
+  lastTimestampMs = 0,
+  now = Date.now(),
+) => {
+  const timestampMs = Math.max(now, lastTimestampMs + 1);
+  return {
+    timestampMs,
+    iso: new Date(timestampMs).toISOString(),
+  };
+};
+
+class DecisionTimer {
+  constructor(now = () => performance.now()) {
+    this.now = now;
+    this.startedAt = null;
+    this.pausedAt = null;
+    this.pausedDuration = 0;
+  }
+
+  start() {
+    this.startedAt = this.now();
+    this.pausedAt = null;
+    this.pausedDuration = 0;
+  }
+
+  pause() {
+    if (this.startedAt !== null && this.pausedAt === null) {
+      this.pausedAt = this.now();
+    }
+  }
+
+  resume() {
+    if (this.pausedAt !== null) {
+      this.pausedDuration += this.now() - this.pausedAt;
+      this.pausedAt = null;
+    }
+  }
+
+  elapsed() {
+    if (this.startedAt === null) {
+      return 0;
+    }
+    const end = this.pausedAt ?? this.now();
+    return Math.max(0, Math.round(end - this.startedAt - this.pausedDuration));
+  }
+}
+
+const createSwipeEvent = ({
+  study,
+  annotatorId,
+  card,
+  pass,
+  label,
+  latencyMs,
+  flagged,
+  note,
+  rubricVersion,
+  qualification,
+  sessionId,
+  sequence,
+  timestamp,
+}) => {
+  if (!isLabel(label)) {
+    throw new SaltValidationError(`Unknown label "${label}".`);
+  }
+  const swipeId = [
+    study.study_id,
+    annotatorId,
+    qualification ? "q" : pass,
+    card.relation_id,
+    sequence,
+    timestamp.timestampMs,
+  ].join(":");
+  return {
+    event_type: "swipe",
+    swipe: {
+      schema_version: SWIPE_SCHEMA_VERSION,
+      swipe_id: swipeId,
+      session_id: sessionId,
+      study_id: study.study_id,
+      deck_hash: study.deck_hash,
+      annotator_id: annotatorId,
+      relation_id: card.relation_id,
+      family_id: card.family_id,
+      card_hash: card.card_hash,
+      prescreen: card.prescreen,
+      pass,
+      label,
+      latency_ms: Math.max(0, Math.round(latencyMs)),
+      flagged: Boolean(flagged),
+      note: note?.trim() || null,
+      qualification: Boolean(qualification),
+      rubric_version: rubricVersion,
+      shuffle_seed: qualification
+        ? qualificationSeedFor(study, annotatorId)
+        : deckSeedFor(study, annotatorId, pass),
+      ts: timestamp.iso,
+    },
+  };
+};
+
+const createRetractionEvent = ({
+  swipeId,
+  annotatorId,
+  sessionId,
+  timestamp,
+}) => ({
+  event_type: "retraction",
+  swipe_id: swipeId,
+  annotator_id: annotatorId,
+  session_id: sessionId,
+  ts: timestamp.iso,
+});
+
+const latestUndoableSwipe = (events, sessionId) => {
+  const projected = projectSwipes(events);
+  for (let index = projected.length - 1; index >= 0; index -= 1) {
+    const swipe = projected[index];
+    if (swipe.session_id === sessionId && !swipe.retracted) {
+      return swipe;
+    }
+  }
+  return null;
+};
+
+const swipesToJsonl = (events) => {
+  const swipes = projectSwipes(events);
+  return swipes.length === 0
+    ? ""
+    : `${swipes.map((swipe) => JSON.stringify(swipe)).join("\n")}\n`;
+};
+
+const parseSwipesJsonl = (text, sourceName = "swipes.jsonl") => {
+  const issues = [];
+  const swipes = [];
+  text.split(/\r?\n/u).forEach((line, lineIndex) => {
+    if (line.trim() === "") {
+      return;
+    }
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch (error) {
+      issues.push(
+        `${sourceName}:${lineIndex + 1}: invalid JSON (${error instanceof Error ? error.message : String(error)}).`,
+      );
+      return;
+    }
+    const prefix = `${sourceName}:${lineIndex + 1}`;
+    if (!isRecord(record)) {
+      issues.push(`${prefix}: expected an object.`);
+      return;
+    }
+    for (const field of [
+      "swipe_id",
+      "study_id",
+      "deck_hash",
+      "annotator_id",
+      "relation_id",
+      "family_id",
+      "card_hash",
+      "rubric_version",
+      "ts",
+    ]) {
+      if (typeof record[field] !== "string" || record[field] === "") {
+        issues.push(`${prefix}: missing "${field}".`);
+      }
+    }
+    if (!isLabel(record.label)) {
+      issues.push(`${prefix}: label must be C/P/O/U.`);
+    }
+    if (record.prescreen !== "equivalence" && record.prescreen !== "normal") {
+      issues.push(`${prefix}: prescreen must be "equivalence" or "normal".`);
+    }
+    if (!Number.isInteger(record.pass) || record.pass < 0) {
+      issues.push(`${prefix}: pass must be a non-negative integer.`);
+    }
+    if (
+      typeof record.latency_ms !== "number" ||
+      !Number.isFinite(record.latency_ms) ||
+      record.latency_ms < 0
+    ) {
+      issues.push(`${prefix}: latency_ms must be a non-negative number.`);
+    }
+    if (!Number.isInteger(record.shuffle_seed) || record.shuffle_seed < 0) {
+      issues.push(`${prefix}: shuffle_seed must be a non-negative integer.`);
+    }
+    if (typeof record.ts === "string" && Number.isNaN(Date.parse(record.ts))) {
+      issues.push(`${prefix}: ts must be a valid date-time string.`);
+    }
+    if (
+      record.retracted !== undefined &&
+      typeof record.retracted !== "boolean"
+    ) {
+      issues.push(`${prefix}: retracted must be a boolean when present.`);
+    }
+    if (
+      record.qualification !== undefined &&
+      typeof record.qualification !== "boolean"
+    ) {
+      issues.push(`${prefix}: qualification must be a boolean when present.`);
+    }
+    swipes.push({
+      ...record,
+      source_file: sourceName,
+      retracted: Boolean(record.retracted),
+      qualification: Boolean(record.qualification),
+    });
+  });
+  if (issues.length > 0) {
+    throw new SaltValidationError(`Could not load ${sourceName}.`, issues);
+  }
+  return swipes;
+};
+
+const latestVotesByAnnotator = (swipes) => {
+  const latest = new Map();
+  for (const swipe of swipes
+    .filter((entry) => !entry.retracted && !entry.qualification)
+    .sort(
+      (left, right) =>
+        left.pass - right.pass ||
+        Date.parse(left.ts) - Date.parse(right.ts) ||
+        String(left.swipe_id).localeCompare(String(right.swipe_id)),
+    )) {
+    latest.set(`${swipe.relation_id}\u001f${swipe.annotator_id}`, swipe);
+  }
+  return [...latest.values()];
+};
+
+const labelCounts = (labels) =>
+  Object.fromEntries(
+    LABELS.map((label) => [
+      label,
+      labels.filter((candidate) => candidate === label).length,
+    ]),
+  );
+
+const shannonEntropy = (labels) => {
+  if (labels.length === 0) {
+    return 0;
+  }
+  const counts = labelCounts(labels);
+  return LABELS.reduce((total, label) => {
+    const probability = counts[label] / labels.length;
+    return probability === 0
+      ? total
+      : total - probability * Math.log2(probability);
+  }, 0);
+};
+
+const majorityLabel = (labels) => {
+  if (labels.length === 0) {
+    return null;
+  }
+  const counts = labelCounts(labels);
+  const largest = Math.max(...Object.values(counts));
+  const winners = LABELS.filter((label) => counts[label] === largest);
+  return winners.length === 1 ? winners[0] : null;
+};
+
+const relationSummaries = (swipes, cards) => {
+  const cardById = new Map(cards.map((card) => [card.relation_id, card]));
+  const relationIds = new Set([
+    ...cards.map((card) => card.relation_id),
+    ...swipes.map((swipe) => swipe.relation_id),
+  ]);
+  return [...relationIds]
+    .map((relationId) => {
+      const relationSwipes = swipes
+        .filter(
+          (swipe) =>
+            !swipe.retracted &&
+            !swipe.qualification &&
+            swipe.relation_id === relationId,
+        )
+        .sort(
+          (left, right) =>
+            left.annotator_id.localeCompare(right.annotator_id) ||
+            left.pass - right.pass,
+        );
+      const labels = relationSwipes.map((swipe) => swipe.label);
+      return {
+        relation_id: relationId,
+        card: cardById.get(relationId) ?? null,
+        swipes: relationSwipes,
+        labels,
+        counts: labelCounts(labels),
+        entropy: shannonEntropy(labels),
+        majority: majorityLabel(labels),
+        unanimous: labels.length > 0 && new Set(labels).size === 1,
+        notes: relationSwipes
+          .filter((swipe) => swipe.note)
+          .map((swipe) => ({
+            annotator_id: swipe.annotator_id,
+            pass: swipe.pass,
+            note: swipe.note,
+          })),
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.entropy - left.entropy ||
+        left.relation_id.localeCompare(right.relation_id),
+    );
+};
+
+const nominalKrippendorffAlpha = (units) => {
+  let observedDisagreement = 0;
+  let coincidenceCount = 0;
+  const marginals = new Map();
+
+  for (const rawValues of units) {
+    const values = rawValues.filter(
+      (value) => value !== null && value !== undefined,
+    );
+    if (values.length < 2) {
+      continue;
+    }
+    coincidenceCount += values.length;
+    for (const value of values) {
+      marginals.set(value, (marginals.get(value) ?? 0) + 1);
+    }
+    let disagreeingOrderedPairs = 0;
+    for (let left = 0; left < values.length; left += 1) {
+      for (let right = 0; right < values.length; right += 1) {
+        if (left !== right && values[left] !== values[right]) {
+          disagreeingOrderedPairs += 1;
+        }
+      }
+    }
+    observedDisagreement += disagreeingOrderedPairs / (values.length - 1);
+  }
+
+  if (coincidenceCount < 2) {
+    return null;
+  }
+  const observed = observedDisagreement / coincidenceCount;
+  const sameCategoryPairs = [...marginals.values()].reduce(
+    (total, count) => total + count * (count - 1),
+    0,
+  );
+  const expected =
+    1 -
+    sameCategoryPairs / (coincidenceCount * Math.max(1, coincidenceCount - 1));
+  if (expected === 0) {
+    return observed === 0 ? 1 : null;
+  }
+  return 1 - observed / expected;
+};
+
+const agreementMatrix = (swipes) => {
+  const latest = latestVotesByAnnotator(swipes);
+  const annotatorIds = [
+    ...new Set(latest.map((swipe) => swipe.annotator_id)),
+  ].sort();
+  const relationIds = [
+    ...new Set(latest.map((swipe) => swipe.relation_id)),
+  ].sort();
+  const byPair = new Map(
+    latest.map((swipe) => [
+      `${swipe.relation_id}\u001f${swipe.annotator_id}`,
+      swipe.label,
+    ]),
+  );
+  return {
+    annotatorIds,
+    relationIds,
+    units: relationIds.map((relationId) =>
+      annotatorIds.map(
+        (annotatorId) =>
+          byPair.get(`${relationId}\u001f${annotatorId}`) ?? null,
+      ),
+    ),
+  };
+};
+
+const agreementStatistics = (swipes) => {
+  const matrix = agreementMatrix(swipes);
+  return {
+    ...matrix,
+    overall: nominalKrippendorffAlpha(matrix.units),
+    by_class: Object.fromEntries(
+      LABELS.map((label) => [
+        label,
+        nominalKrippendorffAlpha(
+          matrix.units.map((unit) =>
+            unit.map((value) =>
+              value === null ? null : value === label ? label : "other",
+            ),
+          ),
+        ),
+      ]),
+    ),
+  };
+};
+
+const parseAdjudicationsJsonl = (
+  text,
+  sourceName = "adjudications.jsonl",
+) => {
+  const issues = [];
+  const adjudications = [];
+  text.split(/\r?\n/u).forEach((line, lineIndex) => {
+    if (line.trim() === "") {
+      return;
+    }
+    try {
+      const record = JSON.parse(line);
+      if (!isRecord(record) || !isLabel(record.label)) {
+        issues.push(`${sourceName}:${lineIndex + 1}: invalid adjudication.`);
+        return;
+      }
+      if (
+        typeof record.relation_id !== "string" ||
+        typeof record.rationale !== "string" ||
+        record.rationale.trim() === ""
+      ) {
+        issues.push(
+          `${sourceName}:${lineIndex + 1}: relation_id and rationale are required.`,
+        );
+        return;
+      }
+      adjudications.push(record);
+    } catch (error) {
+      issues.push(
+        `${sourceName}:${lineIndex + 1}: invalid JSON (${error instanceof Error ? error.message : String(error)}).`,
+      );
+    }
+  });
+  if (issues.length > 0) {
+    throw new SaltValidationError(`Could not load ${sourceName}.`, issues);
+  }
+  return adjudications;
+};
+
+const adjudicationsToJsonl = (adjudications) =>
+  adjudications.length === 0
+    ? ""
+    : `${adjudications
+        .map((adjudication) => JSON.stringify(adjudication))
+        .join("\n")}\n`;
+
+const createAdjudication = ({
+  studyId,
+  deckHash,
+  relationId,
+  cardHash,
+  label,
+  rationale,
+  adjudicatorId,
+  timestamp,
+}) => ({
+  schema_version: ADJUDICATION_SCHEMA_VERSION,
+  record_type: "adjudication",
+  study_id: studyId,
+  deck_hash: deckHash,
+  relation_id: relationId,
+  card_hash: cardHash,
+  label,
+  rationale: rationale.trim(),
+  adjudicator_id: adjudicatorId.trim(),
+  ts: timestamp.iso,
+});
+
+const perAnnotatorGoldAgreement = (swipes, adjudications) => {
+  const gold = new Map(
+    adjudications.map((record) => [record.relation_id, record.label]),
+  );
+  const latest = latestVotesByAnnotator(swipes).filter((swipe) =>
+    gold.has(swipe.relation_id),
+  );
+  const grouped = new Map();
+  for (const swipe of latest) {
+    const current = grouped.get(swipe.annotator_id) ?? {
+      annotator_id: swipe.annotator_id,
+      matching: 0,
+      total: 0,
+    };
+    current.total += 1;
+    current.matching += Number(swipe.label === gold.get(swipe.relation_id));
+    grouped.set(swipe.annotator_id, current);
+  }
+  return [...grouped.values()]
+    .map((entry) => ({
+      ...entry,
+      agreement: entry.total === 0 ? null : entry.matching / entry.total,
+    }))
+    .sort((left, right) => left.annotator_id.localeCompare(right.annotator_id));
+};
+
+const escapeMarkdownCell = (value) =>
+  String(value ?? "")
+    .replaceAll("|", "\\|")
+    .replaceAll(/\r?\n/gu, " ");
+
+const edgeCaseMarkdown = (summaries, adjudications = []) => {
+  const adjudicationById = new Map(
+    adjudications.map((record) => [record.relation_id, record]),
+  );
+  const lines = [
+    "# SALT relation edge cases",
+    "",
+    "| Relation | Entropy | Labels | Notes | Adjudication | Rationale |",
+    "| --- | ---: | --- | --- | --- | --- |",
+  ];
+  for (const summary of summaries.filter(
+    (entry) => entry.entropy > 0 || entry.labels.includes("U"),
+  )) {
+    const adjudication = adjudicationById.get(summary.relation_id);
+    const labelSequence = summary.swipes
+      .map((swipe) => `${swipe.annotator_id}/p${swipe.pass}:${swipe.label}`)
+      .join(", ");
+    const notes = summary.notes
+      .map((note) => `${note.annotator_id}/p${note.pass}: ${note.note}`)
+      .join("; ");
+    lines.push(
+      `| ${escapeMarkdownCell(summary.relation_id)} | ${summary.entropy.toFixed(
+        3,
+      )} | ${escapeMarkdownCell(labelSequence)} | ${escapeMarkdownCell(
+        notes || "—",
+      )} | ${adjudication?.label ?? "—"} | ${escapeMarkdownCell(
+        adjudication?.rationale ?? "—",
+      )} |`,
+    );
+  }
+  return `${lines.join("\n")}\n`;
+};
+
+const summarizeCoverage = (study, swipes) => {
+  const latest = latestVotesByAnnotator(swipes);
+  const coveredByRelation = new Map();
+  for (const swipe of latest) {
+    const annotators = coveredByRelation.get(swipe.relation_id) ?? new Set();
+    annotators.add(swipe.annotator_id);
+    coveredByRelation.set(swipe.relation_id, annotators);
+  }
+  const rows = study.cards.map((card) => ({
+    relation_id: card.relation_id,
+    expected: study.coverage_target,
+    observed: coveredByRelation.get(card.relation_id)?.size ?? 0,
+  }));
+  return {
+    rows,
+    complete: rows.filter((row) => row.observed >= row.expected).length,
+    total: rows.length,
+  };
+};
+
+const serializePayload = (payload) =>
+  JSON.stringify(payload).replaceAll("<", "\\u003c");
+
+const safeFilenamePart = (value) =>
+  String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-|-$/gu, "")
+    .slice(0, 80) || "salt";
+
+
+const appElement = document.querySelector("#app");
+const liveRegion = document.querySelector("#live-region");
+const payloadElement = document.querySelector("#salt-study");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+const parseEmbeddedPayload = () => {
+  try {
+    return JSON.parse(payloadElement.textContent);
+  } catch (error) {
+    return {
+      kind: "error",
+      message: `The embedded study payload is invalid: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    };
+  }
+};
+
+const embeddedPayload = parseEmbeddedPayload();
+
+const state = {
+  mode: embeddedPayload.kind === "study" ? "access" : "home",
+  activeTab: "adjudicate",
+  study:
+    embeddedPayload.kind === "study" ? (embeddedPayload.study ?? null) : null,
+  annotatorId: null,
+  repository: null,
+  snapshot: null,
+  resumeCandidate: null,
+  accessError: "",
+  fatalError: embeddedPayload.kind === "error" ? embeddedPayload.message : "",
+  restartConfirmation: false,
+  timer: new DecisionTimer(),
+  timedCardKey: "",
+  flagged: false,
+  noteOpen: false,
+  noteDraft: "",
+  transition: null,
+  storageError: "",
+  builder: {
+    cards: null,
+    qualificationCards: [],
+    cardsName: "",
+    qualificationName: "",
+    result: null,
+    error: null,
+  },
+  merge: {
+    sources: new Map(),
+    manifest: null,
+    manifestName: "",
+    adjudications: [],
+    error: null,
+    warning: "",
+  },
+  adjudicationError: "",
+  lastAdjudicationTimestampMs: 0,
+  pointerStart: null,
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const formatInteger = (value) =>
+  new Intl.NumberFormat("en-US").format(Math.round(value));
+
+const formatPercent = (value, digits = 0) =>
+  value === null || !Number.isFinite(value)
+    ? "—"
+    : `${(value * 100).toFixed(digits)}%`;
+
+const formatAlpha = (value) =>
+  value === null || !Number.isFinite(value) ? "n/a" : value.toFixed(3);
+
+const formatDuration = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds]
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
+};
+
+const announce = (message) => {
+  liveRegion.textContent = "";
+  window.requestAnimationFrame(() => {
+    liveRegion.textContent = message;
+  });
+};
+
+const renderIssues = (error) => {
+  if (!error) {
+    return "";
+  }
+  const issues =
+    error instanceof SaltValidationError && error.issues.length > 0
+      ? error.issues
+      : [error instanceof Error ? error.message : String(error)];
+  return `<div class="notice notice-error" role="alert">
+    <strong>${escapeHtml(
+      error instanceof Error ? error.message : "Something went wrong.",
+    )}</strong>
+    ${
+      issues.length > 0
+        ? `<ul>${issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>`
+        : ""
+    }
+  </div>`;
+};
+
+const downloadText = (filename, text, type) => {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
+class SessionRepository {
+  constructor(study, annotatorId) {
+    this.key = `salt:session:${study.study_id}:${study.deck_hash}:${annotatorId}`;
+    const probeKey = `${this.key}:probe`;
+    localStorage.setItem(probeKey, "ok");
+    localStorage.removeItem(probeKey);
+  }
+
+  load() {
+    const serialized = localStorage.getItem(this.key);
+    if (!serialized) {
+      return null;
+    }
+    return JSON.parse(serialized);
+  }
+
+  save(snapshot) {
+    localStorage.setItem(this.key, JSON.stringify(snapshot));
+  }
+
+  clear() {
+    localStorage.removeItem(this.key);
+  }
+}
+
+const createSessionSnapshot = (study, annotatorId) => ({
+  snapshot_version: 1,
+  study_id: study.study_id,
+  deck_hash: study.deck_hash,
+  annotator_id: annotatorId,
+  session_id: `${study.study_id}:${annotatorId}:${Date.now().toString(36)}`,
+  session_started_at: new Date().toISOString(),
+  current_pass: 1,
+  rubric_version: study.rubric_version,
+  qualification_reviewed: study.qualification_cards.length === 0,
+  events: [],
+  exported_event_count: 0,
+  last_timestamp_ms: 0,
+});
+
+const persistSnapshot = () => {
+  if (!state.repository || !state.snapshot) {
+    return true;
+  }
+  try {
+    state.repository.save(state.snapshot);
+    state.storageError = "";
+    return true;
+  } catch (error) {
+    state.storageError = `SALT could not persist this action. Export immediately and free browser storage before continuing. ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+    return false;
+  }
+};
+
+const nextSessionTimestamp = () => {
+  const timestamp = nextMonotoneTimestamp(
+    state.snapshot?.last_timestamp_ms ?? 0,
+  );
+  state.snapshot = {
+    ...state.snapshot,
+    last_timestamp_ms: timestamp.timestampMs,
+  };
+  return timestamp;
+};
+
+const currentSessionElapsed = () => {
+  if (!state.snapshot) {
+    return 0;
+  }
+  return Math.max(
+    0,
+    Date.now() - Date.parse(state.snapshot.session_started_at),
+  );
+};
+
+const unsavedEventCount = () =>
+  state.snapshot
+    ? Math.max(
+        0,
+        state.snapshot.events.length - state.snapshot.exported_event_count,
+      )
+    : 0;
+
+const activeStudy = () =>
+  state.study ??
+  (embeddedPayload.kind === "generic" ? embeddedPayload.demo_study : null);
+
+const beginCodeEntry = (study, code) => {
+  state.study = study;
+  state.accessError = "";
+  const annotatorId = resolveAnnotatorCode(study, code);
+  if (!annotatorId) {
+    state.accessError =
+      "That code does not match this study. Check every character and try again.";
+    render();
+    return;
+  }
+
+  let repository;
+  try {
+    repository = new SessionRepository(study, annotatorId);
+  } catch (error) {
+    state.fatalError = `Browser storage is unavailable. SALT cannot begin because every swipe must be crash-safe. ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+    render();
+    return;
+  }
+
+  let saved;
+  try {
+    saved = repository.load();
+  } catch (error) {
+    state.fatalError = `The saved session could not be read. Export or clear this site's storage before continuing. ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+    render();
+    return;
+  }
+
+  state.annotatorId = annotatorId;
+  state.repository = repository;
+  if (
+    saved &&
+    saved.study_id === study.study_id &&
+    saved.deck_hash === study.deck_hash &&
+    Array.isArray(saved.events)
+  ) {
+    state.resumeCandidate = saved;
+    state.mode = "resume";
+  } else {
+    activateSession(createSessionSnapshot(study, annotatorId));
+  }
+  render();
+};
+
+const activateSession = (snapshot) => {
+  state.snapshot = snapshot;
+  state.resumeCandidate = null;
+  state.mode = "workspace";
+  state.activeTab = "adjudicate";
+  state.flagged = false;
+  state.noteOpen = false;
+  state.noteDraft = "";
+  state.transition = null;
+  state.timedCardKey = "";
+  persistSnapshot();
+};
+
+const resetTransientCardState = () => {
+  state.flagged = false;
+  state.noteOpen = false;
+  state.noteDraft = "";
+  state.timedCardKey = "";
+};
+
+const getSwipeContext = () => {
+  if (!state.study || !state.snapshot || !state.annotatorId) {
+    return null;
+  }
+
+  if (!state.snapshot.qualification_reviewed) {
+    const remaining = getQualificationDeck({
+      study: state.study,
+      annotatorId: state.annotatorId,
+      events: state.snapshot.events,
+    });
+    if (remaining.length > 0) {
+      return {
+        phase: "qualification",
+        pass: 0,
+        card: remaining[0],
+        remaining,
+        total: state.study.qualification_cards.length,
+        completed: state.study.qualification_cards.length - remaining.length,
+      };
+    }
+    return {
+      phase: "qualification-review",
+      card: null,
+      remaining: [],
+      total: state.study.qualification_cards.length,
+      completed: state.study.qualification_cards.length,
+    };
+  }
+
+  const pass = state.snapshot.current_pass;
+  const remaining = getProductionDeck({
+    study: state.study,
+    annotatorId: state.annotatorId,
+    pass,
+    events: state.snapshot.events,
+  });
+  const completed = activeSwipes(state.snapshot.events).filter(
+    (swipe) =>
+      !swipe.qualification &&
+      swipe.annotator_id === state.annotatorId &&
+      swipe.pass === pass,
+  ).length;
+  return {
+    phase: "production",
+    pass,
+    card: remaining[0] ?? null,
+    remaining,
+    total: completed + remaining.length,
+    completed,
+  };
+};
+
+const ensureCardTimer = (context) => {
+  if (!context?.card || state.transition) {
+    return;
+  }
+  const key = `${context.phase}:${context.pass}:${context.card.card_hash}`;
+  if (state.timedCardKey !== key) {
+    state.timer.start();
+    state.timedCardKey = key;
+  }
+  if (state.noteOpen) {
+    state.timer.pause();
+  }
+};
+
+const decide = (label) => {
+  if (
+    state.mode !== "workspace" ||
+    state.activeTab !== "adjudicate" ||
+    state.transition ||
+    state.storageError
+  ) {
+    return;
+  }
+  const context = getSwipeContext();
+  if (!context?.card || context.phase === "qualification-review") {
+    return;
+  }
+  const timestamp = nextSessionTimestamp();
+  const event = createSwipeEvent({
+    study: state.study,
+    annotatorId: state.annotatorId,
+    card: context.card,
+    pass: context.pass,
+    label,
+    latencyMs: state.timer.elapsed(),
+    flagged: state.flagged,
+    note: state.noteDraft,
+    rubricVersion: state.snapshot.rubric_version,
+    qualification: context.phase === "qualification",
+    sessionId: state.snapshot.session_id,
+    sequence: state.snapshot.events.length + 1,
+    timestamp,
+  });
+  state.snapshot = {
+    ...state.snapshot,
+    events: [...state.snapshot.events, event],
+  };
+  const persisted = persistSnapshot();
+  state.transition = {
+    card: context.card,
+    phase: context.phase,
+    pass: context.pass,
+    label,
+  };
+  state.flagged = false;
+  state.noteOpen = false;
+  state.noteDraft = "";
+  state.timedCardKey = "";
+  announce(`${LABEL_DETAILS[label].name} recorded.`);
+  render();
+
+  if (!persisted) {
+    state.transition = null;
+    render();
+    return;
+  }
+  const duration = reducedMotion.matches ? 0 : 115;
+  window.setTimeout(() => {
+    state.transition = null;
+    render();
+  }, duration);
+};
+
+const undoLastSwipe = () => {
+  if (!state.snapshot || state.storageError || state.transition) {
+    return;
+  }
+  const context = getSwipeContext();
+  const projected = projectSwipes(state.snapshot.events);
+  let swipe = null;
+  for (let index = projected.length - 1; index >= 0; index -= 1) {
+    const candidate = projected[index];
+    const samePhase =
+      Boolean(candidate.qualification) === (context?.phase === "qualification");
+    if (
+      candidate.session_id === state.snapshot.session_id &&
+      !candidate.retracted &&
+      samePhase
+    ) {
+      swipe = candidate;
+      break;
+    }
+  }
+  if (!swipe) {
+    announce("Nothing in this session can be undone.");
+    return;
+  }
+  const timestamp = nextSessionTimestamp();
+  const retraction = createRetractionEvent({
+    swipeId: swipe.swipe_id,
+    annotatorId: state.annotatorId,
+    sessionId: state.snapshot.session_id,
+    timestamp,
+  });
+  state.snapshot = {
+    ...state.snapshot,
+    current_pass: swipe.qualification
+      ? state.snapshot.current_pass
+      : swipe.pass,
+    events: [...state.snapshot.events, retraction],
+  };
+  resetTransientCardState();
+  persistSnapshot();
+  announce(`${swipe.relation_id} retracted and re-queued.`);
+  render();
+};
+
+const exportSwipes = () => {
+  if (!state.snapshot || !state.study) {
+    return;
+  }
+  const jsonl = swipesToJsonl(state.snapshot.events);
+  if (!jsonl) {
+    announce("There are no swipes to export yet.");
+    return;
+  }
+  const filename = `swipes-${safeFilenamePart(
+    state.study.study_id,
+  )}-${safeFilenamePart(state.annotatorId)}.jsonl`;
+  downloadText(filename, jsonl, "application/x-ndjson;charset=utf-8");
+  state.snapshot = {
+    ...state.snapshot,
+    exported_event_count: state.snapshot.events.length,
+  };
+  persistSnapshot();
+  announce(`${projectSwipes(state.snapshot.events).length} swipes exported.`);
+  render();
+};
+
+const startNextPass = () => {
+  state.snapshot = {
+    ...state.snapshot,
+    current_pass: state.snapshot.current_pass + 1,
+  };
+  resetTransientCardState();
+  persistSnapshot();
+  render();
+};
+
+const completeQualificationReview = () => {
+  state.snapshot = {
+    ...state.snapshot,
+    qualification_reviewed: true,
+    current_pass: nextIncompletePass(
+      state.study,
+      state.annotatorId,
+      state.snapshot.events,
+    ),
+  };
+  resetTransientCardState();
+  persistSnapshot();
+  announce("Qualification complete. Production deck unlocked.");
+  render();
+};
+
+const renderPublicHeader = (active = "") => `<header class="public-header">
+  <button class="wordmark" data-action="home" type="button" aria-label="SALT home">
+    <span>SALT</span> swipe adjudicator
+  </button>
+  <nav aria-label="Tool modes">
+    <button class="${active === "builder" ? "is-active" : ""}" data-action="builder" type="button">Study builder</button>
+    <button class="${active === "merge" ? "is-active" : ""}" data-action="merge" type="button">Merge exports</button>
+  </nav>
+</header>`;
+
+const renderHome = () => {
+  const demoAvailable =
+    embeddedPayload.kind === "generic" && embeddedPayload.demo_study;
+  return `${renderPublicHeader()}
+  <main class="home-view" id="main-content">
+    <section class="home-intro">
+      <p class="system-label">Offline relation evidence</p>
+      <h1>One file in. Independent judgments out.</h1>
+      <p class="lede">Build a reproducible study, label with the keyboard, and merge append-only evidence without an account or backend.</p>
+      <div class="home-actions">
+        ${
+          demoAvailable
+            ? '<button class="button button-primary" data-action="demo" type="button">Open the demo deck <kbd>↵</kbd></button>'
+            : ""
+        }
+        <button class="button" data-action="builder" type="button">Build a study</button>
+        <button class="button button-quiet" data-action="merge" type="button">Merge exports</button>
+      </div>
+    </section>
+    <section class="capability-strip" aria-label="Operating guarantees">
+      <div><strong>1 HTML</strong><span>CSS, JS, deck, and manifest inline</span></div>
+      <div><strong>0 requests</strong><span>No runtime service or account</span></div>
+      <div><strong>Crash-safe</strong><span>Every decision stored immediately</span></div>
+    </section>
+    <section class="trust-note">
+      <h2>Distribution recommendation</h2>
+      <p>Host the generated HTML at one stable static URL and send each annotator their short code. Sending the file directly also works, but keeping it in one location makes browser resume storage more predictable.</p>
+      <p>Codes select an assignment and catch typos. They are not authentication, and qualification answers remain inspectable in an offline bundle.</p>
+    </section>
+  </main>`;
+};
+
+const renderAccess = () => {
+  const study = state.study;
+  return `${renderPublicHeader()}
+  <main class="access-view" id="main-content">
+    <section class="access-panel">
+      <p class="system-label">Study bundle · ${escapeHtml(study.study_id)}</p>
+      <h1>${escapeHtml(study.title)}</h1>
+      <p>Enter the short code supplied by the coordinator. Your identity is fixed for this session and every export.</p>
+      <dl class="study-facts">
+        <div><dt>Production slice</dt><dd>≤ ${formatInteger(
+          study.slice_size,
+        )} cards</dd></div>
+        <div><dt>Coverage target</dt><dd>${study.coverage_target} annotators/card</dd></div>
+        <div><dt>Rubric</dt><dd>${escapeHtml(study.rubric_version)}</dd></div>
+        <div><dt>Deck hash</dt><dd><code>${escapeHtml(
+          study.deck_hash.slice(0, 12),
+        )}</code></dd></div>
+      </dl>
+      <form class="access-form" id="access-form">
+        <label for="annotator-code">Annotator code</label>
+        <input id="annotator-code" name="code" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" required />
+        ${
+          state.accessError
+            ? `<p class="field-error" id="code-error" role="alert">${escapeHtml(
+                state.accessError,
+              )}</p>`
+            : '<p class="field-help">Eight characters; the hyphen is optional.</p>'
+        }
+        <button class="button button-primary" type="submit">Continue</button>
+      </form>
+    </section>
+  </main>`;
+};
+
+const renderResume = () => {
+  const projected = projectSwipes(state.resumeCandidate.events);
+  const active = projected.filter((swipe) => !swipe.retracted);
+  return `${renderPublicHeader()}
+  <main class="access-view" id="main-content">
+    <section class="access-panel">
+      <p class="system-label">Saved local session found</p>
+      <h1>Resume ${escapeHtml(state.annotatorId)}?</h1>
+      <p>SALT found a crash-safe session for this exact study and deck.</p>
+      <dl class="study-facts">
+        <div><dt>Active swipes</dt><dd>${active.length}</dd></div>
+        <div><dt>Current pass</dt><dd>${state.resumeCandidate.current_pass}</dd></div>
+        <div><dt>Started</dt><dd>${escapeHtml(
+          new Date(state.resumeCandidate.session_started_at).toLocaleString(),
+        )}</dd></div>
+        <div><dt>Unsaved</dt><dd>${Math.max(
+          0,
+          state.resumeCandidate.events.length -
+            state.resumeCandidate.exported_event_count,
+        )}</dd></div>
+      </dl>
+      <div class="button-row">
+        <button class="button button-primary" data-action="resume" type="button">Resume session</button>
+        <button class="button button-danger-quiet" data-action="restart-request" type="button">Start clean</button>
+      </div>
+      ${
+        state.restartConfirmation
+          ? `<div class="inline-confirm" role="alert">
+              <p>This deletes the browser's crash buffer for this annotator. Export it first if you need the existing evidence.</p>
+              <div class="button-row">
+                <button class="button button-danger" data-action="restart-confirm" type="button">Delete and restart</button>
+                <button class="button button-quiet" data-action="restart-cancel" type="button">Cancel</button>
+              </div>
+            </div>`
+          : ""
+      }
+    </section>
+  </main>`;
+};
+
+const renderTopbar = () => {
+  const context = getSwipeContext();
+  const passLabel =
+    context?.phase === "qualification"
+      ? "Qual"
+      : `P${state.snapshot.current_pass}`;
+  const progress =
+    context && context.total > 0
+      ? `${context.completed}/${context.total}`
+      : "complete";
+  const tabs = [
+    ["adjudicate", "Adjudicate"],
+    ["progress", "Progress"],
+    ["merge", "Merge"],
+    ...(state.merge.sources.size > 0 ? [["resolve", "Resolve"]] : []),
+  ];
+  return `<header class="instrument-bar">
+    <div class="instrument-identity">
+      <span class="brand-mark">SALT</span>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <span title="${escapeHtml(state.study.title)}">${escapeHtml(
+        state.study.title,
+      )}</span>
+    </div>
+    <dl class="session-readouts">
+      <div><dt>Annotator</dt><dd>${escapeHtml(state.annotatorId)}</dd></div>
+      <div><dt>Deck</dt><dd>${passLabel}</dd></div>
+      <div><dt>Progress</dt><dd>${progress}</dd></div>
+      <div><dt>Session</dt><dd data-session-clock>${formatDuration(
+        currentSessionElapsed(),
+      )}</dd></div>
+      <div class="${unsavedEventCount() > 0 ? "is-warning" : ""}"><dt>Unsaved</dt><dd>${unsavedEventCount()}</dd></div>
+    </dl>
+    <nav class="workspace-tabs" aria-label="Workspace views" role="tablist">
+      ${tabs
+        .map(
+          ([id, label]) =>
+            `<button role="tab" aria-selected="${
+              state.activeTab === id
+            }" class="${state.activeTab === id ? "is-active" : ""}" data-tab="${id}" type="button">${label}</button>`,
+        )
+        .join("")}
+    </nav>
+    <div class="bar-actions">
+      <button class="text-button" data-action="rubric-open" type="button">Rubric ${escapeHtml(
+        state.snapshot.rubric_version,
+      )}</button>
+      <button class="icon-text-button" data-action="export-swipes" type="button" title="Export all swipes">Export</button>
+      <button class="icon-text-button" data-action="end-session" type="button" title="Leave this session">Exit</button>
+    </div>
+  </header>
+  <dialog class="rubric-dialog" id="rubric-dialog">
+    <form id="rubric-form">
+      <p class="system-label">Recorded metadata change</p>
+      <h2>Change rubric version?</h2>
+      <p>Existing swipes keep their original version. Only subsequent swipes receive the new value.</p>
+      <label for="rubric-version">Rubric version</label>
+      <input id="rubric-version" name="rubric" value="${escapeHtml(
+        state.snapshot.rubric_version,
+      )}" required />
+      <div class="button-row">
+        <button class="button button-primary" type="submit">Confirm change</button>
+        <button class="button button-quiet" data-action="rubric-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>`;
+};
+
+const renderStorageError = () =>
+  state.storageError
+    ? `<div class="storage-blocker" role="alert">
+        <strong>Persistence stopped</strong>
+        <p>${escapeHtml(state.storageError)}</p>
+        <button class="button" data-action="export-swipes" type="button">Export current evidence</button>
+      </div>`
+    : "";
+
+const decisionZone = (label, position) => {
+  const detail = LABEL_DETAILS[label];
+  return `<button class="decision-zone zone-${position} label-${label.toLowerCase()}" data-label="${label}" type="button" aria-label="${detail.name}, ${detail.direction}, ${label}">
+    <span aria-hidden="true">${detail.arrow}</span>
+    <strong>${detail.name}</strong>
+    <kbd>${label}</kbd>
+  </button>`;
+};
+
+const renderQualificationReview = () => {
+  const qualificationSwipes = activeSwipes(state.snapshot.events).filter(
+    (swipe) => swipe.qualification && swipe.annotator_id === state.annotatorId,
+  );
+  const swipeByRelation = new Map(
+    qualificationSwipes.map((swipe) => [swipe.relation_id, swipe]),
+  );
+  const missed = state.study.qualification_cards.filter(
+    (card) => swipeByRelation.get(card.relation_id)?.label !== card.answer,
+  );
+  return `${renderTopbar()}
+  <main class="review-view" id="main-content">
+    <header class="view-heading">
+      <p class="system-label">Qualification complete · ${qualificationSwipes.length}/${state.study.qualification_cards.length}</p>
+      <h1>${missed.length === 0 ? "Calibration matched every anchor." : `${missed.length} anchor${missed.length === 1 ? "" : "s"} to review.`}</h1>
+      <p>Answers were hidden until the full deck was complete. Qualification swipes remain marked and are excluded from gold aggregation.</p>
+    </header>
+    ${
+      missed.length === 0
+        ? '<div class="notice notice-success"><strong>No corrections needed.</strong><p>Continue when you are ready for the production slice.</p></div>'
+        : `<ol class="missed-list">${missed
+            .map((card) => {
+              const swipe = swipeByRelation.get(card.relation_id);
+              return `<li>
+                <div class="missed-result">
+                  <code>${escapeHtml(card.relation_id)}</code>
+                  <span>Your label <strong class="label-text label-${swipe.label.toLowerCase()}">${swipe.label} · ${LABEL_DETAILS[swipe.label].name}</strong></span>
+                  <span>Anchor <strong class="label-text label-${card.answer.toLowerCase()}">${card.answer} · ${LABEL_DETAILS[card.answer].name}</strong></span>
+                </div>
+                <pre>${escapeHtml(card.card_text)}</pre>
+                <p>${escapeHtml(card.rationale)}</p>
+              </li>`;
+            })
+            .join("")}</ol>`
+    }
+    <button class="button button-primary" data-action="qualification-continue" type="button">Continue to production</button>
+  </main>`;
+};
+
+const renderPassComplete = (context) => {
+  const isTargeted = context.pass >= 4;
+  const active = activeSwipes(state.snapshot.events).filter(
+    (swipe) =>
+      !swipe.qualification &&
+      swipe.annotator_id === state.annotatorId &&
+      swipe.pass === context.pass,
+  );
+  return `${renderTopbar()}
+  <main class="completion-view" id="main-content">
+    <div class="completion-signal" aria-hidden="true">✓</div>
+    <p class="system-label">${isTargeted ? "Targeted pass" : "Production pass"} ${context.pass}</p>
+    <h1>${isTargeted && active.length === 0 ? "No local disagreements need another pass." : "Pass complete."}</h1>
+    <p>${active.length} active swipe${active.length === 1 ? "" : "s"} recorded. Export now; the downloaded JSONL is the system of record.</p>
+    <div class="completion-actions">
+      <button class="button button-primary" data-action="export-swipes" type="button">Export swipes.jsonl</button>
+      <button class="button" data-action="next-pass" type="button">Start pass ${
+        context.pass + 1
+      }${context.pass + 1 >= 4 ? " · targeted" : ""}</button>
+      <button class="button button-quiet" data-tab="progress" type="button">Review progress</button>
+    </div>
+  </main>`;
+};
+
+const renderSwipe = () => {
+  const context = getSwipeContext();
+  if (context.phase === "qualification-review") {
+    return renderQualificationReview();
+  }
+  if (!context.card) {
+    return renderPassComplete(context);
+  }
+
+  ensureCardTimer(context);
+  const displayCard = state.transition?.card ?? context.card;
+  const displayPhase = state.transition?.phase ?? context.phase;
+  const displayPass = state.transition?.pass ?? context.pass;
+  const renderedText = shuffleCardText(
+    displayCard.card_text,
+    exampleSeedFor(state.study, state.annotatorId, displayPass, displayCard),
+  );
+  const progressValue =
+    context.total === 0 ? 1 : context.completed / context.total;
+  const exitClass = state.transition
+    ? `is-exiting exit-${state.transition.label.toLowerCase()}`
+    : "";
+
+  return `${renderTopbar()}
+  ${renderStorageError()}
+  <main class="swipe-view ${displayPhase === "qualification" ? "is-qualification" : ""}" id="main-content">
+    <div class="swipe-mode-banner">
+      <span>${displayPhase === "qualification" ? "Qualification · answers reveal after completion" : displayPass >= 4 ? "Targeted mode · prior local disagreement or U only" : `Production pass ${displayPass}`}</span>
+      <span>${context.completed} / ${context.total}</span>
+      <progress value="${progressValue}" max="1">${formatPercent(
+        progressValue,
+      )}</progress>
+    </div>
+    ${decisionZone("C", "top")}
+    ${decisionZone("P", "right")}
+    ${decisionZone("O", "left")}
+    ${decisionZone("U", "bottom")}
+    <section class="relation-stage" aria-label="Current relation">
+      <article class="relation-card ${exitClass}" data-swipe-card>
+        <div class="card-meta">
+          <span>${escapeHtml(displayCard.relation_id)}</span>
+          <span>${escapeHtml(displayCard.family_id)}</span>
+          <span>${displayCard.prescreen === "equivalence" ? "Coincident prescreen" : "Normal prescreen"}</span>
+        </div>
+        <pre>${escapeHtml(renderedText)}</pre>
+      </article>
+      ${
+        state.noteOpen
+          ? `<div class="note-composer">
+              <div class="note-heading"><label for="swipe-note">Note <span>timer paused</span></label><span><span data-note-count>${state.noteDraft.length}</span>/280</span></div>
+              <input id="swipe-note" maxlength="280" value="${escapeHtml(
+                state.noteDraft,
+              )}" placeholder="One line of context for downstream review" autocomplete="off" />
+              <div class="note-help"><span><kbd>Enter</kbd> keep note</span><button class="text-button" data-action="note-cancel" type="button">Clear and close <kbd>Esc</kbd></button></div>
+            </div>`
+          : ""
+      }
+    </section>
+    <footer class="swipe-actions">
+      <button class="${state.flagged ? "is-active" : ""}" data-action="flag" type="button" aria-pressed="${state.flagged}"><kbd>F</kbd><span>${state.flagged ? "Flagged" : "Flag"}</span></button>
+      <button class="${state.noteOpen ? "is-active" : ""}" data-action="note" type="button" aria-pressed="${state.noteOpen}"><kbd>N</kbd><span>Note</span></button>
+      <span class="action-spacer"></span>
+      <button data-action="undo" type="button"><kbd>Z</kbd><span>Undo</span></button>
+      <button data-action="export-swipes" type="button"><span>Export</span><kbd>E</kbd></button>
+    </footer>
+  </main>`;
+};
+
+const passProgressRows = (productionSwipes, assignedCount) => {
+  const passNumbers = [
+    ...new Set(productionSwipes.map((swipe) => swipe.pass)),
+    state.snapshot.current_pass,
+  ].sort((left, right) => left - right);
+  return passNumbers
+    .map((pass) => {
+      const count = productionSwipes.filter(
+        (swipe) => swipe.pass === pass,
+      ).length;
+      const targeted =
+        pass >= 4
+          ? new Set(
+              productionSwipes
+                .filter((swipe) => swipe.pass === pass)
+                .map((swipe) => swipe.relation_id),
+            ).size
+          : assignedCount;
+      const denominator = Math.max(targeted, count, 1);
+      return `<div class="progress-row">
+        <span>Pass ${pass}${pass >= 4 ? " · targeted" : ""}</span>
+        <progress value="${count}" max="${denominator}">${count}/${denominator}</progress>
+        <strong>${count} / ${denominator}</strong>
+      </div>`;
+    })
+    .join("");
+};
+
+const noiseFloorRows = (productionSwipes) => {
+  const passes = [...new Set(productionSwipes.map((swipe) => swipe.pass))].sort(
+    (left, right) => left - right,
+  );
+  return passes
+    .map((throughPass) => {
+      const summaries = relationSummaries(
+        productionSwipes.filter((swipe) => swipe.pass <= throughPass),
+        state.study.cards,
+      ).filter((summary) => summary.labels.length > 0);
+      const unanimous = summaries.filter((summary) => summary.unanimous).length;
+      return `<tr><th scope="row">Through pass ${throughPass}</th><td>${unanimous} / ${summaries.length}</td><td>${formatPercent(
+        summaries.length === 0 ? null : unanimous / summaries.length,
+        1,
+      )}</td></tr>`;
+    })
+    .join("");
+};
+
+const renderDistribution = (
+  summary,
+) => `<div class="distribution" aria-label="${escapeHtml(
+  summary.relation_id,
+)} label distribution">
+  ${LABELS.map((label) => {
+    const width =
+      summary.labels.length === 0
+        ? 0
+        : (summary.counts[label] / summary.labels.length) * 100;
+    return `<span class="label-${label.toLowerCase()}" style="--share:${width}%" title="${LABEL_DETAILS[label].name}: ${summary.counts[label]}"></span>`;
+  }).join("")}
+</div>`;
+
+const renderProgress = () => {
+  const productionSwipes = activeSwipes(state.snapshot.events).filter(
+    (swipe) => !swipe.qualification && swipe.annotator_id === state.annotatorId,
+  );
+  const context = getSwipeContext();
+  const passActive =
+    context.phase === "production" && context.remaining.length > 0;
+  const assignedCount =
+    state.study.manifest.assignments[state.annotatorId]?.length ?? 0;
+  const sessionMinutes = currentSessionElapsed() / 60_000;
+  const pace =
+    sessionMinutes <= 0 ? 0 : productionSwipes.length / sessionMinutes;
+  const summaries = relationSummaries(productionSwipes, state.study.cards);
+  const equivalenceSummaries = summaries.filter(
+    (summary) =>
+      summary.card?.prescreen === "equivalence" && summary.labels.length > 0,
+  );
+  const coincidentCount = equivalenceSummaries.filter(
+    (summary) => summary.majority === "C",
+  ).length;
+  const disagreementRows = summaries
+    .filter((summary) => summary.entropy > 0 || summary.labels.includes("U"))
+    .slice(0, 100);
+
+  return `${renderTopbar()}
+  <main class="analysis-view" id="main-content">
+    <header class="view-heading">
+      <p class="system-label">Local evidence · ${escapeHtml(
+        state.annotatorId,
+      )}</p>
+      <h1>Progress and analysis</h1>
+      <p>Session metrics are local to this annotator. Cross-annotator agreement appears in Merge.</p>
+    </header>
+    <section class="metric-line" aria-label="Session summary">
+      <div><span>Production swipes</span><strong>${formatInteger(
+        productionSwipes.length,
+      )}</strong></div>
+      <div><span>Swipes / minute</span><strong>${pace.toFixed(1)}</strong></div>
+      <div><span>Session time</span><strong>${formatDuration(
+        currentSessionElapsed(),
+      )}</strong></div>
+      <div><span>Unsaved changes</span><strong>${unsavedEventCount()}</strong></div>
+    </section>
+    <section class="analysis-section">
+      <div class="section-heading"><h2>Pass completion</h2><span>${assignedCount} assigned relations</span></div>
+      <div class="pass-progress">${passProgressRows(
+        productionSwipes,
+        assignedCount,
+      )}</div>
+    </section>
+    ${
+      passActive
+        ? `<section class="blind-analysis-lock">
+            <span aria-hidden="true">⊘</span>
+            <div><h2>Label analysis is blind while this pass is active.</h2><p>Completion and pace remain visible. Distributions, majority labels, notes, and the Coincident quota unlock when the current pass is complete.</p></div>
+          </section>`
+        : `<section class="analysis-grid">
+            <div class="analysis-section">
+              <div class="section-heading"><h2>Noise floor</h2><span>Unanimous relations</span></div>
+              <table><thead><tr><th>Evidence</th><th>Unanimous</th><th>Fraction</th></tr></thead><tbody>${noiseFloorRows(
+                productionSwipes,
+              )}</tbody></table>
+            </div>
+            <div class="analysis-section quota-panel">
+              <div class="section-heading"><h2>Coincident quota</h2><span>Prescreen = equivalence</span></div>
+              <strong>${coincidentCount} / ${state.study.coincident_target}</strong>
+              <progress value="${coincidentCount}" max="${
+                state.study.coincident_target
+              }">${coincidentCount}/${state.study.coincident_target}</progress>
+              <p>The 0.98 LCB gate is unpassable below roughly 150 zero-error cases.</p>
+            </div>
+          </section>
+          <section class="analysis-section">
+            <div class="section-heading"><h2>Disagreement queue</h2><span>${disagreementRows.length} shown · sorted by entropy</span></div>
+            ${
+              disagreementRows.length === 0
+                ? '<div class="empty-inline"><strong>No local disagreements yet.</strong><span>Relations with differing pass labels or any U will appear here.</span></div>'
+                : `<div class="data-table-wrap"><table class="data-table">
+                    <thead><tr><th>Relation</th><th>Distribution</th><th>Sequence</th><th>Entropy</th><th>Majority</th></tr></thead>
+                    <tbody>${disagreementRows
+                      .map(
+                        (summary) => `<tr>
+                          <th scope="row">${escapeHtml(
+                            summary.relation_id,
+                          )}</th>
+                          <td>${renderDistribution(summary)}</td>
+                          <td class="label-sequence">${summary.labels
+                            .map(
+                              (label) =>
+                                `<span class="label-${label.toLowerCase()}">${label}</span>`,
+                            )
+                            .join("")}</td>
+                          <td>${summary.entropy.toFixed(3)}</td>
+                          <td>${
+                            summary.majority
+                              ? `${summary.majority} · ${LABEL_DETAILS[summary.majority].name}`
+                              : "Tie"
+                          }</td>
+                        </tr>`,
+                      )
+                      .join("")}</tbody>
+                  </table></div>`
+            }
+            <button class="button" data-action="export-local-edge-table" type="button">Export edge-case markdown</button>
+          </section>`
+    }
+    <aside class="throughput-note">
+      <strong>Throughput, not a promise</strong>
+      <span>At 8–15 seconds/card: 30 cards × 3 passes is about 20 minutes; 400 cards × 3 passes is roughly 3–5 hours across sessions.</span>
+    </aside>
+  </main>`;
+};
+
+const dropZone = (kind, label, filename, accept, multiple = false) => `
+  <label class="drop-zone ${filename ? "has-file" : ""}" data-drop-kind="${kind}">
+    <input type="file" data-file-kind="${kind}" accept="${accept}" ${
+      multiple ? "multiple" : ""
+    } />
+    <span class="drop-icon" aria-hidden="true">${filename ? "✓" : "↓"}</span>
+    <strong>${filename ? escapeHtml(filename) : escapeHtml(label)}</strong>
+    <span>${filename ? "Loaded · choose another file to replace" : "Drop here or choose a file"}</span>
+  </label>`;
+
+const renderBuilder = () => {
+  const result = state.builder.result;
+  return `${renderPublicHeader("builder")}
+  <main class="builder-view" id="main-content">
+    <header class="view-heading">
+      <p class="system-label">Coordinator mode</p>
+      <h1>Build one reproducible study bundle.</h1>
+      <p>The output HTML contains the deck, assignment manifest, qualification answers, and the full application. Annotators receive that file and one short code.</p>
+    </header>
+    <form class="builder-form" id="builder-form">
+      <section class="builder-files">
+        ${dropZone(
+          "cards",
+          "Production cards.jsonl",
+          state.builder.cardsName,
+          ".jsonl,application/x-ndjson,application/json",
+        )}
+        ${dropZone(
+          "qualification",
+          "Qualification JSONL · optional",
+          state.builder.qualificationName,
+          ".jsonl,application/x-ndjson,application/json",
+        )}
+      </section>
+      <section class="form-section">
+        <div class="section-heading"><h2>Study identity</h2><span>Embedded in every export</span></div>
+        <div class="form-grid">
+          <label class="field field-wide">Study title
+            <input name="title" value="SALT geometry adjudication" required />
+          </label>
+          <label class="field">Rubric version
+            <input name="rubric" value="v0.3" required />
+          </label>
+          <label class="field">Study seed
+            <input name="seed" value="salt-gold-v1" required spellcheck="false" />
+          </label>
+        </div>
+      </section>
+      <section class="form-section">
+        <div class="section-heading"><h2>Assignments</h2><span>One opaque ID per line</span></div>
+        <div class="assignment-fields">
+          <label class="field field-roster">Annotator IDs
+            <textarea name="roster" rows="8" placeholder="annotator-01&#10;annotator-02&#10;annotator-03" required></textarea>
+          </label>
+          <div class="form-grid compact">
+            <label class="field">Coverage / card
+              <input name="coverage" type="number" min="1" step="1" value="2" required />
+            </label>
+            <label class="field">Slice cap / annotator
+              <input name="slice" type="number" min="1" step="1" value="150" required />
+            </label>
+            <label class="field">Coincident target
+              <input name="quota" type="number" min="1" step="1" value="300" required />
+            </label>
+          </div>
+        </div>
+      </section>
+      ${renderIssues(state.builder.error)}
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">Generate study</button>
+        <button class="button button-quiet" data-action="builder-clear" type="button">Clear imported data</button>
+      </div>
+    </form>
+    ${
+      result
+        ? `<section class="build-result" aria-live="polite">
+            <div class="build-result-heading">
+              <div><p class="system-label">Bundle ready</p><h2>${escapeHtml(
+                result.study.study_id,
+              )}</h2></div>
+              <code>${escapeHtml(result.study.deck_hash.slice(0, 16))}</code>
+            </div>
+            <dl class="result-facts">
+              <div><dt>Production cards</dt><dd>${
+                result.study.cards.length
+              }</dd></div>
+              <div><dt>Qualification cards</dt><dd>${
+                result.study.qualification_cards.length
+              }</dd></div>
+              <div><dt>Annotators</dt><dd>${
+                result.study.manifest.annotator_ids.length
+              }</dd></div>
+              <div><dt>Load range</dt><dd>${Math.min(
+                ...Object.values(result.study.manifest.loads),
+              )}–${Math.max(
+                ...Object.values(result.study.manifest.loads),
+              )}</dd></div>
+            </dl>
+            <div class="download-stack">
+              <button class="button button-primary" data-action="download-study" type="button">Download study HTML</button>
+              <button class="button" data-action="download-codes" type="button">Download private code sheet TSV</button>
+              <button class="button" data-action="download-manifest" type="button">Download verification manifest JSON</button>
+            </div>
+            <p class="result-warning">Send annotators only the HTML and their individual code. Keep the full code sheet private to avoid accidental identity collisions.</p>
+          </section>`
+        : ""
+    }
+  </main>`;
+};
+
+const deduplicatedMergedSwipes = () => {
+  const byId = new Map();
+  for (const swipes of state.merge.sources.values()) {
+    for (const swipe of swipes) {
+      const id =
+        swipe.swipe_id ??
+        [
+          swipe.study_id,
+          swipe.annotator_id,
+          swipe.relation_id,
+          swipe.pass,
+          swipe.ts,
+        ].join(":");
+      const existing = byId.get(id);
+      if (!existing || (!existing.retracted && swipe.retracted)) {
+        byId.set(id, swipe);
+      }
+    }
+  }
+  return [...byId.values()];
+};
+
+const mergeStudy = (swipes = deduplicatedMergedSwipes()) => {
+  const studyIds = new Set(
+    swipes.map((swipe) => swipe.study_id).filter(Boolean),
+  );
+  const candidate = activeStudy();
+  if (candidate && (studyIds.size === 0 || studyIds.has(candidate.study_id))) {
+    return candidate;
+  }
+  const importedManifest = state.merge.manifest;
+  if (
+    importedManifest?.manifest &&
+    (studyIds.size === 0 || studyIds.has(importedManifest.study_id))
+  ) {
+    return {
+      ...importedManifest,
+      cards: importedManifest.cards ?? [],
+    };
+  }
+  return null;
+};
+
+const computeMerge = () => {
+  const swipes = deduplicatedMergedSwipes();
+  const latest = latestVotesByAnnotator(swipes);
+  const study = mergeStudy(swipes);
+  const cards = study?.cards ?? [];
+  const summaries = relationSummaries(latest, cards).filter(
+    (summary) => summary.labels.length > 0,
+  );
+  const agreement = agreementStatistics(swipes);
+  const studyIds = [
+    ...new Set(swipes.map((swipe) => swipe.study_id).filter(Boolean)),
+  ];
+  const deckHashes = [
+    ...new Set(swipes.map((swipe) => swipe.deck_hash).filter(Boolean)),
+  ];
+  const rubricVersions = [
+    ...new Set(swipes.map((swipe) => swipe.rubric_version).filter(Boolean)),
+  ];
+  const coverage = study ? summarizeCoverage(study, swipes) : null;
+  return {
+    swipes,
+    latest,
+    study,
+    summaries,
+    agreement,
+    studyIds,
+    deckHashes,
+    rubricVersions,
+    coverage,
+  };
+};
+
+const renderMergeWarnings = (merge) => {
+  const warnings = [];
+  const verificationSource =
+    embeddedPayload.kind === "study" ? state.study : state.merge.manifest;
+  if (merge.studyIds.length > 1) {
+    warnings.push(
+      `Exports contain ${merge.studyIds.length} different study IDs.`,
+    );
+  }
+  if (merge.deckHashes.length > 1) {
+    warnings.push(
+      `Exports contain ${merge.deckHashes.length} different deck hashes.`,
+    );
+  }
+  if (merge.rubricVersions.length > 1) {
+    warnings.push(
+      `Evidence spans rubric versions: ${merge.rubricVersions.join(", ")}.`,
+    );
+  }
+  if (
+    verificationSource?.study_id &&
+    merge.studyIds.some((studyId) => studyId !== verificationSource.study_id)
+  ) {
+    warnings.push(
+      `At least one export does not match verification study ${verificationSource.study_id}.`,
+    );
+  }
+  if (
+    verificationSource?.deck_hash &&
+    merge.deckHashes.some(
+      (deckHash) => deckHash !== verificationSource.deck_hash,
+    )
+  ) {
+    warnings.push(
+      "At least one export does not match the verification deck hash.",
+    );
+  }
+  if (merge.study?.cards?.length > 0) {
+    const expectedHashes = new Map(
+      merge.study.cards.map((card) => [card.relation_id, card.card_hash]),
+    );
+    const unknownRelations = new Set();
+    const mismatchedRelations = new Set();
+    for (const swipe of merge.swipes) {
+      const expectedHash = expectedHashes.get(swipe.relation_id);
+      if (!expectedHash) {
+        unknownRelations.add(swipe.relation_id);
+      } else if (expectedHash !== swipe.card_hash) {
+        mismatchedRelations.add(swipe.relation_id);
+      }
+    }
+    if (unknownRelations.size > 0) {
+      warnings.push(
+        `${unknownRelations.size} relation IDs are absent from the matching manifest.`,
+      );
+    }
+    if (mismatchedRelations.size > 0) {
+      warnings.push(
+        `${mismatchedRelations.size} relations have card hashes that differ from the matching manifest.`,
+      );
+    }
+  }
+  const filesByAnnotator = new Map();
+  for (const [filename, swipes] of state.merge.sources) {
+    for (const annotatorId of new Set(
+      swipes.map((swipe) => swipe.annotator_id),
+    )) {
+      const files = filesByAnnotator.get(annotatorId) ?? new Set();
+      files.add(filename);
+      filesByAnnotator.set(annotatorId, files);
+    }
+  }
+  for (const [annotatorId, files] of filesByAnnotator) {
+    if (files.size > 1) {
+      warnings.push(
+        `${annotatorId} appears in ${files.size} files; duplicate swipe IDs were collapsed.`,
+      );
+    }
+  }
+  if (warnings.length === 0 && !state.merge.warning) {
+    return "";
+  }
+  return `<div class="notice notice-warning" role="status">
+    <strong>Merge notes</strong>
+    <ul>${[state.merge.warning, ...warnings]
+      .filter(Boolean)
+      .map((warning) => `<li>${escapeHtml(warning)}</li>`)
+      .join("")}</ul>
+  </div>`;
+};
+
+const renderMerge = () => {
+  const merge = computeMerge();
+  const hasSession = state.mode === "workspace";
+  const header = hasSession ? renderTopbar() : renderPublicHeader("merge");
+  const disagreementCount = merge.summaries.filter(
+    (summary) => summary.entropy > 0 || summary.labels.includes("U"),
+  ).length;
+  return `${header}
+  <main class="merge-view" id="main-content">
+    <header class="view-heading">
+      <p class="system-label">Coordinator mode</p>
+      <h1>Merge independent evidence.</h1>
+      <p>Drop full swipe exports. Duplicate IDs collapse safely; active latest votes drive cross-annotator distributions and agreement.</p>
+    </header>
+    <section class="merge-imports">
+      ${dropZone(
+        "swipes",
+        "Swipes JSONL · choose multiple",
+        "",
+        ".jsonl,application/x-ndjson,application/json",
+        true,
+      )}
+      ${dropZone(
+        "manifest",
+        "Verification manifest · optional",
+        state.merge.manifestName,
+        ".json,application/json",
+      )}
+      ${dropZone(
+        "adjudications",
+        "Existing adjudications · optional",
+        state.merge.adjudications.length > 0
+          ? `${state.merge.adjudications.length} adjudications`
+          : "",
+        ".jsonl,application/x-ndjson,application/json",
+      )}
+    </section>
+    ${
+      state.merge.sources.size > 0
+        ? `<div class="file-chips" aria-label="Loaded swipe files">${[
+            ...state.merge.sources.entries(),
+          ]
+            .map(
+              ([filename, swipes]) =>
+                `<span><strong>${escapeHtml(filename)}</strong>${swipes.length} lines<button data-action="remove-merge-source" data-filename="${escapeHtml(
+                  filename,
+                )}" type="button" aria-label="Remove ${escapeHtml(
+                  filename,
+                )}">×</button></span>`,
+            )
+            .join("")}</div>`
+        : ""
+    }
+    ${renderIssues(state.merge.error)}
+    ${renderMergeWarnings(merge)}
+    ${
+      merge.swipes.length === 0
+        ? `<section class="merge-empty">
+            <div aria-hidden="true">↳</div>
+            <h2>No evidence loaded.</h2>
+            <p>Each export may be dropped again after later sessions; stable swipe IDs prevent double counting.</p>
+          </section>`
+        : `<section class="metric-line merge-metrics" aria-label="Merged evidence summary">
+            <div><span>Exported swipe lines</span><strong>${formatInteger(
+              merge.swipes.length,
+            )}</strong></div>
+            <div><span>Active latest votes</span><strong>${formatInteger(
+              merge.latest.length,
+            )}</strong></div>
+            <div><span>Annotators</span><strong>${
+              merge.agreement.annotatorIds.length
+            }</strong></div>
+            <div><span>Relations in disagreement</span><strong>${disagreementCount}</strong></div>
+          </section>
+          <section class="analysis-grid merge-analysis-grid">
+            <div class="analysis-section alpha-panel">
+              <div class="section-heading"><h2>Krippendorff’s alpha</h2><span>Nominal · latest active vote</span></div>
+              <strong>${formatAlpha(merge.agreement.overall)}</strong>
+              <dl>${LABELS.map(
+                (label) =>
+                  `<div><dt>${label} vs rest</dt><dd>${formatAlpha(
+                    merge.agreement.by_class[label],
+                  )}</dd></div>`,
+              ).join("")}</dl>
+            </div>
+            <div class="analysis-section coverage-panel">
+              <div class="section-heading"><h2>Manifest coverage</h2><span>${
+                merge.study
+                  ? escapeHtml(merge.study.study_id)
+                  : "No matching manifest"
+              }</span></div>
+              ${
+                merge.coverage
+                  ? `<strong>${merge.coverage.complete} / ${merge.coverage.total}</strong>
+                    <progress value="${merge.coverage.complete}" max="${merge.coverage.total}">${merge.coverage.complete}/${merge.coverage.total}</progress>
+                    <p>${merge.coverage.rows.filter((row) => row.observed < row.expected).length} relations remain below ${merge.study.coverage_target}× coverage.</p>`
+                  : "<p>Open the matching study bundle or load its exported manifest to verify planned coverage.</p>"
+              }
+            </div>
+          </section>
+          <section class="analysis-section">
+            <div class="section-heading"><h2>Cross-annotator distributions</h2><span>${merge.summaries.length} relations · entropy order</span></div>
+            <div class="data-table-wrap"><table class="data-table">
+              <thead><tr><th>Relation</th><th>Votes</th><th>Distribution</th><th>Sequence</th><th>Entropy</th><th>Majority</th></tr></thead>
+              <tbody>${merge.summaries
+                .slice(0, 500)
+                .map(
+                  (summary) => `<tr>
+                    <th scope="row">${escapeHtml(summary.relation_id)}</th>
+                    <td>${summary.labels.length}</td>
+                    <td>${renderDistribution(summary)}</td>
+                    <td class="label-sequence">${summary.labels
+                      .map(
+                        (label) =>
+                          `<span class="label-${label.toLowerCase()}">${label}</span>`,
+                      )
+                      .join("")}</td>
+                    <td>${summary.entropy.toFixed(3)}</td>
+                    <td>${
+                      summary.majority
+                        ? `${summary.majority} · ${LABEL_DETAILS[summary.majority].name}`
+                        : "Tie"
+                    }</td>
+                  </tr>`,
+                )
+                .join("")}</tbody>
+            </table></div>
+            <div class="button-row">
+              <button class="button button-primary" data-action="start-resolve" type="button" ${
+                disagreementCount === 0 ? "disabled" : ""
+              }>Resolve ${disagreementCount} edge cases</button>
+              <button class="button" data-action="export-merge-edge-table" type="button">Export edge-case markdown</button>
+            </div>
+          </section>`
+    }
+  </main>`;
+};
+
+const adjudicationStorageKey = (studyId) =>
+  `salt:adjudications:${studyId || "unscoped"}`;
+
+const saveAdjudications = (studyId) => {
+  try {
+    localStorage.setItem(
+      adjudicationStorageKey(studyId),
+      JSON.stringify(state.merge.adjudications),
+    );
+  } catch (error) {
+    state.adjudicationError = `Adjudication saved in memory but not browser storage: ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+  }
+};
+
+const loadSavedAdjudications = (studyId) => {
+  try {
+    const serialized = localStorage.getItem(adjudicationStorageKey(studyId));
+    if (!serialized) {
+      return;
+    }
+    const records = JSON.parse(serialized);
+    const known = new Set(
+      state.merge.adjudications.map(
+        (record) => `${record.relation_id}:${record.ts}`,
+      ),
+    );
+    state.merge.adjudications = [
+      ...state.merge.adjudications,
+      ...records.filter(
+        (record) => !known.has(`${record.relation_id}:${record.ts}`),
+      ),
+    ];
+  } catch {
+    // An optional prior adjudication buffer should not block a fresh merge.
+  }
+};
+
+const renderResolve = () => {
+  const merge = computeMerge();
+  const resolvedIds = new Set(
+    state.merge.adjudications.map((record) => record.relation_id),
+  );
+  const queue = merge.summaries.filter(
+    (summary) =>
+      (summary.entropy > 0 || summary.labels.includes("U")) &&
+      !resolvedIds.has(summary.relation_id),
+  );
+  const current = queue[0] ?? null;
+  const agreements = perAnnotatorGoldAgreement(
+    merge.swipes,
+    state.merge.adjudications,
+  );
+  return `${state.mode === "workspace" ? renderTopbar() : renderPublicHeader("merge")}
+  <main class="resolve-view" id="main-content">
+    <header class="view-heading resolve-heading">
+      <div><p class="system-label">Binding adjudication</p><h1>Resolve the highest-entropy evidence.</h1></div>
+      <dl><div><dt>Remaining</dt><dd>${queue.length}</dd></div><div><dt>Resolved</dt><dd>${state.merge.adjudications.length}</dd></div></dl>
+    </header>
+    ${renderIssues(state.adjudicationError ? new Error(state.adjudicationError) : null)}
+    ${
+      !current
+        ? `<section class="completion-view embedded">
+            <div class="completion-signal" aria-hidden="true">✓</div>
+            <h2>Adjudication queue complete.</h2>
+            <p>Export the binding records and refreshed edge-case table.</p>
+            <div class="button-row">
+              <button class="button button-primary" data-action="export-adjudications" type="button" ${
+                state.merge.adjudications.length === 0 ? "disabled" : ""
+              }>Export adjudications JSONL</button>
+              <button class="button" data-action="export-merge-edge-table" type="button">Export edge-case markdown</button>
+            </div>
+          </section>`
+        : `<section class="resolve-layout">
+            <article class="resolve-card">
+              <div class="resolve-card-meta">
+                <code>${escapeHtml(current.relation_id)}</code>
+                <span>Entropy ${current.entropy.toFixed(3)}</span>
+                <span>${current.labels.length} votes</span>
+              </div>
+              <pre>${escapeHtml(
+                current.card?.card_text ??
+                  `Relation: ${current.relation_id}\nCard text is not present in the loaded exports.`,
+              )}</pre>
+              <div class="evidence-sequence" aria-label="Label evidence">
+                ${current.swipes
+                  .map(
+                    (swipe) =>
+                      `<span class="label-${swipe.label.toLowerCase()}"><strong>${swipe.label}</strong>${escapeHtml(
+                        swipe.annotator_id,
+                      )} · p${swipe.pass}</span>`,
+                  )
+                  .join("")}
+              </div>
+              ${
+                current.notes.length > 0
+                  ? `<div class="evidence-notes"><h2>Annotator notes</h2>${current.notes
+                      .map(
+                        (note) =>
+                          `<blockquote><p>${escapeHtml(
+                            note.note,
+                          )}</p><cite>${escapeHtml(
+                            note.annotator_id,
+                          )} · pass ${note.pass}</cite></blockquote>`,
+                      )
+                      .join("")}</div>`
+                  : ""
+              }
+            </article>
+            <form class="resolve-form" id="resolve-form">
+              <div><p class="system-label">Binding record</p><h2>Select the final class.</h2></div>
+              <fieldset class="label-choice"><legend>Adjudicated label</legend>
+                ${LABELS.map(
+                  (label) =>
+                    `<button class="label-${label.toLowerCase()}" type="submit" name="label" value="${label}"><span>${LABEL_DETAILS[label].arrow}</span><strong>${LABEL_DETAILS[label].name}</strong><kbd>${label}</kbd></button>`,
+                ).join("")}
+              </fieldset>
+              <label class="field">One-line rationale
+                <textarea name="rationale" rows="4" maxlength="500" required placeholder="Why this class is binding for the relation"></textarea>
+              </label>
+              <label class="field">Adjudicator ID
+                <input name="adjudicator" required autocomplete="off" />
+              </label>
+              <p class="field-help">Choose a class button to save and advance. Adjudications never mix with swipe records.</p>
+            </form>
+          </section>`
+    }
+    ${
+      agreements.length > 0
+        ? `<section class="analysis-section">
+            <div class="section-heading"><h2>Agreement with adjudicated gold</h2><span>${state.merge.adjudications.length} binding records</span></div>
+            <table><thead><tr><th>Annotator</th><th>Matches</th><th>Agreement</th></tr></thead><tbody>${agreements
+              .map(
+                (entry) =>
+                  `<tr><th scope="row">${escapeHtml(
+                    entry.annotator_id,
+                  )}</th><td>${entry.matching} / ${
+                    entry.total
+                  }</td><td>${formatPercent(entry.agreement, 1)}</td></tr>`,
+              )
+              .join("")}</tbody></table>
+          </section>`
+        : ""
+    }
+  </main>`;
+};
+
+const renderFatal = () => `${renderPublicHeader()}
+  <main class="fatal-view" id="main-content">
+    <p class="system-label">SALT stopped safely</p>
+    <h1>Evidence cannot be collected in this state.</h1>
+    <p>${escapeHtml(state.fatalError)}</p>
+    <button class="button" data-action="home" type="button">Return home</button>
+  </main>`;
+
+const render = () => {
+  if (state.fatalError) {
+    appElement.innerHTML = renderFatal();
+    return;
+  }
+
+  if (state.mode === "home") {
+    appElement.innerHTML = renderHome();
+  } else if (state.mode === "access") {
+    appElement.innerHTML = renderAccess();
+  } else if (state.mode === "resume") {
+    appElement.innerHTML = renderResume();
+  } else if (state.mode === "builder") {
+    appElement.innerHTML = renderBuilder();
+  } else if (state.mode === "merge") {
+    appElement.innerHTML = renderMerge();
+  } else if (state.mode === "resolve") {
+    appElement.innerHTML = renderResolve();
+  } else if (state.mode === "workspace") {
+    if (state.activeTab === "adjudicate") {
+      appElement.innerHTML = renderSwipe();
+    } else if (state.activeTab === "progress") {
+      appElement.innerHTML = renderProgress();
+    } else if (state.activeTab === "merge") {
+      appElement.innerHTML = renderMerge();
+    } else {
+      appElement.innerHTML = renderResolve();
+    }
+  }
+
+  if (state.noteOpen) {
+    window.requestAnimationFrame(() => {
+      const noteInput = document.querySelector("#swipe-note");
+      noteInput?.focus();
+      noteInput?.setSelectionRange(
+        noteInput.value.length,
+        noteInput.value.length,
+      );
+    });
+  }
+};
+
+const openHome = () => {
+  if (embeddedPayload.kind === "study") {
+    state.mode = "access";
+    state.study = embeddedPayload.study;
+  } else {
+    state.mode = "home";
+    state.study = null;
+  }
+  state.snapshot = null;
+  state.annotatorId = null;
+  state.repository = null;
+  state.resumeCandidate = null;
+  state.restartConfirmation = false;
+  state.storageError = "";
+  render();
+};
+
+const buildStudyHtml = (study) => {
+  if (
+    document.querySelector('script[src], link[rel="stylesheet"][href]') ||
+    document.querySelector('script[type="module"]')
+  ) {
+    throw new SaltValidationError(
+      "Study HTML can only be exported from the built salt-adjudicator.html artifact. Run node build.mjs first.",
+    );
+  }
+  const clone = document.documentElement.cloneNode(true);
+  const clonedApp = clone.querySelector("#app");
+  clonedApp.innerHTML = `<main class="boot-state" id="main-content"><p>SALT is loading…</p></main>`;
+  clone.querySelector("#live-region").textContent = "";
+  clone.querySelector("#salt-study").textContent = serializePayload({
+    kind: "study",
+    study,
+  });
+  return `<!doctype html>\n${clone.outerHTML}`;
+};
+
+const loadBuilderFile = async (kind, file) => {
+  if (!file) {
+    return;
+  }
+  try {
+    const text = await file.text();
+    if (kind === "cards") {
+      state.builder.cards = parseCardsJsonl(text);
+      state.builder.cardsName = file.name;
+    } else {
+      state.builder.qualificationCards = parseCardsJsonl(text, {
+        qualification: true,
+      });
+      state.builder.qualificationName = file.name;
+    }
+    state.builder.error = null;
+    state.builder.result = null;
+  } catch (error) {
+    state.builder.error = error;
+  }
+  render();
+};
+
+const loadMergeFiles = async (files) => {
+  try {
+    for (const file of files) {
+      const text = await file.text();
+      state.merge.sources.set(file.name, parseSwipesJsonl(text, file.name));
+    }
+    state.merge.error = null;
+    state.merge.warning = "";
+  } catch (error) {
+    state.merge.error = error;
+  }
+  render();
+};
+
+const loadManifestFile = async (file) => {
+  if (!file) {
+    return;
+  }
+  try {
+    state.merge.manifest = JSON.parse(await file.text());
+    state.merge.manifestName = file.name;
+    state.merge.error = null;
+    if (!activeStudy() && state.merge.manifest?.manifest) {
+      state.merge.warning =
+        "Manifest metadata loaded. Card text is unavailable outside its study bundle, but planned coverage can still be inspected downstream.";
+    }
+  } catch (error) {
+    state.merge.error = new SaltValidationError(
+      `Could not load ${file.name}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  render();
+};
+
+const loadAdjudicationFile = async (file) => {
+  if (!file) {
+    return;
+  }
+  try {
+    const records = parseAdjudicationsJsonl(await file.text(), file.name);
+    const byKey = new Map(
+      [...state.merge.adjudications, ...records].map((record) => [
+        `${record.relation_id}:${record.ts}`,
+        record,
+      ]),
+    );
+    state.merge.adjudications = [...byKey.values()];
+    state.merge.error = null;
+  } catch (error) {
+    state.merge.error = error;
+  }
+  render();
+};
+
+appElement.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+
+  if (form.id === "access-form") {
+    beginCodeEntry(state.study, new FormData(form).get("code"));
+    return;
+  }
+
+  if (form.id === "builder-form") {
+    try {
+      if (!state.builder.cards) {
+        throw new SaltValidationError("Load production cards.jsonl first.");
+      }
+      const data = new FormData(form);
+      const annotatorIds = parseRoster(data.get("roster"));
+      state.builder.result = createStudy({
+        cards: state.builder.cards,
+        qualificationCards: state.builder.qualificationCards,
+        annotatorIds,
+        seed: data.get("seed"),
+        coverageTarget: Number(data.get("coverage")),
+        sliceSize: Number(data.get("slice")),
+        rubricVersion: data.get("rubric"),
+        coincidentTarget: Number(data.get("quota")),
+        title: data.get("title"),
+      });
+      state.builder.error = null;
+      announce(`Study ${state.builder.result.study.study_id} generated.`);
+    } catch (error) {
+      state.builder.error = error;
+      state.builder.result = null;
+    }
+    render();
+    return;
+  }
+
+  if (form.id === "rubric-form") {
+    const nextRubric = String(new FormData(form).get("rubric")).trim();
+    if (nextRubric && nextRubric !== state.snapshot.rubric_version) {
+      const timestamp = nextSessionTimestamp();
+      state.snapshot = {
+        ...state.snapshot,
+        rubric_version: nextRubric,
+        events: [
+          ...state.snapshot.events,
+          {
+            event_type: "rubric_change",
+            from: state.snapshot.rubric_version,
+            to: nextRubric,
+            annotator_id: state.annotatorId,
+            session_id: state.snapshot.session_id,
+            ts: timestamp.iso,
+          },
+        ],
+      };
+      persistSnapshot();
+      announce(`Rubric changed to ${nextRubric}.`);
+    }
+    document.querySelector("#rubric-dialog")?.close();
+    render();
+    return;
+  }
+
+  if (form.id === "resolve-form") {
+    const label = event.submitter?.value;
+    const data = new FormData(form);
+    const rationale = String(data.get("rationale") ?? "").trim();
+    const adjudicatorId = String(data.get("adjudicator") ?? "").trim();
+    if (!LABELS.includes(label) || !rationale || !adjudicatorId) {
+      state.adjudicationError =
+        "Choose a label and provide both a rationale and adjudicator ID.";
+      render();
+      return;
+    }
+    const merge = computeMerge();
+    const resolvedIds = new Set(
+      state.merge.adjudications.map((record) => record.relation_id),
+    );
+    const current = merge.summaries.find(
+      (summary) =>
+        (summary.entropy > 0 || summary.labels.includes("U")) &&
+        !resolvedIds.has(summary.relation_id),
+    );
+    if (!current) {
+      return;
+    }
+    const timestamp = nextMonotoneTimestamp(state.lastAdjudicationTimestampMs);
+    state.lastAdjudicationTimestampMs = timestamp.timestampMs;
+    state.merge.adjudications = [
+      ...state.merge.adjudications,
+      createAdjudication({
+        studyId:
+          merge.study?.study_id ?? current.swipes[0]?.study_id ?? "unscoped",
+        deckHash:
+          merge.study?.deck_hash ?? current.swipes[0]?.deck_hash ?? "unknown",
+        relationId: current.relation_id,
+        cardHash:
+          current.card?.card_hash ?? current.swipes[0]?.card_hash ?? "unknown",
+        label,
+        rationale,
+        adjudicatorId,
+        timestamp,
+      }),
+    ];
+    state.adjudicationError = "";
+    saveAdjudications(merge.study?.study_id ?? merge.studyIds[0]);
+    announce(`${current.relation_id} adjudicated ${label}.`);
+    render();
+  }
+});
+
+appElement.addEventListener("change", (event) => {
+  const input = event.target;
+  const kind = input.dataset.fileKind;
+  if (!kind) {
+    return;
+  }
+  if (kind === "cards" || kind === "qualification") {
+    void loadBuilderFile(kind, input.files?.[0]);
+  } else if (kind === "swipes") {
+    void loadMergeFiles([...input.files]);
+  } else if (kind === "manifest") {
+    void loadManifestFile(input.files?.[0]);
+  } else if (kind === "adjudications") {
+    void loadAdjudicationFile(input.files?.[0]);
+  }
+});
+
+appElement.addEventListener("input", (event) => {
+  if (event.target.id === "swipe-note") {
+    state.noteDraft = event.target.value;
+    const counter = document.querySelector("[data-note-count]");
+    if (counter) {
+      counter.textContent = String(state.noteDraft.length);
+    }
+  }
+});
+
+appElement.addEventListener("dragover", (event) => {
+  const zone = event.target.closest("[data-drop-kind]");
+  if (!zone) {
+    return;
+  }
+  event.preventDefault();
+  zone.classList.add("is-dragging");
+});
+
+appElement.addEventListener("dragleave", (event) => {
+  event.target.closest("[data-drop-kind]")?.classList.remove("is-dragging");
+});
+
+appElement.addEventListener("drop", (event) => {
+  const zone = event.target.closest("[data-drop-kind]");
+  if (!zone) {
+    return;
+  }
+  event.preventDefault();
+  zone.classList.remove("is-dragging");
+  const files = [...event.dataTransfer.files];
+  const kind = zone.dataset.dropKind;
+  if (kind === "cards" || kind === "qualification") {
+    void loadBuilderFile(kind, files[0]);
+  } else if (kind === "swipes") {
+    void loadMergeFiles(files);
+  } else if (kind === "manifest") {
+    void loadManifestFile(files[0]);
+  } else if (kind === "adjudications") {
+    void loadAdjudicationFile(files[0]);
+  }
+});
+
+appElement.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest("[data-swipe-card]")) {
+    return;
+  }
+  state.pointerStart = {
+    x: event.clientX,
+    y: event.clientY,
+    id: event.pointerId,
+  };
+});
+
+appElement.addEventListener("pointerup", (event) => {
+  if (
+    !state.pointerStart ||
+    state.pointerStart.id !== event.pointerId ||
+    !event.target.closest("[data-swipe-card]")
+  ) {
+    state.pointerStart = null;
+    return;
+  }
+  const deltaX = event.clientX - state.pointerStart.x;
+  const deltaY = event.clientY - state.pointerStart.y;
+  state.pointerStart = null;
+  if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 56) {
+    return;
+  }
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    decide(deltaX > 0 ? "P" : "O");
+  } else {
+    decide(deltaY > 0 ? "U" : "C");
+  }
+});
+
+appElement.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-tab]")?.dataset.tab;
+  if (tab) {
+    const leavingAdjudication =
+      state.mode === "workspace" &&
+      state.activeTab === "adjudicate" &&
+      tab !== "adjudicate";
+    const returningToAdjudication =
+      state.mode === "workspace" &&
+      state.activeTab !== "adjudicate" &&
+      tab === "adjudicate";
+    if (leavingAdjudication) {
+      state.timer.pause();
+    }
+    state.activeTab = tab;
+    state.mode = state.snapshot
+      ? "workspace"
+      : tab === "merge"
+        ? "merge"
+        : state.mode;
+    if (returningToAdjudication && !state.noteOpen) {
+      state.timer.resume();
+    }
+    render();
+    return;
+  }
+
+  const label = event.target.closest("[data-label]")?.dataset.label;
+  if (label) {
+    decide(label);
+    return;
+  }
+
+  const button = event.target.closest("[data-action]");
+  if (!button) {
+    return;
+  }
+  const action = button.dataset.action;
+
+  if (action === "home") {
+    openHome();
+  } else if (action === "demo") {
+    beginCodeEntry(embeddedPayload.demo_study, embeddedPayload.demo_code);
+  } else if (action === "builder") {
+    state.mode = "builder";
+    render();
+  } else if (action === "merge") {
+    state.mode = state.snapshot ? "workspace" : "merge";
+    state.activeTab = "merge";
+    render();
+  } else if (action === "resume") {
+    activateSession(state.resumeCandidate);
+    render();
+  } else if (action === "restart-request") {
+    state.restartConfirmation = true;
+    render();
+  } else if (action === "restart-cancel") {
+    state.restartConfirmation = false;
+    render();
+  } else if (action === "restart-confirm") {
+    state.repository.clear();
+    activateSession(createSessionSnapshot(state.study, state.annotatorId));
+    render();
+  } else if (action === "flag") {
+    state.flagged = !state.flagged;
+    announce(state.flagged ? "Card flagged." : "Flag removed.");
+    render();
+  } else if (action === "note") {
+    state.noteOpen = !state.noteOpen;
+    if (state.noteOpen) {
+      state.timer.pause();
+    } else {
+      state.timer.resume();
+    }
+    render();
+  } else if (action === "note-cancel") {
+    state.noteDraft = "";
+    state.noteOpen = false;
+    state.timer.resume();
+    render();
+  } else if (action === "undo") {
+    undoLastSwipe();
+  } else if (action === "export-swipes") {
+    exportSwipes();
+  } else if (action === "next-pass") {
+    startNextPass();
+  } else if (action === "qualification-continue") {
+    completeQualificationReview();
+  } else if (action === "end-session") {
+    state.mode = "access";
+    state.snapshot = null;
+    state.annotatorId = null;
+    state.repository = null;
+    resetTransientCardState();
+    render();
+  } else if (action === "rubric-open") {
+    document.querySelector("#rubric-dialog")?.showModal();
+  } else if (action === "rubric-cancel") {
+    document.querySelector("#rubric-dialog")?.close();
+  } else if (action === "builder-clear") {
+    state.builder = {
+      cards: null,
+      qualificationCards: [],
+      cardsName: "",
+      qualificationName: "",
+      result: null,
+      error: null,
+    };
+    render();
+  } else if (action === "download-study") {
+    try {
+      const result = state.builder.result;
+      downloadText(
+        `${safeFilenamePart(result.study.title)}-${result.study.study_id}.html`,
+        buildStudyHtml(result.study),
+        "text/html;charset=utf-8",
+      );
+      announce("Study HTML downloaded.");
+    } catch (error) {
+      state.builder.error = error;
+      render();
+    }
+  } else if (action === "download-codes") {
+    const result = state.builder.result;
+    downloadText(
+      `annotator-codes-${result.study.study_id}.tsv`,
+      codeSheetToTsv(result.study, result.codeSheet),
+      "text/tab-separated-values;charset=utf-8",
+    );
+  } else if (action === "download-manifest") {
+    const result = state.builder.result;
+    downloadText(
+      `assignment-manifest-${result.study.study_id}.json`,
+      `${JSON.stringify(manifestForExport(result.study), null, 2)}\n`,
+      "application/json;charset=utf-8",
+    );
+  } else if (action === "remove-merge-source") {
+    state.merge.sources.delete(button.dataset.filename);
+    render();
+  } else if (action === "start-resolve") {
+    const merge = computeMerge();
+    loadSavedAdjudications(merge.study?.study_id ?? merge.studyIds[0]);
+    if (state.snapshot) {
+      state.activeTab = "resolve";
+    } else {
+      state.mode = "resolve";
+      state.activeTab = "resolve";
+    }
+    render();
+  } else if (
+    action === "export-merge-edge-table" ||
+    action === "export-local-edge-table"
+  ) {
+    const summaries =
+      action === "export-local-edge-table"
+        ? relationSummaries(
+            activeSwipes(state.snapshot.events).filter(
+              (swipe) => !swipe.qualification,
+            ),
+            state.study.cards,
+          )
+        : computeMerge().summaries;
+    const study =
+      action === "export-local-edge-table" ? state.study : computeMerge().study;
+    downloadText(
+      `edge-case-table-${safeFilenamePart(study?.study_id ?? "merged")}.md`,
+      edgeCaseMarkdown(summaries, state.merge.adjudications),
+      "text/markdown;charset=utf-8",
+    );
+  } else if (action === "export-adjudications") {
+    const merge = computeMerge();
+    downloadText(
+      `adjudications-${safeFilenamePart(
+        merge.study?.study_id ?? merge.studyIds[0] ?? "merged",
+      )}.jsonl`,
+      adjudicationsToJsonl(state.merge.adjudications),
+      "application/x-ndjson;charset=utf-8",
+    );
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (
+    state.mode !== "workspace" ||
+    state.activeTab !== "adjudicate" ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey
+  ) {
+    return;
+  }
+  const target = event.target;
+  const inField =
+    target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+  if (inField) {
+    if (target.id === "swipe-note" && event.key === "Enter") {
+      event.preventDefault();
+      state.noteOpen = false;
+      state.timer.resume();
+      render();
+    } else if (target.id === "swipe-note" && event.key === "Escape") {
+      event.preventDefault();
+      state.noteDraft = "";
+      state.noteOpen = false;
+      state.timer.resume();
+      render();
+    }
+    return;
+  }
+
+  const labelByKey = {
+    ArrowUp: "C",
+    c: "C",
+    C: "C",
+    ArrowRight: "P",
+    p: "P",
+    P: "P",
+    ArrowLeft: "O",
+    o: "O",
+    O: "O",
+    ArrowDown: "U",
+    u: "U",
+    U: "U",
+  };
+  if (labelByKey[event.key]) {
+    event.preventDefault();
+    decide(labelByKey[event.key]);
+  } else if (event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    state.flagged = !state.flagged;
+    render();
+  } else if (event.key.toLowerCase() === "n") {
+    event.preventDefault();
+    state.noteOpen = true;
+    state.timer.pause();
+    render();
+  } else if (event.key.toLowerCase() === "z") {
+    event.preventDefault();
+    undoLastSwipe();
+  } else if (event.key.toLowerCase() === "e") {
+    event.preventDefault();
+    exportSwipes();
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (
+    state.mode !== "workspace" ||
+    state.activeTab !== "adjudicate" ||
+    !getSwipeContext()?.card
+  ) {
+    return;
+  }
+  if (document.hidden) {
+    state.timer.pause();
+  } else if (!state.noteOpen) {
+    state.timer.resume();
+  }
+});
+
+window.setInterval(() => {
+  const clock = document.querySelector("[data-session-clock]");
+  if (clock) {
+    clock.textContent = formatDuration(currentSessionElapsed());
+  }
+}, 1000);
+
+render();
+
+})();
+
+</script>
+  </body>
+</html>

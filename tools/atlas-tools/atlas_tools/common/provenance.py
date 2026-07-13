@@ -91,6 +91,7 @@ class Provenance[TDetails, TConfig = None](BaseModel):
     config_hash: Sha256Hex | None = None
 
     input_hashes: dict[str, Sha256Hex] | None = None
+    content_hashes: dict[str, Sha256Hex] | None = None
 
     seed: int | None = None
 
@@ -129,6 +130,7 @@ class Provenance[TDetails, TConfig = None](BaseModel):
         *,
         producer: str,
         input_hashes: dict[str, Sha256Hex] | None = None,
+        content_hashes: dict[str, Sha256Hex] | None = None,
         config: TConfig | None = None,
         seed: int | None = None,
         details: TDetails,
@@ -144,6 +146,9 @@ class Provenance[TDetails, TConfig = None](BaseModel):
             tool_version=SemanticVersion.parse(atlas_tools.__version__),
             created_at=datetime.now(UTC),
             input_hashes=(dict(sorted(input_hashes.items())) if input_hashes is not None else None),
+            content_hashes=(
+                dict(sorted(content_hashes.items())) if content_hashes is not None else None
+            ),
             config=config,
             config_hash=(
                 sha256_bytes(canonical_json_bytes(config)) if config is not None else None

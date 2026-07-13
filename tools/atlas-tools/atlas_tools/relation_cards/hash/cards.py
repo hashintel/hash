@@ -19,6 +19,7 @@ from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.common.provenance import Provenance, canonical_json_bytes, sha256_file
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import build_card
+from atlas_tools.relation_cards.common.cards import CardRow
 from atlas_tools.relation_cards.common.config import (
     CardsConfig,
     SentenceSplitterName,
@@ -48,17 +49,12 @@ class HashCardsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class HashCardRow(BaseModel):
+class HashCardRow(CardRow):
     """One identifier-bearing ``cards.jsonl`` sidecar row."""
 
     base_url: HttpUrl
     version: PositiveInt
     versioned_url: HttpUrl
-    card_text: str
-    card_hash: Sha256Hex
-    token_count: NonNegativeInt
-    truncations: list[str]
-    severely_truncated: bool
 
 
 class HashCardEntry(BaseModel):
@@ -90,7 +86,6 @@ class HashCardsManifestDetails(BaseModel):
     example_unmatched_fallbacks: NonNegativeInt
     example_security_mode: ExampleSecurityMode
     selected_examples: NonNegativeInt
-    content_hashes: dict[str, Sha256Hex]
     cards: dict[str, HashCardEntry]
 
 
@@ -169,6 +164,7 @@ def emit_hash_cards(
     HashCardsProvenance.make(
         producer="hash.extract-relation-cards",
         input_hashes={"link-types.jsonl": content_hashes["link-types.jsonl"]},
+        content_hashes=content_hashes,
         config=config,
         details=HashCardsManifestDetails(
             link_types_format_version=LINK_TYPES_FORMAT_VERSION,
@@ -196,7 +192,6 @@ def emit_hash_cards(
             ),
             example_security_mode=config.example_security_mode,
             selected_examples=sum(len(record.examples) for record in records),
-            content_hashes=content_hashes,
             cards={
                 str(record.base_url): HashCardEntry(
                     versioned_url=record.versioned_url,

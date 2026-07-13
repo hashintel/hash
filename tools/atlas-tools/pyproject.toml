@@ -25,6 +25,7 @@ dependencies = [
     "pycountry>=26.2.16",
     "pgvector>=0.5.0",
     "psycopg[binary]>=3.3.4",
+    "openrouter>=0.10.8",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +37,7 @@ dev = [
 audit      = "atlas_tools.audit.cli:main"
 battery    = "atlas_tools.battery.cli:main"
 hash-cards = "atlas_tools.relation_cards.hash.cli:main"
+relation   = "atlas_tools.relation.cli:main"
 wikidata   = "atlas_tools.wikidata.cli:main"
 
 [build-system]
@@ -117,3 +119,9 @@ venv     = ".venv"
 
 [tool.ty.environment]
 python = "./.venv"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.21",
+    "ty>=0.0.59",
+]

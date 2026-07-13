@@ -35,6 +35,7 @@ from atlas_tools.common.provenance import (
     sha256_file,
 )
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
+from atlas_tools.relation_cards.common.cards import CardRow
 from atlas_tools.relation_cards.common.config import SentenceSplitterName, TokenizerName
 from atlas_tools.relation_cards.common.sentence import make_sentence_splitter
 from atlas_tools.relation_cards.common.tokens import make_token_counter
@@ -51,15 +52,11 @@ from atlas_tools.wikidata.records import (
 )
 
 
-class CardRow(BaseModel):
+class WikidataCardRow(CardRow):
     """One cards.jsonl line (written as canonical JSON)."""
 
     pid: Pid
-    card_text: str
-    card_hash: Sha256Hex
-    token_count: NonNegativeInt
-    truncations: list[str]
-    severely_truncated: bool
+
     retrieved_at: str | None
 
 
@@ -159,7 +156,7 @@ def render_cards(
     cards_path = out_dir / "cards.jsonl"
     with cards_path.open("w", encoding="utf-8") as cards_file:
         for card in cards:
-            row = CardRow(
+            row = WikidataCardRow(
                 pid=card.pid,
                 card_text=card.card_text,
                 card_hash=card.card_hash,
@@ -170,10 +167,15 @@ def render_cards(
             )
             cards_file.write(canonical_json_bytes(row).decode("utf-8") + "\n")
 
+    content_hashes = {
+        "cards.jsonl": sha256_file(cards_path),
+    }
+
     manifest_path = out_dir / "cards.manifest.json"
     CardsManifestProvenance.make(
         producer="wikidata.render-cards",
         input_hashes={"records.jsonl": sha256_file(record_set.records_path)},
+        content_hashes=content_hashes,
         config=config,
         seed=config.extraction.seed,
         details=CardsManifestDetails(
