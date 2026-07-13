@@ -20,6 +20,159 @@ const popoverContent = css({
   whiteSpace: "nowrap",
 });
 
+const customContent = css({
+  backgroundColor: "white",
+  color: "fg.body",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
+  borderRadius: "lg",
+  padding: "3",
+  maxWidth: "[240px]",
+  textStyle: "sm",
+});
+
+const panelWidth = css({ width: "[260px]" });
+
+/**
+ * A trigger button that toggles its own popover open/closed on click, exposing
+ * a `close` callback to the rendered content. Because `Popover` is only
+ * rendered while open, the button owns the open state and the ref the popover
+ * positions against.
+ */
+const PopoverExample = ({
+  label,
+  position = "bottom-start",
+  children,
+}: {
+  label: string;
+  position?: PopoverProps["position"];
+  children: (close: () => void) => PopoverProps["children"];
+}) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        variant={open ? "solid" : "subtle"}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        {label}
+      </Button>
+      {open ? (
+        <Popover triggerRef={triggerRef} position={position} onClose={close}>
+          {children(close)}
+        </Popover>
+      ) : null}
+    </>
+  );
+};
+
+/**
+ * The popover compositions: fully custom content (positioning only), the
+ * individual panels on their own, and a kitchen sink combining a wrapping
+ * title, multiple bodies, and multiple footers.
+ */
+export const Default: Story = () => (
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 12,
+      padding: 10,
+      alignItems: "flex-start",
+    }}
+  >
+    <PopoverExample label="Custom">
+      {() => (
+        <div className={customContent}>
+          Fully custom content — no panels, just positioning.
+        </div>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="Title only">
+      {() => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Header title="Account settings" />
+        </Popover.Container>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="Title + no close">
+      {() => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Header title="Notifications" hideCloseButton />
+        </Popover.Container>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="Body only">
+      {() => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Body>
+            A popover with just a body panel — no header or footer.
+          </Popover.Body>
+        </Popover.Container>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="Footer only">
+      {(close) => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Footer
+            actions={
+              <Button size="xs" onClick={close}>
+                Done
+              </Button>
+            }
+          />
+        </Popover.Container>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="Kitchen sink">
+      {(close) => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Header
+            title="A deliberately long popover title that wraps across multiple lines"
+            actions={
+              <Button
+                size="xxs"
+                variant="ghost"
+                iconName="gear"
+                aria-label="Settings"
+              />
+            }
+          />
+          <Popover.Body>The first body holds the primary content.</Popover.Body>
+          <Popover.Body>A second body renders as its own card.</Popover.Body>
+          <Popover.Footer
+            secondaryActions={
+              <Button size="xs" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            }
+            actions={
+              <Button size="xs" onClick={close}>
+                Apply
+              </Button>
+            }
+          />
+          <Popover.Footer
+            actions={
+              <Button size="xs" variant="ghost" onClick={close}>
+                A second footer panel
+              </Button>
+            }
+          />
+        </Popover.Container>
+      )}
+    </PopoverExample>
+  </div>
+);
+
 /**
  * A trigger button that toggles its own popover open/closed on click. Because
  * `Popover` is only rendered while open, the button owns the open state and the
@@ -152,60 +305,6 @@ export const Positions: Story = () => (
     })}
   </div>
 );
-
-/**
- * Composed from the Header / Body / Footer panels (mirroring `Dialog`). Unlike
- * `Dialog`, the popover accepts multiple `Body` panels, each rendered as its
- * own card. Clicking the trigger, the close button, or anywhere outside closes
- * it.
- */
-export const Panels: Story = () => {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div style={{ padding: 5 }}>
-      <Button ref={triggerRef} onClick={() => setOpen((wasOpen) => !wasOpen)}>
-        {open ? "Close" : "Open"} popover
-      </Button>
-      {open ? (
-        <Popover
-          triggerRef={triggerRef}
-          position="bottom-start"
-          onClose={() => setOpen(false)}
-        >
-          <Popover.Container className={css({ width: "[280px]" })}>
-            <Popover.Header
-              title="Filters"
-              actions={
-                <Button
-                  size="xxs"
-                  variant="ghost"
-                  iconName="gear"
-                  aria-label="Filter settings"
-                />
-              }
-            />
-            <Popover.Body>
-              The first body holds the primary content of the popover.
-            </Popover.Body>
-            <Popover.Body>
-              A popover can render multiple Body panels — each is a separate
-              card.
-            </Popover.Body>
-            <Popover.Footer
-              actions={
-                <Button size="xs" onClick={() => setOpen(false)}>
-                  Apply
-                </Button>
-              }
-            />
-          </Popover.Container>
-        </Popover>
-      ) : null}
-    </div>
-  );
-};
 
 export default {
   title: "Components/Popover",

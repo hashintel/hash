@@ -55,13 +55,15 @@ export const PopoverHeader = ({
   );
 };
 
+/** A single Header / Body / Footer panel accepted by `Popover.Container`. */
+type PopoverPanel =
+  | React.ReactElement<PopoverHeaderProps, typeof PopoverHeader>
+  | React.ReactElement<OverlayBodyProps, typeof OverlayBody>
+  | React.ReactElement<OverlayFooterProps, typeof OverlayFooter>;
+
 export type PopoverContainerProps = {
-  /** The Header / Body / Footer panels making up the popover */
-  children: Array<
-    | React.ReactElement<PopoverHeaderProps, typeof PopoverHeader>
-    | React.ReactElement<OverlayBodyProps, typeof OverlayBody>
-    | React.ReactElement<OverlayFooterProps, typeof OverlayFooter>
-  >;
+  /** One or more Header / Body / Footer panels making up the popover */
+  children: PopoverPanel | PopoverPanel[];
   className?: string;
 };
 
