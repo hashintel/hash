@@ -647,6 +647,7 @@ textarea:hover {
 
 .workspace-tabs button {
   align-self: stretch;
+  min-height: 2.75rem;
   padding-inline: var(--space-3);
   border: 0;
   border-block-end: 2px solid transparent;
@@ -673,7 +674,8 @@ textarea:hover {
 
 .text-button,
 .icon-text-button {
-  min-height: 2.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding-inline: var(--space-2);
   font-size: 0.75rem;
 }
@@ -704,6 +706,61 @@ textarea:hover {
   color: var(--color-muted);
   font-size: 0.875rem;
   font-weight: 700;
+}
+
+.label-guide {
+  width: min(100% - 2rem, 42rem);
+  max-height: min(90dvh, 48rem);
+  padding: var(--space-6);
+  overflow: auto;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.label-guide::backdrop {
+  background: oklch(0.03 0 0 / 0.82);
+}
+
+.label-guide-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.label-guide > p {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.label-guide dl {
+  margin: var(--space-6) 0 0;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.label-guide dl > div {
+  --label-color: var(--color-primary);
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.label-guide dt {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--label-color);
+}
+
+.label-guide dd {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
 }
 
 .storage-blocker {
@@ -813,6 +870,68 @@ progress::-moz-progress-bar {
 .decision-zone kbd {
   border-color: color-mix(in oklch, var(--label-color) 60%, transparent);
   color: var(--label-color);
+}
+
+.label-tooltip {
+  position: absolute;
+  z-index: var(--z-overlay);
+  display: grid;
+  width: min(20rem, calc(100vw - 2rem));
+  gap: var(--space-1);
+  padding: var(--space-3);
+  visibility: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-3);
+  box-shadow: 0 0.75rem 2rem oklch(0.02 0 0 / 0.65);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  text-align: start;
+  white-space: normal;
+  transition:
+    opacity 90ms var(--ease-out),
+    visibility 90ms var(--ease-out);
+}
+
+.label-tooltip > strong {
+  color: var(--label-color);
+  font-size: 0.75rem;
+}
+
+.decision-zone:hover .label-tooltip,
+.decision-zone:focus-visible .label-tooltip,
+.label-choice button:hover .label-tooltip,
+.label-choice button:focus-visible .label-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.zone-top .label-tooltip {
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+}
+
+.zone-bottom .label-tooltip {
+  inset-block-end: calc(100% + var(--space-2));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+}
+
+.zone-left .label-tooltip {
+  inset-block-start: 50%;
+  inset-inline-start: calc(100% + var(--space-2));
+  translate: 0 -50%;
+}
+
+.zone-right .label-tooltip {
+  inset-block-start: 50%;
+  inset-inline-end: calc(100% + var(--space-2));
+  translate: 0 -50%;
 }
 
 .zone-top {
@@ -1684,6 +1803,7 @@ progress::-moz-progress-bar {
 }
 
 .label-choice button {
+  position: relative;
   display: grid;
   min-height: 4rem;
   grid-template-columns: auto 1fr auto;
@@ -1701,6 +1821,12 @@ progress::-moz-progress-bar {
 .label-choice button:hover {
   border-color: var(--label-color);
   background: color-mix(in oklch, var(--label-color) 8%, var(--color-bg));
+}
+
+.label-choice .label-tooltip {
+  inset-block-end: calc(100% + var(--space-2));
+  inset-inline-start: 50%;
+  translate: -50% 0;
 }
 
 @media (max-width: 75rem) {
@@ -1777,6 +1903,16 @@ progress::-moz-progress-bar {
   .zone-left:active,
   .zone-right:active {
     transform: scale(0.98);
+  }
+
+  .zone-left .label-tooltip {
+    inset: auto auto calc(100% + var(--space-2)) 0;
+    translate: 0;
+  }
+
+  .zone-right .label-tooltip {
+    inset: auto 0 calc(100% + var(--space-2)) auto;
+    translate: 0;
   }
 
   .zone-bottom {
@@ -1981,6 +2117,15 @@ progress::-moz-progress-bar {
 
   .label-choice {
     grid-template-columns: 1fr;
+  }
+
+  .label-guide {
+    padding: var(--space-4);
+  }
+
+  .label-guide dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 }
 

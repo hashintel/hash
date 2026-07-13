@@ -409,7 +409,24 @@ for provenance and joins. Rationale: identifiers are semantically
 redundant next to the mandatory titles and descriptions, but they are a
 systematic surface watermark distinguishing one ontology source from
 another, creating train/serve format skew that the applicability score
-would misread as semantic OOD. The card is a canonical rendering target;
+would misread as semantic OOD. The requirement covers identifiers
+embedded _inside_ ontology prose, not only structural references:
+Wikidata descriptions routinely cross-reference other properties by PID
+("use P276 for ..."). Adapters MUST detect such mentions by membership
+in the source's known-identifier universe (which the ingestion already
+enumerates), never by token shape alone, and MUST rewrite them
+meaning-preservingly rather than delete the token: an identifier
+directly preceded by its own title is redundant and is removed; any
+other resolvable identifier is replaced by its quoted title; a
+confirmed identifier with no title to substitute costs its whole
+sentence, since deleting only the token leaves meaningless prose. A
+token that merely looks like an identifier but is outside the known
+universe MUST be left untouched and reported, not destroyed on a guess.
+Sanitization activity (rewrites, dropped sentences, emptied fields,
+unknown-token histogram) MUST be recorded in the generation artifacts,
+and a generation MUST fail when sanitization empties more than a
+configured fraction of prose fields, so over-removal is a measured and
+gated quantity. The card is a canonical rendering target;
 each ontology source (Wikidata, native SemType, future imports) supplies
 an adapter into it, sharing the constraint vocabulary verbatim. Format
 parity is enforced by (a) a linter over embedded text forbidding

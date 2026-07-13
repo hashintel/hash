@@ -252,9 +252,15 @@ anyway), and a stratum pair both subsuming more than 30% of the assigned
 candidates (a class-graph tangle where the hop-distance tie-break is
 load-bearing).
 
-Stratification has two guard rails. Untyped candidates (no P31 at all) are
-dropped, because live runs surfaced semantically reversed statements in the
-long tail (a person with empty P31 appearing as the subject of P6). Typed
+Stratification has three guard rails. The example query restricts
+subjects to the item namespace (and the parser defensively re-filters
+non-item endpoints), because property pages carry truthy statements of
+their own: external-ID properties state their database's country, which
+live-produced example subjects like "AllSides ID" on the P17 card, both
+semantically wrong and a source watermark. Untyped candidates (no P31 at
+all) are dropped, because live runs surfaced semantically reversed
+statements in the long tail (a person with empty P31 appearing as the
+subject of P6). Typed
 candidates matching no constraint class land in a diagnostic `other` bucket
 that reaches cards only when every declared stratum is empty: a stale
 constraint list should not produce an example-less card, and it also should
@@ -279,6 +285,28 @@ example allocator live in `atlas_tools/relation_cards/common`. Datasource
 adapters resolve their own identifiers into that canonical, identifier-free
 input; the final renderer also rejects URLs, adapter-supplied source
 identifiers, and UUID-shaped database keys before hashing.
+
+Identifier-freedom covers Wikidata _prose_, not just structural
+references: property descriptions cross-reference other properties by PID
+("use P276 for ...", 'inverse property of "has part" (P527)'). The
+Wikidata adapter sanitizes description/alias text before rendering, and
+detection is by _membership_, never token shape alone: the extraction
+already enumerates the identifier universe (`entity_labels.json` plus the
+exclusion table), so an id-shaped token is only a candidate until the
+universe confirms it. Confirmed identifiers are rewritten
+meaning-preservingly: deleted when redundant beside their own label,
+replaced by their quoted label otherwise, and only a
+confirmed-but-unlabeled identifier costs its whole sentence (deleting
+just the token would leave nonsense). Unknown id-shaped tokens (a fiscal
+"Q1", a cytochrome "P450") are never touched on a guess: they stay in the
+text and are histogrammed for triage. Every decision is counted into
+per-card and corpus `prose_sanitization` blocks in the cards manifest,
+and `render_cards` fails with `ProseSanitizationBudgetError` when
+sanitization empties more than `cards.max_prose_field_empty_fraction` of
+the corpus's prose fields. Known identifiers surviving outside prose (in
+a title or label, which are never rewritten) are added to the shared
+linter's `forbidden_identifiers`, so leaks fail through the renderer's
+one existing lint path.
 
 Card descriptions are split into a lead sentence and truncatable detail by a
 pluggable sentence splitter (`cards.sentence_splitter`): `punkt` (nltk, the

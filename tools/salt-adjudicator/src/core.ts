@@ -1,102 +1,268 @@
-export const SCHEMA_VERSION = "salt-study-v1";
-export const SWIPE_SCHEMA_VERSION = "salt-swipes-v1";
-export const ADJUDICATION_SCHEMA_VERSION = "salt-adjudications-v1";
+import {
+  ADJUDICATION_SCHEMA_VERSION,
+  AnnotatorIdSchema,
+  CardSchema,
+  ImportedAdjudicationRecordSchema,
+  ImportedSwipeRecordSchema,
+  LABELS,
+  LabelSchema,
+  QualificationCardSchema,
+  SCHEMA_VERSION,
+  SWIPE_SCHEMA_VERSION,
+  formatZodIssues,
+  type AdjudicationDecision,
+  type Card,
+  type CodeSheetEntry,
+  type CreatedAdjudicationRecord,
+  type ImportedAdjudicationRecord,
+  type ImportedSwipeRecord,
+  type InternalEvent,
+  type Label,
+  type MonotoneTimestamp,
+  type Prescreen,
+  type QualificationCard,
+  type RetractionEvent,
+  type Study,
+  type StudyManifest,
+  type SwipeEvent,
+  type SwipeRecord,
+} from "./data-contracts.ts";
 
-export const LABELS = Object.freeze(["C", "P", "O", "U"]);
+export * from "./data-contracts.ts";
+
+export type LabelDirection = "up" | "right" | "left" | "down";
+
+export interface LabelDetail {
+  readonly name: string;
+  readonly direction: LabelDirection;
+  readonly arrow: string;
+  readonly description: string;
+}
 
 export const LABEL_DETAILS = Object.freeze({
-  C: { name: "Coincident", direction: "up", arrow: "↑" },
-  P: { name: "Proximal", direction: "right", arrow: "→" },
-  O: { name: "Overlay", direction: "left", arrow: "←" },
-  U: { name: "Unclear", direction: "down", arrow: "↓" },
-});
+  C: {
+    name: "Coincident",
+    direction: "up",
+    arrow: "↑",
+    description:
+      "The relation places both sides at the same semantic point: identity, exact equivalence, or a canonical alias.",
+  },
+  P: {
+    name: "Proximal",
+    direction: "right",
+    arrow: "→",
+    description:
+      "The sides remain distinct but structurally close, such as part-of, member-of, or direct containment.",
+  },
+  O: {
+    name: "Overlay",
+    direction: "left",
+    arrow: "←",
+    description:
+      "The sides are distinct and connected across roles, such as authorship, attribution, or representation.",
+  },
+  U: {
+    name: "Unclear",
+    direction: "down",
+    arrow: "↓",
+    description:
+      "The evidence is mixed, underspecified, or insufficient to assign a stable geometry class.",
+  },
+} satisfies Readonly<Record<Label, LabelDetail>>);
+
+export interface AssignmentOptions {
+  cards: readonly Card[];
+  annotatorIds: readonly string[];
+  coverageTarget: number;
+  sliceSize: number;
+  seed: unknown;
+}
+
+export type GenerateAssignmentsOptions = AssignmentOptions;
+
+export interface AssignmentResult {
+  assignments: Record<string, string[]>;
+  loads: Record<string, number>;
+  stratum_loads: Record<Prescreen, Record<string, number>>;
+}
+
+export interface CreateStudyOptions {
+  cards: Card[];
+  qualificationCards?: QualificationCard[];
+  annotatorIds: string[];
+  seed: unknown;
+  coverageTarget?: number;
+  sliceSize?: number;
+  rubricVersion?: string;
+  coincidentTarget?: number;
+  title?: string;
+}
+
+export interface CreateStudyResult {
+  study: Study;
+  codeSheet: CodeSheetEntry[];
+}
+
+export interface RelationSwipeRecord {
+  relation_id: string;
+  annotator_id: string;
+  label: Label;
+  pass: number;
+  swipe_id?: string;
+  ts?: string;
+  retracted?: boolean;
+  qualification?: boolean;
+  note?: unknown;
+  study_id?: string;
+  deck_hash?: string;
+  card_hash?: string;
+}
+
+export interface LatestVoteRecord extends RelationSwipeRecord {
+  swipe_id: string;
+  ts: string;
+}
+
+export interface ProjectedSwipeRecord extends SwipeRecord {
+  retracted: boolean;
+  retracted_at?: string;
+}
+
+export interface ProductionDeckOptions {
+  study: Study;
+  annotatorId: string;
+  pass: number;
+  events?: readonly InternalEvent[];
+}
+
+export interface QualificationDeckOptions {
+  study: Study;
+  annotatorId: string;
+  events?: readonly InternalEvent[];
+}
+
+export interface CreateSwipeEventOptions {
+  study: Study;
+  annotatorId: string;
+  card: Card;
+  pass: number;
+  label: Label;
+  latencyMs: number;
+  flagged: boolean;
+  note?: string | null;
+  rubricVersion: string;
+  qualification: boolean;
+  sessionId: string;
+  sequence: number;
+  timestamp: MonotoneTimestamp;
+}
+
+export interface CreateRetractionEventOptions {
+  swipeId: string;
+  annotatorId: string;
+  sessionId: string;
+  timestamp: MonotoneTimestamp;
+}
+
+export interface CreateAdjudicationOptions {
+  studyId: string;
+  deckHash: string;
+  relationId: string;
+  cardHash: string;
+  label: Label;
+  rationale: string;
+  adjudicatorId: string;
+  timestamp: MonotoneTimestamp;
+}
+
+export type LabelCounts = Record<Label, number>;
+
+export interface RelationNote {
+  annotator_id: string;
+  pass: number;
+  note: unknown;
+}
+
+export interface RelationSummary {
+  relation_id: string;
+  card: Card | null;
+  swipes: RelationSwipeRecord[];
+  labels: Label[];
+  counts: LabelCounts;
+  entropy: number;
+  majority: Label | null;
+  unanimous: boolean;
+  notes: RelationNote[];
+}
+
+export interface AgreementMatrix {
+  annotatorIds: string[];
+  relationIds: string[];
+  units: Array<Array<Label | null>>;
+}
+
+export interface AgreementStatistics extends AgreementMatrix {
+  overall: number | null;
+  by_class: Record<Label, number | null>;
+}
+
+export interface AnnotatorGoldAgreement {
+  annotator_id: string;
+  matching: number;
+  total: number;
+  agreement: number | null;
+}
+
+export interface CoverageRow {
+  relation_id: string;
+  expected: number;
+  observed: number;
+}
+
+export interface CoverageSummary {
+  rows: CoverageRow[];
+  complete: number;
+  total: number;
+}
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-const ANNOTATOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
 
 export class SaltValidationError extends Error {
-  constructor(message, issues = []) {
+  issues: string[];
+
+  constructor(message: string, issues: string[] = []) {
     super(message);
     this.name = "SaltValidationError";
     this.issues = issues;
   }
 }
 
-const isRecord = (value) =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+const isLabel = (value: unknown): value is Label =>
+  LabelSchema.safeParse(value).success;
 
-const requireString = (record, key, lineNumber, issues) => {
-  const value = record[key];
-  if (typeof value !== "string" || value.trim() === "") {
-    issues.push(`Line ${lineNumber}: "${key}" must be a non-empty string.`);
-    return "";
-  }
-  return value.trim();
-};
+export interface ParseCardsOptions<Qualification extends boolean = boolean> {
+  qualification?: Qualification;
+}
 
-const isLabel = (value) => LABELS.includes(value);
+export type ParsedCard<Qualification extends boolean> =
+  Qualification extends true ? QualificationCard : Card;
 
-const normalizeCard = (record, lineNumber, qualification, issues) => {
-  if (!isRecord(record)) {
-    issues.push(`Line ${lineNumber}: expected a JSON object.`);
-    return null;
-  }
-
-  const relationId = requireString(record, "relation_id", lineNumber, issues);
-  const familyId = requireString(record, "family_id", lineNumber, issues);
-  const cardText = requireString(record, "card_text", lineNumber, issues);
-  const cardHash = requireString(record, "card_hash", lineNumber, issues);
-  const prescreen = record.prescreen;
-
-  if (prescreen !== "equivalence" && prescreen !== "normal") {
-    issues.push(
-      `Line ${lineNumber}: "prescreen" must be "equivalence" or "normal".`,
-    );
-  }
-
-  const card = {
-    relation_id: relationId,
-    family_id: familyId,
-    card_text: cardText,
-    card_hash: cardHash,
-    prescreen,
-  };
-
-  if (qualification) {
-    const answer = record.answer ?? record.gold_label;
-    const rationale = record.rationale;
-    if (!isLabel(answer)) {
-      issues.push(
-        `Line ${lineNumber}: qualification "answer" must be C/P/O/U.`,
-      );
-    }
-    if (typeof rationale !== "string" || rationale.trim() === "") {
-      issues.push(
-        `Line ${lineNumber}: qualification "rationale" must be a non-empty string.`,
-      );
-    }
-    return {
-      ...card,
-      answer,
-      rationale: typeof rationale === "string" ? rationale.trim() : "",
-    };
-  }
-
-  return card;
-};
-
-export const parseCardsJsonl = (text, { qualification = false } = {}) => {
-  const issues = [];
-  const cards = [];
-  const relationIds = new Set();
-  const cardHashes = new Set();
+export const parseCardsJsonl = <Qualification extends boolean = false>(
+  text: string,
+  options: ParseCardsOptions<Qualification> = {},
+): Array<ParsedCard<Qualification>> => {
+  const qualification = options.qualification ?? false;
+  const issues: string[] = [];
+  const cards: Array<Card | QualificationCard> = [];
+  const relationIds = new Set<string>();
+  const cardHashes = new Set<string>();
 
   text.split(/\r?\n/u).forEach((line, lineIndex) => {
     if (line.trim() === "") {
       return;
     }
 
-    let parsed;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(line);
     } catch (error) {
@@ -106,23 +272,50 @@ export const parseCardsJsonl = (text, { qualification = false } = {}) => {
       return;
     }
 
-    const card = normalizeCard(parsed, lineIndex + 1, qualification, issues);
-    if (!card) {
-      return;
+    const parsedRecord =
+      parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : null;
+    const relationId =
+      typeof parsedRecord?.relation_id === "string"
+        ? parsedRecord.relation_id.trim()
+        : "";
+    const cardHash =
+      typeof parsedRecord?.card_hash === "string"
+        ? parsedRecord.card_hash.trim()
+        : "";
+
+    if (relationId !== "") {
+      if (relationIds.has(relationId)) {
+        issues.push(
+          `Line ${lineIndex + 1}: duplicate relation_id "${relationId}".`,
+        );
+      }
+      relationIds.add(relationId);
+    }
+    if (cardHash !== "") {
+      if (cardHashes.has(cardHash)) {
+        issues.push(
+          `Line ${lineIndex + 1}: duplicate card_hash "${cardHash}".`,
+        );
+      }
+      cardHashes.add(cardHash);
     }
 
-    if (relationIds.has(card.relation_id)) {
+    const result = (
+      qualification ? QualificationCardSchema : CardSchema
+    ).safeParse(parsed);
+    if (!result.success) {
+      const schemaIssues =
+        parsedRecord === null
+          ? ["expected a JSON object."]
+          : formatZodIssues(result.error);
       issues.push(
-        `Line ${lineIndex + 1}: duplicate relation_id "${card.relation_id}".`,
+        ...schemaIssues.map((issue) => `Line ${lineIndex + 1}: ${issue}`),
       );
+      return;
     }
-    if (cardHashes.has(card.card_hash)) {
-      issues.push(
-        `Line ${lineIndex + 1}: duplicate card_hash "${card.card_hash}".`,
-      );
-    }
-    relationIds.add(card.relation_id);
-    cardHashes.add(card.card_hash);
+    const card = result.data;
     cards.push(card);
   });
 
@@ -132,13 +325,14 @@ export const parseCardsJsonl = (text, { qualification = false } = {}) => {
   if (issues.length > 0) {
     throw new SaltValidationError("Card import failed.", issues);
   }
-  return cards;
+  return cards as Array<ParsedCard<Qualification>>;
 };
 
-export const cardsToJsonl = (cards) =>
-  `${cards.map((card) => JSON.stringify(card)).join("\n")}\n`;
+export const cardsToJsonl = (
+  cards: readonly (Card | QualificationCard)[],
+): string => `${cards.map((card) => JSON.stringify(card)).join("\n")}\n`;
 
-export const parseRoster = (text) => {
+export const parseRoster = (text: string): string[] => {
   const ids = text
     .split(/\r?\n|,/u)
     .map((value) => value.trim())
@@ -154,7 +348,7 @@ export const parseRoster = (text) => {
     );
   }
   const invalidIds = ids.filter(
-    (annotatorId) => !ANNOTATOR_ID_PATTERN.test(annotatorId),
+    (annotatorId) => !AnnotatorIdSchema.safeParse(annotatorId).success,
   );
   if (invalidIds.length > 0) {
     throw new SaltValidationError(
@@ -164,20 +358,21 @@ export const parseRoster = (text) => {
   return ids;
 };
 
-export const stableStringify = (value) => {
+export const stableStringify = (value: unknown): string | undefined => {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
     return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
   }
-  return `{${Object.keys(value)
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
     .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
     .join(",")}}`;
 };
 
-const rotateRight = (value, amount) =>
+const rotateRight = (value: number, amount: number): number =>
   (value >>> amount) | (value << (32 - amount));
 
 const SHA256_CONSTANTS = Object.freeze([
@@ -194,7 +389,7 @@ const SHA256_CONSTANTS = Object.freeze([
   0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
-export const sha256Hex = (value) => {
+export const sha256Hex = (value: string): string => {
   const bytes = new TextEncoder().encode(value);
   const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
@@ -261,13 +456,13 @@ export const sha256Hex = (value) => {
   return hash.map((part) => part.toString(16).padStart(8, "0")).join("");
 };
 
-export const deriveSeed = (seed, ...parts) =>
+export const deriveSeed = (seed: unknown, ...parts: unknown[]): number =>
   Number.parseInt(
     sha256Hex([String(seed), ...parts.map(String)].join("\u001f")).slice(0, 8),
     16,
   ) >>> 0;
 
-export const createRandom = (seed) => {
+export const createRandom = (seed: number): (() => number) => {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -278,7 +473,10 @@ export const createRandom = (seed) => {
   };
 };
 
-export const shuffled = (values, seed) => {
+export const shuffled = <Value>(
+  values: readonly Value[],
+  seed: number,
+): Value[] => {
   const result = [...values];
   const random = createRandom(seed);
   for (let index = result.length - 1; index > 0; index -= 1) {
@@ -288,7 +486,7 @@ export const shuffled = (values, seed) => {
   return result;
 };
 
-export const shuffleCardText = (cardText, seed) => {
+export const shuffleCardText = (cardText: string, seed: number): string => {
   const [heading, ...exampleLines] = cardText.split(/\r?\n/u);
   const examples = exampleLines.filter((line) => line.trim() !== "");
   if (examples.length < 2) {
@@ -298,15 +496,15 @@ export const shuffleCardText = (cardText, seed) => {
 };
 
 const compareAssignmentCandidates = (
-  left,
-  right,
-  totalLoads,
-  stratumLoads,
-  tieBreakers,
-) =>
-  totalLoads.get(left) - totalLoads.get(right) ||
-  stratumLoads.get(left) - stratumLoads.get(right) ||
-  tieBreakers.get(left) - tieBreakers.get(right) ||
+  left: string,
+  right: string,
+  totalLoads: ReadonlyMap<string, number>,
+  stratumLoads: ReadonlyMap<string, number>,
+  tieBreakers: ReadonlyMap<string, number>,
+): number =>
+  totalLoads.get(left)! - totalLoads.get(right)! ||
+  stratumLoads.get(left)! - stratumLoads.get(right)! ||
+  tieBreakers.get(left)! - tieBreakers.get(right)! ||
   left.localeCompare(right);
 
 export const generateAssignments = ({
@@ -315,7 +513,7 @@ export const generateAssignments = ({
   coverageTarget,
   sliceSize,
   seed,
-}) => {
+}: AssignmentOptions): AssignmentResult => {
   if (!Number.isInteger(coverageTarget) || coverageTarget < 1) {
     throw new SaltValidationError(
       "Coverage target must be a positive integer.",
@@ -339,28 +537,28 @@ export const generateAssignments = ({
     );
   }
 
-  const assignments = new Map(
+  const assignments = new Map<string, string[]>(
     annotatorIds.map((annotatorId) => [annotatorId, []]),
   );
-  const totalLoads = new Map(
+  const totalLoads = new Map<string, number>(
     annotatorIds.map((annotatorId) => [annotatorId, 0]),
   );
-  const stratumLoadsByName = new Map();
+  const stratumLoadsByName = new Map<Prescreen, Map<string, number>>();
 
-  for (const stratum of ["equivalence", "normal"]) {
+  for (const stratum of ["equivalence", "normal"] as const) {
     const cardsInStratum = shuffled(
       cards.filter((card) => card.prescreen === stratum),
       deriveSeed(seed, "assignment-card-order", stratum),
     );
-    const stratumLoads = new Map(
+    const stratumLoads = new Map<string, number>(
       annotatorIds.map((annotatorId) => [annotatorId, 0]),
     );
     stratumLoadsByName.set(stratum, stratumLoads);
 
     for (const card of cardsInStratum) {
-      const selected = new Set();
+      const selected = new Set<string>();
       for (let copy = 0; copy < coverageTarget; copy += 1) {
-        const tieBreakers = new Map(
+        const tieBreakers = new Map<string, number>(
           annotatorIds.map((annotatorId) => [
             annotatorId,
             deriveSeed(
@@ -377,7 +575,7 @@ export const generateAssignments = ({
           .filter(
             (annotatorId) =>
               !selected.has(annotatorId) &&
-              totalLoads.get(annotatorId) < sliceSize,
+              totalLoads.get(annotatorId)! < sliceSize,
           )
           .sort((left, right) =>
             compareAssignmentCandidates(
@@ -394,9 +592,9 @@ export const generateAssignments = ({
             `Unable to assign ${card.relation_id} within the configured slice cap.`,
           );
         }
-        assignments.get(chosen).push(card.relation_id);
-        totalLoads.set(chosen, totalLoads.get(chosen) + 1);
-        stratumLoads.set(chosen, stratumLoads.get(chosen) + 1);
+        assignments.get(chosen)!.push(card.relation_id);
+        totalLoads.set(chosen, totalLoads.get(chosen)! + 1);
+        stratumLoads.set(chosen, stratumLoads.get(chosen)! + 1);
         selected.add(chosen);
       }
     }
@@ -406,7 +604,7 @@ export const generateAssignments = ({
     assignments: Object.fromEntries(
       annotatorIds.map((annotatorId) => [
         annotatorId,
-        [...assignments.get(annotatorId)].sort(),
+        [...assignments.get(annotatorId)!].sort(),
       ]),
     ),
     loads: Object.fromEntries(totalLoads),
@@ -415,17 +613,17 @@ export const generateAssignments = ({
         stratum,
         Object.fromEntries(loads),
       ]),
-    ),
+    ) as Record<Prescreen, Record<string, number>>,
   };
 };
 
-const normalizeAccessCode = (value) =>
+const normalizeAccessCode = (value: string): string =>
   value
     .toUpperCase()
     .replace(/[^0-9A-Z]/gu, "")
     .replace(/[ILOU]/gu, "");
 
-const codeChecksum = (body) => {
+const codeChecksum = (body: string): string => {
   let total = 0;
   for (const character of body) {
     total = (total * 33 + CROCKFORD.indexOf(character)) % CROCKFORD.length;
@@ -433,7 +631,10 @@ const codeChecksum = (body) => {
   return CROCKFORD[total];
 };
 
-export const createAccessCode = (studySeed, annotatorId) => {
+export const createAccessCode = (
+  studySeed: unknown,
+  annotatorId: string,
+): string => {
   const random = createRandom(
     deriveSeed(studySeed, "annotator-access-code", annotatorId),
   );
@@ -445,7 +646,7 @@ export const createAccessCode = (studySeed, annotatorId) => {
   return `${compact.slice(0, 4)}-${compact.slice(4)}`;
 };
 
-export const isAccessCodeWellFormed = (value) => {
+export const isAccessCodeWellFormed = (value: string): boolean => {
   const compact = normalizeAccessCode(value);
   if (compact.length !== 8) {
     return false;
@@ -453,7 +654,7 @@ export const isAccessCodeWellFormed = (value) => {
   return codeChecksum(compact.slice(0, 7)) === compact.at(-1);
 };
 
-export const accessCodeHash = (studyId, code) =>
+export const accessCodeHash = (studyId: string, code: string): string =>
   sha256Hex(`${studyId}\u001f${normalizeAccessCode(code)}`);
 
 export const createStudy = ({
@@ -466,7 +667,7 @@ export const createStudy = ({
   rubricVersion = "v0.3",
   coincidentTarget = 300,
   title = "SALT geometry adjudication",
-}) => {
+}: CreateStudyOptions): CreateStudyResult => {
   if (!Array.isArray(cards) || cards.length === 0) {
     throw new SaltValidationError(
       "A study needs at least one production card.",
@@ -482,7 +683,7 @@ export const createStudy = ({
     annotatorIds.some(
       (annotatorId) =>
         typeof annotatorId !== "string" ||
-        !ANNOTATOR_ID_PATTERN.test(annotatorId),
+        !AnnotatorIdSchema.safeParse(annotatorId).success,
     )
   ) {
     throw new SaltValidationError(
@@ -502,7 +703,7 @@ export const createStudy = ({
   if (normalizedSeed === "") {
     throw new SaltValidationError("A study seed is required.");
   }
-  const deckHash = sha256Hex(stableStringify(cards));
+  const deckHash = sha256Hex(stableStringify(cards)!);
   const assignmentResult = generateAssignments({
     cards,
     annotatorIds,
@@ -517,10 +718,10 @@ export const createStudy = ({
       coverageTarget,
       sliceSize,
       assignments: assignmentResult.assignments,
-    }),
+    })!,
   ).slice(0, 12)}`;
 
-  const codeSheet = annotatorIds.map((annotatorId) => {
+  const codeSheet: CodeSheetEntry[] = annotatorIds.map((annotatorId) => {
     const code = createAccessCode(normalizedSeed, annotatorId);
     return {
       annotator_id: annotatorId,
@@ -529,7 +730,7 @@ export const createStudy = ({
     };
   });
 
-  const study = {
+  const study: Study = {
     schema_version: SCHEMA_VERSION,
     kind: "study",
     study_id: studyId,
@@ -558,7 +759,7 @@ export const createStudy = ({
   return { study, codeSheet };
 };
 
-export const manifestForExport = (study) => ({
+export const manifestForExport = (study: Study): StudyManifest => ({
   schema_version: study.schema_version,
   study_id: study.study_id,
   title: study.title,
@@ -580,7 +781,10 @@ export const manifestForExport = (study) => ({
   manifest: study.manifest,
 });
 
-export const codeSheetToTsv = (study, codeSheet) =>
+export const codeSheetToTsv = (
+  study: Study,
+  codeSheet: readonly CodeSheetEntry[],
+): string =>
   [
     "study_id\tannotator_id\tcode\tassigned_cards",
     ...codeSheet.map(
@@ -589,7 +793,10 @@ export const codeSheetToTsv = (study, codeSheet) =>
     ),
   ].join("\n") + "\n";
 
-export const resolveAnnotatorCode = (study, code) => {
+export const resolveAnnotatorCode = (
+  study: Study,
+  code: string,
+): string | null => {
   if (!isAccessCodeWellFormed(code)) {
     return null;
   }
@@ -599,45 +806,71 @@ export const resolveAnnotatorCode = (study, code) => {
   );
 };
 
-export const deckSeedFor = (study, annotatorId, pass) =>
-  deriveSeed(study.seed, "production-deck", annotatorId, pass);
+export const deckSeedFor = (
+  study: Study,
+  annotatorId: string,
+  pass: number,
+): number => deriveSeed(study.seed, "production-deck", annotatorId, pass);
 
-export const exampleSeedFor = (study, annotatorId, pass, card) =>
+export const exampleSeedFor = (
+  study: Study,
+  annotatorId: string,
+  pass: number,
+  card: Card,
+): number =>
   deriveSeed(study.seed, "card-examples", annotatorId, pass, card.card_hash);
 
-export const qualificationSeedFor = (study, annotatorId) =>
-  deriveSeed(study.seed, "qualification-deck", annotatorId);
+export const qualificationSeedFor = (
+  study: Study,
+  annotatorId: string,
+): number => deriveSeed(study.seed, "qualification-deck", annotatorId);
 
-export const projectSwipes = (events) => {
-  const retractions = new Map(
-    events
-      .filter((event) => event.event_type === "retraction")
-      .map((event) => [event.swipe_id, event.ts]),
+const isSwipeEvent = (event: InternalEvent): event is SwipeEvent =>
+  event.event_type === "swipe";
+
+const isRetractionEvent = (event: InternalEvent): event is RetractionEvent =>
+  event.event_type === "retraction";
+
+export const projectSwipes = (
+  events: readonly InternalEvent[],
+): ProjectedSwipeRecord[] => {
+  const retractions = new Map<string, string>(
+    events.filter(isRetractionEvent).map((event) => [event.swipe_id, event.ts]),
   );
 
-  return events
-    .filter((event) => event.event_type === "swipe")
-    .map((event) => ({
-      ...event.swipe,
-      retracted: retractions.has(event.swipe.swipe_id),
-      ...(retractions.has(event.swipe.swipe_id)
-        ? { retracted_at: retractions.get(event.swipe.swipe_id) }
-        : {}),
-    }));
+  return events.filter(isSwipeEvent).map((event) => ({
+    ...event.swipe,
+    retracted: retractions.has(event.swipe.swipe_id),
+    ...(retractions.has(event.swipe.swipe_id)
+      ? { retracted_at: retractions.get(event.swipe.swipe_id) }
+      : {}),
+  }));
 };
 
-export const activeSwipes = (eventsOrSwipes) => {
-  const swipes = eventsOrSwipes.some((entry) => entry.event_type)
-    ? projectSwipes(eventsOrSwipes)
-    : eventsOrSwipes;
+export interface ActiveSwipesFunction {
+  (events: readonly InternalEvent[]): ProjectedSwipeRecord[];
+  <Swipe extends RelationSwipeRecord>(swipes: readonly Swipe[]): Swipe[];
+}
+
+const activeSwipesImplementation = (
+  eventsOrSwipes: readonly InternalEvent[] | readonly RelationSwipeRecord[],
+): RelationSwipeRecord[] => {
+  const containsInternalEvents = eventsOrSwipes.some((entry) =>
+    Boolean((entry as InternalEvent).event_type),
+  );
+  const swipes: readonly RelationSwipeRecord[] = containsInternalEvents
+    ? projectSwipes(eventsOrSwipes as readonly InternalEvent[])
+    : (eventsOrSwipes as readonly RelationSwipeRecord[]);
   return swipes.filter((swipe) => !swipe.retracted);
 };
 
+export const activeSwipes = activeSwipesImplementation as ActiveSwipesFunction;
+
 export const relationHasLocalDisagreement = (
-  events,
-  relationId,
-  annotatorId,
-) => {
+  events: readonly InternalEvent[],
+  relationId: string,
+  annotatorId: string,
+): boolean => {
   const labels = activeSwipes(events)
     .filter(
       (swipe) =>
@@ -654,7 +887,7 @@ export const getProductionDeck = ({
   annotatorId,
   pass,
   events = [],
-}) => {
+}: ProductionDeckOptions): Card[] => {
   const assignedIds = new Set(study.manifest.assignments[annotatorId] ?? []);
   const completedIds = new Set(
     activeSwipes(events)
@@ -678,7 +911,11 @@ export const getProductionDeck = ({
   return ordered.filter((card) => !completedIds.has(card.relation_id));
 };
 
-export const getQualificationDeck = ({ study, annotatorId, events = [] }) => {
+export const getQualificationDeck = ({
+  study,
+  annotatorId,
+  events = [],
+}: QualificationDeckOptions): QualificationCard[] => {
   const completedIds = new Set(
     activeSwipes(events)
       .filter(
@@ -692,7 +929,11 @@ export const getQualificationDeck = ({ study, annotatorId, events = [] }) => {
   ).filter((card) => !completedIds.has(card.relation_id));
 };
 
-export const nextIncompletePass = (study, annotatorId, events) => {
+export const nextIncompletePass = (
+  study: Study,
+  annotatorId: string,
+  events: readonly InternalEvent[],
+): number => {
   const assignedCount = study.manifest.assignments[annotatorId]?.length ?? 0;
   if (assignedCount === 0) {
     return 1;
@@ -719,9 +960,9 @@ export const nextIncompletePass = (study, annotatorId, events) => {
 };
 
 export const nextMonotoneTimestamp = (
-  lastTimestampMs = 0,
-  now = Date.now(),
-) => {
+  lastTimestampMs: number = 0,
+  now: number = Date.now(),
+): MonotoneTimestamp => {
   const timestampMs = Math.max(now, lastTimestampMs + 1);
   return {
     timestampMs,
@@ -730,33 +971,38 @@ export const nextMonotoneTimestamp = (
 };
 
 export class DecisionTimer {
-  constructor(now = () => performance.now()) {
+  now: () => number;
+  startedAt: number | null;
+  pausedAt: number | null;
+  pausedDuration: number;
+
+  constructor(now: () => number = () => performance.now()) {
     this.now = now;
     this.startedAt = null;
     this.pausedAt = null;
     this.pausedDuration = 0;
   }
 
-  start() {
+  start(): void {
     this.startedAt = this.now();
     this.pausedAt = null;
     this.pausedDuration = 0;
   }
 
-  pause() {
+  pause(): void {
     if (this.startedAt !== null && this.pausedAt === null) {
       this.pausedAt = this.now();
     }
   }
 
-  resume() {
+  resume(): void {
     if (this.pausedAt !== null) {
       this.pausedDuration += this.now() - this.pausedAt;
       this.pausedAt = null;
     }
   }
 
-  elapsed() {
+  elapsed(): number {
     if (this.startedAt === null) {
       return 0;
     }
@@ -779,7 +1025,7 @@ export const createSwipeEvent = ({
   sessionId,
   sequence,
   timestamp,
-}) => {
+}: CreateSwipeEventOptions): SwipeEvent => {
   if (!isLabel(label)) {
     throw new SaltValidationError(`Unknown label "${label}".`);
   }
@@ -824,7 +1070,7 @@ export const createRetractionEvent = ({
   annotatorId,
   sessionId,
   timestamp,
-}) => ({
+}: CreateRetractionEventOptions): RetractionEvent => ({
   event_type: "retraction",
   swipe_id: swipeId,
   annotator_id: annotatorId,
@@ -832,7 +1078,10 @@ export const createRetractionEvent = ({
   ts: timestamp.iso,
 });
 
-export const latestUndoableSwipe = (events, sessionId) => {
+export const latestUndoableSwipe = (
+  events: readonly InternalEvent[],
+  sessionId: string,
+): ProjectedSwipeRecord | null => {
   const projected = projectSwipes(events);
   for (let index = projected.length - 1; index >= 0; index -= 1) {
     const swipe = projected[index];
@@ -843,21 +1092,24 @@ export const latestUndoableSwipe = (events, sessionId) => {
   return null;
 };
 
-export const swipesToJsonl = (events) => {
+export const swipesToJsonl = (events: readonly InternalEvent[]): string => {
   const swipes = projectSwipes(events);
   return swipes.length === 0
     ? ""
     : `${swipes.map((swipe) => JSON.stringify(swipe)).join("\n")}\n`;
 };
 
-export const parseSwipesJsonl = (text, sourceName = "swipes.jsonl") => {
-  const issues = [];
-  const swipes = [];
+export const parseSwipesJsonl = (
+  text: string,
+  sourceName: string = "swipes.jsonl",
+): ImportedSwipeRecord[] => {
+  const issues: string[] = [];
+  const swipes: ImportedSwipeRecord[] = [];
   text.split(/\r?\n/u).forEach((line, lineIndex) => {
     if (line.trim() === "") {
       return;
     }
-    let record;
+    let record: unknown;
     try {
       record = JSON.parse(line);
     } catch (error) {
@@ -867,65 +1119,22 @@ export const parseSwipesJsonl = (text, sourceName = "swipes.jsonl") => {
       return;
     }
     const prefix = `${sourceName}:${lineIndex + 1}`;
-    if (!isRecord(record)) {
-      issues.push(`${prefix}: expected an object.`);
+    const sourcedRecord =
+      record !== null && typeof record === "object" && !Array.isArray(record)
+        ? { ...record, source_file: sourceName }
+        : record;
+    const result = ImportedSwipeRecordSchema.safeParse(sourcedRecord);
+    if (!result.success) {
+      const schemaIssues =
+        sourcedRecord === null ||
+        typeof sourcedRecord !== "object" ||
+        Array.isArray(sourcedRecord)
+          ? ["expected an object."]
+          : formatZodIssues(result.error);
+      issues.push(...schemaIssues.map((issue) => `${prefix}: ${issue}`));
       return;
     }
-    for (const field of [
-      "swipe_id",
-      "study_id",
-      "deck_hash",
-      "annotator_id",
-      "relation_id",
-      "family_id",
-      "card_hash",
-      "rubric_version",
-      "ts",
-    ]) {
-      if (typeof record[field] !== "string" || record[field] === "") {
-        issues.push(`${prefix}: missing "${field}".`);
-      }
-    }
-    if (!isLabel(record.label)) {
-      issues.push(`${prefix}: label must be C/P/O/U.`);
-    }
-    if (record.prescreen !== "equivalence" && record.prescreen !== "normal") {
-      issues.push(`${prefix}: prescreen must be "equivalence" or "normal".`);
-    }
-    if (!Number.isInteger(record.pass) || record.pass < 0) {
-      issues.push(`${prefix}: pass must be a non-negative integer.`);
-    }
-    if (
-      typeof record.latency_ms !== "number" ||
-      !Number.isFinite(record.latency_ms) ||
-      record.latency_ms < 0
-    ) {
-      issues.push(`${prefix}: latency_ms must be a non-negative number.`);
-    }
-    if (!Number.isInteger(record.shuffle_seed) || record.shuffle_seed < 0) {
-      issues.push(`${prefix}: shuffle_seed must be a non-negative integer.`);
-    }
-    if (typeof record.ts === "string" && Number.isNaN(Date.parse(record.ts))) {
-      issues.push(`${prefix}: ts must be a valid date-time string.`);
-    }
-    if (
-      record.retracted !== undefined &&
-      typeof record.retracted !== "boolean"
-    ) {
-      issues.push(`${prefix}: retracted must be a boolean when present.`);
-    }
-    if (
-      record.qualification !== undefined &&
-      typeof record.qualification !== "boolean"
-    ) {
-      issues.push(`${prefix}: qualification must be a boolean when present.`);
-    }
-    swipes.push({
-      ...record,
-      source_file: sourceName,
-      retracted: Boolean(record.retracted),
-      qualification: Boolean(record.qualification),
-    });
+    swipes.push(result.data);
   });
   if (issues.length > 0) {
     throw new SaltValidationError(`Could not load ${sourceName}.`, issues);
@@ -933,8 +1142,10 @@ export const parseSwipesJsonl = (text, sourceName = "swipes.jsonl") => {
   return swipes;
 };
 
-export const latestVotesByAnnotator = (swipes) => {
-  const latest = new Map();
+export const latestVotesByAnnotator = <Swipe extends LatestVoteRecord>(
+  swipes: readonly Swipe[],
+): Swipe[] => {
+  const latest = new Map<string, Swipe>();
   for (const swipe of swipes
     .filter((entry) => !entry.retracted && !entry.qualification)
     .sort(
@@ -948,15 +1159,15 @@ export const latestVotesByAnnotator = (swipes) => {
   return [...latest.values()];
 };
 
-export const labelCounts = (labels) =>
+export const labelCounts = (labels: readonly Label[]): LabelCounts =>
   Object.fromEntries(
     LABELS.map((label) => [
       label,
       labels.filter((candidate) => candidate === label).length,
     ]),
-  );
+  ) as LabelCounts;
 
-export const shannonEntropy = (labels) => {
+export const shannonEntropy = (labels: readonly Label[]): number => {
   if (labels.length === 0) {
     return 0;
   }
@@ -969,7 +1180,7 @@ export const shannonEntropy = (labels) => {
   }, 0);
 };
 
-export const majorityLabel = (labels) => {
+export const majorityLabel = (labels: readonly Label[]): Label | null => {
   if (labels.length === 0) {
     return null;
   }
@@ -979,9 +1190,14 @@ export const majorityLabel = (labels) => {
   return winners.length === 1 ? winners[0] : null;
 };
 
-export const relationSummaries = (swipes, cards) => {
-  const cardById = new Map(cards.map((card) => [card.relation_id, card]));
-  const relationIds = new Set([
+export const relationSummaries = (
+  swipes: readonly RelationSwipeRecord[],
+  cards: readonly Card[],
+): RelationSummary[] => {
+  const cardById = new Map<string, Card>(
+    cards.map((card) => [card.relation_id, card]),
+  );
+  const relationIds = new Set<string>([
     ...cards.map((card) => card.relation_id),
     ...swipes.map((swipe) => swipe.relation_id),
   ]);
@@ -1025,14 +1241,16 @@ export const relationSummaries = (swipes, cards) => {
     );
 };
 
-export const nominalKrippendorffAlpha = (units) => {
+export const nominalKrippendorffAlpha = <Category>(
+  units: readonly (readonly (Category | null | undefined)[])[],
+): number | null => {
   let observedDisagreement = 0;
   let coincidenceCount = 0;
-  const marginals = new Map();
+  const marginals = new Map<Category, number>();
 
   for (const rawValues of units) {
     const values = rawValues.filter(
-      (value) => value !== null && value !== undefined,
+      (value): value is Category => value !== null && value !== undefined,
     );
     if (values.length < 2) {
       continue;
@@ -1069,7 +1287,9 @@ export const nominalKrippendorffAlpha = (units) => {
   return 1 - observed / expected;
 };
 
-export const agreementMatrix = (swipes) => {
+export const agreementMatrix = (
+  swipes: readonly LatestVoteRecord[],
+): AgreementMatrix => {
   const latest = latestVotesByAnnotator(swipes);
   const annotatorIds = [
     ...new Set(latest.map((swipe) => swipe.annotator_id)),
@@ -1077,7 +1297,7 @@ export const agreementMatrix = (swipes) => {
   const relationIds = [
     ...new Set(latest.map((swipe) => swipe.relation_id)),
   ].sort();
-  const byPair = new Map(
+  const byPair = new Map<string, Label>(
     latest.map((swipe) => [
       `${swipe.relation_id}\u001f${swipe.annotator_id}`,
       swipe.label,
@@ -1095,7 +1315,9 @@ export const agreementMatrix = (swipes) => {
   };
 };
 
-export const agreementStatistics = (swipes) => {
+export const agreementStatistics = (
+  swipes: readonly LatestVoteRecord[],
+): AgreementStatistics => {
   const matrix = agreementMatrix(swipes);
   return {
     ...matrix,
@@ -1111,42 +1333,38 @@ export const agreementStatistics = (swipes) => {
           ),
         ),
       ]),
-    ),
+    ) as Record<Label, number | null>,
   };
 };
 
 export const parseAdjudicationsJsonl = (
-  text,
-  sourceName = "adjudications.jsonl",
-) => {
-  const issues = [];
-  const adjudications = [];
+  text: string,
+  sourceName: string = "adjudications.jsonl",
+): ImportedAdjudicationRecord[] => {
+  const issues: string[] = [];
+  const adjudications: ImportedAdjudicationRecord[] = [];
   text.split(/\r?\n/u).forEach((line, lineIndex) => {
     if (line.trim() === "") {
       return;
     }
+    let record: unknown;
     try {
-      const record = JSON.parse(line);
-      if (!isRecord(record) || !isLabel(record.label)) {
-        issues.push(`${sourceName}:${lineIndex + 1}: invalid adjudication.`);
-        return;
-      }
-      if (
-        typeof record.relation_id !== "string" ||
-        typeof record.rationale !== "string" ||
-        record.rationale.trim() === ""
-      ) {
-        issues.push(
-          `${sourceName}:${lineIndex + 1}: relation_id and rationale are required.`,
-        );
-        return;
-      }
-      adjudications.push(record);
+      record = JSON.parse(line);
     } catch (error) {
       issues.push(
         `${sourceName}:${lineIndex + 1}: invalid JSON (${error instanceof Error ? error.message : String(error)}).`,
       );
+      return;
     }
+    const prefix = `${sourceName}:${lineIndex + 1}`;
+    const result = ImportedAdjudicationRecordSchema.safeParse(record);
+    if (!result.success) {
+      issues.push(
+        ...formatZodIssues(result.error).map((issue) => `${prefix}: ${issue}`),
+      );
+      return;
+    }
+    adjudications.push(result.data);
   });
   if (issues.length > 0) {
     throw new SaltValidationError(`Could not load ${sourceName}.`, issues);
@@ -1154,7 +1372,9 @@ export const parseAdjudicationsJsonl = (
   return adjudications;
 };
 
-export const adjudicationsToJsonl = (adjudications) =>
+export const adjudicationsToJsonl = (
+  adjudications: readonly AdjudicationDecision[],
+): string =>
   adjudications.length === 0
     ? ""
     : `${adjudications
@@ -1170,7 +1390,7 @@ export const createAdjudication = ({
   rationale,
   adjudicatorId,
   timestamp,
-}) => ({
+}: CreateAdjudicationOptions): CreatedAdjudicationRecord => ({
   schema_version: ADJUDICATION_SCHEMA_VERSION,
   record_type: "adjudication",
   study_id: studyId,
@@ -1183,14 +1403,17 @@ export const createAdjudication = ({
   ts: timestamp.iso,
 });
 
-export const perAnnotatorGoldAgreement = (swipes, adjudications) => {
-  const gold = new Map(
+export const perAnnotatorGoldAgreement = (
+  swipes: readonly LatestVoteRecord[],
+  adjudications: readonly AdjudicationDecision[],
+): AnnotatorGoldAgreement[] => {
+  const gold = new Map<string, Label>(
     adjudications.map((record) => [record.relation_id, record.label]),
   );
   const latest = latestVotesByAnnotator(swipes).filter((swipe) =>
     gold.has(swipe.relation_id),
   );
-  const grouped = new Map();
+  const grouped = new Map<string, Omit<AnnotatorGoldAgreement, "agreement">>();
   for (const swipe of latest) {
     const current = grouped.get(swipe.annotator_id) ?? {
       annotator_id: swipe.annotator_id,
@@ -1209,13 +1432,16 @@ export const perAnnotatorGoldAgreement = (swipes, adjudications) => {
     .sort((left, right) => left.annotator_id.localeCompare(right.annotator_id));
 };
 
-const escapeMarkdownCell = (value) =>
+const escapeMarkdownCell = (value: unknown): string =>
   String(value ?? "")
     .replaceAll("|", "\\|")
     .replaceAll(/\r?\n/gu, " ");
 
-export const edgeCaseMarkdown = (summaries, adjudications = []) => {
-  const adjudicationById = new Map(
+export const edgeCaseMarkdown = (
+  summaries: readonly RelationSummary[],
+  adjudications: readonly AdjudicationDecision[] = [],
+): string => {
+  const adjudicationById = new Map<string, AdjudicationDecision>(
     adjudications.map((record) => [record.relation_id, record]),
   );
   const lines = [
@@ -1232,7 +1458,9 @@ export const edgeCaseMarkdown = (summaries, adjudications = []) => {
       .map((swipe) => `${swipe.annotator_id}/p${swipe.pass}:${swipe.label}`)
       .join(", ");
     const notes = summary.notes
-      .map((note) => `${note.annotator_id}/p${note.pass}: ${note.note}`)
+      .map(
+        (note) => `${note.annotator_id}/p${note.pass}: ${note.note as string}`,
+      )
       .join("; ");
     lines.push(
       `| ${escapeMarkdownCell(summary.relation_id)} | ${summary.entropy.toFixed(
@@ -1247,11 +1475,15 @@ export const edgeCaseMarkdown = (summaries, adjudications = []) => {
   return `${lines.join("\n")}\n`;
 };
 
-export const summarizeCoverage = (study, swipes) => {
+export const summarizeCoverage = (
+  study: Study,
+  swipes: readonly LatestVoteRecord[],
+): CoverageSummary => {
   const latest = latestVotesByAnnotator(swipes);
-  const coveredByRelation = new Map();
+  const coveredByRelation = new Map<string, Set<string>>();
   for (const swipe of latest) {
-    const annotators = coveredByRelation.get(swipe.relation_id) ?? new Set();
+    const annotators =
+      coveredByRelation.get(swipe.relation_id) ?? new Set<string>();
     annotators.add(swipe.annotator_id);
     coveredByRelation.set(swipe.relation_id, annotators);
   }
@@ -1267,10 +1499,10 @@ export const summarizeCoverage = (study, swipes) => {
   };
 };
 
-export const serializePayload = (payload) =>
-  JSON.stringify(payload).replaceAll("<", "\\u003c");
+export const serializePayload = (payload: unknown): string =>
+  JSON.stringify(payload)!.replaceAll("<", "\\u003c");
 
-export const safeFilenamePart = (value) =>
+export const safeFilenamePart = (value: unknown): string =>
   String(value)
     .trim()
     .toLowerCase()

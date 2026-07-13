@@ -98,11 +98,13 @@ def test_stderr_progress_throttles_and_always_prints_completion() -> None:
     progress.phase("work", total=100)
     for _ in range(99):
         progress.advance()  # clock frozen: only the first line survives
-    assert lines == ["[00:00] work (100 items)", "[00:00]   work: 1/100"]
+    # No throughput/ETA yet: a rate needs at least one throttle interval
+    # of evidence, and the frozen clock has produced none.
+    assert lines == ["[00:00] work (100 items)", "[00:00]   work: 1/100 (1.0%)"]
 
     clock_value = 61.0
     progress.advance()  # completion always prints, with mm:ss elapsed
-    assert lines[-1] == "[01:01]   work: 100/100"
+    assert lines[-1] == "[01:01]   work: 100/100 (100.0%, 2/s, ETA 00:00)"
 
 
 def test_stderr_progress_reports_interval_ticks() -> None:
@@ -119,8 +121,8 @@ def test_stderr_progress_reports_interval_ticks() -> None:
     progress.advance()
     assert lines == [
         "[00:00] stream",
-        "[00:00]   stream: 1",
-        "[00:02]   stream: 2",
+        "[00:00]   stream: 1",  # zero elapsed: no rate quoted
+        "[00:02]   stream: 2 (1/s)",  # past the interval: rate has evidence
     ]
     progress.note("resuming at byte 42")
     assert lines[-1] == "[00:02]   resuming at byte 42"

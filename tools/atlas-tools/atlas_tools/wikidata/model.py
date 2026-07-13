@@ -6,6 +6,7 @@ itself the on-disk line format, so field names here are a stable file
 contract.
 """
 
+import re
 from enum import StrEnum
 from typing import Annotated, Literal, NewType
 
@@ -124,6 +125,19 @@ class PropertyRecord(BaseModel):
     example_source: ExampleSource | None = None  # None = ladder skipped
     example_skipped: bool = False
     retrieved_at: str | None = None
+
+
+_QID_SHAPE = re.compile(r"^Q\d+$")
+
+
+def is_qid(entity_id: str) -> bool:
+    """Whether the id has item shape ("Q42"), as opposed to P/L pages.
+
+    The predicate behind the item-namespace guards: the example query
+    excludes non-item subjects, the example parser re-filters, and the
+    card adapter skips examples whose recorded endpoints are not items.
+    """
+    return _QID_SHAPE.fullmatch(entity_id) is not None
 
 
 def entity_number(entity_id: str) -> int:

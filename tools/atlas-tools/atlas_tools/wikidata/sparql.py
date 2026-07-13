@@ -51,12 +51,16 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from atlas_tools.wikidata.model import Pid
+from atlas_tools.wikidata.model import Pid, is_qid
 
 WIKIBASE_ITEM_DATATYPE = "http://wikiba.se/ontology#WikibaseItem"
 
 # Bump on any semantic change to example_pairs_query (see module docstring).
-EXAMPLE_QUERY_VERSION = 4
+# v5: subjects restricted to the item namespace. Property pages carry
+# truthy statements too (external-ID properties state the country of
+# their database, say), and those pairs are Wikidata bookkeeping, not
+# examples of the relation.
+EXAMPLE_QUERY_VERSION = 5
 
 # The SPARQL endpoints the example ladder can draw from. The ladder order
 # is config (``ExtractionConfig.example_endpoint_ladder``), not a constant.
@@ -116,7 +120,13 @@ def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "e
     pair.
 
     ``wdt:`` yields truthy (best-rank) statements only, so deprecated and
-    superseded statements never enter the candidate pool.
+    superseded statements never enter the candidate pool. The subject is
+    restricted to the item namespace inside the inner subquery: property
+    and lexeme pages carry truthy statements of their own (an external-ID
+    property stating its database's country, say), and such pairs are
+    statements about Wikidata's bookkeeping, not examples of the relation.
+    The STRSTARTS filter is a per-row test, so streaming evaluation
+    survives it.
 
     Streaming-safe and portable: no ORDER BY anywhere, no WDQS-only label
     service, explicit prefixes for QLever.
@@ -130,6 +140,7 @@ def example_pairs_query(pid: str, *, limit: int, offset: int, language: str = "e
         "  {\n"
         "    SELECT ?subject ?object WHERE {\n"
         f"      ?subject wdt:{pid} ?object .\n"
+        '      FILTER(STRSTARTS(STR(?subject), "http://www.wikidata.org/entity/Q"))\n'
         "    }\n"
         f"    LIMIT {limit} OFFSET {offset}\n"
         "  }\n"
@@ -237,6 +248,14 @@ def _sitelinks(binding: dict[str, SparqlValue], name: str) -> int:
 
 
 def parse_example_results(body: bytes) -> list[ExampleRow]:
+    """Parse example rows, defensively re-filtering non-item endpoints.
+
+    The query already restricts subjects to the item namespace, but (as
+    with ``parse_inventory_results``) the parser re-checks so property or
+    lexeme pages can never leak into the candidate pool through an
+    endpoint quirk or a stale cached response. Empty ids (label-only
+    pre-v4 rows) pass through unchanged.
+    """
     response = SparqlResponse.model_validate_json(body)
     rows: list[ExampleRow] = []
 
@@ -245,10 +264,15 @@ def parse_example_results(body: bytes) -> list[ExampleRow]:
         subject_binding = binding.get("subject")
         object_binding = binding.get("object")
 
+        subject_qid = _entity_id_from_uri(subject_binding.value) if subject_binding else ""
+        object_qid = _entity_id_from_uri(object_binding.value) if object_binding else ""
+        if (subject_qid and not is_qid(subject_qid)) or (object_qid and not is_qid(object_qid)):
+            continue
+
         rows.append(
             ExampleRow(
-                subject_qid=(_entity_id_from_uri(subject_binding.value) if subject_binding else ""),
-                object_qid=(_entity_id_from_uri(object_binding.value) if object_binding else ""),
+                subject_qid=subject_qid,
+                object_qid=object_qid,
                 subject_label=binding["subjectLabel"].value,
                 object_label=binding["objectLabel"].value,
                 subject_type=(

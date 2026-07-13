@@ -1,16 +1,42 @@
 {
-  "1ff2e02659b042a8b1a2af07518f8e2f0bbc443f4e55d08267c7fca71f086e5d": {
-    "file": "examples_P9001_qlever_0.json",
+  "032ae910972834a082c08e981b581c6ad37e04fbdb8d91029ac6c2f91dd73184": {
+    "file": "examples_P9005_qlever_0.json",
     "headers": {
       "content-type": "application/json",
       "date": "2025-06-01T00:00:00+00:00"
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9005 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.dev/api/wikidata"
+  },
+  "0b781f81cb7e7e9ce1f91ef1d7646800bf7a3d4ee4a21c2d705193aff6c7ebdc": {
+    "file": "examples_P527_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P527 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://qlever.dev/api/wikidata"
+  },
+  "13f6b9418fd01bae489a7675e9eeafb6e8ba2e66e008b89a5464771b3f48f617": {
+    "file": "examples_P9002_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 500,
-    "url": "https://qlever.dev/api/wikidata"
+    "url": "https://query.wikidata.org/sparql"
   },
   "2c5815cb4df4f5b92270c099d8344ff4be46015ff8dbb1f7a3144d41d5a8621c": {
     "file": "ancestors.json",
@@ -24,45 +50,6 @@
     },
     "status": 200,
     "url": "https://qlever.dev/api/wikidata"
-  },
-  "3d75091cde34b2d75465bceb05178d404ed594039a9c8707b0f36b89c04d19f2": {
-    "file": "examples_P527_qlever_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P527 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
-    },
-    "status": 200,
-    "url": "https://qlever.dev/api/wikidata"
-  },
-  "4228e6c85039fad0e636eb5d58b54a6f78412b719d9d5c18f4d114a626fa67c5": {
-    "file": "examples_P9002_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
-    },
-    "status": 500,
-    "url": "https://query.wikidata.org/sparql"
-  },
-  "5351357bfbda6602a02bd60435fe5f7dce14cac453dd00590b45b317df5499c3": {
-    "file": "examples_P9001_wdqs_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
-    },
-    "status": 200,
-    "url": "https://query.wikidata.org/sparql"
   },
   "5bd3abe9d44463fcd1263b904f4281707e759084fd824912abe86cbf808508db": {
     "file": "items_batch_0.json",
@@ -80,20 +67,7 @@
     "status": 200,
     "url": "https://www.wikidata.org/w/api.php"
   },
-  "6bcda08f02bcfc2d94a7e188553b822b9ac054bdc02e4c81fd2f98513e62e33d": {
-    "file": "examples_P9005_qlever_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9005 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
-    },
-    "status": 200,
-    "url": "https://qlever.dev/api/wikidata"
-  },
-  "851fb778dd39c05237d4613065112bd1e4c953bdc2e8f623965dc1457cb893f7": {
+  "6681dd9bdf015bafe94339f2311cfa2306d8bace4c5c27d9f47edf6a66bc1919": {
     "file": "examples_P9002_qlever_0.json",
     "headers": {
       "content-type": "application/json",
@@ -101,9 +75,22 @@
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9002 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 500,
+    "url": "https://qlever.dev/api/wikidata"
+  },
+  "7e4e8fbc91864dd86cb2323677ba3d30208a164663369385fe38ce36ce8de0c1": {
+    "file": "examples_P50_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P50 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
     "url": "https://qlever.dev/api/wikidata"
   },
   "8c337af11a24543d96ab233ff7f8faeb7031142036cebddebdfd457b6b6c44fb": {
@@ -122,6 +109,32 @@
     "status": 200,
     "url": "https://www.wikidata.org/w/api.php"
   },
+  "a568a441a6b7ba5970a66ee8aa56dd716a649316238c09256442fa8161a8b915": {
+    "file": "examples_P9001_wdqs_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 200,
+    "url": "https://query.wikidata.org/sparql"
+  },
+  "aa98e0c58ab61db60195aafb7969c2c361297a70774f05eade44801f49e93b18": {
+    "file": "examples_P9001_qlever_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "format": "json",
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P9001 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+    },
+    "status": 500,
+    "url": "https://qlever.dev/api/wikidata"
+  },
   "d2eaec8d68788941308b73e699b1ae788ee21491164f843a4bac23ee18026f72": {
     "file": "inventory.json",
     "headers": {
@@ -135,7 +148,7 @@
     "status": 200,
     "url": "https://query.wikidata.org/sparql"
   },
-  "e3755319cc2e83d7556d78c2eba7477c1731c366b0e573b3f4549eeee4c6c70e": {
+  "ec32a9bd0641e1f8dde50a2513500dd692a1b63466fff181e14516614d13c504": {
     "file": "examples_P361_qlever_0.json",
     "headers": {
       "content-type": "application/json",
@@ -143,20 +156,7 @@
     },
     "params": {
       "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P361 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
-    },
-    "status": 200,
-    "url": "https://qlever.dev/api/wikidata"
-  },
-  "f5d88712daa8a6a999f420d5e438d8b228cdfd46c448199c0c2c48a13cdda68c": {
-    "file": "examples_P50_qlever_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "format": "json",
-      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P50 ?object .\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
+      "query": "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX wikibase: <http://wikiba.se/ontology#>\nSELECT ?subject ?object ?subjectLabel ?objectLabel ?subjectType ?subjectSitelinks ?objectSitelinks WHERE {\n  {\n    SELECT ?subject ?object WHERE {\n      ?subject wdt:P361 ?object .\n      FILTER(STRSTARTS(STR(?subject), \"http://www.wikidata.org/entity/Q\"))\n    }\n    LIMIT 10 OFFSET 0\n  }\n  OPTIONAL { ?subject wdt:P31 ?subjectType . }\n  OPTIONAL { ?subject wikibase:sitelinks ?subjectSitelinks . }\n  OPTIONAL { ?object wikibase:sitelinks ?objectSitelinks . }\n  ?subject rdfs:label ?subjectLabel .\n  FILTER(LANG(?subjectLabel) = \"en\")\n  ?object rdfs:label ?objectLabel .\n  FILTER(LANG(?objectLabel) = \"en\")\n}"
     },
     "status": 200,
     "url": "https://qlever.dev/api/wikidata"

@@ -19,29 +19,55 @@ test("builds one deterministic HTML document with no external assets", async () 
 
   try {
     await execFileAsync(process.execPath, [
-      resolve(toolRoot, "build.mjs"),
+      resolve(toolRoot, "build.ts"),
       "--out",
       firstOutput,
     ]);
     await execFileAsync(process.execPath, [
-      resolve(toolRoot, "build.mjs"),
+      resolve(toolRoot, "build.ts"),
       "--out",
       secondOutput,
     ]);
 
-    const [first, second] = await Promise.all([
+    const [first, second, committed] = await Promise.all([
       readFile(firstOutput, "utf8"),
       readFile(secondOutput, "utf8"),
+      readFile(resolve(toolRoot, "salt-adjudicator.html"), "utf8"),
     ]);
     assert.equal(first, second);
+    assert.equal(
+      first,
+      committed,
+      "The committed artifact must match the source.",
+    );
+    assert.ok(
+      Buffer.byteLength(first) < 300_000,
+      "The standalone artifact must stay below 300 KB.",
+    );
     assert.match(first, /^<!doctype html>/u);
     assert.match(first, /<style>[\s\S]+<\/style>/u);
+    const inlinedStyles = first.match(/<style>([\s\S]+?)<\/style>/u)?.[1];
+    assert.ok(inlinedStyles);
+    assert.doesNotMatch(inlinedStyles, /@import\b|url\s*\(/iu);
     assert.match(first, /"kind":"generic"/u);
     assert.match(first, /SALT demonstration study/u);
+    assert.match(first, /Geometry class guide/u);
+    assert.match(
+      first,
+      /The relation places both sides at the same semantic point/u,
+    );
+    assert.doesNotMatch(first, /[ \t]+$/mu);
     assert.doesNotMatch(first, /<script\b[^>]*\bsrc=/iu);
     assert.doesNotMatch(first, /<link\b[^>]*\bhref=/iu);
+    assert.doesNotMatch(
+      first,
+      /<(?:audio|iframe|img|source|video)\b[^>]*\bsrc=/iu,
+    );
     assert.doesNotMatch(first, /<script\b[^>]*\btype=["']module["']/iu);
-    assert.doesNotMatch(first, /https?:\/\//iu);
+    assert.doesNotMatch(
+      first,
+      /\b(?:EventSource|WebSocket|XMLHttpRequest|fetch|sendBeacon)\s*\(/u,
+    );
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }

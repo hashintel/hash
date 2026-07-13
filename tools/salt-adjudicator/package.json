@@ -1,0 +1,28 @@
+{
+  "name": "salt-adjudicator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.ts",
+    "test": "npm run test:unit && npm run test:ui",
+    "test:ui": "vitest run --passWithNoTests",
+    "test:unit": "node --test test/*.test.ts",
+    "typecheck": "tsc --project tsconfig.json",
+    "verify": "npm run build && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "preact": "10.29.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@testing-library/preact": "3.2.4",
+    "@types/node": "26.1.1",
+    "esbuild": "0.28.1",
+    "happy-dom": "20.10.6",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  },
+  "engines": {
+    "node": ">=22.21.0"
+  }
+}

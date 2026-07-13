@@ -704,6 +704,47 @@ def test_parse_of_empty_results_is_harmless() -> None:
     assert parse_example_results(b'{"results": {"bindings": []}}') == []
 
 
+def _full_binding(subject_uri: str, object_uri: str) -> dict:
+    return {
+        "subject": {"value": subject_uri},
+        "object": {"value": object_uri},
+        "subjectLabel": {"value": "subject label"},
+        "objectLabel": {"value": "object label"},
+    }
+
+
+def test_parse_drops_non_item_endpoints_defensively() -> None:
+    # Property pages carry truthy statements of their own (an external-ID
+    # property stating its database's country). The query excludes them,
+    # but the parser re-filters like parse_inventory_results does.
+    entity = "http://www.wikidata.org/entity/"
+    body = json.dumps(
+        {
+            "results": {
+                "bindings": [
+                    _full_binding(f"{entity}P8919", f"{entity}Q30"),  # property subject
+                    _full_binding(f"{entity}L301", f"{entity}Q30"),  # lexeme subject
+                    _full_binding(f"{entity}Q42", f"{entity}P8919"),  # property object
+                    _full_binding(f"{entity}Q42", f"{entity}Q30"),  # item pair survives
+                ]
+            }
+        }
+    ).encode("utf-8")
+
+    [row] = parse_example_results(body)
+    assert row.subject_qid == "Q42"
+    assert row.object_qid == "Q30"
+
+
+def test_example_query_restricts_subjects_to_the_item_namespace() -> None:
+    query = example_pairs_query("P17", limit=10, offset=0)
+    # The filter must sit inside the inner subquery so the LIMIT/OFFSET
+    # slice is taken over item-subject statements only.
+    inner = query.split("SELECT ?subject ?object WHERE", 1)[1]
+    inner = inner.split("LIMIT", 1)[0]
+    assert 'FILTER(STRSTARTS(STR(?subject), "http://www.wikidata.org/entity/Q"))' in inner
+
+
 def test_parse_of_label_only_bindings_defaults_ids_and_sitelinks() -> None:
     [row] = parse_example_results(_sparql_body([("Left Bank", "Paris", "Q515")]))
     assert row.subject_qid == ""

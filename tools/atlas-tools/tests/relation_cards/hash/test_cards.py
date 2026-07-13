@@ -65,7 +65,8 @@ def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> Non
     assert details["example_unmatched_candidates"] == 0
     assert details["example_unmatched_fallbacks"] == 0
     assert "password" not in json.dumps(manifest)
-    assert details["content_hashes"]["cards.jsonl"] == sha256_file(paths.cards_jsonl)
+    # Content hashes live in the provenance envelope, not the details.
+    assert manifest["content_hashes"]["cards.jsonl"] == sha256_file(paths.cards_jsonl)
 
 
 def test_card_corpus_is_stable_across_unchanged_live_snapshot_times(tmp_path: Path) -> None:

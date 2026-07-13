@@ -1,6 +1,6 @@
 # SALT swipe adjudicator
 
-A local-only, keyboard-first tool for collecting and merging geometry labels.
+An offline-capable, keyboard-first tool for collecting and merging geometry labels.
 The distributable is [`salt-adjudicator.html`](./salt-adjudicator.html): one
 self-contained document with no runtime dependencies or external requests.
 
@@ -49,6 +49,8 @@ Primary shortcuts:
 - `↓` or `U`: Unclear
 - `F`: toggle flag
 - `N`: open the one-line note field; its open time is excluded from latency
+- `?`: open the geometry class guide; hover or focus a class control for the
+  same explanation
 - `Z`: append a retraction and re-queue the previous swipe
 - `E`: export the full swipe log
 
@@ -118,27 +120,36 @@ Browser storage is a crash buffer, not the system of record. The downloaded
 JSONL is the system of record, and the top rail always shows changes since the
 last export.
 
+Serving the artifact from a Cloudflare Worker gives every annotator a stable
+HTTPS origin, which makes this crash buffer more dependable than `file://`.
+The current bundle deliberately makes no network requests and does not upload
+evidence. A Worker-backed store can be added later as an optional same-origin
+sync layer without removing local persistence or changing the JSONL system of
+record.
+
 ## Build and test
 
-No package install or monorepo registration is required. Node is needed only to
-change source or run tests.
+Annotators need only the committed HTML artifact. Maintainers use the isolated
+tool package; it is intentionally not registered as a monorepo workspace.
 
 ```sh
+cd tools/salt-adjudicator
+npm ci
+
 # Rebuild the committed single-file artifact
-node tools/salt-adjudicator/build.mjs
+npm run build
 
 # Write an artifact elsewhere
-node tools/salt-adjudicator/build.mjs --out /tmp/salt-adjudicator.html
+npm run build -- --out /tmp/salt-adjudicator.html
 
-# Run deterministic, assignment, event, statistics, and packaging tests
-node --test \
-  tools/salt-adjudicator/test/core.test.mjs \
-  tools/salt-adjudicator/test/build.test.mjs
+# Typecheck, test, and rebuild
+npm run verify
 ```
 
-The source modules live in [`src/`](./src/). The builder performs a small,
-purpose-built module flattening step, inlines CSS and the demo payload, and
-fails if an external script, stylesheet, or ES module remains.
+The Preact/TypeScript source and Zod contracts live in [`src/`](./src/).
+esbuild bundles the browser application and its dependencies, then the builder
+inlines that bundle, CSS, and demo payload. The build fails if an external
+script, stylesheet, or ES module remains.
 
 The committed artifact targets current Chrome, Edge, Firefox, and Safari.
 Direct `file://` use is supported, but browser handling of local-file storage

@@ -86,6 +86,9 @@ available.
 - Errors sit next to the field or import that caused them and state how to
   recover.
 - Persistence and unsaved counts are always textual, never color-only.
+- Geometry class controls expose a short operational definition on hover and
+  keyboard focus. A dedicated class guide provides the same definitions for
+  touch users and pauses decision timing while open.
 - Empty states explain the next concrete action and accept drag-and-drop plus a
   visible file-picker alternative.
 - Historical distributions are withheld while a pass is active.

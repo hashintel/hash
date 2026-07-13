@@ -39,7 +39,11 @@ from atlas_tools.relation_cards.common.cards import CardRow
 from atlas_tools.relation_cards.common.config import SentenceSplitterName, TokenizerName
 from atlas_tools.relation_cards.common.sentence import make_sentence_splitter
 from atlas_tools.relation_cards.common.tokens import make_token_counter
-from atlas_tools.relation_cards.wikidata.card import Card, build_card
+from atlas_tools.relation_cards.wikidata.card import (
+    Card,
+    ProseSanitizationSummary,
+    build_card,
+)
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Pid, entity_number
 from atlas_tools.wikidata.properties import ExtractionResult
@@ -64,6 +68,7 @@ class CardEntry(BaseModel):
     card_hash: Sha256Hex
     token_count: NonNegativeInt
     severely_truncated: bool
+    sanitization: ProseSanitizationSummary = ProseSanitizationSummary()
 
 
 class CardsCounts(BaseModel):
@@ -72,6 +77,18 @@ class CardsCounts(BaseModel):
     cards: NonNegativeInt
     example_skips: NonNegativeInt
     untitled: NonNegativeInt
+
+
+class ProseSanitizationBudgetError(ValueError):
+    """Prose sanitization emptied too large a fraction of prose fields.
+
+    The overfilter tripwire: an emptied field means every sentence of
+    some description carried a confirmed identifier, so nothing sayable
+    survived. Legitimate for pure editor-routing prose, alarming at
+    volume. The manifest's ``prose_sanitization.dropped_tokens``
+    histogram is the triage list (``unknown_tokens`` lists id-shaped
+    prose that was deliberately left alone).
+    """
 
 
 class CardsManifestDetails(BaseModel):
@@ -95,6 +112,10 @@ class CardsManifestDetails(BaseModel):
     excluded: dict[str, str]
     # Records with no primary-language title: skipped, never embedded.
     untitled: list[str]
+    # Corpus-wide prose-sanitization totals (per-card detail lives on each
+    # CardEntry). fields_emptied / fields_sanitized is guarded against
+    # cards.max_prose_field_empty_fraction at render time.
+    prose_sanitization: ProseSanitizationSummary = ProseSanitizationSummary()
 
 
 # The rendering config is the full config: card-format keys change the
@@ -134,6 +155,10 @@ def render_cards(
     counter = make_token_counter(config.cards.tokenizer)
     splitter = make_sentence_splitter(config.cards.sentence_splitter)
     meta = record_set.meta
+    # PIDs the extraction saw but did not retain (external-ID,
+    # maintenance, deprecated): known identifiers without labels, so
+    # prose mentioning them is confirmed cross-reference, not guesswork.
+    excluded_pids = frozenset(meta.details.excluded)
 
     cards: list[Card] = []
     untitled: list[Pid] = []
@@ -141,6 +166,7 @@ def render_cards(
         card = build_card(
             record=record,
             labels=record_set.entity_labels,
+            known_identifiers=excluded_pids,
             config=config,
             counter=counter,
             splitter=splitter,
@@ -152,6 +178,16 @@ def render_cards(
 
     cards.sort(key=lambda card: entity_number(card.pid))
     untitled.sort(key=entity_number)
+
+    sanitization = ProseSanitizationSummary.merge(card.sanitization for card in cards)
+    if sanitization.empty_fraction > config.cards.max_prose_field_empty_fraction:
+        raise ProseSanitizationBudgetError(
+            f"prose sanitization emptied {sanitization.fields_emptied} of"
+            f" {sanitization.fields_sanitized} prose fields"
+            f" ({sanitization.empty_fraction:.1%}), over the configured bound of"
+            f" {config.cards.max_prose_field_empty_fraction:.1%};"
+            f" triage the dropped tokens: {sanitization.dropped_tokens}"
+        )
 
     cards_path = out_dir / "cards.jsonl"
     with cards_path.open("w", encoding="utf-8") as cards_file:
@@ -191,6 +227,7 @@ def render_cards(
                     card_hash=card.card_hash,
                     token_count=card.token_count,
                     severely_truncated=card.severely_truncated,
+                    sanitization=card.sanitization,
                 )
                 for card in cards
             },
@@ -204,6 +241,7 @@ def render_cards(
             flags=meta.details.flags,
             excluded=meta.details.excluded,
             untitled=list(untitled),
+            prose_sanitization=sanitization,
         ),
     ).write(manifest_path)
 

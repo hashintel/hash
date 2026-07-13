@@ -20,12 +20,20 @@ from atlas_tools.relation_cards.common.sentence import NaiveSentenceSplitter
 from atlas_tools.relation_cards.common.tokens import HeuristicTokenCounter
 from atlas_tools.relation_cards.hash.adapter import build_relation_records
 from atlas_tools.relation_cards.wikidata.card import (
+    Card as WikidataCard,
+)
+from atlas_tools.relation_cards.wikidata.card import (
+    ProseSanitization,
+    make_card_input,
+    sanitize_prose,
+)
+from atlas_tools.relation_cards.wikidata.card import (
     build_card as build_wikidata_card,
 )
-from atlas_tools.relation_cards.wikidata.card import make_card_input
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import (
     Constraints,
+    EntityId,
     EntityLabel,
     Example,
     Pid,
@@ -192,6 +200,207 @@ def test_identifier_linter_rejects_adapter_supplied_source_identifier() -> None:
         )
 
 
+# --- Wikidata prose sanitization ----------------------------------------------
+#
+# Wikidata property descriptions cross-reference other properties by PID
+# ("use P276 for ..."). The adapter must rewrite those meaning-preservingly:
+# deleting just the token leaves nonsense, and leaving it ships the exact
+# source watermark the identifier-free contract forbids. Detection is by
+# membership in the extraction's known-identifier universe, never by token
+# shape alone. The prose below is taken from the live P17 ("country") card
+# that first tripped the linter.
+
+_PROSE_LABELS: dict[EntityId, EntityLabel] = {
+    Pid("P131"): EntityLabel(label="located in the administrative territorial entity"),
+    Pid("P276"): EntityLabel(label="location"),
+    Pid("P527"): EntityLabel(label="has part"),
+    Pid("P706"): EntityLabel(label="located in/on physical feature"),
+    Pid("P2670"): EntityLabel(label="has parts of the class"),
+    # Known but unlabeled: a reference the extraction saw and could not
+    # resolve to a title.
+    Pid("P1382"): EntityLabel(),
+}
+
+
+def _sanitize(text: str, known_identifiers: frozenset[str] = frozenset()) -> ProseSanitization:
+    return sanitize_prose(
+        text,
+        labels=_PROSE_LABELS,
+        known_identifiers=known_identifiers,
+        language=EN,
+        splitter=NaiveSentenceSplitter(),
+    )
+
+
+def test_sanitize_substitutes_resolvable_references_with_quoted_labels() -> None:
+    result = _sanitize(
+        "location of the object; use P131 to indicate the containing"
+        " administrative entity, or P706 for geographic entities"
+    )
+    assert result.text == (
+        'location of the object; use "located in the administrative territorial'
+        ' entity" to indicate the containing administrative entity,'
+        ' or "located in/on physical feature" for geographic entities'
+    )
+    assert result.substitutions == 2
+    assert result.dropped_sentences == 0
+
+
+def test_sanitize_deletes_identifiers_that_repeat_the_preceding_label() -> None:
+    # The nested parenthetical from Wikidata's "part of" description.
+    result = _sanitize(
+        'inverse property of "has part" (P527, see also "has parts of the class" (P2670))'
+    )
+    assert result.text == 'inverse property of "has part" (see also "has parts of the class")'
+    assert result.redundant_removals == 2
+
+
+def test_sanitize_drops_sentences_with_known_unlabeled_identifiers() -> None:
+    # P1382 is in the known universe but has no label to substitute:
+    # confirmed cross-reference, unrenderable, so its sentence goes.
+    result = _sanitize(
+        "the item is located on the territory of the following administrative"
+        " entity. Use P1382 if the item falls only partially into it."
+    )
+    assert result.text == (
+        "the item is located on the territory of the following administrative entity."
+    )
+    assert result.dropped_sentences == 1
+    assert result.dropped_tokens == ("P1382",)
+
+
+def test_sanitize_drops_sentences_for_excluded_property_mentions() -> None:
+    # An external-ID property is never in the labels map, but the
+    # extraction's exclusion table still confirms it as an identifier.
+    result = _sanitize("See P212 for the ISBN form.", known_identifiers=frozenset({"P212"}))
+    assert result.text is None
+    assert result.dropped_tokens == ("P212",)
+
+
+def test_sanitize_returns_none_when_nothing_survives() -> None:
+    assert _sanitize("Use P1382 if the item falls only partially into it.").text is None
+
+
+def test_sanitize_never_guesses_on_unknown_tokens() -> None:
+    # "P450" is id-shaped but outside the known universe: real-world
+    # prose, not a cross-reference. It must survive byte-identically
+    # rather than be dropped (or worse, substituted) on a guess.
+    prose = "inhibits cytochrome P450 enzymes. Reported for Q1 of the year."
+    result = _sanitize(prose)
+    assert result.text == prose
+    assert result.dropped_sentences == 0
+    assert result.dropped_tokens == ()
+
+
+def test_sanitize_leaves_identifier_free_prose_byte_identical() -> None:
+    prose = "sovereign state that this subject item is in  (two spaces kept)"
+    assert _sanitize(prose).text == prose
+
+
+def test_adapter_sanitizes_descriptions_and_drops_identifier_aliases() -> None:
+    record = PropertyRecord(
+        pid=Pid("P17"),
+        datatype="wikibase-item",
+        labels={EN: "country"},
+        descriptions={EN: "sovereign state; use P276 for events"},
+        aliases={EN: ["sovereign state", "see P1382"]},
+        ancestors=(Pid("P131"),),
+    )
+    labels: dict[EntityId, EntityLabel] = dict(_PROSE_LABELS)
+    labels[Pid("P131")] = EntityLabel(
+        label="located in the administrative territorial entity",
+        description="the containing administrative entity. Use P276 for events.",
+    )
+
+    card_input = make_card_input(
+        record=record, labels=labels, language=EN, splitter=NaiveSentenceSplitter()
+    )
+    assert card_input is not None
+    assert card_input.description == 'sovereign state; use "location" for events'
+    assert card_input.aliases == ("sovereign state",)  # unresolvable alias dropped
+    (ancestor,) = card_input.ancestors
+    assert (
+        ancestor.description == 'the containing administrative entity. Use "location" for events.'
+    )
+
+
+def test_adapter_skips_examples_with_non_item_endpoints() -> None:
+    record = PropertyRecord(
+        pid=Pid("P17"),
+        datatype="wikibase-item",
+        labels={EN: "country"},
+        examples=[
+            Example(
+                subject_qid="P8919",  # external-ID property page, not an item
+                object_qid="Q30",
+                subject_label="AllSides ID",
+                object_label="United States",
+                subject_type="",
+            ),
+            Example(
+                subject_qid="Q64",
+                object_qid="Q183",
+                subject_label="Berlin",
+                object_label="Germany",
+                subject_type="Q515",
+            ),
+        ],
+    )
+
+    card_input = make_card_input(
+        record=record, labels={}, language=EN, splitter=NaiveSentenceSplitter()
+    )
+    assert card_input is not None
+    (example,) = card_input.examples
+    assert example.subject_label == "Berlin"
+
+
+def _inhibits_record() -> PropertyRecord:
+    return PropertyRecord(
+        pid=Pid("P9999"),
+        datatype="wikibase-item",
+        labels={EN: "inhibits"},
+        constraints=Constraints(subject_types=(Qid("Q1"),)),
+    )
+
+
+def _build_inhibits_card(labels: dict[EntityId, EntityLabel]) -> WikidataCard | None:
+    return build_wikidata_card(
+        record=_inhibits_record(),
+        labels=labels,
+        config=Config(extraction={"languages": ["en"]}, cards=_cards_config()),
+        counter=HeuristicTokenCounter(),
+        splitter=NaiveSentenceSplitter(),
+    )
+
+
+def test_known_identifier_in_a_label_fails_through_the_shared_linter() -> None:
+    # Sanitization rewrites prose, never labels. A *known* id surviving in
+    # a label is fed to the shared linter's forbidden_identifiers, so the
+    # one existing lint path rejects the card.
+    labels: dict[EntityId, EntityLabel] = {
+        Qid("Q1"): EntityLabel(label="subtype of P276 locations"),
+        Pid("P276"): EntityLabel(label="location"),
+    }
+
+    with pytest.raises(IdentifierLeakError, match="P276"):
+        _build_inhibits_card(labels)
+
+
+def test_unknown_id_shaped_label_ships_and_is_reported() -> None:
+    # "P450" is outside the known universe: prose, not an identifier.
+    # The card builds; the token is histogrammed for triage instead of
+    # destroyed or aborted on a guess.
+    labels: dict[EntityId, EntityLabel] = {
+        Qid("Q1"): EntityLabel(label="cytochrome P450 inhibitor")
+    }
+
+    card = _build_inhibits_card(labels)
+    assert card is not None
+    assert "cytochrome P450 inhibitor" in card.card_text
+    assert card.sanitization.unknown_tokens == {"P450": 1}
+
+
 def test_wikidata_adapter_has_byte_parity_with_canonical_input() -> None:
     record = PropertyRecord(
         pid=Pid("P361"),
@@ -239,7 +448,10 @@ def test_wikidata_adapter_has_byte_parity_with_canonical_input() -> None:
     }
     canonical = _canonical_input()
 
-    assert make_card_input(record=record, labels=labels, language=EN) == canonical
+    assert (
+        make_card_input(record=record, labels=labels, language=EN, splitter=NaiveSentenceSplitter())
+        == canonical
+    )
 
     direct = _render(canonical)
     wikidata_config = Config(
@@ -279,6 +491,7 @@ def test_hash_and_wikidata_adapters_have_canonical_format_parity() -> None:
     )
     wikidata_input = make_card_input(
         record=wikidata_record,
+        splitter=NaiveSentenceSplitter(),
         labels={
             Pid("P2"): EntityLabel(label="Owned By"),
             Pid("P3"): EntityLabel(label="Link", description="A generic connection."),

@@ -2,19 +2,46 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { build as esbuild } from "esbuild";
+
 import {
   createStudy,
   parseCardsJsonl,
   serializePayload,
   sha256Hex,
-} from "./src/core.mjs";
+} from "./src/core.ts";
 
 const toolRoot = dirname(fileURLToPath(import.meta.url));
 const sourceRoot = resolve(toolRoot, "src");
 
-const read = (path) => readFile(resolve(toolRoot, path), "utf8");
+const read = (path: string): Promise<string> =>
+  readFile(resolve(toolRoot, path), "utf8");
 
-const parseOutputPath = () => {
+const bundleBrowserApplication = async (): Promise<string> => {
+  const result = await esbuild({
+    bundle: true,
+    charset: "utf8",
+    entryPoints: [resolve(sourceRoot, "app.tsx")],
+    format: "iife",
+    jsx: "automatic",
+    jsxImportSource: "preact",
+    legalComments: "none",
+    logLevel: "silent",
+    minify: true,
+    platform: "browser",
+    sourcemap: false,
+    target: ["es2022"],
+    treeShaking: true,
+    write: false,
+  });
+  const output = result.outputFiles[0];
+  if (!output) {
+    throw new Error("esbuild did not produce a browser bundle.");
+  }
+  return output.text.replace(/[ \t]+$/gmu, "");
+};
+
+const parseOutputPath = (): string => {
   const outputFlagIndex = process.argv.indexOf("--out");
   if (outputFlagIndex === -1) {
     return resolve(toolRoot, "salt-adjudicator.html");
@@ -26,38 +53,15 @@ const parseOutputPath = () => {
   return resolve(process.cwd(), requestedPath);
 };
 
-const removeModuleSyntax = (coreSource, appSource) => {
-  const flattenedCore = coreSource.replace(/^export\s+/gmu, "");
-  const flattenedApp = appSource.replace(
-    /^import\s*\{[\s\S]*?\}\s*from\s*["']\.\/core\.mjs["'];?\s*/u,
-    "",
-  );
-  return `(() => {
-"use strict";
-
-${flattenedCore}
-
-${flattenedApp}
-})();
-`;
-};
-
-const build = async () => {
-  const [
-    htmlSource,
-    cssSource,
-    coreSource,
-    appSource,
-    demoCardsText,
-    qualificationText,
-  ] = await Promise.all([
-    readFile(resolve(sourceRoot, "index.html"), "utf8"),
-    readFile(resolve(sourceRoot, "styles.css"), "utf8"),
-    readFile(resolve(sourceRoot, "core.mjs"), "utf8"),
-    readFile(resolve(sourceRoot, "app.mjs"), "utf8"),
-    read("fixtures/demo-cards.jsonl"),
-    read("fixtures/demo-qualification.jsonl"),
-  ]);
+const build = async (): Promise<void> => {
+  const [htmlSource, cssSource, script, demoCardsText, qualificationText] =
+    await Promise.all([
+      readFile(resolve(sourceRoot, "index.html"), "utf8"),
+      readFile(resolve(sourceRoot, "styles.css"), "utf8"),
+      bundleBrowserApplication(),
+      read("fixtures/demo-cards.jsonl"),
+      read("fixtures/demo-qualification.jsonl"),
+    ]);
 
   const demoCards = parseCardsJsonl(demoCardsText);
   const qualificationCards = parseCardsJsonl(qualificationText, {
@@ -75,9 +79,8 @@ const build = async () => {
     title: "SALT demonstration study",
   });
 
-  const script = removeModuleSyntax(coreSource, appSource);
   const buildHash = sha256Hex(
-    [htmlSource, cssSource, coreSource, appSource].join("\u001e"),
+    [htmlSource, cssSource, script].join("\u001e"),
   ).slice(0, 12);
   const payload = serializePayload({
     kind: "generic",
@@ -90,15 +93,17 @@ const build = async () => {
   const html = htmlSource
     .replace(
       /<link rel="stylesheet" href="\.\/styles\.css" \/>/u,
-      `<style>\n${cssSource}\n</style>`,
+      () => `<style>\n${cssSource}\n</style>`,
     )
     .replace(
       /<script id="salt-study" type="application\/json">[\s\S]*?<\/script>/u,
-      `<script id="salt-study" type="application/json">${payload}</script>`,
+      () =>
+        `<script id="salt-study" type="application/json">${payload}</script>`,
     )
     .replace(
-      /<script type="module" src="\.\/app\.mjs"><\/script>/u,
-      `<script>\n${script.replaceAll("</script", "<\\/script")}\n</script>`,
+      /<script type="module" src="\.\/app\.tsx?"><\/script>/u,
+      () =>
+        `<script>\n${script.replaceAll("</script", "<\\/script")}\n</script>`,
     );
 
   if (

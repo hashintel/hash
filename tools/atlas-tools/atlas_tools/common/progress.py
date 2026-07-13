@@ -97,20 +97,23 @@ class StderrProgress:
             return
         self._last_line_at = now
 
-        phase_seconds = max(now - self._phase_started_at, 1e-9)
-        rate = self._done / phase_seconds
-        rate_text = f"{rate:,.0f}/s"
+        # Quote throughput and ETA only once a full throttle interval of
+        # evidence exists: an instantaneous rate measured over the first
+        # milliseconds of a phase (or a frozen test clock) prints noise
+        # like "1,000,000,000/s", not signal.
+        phase_seconds = now - self._phase_started_at
+        has_evidence = phase_seconds >= max(self._min_interval, 1e-9)
+        rate = self._done / phase_seconds if has_evidence else None
 
         if self._total is None:
-            status = f"{self._done:,} ({rate_text})"
+            status = f"{self._done:,}" if rate is None else f"{self._done:,} ({rate:,.0f}/s)"
         else:
             percentage = 100.0 * self._done / self._total if self._total else 100.0
-            remaining = max(0, self._total - self._done)
-            eta = remaining / rate if rate > 0 else 0.0
-            status = (
-                f"{self._done:,}/{self._total:,} ({percentage:.1f}%, {rate_text},"
-                f" ETA {_duration(eta)})"
-            )
+            stats = f"{percentage:.1f}%"
+            if rate is not None and rate > 0:
+                eta = _duration(max(0, self._total - self._done) / rate)
+                stats = f"{stats}, {rate:,.0f}/s, ETA {eta}"
+            status = f"{self._done:,}/{self._total:,} ({stats})"
         self._write(f"[{self._elapsed(now)}]   {self._phase}: {status}")
 
     def note(self, message: str) -> None:

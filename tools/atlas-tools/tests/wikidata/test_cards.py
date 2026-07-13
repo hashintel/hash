@@ -27,7 +27,11 @@ from atlas_tools.relation_cards.wikidata.card import (
     Card,
     build_card,
 )
-from atlas_tools.relation_cards.wikidata.cards import emit_cards, render_cards
+from atlas_tools.relation_cards.wikidata.cards import (
+    ProseSanitizationBudgetError,
+    emit_cards,
+    render_cards,
+)
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import (
     Constraints,
@@ -38,7 +42,7 @@ from atlas_tools.wikidata.model import (
     PropertyRecord,
     Qid,
 )
-from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.properties import ExtractionResult, extract_properties
 from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport
@@ -189,7 +193,7 @@ class TestGoldenCards:
 
     def test_manifest_hashes_match_rows(self, pipeline: SimpleNamespace) -> None:
         details = pipeline.manifest["details"]
-        assert details["card_format_version"] == 5
+        assert details["card_format_version"] == 6
         assert details["sentence_splitter"] == "naive"
         assert details["untitled"] == []
         assert details["counts"]["untitled"] == 0
@@ -337,6 +341,61 @@ class TestUntitledRecords:
         ]
         assert "P9998" not in pids
         assert len(pids) == manifest["details"]["counts"]["cards"]
+
+
+class TestProseSanitizationDiagnostics:
+    """Sentence drops are measured in the manifest and gated by config.
+
+    P212 sits in the fixture exclusion table (external-ID), so a prose
+    mention of it is membership-confirmed as an identifier even though it
+    has no label to substitute: its sentence drops and the manifest says
+    exactly what happened.
+    """
+
+    @staticmethod
+    def _extraction_with_description(description: str) -> tuple[Config, ExtractionResult]:
+        config = Config.load(CONFIG_PATH)
+        result = extract_properties(
+            config,
+            FixtureTransport(RESPONSES),
+            taxonomy=Taxonomy.load(TAXONOMY_PATH),
+        )
+        record = next(record for record in result.records if record.pid == "P361")
+        record.descriptions[EN] = description
+        return config, result
+
+    def test_clean_fixtures_report_zero_sanitization_activity(
+        self, pipeline: SimpleNamespace
+    ) -> None:
+        totals = pipeline.manifest["details"]["prose_sanitization"]
+        assert totals["fields_sanitized"] > 0
+        assert totals["fields_emptied"] == 0
+        assert totals["substitutions"] == 0
+        assert totals["dropped_sentences"] == 0
+        assert totals["dropped_tokens"] == {}
+        assert totals["unknown_tokens"] == {}
+
+    def test_dropped_sentences_are_counted_per_card_and_per_corpus(self, tmp_path: Path) -> None:
+        config, result = self._extraction_with_description(
+            "this item is a part of that item. Use P212 instead."
+        )
+        paths = emit_cards(result, config, tmp_path)
+        manifest = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))
+        totals = manifest["details"]["prose_sanitization"]
+        assert totals["dropped_sentences"] == 1
+        assert totals["dropped_tokens"] == {"P212": 1}
+        assert totals["fields_emptied"] == 0
+        per_card = manifest["details"]["cards"]["P361"]["sanitization"]
+        assert per_card["dropped_sentences"] == 1
+        assert per_card["dropped_tokens"] == {"P212": 1}
+
+    def test_emptied_field_over_budget_fails_the_run(self, tmp_path: Path) -> None:
+        # The whole description is one confirmed-identifier sentence, so
+        # sanitization empties the field; a zero budget must refuse it.
+        config, result = self._extraction_with_description("Use P212 instead.")
+        config.cards.max_prose_field_empty_fraction = 0.0
+        with pytest.raises(ProseSanitizationBudgetError, match="P212"):
+            emit_cards(result, config, tmp_path)
 
 
 # --- crafted records for truncation tests -------------------------------------

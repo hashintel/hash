@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 
 import {
   DecisionTimer,
+  LABEL_DETAILS,
   SaltValidationError,
   accessCodeHash,
   activeSwipes,
@@ -39,7 +40,14 @@ import {
   shuffled,
   summarizeCoverage,
   swipesToJsonl,
-} from "../src/core.mjs";
+} from "../src/core.ts";
+
+test("provides an operational explanation for every geometry class", () => {
+  assert.deepEqual(Object.keys(LABEL_DETAILS), ["C", "P", "O", "U"]);
+  for (const detail of Object.values(LABEL_DETAILS)) {
+    assert.ok(detail.description.length > 40);
+  }
+});
 
 const makeCard = (index, prescreen = "normal") => ({
   relation_id: `R${String(index).padStart(2, "0")}`,
