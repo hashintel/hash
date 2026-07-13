@@ -20,7 +20,7 @@ export RUSTUP_AUTO_INSTALL=0
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
 echo "Installing prerequisites"
-mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall aqua:wasm-bindgen/wasm-pack aqua:WebAssembly/binaryen protoc
+mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall aqua:wasm-bindgen/wasm-pack cargo:wasm-opt protoc
 
 echo "Rust installation completed. Checking versions:"
 mise list rust

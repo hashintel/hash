@@ -40,21 +40,9 @@ backend = "cargo:cargo-hack"
 version = "1.47.2"
 backend = "cargo:cargo-insta"
 
-[[tools."cargo:cargo-llvm-cov"]]
-version = "0.8.7"
-backend = "cargo:cargo-llvm-cov"
-
-[[tools."cargo:cargo-nextest"]]
-version = "0.9.137"
-backend = "cargo:cargo-nextest"
-
 [[tools."cargo:wasm-opt"]]
 version = "0.116.1"
 backend = "cargo:wasm-opt"
-
-[[tools."cargo:wasm-pack"]]
-version = "0.15.0"
-backend = "cargo:wasm-pack"
 
 [[tools.java]]
 version = "25.0.2"
