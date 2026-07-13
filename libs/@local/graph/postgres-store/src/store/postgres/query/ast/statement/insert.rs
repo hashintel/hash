@@ -4,8 +4,7 @@ use std::collections::HashSet;
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    PostgresType, TableName, Transpile, expression::ColumnName, rows::PostgresRow,
-    table::DatabaseColumn as _,
+    ColumnName, PostgresType, TableName, Transpile, rows::PostgresRow, table::DatabaseColumn as _,
 };
 
 /// Conflict handling for a bulk insert.

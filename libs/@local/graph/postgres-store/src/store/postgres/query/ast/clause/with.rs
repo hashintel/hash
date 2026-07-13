@@ -57,8 +57,7 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Identifier, SelectExpression, SelectStatement,
-        expression::FromItem,
+        Alias, FromItem, Identifier, SelectExpression, SelectStatement,
         test_helper::{max_version_expression, trim_whitespace},
     };
 

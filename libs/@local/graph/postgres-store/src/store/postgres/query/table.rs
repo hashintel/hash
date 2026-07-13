@@ -12,10 +12,10 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
 use super::{
-    expression::{ColumnName, ColumnReference, TableName, TableReference},
+    ast::{ColumnName, ColumnReference, TableName, TableReference},
     postgres_type::PostgresType,
 };
-use crate::store::postgres::query::{Constant, Expression, expression::JoinType};
+use crate::store::postgres::query::{Constant, Expression, JoinType};
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

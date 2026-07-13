@@ -1,36 +1,24 @@
-mod binary;
+//! The SQL statement AST: statements, clauses, and expressions that transpile to Postgres SQL.
+
+mod clause;
 mod column_reference;
-mod conditional;
-mod from_item;
-mod group_by_clause;
+mod expression;
 mod identifier;
-mod join_type;
-mod order_clause;
-mod select_clause;
+mod statement;
 mod table_reference;
-mod table_sample;
-mod unary;
-mod variadic;
-mod where_clause;
-mod with_clause;
 
 pub use self::{
-    binary::{BinaryExpression, BinaryOperator},
-    column_reference::{ColumnName, ColumnReference},
-    conditional::{Constant, EqualityOperator, Expression, Function},
-    from_item::{
+    clause::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
-        FromItemTableBuilder,
+        FromItemTableBuilder, GroupByExpression, JoinType, OrderByExpression, SelectExpression,
+        TableSample, WhereExpression, WithExpression,
     },
-    group_by_clause::GroupByExpression,
+    column_reference::{ColumnName, ColumnReference},
+    expression::{
+        BinaryExpression, BinaryOperator, Constant, EqualityOperator, Expression, Function,
+        UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowStatement,
+    },
     identifier::Identifier,
-    join_type::JoinType,
-    order_clause::OrderByExpression,
-    select_clause::SelectExpression,
+    statement::{Distinctness, OnConflict, SelectStatement, Statement, bulk_insert},
     table_reference::{TableName, TableReference},
-    table_sample::TableSample,
-    unary::{UnaryExpression, UnaryOperator},
-    variadic::{VariadicExpression, VariadicOperator},
-    where_clause::WhereExpression,
-    with_clause::WithExpression,
 };

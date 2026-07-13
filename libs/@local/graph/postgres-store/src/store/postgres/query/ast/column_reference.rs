@@ -86,7 +86,7 @@ impl Transpile for ColumnReference<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::expression::table_reference::{SchemaReference, TableName};
+    use crate::store::postgres::query::ast::table_reference::{SchemaReference, TableName};
 
     #[test]
     fn simple_column_reference() {

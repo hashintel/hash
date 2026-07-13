@@ -1,13 +1,11 @@
 mod insert;
 mod select;
-mod window;
 
 use core::fmt;
 
 pub use self::{
     insert::{OnConflict, bulk_insert},
     select::{Distinctness, SelectStatement},
-    window::WindowStatement,
 };
 use crate::store::postgres::query::Transpile;
 

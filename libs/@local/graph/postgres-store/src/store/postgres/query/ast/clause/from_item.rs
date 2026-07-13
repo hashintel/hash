@@ -1,7 +1,9 @@
 use core::fmt::{self, Write as _};
 
-use super::{ColumnName, Expression, Function, JoinType, TableReference, TableSample};
-use crate::store::postgres::query::{SelectStatement, Transpile};
+use super::{JoinType, TableSample};
+use crate::store::postgres::query::{
+    ColumnName, Expression, Function, SelectStatement, TableReference, Transpile,
+};
 
 /// A FROM item in a PostgreSQL query.
 ///
@@ -583,7 +585,7 @@ mod from_item_join_builder_impl {
             IsSet, IsUnset, SetColumns, SetCondition, SetJoinUsingAlias, State,
         },
     };
-    use crate::store::postgres::query::expression::{ColumnName, Expression, TableReference};
+    use crate::store::postgres::query::{ColumnName, Expression, TableReference};
 
     impl<'id, S: State> FromItemJoinBuilder<'id, S> {
         pub fn on(
@@ -623,7 +625,7 @@ mod from_item_table_builder_impl {
         FromItemTableBuilder,
         from_item_table_builder::{IsSet, IsUnset, SetColumnAlias, State},
     };
-    use crate::store::postgres::query::expression::ColumnName;
+    use crate::store::postgres::query::ColumnName;
 
     impl<'id, S: State> FromItemTableBuilder<'id, S> {
         /// Add column aliases to rename the table's columns.
@@ -650,7 +652,7 @@ mod from_item_subquery_builder_impl {
         FromItemSubqueryBuilder,
         from_item_subquery_builder::{IsSet, IsUnset, SetColumnAlias, State},
     };
-    use crate::store::postgres::query::expression::ColumnName;
+    use crate::store::postgres::query::ColumnName;
 
     impl<'id, S: State> FromItemSubqueryBuilder<'id, S> {
         /// Add column aliases to rename the subquery's result columns.
@@ -677,7 +679,7 @@ mod from_item_function_builder_impl {
         FromItemFunctionBuilder,
         from_item_function_builder::{IsSet, IsUnset, SetColumnAlias, State},
     };
-    use crate::store::postgres::query::expression::ColumnName;
+    use crate::store::postgres::query::ColumnName;
 
     impl<'id, S: State> FromItemFunctionBuilder<'id, S> {
         /// Add column aliases to rename the function's result columns.
@@ -703,13 +705,10 @@ mod from_item_function_builder_impl {
 mod tests {
     use indoc::indoc;
 
-    use super::*;
+    use super::{super::table_sample::SamplingMethod, *};
     use crate::store::postgres::query::{
-        Alias, Expression, ForeignKeyReference, Table,
-        expression::{
-            SelectExpression, TableName, TableReference, identifier::Identifier,
-            table_sample::SamplingMethod,
-        },
+        Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, Table, TableName,
+        TableReference,
         table::{Column, DataTypes, OntologyIds},
     };
 

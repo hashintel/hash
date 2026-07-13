@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use alloc::borrow::Cow;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
@@ -16,12 +19,11 @@ use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::knowledge::Entity;
 
-use super::expression::{ColumnReference, JoinType, TableName, TableReference};
+use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, Function, Identifier,
-    PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
-    WindowStatement,
-    expression::{FromItem, GroupByExpression},
+    Alias, Column, Distinctness, EqualityOperator, Expression, FromItem, Function,
+    GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectStatement, Table, Transpile as _, WindowStatement,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,

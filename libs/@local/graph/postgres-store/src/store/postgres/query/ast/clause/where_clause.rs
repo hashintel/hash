@@ -2,7 +2,8 @@ use core::fmt;
 
 use hash_graph_store::query::{NullOrdering, Ordering};
 
-use crate::store::postgres::query::{Expression, Transpile, expression::conditional::Transpiler};
+use super::super::expression::Transpiler;
+use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct WhereExpression {

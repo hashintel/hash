@@ -1,7 +1,6 @@
 use core::fmt::{self, Write as _};
 
-use super::{TableReference, identifier::Identifier};
-use crate::store::postgres::query::{Expression, Transpile};
+use crate::store::postgres::query::{Expression, Identifier, TableReference, Transpile};
 
 /// A SELECT clause item.
 ///
@@ -49,7 +48,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Function, PostgresQueryPath as _, Table, WindowStatement, expression::TableName,
+        Alias, Function, PostgresQueryPath as _, Table, TableName, WindowStatement,
     };
 
     #[test]
