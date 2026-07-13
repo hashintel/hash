@@ -1,6 +1,7 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
-import { useEffect, useMemo, useState } from "react";
+import { proxyTabFocus } from "@zag-js/dom-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   OverlayBody,
@@ -62,6 +63,7 @@ const PopoverRoot = ({
   returnFocusRef,
 }: PopoverProps) => {
   const portalContainerRef = usePortalContainerRef();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const direction = position.split("-")[0];
   const isVertical = direction === "top" || direction === "bottom";
@@ -86,6 +88,30 @@ const PopoverRoot = ({
     };
   }, []);
 
+  // When no explicit `returnFocusRef` is given, take over tab-focus proxying so
+  // that tabbing out of the portalled content moves to the next/previous
+  // focusable around the trigger (as if the popover were inline after it). Ark's
+  // own proxy is anchored to its trigger - which we don't render - so we disable
+  // it (via `portalled` below) and run our own against the external trigger.
+  const proxyTabToTrigger = !returnFocusRef;
+  useEffect(() => {
+    if (!open || !proxyTabToTrigger) {
+      return undefined;
+    }
+
+    return proxyTabFocus(() => contentRef.current, {
+      triggerElement: () => {
+        const el = resolveRef(triggerRef);
+        return el instanceof HTMLElement ? el : null;
+      },
+      defer: true,
+      getShadowRoot: true,
+      onFocus: (el) => {
+        el.focus({ preventScroll: true });
+      },
+    });
+  }, [open, proxyTabToTrigger, triggerRef]);
+
   // Provided so the Header/Body/Footer panels (via Popover.Container) can read
   // their shared chrome; harmless for plain children that ignore it.
   const overlayContextValue = useMemo(
@@ -106,6 +132,9 @@ const PopoverRoot = ({
       open={open}
       lazyMount
       unmountOnExit
+      // Disable Ark's tab-focus proxy when we run our own (see above); it
+      // targets Ark's own, absent, trigger otherwise.
+      portalled={!proxyTabToTrigger}
       // Dismissal requires an `onClose` to act on; without it the popover can
       // only be closed by the consumer unmounting it.
       closeOnEscape={!!onClose}
@@ -164,7 +193,7 @@ const PopoverRoot = ({
     >
       <Portal container={portalContainerRef}>
         <ArkPopover.Positioner className={positionerStyles}>
-          <ArkPopover.Content className={className}>
+          <ArkPopover.Content ref={contentRef} className={className}>
             <OverlayContext.Provider value={overlayContextValue}>
               {children}
             </OverlayContext.Provider>
