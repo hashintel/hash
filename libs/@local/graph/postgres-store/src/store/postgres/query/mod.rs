@@ -31,12 +31,12 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     ast::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
-        Constant, Distinctness, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
-        FromItemJoinBuilder, FromItemSubqueryBuilder, FromItemTableBuilder, Function,
-        GroupByClause, Identifier, JoinType, Materialization, OnConflict, OrderByClause,
-        SelectExpression, SelectStatement, Statement, TableName, TableReference, UnaryExpression,
-        UnaryOperator, VariadicExpression, VariadicOperator, WhereClause, WindowDefinition,
-        WithClause, bulk_insert,
+        Constant, DistinctOn, Distinctness, EmptyDistinctOn, EqualityOperator, Expression,
+        FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
+        FromItemTableBuilder, Function, GroupByClause, Identifier, JoinType, Materialization,
+        OnConflict, OrderByClause, SelectExpression, SelectQuantifier, SelectStatement, Statement,
+        TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
+        VariadicOperator, WhereClause, WindowDefinition, WithClause, bulk_insert,
     },
     compile::{SelectCompiler, SelectCompilerError},
     postgres_type::PostgresType,

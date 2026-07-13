@@ -21,9 +21,9 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, CommonTableExpression, Distinctness, EqualityOperator, Expression, FromItem,
-    Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WindowDefinition,
+    Alias, Column, CommonTableExpression, DistinctOn, Distinctness, EqualityOperator, Expression,
+    FromItem, Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord,
+    SelectExpression, SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -317,6 +317,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
     #[instrument(level = "debug", skip_all)]
+    /// Appends an expression to the statement's `DISTINCT ON` list, creating it when absent.
+    fn push_distinct_on(quantifier: &mut Option<SelectQuantifier>, expression: Expression) {
+        match quantifier {
+            Some(SelectQuantifier::DistinctOn(on)) => on.push(expression),
+            quantifier @ None => {
+                *quantifier = Some(SelectQuantifier::DistinctOn(DistinctOn::from(expression)));
+            }
+            Some(SelectQuantifier::All | SelectQuantifier::Distinct) => {
+                unreachable!("the compiler only ever emits `DISTINCT ON` quantifiers")
+            }
+        }
+    }
+
     pub fn add_distinct_selection_with_ordering(
         &mut self,
         path: &'p R::QueryPath<'q>,
@@ -330,7 +343,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct
                 && stored.distinctness == Distinctness::Indistinct
             {
-                self.statement.distinct.push(stored.column.clone());
+                Self::push_distinct_on(&mut self.statement.quantifier, stored.column.clone());
                 stored.distinctness = Distinctness::Distinct;
             }
             if stored.ordering.is_none()
@@ -350,7 +363,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             });
 
             if distinctness == Distinctness::Distinct {
-                self.statement.distinct.push(expression.clone());
+                Self::push_distinct_on(&mut self.statement.quantifier, expression.clone());
             }
             if let Some((ordering, nulls)) = ordering {
                 self.statement
@@ -683,7 +696,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         expression: distance_expression.clone(),
                         alias: None,
                     });
-                    self.statement.distinct.push(distance_expression.clone());
+                    Self::push_distinct_on(
+                        &mut self.statement.quantifier,
+                        distance_expression.clone(),
+                    );
                     Expression::less_or_equal(distance_expression, maximum_expression)
                 }
                 _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),

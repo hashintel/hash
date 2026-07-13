@@ -5,7 +5,7 @@ use core::fmt;
 
 pub use self::{
     insert::{OnConflict, bulk_insert},
-    select::{Distinctness, SelectStatement},
+    select::{DistinctOn, Distinctness, EmptyDistinctOn, SelectQuantifier, SelectStatement},
 };
 use crate::store::postgres::query::Transpile;
 
