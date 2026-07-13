@@ -243,7 +243,11 @@ fn block_on(
             let _telemetry_guard = init_tracing(tracing_config, service_name)
                 .expect("should be able to initialize telemetry");
 
-            future.await
+            let result = future.await;
+            if let Err(report) = &result {
+                tracing::error!(error = ?report, "{service_name} exited with a fatal error");
+            }
+            result
         })
 }
 
