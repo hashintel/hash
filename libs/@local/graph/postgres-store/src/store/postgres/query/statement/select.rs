@@ -727,7 +727,7 @@ mod tests {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND COALESCE("entity_ids_0_1_0"."created_by_id", (("entity_ids_0_1_0"."provenance"->>'createdById')::uuid)) = $3
+              AND "entity_ids_0_1_0"."created_by_id" = $3
             "#,
             &[
                 &pinned_timestamp,
@@ -752,15 +752,15 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON(COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz)))
-                COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz))
+                DISTINCT ON("entity_ids_0_1_0"."created_at_transaction_time")
+                "entity_ids_0_1_0"."created_at_transaction_time"
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
               ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-            ORDER BY COALESCE("entity_ids_0_1_0"."created_at_transaction_time", (("entity_ids_0_1_0"."provenance"->>'createdAtTransactionTime')::timestamptz)) DESC NULLS FIRST
+            ORDER BY "entity_ids_0_1_0"."created_at_transaction_time" DESC NULLS FIRST
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval()],
         );

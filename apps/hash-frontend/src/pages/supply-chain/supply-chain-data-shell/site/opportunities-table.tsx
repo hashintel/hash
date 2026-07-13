@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -216,7 +216,7 @@ interface OpportunitiesTableProps {
   /** Route site slug; scopes status keys to the global store. */
   siteId: string;
   statusHistory?: StatusStore;
-  onRowClick: (node: SiteNode) => void;
+  onRowClick: (opportunity: SiteOpportunity) => void;
   onStatus: (node: SiteNode, title: string) => void;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (next: { key: SortKey; dir: SortDir }) => void;
@@ -226,6 +226,10 @@ interface OpportunitiesTableProps {
   onProductHiddenChange: (next: Set<string>) => void;
   statusHidden: Set<StatusActionLabel>;
   onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
+  revealSectionRequest?: {
+    kind: OpportunityKind;
+    requestId: number;
+  } | null;
 }
 
 const OpportunityColGroup = () => {
@@ -343,10 +347,38 @@ export const OpportunitiesTable = ({
   onProductHiddenChange,
   statusHidden,
   onStatusHiddenChange,
+  revealSectionRequest,
 }: OpportunitiesTableProps) => {
   const [collapsedSections, setCollapsedSections] = useState<
     Set<OpportunityKind>
   >(() => new Set());
+  const sectionRefs = useRef<
+    Partial<Record<OpportunityKind, HTMLTableSectionElement | null>>
+  >({});
+
+  useEffect(() => {
+    if (!revealSectionRequest) {
+      return;
+    }
+
+    const { kind } = revealSectionRequest;
+    setCollapsedSections((previousSections) => {
+      if (!previousSections.has(kind)) {
+        return previousSections;
+      }
+      const nextSections = new Set(previousSections);
+      nextSections.delete(kind);
+      return nextSections;
+    });
+
+    const animationFrame = requestAnimationFrame(() => {
+      sectionRefs.current[kind]?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(animationFrame);
+  }, [revealSectionRequest]);
 
   const statusOf = useCallback(
     (opportunity: SiteOpportunity): StatusActionLabel =>
@@ -522,7 +554,13 @@ export const OpportunitiesTable = ({
             </tr>
           </thead>
           {grouped.map((section) => (
-            <tbody key={section.id} className={threshold.tbodyDivide}>
+            <tbody
+              key={section.id}
+              ref={(element) => {
+                sectionRefs.current[section.id] = element;
+              }}
+              className={threshold.tbodyDivide}
+            >
               <tr>
                 <td
                   colSpan={5}
@@ -560,10 +598,10 @@ export const OpportunitiesTable = ({
                           "opportunityRowsIn 320ms cubic-bezier(0.2, 0, 0, 1)",
                       }}
                       tabIndex={0}
-                      onClick={() => onRowClick(opportunity.node)}
+                      onClick={() => onRowClick(opportunity)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
-                          onRowClick(opportunity.node);
+                          onRowClick(opportunity);
                         }
                       }}
                     >

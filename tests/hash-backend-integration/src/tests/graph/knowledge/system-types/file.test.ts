@@ -8,7 +8,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { Logger } from "@local/hash-backend-utils/logger";
 
-import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -42,8 +41,6 @@ describe("File", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

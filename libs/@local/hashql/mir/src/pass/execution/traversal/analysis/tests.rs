@@ -138,8 +138,8 @@ fn bare_vertex_sets_all_bits() {
     assert!(!stmt.contains(EntityPath::EntityId));
     assert!(!stmt.contains(EntityPath::WebId));
     assert!(!stmt.contains(EntityPath::DecisionTime));
-    // 25 variants - 7 children = 18 top-level paths
-    assert_eq!(stmt.len(), 18);
+    // 30 variants - 7 children = 23 top-level paths
+    assert_eq!(stmt.len(), 23);
 }
 
 /// A tuple referencing two vertex projections records both paths at one location.
@@ -405,8 +405,8 @@ fn unresolvable_projection_sets_all_bits() {
     let stmt = traversals[location(0, 1)]
         .as_entity()
         .expect("should be an entity path bitset");
-    // Unresolvable path → insert_all → 25 variants - 7 children = 18
-    assert_eq!(stmt.len(), 18);
+    // Unresolvable path → insert_all → 30 variants - 7 children = 23
+    assert_eq!(stmt.len(), 23);
     assert!(stmt.contains(EntityPath::Properties));
     assert!(stmt.contains(EntityPath::RecordId));
 }

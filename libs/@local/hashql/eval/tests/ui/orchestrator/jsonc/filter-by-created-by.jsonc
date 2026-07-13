@@ -1,0 +1,14 @@
+// Filter entities by their creator (`provenance.created_by_id`).
+// All seeded entities are created by the same test user, so all of them match.
+// prettier-ignore
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.provenance.created_by_id",
+        ["input", "creator_uuid", "::graph::types::knowledge::entity::CreatedById"]
+      ]
+    ]
+  ]
+]

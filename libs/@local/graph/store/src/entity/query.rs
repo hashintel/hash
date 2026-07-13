@@ -139,7 +139,7 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     RightEntityProvenance,
-    /// Whether or not the [`Entity`] is in a draft state.
+    /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -159,19 +159,55 @@ pub enum EntityQueryPath<'p> {
     ReadOnly,
     /// The [`ActorEntityUuid`] that created this [`Entity`].
     ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
     /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
     /// [`Entity`]: type_system::knowledge::Entity
     CreatedById,
-    /// The [`ActorEntityUuid`] that created this [`Entity`]'s current edition.
+    /// The [`ActorEntityUuid`] that created this [`Entity`]'s edition.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["editionCreatedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::EditionCreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     ///
     /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
     /// [`Entity`]: type_system::knowledge::Entity
     EditionCreatedById,
-    /// The transaction time at which this [`Entity`] was created. Only used as a sort key.
+    /// The transaction time at which this [`Entity`] was created.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     CreatedAtTransactionTime,
-    /// The decision time at which this [`Entity`] was created. Only used as a sort key.
+    /// The decision time at which this [`Entity`] was created.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtDecisionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtDecisionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     ///
     /// [`Entity`]: type_system::knowledge::Entity
     CreatedAtDecisionTime,
@@ -423,33 +459,43 @@ pub enum EntityQueryPath<'p> {
     /// Corresponds to the provenance data of the [`Entity`].
     ///
     /// Deserializes from `["provenance", ...]` where `...` is a path to a provenance entry of an
-    /// [`Entity`].
+    /// [`Entity`]. The creator and creation timestamps are not part of the JSONB — use
+    /// [`CreatedById`], [`CreatedAtTransactionTime`], or [`CreatedAtDecisionTime`] for those.
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::entity::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["provenance", "createdById"]))?;
-    /// assert_eq!(path.to_string(), r#"provenance.$."createdById""#);
+    /// let path =
+    ///     EntityQueryPath::deserialize(json!(["provenance", "firstNonDraftCreatedAtDecisionTime"]))?;
+    /// assert_eq!(
+    ///     path.to_string(),
+    ///     r#"provenance.$."firstNonDraftCreatedAtDecisionTime""#
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`CreatedById`]: Self::CreatedById
+    /// [`CreatedAtTransactionTime`]: Self::CreatedAtTransactionTime
+    /// [`CreatedAtDecisionTime`]: Self::CreatedAtDecisionTime
     /// [`Entity`]: type_system::knowledge::Entity
     Provenance(Option<JsonPath<'p>>),
     /// Corresponds to the provenance data of the [`Entity`].
     ///
     /// Deserializes from `["editionProvenance", ...]` where `...` is a path to a provenance entry
-    /// of an [`Entity`].
+    /// of an [`Entity`]. The edition creator is not part of the JSONB — use
+    /// [`EditionCreatedById`] for it.
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use hash_graph_store::entity::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
-    /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
+    /// let path = EntityQueryPath::deserialize(json!(["editionProvenance", "actorType"]))?;
+    /// assert_eq!(path.to_string(), r#"editionProvenance.$."actorType""#);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EditionCreatedById`]: Self::EditionCreatedById
     /// [`Entity`]: type_system::knowledge::Entity
     EditionProvenance(Option<JsonPath<'p>>),
     /// Corresponds to the metadata data of the properties of the [`Entity`].
@@ -601,6 +647,10 @@ pub enum EntityQueryToken {
     Type,
     Properties,
     Label,
+    CreatedById,
+    EditionCreatedById,
+    CreatedAtTransactionTime,
+    CreatedAtDecisionTime,
     Provenance,
     EditionProvenance,
     Embedding,
@@ -619,8 +669,9 @@ pub(crate) struct EntityQueryPathVisitor {
 impl EntityQueryPathVisitor {
     pub(crate) const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `webId`, `type`, `properties`, \
-         `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
-         `outgoingLinks`, `leftEntity`, `rightEntity`";
+         `label`, `createdById`, `editionCreatedById`, `createdAtTransactionTime`, \
+         `createdAtDecisionTime`, `provenance`, `editionProvenance`, `embedding`, \
+         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub(crate) const fn new(position: usize) -> Self {
@@ -752,6 +803,10 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     .transpose()
                     .map_err(de::Error::custom)?,
             },
+            EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
+            EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
+            EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
             EntityQueryToken::Provenance => {
                 let mut path_tokens = Vec::new();
                 while let Some(property) = seq.next_element::<PathToken<'de>>()? {
@@ -1141,6 +1196,33 @@ mod tests {
                 path: Box::new(EntityQueryPath::Uuid),
                 direction: EdgeDirection::Outgoing
             }
+        );
+
+        assert_eq!(deserialize(["createdById"]), EntityQueryPath::CreatedById);
+        assert_eq!(
+            deserialize(["editionCreatedById"]),
+            EntityQueryPath::EditionCreatedById
+        );
+        assert_eq!(
+            deserialize(["createdAtTransactionTime"]),
+            EntityQueryPath::CreatedAtTransactionTime
+        );
+        assert_eq!(
+            deserialize(["createdAtDecisionTime"]),
+            EntityQueryPath::CreatedAtDecisionTime
+        );
+        assert_eq!(
+            deserialize(["provenance", "firstNonDraftCreatedAtDecisionTime"]),
+            EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![PathToken::Field(
+                Cow::Borrowed("firstNonDraftCreatedAtDecisionTime")
+            )])))
+        );
+        assert_eq!(
+            deserialize(["editionProvenance", "origin", "type"]),
+            EntityQueryPath::EditionProvenance(Some(JsonPath::from_path_tokens(vec![
+                PathToken::Field(Cow::Borrowed("origin")),
+                PathToken::Field(Cow::Borrowed("type"))
+            ])))
         );
 
         assert_eq!(

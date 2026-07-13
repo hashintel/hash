@@ -161,7 +161,7 @@ export const migrateOntologyTypes = async (params: {
       }
 
       if (migrationsCompleted.includes(migrationNumber)) {
-        params.logger.info(
+        params.logger.debug(
           `Skipping migration ${migrationFileName} as it has already been processed`,
         );
         continue;

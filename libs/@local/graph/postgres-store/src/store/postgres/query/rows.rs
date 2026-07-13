@@ -9,10 +9,7 @@ use type_system::{
     Valid,
     knowledge::{
         Confidence,
-        entity::{
-            id::{DraftId, EntityEditionId, EntityUuid},
-            provenance::{EntityEditionProvenance, InferredEntityProvenance},
-        },
+        entity::id::{DraftId, EntityEditionId, EntityUuid},
         property::{
             PropertyObject,
             metadata::{PropertyObjectMetadata, PropertyProvenance},
@@ -29,15 +26,18 @@ use type_system::{
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use crate::store::postgres::query::{
-    Table, TableName,
-    table::{
-        DataTypeConversions, DataTypeEmbeddings, DataTypes, DatabaseColumn, EntityDrafts,
-        EntityEdge, EntityEditions, EntityEmbeddings, EntityIds, EntityIsOfType,
-        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, OntologyExternalMetadata,
-        OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata,
-        PropertyTypeConstrainsPropertiesOn, PropertyTypeConstrainsValuesOn, PropertyTypeEmbeddings,
-        PropertyTypes, ReferenceTable,
+use crate::store::postgres::{
+    knowledge::entity::provenance::{SqlEntityEditionProvenanceJson, SqlEntityProvenanceJson},
+    query::{
+        Table, TableName,
+        table::{
+            DataTypeConversions, DataTypeEmbeddings, DataTypes, DatabaseColumn, EntityDrafts,
+            EntityEdge, EntityEditions, EntityEmbeddings, EntityIds, EntityIsOfType,
+            EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, OntologyExternalMetadata,
+            OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata,
+            PropertyTypeConstrainsPropertiesOn, PropertyTypeConstrainsValuesOn,
+            PropertyTypeEmbeddings, PropertyTypes, ReferenceTable,
+        },
     },
 };
 
@@ -276,7 +276,7 @@ pub struct EntityEditionRow {
     pub properties: PropertyObject,
     pub archived: bool,
     pub confidence: Option<Confidence>,
-    pub provenance: EntityEditionProvenance,
+    pub provenance: SqlEntityEditionProvenanceJson,
     pub property_metadata: PropertyObjectMetadata,
     pub created_by_id: ActorEntityUuid,
 }
@@ -453,7 +453,7 @@ impl PostgresRow for EntityEdgeRow {
 pub struct EntityIdRow {
     pub web_id: WebId,
     pub entity_uuid: EntityUuid,
-    pub provenance: InferredEntityProvenance,
+    pub provenance: SqlEntityProvenanceJson,
     pub read_only: bool,
     pub created_by_id: ActorEntityUuid,
     pub created_at_transaction_time: Timestamp<TransactionTime>,

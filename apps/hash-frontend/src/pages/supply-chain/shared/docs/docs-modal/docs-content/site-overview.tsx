@@ -31,6 +31,11 @@ export const siteOverviewSection: DocSectionDef = {
             them, so their cost is not double-counted. Product-specific steps
             stay attributed to their product.
           </P>
+          <P>
+            The <Term>steps over plan</Term> summary next to the site title uses
+            the same 95th-percentile and 10% threshold as the Over plan
+            opportunities.
+          </P>
           <H4>Opportunities</H4>
           <P>
             The opportunities table at the top ranks the most actionable

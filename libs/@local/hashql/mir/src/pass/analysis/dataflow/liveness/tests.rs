@@ -440,8 +440,8 @@ fn bare_vertex_access_sets_all_paths() {
     let paths = entry_paths(&results, BasicBlockId::new(0));
 
     let entity_paths = paths.as_entity().expect("should be entity variant");
-    // 25 variants - 7 children = 18 top-level paths
-    assert_eq!(entity_paths.len(), 18);
+    // 30 variants - 7 children = 23 top-level paths
+    assert_eq!(entity_paths.len(), 23);
 }
 
 /// Non-vertex locals are tracked normally in the local bitset.

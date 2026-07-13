@@ -326,6 +326,16 @@ pub(crate) fn build_inputs<'heap>(
     // WebId input (all seeded entities share the same web).
     inputs.insert(heap.intern_symbol("web_id"), web_id(entities.alice.web_id));
 
+    // Creator input: all seeded entities are created by the test user, whose
+    // actor UUID doubles as the UUID of the shared user web.
+    inputs.insert(
+        heap.intern_symbol("creator_uuid"),
+        value::Value::Opaque(value::Opaque::new(
+            sym::path::CreatedById,
+            Rc::new_in(uuid(entities.alice.web_id.into()), heap),
+        )),
+    );
+
     // String inputs for property-based filtering.
     inputs.insert(heap.intern_symbol("alice_name"), string("Alice"));
 
