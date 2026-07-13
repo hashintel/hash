@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from typing import Self
 
 from pydantic import (
     AwareDatetime,
@@ -12,6 +13,7 @@ from pydantic import (
     HttpUrl,
     NonNegativeInt,
     PositiveInt,
+    model_validator,
 )
 
 from atlas_tools.common.data import Sha256Hex
@@ -19,7 +21,12 @@ from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.common.provenance import Provenance, canonical_json_bytes, sha256_file
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import build_card
-from atlas_tools.relation_cards.common.cards import CardRow
+from atlas_tools.relation_cards.common.cards import (
+    CardRow,
+    RelationId,
+    RelationSourceSpec,
+    qualify_relation_id,
+)
 from atlas_tools.relation_cards.common.config import (
     CardsConfig,
     SentenceSplitterName,
@@ -50,11 +57,19 @@ class HashCardsConfig(BaseModel):
 
 
 class HashCardRow(CardRow):
-    """One identifier-bearing ``cards.jsonl`` sidecar row."""
+    """One source-qualified ``cards.jsonl`` sidecar row."""
 
+    relation_id: RelationId
     base_url: HttpUrl
     version: PositiveInt
     versioned_url: HttpUrl
+
+    @model_validator(mode="after")
+    def check_relation_id(self) -> Self:
+        expected = qualify_relation_id("hash", self.base_url)
+        if self.relation_id != expected:
+            raise ValueError(f"relation_id must be {expected}")
+        return self
 
 
 class HashCardEntry(BaseModel):
@@ -69,6 +84,7 @@ class HashCardsManifestDetails(BaseModel):
 
     link_types_format_version: int
     card_format_version: int
+    relation_source: RelationSourceSpec
     card_hash_canonicalization: str
     tokenizer: TokenizerName
     sentence_splitter: SentenceSplitterName
@@ -142,6 +158,7 @@ def emit_hash_cards(
             output.write(
                 canonical_json_bytes(
                     HashCardRow(
+                        relation_id=qualify_relation_id("hash", record.base_url),
                         base_url=record.base_url,
                         version=record.version,
                         versioned_url=record.versioned_url,
@@ -169,6 +186,10 @@ def emit_hash_cards(
         details=HashCardsManifestDetails(
             link_types_format_version=LINK_TYPES_FORMAT_VERSION,
             card_format_version=CARD_FORMAT_VERSION,
+            relation_source=RelationSourceSpec(
+                namespace="hash",
+                local_id_field="base_url",
+            ),
             card_hash_canonicalization="utf-8 bytes of card_text",
             tokenizer=counter.name,
             sentence_splitter=splitter.name,

@@ -59,10 +59,11 @@ def test_parse_response_rejects_malformed_votes(completion: str) -> None:
 
 def test_every_few_shot_response_matches_the_parser_contract() -> None:
     assert len(FEW_SHOT) == 14
-    assert all(str(provider_id).startswith("P") for _, provider_id, _ in FEW_SHOT)
+    assert all(relation_id.startswith("wikidata:P") for relation_id, _ in FEW_SHOT)
 
-    for _, _, completion in FEW_SHOT:
-        parse_response(completion)
+    responses = {relation_id: parse_response(completion) for relation_id, completion in FEW_SHOT}
+    assert responses["wikidata:P1441"].verdict == "unclear"
+    assert responses["wikidata:P1441"].reason.startswith("U1:")
 
 
 def test_request_judgement_retries_malformed_completion_once() -> None:
@@ -82,10 +83,14 @@ def test_request_judgement_retries_malformed_completion_once() -> None:
     response = asyncio.run(request_judgement(messages, send))
 
     assert response == Response(reason="P1-P3 hold", verdict="proximal")
-    assert len(attempts) == 2
-    assert attempts[1][:-2] == messages
-    assert attempts[1][-2] == ChatAssistantMessage(role="assistant", content="not JSON")
-    assert attempts[1][-1] == ChatUserMessage(role="user", content=RETRY_INSTRUCTION)
+    assert attempts == [
+        messages,
+        [
+            *messages,
+            ChatAssistantMessage(role="assistant", content="not JSON"),
+            ChatUserMessage(role="user", content="Reply with only the JSON object."),
+        ],
+    ]
 
 
 def test_request_judgement_abstains_after_second_malformed_completion() -> None:
@@ -142,7 +147,8 @@ def test_build_retry_prompt_appends_repair_exchange() -> None:
     assert retry[0] is messages[0]
     assert retry[1] is messages[1]
     assert retry[-2] == ChatAssistantMessage(role="assistant", content="not JSON")
-    assert retry[-1] == ChatUserMessage(role="user", content=RETRY_INSTRUCTION)
+    assert RETRY_INSTRUCTION == "Reply with only the JSON object."
+    assert retry[-1] == ChatUserMessage(role="user", content="Reply with only the JSON object.")
     assert messages[-1].content == "card\n"
 
 

@@ -17,7 +17,6 @@ _DEFAULT_RESAMPLES = 1000
 _DEFAULT_SEED = 0
 _DEFAULT_CI_LEVEL = 0.95
 _MIN_RATINGS_PER_CARD = 2
-_NULL_ESTIMATE = Estimate(est=None, lo=None, hi=None, n=0)
 
 
 def _defined(value: float | None) -> float | None:
@@ -56,11 +55,25 @@ def _estimate_from_clusters[Observation](
 ) -> Estimate:
     _validate_bootstrap(resamples=resamples, ci_level=ci_level)
     if not clusters:
-        return _NULL_ESTIMATE
+        return Estimate(
+            est=None,
+            lo=None,
+            hi=None,
+            n=n,
+            bootstrap_resamples=resamples,
+            bootstrap_defined=0,
+        )
 
     estimate = _defined(statistic(clusters))
     if estimate is None:
-        return _NULL_ESTIMATE
+        return Estimate(
+            est=None,
+            lo=None,
+            hi=None,
+            n=n,
+            bootstrap_resamples=resamples,
+            bootstrap_defined=0,
+        )
 
     rng = np.random.default_rng(seed)
     bootstrap_values: list[float] = []
@@ -73,7 +86,14 @@ def _estimate_from_clusters[Observation](
             bootstrap_values.append(value)
 
     if not bootstrap_values:
-        return _NULL_ESTIMATE
+        return Estimate(
+            est=estimate,
+            lo=None,
+            hi=None,
+            n=n,
+            bootstrap_resamples=resamples,
+            bootstrap_defined=0,
+        )
 
     tail = (1.0 - ci_level) / 2.0
     lower, upper = np.quantile(bootstrap_values, (tail, 1.0 - tail))
@@ -82,7 +102,14 @@ def _estimate_from_clusters[Observation](
     # expanding only the offending side.
     lo = min(float(lower), estimate)
     hi = max(float(upper), estimate)
-    return Estimate(est=estimate, lo=lo, hi=hi, n=n)
+    return Estimate(
+        est=estimate,
+        lo=lo,
+        hi=hi,
+        n=n,
+        bootstrap_resamples=resamples,
+        bootstrap_defined=len(bootstrap_values),
+    )
 
 
 def cluster_bootstrap[Observation](
@@ -265,12 +292,17 @@ def bootstrap_rate(
     seed: int = _DEFAULT_SEED,
     ci_level: float = _DEFAULT_CI_LEVEL,
 ) -> Estimate:
-    return cluster_bootstrap(
+    estimate = cluster_bootstrap(
         observations_by_card,
         rate,
         resamples=resamples,
         seed=seed,
         ci_level=ci_level,
+    )
+    return estimate.model_copy(
+        update={
+            "successes": sum(value for values in observations_by_card.values() for value in values)
+        }
     )
 
 

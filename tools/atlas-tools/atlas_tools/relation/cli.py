@@ -40,8 +40,7 @@ class ConcatCommand(BaseSettings):
 class EvaluateCommand(BaseSettings):
     """Run the factorial relation-judge pilot and emit an analysis handoff."""
 
-    cards: CliPositionalArg[FilePath]
-    slice: CliPositionalArg[FilePath]
+    cards: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
     out: Path
 
@@ -54,14 +53,14 @@ class EvaluateCommand(BaseSettings):
 
         try:
             paths = run_pilot(
-                cards_path=self.cards,
-                slice_path=self.slice,
+                cards_dir=self.cards,
                 out_dir=self.out,
                 config=load_run_config(self.config),
             )
         except (NoResponseError, OpenRouterError, OSError, ValueError) as error:
             fail(error)
         echo(f"wrote {paths.votes_jsonl}")
+        echo(f"wrote {paths.attempts_jsonl}")
         echo(f"wrote {paths.slice_jsonl}")
         echo(f"wrote {paths.manifest_json}")
 

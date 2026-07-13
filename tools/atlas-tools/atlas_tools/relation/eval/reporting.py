@@ -9,20 +9,29 @@ from atlas_tools.relation.eval.schema import (
     Estimate,
 )
 
+_SMALL_SAMPLE_BOUND = 30
+
 
 def _estimate(value: Estimate, *, percent: bool = False, money: bool = False) -> str:
+    bootstrap = (
+        f"; bootstrap={value.bootstrap_defined}/{value.bootstrap_resamples} defined"
+        if value.bootstrap_resamples
+        else ""
+    )
     if value.est is None:
-        return f"undefined (n={value.n})"
+        return f"undefined (n={value.n}{bootstrap})"
     scale = 100 if percent else 1
     suffix = "%" if percent else ""
     prefix = "$" if money else ""
-    est, lo, hi = value.est, value.lo, value.hi
-    if est is None or lo is None or hi is None:
-        return f"undefined (n={value.n})"
+    point = f"{prefix}{value.est * scale:.6f}{suffix}"
+    if percent and value.n < _SMALL_SAMPLE_BOUND and value.successes is not None:
+        point = f"{value.successes}/{value.n}"
+    if value.lo is None or value.hi is None:
+        return f"{point} [CI undefined] (n={value.n}{bootstrap})"
     return (
-        f"{prefix}{est * scale:.6f}{suffix} "
-        f"[{prefix}{lo * scale:.6f}, {prefix}{hi * scale:.6f}] "
-        f"(n={value.n})"
+        f"{point} [{prefix}{value.lo * scale:.6f}, "
+        f"{prefix}{value.hi * scale:.6f}]{suffix} "
+        f"(n={value.n}{bootstrap})"
     )
 
 
@@ -61,12 +70,14 @@ def _coverage(report: AnalysisDecisions) -> list[str]:
     lines = [
         "### Cell coverage",
         "",
-        "| family | bundle | observed | expected | missing | missing rate | rerun |",
-        "| --- | --- | ---: | ---: | ---: | ---: | :---: |",
+        "| family | bundle | raw | route-dropped | clean | expected | missing | "
+        "missing rate | rerun |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | :---: |",
     ]
     lines.extend(
-        f"| {stream.family_id} | {stream.bundle_id} | {stream.observed} | "
-        f"{stream.expected} | {stream.missing} | {stream.missing_rate:.6%} | "
+        f"| {stream.family_id} | {stream.bundle_id} | {stream.raw_observed} | "
+        f"{stream.routing_dropped} | {stream.observed} | {stream.expected} | "
+        f"{stream.missing} | {stream.missing_rate:.6%} | "
         f"{_yes(value=stream.rerun_required)} |"
         for stream in report.data_health.coverage
     )
@@ -110,11 +121,13 @@ def _cost_health(report: AnalysisDecisions) -> list[str]:
     lines = [
         "### Token, cost, and latency distributions",
         "",
-        "| family | billed tokens/vote | inflation vs 7.5k | latency seconds | cost/vote |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        "| family | cost coverage | billed tokens/vote | inflation vs 7.5k | "
+        "latency seconds | cost/vote |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     lines.extend(
-        f"| {health.family_id} | {_estimate(health.tokens_per_vote)} | "
+        f"| {health.family_id} | {health.cost_reported_n}/{health.n} | "
+        f"{_estimate(health.tokens_per_vote)} | "
         f"{_estimate(health.token_inflation_factor)} | "
         f"{_estimate(health.latency_seconds)} | "
         f"{_estimate(health.mean_cost_usd, money=True)} |"
@@ -187,7 +200,8 @@ def _phase_one(report: AnalysisDecisions) -> list[str]:
     return [
         "## Phase 1 — judge qualification",
         "",
-        "Canonical gate: at least 5/6 and correct on both P1382 and P2634.",
+        "Qualification-bundle gate (`S1xF1`): at least 5/6 and correct on both "
+        "`wikidata:P1382` and `wikidata:P2634`.",
         "",
         *_qualification_summary(report),
         *_holdout_tables(report),
@@ -217,12 +231,14 @@ def _flips(report: AnalysisDecisions) -> list[str]:
     lines = [
         "### Matched-pair flip rates",
         "",
-        "| axis | pair | entropy stratum | prescreen stratum | flip rate |",
-        "| --- | --- | --- | --- | ---: |",
+        "| axis | pair | entropy stratum | prescreen stratum | matched/expected | "
+        "missing | flip rate |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: |",
     ]
     lines.extend(
         f"| {flip.axis} | {flip.level_pair} | {flip.contest_stratum} | "
-        f"{flip.prescreen_stratum or 'all'} | {_estimate(flip.rate, percent=True)} |"
+        f"{flip.prescreen_stratum or 'all'} | {flip.matched_pairs}/{flip.expected_pairs} | "
+        f"{flip.missing_pairs} | {_estimate(flip.rate, percent=True)} |"
         for flip in report.axis_statistics.flips
     )
     return lines
@@ -262,11 +278,11 @@ def _bundle_agreement(report: AnalysisDecisions) -> list[str]:
 
 
 def _family_agreement(report: AnalysisDecisions) -> list[str]:
-    matrix = report.axis_statistics.agreement.canonical_family_kappa
+    matrix = report.axis_statistics.agreement.qualification_family_kappa
     family_ids = sorted(matrix)
     lines = [
         "",
-        "#### Canonical family-vs-family Cohen κ",
+        "#### Qualification-bundle family-vs-family Cohen's κ",
         "",
         "| | " + " | ".join(family_ids) + " |",
         "| --- | " + " | ".join("---:" for _ in family_ids) + " |",
@@ -285,7 +301,8 @@ def _agreement(report: AnalysisDecisions) -> list[str]:
     return [
         "### Agreement",
         "",
-        f"Whole-pilot nominal Krippendorff alpha: {_estimate(alpha)}.",
+        "Passed-family x baseline-grid, non-holdout nominal Krippendorff's alpha: "
+        f"{_estimate(alpha)}.",
         *_bundle_agreement(report),
         *_family_agreement(report),
     ]
@@ -329,16 +346,20 @@ def _admissions(report: AnalysisDecisions) -> list[str]:
 
 def _escalation(report: AnalysisDecisions) -> list[str]:
     by_axis = {row.axis: row for row in report.escalation}
+    rank_by_axis = {axis: rank for rank, axis in enumerate(report.escalation_order, start=1)}
     lines = [
         "### Escalation ordering",
         "",
-        "| rank | axis | contested disagreement yield | marginal $/vote | yield/$ |",
-        "| ---: | --- | ---: | ---: | ---: |",
+        "| rank | axis | contested disagreement yield | cost coverage | "
+        "marginal $/vote | yield/$ |",
+        "| ---: | --- | ---: | ---: | ---: | ---: |",
     ]
-    for rank, axis in enumerate(report.escalation_order, start=1):
+    for axis in (*report.escalation_order, *(axis for axis in by_axis if axis not in rank_by_axis)):
         row = by_axis[axis]
+        rank = str(rank_by_axis[axis]) if axis in rank_by_axis else "unrankable"
         lines.append(
             f"| {rank} | {axis} | {_estimate(row.disagreement_yield, percent=True)} | "
+            f"{row.cost_reported_n}/{row.cost_eligible_n} | "
             f"{_estimate(row.marginal_cost, money=True)} | "
             f"{_estimate(row.yield_per_dollar_estimate)} |"
         )
@@ -377,13 +398,15 @@ def _cost_audit(report: AnalysisDecisions) -> list[str]:
     lines = [
         "### Cost audit",
         "",
-        "| family | measured $/vote | projected calls | projected cost | "
-        "billed tokens/vote | token inflation |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        "| family | effort | cost basis | cost coverage | measured $/vote | "
+        "projected calls | projected cost | billed tokens/vote | token inflation |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     lines.extend(
-        f"| {audit.family_id} | {_estimate(audit.measured_cost_per_vote_usd, money=True)} | "
-        f"{audit.projected_calls} | {_estimate(audit.projected_cost, money=True)} | "
+        f"| {audit.family_id} | {audit.selected_effort} | "
+        f"{', '.join(audit.cost_basis_bundles)} | {audit.cost_reported_n}/{audit.n} | "
+        f"{_estimate(audit.measured_cost_per_vote_usd, money=True)} | {audit.projected_calls} | "
+        f"{_estimate(audit.projected_cost, money=True)} | "
         f"{_estimate(audit.billed_tokens_per_vote)} | "
         f"{_estimate(audit.token_inflation_factor)} |"
         for audit in report.cost_audit

@@ -25,9 +25,9 @@ step outside this tool.
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, NonNegativeInt
+from pydantic import BaseModel, NonNegativeInt, model_validator
 
 from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.provenance import (
@@ -37,7 +37,12 @@ from atlas_tools.common.provenance import (
 )
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import IdentifierLeakError
-from atlas_tools.relation_cards.common.cards import CardRow
+from atlas_tools.relation_cards.common.cards import (
+    CardRow,
+    RelationId,
+    RelationSourceSpec,
+    qualify_relation_id,
+)
 from atlas_tools.relation_cards.common.config import SentenceSplitterName, TokenizerName
 from atlas_tools.relation_cards.common.sentence import make_sentence_splitter
 from atlas_tools.relation_cards.common.tokens import make_token_counter
@@ -59,12 +64,20 @@ from atlas_tools.wikidata.records import (
 
 
 class WikidataCardRow(CardRow):
-    """One cards.jsonl line (written as canonical JSON)."""
+    """One source-qualified cards.jsonl line (written as canonical JSON)."""
 
+    relation_id: RelationId
     pid: Pid
     scope_filter: Literal["main-value-only"] = "main-value-only"
 
     retrieved_at: str | None
+
+    @model_validator(mode="after")
+    def check_relation_id(self) -> Self:
+        expected = qualify_relation_id("wikidata", self.pid)
+        if self.relation_id != expected:
+            raise ValueError(f"relation_id must be {expected}")
+        return self
 
 
 class CardEntry(BaseModel):
@@ -101,6 +114,7 @@ class CardsManifestDetails(BaseModel):
     """
 
     card_format_version: int
+    relation_source: RelationSourceSpec
     card_hash_canonicalization: str
     scope_filter: Literal["main-value-only"]
     tokenizer: TokenizerName
@@ -202,6 +216,7 @@ def render_cards(
     with cards_path.open("w", encoding="utf-8") as cards_file:
         for card in cards:
             row = WikidataCardRow(
+                relation_id=qualify_relation_id("wikidata", card.pid),
                 pid=card.pid,
                 card_text=card.card_text,
                 card_hash=card.card_hash,
@@ -225,6 +240,10 @@ def render_cards(
         seed=config.extraction.seed,
         details=CardsManifestDetails(
             card_format_version=CARD_FORMAT_VERSION,
+            relation_source=RelationSourceSpec(
+                namespace="wikidata",
+                local_id_field="pid",
+            ),
             card_hash_canonicalization="utf-8 bytes of card_text",
             scope_filter="main-value-only",
             tokenizer=counter.name,

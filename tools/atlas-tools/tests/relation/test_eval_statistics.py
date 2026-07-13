@@ -21,6 +21,7 @@ def test_scalar_statistics_have_hand_computed_values() -> None:
     assert rate([True, False, True, True]) == 0.75
     assert quantile([0.0, 10.0], q=0.25) == 2.5
     assert median([3.0, 1.0, 2.0]) == 2.0
+    assert normalized_entropy([]) is None
     assert normalized_entropy(["coincident", "coincident", "proximal", "proximal"]) == 0.5
     assert normalized_entropy(["coincident", "proximal", "overlay", "unclear"]) == 1.0
 
@@ -48,17 +49,36 @@ def test_nominal_krippendorff_alpha_matches_hand_computation() -> None:
     assert krippendorff_alpha(ratings) == 0.0
 
 
-def test_degenerate_agreement_is_undefined() -> None:
-    null = Estimate(est=None, lo=None, hi=None, n=0)
-
+def test_degenerate_agreement_is_undefined_with_bootstrap_diagnostics() -> None:
     assert cohen_kappa([("coincident", "coincident")]) is None
     assert krippendorff_alpha({"a": ["overlay", "overlay"], "b": ["overlay"]}) is None
-    assert bootstrap_cohen_kappa({"a": [("coincident", "coincident")]}) == null
-    assert bootstrap_krippendorff_alpha({"a": ["overlay", "overlay"]}) == null
+    assert bootstrap_cohen_kappa({"a": [("coincident", "coincident")]}) == Estimate(
+        est=None,
+        lo=None,
+        hi=None,
+        n=1,
+        bootstrap_resamples=1000,
+        bootstrap_defined=0,
+    )
+    assert bootstrap_krippendorff_alpha({"a": ["overlay", "overlay"]}) == Estimate(
+        est=None,
+        lo=None,
+        hi=None,
+        n=1,
+        bootstrap_resamples=1000,
+        bootstrap_defined=0,
+    )
 
 
-def test_empty_bootstrap_is_all_null() -> None:
-    assert cluster_bootstrap({}, mean) == Estimate(est=None, lo=None, hi=None, n=0)
+def test_empty_bootstrap_is_all_null_and_records_requested_draws() -> None:
+    assert cluster_bootstrap({}, mean) == Estimate(
+        est=None,
+        lo=None,
+        hi=None,
+        n=0,
+        bootstrap_resamples=1000,
+        bootstrap_defined=0,
+    )
 
 
 def test_bootstrap_is_seeded_and_independent_of_mapping_order() -> None:
@@ -72,6 +92,8 @@ def test_bootstrap_is_seeded_and_independent_of_mapping_order() -> None:
     assert first == bootstrap_mean(forward)
     assert first.est == pytest.approx(13 / 3)
     assert first.n == 3
+    assert first.bootstrap_resamples == 1000
+    assert first.bootstrap_defined == 1000
 
 
 def test_bootstrap_resamples_cards_not_individual_votes() -> None:
@@ -84,10 +106,32 @@ def test_bootstrap_resamples_cards_not_individual_votes() -> None:
 
     # A two-card bootstrap can draw the zero card twice or the one card twice, producing the
     # endpoints. Resampling ten individual votes would instead concentrate near the 0.9 mean.
-    assert estimate == Estimate(est=0.9, lo=0.0, hi=1.0, n=10)
+    assert estimate == Estimate(
+        est=0.9,
+        lo=0.0,
+        hi=1.0,
+        n=10,
+        bootstrap_resamples=1000,
+        bootstrap_defined=1000,
+    )
 
 
-def test_alpha_bootstrap_counts_pairable_cards() -> None:
+def test_bootstrap_reports_defined_and_requested_draws_separately() -> None:
+    estimate = bootstrap_cohen_kappa(
+        {
+            "degenerate-if-doubled": [("coincident", "coincident")],
+            "always-defined": [("coincident", "proximal")],
+        }
+    )
+
+    assert estimate.est == 0.0
+    assert estimate.lo == 0.0
+    assert estimate.hi == 0.0
+    assert estimate.bootstrap_resamples == 1000
+    assert 0 < estimate.bootstrap_defined < estimate.bootstrap_resamples
+
+
+def test_alpha_bootstrap_counts_pairable_cards_and_defined_draws() -> None:
     estimate = bootstrap_krippendorff_alpha(
         {
             "agree": ["coincident", "coincident"],
@@ -98,3 +142,5 @@ def test_alpha_bootstrap_counts_pairable_cards() -> None:
 
     assert estimate.est == 0.0
     assert estimate.n == 2
+    assert estimate.bootstrap_resamples == 1000
+    assert 0 < estimate.bootstrap_defined < estimate.bootstrap_resamples

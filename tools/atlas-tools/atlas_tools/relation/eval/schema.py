@@ -1,7 +1,8 @@
-"""Typed handoff and output schemas for the factorial-pilot analysis."""
+"""Typed executor handoff and factorial-pilot analysis schemas."""
 
 from typing import Annotated, Literal, Self
 
+from openrouter.components import ChatRequestReasoningEffort, ChatResult
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -15,6 +16,7 @@ from pydantic import (
 )
 
 from atlas_tools.common import Sha256Hex
+from atlas_tools.relation_cards.common.cards import RelationId
 
 type Verdict = Literal["coincident", "proximal", "overlay", "unclear"]
 type VoteVerdict = Literal["coincident", "proximal", "overlay", "unclear", "ABSTAIN"]
@@ -37,6 +39,7 @@ type FlipAxis = Literal["shell", "template", "family", "repeat"]
 type ContestStratum = Literal["all", "contested", "non-contested"]
 type AdmissionAxis = Literal["shell", "template"]
 type EscalationAxisName = Literal["family", "template", "shell", "repeat"]
+type ReasoningEffort = ChatRequestReasoningEffort
 type NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 
 VERDICTS: tuple[Verdict, ...] = ("coincident", "proximal", "overlay", "unclear")
@@ -53,6 +56,7 @@ BUNDLES: tuple[BundleId, ...] = (
     "S3xF2",
     "S3xF3",
 )
+QUALIFICATION_BUNDLE: BundleId = "S1xF1"
 
 
 class StrictModel(BaseModel):
@@ -60,10 +64,10 @@ class StrictModel(BaseModel):
 
 
 class VoteRow(BaseModel):
-    """One logical vote, including any malformed-response retry."""
+    """One logical vote, including the optional malformed-output repair call."""
 
     vote_id: NonEmptyStr
-    relation_id: NonEmptyStr
+    relation_id: RelationId
     card_hash: Sha256Hex
     family_id: NonEmptyStr
     provider: NonEmptyStr
@@ -79,23 +83,25 @@ class VoteRow(BaseModel):
     parse_retries: Literal[0, 1]
     abstained: bool
     initial_raw_completion: str | None = None
-    attempt_models: list[NonEmptyStr] = Field(default_factory=list)
-    attempt_providers: list[NonEmptyStr] = Field(default_factory=list)
-    completion_ids: list[NonEmptyStr] = Field(default_factory=list)
-    provider_usage: list[dict[str, JsonValue]] = Field(default_factory=list)
-    effort: NonEmptyStr
+    attempt_results: list[ChatResult]
+    effort: ReasoningEffort
     temperature: Annotated[float, Field(allow_inf_nan=False)] | None
     seed: int | None
     repeat_index: NonNegativeInt
     tokens_in: NonNegativeInt
     tokens_out: NonNegativeInt
     tokens_cached: NonNegativeInt
+    tokens_cache_write: NonNegativeInt = 0
+    tokens_reasoning: NonNegativeInt = 0
+    known_cost_usd: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+    cost_complete: bool
     cost_usd: Annotated[float, Field(ge=0, allow_inf_nan=False)] | None
     ts_request: AwareDatetime
     ts_response: AwareDatetime
+    latency_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
-    # Providers expose different optional hidden-token counters. Preserve those fields while
-    # still requiring every cross-provider field above.
+    # Provider-specific usage and future native fields may be projected alongside the stable
+    # cross-provider contract. The full native ChatResult values remain in attempt_results.
     model_config = ConfigDict(extra="allow", frozen=True)
 
     @model_validator(mode="after")
@@ -106,46 +112,86 @@ class VoteRow(BaseModel):
         if self.abstained != (self.verdict == "ABSTAIN"):
             raise ValueError("abstained must be true if and only if verdict is ABSTAIN")
         if (self.initial_raw_completion is not None) != (self.parse_retries == 1):
-            raise ValueError("initial_raw_completion must be set if and only if parse_retries is 1")
-        attempt_counts = {
-            len(values)
-            for values in (
-                self.attempt_models,
-                self.attempt_providers,
-                self.completion_ids,
-                self.provider_usage,
-            )
-            if values
-        }
-        if len(attempt_counts) > 1:
-            raise ValueError("populated attempt audit fields must have equal lengths")
-        if attempt_counts and attempt_counts != {self.parse_retries + 1}:
-            raise ValueError("attempt audit fields must contain one entry per API call")
+            raise ValueError("initial_raw_completion must be set iff parse_retries is 1")
+        if len(self.attempt_results) != self.parse_retries + 1:
+            raise ValueError("attempt_results must contain one native result per model call")
+        if any(result.usage is None for result in self.attempt_results):
+            raise ValueError("every attempt result must include usage")
+        if self.attempt_results[-1].model != self.model_returned:
+            raise ValueError("model_returned must match the final native result")
+        if self.cost_complete != (self.cost_usd is not None):
+            raise ValueError("cost_usd must be set if and only if cost_complete is true")
+        if self.cost_usd is not None and self.cost_usd != self.known_cost_usd:
+            raise ValueError("complete cost_usd must equal known_cost_usd")
+        if self.ts_response < self.ts_request:
+            raise ValueError("ts_response must not precede ts_request")
+        return self
+
+
+class AttemptFailure(StrictModel):
+    category: Literal["transport", "provider", "response", "routing", "accounting"]
+    exception_type: NonEmptyStr
+    message: NonEmptyStr
+    status_code: int | None = None
+    response_body: str | None = None
+
+
+class PhysicalAttemptRow(StrictModel):
+    """One visible physical API request, including failures and malformed-output repairs."""
+
+    attempt_id: Sha256Hex
+    vote_id: Sha256Hex
+    request_stage: Literal["initial", "repair"]
+    stage_attempt: NonNegativeInt
+    request_hash: Sha256Hex
+    family_id: NonEmptyStr
+    endpoint_slug: NonEmptyStr
+    model_requested: NonEmptyStr
+    result: ChatResult | None
+    failure: AttemptFailure | None
+    ts_request: AwareDatetime
+    ts_response: AwareDatetime
+    latency_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+
+    @model_validator(mode="after")
+    def check_outcome(self) -> Self:
+        if self.result is None and self.failure is None:
+            raise ValueError("an attempt must contain a result or failure")
+        if self.result is not None and self.failure is None:
+            pass
+        elif self.failure is None:
+            raise ValueError("a failed attempt must include failure details")
         if self.ts_response < self.ts_request:
             raise ValueError("ts_response must not precede ts_request")
         return self
 
 
 class SliceRow(StrictModel):
-    relation_id: NonEmptyStr
+    relation_id: RelationId
     card_hash: Sha256Hex
     prescreen_stratum: NonEmptyStr
+    sampling_stratum: NonEmptyStr
+    length_quartile: Literal[1, 2, 3, 4]
+    pilot_strata: list[NonEmptyStr]
     token_count: NonNegativeInt
     is_holdout: bool
     holdout_verdict: Verdict | None
     sampling_seed: int
+    selection_key: Sha256Hex
 
     @model_validator(mode="after")
     def check_holdout(self) -> Self:
         if self.is_holdout != (self.holdout_verdict is not None):
-            raise ValueError("holdout_verdict must be set if and only if is_holdout is true")
+            raise ValueError("holdout_verdict must be set iff is_holdout is true")
         return self
 
 
 class ExpectedGrid(StrictModel):
     families: list[NonEmptyStr]
     bundles: list[BundleId]
-    relation_ids: list[NonEmptyStr]
+    relation_ids: list[RelationId]
+    effort: ReasoningEffort
+    repeat_index: Literal[0] = 0
 
     @model_validator(mode="after")
     def check_unique(self) -> Self:
@@ -158,7 +204,54 @@ class ExpectedGrid(StrictModel):
                 raise ValueError(f"expected_grid.{name} must not be empty")
             if len(values) != len(set(values)):
                 raise ValueError(f"expected_grid.{name} contains duplicates")
+        if QUALIFICATION_BUNDLE not in self.bundles:
+            raise ValueError("expected_grid must contain the qualification bundle S1xF1")
         return self
+
+
+class ExpectedRepeatArm(StrictModel):
+    families: list[NonEmptyStr]
+    bundle_id: Literal["S1xF1"] = QUALIFICATION_BUNDLE
+    relation_ids: list[RelationId]
+    effort: ReasoningEffort
+    repeat_indices: list[PositiveInt]
+
+    @model_validator(mode="after")
+    def check_unique(self) -> Self:
+        for name, values in (
+            ("families", self.families),
+            ("relation_ids", self.relation_ids),
+            ("repeat_indices", self.repeat_indices),
+        ):
+            if not values or len(values) != len(set(values)):
+                raise ValueError(f"expected_repeat_arm.{name} must be non-empty and unique")
+        return self
+
+
+class ExpectedEffortArm(StrictModel):
+    family_efforts: dict[NonEmptyStr, ReasoningEffort]
+    bundle_id: Literal["S1xF1"] = QUALIFICATION_BUNDLE
+    relation_ids: list[RelationId]
+    repeat_index: Literal[0] = 0
+
+    @model_validator(mode="after")
+    def check_unique(self) -> Self:
+        if not self.family_efforts:
+            raise ValueError("expected_effort_arm.family_efforts must not be empty")
+        if not self.relation_ids or len(self.relation_ids) != len(set(self.relation_ids)):
+            raise ValueError("expected_effort_arm.relation_ids must be non-empty and unique")
+        return self
+
+
+class SliceDerivation(StrictModel):
+    algorithm: Literal["stratified-hash-v1"]
+    sampling_seed: int
+    requested_non_holdouts: PositiveInt
+    eligible_non_holdouts: NonNegativeInt
+    selected_non_holdouts: NonNegativeInt
+    cards_hash: Sha256Hex
+    sampling_config_hash: Sha256Hex
+    selection_hash: Sha256Hex
 
 
 class RunDates(StrictModel):
@@ -174,25 +267,29 @@ class RunDates(StrictModel):
 
 class JudgePin(BaseModel):
     family_id: NonEmptyStr
-    provider: NonEmptyStr
+    endpoint_slug: NonEmptyStr
     model: NonEmptyStr
 
     # The complete judges.yaml entry is a snapshot and may carry pricing/tier metadata that
-    # is not interpreted by rubric-v1 analysis.
+    # rubric-v1 analysis does not interpret.
     model_config = ConfigDict(extra="allow", frozen=True)
 
 
 class HandoffManifest(StrictModel):
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     expected_grid: ExpectedGrid
+    expected_repeat_arm: ExpectedRepeatArm | None
+    expected_effort_arm: ExpectedEffortArm | None
+    slice_derivation: SliceDerivation
     run_dates: RunDates
     judges: list[JudgePin]
     prompt_pack_hash: Sha256Hex
     rubric_version: NonEmptyStr
-    baseline_effort: NonEmptyStr
     full_grid_card_count: PositiveInt
-    source_hashes: dict[str, Sha256Hex] = Field(default_factory=dict)
-    executor_config: dict[str, JsonValue] | None = None
+    source_hashes: dict[str, Sha256Hex]
+    openrouter_sdk_version: NonEmptyStr
+    openrouter_openapi_version: NonEmptyStr
+    executor_config: dict[str, JsonValue]
 
     @model_validator(mode="after")
     def check_grid(self) -> Self:
@@ -201,11 +298,24 @@ class HandoffManifest(StrictModel):
             raise ValueError("judges contains duplicate family_id values")
         if set(judge_families) != set(self.expected_grid.families):
             raise ValueError("judges and expected_grid.families must contain the same families")
+        if self.expected_repeat_arm is not None:
+            if set(self.expected_repeat_arm.families) != set(judge_families):
+                raise ValueError("repeat-arm families must match expected-grid families")
+            if self.expected_repeat_arm.effort != self.expected_grid.effort:
+                raise ValueError("repeat arm must use the grid effort")
+        if self.expected_effort_arm is not None:
+            if not set(self.expected_effort_arm.family_efforts) <= set(judge_families):
+                raise ValueError("effort-arm families must be configured judges")
+            if any(
+                effort == self.expected_grid.effort
+                for effort in self.expected_effort_arm.family_efforts.values()
+            ):
+                raise ValueError("effort-arm settings must differ from the grid effort")
         return self
 
 
 class AnalysisPolicy(StrictModel):
-    version: Literal["rubric-v1-analysis-1"] = "rubric-v1-analysis-1"
+    version: Literal["rubric-v1-analysis-2"] = "rubric-v1-analysis-2"
     bootstrap_resamples: Literal[1000] = 1000
     bootstrap_seed: Literal[0] = 0
     ci_level: float = 0.95
@@ -222,18 +332,23 @@ class Estimate(StrictModel):
     lo: float | None
     hi: float | None
     n: NonNegativeInt
+    bootstrap_resamples: NonNegativeInt = 0
+    bootstrap_defined: NonNegativeInt = 0
+    successes: NonNegativeInt | None = None
 
     @model_validator(mode="after")
     def check_interval(self) -> Self:
-        values = (self.est, self.lo, self.hi)
-        if all(value is None for value in values):
+        if self.bootstrap_defined > self.bootstrap_resamples:
+            raise ValueError("defined bootstrap draws cannot exceed requested draws")
+        if self.successes is not None and self.successes > self.n:
+            raise ValueError("successes cannot exceed n")
+        if self.est is None:
+            if self.lo is not None or self.hi is not None:
+                raise ValueError("an undefined estimate cannot have interval bounds")
             return self
-        if any(value is None for value in values):
-            raise ValueError("estimate and interval bounds must be all set or all null")
-        est, lo, hi = self.est, self.lo, self.hi
-        if est is None or lo is None or hi is None:
-            raise ValueError("estimate and interval bounds must be all set or all null")
-        if not lo <= est <= hi:
+        if (self.lo is None) != (self.hi is None):
+            raise ValueError("confidence interval bounds must be both set or both null")
+        if self.lo is not None and self.hi is not None and not self.lo <= self.est <= self.hi:
             raise ValueError("estimate must fall inside its confidence interval")
         return self
 
@@ -242,6 +357,8 @@ class CoverageStream(StrictModel):
     family_id: str
     bundle_id: BundleId
     expected: NonNegativeInt
+    raw_observed: NonNegativeInt
+    routing_dropped: NonNegativeInt
     observed: NonNegativeInt
     missing: NonNegativeInt
     missing_rate: float
@@ -298,7 +415,7 @@ class QualificationResult(StrictModel):
     p1382_correct: bool
     p2634_correct: bool
     passed: bool
-    bundle_correctness: dict[BundleId, dict[str, bool]]
+    bundle_correctness: dict[BundleId, dict[RelationId, bool]]
 
 
 class MarginalResult(StrictModel):
@@ -314,11 +431,14 @@ class FlipResult(StrictModel):
     contest_stratum: ContestStratum
     prescreen_stratum: str | None
     rate: Estimate
+    expected_pairs: NonNegativeInt = 0
+    matched_pairs: NonNegativeInt = 0
+    missing_pairs: NonNegativeInt = 0
 
 
 class AgreementResults(StrictModel):
     bundle_kappa_by_family: dict[str, dict[BundleId, dict[BundleId, Estimate]]]
-    canonical_family_kappa: dict[str, dict[str, Estimate]]
+    qualification_family_kappa: dict[str, dict[str, Estimate]]
     krippendorff_alpha: Estimate
 
 
@@ -348,14 +468,15 @@ class AdmissionDecision(StrictModel):
 class EscalationAxis(StrictModel):
     axis: EscalationAxisName
     disagreement_yield: Estimate
-    marginal_cost_usd: float | None
     marginal_cost: Estimate
-    yield_per_dollar: float | None
+    cost_eligible_n: NonNegativeInt
+    cost_reported_n: NonNegativeInt
     yield_per_dollar_estimate: Estimate
+    rankable: bool
 
 
 class NominationSeed(StrictModel):
-    relation_id: str
+    relation_id: RelationId
     card_hash: Sha256Hex
     entropy: float
     vote_counts: dict[Verdict, NonNegativeInt]
@@ -363,7 +484,7 @@ class NominationSeed(StrictModel):
 
 
 class CardPosterior(StrictModel):
-    relation_id: str
+    relation_id: RelationId
     card_hash: Sha256Hex
     counts: dict[Verdict, NonNegativeInt]
     probabilities: dict[Verdict, float]
@@ -372,11 +493,12 @@ class CardPosterior(StrictModel):
 
 class FamilyCostAudit(StrictModel):
     family_id: str
+    selected_effort: ReasoningEffort
+    cost_basis_bundles: list[BundleId]
     n: NonNegativeInt
     cost_reported_n: NonNegativeInt
     measured_cost_per_vote_usd: Estimate
     projected_calls: NonNegativeInt
-    projected_cost_usd: float | None
     projected_cost: Estimate
     billed_tokens_per_vote: Estimate
     token_inflation_factor: Estimate
@@ -384,9 +506,9 @@ class FamilyCostAudit(StrictModel):
 
 class EffortDecision(StrictModel):
     family_id: str
-    baseline_effort: str
-    selected_effort: str
-    candidate_effort: str | None
+    baseline_effort: ReasoningEffort
+    selected_effort: ReasoningEffort
+    candidate_effort: ReasoningEffort | None
     baseline_holdout_correct: NonNegativeInt
     candidate_holdout_correct: NonNegativeInt | None
     non_contested_flip: Estimate | None
@@ -396,7 +518,7 @@ class EffortDecision(StrictModel):
 
 
 class AnalysisDecisions(StrictModel):
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     policy: AnalysisPolicy
     input_hashes: dict[str, Sha256Hex]
     prompt_pack_hash: Sha256Hex
