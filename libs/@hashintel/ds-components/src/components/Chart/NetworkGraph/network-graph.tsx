@@ -58,6 +58,8 @@ const FALLBACK_COLOR: [number, number, number] = [148, 148, 148];
 const POINT_RADIUS = 0.1;
 /** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
 const HOVERED_MIN_RADIUS = 8;
+/** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
+const NEIGHBOUR_MIN_RADIUS = 5;
 /**
  * How strongly the point radius grows with zoom. At `0` the radius is fixed in
  * screen pixels; at `1` it scales 1:1 with the zoom's linear scale factor. `0.8`
@@ -333,7 +335,7 @@ export const NetworkGraph = ({
         getRadius: POINT_RADIUS * 1.6,
         radiusScale,
         radiusUnits: "pixels",
-        radiusMinPixels: 2,
+        radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
         stroked: true,
         getLineColor: [255, 255, 255, RGBA_OPAQUE],
         getLineWidth: 1.5,
