@@ -1,15 +1,6 @@
+import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
-import {
-  autoUpdate,
-  flip,
-  offset,
-  shift,
-  useFloating,
-  type VirtualElement,
-} from "@floating-ui/react-dom";
-import { useEffect, useLayoutEffect, useMemo } from "react";
-
-import { cx } from "@hashintel/ds-helpers/css";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   OverlayBody,
@@ -43,8 +34,18 @@ export type PopoverProps = {
   gapX?: number;
   /** The Y distance the popover will be from the trigger in px */
   gapY?: number;
-  /** Called when the user interacts (pointer down) outside the popover and its trigger */
+  /** Called when the popover requests to close (e.g. Escape or an interaction outside it). Required for the popover to be dismissable. */
   onClose?: () => void;
+  /**
+   * Whether a pointer interaction outside the popover and its trigger requests
+   * close via `onClose`. Requires `onClose`.
+   * @default true
+   */
+  closeOnInteractOutside?: boolean;
+  /** The element to focus when the popover opens. Defaults to the first focusable element inside it. */
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /** The element to return focus to when the popover closes. Defaults to the trigger. */
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 };
 
 const PopoverRoot = ({
@@ -56,85 +57,34 @@ const PopoverRoot = ({
   gapX = 8,
   gapY = 8,
   onClose,
+  closeOnInteractOutside = true,
+  initialFocusRef,
+  returnFocusRef,
 }: PopoverProps) => {
   const portalContainerRef = usePortalContainerRef();
 
   const direction = position.split("-")[0];
   const isVertical = direction === "top" || direction === "bottom";
 
-  const { refs, floatingStyles, isPositioned } = useFloating({
-    placement: position,
-    whileElementsMounted: autoUpdate,
-    middleware: [
-      offset(isVertical ? gapY : gapX),
-      flip(),
-      shift({ padding: 8 }),
-    ],
-  });
-
-  // Reading discrete values keeps the effect from re-running on every render
-  // when `positionFromPoint` is passed as an inline object.
+  // Reading discrete values keeps the callback stable when `positionFromPoint`
+  // is passed as an inline object.
   const pointX = positionFromPoint?.x;
   const pointY = positionFromPoint?.y;
 
-  useLayoutEffect(() => {
-    // A virtual element resolves the trigger lazily, so positioning stays
-    // correct if the ref is populated after mount and tracks the trigger as it
-    // moves.
-    const virtualElement: VirtualElement = {
-      getBoundingClientRect: () => {
-        const triggerRect = resolveRef(triggerRef)?.getBoundingClientRect();
-
-        if (pointX !== undefined && pointY !== undefined) {
-          return new DOMRect(
-            (triggerRect?.left ?? 0) + pointX,
-            (triggerRect?.top ?? 0) + pointY,
-            0,
-            0,
-          );
-        }
-
-        return triggerRect ?? new DOMRect();
-      },
-      get contextElement() {
-        return resolveRef(triggerRef) ?? undefined;
-      },
-    };
-
-    refs.setReference(virtualElement);
-  }, [refs, triggerRef, pointX, pointY]);
-
+  // The consumer opens the popover by mounting it, but Ark only runs its open
+  // transition - which focuses the first item inside the popover - when `open`
+  // flips false -> true. So we start closed and open on the next frame. On
+  // dismissal we flip back to closed (so Ark restores focus to the trigger),
+  // then tell the parent via `onClose` once the exit has completed.
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    if (!onClose) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-
-      // Interactions with the popover itself or its trigger are not "outside".
-      const floatingEl = refs.floating.current;
-      const triggerEl = resolveRef(triggerRef);
-      if (floatingEl?.contains(target) || triggerEl?.contains(target)) {
-        return;
-      }
-
-      onClose();
-    };
-
-    // Capture so the interaction is detected even if a descendant stops
-    // propagation, and use the floating element's document to stay correct
-    // when the popover is portalled into another frame.
-    const ownerDocument = refs.floating.current?.ownerDocument ?? document;
-    ownerDocument.addEventListener("pointerdown", handlePointerDown, true);
-
+    const frame = requestAnimationFrame(() => {
+      setOpen(true);
+    });
     return () => {
-      ownerDocument.removeEventListener("pointerdown", handlePointerDown, true);
+      cancelAnimationFrame(frame);
     };
-  }, [onClose, refs, triggerRef]);
+  }, []);
 
   // Provided so the Header/Body/Footer panels (via Popover.Container) can read
   // their shared chrome; harmless for plain children that ignore it.
@@ -152,35 +102,79 @@ const PopoverRoot = ({
   );
 
   return (
-    <Portal container={portalContainerRef}>
-      <div
-        ref={refs.setFloating}
-        className={cx(positionerStyles, className)}
-        style={{
-          ...floatingStyles,
-          // Avoid a flash at the top-left corner before the first measurement.
-          visibility: isPositioned ? "visible" : "hidden",
-        }}
-      >
-        <OverlayContext.Provider value={overlayContextValue}>
-          {children}
-        </OverlayContext.Provider>
-      </div>
-    </Portal>
+    <ArkPopover.Root
+      open={open}
+      lazyMount
+      unmountOnExit
+      // Dismissal requires an `onClose` to act on; without it the popover can
+      // only be closed by the consumer unmounting it.
+      closeOnEscape={!!onClose}
+      closeOnInteractOutside={!!onClose && closeOnInteractOutside}
+      // The trigger lives outside Ark (we position against it via
+      // `getAnchorRect`), so mark it persistent - interacting with it must not
+      // count as an outside interaction and dismiss the popover.
+      persistentElements={[() => resolveRef(triggerRef)]}
+      initialFocusEl={
+        initialFocusRef ? () => initialFocusRef.current : undefined
+      }
+      // Ark restores focus to its own trigger on close; ours is external, so
+      // default to the trigger explicitly (otherwise focus falls to <body>).
+      finalFocusEl={() => {
+        if (returnFocusRef) {
+          return returnFocusRef.current;
+        }
+        const el = resolveRef(triggerRef);
+        return el instanceof HTMLElement ? el : null;
+      }}
+      onOpenChange={(details) => {
+        if (!details.open) {
+          setOpen(false);
+        }
+      }}
+      onExitComplete={() => {
+        onClose?.();
+      }}
+      positioning={{
+        placement: position,
+        offset: { mainAxis: isVertical ? gapY : gapX },
+        // Anchor to the external trigger (or a point relative to its top-left).
+        // Reads the ref lazily so positioning tracks the trigger as it moves.
+        getAnchorRect: () => {
+          const rect = resolveRef(triggerRef)?.getBoundingClientRect();
+
+          if (pointX !== undefined && pointY !== undefined) {
+            return {
+              x: (rect?.left ?? 0) + pointX,
+              y: (rect?.top ?? 0) + pointY,
+              width: 0,
+              height: 0,
+            };
+          }
+
+          return rect
+            ? {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+              }
+            : null;
+        },
+      }}
+    >
+      <Portal container={portalContainerRef}>
+        <ArkPopover.Positioner className={positionerStyles}>
+          <ArkPopover.Content className={className}>
+            <OverlayContext.Provider value={overlayContextValue}>
+              {children}
+            </OverlayContext.Provider>
+          </ArkPopover.Content>
+        </ArkPopover.Positioner>
+      </Portal>
+    </ArkPopover.Root>
   );
 };
 
-/**
- * Positioned overlay panel for interactive, custom content anchored to a trigger.
- *
- * @remarks
- * - Reach for this whenever the overlay needs custom layout, rich content, or its
- *   own UX — forms, menus, detail panels, anything the user interacts with.
- * - Use `Popover.Container`/`Header`/`Body`/`Footer` to frame a standard panel, or
- *   pass plain `children` for bespoke content.
- * - Not for short read-only hints — use {@link Tooltip} for a brief label or
- *   definition shown on hover/focus.
- */
 export const Popover = Object.assign(PopoverRoot, {
   Container: PopoverContainer,
   Header: PopoverHeader,

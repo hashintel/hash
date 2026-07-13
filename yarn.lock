@@ -5651,7 +5651,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@floating-ui/react-dom@npm:2.1.2, @floating-ui/react-dom@npm:^2.0.0":
+"@floating-ui/react-dom@npm:^2.0.0":
   version: 2.1.2
   resolution: "@floating-ui/react-dom@npm:2.1.2"
   dependencies:
@@ -6668,7 +6668,6 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.37.2"
-    "@floating-ui/react-dom": "npm:2.1.2"
     "@fontsource-variable/geist-mono": "npm:5.2.7"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"

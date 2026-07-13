@@ -41,10 +41,12 @@ const panelWidth = css({ width: "[260px]" });
 const PopoverExample = ({
   label,
   position = "bottom-start",
+  closeOnInteractOutside,
   children,
 }: {
   label: string;
   position?: PopoverProps["position"];
+  closeOnInteractOutside?: PopoverProps["closeOnInteractOutside"];
   children: (close: () => void) => PopoverProps["children"];
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -61,7 +63,12 @@ const PopoverExample = ({
         {label}
       </Button>
       {open ? (
-        <Popover triggerRef={triggerRef} position={position} onClose={close}>
+        <Popover
+          triggerRef={triggerRef}
+          position={position}
+          closeOnInteractOutside={closeOnInteractOutside}
+          onClose={close}
+        >
           {children(close)}
         </Popover>
       ) : null}
@@ -125,6 +132,25 @@ export const Default: Story = () => (
             actions={
               <Button size="xs" onClick={close}>
                 Done
+              </Button>
+            }
+          />
+        </Popover.Container>
+      )}
+    </PopoverExample>
+
+    <PopoverExample label="No outside close" closeOnInteractOutside={false}>
+      {(close) => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Header title="Stays open" />
+          <Popover.Body>
+            Clicking outside won&apos;t dismiss this popover — only the close
+            button or Escape will.
+          </Popover.Body>
+          <Popover.Footer
+            actions={
+              <Button size="xs" onClick={close}>
+                Close
               </Button>
             }
           />
