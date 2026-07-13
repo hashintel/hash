@@ -7,7 +7,7 @@ import {
   useFloating,
   type VirtualElement,
 } from "@floating-ui/react-dom";
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -17,6 +17,10 @@ import { type Position } from "../Tooltip/tooltip";
 const positionerStyles = css({
   zIndex: "popover",
 });
+
+/** Reads the current element out of a (possibly callback) ref, when available. */
+const resolveRef = (ref: React.Ref<Element>): Element | null =>
+  ref && typeof ref === "object" && "current" in ref ? ref.current : null;
 
 export type PopoverProps = {
   className?: string;
@@ -34,6 +38,8 @@ export type PopoverProps = {
   gapX?: number;
   /** The Y distance the popover will be from the trigger in px */
   gapY?: number;
+  /** Called when the user interacts (pointer down) outside the popover and its trigger */
+  onClose?: () => void;
 };
 
 export const Popover = ({
@@ -44,6 +50,7 @@ export const Popover = ({
   positionFromPoint,
   gapX = 8,
   gapY = 8,
+  onClose,
 }: PopoverProps) => {
   const portalContainerRef = usePortalContainerRef();
 
@@ -66,17 +73,12 @@ export const Popover = ({
   const pointY = positionFromPoint?.y;
 
   useLayoutEffect(() => {
-    const getTriggerEl = (): Element | null =>
-      triggerRef && typeof triggerRef === "object" && "current" in triggerRef
-        ? triggerRef.current
-        : null;
-
     // A virtual element resolves the trigger lazily, so positioning stays
     // correct if the ref is populated after mount and tracks the trigger as it
     // moves.
     const virtualElement: VirtualElement = {
       getBoundingClientRect: () => {
-        const triggerRect = getTriggerEl()?.getBoundingClientRect();
+        const triggerRect = resolveRef(triggerRef)?.getBoundingClientRect();
 
         if (pointX !== undefined && pointY !== undefined) {
           return new DOMRect(
@@ -90,12 +92,44 @@ export const Popover = ({
         return triggerRect ?? new DOMRect();
       },
       get contextElement() {
-        return getTriggerEl() ?? undefined;
+        return resolveRef(triggerRef) ?? undefined;
       },
     };
 
     refs.setReference(virtualElement);
   }, [refs, triggerRef, pointX, pointY]);
+
+  useEffect(() => {
+    if (!onClose) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+
+      // Interactions with the popover itself or its trigger are not "outside".
+      const floatingEl = refs.floating.current;
+      const triggerEl = resolveRef(triggerRef);
+      if (floatingEl?.contains(target) || triggerEl?.contains(target)) {
+        return;
+      }
+
+      onClose();
+    };
+
+    // Capture so the interaction is detected even if a descendant stops
+    // propagation, and use the floating element's document to stay correct
+    // when the popover is portalled into another frame.
+    const ownerDocument = refs.floating.current?.ownerDocument ?? document;
+    ownerDocument.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      ownerDocument.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [onClose, refs, triggerRef]);
 
   return (
     <Portal container={portalContainerRef}>

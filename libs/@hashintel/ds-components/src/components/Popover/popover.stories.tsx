@@ -62,6 +62,7 @@ const PopoverToggle = ({
           triggerRef={triggerRef}
           position={position}
           positionFromPoint={getPoint ? point : undefined}
+          onClose={() => setOpen(false)}
         >
           <div className={popoverContent}>{label}</div>
         </Popover>
