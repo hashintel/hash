@@ -10,6 +10,7 @@ exclude-newer-span = "P7D"
 members = [
     "hash-monorepo",
     "hash-python-example",
+    "hash-python-example-two",
 ]
 
 [[package]]
@@ -60,6 +61,17 @@ dev = [
 name = "hash-python-example"
 version = "0.0.0"
 source = { editable = "libs/@local/python-example" }
+
+[[package]]
+name = "hash-python-example-two"
+version = "0.0.0"
+source = { editable = "libs/@local/python-example-two" }
+dependencies = [
+    { name = "hash-python-example" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "hash-python-example", editable = "libs/@local/python-example" }]
 
 [[package]]
 name = "iniconfig"

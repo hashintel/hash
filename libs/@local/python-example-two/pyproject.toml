@@ -1,0 +1,14 @@
+[project]
+name            = "hash-python-example-two"
+version         = "0.0.0"
+description     = "Second example package exercising cross-package uv workspace dependencies"
+license         = "AGPL-3.0-only"
+requires-python = ">=3.14"
+dependencies    = ["hash-python-example"]
+
+[tool.uv.sources]
+hash-python-example = { workspace = true }
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"

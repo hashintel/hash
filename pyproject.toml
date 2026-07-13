@@ -18,7 +18,10 @@ package       = false
 exclude-newer = "7 days" # dependency cooldown: ignore releases younger than a week
 
 [tool.uv.workspace]
-members = ["libs/@local/python-example"]
+members = [
+    "libs/@local/python-example",
+    "libs/@local/python-example-two",
+]
 
 [tool.ruff]
 line-length    = 100     # matches the Rust line width used in this repo

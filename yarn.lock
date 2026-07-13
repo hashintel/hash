@@ -8456,7 +8456,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/python-example@workspace:libs/@local/python-example":
+"@local/python-example-two@workspace:libs/@local/python-example-two":
+  version: 0.0.0-use.local
+  resolution: "@local/python-example-two@workspace:libs/@local/python-example-two"
+  dependencies:
+    "@local/python-example": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@local/python-example@workspace:*, @local/python-example@workspace:libs/@local/python-example":
   version: 0.0.0-use.local
   resolution: "@local/python-example@workspace:libs/@local/python-example"
   languageName: unknown
