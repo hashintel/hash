@@ -256,8 +256,17 @@ jobs:
         run: df -h
 
       - name: Launch external services
-        working-directory: infra/compose
-        run: docker compose --profile dev up -d
+        # Retried because BuildKit occasionally fails with transient rpc errors on
+        # individual runners (e.g. "failed to receive status: rpc error: code =
+        # Unavailable desc = error reading from server: EOF"), failing the job
+        # before any test runs. See https://linear.app/hash/issue/SRE-803
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 15
+          shell: bash
+          command: cd infra/compose && docker compose --profile dev up -d
 
       - name: Start background tasks
         id: background-tasks
