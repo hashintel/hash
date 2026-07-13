@@ -8,7 +8,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { Color, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
 /** A single node in the graph. Positions live in an abstract 2D space. */
-export interface GraphChartPoint {
+export interface NetworkGraphPoint {
   id: number;
   x: number;
   y: number;
@@ -16,18 +16,18 @@ export interface GraphChartPoint {
   color: string;
 }
 
-/** A connection between two {@link GraphChartPoint}s, referenced by `id`. */
-export interface GraphChartEdge {
+/** A connection between two {@link NetworkGraphPoint}s, referenced by `id`. */
+export interface NetworkGraphEdge {
   id: number;
   fromId: number;
   toId: number;
 }
 
-export interface GraphChartProps {
+export interface NetworkGraphProps {
   /** The nodes to plot. */
-  points: GraphChartPoint[];
+  points: NetworkGraphPoint[];
   /** The connections between nodes. Only rendered while a node is hovered. */
-  edges: GraphChartEdge[];
+  edges: NetworkGraphEdge[];
   /** Extra class name applied to the chart container. */
   className?: string;
 }
@@ -83,17 +83,21 @@ const containerStyles = css({
  * connect to — are highlighted. This keeps large graphs legible while still
  * letting you explore local connectivity.
  */
-export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
+export const NetworkGraph = ({
+  points,
+  edges,
+  className,
+}: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
     null,
   );
-  const [hovered, setHovered] = useState<GraphChartPoint | null>(null);
+  const [hovered, setHovered] = useState<NetworkGraphPoint | null>(null);
   // The zoom the graph was first framed at, used as the reference point from
   // which the point radius grows as the user zooms in.
   const [referenceZoom, setReferenceZoom] = useState<number | null>(null);
 
-  const view = useMemo(() => new OrthographicView({ id: "graph-chart" }), []);
+  const view = useMemo(() => new OrthographicView({ id: "network-graph" }), []);
 
   /** Resolve each distinct hex colour to rgb once (there are only a few). */
   const colorByHex = useMemo(() => {
@@ -146,7 +150,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
 
   /** Look up a point by id, for resolving edge endpoints. */
   const pointById = useMemo(() => {
-    const map = new Map<number, GraphChartPoint>();
+    const map = new Map<number, NetworkGraphPoint>();
     for (const point of points) {
       map.set(point.id, point);
     }
@@ -155,8 +159,8 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
 
   /** Adjacency list: node id → edges touching it. */
   const adjacency = useMemo(() => {
-    const map = new Map<number, GraphChartEdge[]>();
-    const push = (id: number, edge: GraphChartEdge) => {
+    const map = new Map<number, NetworkGraphEdge[]>();
+    const push = (id: number, edge: NetworkGraphEdge) => {
       const list = map.get(id);
       if (list) {
         list.push(edge);
@@ -188,7 +192,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
       lines.push({ source: [from.x, from.y], target: [to.x, to.y] });
       neighbourIds.add(edge.fromId === hovered.id ? edge.toId : edge.fromId);
     }
-    const neighbours: GraphChartPoint[] = [];
+    const neighbours: NetworkGraphPoint[] = [];
     for (const id of neighbourIds) {
       const point = pointById.get(id);
       if (point) {
@@ -232,7 +236,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
     return () => observer.disconnect();
   }, [bounds]);
 
-  const handleHover = useCallback((info: PickingInfo<GraphChartPoint>) => {
+  const handleHover = useCallback((info: PickingInfo<NetworkGraphPoint>) => {
     const object = info.object ?? null;
     setHovered((previous) => (previous?.id === object?.id ? previous : object));
   }, []);
@@ -261,7 +265,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
   const layers = useMemo(() => {
     const isHovering = hover !== null;
     return [
-      new ScatterplotLayer<GraphChartPoint>({
+      new ScatterplotLayer<NetworkGraphPoint>({
         id: "points",
         data: points,
         pickable: true,
@@ -285,7 +289,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         widthUnits: "pixels",
         widthMinPixels: 1,
       }),
-      new ScatterplotLayer<GraphChartPoint>({
+      new ScatterplotLayer<NetworkGraphPoint>({
         id: "highlight-neighbours",
         data: hover?.neighbours ?? [],
         getPosition: (point) => [point.x, point.y],
@@ -300,7 +304,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         lineWidthUnits: "pixels",
         lineWidthMinPixels: 1,
       }),
-      new ScatterplotLayer<GraphChartPoint>({
+      new ScatterplotLayer<NetworkGraphPoint>({
         id: "highlight-hovered",
         data: hovered ? [hovered] : [],
         getPosition: (point) => [point.x, point.y],
@@ -333,7 +337,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
           getCursor={({ isDragging, isHovering }) =>
             isDragging ? "grabbing" : isHovering ? "pointer" : "grab"
           }
-          getTooltip={({ object }: PickingInfo<GraphChartPoint>) =>
+          getTooltip={({ object }: PickingInfo<NetworkGraphPoint>) =>
             object
               ? {
                   text: `Node ${object.id}\n(${object.x.toFixed(1)}, ${object.y.toFixed(1)})`,

@@ -2,17 +2,17 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
+export {
+  NetworkGraph,
+  type NetworkGraphEdge,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+} from "./components/Chart/NetworkGraph/network-graph";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Form } from "./components/Form/form";
-export {
-  GraphChart,
-  type GraphChartEdge,
-  type GraphChartPoint,
-  type GraphChartProps,
-} from "./components/graphChart/graph-chart";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";
 export {

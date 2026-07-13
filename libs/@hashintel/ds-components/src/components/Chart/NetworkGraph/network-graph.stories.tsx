@@ -2,29 +2,29 @@ import { useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { LoadingSpinner } from "../Loading/loading-spinner";
+import { LoadingSpinner } from "../../Loading/loading-spinner";
 // Imported with `?url` so the ~23 MB of fixtures are served as static assets
 // and parsed at runtime, rather than inlined into the story bundle.
 import edgesUrl from "./edges.json?url";
 import {
-  GraphChart,
-  type GraphChartEdge,
-  type GraphChartPoint,
-  type GraphChartProps,
-} from "./graph-chart";
+  NetworkGraph,
+  type NetworkGraphEdge,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+} from "./network-graph";
 import pointsUrl from "./points.json?url";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
-  title: "Components/GraphChart",
+  title: "Components/Chart/NetworkGraph",
   argTypes: {},
   args: {},
-} satisfies StoryDefault<GraphChartProps>;
+} satisfies StoryDefault<NetworkGraphProps>;
 
 interface GraphData {
-  points: GraphChartPoint[];
-  edges: GraphChartEdge[];
+  points: NetworkGraphPoint[];
+  edges: NetworkGraphEdge[];
 }
 
 const useGraphData = (): GraphData | null => {
@@ -37,10 +37,10 @@ const useGraphData = (): GraphData | null => {
     void (async () => {
       const [points, edges] = await Promise.all([
         fetch(pointsUrl).then(
-          (response) => response.json() as Promise<GraphChartPoint[]>,
+          (response) => response.json() as Promise<NetworkGraphPoint[]>,
         ),
         fetch(edgesUrl).then(
-          (response) => response.json() as Promise<GraphChartEdge[]>,
+          (response) => response.json() as Promise<NetworkGraphEdge[]>,
         ),
       ]);
       if (status.active) {
@@ -97,7 +97,7 @@ const hintStyles = css({
  * by default; hover a node to reveal its connections and neighbours. Scroll to
  * zoom and drag to pan.
  */
-export const Default: Story<GraphChartProps> = () => {
+export const Default: Story<NetworkGraphProps> = () => {
   const data = useGraphData();
 
   return (
@@ -108,7 +108,7 @@ export const Default: Story<GraphChartProps> = () => {
             Hover a node to reveal its connections · scroll to zoom · drag to
             pan
           </span>
-          <GraphChart points={data.points} edges={data.edges} />
+          <NetworkGraph points={data.points} edges={data.edges} />
         </>
       ) : (
         <span className={centreStyles}>
