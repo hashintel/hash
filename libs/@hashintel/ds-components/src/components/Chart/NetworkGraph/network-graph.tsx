@@ -77,6 +77,8 @@ const MIN_ZOOM_OFFSET = -2;
 const MAX_ZOOM_OFFSET = 12;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
+/** Screen-space padding (px) the viewport may show beyond the network when panning. */
+const PAN_PADDING_PX = 10;
 const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
@@ -94,6 +96,39 @@ const hexToRgb = (hex: string): [number, number, number] => {
     Number.parseInt(value.slice(0, 2), 16),
     Number.parseInt(value.slice(2, 4), 16),
     Number.parseInt(value.slice(4, 6), 16),
+  ];
+};
+
+/**
+ * Clamp an orthographic pan `target` so the viewport never shows more than
+ * {@link PAN_PADDING_PX} beyond the network's bounding box. `scale` is the
+ * world→pixel factor (`2 ** zoom`); `viewport{Width,Height}` are in CSS pixels.
+ * When the viewport is larger than the padded network on an axis (e.g. when
+ * zoomed out), that axis is locked to the network's centre.
+ */
+const clampPanTarget = (
+  target: number[],
+  scale: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+): [number, number, number] => {
+  const pad = PAN_PADDING_PX / scale;
+  const clampAxis = (
+    center: number,
+    min: number,
+    max: number,
+    viewportPx: number,
+  ) => {
+    const half = viewportPx / (2 * scale);
+    const lo = min - pad + half;
+    const hi = max + pad - half;
+    return lo <= hi ? Math.min(hi, Math.max(lo, center)) : (min + max) / 2;
+  };
+  return [
+    clampAxis(target[0] ?? 0, bounds.minX, bounds.maxX, viewportWidth),
+    clampAxis(target[1] ?? 0, bounds.minY, bounds.maxY, viewportHeight),
+    target[2] ?? 0,
   ];
 };
 
@@ -417,9 +452,24 @@ export const NetworkGraph = ({
             onNodeHover?.({ point: object, x: info.x, y: info.y });
           }}
           onViewStateChange={(params) => {
-            const next = params.viewState as OrthographicViewState;
+            const raw = params.viewState as OrthographicViewState;
+            const zoom = Array.isArray(raw.zoom) ? raw.zoom[0] : raw.zoom;
+            const rect = containerRef.current?.getBoundingClientRect();
+            // Constrain panning so the view stays within the network + padding.
+            const next: OrthographicViewState =
+              rect && zoom !== undefined && raw.target
+                ? {
+                    ...raw,
+                    target: clampPanTarget(
+                      raw.target as number[],
+                      2 ** zoom,
+                      rect.width,
+                      rect.height,
+                      bounds,
+                    ),
+                  }
+                : raw;
             setViewState(next);
-            const zoom = Array.isArray(next.zoom) ? next.zoom[0] : next.zoom;
             if (zoom !== undefined && zoom !== lastZoomRef.current) {
               lastZoomRef.current = zoom;
               onZoom?.(zoom);
