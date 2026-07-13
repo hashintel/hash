@@ -13,7 +13,7 @@ import {
 
 type Direction = "bottom" | "top" | "left" | "right";
 export type Position = Direction | `${Direction}-${"start" | "end"}`;
-type Delay = "fast" | "medium" | "slow" | "none";
+export type Delay = "fast" | "medium" | "slow" | "none";
 
 const openDelayMsMap = {
   none: 0,
