@@ -153,6 +153,60 @@ export const Positions: Story = () => (
   </div>
 );
 
+/**
+ * Composed from the Header / Body / Footer panels (mirroring `Dialog`). Unlike
+ * `Dialog`, the popover accepts multiple `Body` panels, each rendered as its
+ * own card. Clicking the trigger, the close button, or anywhere outside closes
+ * it.
+ */
+export const Panels: Story = () => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{ padding: 5 }}>
+      <Button ref={triggerRef} onClick={() => setOpen((wasOpen) => !wasOpen)}>
+        {open ? "Close" : "Open"} popover
+      </Button>
+      {open ? (
+        <Popover
+          triggerRef={triggerRef}
+          position="bottom-start"
+          onClose={() => setOpen(false)}
+        >
+          <Popover.Container className={css({ width: "[280px]" })}>
+            <Popover.Header
+              title="Filters"
+              actions={
+                <Button
+                  size="xxs"
+                  variant="ghost"
+                  iconName="gear"
+                  aria-label="Filter settings"
+                />
+              }
+            />
+            <Popover.Body>
+              The first body holds the primary content of the popover.
+            </Popover.Body>
+            <Popover.Body>
+              A popover can render multiple Body panels — each is a separate
+              card.
+            </Popover.Body>
+            <Popover.Footer
+              actions={
+                <Button size="xs" onClick={() => setOpen(false)}>
+                  Apply
+                </Button>
+              }
+            />
+          </Popover.Container>
+        </Popover>
+      ) : null}
+    </div>
+  );
+};
+
 export default {
   title: "Components/Popover",
 } satisfies StoryDefault;

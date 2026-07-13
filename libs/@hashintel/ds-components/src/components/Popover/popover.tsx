@@ -7,16 +7,20 @@ import {
   useFloating,
   type VirtualElement,
 } from "@floating-ui/react-dom";
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
+import {
+  OverlayBody,
+  OverlayContext,
+  OverlayFooter,
+} from "../../util/overlay-parts";
+import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type Position } from "../Tooltip/tooltip";
-
-const positionerStyles = css({
-  zIndex: "popover",
-});
+import { PopoverContainer, PopoverHeader } from "./popover-parts";
+import { positionerStyles } from "./popover.recipe";
 
 /** Reads the current element out of a (possibly callback) ref, when available. */
 const resolveRef = (ref: React.Ref<Element>): Element | null =>
@@ -24,6 +28,7 @@ const resolveRef = (ref: React.Ref<Element>): Element | null =>
 
 export type PopoverProps = {
   className?: string;
+  /** Any content to position; use `Popover.Container` to frame panels */
   children: React.ReactNode;
   /**
    * The element the popover is positioned relative to. Positioning updates
@@ -42,7 +47,7 @@ export type PopoverProps = {
   onClose?: () => void;
 };
 
-export const Popover = ({
+const PopoverRoot = ({
   className,
   children,
   triggerRef,
@@ -131,6 +136,21 @@ export const Popover = ({
     };
   }, [onClose, refs, triggerRef]);
 
+  // Provided so the Header/Body/Footer panels (via Popover.Container) can read
+  // their shared chrome; harmless for plain children that ignore it.
+  const overlayContextValue = useMemo(
+    () => ({
+      classes: overlayPartsStyles({ component: "popover" }),
+      onClose,
+      renderCloseButton: !!onClose,
+      // Body/Footer never render these; the popover uses its own <Header>.
+      Title: "h2" as const,
+      Description: "p" as const,
+      componentName: "Popover" as const,
+    }),
+    [onClose],
+  );
+
   return (
     <Portal container={portalContainerRef}>
       <div
@@ -142,8 +162,17 @@ export const Popover = ({
           visibility: isPositioned ? "visible" : "hidden",
         }}
       >
-        {children}
+        <OverlayContext.Provider value={overlayContextValue}>
+          {children}
+        </OverlayContext.Provider>
       </div>
     </Portal>
   );
 };
+
+export const Popover = Object.assign(PopoverRoot, {
+  Container: PopoverContainer,
+  Header: PopoverHeader,
+  Body: OverlayBody,
+  Footer: OverlayFooter,
+});
