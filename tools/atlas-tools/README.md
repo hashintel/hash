@@ -174,6 +174,135 @@ uv run battery generate --shape chains --n 800 --seed 0 --out dataset/
   hashes, seeds, and library versions). Every reported number is reproducible
   from the manifest alone.
 
+### `relation`
+
+`relation` verifies and combines card corpora, runs the factorial judge pilot,
+analyzes its handoff, and executes the admitted production grid. A complete run
+starts by emitting both leaf artifacts:
+
+```sh
+uv run wikidata taxonomy --config config.yaml --out taxonomy.parquet --checkpoint tax-ckpt/
+uv run wikidata extract-properties --config config.yaml --out extract/ \
+    --cache-dir cache/ --taxonomy taxonomy.parquet
+uv run wikidata render-cards --records extract/ --config config.yaml \
+    --out wikidata-cards/
+uv run hash-cards extract-cards --out hash-cards/ \
+    --tokenizer heuristic --sentence-splitter naive
+uv run relation concat wikidata-cards/ hash-cards/ --out cards/
+```
+
+Each leaf directory must contain `cards.jsonl` and `cards.manifest.json`.
+`concat` verifies each manifest-recorded content hash and source declaration,
+rejects duplicate namespaces or relation IDs, and writes the combined
+`cards/cards.jsonl` and `cards/cards.manifest.json`. Combined IDs stay qualified by
+their leaf source, for example `wikidata:P47` and `hash:<stable-local-id>`.
+Evaluation accepts only this verified schema-v2 `relation.concat` artifact.
+
+Set `OPENROUTER_API_KEY` and use the checked-in
+`config/eval/pilot.yaml`, which is the source of truth for the recovered nine-judge
+roster. The schema is strict and rejects unknown keys. `request_timeout` is an
+ISO-8601 duration; the optional cost cap is `max_cost_usd`.
+
+A judge route separates three concepts that OpenRouter exposes independently:
+
+- `provider_slug` is a value from `/api/v1/providers` accepted by
+  `provider.only`, such as `google-vertex` or `azure`. Endpoint tags such as
+  `google-vertex/europe`, `azure/eu`, and `venice/fp8` are not provider slugs.
+- `provider_name` is the display name expected in returned router metadata.
+- `openrouter_region` selects the OpenRouter API base: `global` uses
+  `https://openrouter.ai/api/v1`, while `eu` uses
+  `https://eu.openrouter.ai/api/v1`. EU in-region routing must be enabled for the
+  OpenRouter account.
+
+`output_token_limit` is a discriminated route capability and sends exactly one
+of `max_tokens` or `max_completion_tokens`. A null `temperature` or `seed` means
+that parameter is omitted from the request; it is not serialized as JSON null.
+The executor also requires every configured route to satisfy OpenRouter's ZDR
+and data-denial filters.
+
+Run, analyze, inspect, and then authorize the production grid:
+
+```sh
+uv run relation evaluate cards/ pilot.yaml --out pilot/
+uv run relation analyze pilot/ --out pilot-analysis/
+cat pilot-analysis/report.md
+uv run python -m json.tool pilot-analysis/decisions.json
+uv run relation run-full-grid cards/ pilot-analysis/decisions.json pilot.yaml --out full-grid/
+```
+
+The pilot slice is not a separately maintained or hand-authored file. `evaluate`
+verifies the concatenated cards, excludes the fixed `FEW_SHOT` prompt examples,
+adds the fixed qualification holdouts, and derives the remaining sample from the
+verified `cards.jsonl` hash, the sampling-config hash, and `sampling.seed` with
+`stratified-hash-v1`. Strata cover producer, prescreen class, card-length
+quartile, and card trouble tags. `slice.jsonl` records every selected card hash,
+seed, selection key, stratum, and the resulting selection hash, so the same
+cards and config derive the same pilot.
+
+The baseline pilot is every configured judge family across all nine bundles: the
+three system-prompt shells (`S1`-`S3`) crossed with the three user framings
+(`F1`-`F3`). It also runs these typed auxiliary arms:
+
+- the six fixed holdouts participate in the complete 3x3 baseline grid and judge
+  qualification;
+- `repeat_count` adds that many repeats of non-holdout cards at `S1xF1` and the
+  baseline effort, providing a self-flip noise floor;
+- each judge with `higher_effort` gets an `S1xF1` effort arm across the whole
+  pilot slice, including holdouts.
+
+`analyze` cross-validates the manifest, slice, logical votes, and physical
+attempts before writing byte-deterministic `decisions.json` and `report.md`.
+Inspect data-health/routing warnings, pruned families, admitted shells and
+framings, selected per-family effort, and projected full-grid cost before
+continuing. `run-full-grid` accepts only strict schema-v2 decisions consistent
+with the current rubric, prompt pack, judge pins, effort policy, and admission
+results. It executes every admitted family × every bundle in the admitted
+shell × framing product × the complete set of eligible cards. The fixed
+`FEW_SHOT` cards remain in the prompt pack but are
+excluded from pilot sampling, analysis, and production votes to prevent
+contamination. Other verified cards remain eligible, including severely
+truncated cards; truncation is recorded for analysis rather than silently
+changing the population. The production grid has no repeat arm (`repeat_index`
+is zero throughout).
+
+Execution is deliberately fail-closed:
+
+- Requests require ZDR and `data_collection: deny`, pin exactly one
+  `provider_slug`, require the configured parameters, disallow fallback, disable
+  the OpenRouter response cache, and disable SDK retries. Returned model and
+  `provider_name` metadata must match the pin and show exactly one HTTP-200
+  provider attempt.
+- A syntactically malformed judge response receives one conversational parser
+  repair. If that response is also malformed, the logical vote is `ABSTAIN`.
+  A schema-valid but semantically wrong verdict is evidence and is never
+  retried. Transport, routing, response-envelope, and accounting failures stop
+  the run rather than becoming abstentions.
+- Every physical request, including failed and repair calls, is appended and
+  `fsync`ed to `attempts.jsonl`; every completed logical vote is durably appended
+  to `votes.jsonl`. An atomic `inflight-request.json` is written before a call
+  and cleared only after its outcome is journaled.
+- Re-running the identical command against the same output directory resumes a
+  journal prefix only when its source hashes, plan, request contract, and run
+  state still match. A failed attempt with a known outcome may be retried as the
+  next numbered physical attempt. An in-flight marker without a corresponding
+  journaled outcome has unknown billing state and blocks automatic retry. A run
+  lock also prevents concurrent evaluators from sharing an output directory.
+- `max_cost_usd` is checked against complete provider-reported costs before each
+  new logical vote and before a parser-repair call. Reaching the cap stops with
+  all prior work resumable; raising the operational cap and rerunning continues
+  the same plan. Because request cost is known only after the response, the last
+  completed call may carry the total past the cap. If any physical attempt lacks
+  usable cost data, a configured cap cannot be enforced and execution stops.
+
+Artifacts are append-only journals plus hash-bound manifests. `pilot/` contains
+`slice.jsonl`, `votes.jsonl`, `attempts.jsonl`, `run-state.json`, and the finalized
+schema-v2 `manifest.json`; `pilot-analysis/` contains `decisions.json` and
+`report.md`. `full-grid/` contains `votes.jsonl`, `attempts.jsonl`,
+`run-state.json`, and a production `manifest.json` binding the decisions, card
+artifact, exact expected product, plan/request-policy hashes, judge pins, SDK
+versions, usage, costs, and run dates. `.run.lock` and
+`inflight-request.json` are operational state rather than handoff artifacts.
+
 ### `hash-cards`
 
 ```sh
@@ -381,6 +510,7 @@ atlas_tools/
   common/       shared contracts (matrix, layout, provenance, knn)
   audit/        prefix representation audit
   battery/      generators, metrics, merge tree, harness, gates, engines
+  relation/     verified card concat, judge pilot/full-grid execution, and analysis
   relation_cards/
     common/     canonical card models, rendering, and budgets
     hash/       live HASH PostgreSQL / SemType adapter and emission

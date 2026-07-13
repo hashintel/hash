@@ -3,13 +3,15 @@
 import itertools
 import math
 from collections import Counter, defaultdict
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from os import PathLike
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import Self, TypedDict, cast
 
 import numpy as np
+from openrouter.components import ChatResult
 from pydantic import BaseModel, ValidationError
 
 from atlas_tools.common import (
@@ -39,6 +41,7 @@ from atlas_tools.relation.eval.schema import (
     ContestStratum,
     CoverageStream,
     DataHealth,
+    DurationEstimate,
     EffortDecision,
     EscalationAxis,
     EscalationAxisName,
@@ -54,6 +57,7 @@ from atlas_tools.relation.eval.schema import (
     MarginalResult,
     NominationSeed,
     OrderingCheck,
+    PhysicalAttemptRow,
     QualificationResult,
     RoutingStream,
     ShellId,
@@ -69,7 +73,6 @@ from atlas_tools.relation.eval.statistics import (
     cluster_bootstrap,
     mean,
     normalized_entropy,
-    quantile,
 )
 
 MAX_REASON_WORDS = 60
@@ -88,6 +91,7 @@ class BootstrapOptions(TypedDict):
     resamples: int
     seed: int
     ci_level: float
+    minimum_defined_rate: float
 
 
 @dataclass(frozen=True)
@@ -95,6 +99,7 @@ class Handoff:
     manifest: HandoffManifest
     slice_rows: tuple[SliceRow, ...]
     votes: tuple[VoteRow, ...]
+    attempts_by_vote: dict[str, tuple[PhysicalAttemptRow, ...]]
     input_hashes: dict[str, Sha256Hex]
 
 
@@ -131,19 +136,63 @@ class PairObservations:
     expected_by_card: dict[str, int]
 
 
+@dataclass(frozen=True)
+class EntropyStrata:
+    entropy_by_relation: dict[str, float]
+    contested_relations: set[str]
+    tercile_cuts: tuple[float, float]
+
+
+@dataclass(frozen=True)
+class HoldoutEffortComparison:
+    correct: int
+    rescues: int
+    regressions: int
+    mandatory_probes_correct: bool
+
+
+@dataclass(frozen=True)
+class AxisDecisionResults:
+    statistics: AxisStatistics
+    admissions: list[AdmissionDecision]
+    entropy_by_relation: dict[str, float]
+    contested_relations: set[str]
+    family_flip_rate: Estimate
+    floor_error_bar: Estimate
+
+
+@dataclass(frozen=True)
+class CostAuditResults:
+    families: list[FamilyCostAudit]
+    projected_cost: Estimate
+
+
+@dataclass(frozen=True)
+class EscalationEstimates:
+    disagreement_yield: Estimate
+    marginal_cost: Estimate
+    yield_per_dollar: Estimate
+
+
+@dataclass(frozen=True)
+class EscalationResults:
+    axes: list[EscalationAxis]
+    order: list[EscalationAxisName]
+
+
 def _load_jsonl[Model: BaseModel](path: Path, model: type[Model]) -> list[Model]:
     rows: list[Model] = []
 
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if not line:
-            continue
-
-        try:
-            rows.append(model.model_validate_json(line))
-        except ValidationError as error:
-            raise ValueError(
-                f"invalid {path.name} record at line {line_number}: {error}"
-            ) from error
+    with path.open(encoding="utf-8") as input_file:
+        for line_number, line in enumerate(input_file, start=1):
+            if not line.strip():
+                continue
+            try:
+                rows.append(model.model_validate_json(line))
+            except ValidationError as error:
+                raise ValueError(
+                    f"invalid {path.name} record at line {line_number}: {error}"
+                ) from error
 
     return rows
 
@@ -234,32 +283,88 @@ def _vote_cell(vote: VoteRow) -> LogicalCell:
     )
 
 
-def _expected_cells(manifest: HandoffManifest) -> tuple[set[LogicalCell], set[LogicalCell]]:
-    grid: set[LogicalCell] = {
-        (relation_id, family_id, bundle_id, manifest.expected_grid.effort, 0)
-        for relation_id in manifest.expected_grid.relation_ids
-        for family_id in manifest.expected_grid.families
-        for bundle_id in manifest.expected_grid.bundles
-    }
-    auxiliary: set[LogicalCell] = set()
-    repeat = manifest.expected_repeat_arm
-    if repeat is not None:
-        auxiliary.update(
-            (relation_id, family_id, repeat.bundle_id, repeat.effort, repeat_index)
-            for relation_id in repeat.relation_ids
-            for family_id in repeat.families
-            for repeat_index in repeat.repeat_indices
+@dataclass(frozen=True)
+class CellContract:
+    grid_relations: frozenset[str]
+    grid_families: frozenset[str]
+    grid_bundles: frozenset[str]
+    grid_effort: str
+    grid_repeat_index: int
+    repeat_relations: frozenset[str]
+    repeat_families: frozenset[str]
+    repeat_bundle: str
+    repeat_effort: str
+    repeat_indices: frozenset[int]
+    effort_relations: frozenset[str]
+    effort_by_family: dict[str, str]
+    effort_bundle: str | None
+    effort_repeat_index: int | None
+
+    @classmethod
+    def from_manifest(cls, manifest: HandoffManifest) -> Self:
+        grid = manifest.expected_grid
+        repeat = manifest.expected_repeat_arm
+        effort = manifest.expected_effort_arm
+        return cls(
+            grid_relations=frozenset(grid.relation_ids),
+            grid_families=frozenset(grid.families),
+            grid_bundles=frozenset(grid.bundles),
+            grid_effort=grid.effort,
+            grid_repeat_index=grid.repeat_index,
+            repeat_relations=frozenset(repeat.relation_ids),
+            repeat_families=frozenset(repeat.families),
+            repeat_bundle=repeat.bundle_id,
+            repeat_effort=repeat.effort,
+            repeat_indices=frozenset(repeat.repeat_indices),
+            effort_relations=frozenset(effort.relation_ids if effort is not None else ()),
+            effort_by_family=dict(effort.family_efforts) if effort is not None else {},
+            effort_bundle=effort.bundle_id if effort is not None else None,
+            effort_repeat_index=effort.repeat_index if effort is not None else None,
         )
-    effort = manifest.expected_effort_arm
-    if effort is not None:
-        auxiliary.update(
-            (relation_id, family_id, effort.bundle_id, family_effort, effort.repeat_index)
-            for relation_id in effort.relation_ids
-            for family_id, family_effort in effort.family_efforts.items()
+
+    def contains(self, cell: LogicalCell) -> bool:
+        relation_id, family_id, bundle_id, effort, repeat_index = cell
+        is_grid = (
+            relation_id in self.grid_relations
+            and family_id in self.grid_families
+            and bundle_id in self.grid_bundles
+            and effort == self.grid_effort
+            and repeat_index == self.grid_repeat_index
         )
-    if grid & auxiliary:
-        raise ValueError("manifest arm definitions contain overlapping logical cells")
-    return grid, auxiliary
+        is_repeat = (
+            relation_id in self.repeat_relations
+            and family_id in self.repeat_families
+            and bundle_id == self.repeat_bundle
+            and effort == self.repeat_effort
+            and repeat_index in self.repeat_indices
+        )
+        is_effort = (
+            relation_id in self.effort_relations
+            and self.effort_by_family.get(family_id) == effort
+            and bundle_id == self.effort_bundle
+            and repeat_index == self.effort_repeat_index
+        )
+        return is_grid or is_repeat or is_effort
+
+    def auxiliary_cells(self) -> Iterator[LogicalCell]:
+        yield from (
+            (relation_id, family_id, self.repeat_bundle, self.repeat_effort, repeat_index)
+            for relation_id in self.repeat_relations
+            for family_id in self.repeat_families
+            for repeat_index in self.repeat_indices
+        )
+        if self.effort_bundle is not None and self.effort_repeat_index is not None:
+            yield from (
+                (
+                    relation_id,
+                    family_id,
+                    self.effort_bundle,
+                    effort,
+                    self.effort_repeat_index,
+                )
+                for relation_id in self.effort_relations
+                for family_id, effort in self.effort_by_family.items()
+            )
 
 
 def _validate_vote(
@@ -293,23 +398,65 @@ def _validate_votes(
     for vote in votes:
         _validate_vote(vote, manifest, slice_by_relation)
 
-    candidate_cells = [
-        _vote_cell(vote) for vote in votes if vote.relation_id not in _shot_relation_ids()
-    ]
-    duplicate_cells = [cell for cell, count in Counter(candidate_cells).items() if count > 1]
-    if duplicate_cells:
-        raise ValueError("votes.jsonl contains duplicate logical cells across pilot arms")
+    contract = CellContract.from_manifest(manifest)
+    actual: set[LogicalCell] = set()
+    for vote in votes:
+        if vote.relation_id in _shot_relation_ids():
+            continue
+        cell = _vote_cell(vote)
+        if cell in actual:
+            raise ValueError("votes.jsonl contains duplicate logical cells across pilot arms")
+        if not contract.contains(cell):
+            raise ValueError(f"votes.jsonl contains unexpected pilot-arm cell: {cell}")
+        actual.add(cell)
 
-    expected_grid, expected_auxiliary = _expected_cells(manifest)
-    actual = set(candidate_cells)
-    unexpected = actual - expected_grid - expected_auxiliary
-    if unexpected:
-        raise ValueError(
-            f"votes.jsonl contains unexpected pilot-arm cells: {sorted(unexpected)[:5]}"
-        )
-    missing_auxiliary = expected_auxiliary - actual
+    missing_auxiliary = sum(cell not in actual for cell in contract.auxiliary_cells())
     if missing_auxiliary:
-        raise ValueError(f"votes.jsonl is missing {len(missing_auxiliary)} repeat/effort arm cells")
+        raise ValueError(f"votes.jsonl is missing {missing_auxiliary} repeat/effort arm cells")
+
+
+def _validate_attempts(
+    attempts: Sequence[PhysicalAttemptRow],
+    votes: Sequence[VoteRow],
+) -> dict[str, tuple[PhysicalAttemptRow, ...]]:
+    duplicates = _duplicates(attempt.attempt_id for attempt in attempts)
+    if duplicates:
+        raise ValueError(f"attempts.jsonl contains duplicate attempt_id values: {duplicates}")
+    votes_by_id = {vote.vote_id: vote for vote in votes}
+    grouped: dict[str, list[PhysicalAttemptRow]] = defaultdict(list)
+    for attempt in attempts:
+        vote = votes_by_id.get(attempt.vote_id)
+        if vote is None:
+            raise ValueError(
+                f"attempt {attempt.attempt_id} references unknown vote {attempt.vote_id}"
+            )
+        if attempt.family_id != vote.family_id:
+            raise ValueError(f"attempt {attempt.attempt_id} family does not match its vote")
+        grouped[attempt.vote_id].append(attempt)
+
+    reconciled: dict[str, tuple[PhysicalAttemptRow, ...]] = {}
+    for vote in votes:
+        vote_attempts = grouped.get(vote.vote_id, [])
+        if not vote_attempts:
+            raise ValueError(f"vote {vote.vote_id} has no physical attempt evidence")
+        for stage in ("initial", "repair"):
+            stage_attempts = [
+                attempt for attempt in vote_attempts if attempt.request_stage == stage
+            ]
+            indices = [attempt.stage_attempt for attempt in stage_attempts]
+            if indices != list(range(len(indices))):
+                raise ValueError(
+                    f"attempts for {vote.vote_id}/{stage} are not a contiguous journal"
+                )
+        successful_results = [
+            attempt.result
+            for attempt in vote_attempts
+            if attempt.failure is None and attempt.result is not None
+        ]
+        if successful_results != vote.attempt_results:
+            raise ValueError(f"vote {vote.vote_id} native results do not match attempts.jsonl")
+        reconciled[vote.vote_id] = tuple(vote_attempts)
+    return reconciled
 
 
 def _validate_recorded_hash(manifest: HandoffManifest, path: Path) -> None:
@@ -328,12 +475,15 @@ def load_handoff(path: PathLike) -> Handoff:
         _validate_recorded_hash(manifest, recorded)
     slice_rows = _load_jsonl(slice_path, SliceRow)
     votes = _load_jsonl(votes_path, VoteRow)
+    attempts = _load_jsonl(attempts_path, PhysicalAttemptRow)
     slice_by_relation = _validate_slice(slice_rows, manifest)
     _validate_votes(votes, manifest, slice_by_relation)
+    attempts_by_vote = _validate_attempts(attempts, votes)
     return Handoff(
         manifest=manifest,
         slice_rows=tuple(sorted(slice_rows, key=lambda row: row.relation_id)),
         votes=tuple(sorted(votes, key=lambda vote: vote.vote_id)),
+        attempts_by_vote=attempts_by_vote,
         input_hashes={
             "attempts.jsonl": sha256_file(attempts_path),
             "manifest.json": sha256_file(manifest_path),
@@ -350,21 +500,37 @@ def _nominal(vote: VoteRow) -> Verdict | None:
     return vote.verdict
 
 
-def _matches_route_pin(vote: VoteRow, *, model: str, endpoint_slug: str) -> bool:
-    if vote.model_returned != model or vote.provider != endpoint_slug:
+def _result_matches_route(result: ChatResult, *, model: str, provider_name: str) -> bool:
+    metadata = result.openrouter_metadata
+    attempts = metadata.attempts if metadata is not None else None
+    if result.model != model or attempts is None or len(attempts) != 1:
         return False
-    for result in vote.attempt_results:
-        metadata = result.openrouter_metadata
-        if result.model != model or metadata is None or not metadata.attempts:
-            return False
-        if any(
-            attempt.model != model
-            or attempt.provider != endpoint_slug
-            or attempt.status != _HTTP_OK
-            for attempt in metadata.attempts
-        ):
-            return False
-    return True
+    attempt = attempts[0]
+    return (
+        attempt.model == model and attempt.provider == provider_name and attempt.status == _HTTP_OK
+    )
+
+
+def _matches_route_pin(
+    vote: VoteRow,
+    attempts: Sequence[PhysicalAttemptRow],
+    *,
+    model: str,
+    provider_slug: str,
+    provider_name: str,
+) -> bool:
+    if vote.model_returned != model or vote.provider != provider_name:
+        return False
+    if any(
+        attempt.model_requested != model or attempt.provider_slug != provider_slug
+        for attempt in attempts
+    ):
+        return False
+    physical_results = [attempt.result for attempt in attempts if attempt.result is not None]
+    return bool(physical_results) and all(
+        _result_matches_route(result, model=model, provider_name=provider_name)
+        for result in physical_results
+    )
 
 
 def _card_values[Value](
@@ -382,28 +548,44 @@ def _bootstrap_kwargs(policy: AnalysisPolicy) -> BootstrapOptions:
         "resamples": policy.bootstrap_resamples,
         "seed": policy.bootstrap_seed,
         "ci_level": policy.ci_level,
+        "minimum_defined_rate": policy.minimum_bootstrap_defined_rate,
     }
 
 
 def _partition_votes(handoff: Handoff) -> VotePartitions:
     pins = {
-        judge.family_id: (judge.model, judge.endpoint_slug) for judge in handoff.manifest.judges
+        judge.family_id: (judge.model, judge.provider_slug, judge.provider_name)
+        for judge in handoff.manifest.judges
     }
     shot_ids = _shot_relation_ids()
     contaminated = [vote for vote in handoff.votes if vote.relation_id in shot_ids]
     candidates = [vote for vote in handoff.votes if vote.relation_id not in shot_ids]
 
     def route_matches(vote: VoteRow) -> bool:
-        model, endpoint_slug = pins[vote.family_id]
-        return _matches_route_pin(vote, model=model, endpoint_slug=endpoint_slug)
+        model, provider_slug, provider_name = pins[vote.family_id]
+        return _matches_route_pin(
+            vote,
+            handoff.attempts_by_vote[vote.vote_id],
+            model=model,
+            provider_slug=provider_slug,
+            provider_name=provider_name,
+        )
 
     routing_bad = [vote for vote in candidates if not route_matches(vote)]
     clean = [vote for vote in candidates if route_matches(vote)]
-    grid_effort = handoff.manifest.expected_grid.effort
-    raw_grid = [
-        vote for vote in candidates if vote.effort == grid_effort and vote.repeat_index == 0
-    ]
-    clean_grid = [vote for vote in clean if vote.effort == grid_effort and vote.repeat_index == 0]
+    grid = handoff.manifest.expected_grid
+
+    def is_grid_vote(vote: VoteRow) -> bool:
+        return (
+            vote.relation_id in grid.relation_ids
+            and vote.family_id in grid.families
+            and vote.bundle_id in grid.bundles
+            and vote.effort == grid.effort
+            and vote.repeat_index == grid.repeat_index
+        )
+
+    raw_grid = [vote for vote in candidates if is_grid_vote(vote)]
+    clean_grid = [vote for vote in clean if is_grid_vote(vote)]
     return VotePartitions(
         clean=clean,
         raw_grid=raw_grid,
@@ -454,23 +636,33 @@ def _coverage_health(
 
 
 def _routing_health(
-    manifest: HandoffManifest,
-    votes: Sequence[VoteRow],
+    handoff: Handoff,
+    grid_votes: Sequence[VoteRow],
     policy: AnalysisPolicy,
 ) -> tuple[list[RoutingStream], list[str]]:
-    pins = {judge.family_id: (judge.model, judge.endpoint_slug) for judge in manifest.judges}
+    manifest = handoff.manifest
+    pins = {
+        judge.family_id: (judge.model, judge.provider_slug, judge.provider_name)
+        for judge in manifest.judges
+    }
     routing: list[RoutingStream] = []
     reruns: list[str] = []
     for family_id in sorted(manifest.expected_grid.families):
         for bundle_id in sorted(manifest.expected_grid.bundles):
             stream = [
                 vote
-                for vote in votes
+                for vote in grid_votes
                 if vote.family_id == family_id and vote.bundle_id == bundle_id
             ]
-            model, endpoint_slug = pins[family_id]
+            model, provider_slug, provider_name = pins[family_id]
             violations = sum(
-                not _matches_route_pin(vote, model=model, endpoint_slug=endpoint_slug)
+                not _matches_route_pin(
+                    vote,
+                    handoff.attempts_by_vote[vote.vote_id],
+                    model=model,
+                    provider_slug=provider_slug,
+                    provider_name=provider_name,
+                )
                 for vote in stream
             )
             violation_rate = violations / len(stream) if stream else 0.0
@@ -542,6 +734,17 @@ def _family_bundle_health(
     return results, warnings
 
 
+def _duration_estimate(estimate: Estimate) -> DurationEstimate:
+    return DurationEstimate(
+        est=timedelta(seconds=estimate.est) if estimate.est is not None else None,
+        lo=timedelta(seconds=estimate.lo) if estimate.lo is not None else None,
+        hi=timedelta(seconds=estimate.hi) if estimate.hi is not None else None,
+        n=estimate.n,
+        bootstrap_resamples=estimate.bootstrap_resamples,
+        bootstrap_defined=estimate.bootstrap_defined,
+    )
+
+
 def _one_family_cost_health(
     family_id: str,
     votes: Sequence[VoteRow],
@@ -561,7 +764,7 @@ def _one_family_cost_health(
         )
         for vote in votes
     )
-    latency = _card_values((vote.relation_id, vote.latency_seconds) for vote in votes)
+    latency = _card_values((vote.relation_id, vote.latency.total_seconds()) for vote in votes)
     return FamilyCostHealth(
         family_id=family_id,
         n=len(votes),
@@ -569,7 +772,7 @@ def _one_family_cost_health(
         mean_cost_usd=bootstrap_mean(costs, **bootstrap),
         tokens_per_vote=bootstrap_mean(tokens, **bootstrap),
         token_inflation_factor=bootstrap_mean(inflation, **bootstrap),
-        latency_seconds=bootstrap_mean(latency, **bootstrap),
+        latency=_duration_estimate(bootstrap_mean(latency, **bootstrap)),
     )
 
 
@@ -613,8 +816,8 @@ def _clean_votes(
         policy,
     )
     routing, routing_reruns = _routing_health(
-        handoff.manifest,
-        [*partitions.clean, *partitions.routing_bad],
+        handoff,
+        partitions.raw_grid,
         policy,
     )
     _require_healthy_streams(missing_reruns, routing_reruns)
@@ -708,7 +911,7 @@ def _analysis_votes(
 def _entropy_strata(
     handoff: Handoff,
     eligible_votes: Sequence[VoteRow],
-) -> tuple[dict[str, float], set[str], tuple[float, float]]:
+) -> EntropyStrata:
     by_card: dict[str, list[Verdict]] = defaultdict(list)
     for vote in eligible_votes:
         verdict = _nominal(vote)
@@ -726,8 +929,14 @@ def _entropy_strata(
     entropy_values = np.asarray(list(entropies.values()), dtype=np.float64)
     lower, upper = np.quantile(entropy_values, np.asarray([1 / 3, 2 / 3])).tolist()
     cuts = (float(lower), float(upper))
-    contested = {relation_id for relation_id, entropy in entropies.items() if entropy >= cuts[1]}
-    return entropies, contested, cuts
+    contested_count = max(1, math.ceil(len(entropies) / 3))
+    ranked = sorted(entropies, key=lambda relation_id: (-entropies[relation_id], relation_id))
+    contested = set(ranked[:contested_count])
+    return EntropyStrata(
+        entropy_by_relation=entropies,
+        contested_relations=contested,
+        tercile_cuts=cuts,
+    )
 
 
 def _marginal(
@@ -796,27 +1005,32 @@ def _repeat_observations(
     clean_votes: Sequence[VoteRow],
     passed_families: set[str],
 ) -> PairObservations:
-    holdouts = {row.relation_id for row in handoff.slice_rows if row.is_holdout}
-    grouped: dict[tuple[str, str, BundleId, str], list[tuple[int, Verdict]]] = defaultdict(list)
+    repeat = handoff.manifest.expected_repeat_arm
+    repeat_relations = set(repeat.relation_ids)
+    allowed_indices = {0, *repeat.repeat_indices}
+    grouped: dict[tuple[str, str], list[tuple[int, Verdict]]] = defaultdict(list)
     for vote in clean_votes:
         verdict = _nominal(vote)
-        if verdict is None or vote.family_id not in passed_families or vote.relation_id in holdouts:
+        if (
+            verdict is None
+            or vote.family_id not in passed_families
+            or vote.relation_id not in repeat_relations
+            or vote.bundle_id != repeat.bundle_id
+            or vote.effort != repeat.effort
+            or vote.repeat_index not in allowed_indices
+        ):
             continue
-        grouped[(vote.relation_id, vote.family_id, vote.bundle_id, vote.effort)].append(
-            (vote.repeat_index, verdict)
-        )
+        grouped[(vote.relation_id, vote.family_id)].append((vote.repeat_index, verdict))
 
     observations: dict[str, list[bool]] = defaultdict(list)
-    for (relation_id, _, _, _), repeats in grouped.items():
+    for (relation_id, _), repeats in grouped.items():
         for (_, first), (_, second) in itertools.combinations(sorted(repeats), 2):
             observations[relation_id].append(first != second)
-    repeat = handoff.manifest.expected_repeat_arm
-    comparisons = len(list(itertools.combinations((0, *repeat.repeat_indices), 2))) if repeat else 0
-    relation_ids = {row.relation_id for row in handoff.slice_rows if not row.is_holdout}
+    comparisons = len(list(itertools.combinations((0, *repeat.repeat_indices), 2)))
     return PairObservations(
         values=dict(observations),
         expected_by_card={
-            relation_id: len(passed_families) * comparisons for relation_id in relation_ids
+            relation_id: len(passed_families) * comparisons for relation_id in repeat.relation_ids
         },
     )
 
@@ -893,22 +1107,6 @@ def _combined(observations: Iterable[PairObservations]) -> PairObservations:
     return PairObservations(values=dict(combined), expected_by_card=dict(expected))
 
 
-def _identity_kappa(
-    lookup: Mapping[tuple[str, str, str, str, int], VoteRow],
-    relation_ids: Sequence[str],
-    *,
-    family_id: str,
-    bundle_id: BundleId,
-    effort: str,
-) -> Estimate:
-    n = sum(
-        (vote := lookup.get((relation_id, family_id, bundle_id, effort, 0))) is not None
-        and _nominal(vote) is not None
-        for relation_id in relation_ids
-    )
-    return Estimate(est=1.0, lo=1.0, hi=1.0, n=n)
-
-
 def _kappa_pairs(
     lookup: Mapping[tuple[str, str, str, str, int], VoteRow],
     relation_ids: Sequence[str],
@@ -942,15 +1140,7 @@ def _one_bundle_kappa_matrix(
     for first in BUNDLES:
         row: dict[BundleId, Estimate] = {}
         for second in BUNDLES:
-            if first == second:
-                row[second] = _identity_kappa(
-                    lookup,
-                    relation_ids,
-                    family_id=family_id,
-                    bundle_id=first,
-                    effort=effort,
-                )
-            elif second in matrix:
+            if second in matrix:
                 row[second] = matrix[second][first]
             else:
                 pairs = _kappa_pairs(
@@ -991,15 +1181,7 @@ def _family_kappas(
     for first in passed_families:
         row: dict[str, Estimate] = {}
         for second in passed_families:
-            if first == second:
-                row[second] = _identity_kappa(
-                    lookup,
-                    relation_ids,
-                    family_id=first,
-                    bundle_id=QUALIFICATION_BUNDLE,
-                    effort=effort,
-                )
-            elif second in matrix:
+            if second in matrix:
                 row[second] = matrix[second][first]
             else:
                 pairs = _kappa_pairs(
@@ -1072,14 +1254,14 @@ def _admission(
     policy: AnalysisPolicy,
 ) -> AdmissionDecision:
     reasons: list[str] = []
-    if candidate.est is None or candidate.hi is None:
+    if candidate.est is None or candidate.lo is None or candidate.hi is None:
         reasons.append("candidate flip rate is undefined")
     elif candidate.hi > policy.absolute_flip_ceiling:
         reasons.append(
             f"upper CI {candidate.hi:.6f} exceeds absolute ceiling "
             f"{policy.absolute_flip_ceiling:.6f}"
         )
-    if family_rate.est is None or family_rate.lo is None:
+    if family_rate.est is None or family_rate.lo is None or family_rate.hi is None:
         reasons.append("family flip rate is undefined")
     elif candidate.est is not None and candidate.est >= family_rate.est / 2:
         reasons.append("point estimate is not below half the family flip rate")
@@ -1176,7 +1358,7 @@ def _cost_audit(
     admitted_shells: Sequence[ShellId],
     admitted_templates: Sequence[FramingId],
     policy: AnalysisPolicy,
-) -> tuple[list[FamilyCostAudit], Estimate]:
+) -> CostAuditResults:
     bootstrap = _bootstrap_kwargs(policy)
     admitted_bundles: set[BundleId] = {
         cast("BundleId", f"{shell}x{template}")
@@ -1224,7 +1406,10 @@ def _cost_audit(
                 token_inflation_factor=bootstrap_mean(inflation, **bootstrap),
             )
         )
-    return audits, _total_projected_cost(populations, projected_calls, policy)
+    return CostAuditResults(
+        families=audits,
+        projected_cost=_total_projected_cost(populations, projected_calls, policy),
+    )
 
 
 def _holdout_effort_comparison(
@@ -1233,7 +1418,7 @@ def _holdout_effort_comparison(
     family_id: str,
     baseline: str,
     effort: str,
-) -> tuple[int, int, int, bool]:
+) -> HoldoutEffortComparison:
     correct = 0
     rescues = 0
     regressions = 0
@@ -1250,7 +1435,12 @@ def _holdout_effort_comparison(
         regressions += base_correct and not candidate_correct
         if relation_id in mandatory:
             mandatory[relation_id] = candidate_correct
-    return correct, rescues, regressions, all(mandatory.values())
+    return HoldoutEffortComparison(
+        correct=correct,
+        rescues=rescues,
+        regressions=regressions,
+        mandatory_probes_correct=all(mandatory.values()),
+    )
 
 
 def _effort_flip_rate(
@@ -1287,7 +1477,7 @@ def _effort_candidate(
     family_rate: Estimate,
     policy: AnalysisPolicy,
 ) -> EffortCandidate:
-    correct, rescues, regressions, mandatory = _holdout_effort_comparison(
+    holdout = _holdout_effort_comparison(
         lookup,
         family_id=family_id,
         baseline=baseline,
@@ -1310,9 +1500,9 @@ def _effort_candidate(
         policy=policy,
     )
     reasons = list(admission.reasons)
-    if correct < HOLDOUT_PASS_COUNT or not mandatory:
+    if holdout.correct < HOLDOUT_PASS_COUNT or not holdout.mandatory_probes_correct:
         reasons.append("candidate effort fails the qualification-bundle holdout gate")
-    if rescues <= regressions:
+    if holdout.rescues <= holdout.regressions:
         reasons.append("candidate effort does not produce net holdout rescues")
     if reasons == ["meets absolute and family-relative admission rules"]:
         reasons = ["higher effort passes stability and improves holdout performance"]
@@ -1320,14 +1510,14 @@ def _effort_candidate(
         effort=effort,
         eligible=(
             admission.admitted
-            and correct >= HOLDOUT_PASS_COUNT
-            and mandatory
-            and rescues > regressions
+            and holdout.correct >= HOLDOUT_PASS_COUNT
+            and holdout.mandatory_probes_correct
+            and holdout.rescues > holdout.regressions
         ),
-        holdout_correct=correct,
+        holdout_correct=holdout.correct,
         flip_rate=flip_rate,
-        rescues=rescues,
-        regressions=regressions,
+        rescues=holdout.rescues,
+        regressions=holdout.regressions,
         reasons=reasons,
     )
 
@@ -1418,20 +1608,15 @@ def _axis_statistics_and_decisions(
     clean_votes: Sequence[VoteRow],
     qualification: Sequence[QualificationResult],
     policy: AnalysisPolicy,
-) -> tuple[
-    AxisStatistics,
-    list[AdmissionDecision],
-    dict[str, float],
-    set[str],
-    Estimate,
-    Estimate,
-]:
+) -> AxisDecisionResults:
     passed_families = sorted(result.family_id for result in qualification if result.passed)
     passed_set = set(passed_families)
     votes = _analysis_votes(handoff, clean_votes, passed_set)
     if len(passed_families) < MIN_PANEL_FAMILIES:
         raise ValueError("at least two families must pass qualification for panel analysis")
-    entropies, contested, cuts = _entropy_strata(handoff, votes)
+    entropy_strata = _entropy_strata(handoff, votes)
+    entropies = entropy_strata.entropy_by_relation
+    contested = entropy_strata.contested_relations
     all_relations = {vote.relation_id for vote in votes}
     non_contested = all_relations - contested
     bootstrap = _bootstrap_kwargs(policy)
@@ -1563,7 +1748,10 @@ def _axis_statistics_and_decisions(
         )
 
     card_ratings = _card_values(
-        (vote.relation_id, (vote.family_id, vote.bundle_id, verdict))
+        (
+            vote.relation_id,
+            cast("tuple[str, str, Verdict]", (vote.family_id, vote.bundle_id, verdict)),
+        )
         for vote in votes
         if (verdict := _nominal(vote)) is not None
     )
@@ -1580,13 +1768,14 @@ def _axis_statistics_and_decisions(
         "shell": bootstrap_rate(shell_combined.values, **bootstrap),
         "repeat": noise_floor,
     }
-    ordered = [ordering_rates[axis].est for axis in ("card", "family", "template", "shell")]
-    defined_ordered = [value for value in ordered if value is not None]
-    healthy = len(defined_ordered) == len(ordered) and all(
-        first > second for first, second in itertools.pairwise(defined_ordered)
-    )
+    ordered_estimates = [ordering_rates[axis] for axis in ("card", "family", "template", "shell")]
+    ordered = [estimate.est for estimate in ordered_estimates if estimate.est is not None]
+    healthy = all(
+        estimate.est is not None and estimate.lo is not None and estimate.hi is not None
+        for estimate in ordered_estimates
+    ) and all(first > second for first, second in itertools.pairwise(ordered))
     statistics = AxisStatistics(
-        entropy_tercile_cuts=cuts,
+        entropy_tercile_cuts=entropy_strata.tercile_cuts,
         marginals=marginals,
         noise_floor=noise_floor,
         flips=flips,
@@ -1594,7 +1783,14 @@ def _axis_statistics_and_decisions(
         ordering=OrderingCheck(rates=ordering_rates, healthy_order_holds=healthy),
     )
     floor = bootstrap_rate(_subset_observations(shell_combined.values, non_contested), **bootstrap)
-    return statistics, admissions, entropies, contested, family_non_contested, floor
+    return AxisDecisionResults(
+        statistics=statistics,
+        admissions=admissions,
+        entropy_by_relation=entropies,
+        contested_relations=contested,
+        family_flip_rate=family_non_contested,
+        floor_error_bar=floor,
+    )
 
 
 def _nominations(
@@ -1602,14 +1798,19 @@ def _nominations(
     eligible_votes: Sequence[VoteRow],
     entropies: Mapping[str, float],
 ) -> list[NominationSeed]:
-    cutoff = quantile(list(entropies.values()), q=0.9)
-    if cutoff is None:
+    if not entropies:
         raise ValueError("cannot nominate cards from an empty entropy set")
+    nomination_count = max(1, math.ceil(len(entropies) / 10))
     slice_by_relation = {row.relation_id: row for row in handoff.slice_rows}
     counts_by_card: dict[str, Counter[Verdict]] = defaultdict(Counter)
+    abstentions_by_card: Counter[str] = Counter()
     for vote in eligible_votes:
+        if vote.relation_id not in entropies:
+            continue
         verdict = _nominal(vote)
-        if vote.relation_id in entropies and verdict is not None:
+        if verdict is None:
+            abstentions_by_card[vote.relation_id] += 1
+        else:
             counts_by_card[vote.relation_id][verdict] += 1
     return [
         NominationSeed(
@@ -1618,9 +1819,11 @@ def _nominations(
             entropy=entropy,
             vote_counts={verdict: counts_by_card[relation_id][verdict] for verdict in VERDICTS},
             n_votes=sum(counts_by_card[relation_id].values()),
+            abstentions=abstentions_by_card[relation_id],
         )
-        for relation_id, entropy in sorted(entropies.items(), key=lambda item: (-item[1], item[0]))
-        if entropy >= cutoff
+        for relation_id, entropy in sorted(entropies.items(), key=lambda item: (-item[1], item[0]))[
+            :nomination_count
+        ]
     ]
 
 
@@ -1633,18 +1836,30 @@ def _posteriors(
     policy: AnalysisPolicy,
 ) -> list[CardPosterior]:
     slice_by_relation = {row.relation_id: row for row in handoff.slice_rows}
+    baseline_effort = handoff.manifest.expected_grid.effort
+    lookup = _vote_lookup(clean_votes)
+    admitted_bundles = {
+        cast("BundleId", f"{shell}x{framing}")
+        for shell in admitted_shells
+        for framing in admitted_templates
+    }
     counts: dict[str, Counter[Verdict]] = defaultdict(Counter)
-    for vote in clean_votes:
-        verdict = _nominal(vote)
-        if (
-            verdict is not None
-            and vote.family_id in selected_efforts
-            and vote.shell_id in admitted_shells
-            and vote.framing_id in admitted_templates
-            and vote.effort == selected_efforts[vote.family_id]
-            and vote.repeat_index == 0
-        ):
-            counts[vote.relation_id][verdict] += 1
+    abstentions: Counter[str] = Counter()
+    for relation_id, slice_row in slice_by_relation.items():
+        if slice_row.is_holdout:
+            continue
+        for family_id, selected_effort in selected_efforts.items():
+            for bundle_id in admitted_bundles:
+                vote = lookup.get((relation_id, family_id, bundle_id, selected_effort, 0))
+                if vote is None and selected_effort != baseline_effort:
+                    vote = lookup.get((relation_id, family_id, bundle_id, baseline_effort, 0))
+                if vote is None:
+                    continue
+                verdict = _nominal(vote)
+                if verdict is None:
+                    abstentions[relation_id] += 1
+                else:
+                    counts[relation_id][verdict] += 1
 
     alpha = policy.dirichlet_alpha
     posteriors: list[CardPosterior] = []
@@ -1665,6 +1880,7 @@ def _posteriors(
                     verdict: (card_counts[verdict] + alpha) / denominator for verdict in VERDICTS
                 },
                 n_votes=n,
+                abstentions=abstentions[relation_id],
             )
         )
     return posteriors
@@ -1801,7 +2017,7 @@ def _repeat_escalation_observations(
 def _escalation_estimates(
     observations: Mapping[str, Sequence[EscalationObservation]],
     policy: AnalysisPolicy,
-) -> tuple[Estimate, Estimate, Estimate]:
+) -> EscalationEstimates:
     def disagreement(values: Sequence[EscalationObservation]) -> float | None:
         return sum(flip for flip, _ in values) / len(values) if values else None
 
@@ -1819,10 +2035,13 @@ def _escalation_estimates(
         return yield_value / cost_value
 
     bootstrap = _bootstrap_kwargs(policy)
-    return (
-        cluster_bootstrap(observations, disagreement, **bootstrap),
-        cluster_bootstrap(observations, cost, **bootstrap),
-        cluster_bootstrap(observations, ratio, **bootstrap),
+    disagreement_observations = {
+        relation_id: [flip for flip, _ in values] for relation_id, values in observations.items()
+    }
+    return EscalationEstimates(
+        disagreement_yield=bootstrap_rate(disagreement_observations, **bootstrap),
+        marginal_cost=cluster_bootstrap(observations, cost, **bootstrap),
+        yield_per_dollar=cluster_bootstrap(observations, ratio, **bootstrap),
     )
 
 
@@ -1832,7 +2051,7 @@ def _escalation(
     passed_families: Sequence[str],
     contested: set[str],
     policy: AnalysisPolicy,
-) -> tuple[list[EscalationAxis], list[EscalationAxisName]]:
+) -> EscalationResults:
     lookup = _vote_lookup(clean_votes)
     relations = sorted(contested)
     effort = handoff.manifest.expected_grid.effort
@@ -1847,18 +2066,19 @@ def _escalation(
     results: list[EscalationAxis] = []
     for axis in ESCALATION_AXES:
         axis_observations = observations[axis]
-        disagreement, marginal_cost, ratio = _escalation_estimates(axis_observations, policy)
+        estimates = _escalation_estimates(axis_observations, policy)
+        ratio = estimates.yield_per_dollar
         results.append(
             EscalationAxis(
                 axis=axis,
-                disagreement_yield=disagreement,
-                marginal_cost=marginal_cost,
+                disagreement_yield=estimates.disagreement_yield,
+                marginal_cost=estimates.marginal_cost,
                 cost_eligible_n=sum(map(len, axis_observations.values())),
                 cost_reported_n=sum(
                     cost is not None for values in axis_observations.values() for _, cost in values
                 ),
                 yield_per_dollar_estimate=ratio,
-                rankable=ratio.est is not None,
+                rankable=ratio.est is not None and ratio.lo is not None and ratio.hi is not None,
             )
         )
     ranked = sorted(
@@ -1868,7 +2088,10 @@ def _escalation(
             result.axis,
         ),
     )
-    return results, [result.axis for result in ranked]
+    return EscalationResults(
+        axes=results,
+        order=[result.axis for result in ranked],
+    )
 
 
 def analyze_handoff(
@@ -1884,24 +2107,22 @@ def analyze_handoff(
     qualification = _qualify(handoff, clean_votes)
     passed = sorted(result.family_id for result in qualification if result.passed)
     pruned = sorted(result.family_id for result in qualification if not result.passed)
-    (
-        statistics,
-        admissions,
-        entropies,
-        contested,
-        family_rate,
-        floor,
-    ) = _axis_statistics_and_decisions(handoff, clean_votes, qualification, resolved_policy)
+    axis_results = _axis_statistics_and_decisions(
+        handoff,
+        clean_votes,
+        qualification,
+        resolved_policy,
+    )
     admitted_shells: list[ShellId] = ["S1"]
     admitted_shells.extend(
         cast("ShellId", decision.level)
-        for decision in admissions
+        for decision in axis_results.admissions
         if decision.axis == "shell" and decision.admitted
     )
     admitted_templates: list[FramingId] = ["F1"]
     admitted_templates.extend(
         cast("FramingId", decision.level)
-        for decision in admissions
+        for decision in axis_results.admissions
         if decision.axis == "template" and decision.admitted
     )
     effort = _effort_policy(
@@ -1909,11 +2130,11 @@ def analyze_handoff(
         clean_votes,
         qualification,
         passed,
-        contested,
-        family_rate,
+        axis_results.contested_relations,
+        axis_results.family_flip_rate,
         resolved_policy,
     )
-    cost_audit, projected_cost = _cost_audit(
+    cost_results = _cost_audit(
         handoff,
         clean_votes,
         effort,
@@ -1921,11 +2142,11 @@ def analyze_handoff(
         admitted_templates,
         resolved_policy,
     )
-    escalation, escalation_order = _escalation(
+    escalation_results = _escalation(
         handoff,
         clean_votes,
         passed,
-        contested,
+        axis_results.contested_relations,
         resolved_policy,
     )
     eligible_votes = _analysis_votes(handoff, clean_votes, set(passed))
@@ -1940,11 +2161,15 @@ def analyze_handoff(
         pruned_families=pruned,
         admitted_shells=admitted_shells,
         admitted_templates=admitted_templates,
-        escalation_order=escalation_order,
-        floor_error_bar=floor,
-        nomination_seeds=_nominations(handoff, eligible_votes, entropies),
-        projected_grid_cost_usd=projected_cost.est,
-        projected_grid_cost=projected_cost,
+        escalation_order=escalation_results.order,
+        floor_error_bar=axis_results.floor_error_bar,
+        nomination_seeds=_nominations(
+            handoff,
+            eligible_votes,
+            axis_results.entropy_by_relation,
+        ),
+        projected_grid_cost_usd=cost_results.projected_cost.est,
+        projected_grid_cost=cost_results.projected_cost,
         per_card_posteriors=_posteriors(
             handoff,
             clean_votes,
@@ -1956,10 +2181,10 @@ def analyze_handoff(
         effort_policy=effort,
         data_health=health,
         qualification=qualification,
-        axis_statistics=statistics,
-        admissions=admissions,
-        escalation=escalation,
-        cost_audit=cost_audit,
+        axis_statistics=axis_results.statistics,
+        admissions=axis_results.admissions,
+        escalation=escalation_results.axes,
+        cost_audit=cost_results.families,
     )
 
     output = Path(out_dir)

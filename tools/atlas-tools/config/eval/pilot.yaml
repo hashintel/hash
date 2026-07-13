@@ -1,0 +1,123 @@
+# Rubric-v1 factorial pilot judge roster recovered from git commit 16b87bd4b1.
+# Endpoint tags, returned provider names, and supported parameters were
+# resolved from OpenRouter's JSON APIs on 2026-07-14.
+schema_version: 2
+rubric_version: rubric-v1
+
+sampling:
+  algorithm: stratified-hash-v1
+  seed: 42
+  non_holdout_count: 144
+
+baseline_effort: minimal
+repeat_count: 1
+request_timeout: PT10M
+
+judges:
+  - family_id: anthropic/claude-opus-4.8
+    provider_slug: amazon-bedrock
+    provider_name: Amazon Bedrock
+    openrouter_region: global
+    model: anthropic/claude-opus-4.8
+    temperature: null
+    seed: null
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: anthropic/claude-sonnet-5
+    provider_slug: amazon-bedrock
+    provider_name: Amazon Bedrock
+    openrouter_region: global
+    model: anthropic/claude-sonnet-5
+    temperature: null
+    seed: null
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: openai/gpt-5.6-sol-pro
+    provider_slug: azure
+    provider_name: Azure
+    openrouter_region: global
+    model: openai/gpt-5.6-sol-pro
+    temperature: null
+    seed: 42
+    higher_effort: high
+    output_token_limit:
+      parameter: max_completion_tokens
+      tokens: 4096
+
+  - family_id: openai/gpt-5.6-luna
+    provider_slug: azure
+    provider_name: Azure
+    openrouter_region: global
+    model: openai/gpt-5.6-luna
+    temperature: null
+    seed: 42
+    higher_effort: high
+    output_token_limit:
+      parameter: max_completion_tokens
+      tokens: 4096
+
+  - family_id: google/gemini-3.5-flash
+    provider_slug: google-vertex
+    provider_name: Google
+    openrouter_region: global
+    model: google/gemini-3.5-flash
+    temperature: 0.0
+    seed: 42
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: z-ai/glm-5.2
+    provider_slug: z-ai
+    provider_name: Z.AI
+    openrouter_region: global
+    model: z-ai/glm-5.2
+    temperature: 0.0
+    seed: null
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: nvidia/nemotron-3-ultra-550b-a55b
+    provider_slug: deepinfra
+    provider_name: DeepInfra
+    openrouter_region: global
+    model: nvidia/nemotron-3-ultra-550b-a55b
+    temperature: 0.0
+    seed: 42
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: deepseek/deepseek-v4-pro
+    provider_slug: digitalocean
+    provider_name: DigitalOcean
+    openrouter_region: global
+    model: deepseek/deepseek-v4-pro
+    temperature: 0.0
+    seed: null
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - family_id: mistralai/mistral-small-2603
+    provider_slug: venice
+    provider_name: Venice
+    openrouter_region: global
+    model: mistralai/mistral-small-2603
+    temperature: 0.0
+    seed: null
+    higher_effort: high
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096

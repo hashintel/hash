@@ -1,7 +1,7 @@
 """Shared relation-card row and source-qualified identity types."""
 
 import re
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import (
     AfterValidator,
@@ -9,9 +9,10 @@ from pydantic import (
     ConfigDict,
     NonNegativeInt,
     StringConstraints,
+    model_validator,
 )
 
-from atlas_tools.common import Sha256Hex
+from atlas_tools.common import Sha256Hex, sha256_bytes
 
 _RELATION_NAMESPACE = re.compile(r"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$")
 _CONTROL_CHARACTER_BOUND = 32
@@ -68,3 +69,11 @@ class CardRow(BaseModel):
     severely_truncated: bool
 
     model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def check_card_hash(self) -> Self:
+        expected = sha256_bytes(self.card_text.encode("utf-8"))
+        if self.card_hash != expected:
+            raise ValueError("card_hash must be the sha256 of the UTF-8 bytes of card_text")
+
+        return self

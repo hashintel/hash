@@ -1,10 +1,11 @@
 """Verify and concatenate source-qualified relation-card artifacts."""
 
+import hashlib
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, JsonValue, NonNegativeInt, model_validator
 
@@ -68,7 +69,7 @@ class ConcatInput(BaseModel):
 
 
 class ConcatDetails(BaseModel):
-    schema_version: int = CONCAT_SCHEMA_VERSION
+    schema_version: Literal[2] = CONCAT_SCHEMA_VERSION
     sources: dict[RelationNamespace, ConcatSource]
     inputs: list[ConcatInput]
     row_count: NonNegativeInt
@@ -77,6 +78,12 @@ class ConcatDetails(BaseModel):
 
     @model_validator(mode="after")
     def check_sources(self) -> Self:
+        if not self.sources:
+            raise ValueError("concat sources must not be empty")
+        if not self.inputs:
+            raise ValueError("concat inputs must not be empty")
+        if len({item.artifact_id for item in self.inputs}) != len(self.inputs):
+            raise ValueError("concat inputs contain duplicate artifact IDs")
         for namespace, source in self.sources.items():
             if namespace != source.namespace:
                 raise ValueError("source map key must equal source namespace")
@@ -108,6 +115,7 @@ class _InputArtifact:
     artifact_id: Sha256Hex
     sources: dict[RelationNamespace, ConcatSource]
     nested: bool
+    expected_rows: int | None
 
 
 def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
@@ -124,30 +132,51 @@ def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
 def _verified_artifact(card_dir: Path) -> _InputArtifact:
     cards_path = card_dir / "cards.jsonl"
     manifest_path = card_dir / "cards.manifest.json"
+
     if not cards_path.is_file() or not manifest_path.is_file():
         raise ValueError(f"{card_dir} must contain cards.jsonl and cards.manifest.json")
 
-    manifest_hash = sha256_file(manifest_path)
-    provenance = Provenance[JsonValue, JsonValue].load(manifest_path)
+    manifest_bytes = manifest_path.read_bytes()
+    manifest_hash = sha256_bytes(manifest_bytes)
+
+    provenance = Provenance[JsonValue, JsonValue].model_validate_json(manifest_bytes)
     recorded_hash = (provenance.content_hashes or {}).get("cards.jsonl")
     if recorded_hash is None:
         raise ValueError(f"{manifest_path} does not record a content hash for cards.jsonl")
+
     cards_hash = sha256_file(cards_path)
     if cards_hash != recorded_hash:
         raise ValueError(f"{cards_path} does not match the content hash recorded in its manifest")
 
     if provenance.producer == "relation.concat":
-        nested = ConcatProvenance.load(manifest_path)
-        if nested.details.schema_version != CONCAT_SCHEMA_VERSION:
-            raise ValueError(f"unsupported nested concat schema {nested.details.schema_version}")
+        nested = ConcatProvenance.model_validate_json(manifest_bytes)
+        expected_input_hashes = {
+            f"inputs/{item.artifact_id}/cards.jsonl": item.cards_hash
+            for item in nested.details.inputs
+        } | {
+            f"inputs/{item.artifact_id}/cards.manifest.json": item.manifest_hash
+            for item in nested.details.inputs
+        }
+        if nested.input_hashes != expected_input_hashes:
+            raise ValueError(f"{manifest_path} input hashes do not match details.inputs")
+
+        expected_configs = {
+            namespace: source.config for namespace, source in nested.details.sources.items()
+        }
+        if nested.config is None or nested.config.source_configs != expected_configs:
+            raise ValueError(f"{manifest_path} source configs do not match details.sources")
+
         sources = nested.details.sources
         is_nested = True
+        expected_rows = nested.details.row_count
     else:
         if not isinstance(provenance.details, dict):
             raise ValueError(f"{manifest_path} must declare details.relation_source")
+
         source_payload = provenance.details.get("relation_source")
         if source_payload is None:
             raise ValueError(f"{manifest_path} must declare details.relation_source")
+
         source_spec = RelationSourceSpec.model_validate(source_payload)
         source = ConcatSource(
             namespace=source_spec.namespace,
@@ -160,6 +189,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         )
         sources = {source.namespace: source}
         is_nested = False
+        expected_rows = None
 
     return _InputArtifact(
         cards_path=cards_path,
@@ -168,6 +198,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         artifact_id=_artifact_id(cards_hash, manifest_hash),
         sources=dict(sources),
         nested=is_nested,
+        expected_rows=expected_rows,
     )
 
 
@@ -181,44 +212,87 @@ def _validate_leaf_row(line: str, source: ConcatSource) -> ConcatCardRow:
     if payload.get("relation_id") != expected:
         raise ValueError(f"relation_id must be {expected}")
     payload["producer"] = source.namespace
+
     return ConcatCardRow.model_validate(payload)
+
+
+def _verified_lines(artifact: _InputArtifact) -> Iterator[tuple[int, str]]:
+    digest = hashlib.sha256()
+    with artifact.cards_path.open("rb") as input_file:
+        for line_number, raw_line in enumerate(input_file, start=1):
+            digest.update(raw_line)
+            if not raw_line.strip():
+                continue
+
+            try:
+                yield line_number, raw_line.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError(
+                    f"invalid UTF-8 in {artifact.cards_path} line {line_number}"
+                ) from error
+
+    if digest.hexdigest() != artifact.cards_hash:
+        raise ValueError(f"{artifact.cards_path} changed while it was being consumed")
 
 
 def _leaf_rows(artifact: _InputArtifact) -> Iterator[ConcatCardRow]:
     source = next(iter(artifact.sources.values()))
-    with artifact.cards_path.open(encoding="utf-8") as input_file:
-        for line_number, line in enumerate(input_file, start=1):
-            if not line.strip():
-                continue
-            try:
-                yield _validate_leaf_row(line, source)
-            except (TypeError, ValueError) as error:
-                raise ValueError(
-                    f"invalid {artifact.cards_path} line {line_number}: {error}"
-                ) from error
+
+    for line_number, line in _verified_lines(artifact):
+        try:
+            yield _validate_leaf_row(line, source)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"invalid {artifact.cards_path} line {line_number}: {error}"
+            ) from error
 
 
 def _nested_rows(artifact: _InputArtifact) -> Iterator[ConcatCardRow]:
-    with artifact.cards_path.open(encoding="utf-8") as input_file:
-        for line_number, line in enumerate(input_file, start=1):
-            if not line.strip():
-                continue
-            try:
-                row = ConcatCardRow.model_validate_json(line)
-            except ValueError as error:
-                raise ValueError(
-                    f"invalid {artifact.cards_path} line {line_number}: {error}"
-                ) from error
-            if row.producer not in artifact.sources:
-                raise ValueError(
-                    f"{artifact.cards_path} line {line_number} references unknown source "
-                    f"{row.producer!r}"
-                )
-            yield row
+    for line_number, line in _verified_lines(artifact):
+        try:
+            row = ConcatCardRow.model_validate_json(line)
+        except ValueError as error:
+            raise ValueError(
+                f"invalid {artifact.cards_path} line {line_number}: {error}"
+            ) from error
+
+        source = artifact.sources.get(row.producer)
+        if source is None:
+            raise ValueError(
+                f"{artifact.cards_path} line {line_number} references unknown source "
+                f"{row.producer!r}"
+            )
+
+        payload = row.model_dump(mode="json")
+        local_id = payload.get(source.local_id_field)
+        if local_id is None:
+            raise ValueError(
+                f"{artifact.cards_path} line {line_number} is missing local identity field "
+                f"{source.local_id_field!r}"
+            )
+
+        expected = qualify_relation_id(source.namespace, local_id)
+        if row.relation_id != expected:
+            raise ValueError(
+                f"{artifact.cards_path} line {line_number} relation_id must be {expected}"
+            )
+
+        yield row
 
 
 def _rows(artifact: _InputArtifact) -> Iterator[ConcatCardRow]:
-    return _nested_rows(artifact) if artifact.nested else _leaf_rows(artifact)
+    rows = _nested_rows(artifact) if artifact.nested else _leaf_rows(artifact)
+    count = 0
+
+    for row in rows:
+        count += 1
+        yield row
+
+    if artifact.expected_rows is not None and count != artifact.expected_rows:
+        raise ValueError(
+            f"{artifact.cards_path} contains {count} rows; manifest records "
+            f"{artifact.expected_rows}"
+        )
 
 
 def _collect_artifacts(paths: Iterable[PathLike]) -> list[_InputArtifact]:
@@ -231,47 +305,42 @@ def _collect_artifacts(paths: Iterable[PathLike]) -> list[_InputArtifact]:
     for artifact in artifacts:
         if artifact.artifact_id in artifact_ids:
             raise ValueError(f"duplicate input artifact {artifact.artifact_id}")
+
         artifact_ids.add(artifact.artifact_id)
         overlap = namespaces & set(artifact.sources)
         if overlap:
             raise ValueError(f"duplicate relation source namespaces: {sorted(overlap)}")
+
         namespaces.update(artifact.sources)
+
     return artifacts
 
 
 def _claim_relation(relation_id: RelationId, seen: set[RelationId]) -> None:
     if relation_id in seen:
         raise ValueError(f"duplicate relation_id {relation_id}")
+
     seen.add(relation_id)
 
 
 def concat_relations(paths: Iterable[PathLike], *, out: PathLike) -> ConcatPaths:
-    """Stream verified inputs into a source-qualified, recursively stable card set."""
+    """Stream verified inputs into a source-qualified card set."""
     artifacts = _collect_artifacts(paths)
     out_dir = Path(out)
-    cards_path = out_dir / "cards.jsonl"
-    manifest_path = out_dir / "cards.manifest.json"
-    if cards_path.exists() or manifest_path.exists():
-        raise ValueError(f"output already contains relation-card artifacts: {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    temporary_cards = out_dir / ".cards.jsonl.tmp"
-    if temporary_cards.exists():
-        temporary_cards.unlink()
+    out_cards = out_dir / "cards.jsonl"
+    out_manifest = out_dir / "cards.manifest.json"
 
     seen_relations: set[RelationId] = set()
     row_count = 0
-    try:
-        with temporary_cards.open("x", encoding="utf-8") as output:
-            for artifact in artifacts:
-                for row in _rows(artifact):
-                    _claim_relation(row.relation_id, seen_relations)
-                    output.write(canonical_json_bytes(row).decode("utf-8") + "\n")
-                    row_count += 1
-        temporary_cards.replace(cards_path)
-    except BaseException:
-        temporary_cards.unlink(missing_ok=True)
-        raise
+
+    with out_cards.open("wb") as output:
+        for artifact in artifacts:
+            for row in _rows(artifact):
+                _claim_relation(row.relation_id, seen_relations)
+                output.write(canonical_json_bytes(row) + b"\n")
+                row_count += 1
 
     sources = {
         namespace: source
@@ -292,10 +361,11 @@ def concat_relations(paths: Iterable[PathLike], *, out: PathLike) -> ConcatPaths
         f"inputs/{artifact.artifact_id}/cards.manifest.json": artifact.manifest_hash
         for artifact in artifacts
     }
+
     provenance = ConcatProvenance.make(
         producer="relation.concat",
         input_hashes=input_hashes,
-        content_hashes={"cards.jsonl": sha256_file(cards_path)},
+        content_hashes={"cards.jsonl": sha256_file(out_cards)},
         config=ConcatConfig(
             source_configs={
                 namespace: source.config for namespace, source in sorted(sources.items())
@@ -307,13 +377,9 @@ def concat_relations(paths: Iterable[PathLike], *, out: PathLike) -> ConcatPaths
             row_count=row_count,
         ),
     )
-    temporary_manifest = out_dir / ".cards.manifest.json.tmp"
-    try:
-        provenance.write(temporary_manifest)
-        temporary_manifest.replace(manifest_path)
-    except BaseException:
-        temporary_manifest.unlink(missing_ok=True)
-        cards_path.unlink(missing_ok=True)
-        raise
+    provenance.write(out_manifest)
 
-    return ConcatPaths(cards_jsonl=cards_path, manifest=manifest_path)
+    return ConcatPaths(
+        cards_jsonl=out_cards,
+        manifest=out_manifest,
+    )

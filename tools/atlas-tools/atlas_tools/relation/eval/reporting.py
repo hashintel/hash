@@ -6,6 +6,7 @@ from atlas_tools.relation.eval.schema import (
     BUNDLES,
     VERDICTS,
     AnalysisDecisions,
+    DurationEstimate,
     Estimate,
 )
 
@@ -32,6 +33,23 @@ def _estimate(value: Estimate, *, percent: bool = False, money: bool = False) ->
         f"{point} [{prefix}{value.lo * scale:.6f}, "
         f"{prefix}{value.hi * scale:.6f}]{suffix} "
         f"(n={value.n}{bootstrap})"
+    )
+
+
+def _duration_estimate(value: DurationEstimate) -> str:
+    bootstrap = (
+        f"; bootstrap={value.bootstrap_defined}/{value.bootstrap_resamples} defined"
+        if value.bootstrap_resamples
+        else ""
+    )
+    if value.est is None:
+        return f"undefined (n={value.n}{bootstrap})"
+    point = value.est.total_seconds()
+    if value.lo is None or value.hi is None:
+        return f"{point:.6f}s [CI undefined] (n={value.n}{bootstrap})"
+    return (
+        f"{point:.6f}s [{value.lo.total_seconds():.6f}s, "
+        f"{value.hi.total_seconds():.6f}s] (n={value.n}{bootstrap})"
     )
 
 
@@ -121,15 +139,14 @@ def _cost_health(report: AnalysisDecisions) -> list[str]:
     lines = [
         "### Token, cost, and latency distributions",
         "",
-        "| family | cost coverage | billed tokens/vote | inflation vs 7.5k | "
-        "latency seconds | cost/vote |",
+        "| family | cost coverage | billed tokens/vote | inflation vs 7.5k | latency | cost/vote |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     lines.extend(
         f"| {health.family_id} | {health.cost_reported_n}/{health.n} | "
         f"{_estimate(health.tokens_per_vote)} | "
         f"{_estimate(health.token_inflation_factor)} | "
-        f"{_estimate(health.latency_seconds)} | "
+        f"{_duration_estimate(health.latency)} | "
         f"{_estimate(health.mean_cost_usd, money=True)} |"
         for health in report.data_health.family_cost
     )
@@ -314,7 +331,8 @@ def _phase_two(report: AnalysisDecisions) -> list[str]:
         "## Phase 2 — axis statistics",
         "",
         f"Entropy tercile cuts: {cuts[0]:.6f}, {cuts[1]:.6f}. "
-        "Cards at or above the second cut are contested.",
+        "The highest-entropy ceil(n/3) cards are contested; boundary ties are ordered by "
+        "relation_id.",
         "",
         "Repeat-arm self-flip noise floor: "
         f"{_estimate(report.axis_statistics.noise_floor, percent=True)}.",

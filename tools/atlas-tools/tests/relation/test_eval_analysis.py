@@ -12,6 +12,8 @@ from atlas_tools.common import canonical_json_bytes, sha256_bytes, sha256_file, 
 from atlas_tools.relation.eval.analysis import (
     _card_axis_disagreement,
     _entropy_strata,
+    _nominations,
+    _posteriors,
     _qualify,
     analyze_handoff,
     load_handoff,
@@ -19,6 +21,7 @@ from atlas_tools.relation.eval.analysis import (
 from atlas_tools.relation.eval.prompt import HOLDOUT
 from atlas_tools.relation.eval.schema import (
     BUNDLES,
+    VERDICTS,
     AnalysisDecisions,
     AnalysisPolicy,
     BundleId,
@@ -55,15 +58,19 @@ type LogicalCell = tuple[str, str, BundleId, ReasoningEffort, int]
 @dataclass(frozen=True)
 class RouteMutation:
     physical_model: str | None = None
-    physical_provider: str | None = None
+    physical_provider_name: str | None = None
 
 
 def _model(family: str) -> str:
     return f"model-{family}"
 
 
-def _endpoint(family: str) -> str:
-    return f"provider-{family}"
+def _provider_slug(family: str) -> str:
+    return f"provider-slug-{family}"
+
+
+def _provider_name(family: str) -> str:
+    return f"Provider {family}"
 
 
 def _card_hash(relation_id: str) -> str:
@@ -95,21 +102,21 @@ def _chat_result(
     vote_id: str,
     raw_completion: str,
     model: str,
-    endpoint: str,
+    provider_name: str,
     route_mutation: RouteMutation | None,
     cost_usd: float | None,
 ) -> ChatResult:
     route_model = route_mutation.physical_model if route_mutation else None
-    route_provider = route_mutation.physical_provider if route_mutation else None
+    route_provider = route_mutation.physical_provider_name if route_mutation else None
     attempts = [
         {
             "model": route_model or model,
-            "provider": route_provider or endpoint,
+            "provider": route_provider or provider_name,
             "status": 200,
         }
     ]
     if route_model is not None or route_provider is not None:
-        attempts.append({"model": model, "provider": endpoint, "status": 200})
+        attempts.append({"model": model, "provider": provider_name, "status": 200})
     return ChatResult.model_validate(
         {
             "choices": [
@@ -184,7 +191,7 @@ def _vote_and_attempt(
         vote_id=vote_id,
         raw_completion=raw_completion,
         model=_model(family),
-        endpoint=_endpoint(family),
+        provider_name=_provider_name(family),
         route_mutation=route_mutation,
         cost_usd=cost_usd,
     )
@@ -193,7 +200,7 @@ def _vote_and_attempt(
         relation_id=relation_id,
         card_hash=_card_hash(relation_id),
         family_id=family,
-        provider=_endpoint(family),
+        provider=_provider_name(family),
         model_returned=_model(family),
         shell_id=shell,
         framing_id=framing,
@@ -220,7 +227,7 @@ def _vote_and_attempt(
         cost_usd=cost_usd,
         ts_request=START,
         ts_response=START + timedelta(seconds=2),
-        latency_seconds=2.0,
+        latency=timedelta(seconds=2),
     )
     attempt = PhysicalAttemptRow(
         attempt_id=sha256_bytes(f"{vote_id}:attempt".encode()),
@@ -229,13 +236,13 @@ def _vote_and_attempt(
         stage_attempt=0,
         request_hash=sha256_bytes(f"{vote_id}:request".encode()),
         family_id=family,
-        endpoint_slug=_endpoint(family),
+        provider_slug=_provider_slug(family),
         model_requested=_model(family),
         result=result,
         failure=None,
         ts_request=START,
         ts_response=START + timedelta(seconds=2),
-        latency_seconds=2.0,
+        latency=timedelta(seconds=2),
     )
     return vote, attempt
 
@@ -344,7 +351,8 @@ def _write_handoff(
         judges=[
             JudgePin(
                 family_id=family,
-                endpoint_slug=_endpoint(family),
+                provider_slug=_provider_slug(family),
+                provider_name=_provider_name(family),
                 model=_model(family),
             )
             for family in families
@@ -456,6 +464,50 @@ def test_analysis_runs_end_to_end_and_is_byte_deterministic(tmp_path: Path) -> N
     assert "bootstrap=1000/1000 defined" in report
 
 
+def test_nominations_and_posteriors_count_abstentions_outside_verdict_classes(
+    tmp_path: Path,
+) -> None:
+    relation_id = "test:R4"
+    handoff = load_handoff(
+        _write_handoff(
+            tmp_path / "handoff",
+            verdict_overrides={(relation_id, "family-a", "S1xF1", BASELINE_EFFORT, 0): "ABSTAIN"},
+        )
+    )
+    nomination_votes = [
+        vote
+        for vote in handoff.votes
+        if vote.relation_id == relation_id
+        and vote.effort == BASELINE_EFFORT
+        and vote.repeat_index == 0
+    ]
+
+    nomination = _nominations(handoff, nomination_votes, {relation_id: 0.5})[0]
+    posterior = next(
+        row
+        for row in _posteriors(
+            handoff,
+            handoff.votes,
+            dict.fromkeys(FAMILIES, BASELINE_EFFORT),
+            {cast("ShellId", "S1")},
+            {cast("FramingId", "F1")},
+            AnalysisPolicy(),
+        )
+        if row.relation_id == relation_id
+    )
+
+    assert nomination.abstentions == 1
+    assert nomination.n_votes == len(nomination_votes) - nomination.abstentions
+    assert sum(nomination.vote_counts.values()) == nomination.n_votes
+    assert set(nomination.vote_counts) == set(VERDICTS)
+    assert posterior.abstentions == 1
+    assert posterior.n_votes == len(FAMILIES) - posterior.abstentions
+    assert sum(posterior.counts.values()) == posterior.n_votes
+    assert set(posterior.counts) == set(VERDICTS)
+    assert set(posterior.probabilities) == set(VERDICTS)
+    assert sum(posterior.probabilities.values()) == pytest.approx(1.0)
+
+
 def test_handoff_rejects_missing_bound_vote_field(tmp_path: Path) -> None:
     handoff = _write_handoff(tmp_path / "handoff")
     votes_path = handoff / "votes.jsonl"
@@ -475,7 +527,7 @@ def test_handoff_rejects_missing_bound_vote_field(tmp_path: Path) -> None:
     "mutation",
     [
         RouteMutation(physical_model="wrong-model"),
-        RouteMutation(physical_provider="wrong-provider"),
+        RouteMutation(physical_provider_name="wrong-provider"),
     ],
     ids=["model", "provider"],
 )
@@ -512,7 +564,7 @@ def test_effective_coverage_and_matched_pair_attrition_include_routing_drops(
     cell: LogicalCell = ("test:R1", "family-a", "S2xF1", BASELINE_EFFORT, 0)
     handoff = _write_handoff(
         tmp_path / "handoff",
-        route_mutations={cell: RouteMutation(physical_provider="wrong-provider")},
+        route_mutations={cell: RouteMutation(physical_provider_name="wrong-provider")},
     )
     policy = AnalysisPolicy(stream_missing_rerun_rate=0.1, routing_rerun_rate=0.1)
 

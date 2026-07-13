@@ -1,5 +1,6 @@
 """Typed executor handoff and factorial-pilot analysis schemas."""
 
+from datetime import timedelta
 from typing import Annotated, Literal, Self
 
 from openrouter.components import ChatRequestReasoningEffort, ChatResult
@@ -41,6 +42,9 @@ type AdmissionAxis = Literal["shell", "template"]
 type EscalationAxisName = Literal["family", "template", "shell", "repeat"]
 type ReasoningEffort = ChatRequestReasoningEffort
 type NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
+type Probability = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
+type OpenProbability = Annotated[float, Field(gt=0.0, lt=1.0, allow_inf_nan=False)]
+type PositiveFiniteFloat = Annotated[float, Field(gt=0.0, allow_inf_nan=False)]
 
 VERDICTS: tuple[Verdict, ...] = ("coincident", "proximal", "overlay", "unclear")
 SHELLS: tuple[ShellId, ...] = ("S1", "S2", "S3")
@@ -63,7 +67,7 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class VoteRow(BaseModel):
+class VoteRow(StrictModel):
     """One logical vote, including the optional malformed-output repair call."""
 
     vote_id: NonEmptyStr
@@ -98,11 +102,7 @@ class VoteRow(BaseModel):
     cost_usd: Annotated[float, Field(ge=0, allow_inf_nan=False)] | None
     ts_request: AwareDatetime
     ts_response: AwareDatetime
-    latency_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)]
-
-    # Provider-specific usage and future native fields may be projected alongside the stable
-    # cross-provider contract. The full native ChatResult values remain in attempt_results.
-    model_config = ConfigDict(extra="allow", frozen=True)
+    latency: Annotated[timedelta, Field(ge=timedelta(0))]
 
     @model_validator(mode="after")
     def check_consistency(self) -> Self:
@@ -145,22 +145,20 @@ class PhysicalAttemptRow(StrictModel):
     stage_attempt: NonNegativeInt
     request_hash: Sha256Hex
     family_id: NonEmptyStr
-    endpoint_slug: NonEmptyStr
+    provider_slug: NonEmptyStr
     model_requested: NonEmptyStr
     result: ChatResult | None
     failure: AttemptFailure | None
     ts_request: AwareDatetime
     ts_response: AwareDatetime
-    latency_seconds: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+    latency: Annotated[timedelta, Field(ge=timedelta(0))]
 
     @model_validator(mode="after")
     def check_outcome(self) -> Self:
         if self.result is None and self.failure is None:
             raise ValueError("an attempt must contain a result or failure")
-        if self.result is not None and self.failure is None:
-            pass
-        elif self.failure is None:
-            raise ValueError("a failed attempt must include failure details")
+        # A rejected HTTP-200 response intentionally carries both its native result (for billing
+        # and route audit) and the local validation failure. Transport failures carry only failure.
         if self.ts_response < self.ts_request:
             raise ValueError("ts_response must not precede ts_request")
         return self
@@ -204,8 +202,44 @@ class ExpectedGrid(StrictModel):
                 raise ValueError(f"expected_grid.{name} must not be empty")
             if len(values) != len(set(values)):
                 raise ValueError(f"expected_grid.{name} contains duplicates")
-        if QUALIFICATION_BUNDLE not in self.bundles:
-            raise ValueError("expected_grid must contain the qualification bundle S1xF1")
+        if set(self.bundles) != set(BUNDLES):
+            raise ValueError("rubric-v1 expected_grid must contain the complete 3x3 bundle grid")
+        return self
+
+
+class FullGridExpectation(StrictModel):
+    """The exact production Cartesian product authorized by pilot decisions."""
+
+    families: list[NonEmptyStr]
+    admitted_shells: list[ShellId]
+    admitted_templates: list[FramingId]
+    bundles: list[BundleId]
+    relation_ids: list[RelationId]
+    family_efforts: dict[NonEmptyStr, ReasoningEffort]
+    repeat_index: Literal[0] = 0
+
+    @model_validator(mode="after")
+    def check_product(self) -> Self:
+        for name, values in (
+            ("families", self.families),
+            ("admitted_shells", self.admitted_shells),
+            ("admitted_templates", self.admitted_templates),
+            ("bundles", self.bundles),
+            ("relation_ids", self.relation_ids),
+        ):
+            if not values:
+                raise ValueError(f"full_grid_expectation.{name} must not be empty")
+            if len(values) != len(set(values)):
+                raise ValueError(f"full_grid_expectation.{name} contains duplicates")
+        expected_bundles = {
+            f"{shell}x{template}"
+            for shell in self.admitted_shells
+            for template in self.admitted_templates
+        }
+        if set(self.bundles) != expected_bundles:
+            raise ValueError("full-grid bundles must equal the admitted shell/template product")
+        if set(self.family_efforts) != set(self.families):
+            raise ValueError("full-grid family efforts must match the expected families")
         return self
 
 
@@ -267,7 +301,8 @@ class RunDates(StrictModel):
 
 class JudgePin(BaseModel):
     family_id: NonEmptyStr
-    endpoint_slug: NonEmptyStr
+    provider_slug: NonEmptyStr
+    provider_name: NonEmptyStr
     model: NonEmptyStr
 
     # The complete judges.yaml entry is a snapshot and may carry pricing/tier metadata that
@@ -278,13 +313,13 @@ class JudgePin(BaseModel):
 class HandoffManifest(StrictModel):
     schema_version: Literal[2]
     expected_grid: ExpectedGrid
-    expected_repeat_arm: ExpectedRepeatArm | None
+    expected_repeat_arm: ExpectedRepeatArm
     expected_effort_arm: ExpectedEffortArm | None
     slice_derivation: SliceDerivation
     run_dates: RunDates
     judges: list[JudgePin]
     prompt_pack_hash: Sha256Hex
-    rubric_version: NonEmptyStr
+    rubric_version: Literal["rubric-v1"]
     full_grid_card_count: PositiveInt
     source_hashes: dict[str, Sha256Hex]
     openrouter_sdk_version: NonEmptyStr
@@ -298,11 +333,10 @@ class HandoffManifest(StrictModel):
             raise ValueError("judges contains duplicate family_id values")
         if set(judge_families) != set(self.expected_grid.families):
             raise ValueError("judges and expected_grid.families must contain the same families")
-        if self.expected_repeat_arm is not None:
-            if set(self.expected_repeat_arm.families) != set(judge_families):
-                raise ValueError("repeat-arm families must match expected-grid families")
-            if self.expected_repeat_arm.effort != self.expected_grid.effort:
-                raise ValueError("repeat arm must use the grid effort")
+        if set(self.expected_repeat_arm.families) != set(judge_families):
+            raise ValueError("repeat-arm families must match expected-grid families")
+        if self.expected_repeat_arm.effort != self.expected_grid.effort:
+            raise ValueError("repeat arm must use the grid effort")
         if self.expected_effort_arm is not None:
             if not set(self.expected_effort_arm.family_efforts) <= set(judge_families):
                 raise ValueError("effort-arm families must be configured judges")
@@ -314,17 +348,58 @@ class HandoffManifest(StrictModel):
         return self
 
 
+class FullGridManifest(StrictModel):
+    """Finalized production-grid artifact contract, separate from the pilot handoff."""
+
+    schema_version: Literal[1] = 1
+    expectation: FullGridExpectation
+    run_dates: RunDates
+    judges: list[JudgePin]
+    decisions_hash: Sha256Hex
+    prompt_pack_hash: Sha256Hex
+    rubric_version: Literal["rubric-v1"]
+    source_hashes: dict[str, Sha256Hex]
+    plan_hash: Sha256Hex
+    request_contract_hash: Sha256Hex
+    openrouter_sdk_version: NonEmptyStr
+    openrouter_openapi_version: NonEmptyStr
+    executor_config: dict[str, JsonValue]
+    executor_policy: dict[str, JsonValue]
+    request_policy: dict[str, JsonValue]
+
+    @model_validator(mode="after")
+    def check_contract(self) -> Self:
+        judge_families = [judge.family_id for judge in self.judges]
+        if len(judge_families) != len(set(judge_families)):
+            raise ValueError("judges contains duplicate family_id values")
+        if set(judge_families) != set(self.expectation.families):
+            raise ValueError("judges and full-grid families must contain the same families")
+        required_hashes = {
+            "attempts.jsonl",
+            "cards.jsonl",
+            "cards.manifest.json",
+            "decisions.json",
+            "votes.jsonl",
+        }
+        if set(self.source_hashes) != required_hashes:
+            raise ValueError("full-grid source_hashes must contain exactly the bound artifacts")
+        if self.source_hashes["decisions.json"] != self.decisions_hash:
+            raise ValueError("decisions_hash must match source_hashes['decisions.json']")
+        return self
+
+
 class AnalysisPolicy(StrictModel):
-    version: Literal["rubric-v1-analysis-2"] = "rubric-v1-analysis-2"
+    version: Literal["rubric-v1-analysis-3"] = "rubric-v1-analysis-3"
     bootstrap_resamples: Literal[1000] = 1000
     bootstrap_seed: Literal[0] = 0
-    ci_level: float = 0.95
-    absolute_flip_ceiling: float = 0.05
-    stream_missing_rerun_rate: float = 0.02
-    routing_rerun_rate: float = 0.005
-    abstention_flag_rate: float = 0.05
+    ci_level: OpenProbability = 0.95
+    minimum_bootstrap_defined_rate: OpenProbability = 0.95
+    absolute_flip_ceiling: Probability = 0.05
+    stream_missing_rerun_rate: Probability = 0.02
+    routing_rerun_rate: Probability = 0.005
+    abstention_flag_rate: Probability = 0.05
     estimated_tokens_per_vote: Literal[7500] = 7500
-    dirichlet_alpha: float = 1.0
+    dirichlet_alpha: PositiveFiniteFloat = 1.0
 
 
 class Estimate(StrictModel):
@@ -348,8 +423,31 @@ class Estimate(StrictModel):
             return self
         if (self.lo is None) != (self.hi is None):
             raise ValueError("confidence interval bounds must be both set or both null")
-        if self.lo is not None and self.hi is not None and not self.lo <= self.est <= self.hi:
-            raise ValueError("estimate must fall inside its confidence interval")
+        if self.lo is not None and self.hi is not None and self.lo > self.hi:
+            raise ValueError("confidence interval lower bound must not exceed upper bound")
+        return self
+
+
+class DurationEstimate(StrictModel):
+    est: timedelta | None
+    lo: timedelta | None
+    hi: timedelta | None
+    n: NonNegativeInt
+    bootstrap_resamples: NonNegativeInt = 0
+    bootstrap_defined: NonNegativeInt = 0
+
+    @model_validator(mode="after")
+    def check_interval(self) -> Self:
+        if self.bootstrap_defined > self.bootstrap_resamples:
+            raise ValueError("defined bootstrap draws cannot exceed requested draws")
+        if self.est is None:
+            if self.lo is not None or self.hi is not None:
+                raise ValueError("an undefined duration cannot have interval bounds")
+            return self
+        if (self.lo is None) != (self.hi is None):
+            raise ValueError("duration interval bounds must be both set or both null")
+        if self.lo is not None and self.hi is not None and self.lo > self.hi:
+            raise ValueError("duration interval lower bound must not exceed upper bound")
         return self
 
 
@@ -390,7 +488,7 @@ class FamilyCostHealth(StrictModel):
     mean_cost_usd: Estimate
     tokens_per_vote: Estimate
     token_inflation_factor: Estimate
-    latency_seconds: Estimate
+    latency: DurationEstimate
 
 
 class DataHealth(StrictModel):
@@ -481,6 +579,7 @@ class NominationSeed(StrictModel):
     entropy: float
     vote_counts: dict[Verdict, NonNegativeInt]
     n_votes: NonNegativeInt
+    abstentions: NonNegativeInt
 
 
 class CardPosterior(StrictModel):
@@ -489,6 +588,7 @@ class CardPosterior(StrictModel):
     counts: dict[Verdict, NonNegativeInt]
     probabilities: dict[Verdict, float]
     n_votes: NonNegativeInt
+    abstentions: NonNegativeInt
 
 
 class FamilyCostAudit(StrictModel):

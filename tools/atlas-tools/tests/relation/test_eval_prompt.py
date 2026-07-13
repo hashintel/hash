@@ -10,7 +10,6 @@ from openrouter.components import (
 
 from atlas_tools.relation.eval.prompt import (
     FEW_SHOT,
-    OPENROUTER_RESPONSE_FORMAT,
     RETRY_INSTRUCTION,
     MalformedResponseError,
     Response,
@@ -121,18 +120,6 @@ def test_request_judgement_does_not_retry_valid_but_incorrect_verdict() -> None:
 
     assert response == Response(reason="fails P2", verdict="overlay")
     assert attempts == 1
-
-
-def test_openrouter_response_format_uses_the_same_strict_schema() -> None:
-    response_format = OPENROUTER_RESPONSE_FORMAT.model_dump(
-        mode="json", by_alias=True, exclude_unset=True
-    )
-    schema = response_format["json_schema"]["schema"]
-
-    assert list(schema["properties"]) == ["reason", "verdict"]
-    assert schema["required"] == ["reason", "verdict"]
-    assert schema["additionalProperties"] is False
-    assert response_format["json_schema"]["strict"] is True
 
 
 def test_build_retry_prompt_appends_repair_exchange() -> None:

@@ -6,8 +6,6 @@ from typing import Literal, cast
 
 from openrouter.components import (
     ChatAssistantMessage,
-    ChatFormatJSONSchemaConfig,
-    ChatJSONSchemaConfig,
     ChatMessages,
     ChatSystemMessage,
     ChatUserMessage,
@@ -329,15 +327,6 @@ class Response(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-OPENROUTER_RESPONSE_FORMAT = ChatFormatJSONSchemaConfig(
-    type="json_schema",
-    json_schema=ChatJSONSchemaConfig(
-        name="relation_placement_judgement",
-        description="The placement verdict and its concise rubric-based reason.",
-        schema_=Response.model_json_schema(),
-        strict=True,
-    ),
-)
 RETRY_INSTRUCTION = "Reply with only the JSON object."
 _RESPONSE_KEYS = ("reason", "verdict")
 
@@ -466,7 +455,7 @@ def builds_prompt(
 
 
 def prompt_pack_hash(cards: Mapping[RelationId, CardRow]) -> Sha256Hex:
-    """Hash every static judge-visible byte and the structured-output contract."""
+    """Hash every static judge-visible byte and the malformed-output repair instruction."""
     prefixes = []
     for system_prompt in (1, 2, 3):
         for framing in (1, 2, 3):
@@ -485,9 +474,6 @@ def prompt_pack_hash(cards: Mapping[RelationId, CardRow]) -> Sha256Hex:
     payload = {
         "prefixes": prefixes,
         "live_turn_templates": [framing("{{card_text}}") for framing in FRAMINGS],
-        "response_format": OPENROUTER_RESPONSE_FORMAT.model_dump(
-            mode="json", by_alias=True, exclude_unset=True
-        ),
         "retry_instruction": RETRY_INSTRUCTION,
     }
     return sha256_bytes(canonical_json_bytes(payload))

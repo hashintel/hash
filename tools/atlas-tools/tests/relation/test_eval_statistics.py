@@ -125,10 +125,11 @@ def test_bootstrap_reports_defined_and_requested_draws_separately() -> None:
     )
 
     assert estimate.est == 0.0
-    assert estimate.lo == 0.0
-    assert estimate.hi == 0.0
+    assert estimate.lo is None
+    assert estimate.hi is None
     assert estimate.bootstrap_resamples == 1000
-    assert 0 < estimate.bootstrap_defined < estimate.bootstrap_resamples
+    assert estimate.bootstrap_defined == 740
+    assert estimate.bootstrap_defined < 0.95 * estimate.bootstrap_resamples
 
 
 def test_alpha_bootstrap_counts_pairable_cards_and_defined_draws() -> None:

@@ -65,6 +65,35 @@ class EvaluateCommand(BaseSettings):
         echo(f"wrote {paths.manifest_json}")
 
 
+class RunFullGridCommand(BaseSettings):
+    """Run the post-pilot production grid authorized by strict analysis decisions."""
+
+    cards: CliPositionalArg[DirectoryPath]
+    decisions: CliPositionalArg[FilePath]
+    config: CliPositionalArg[FilePath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from openrouter.errors import NoResponseError, OpenRouterError
+
+        from atlas_tools.relation.eval.run import load_run_config, run_full_grid
+
+        try:
+            paths = run_full_grid(
+                cards_dir=self.cards,
+                decisions_path=self.decisions,
+                out_dir=self.out,
+                config=load_run_config(self.config),
+            )
+        except (NoResponseError, OpenRouterError, OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {paths.votes_jsonl}")
+        echo(f"wrote {paths.attempts_jsonl}")
+        echo(f"wrote {paths.manifest_json}")
+
+
 class AnalyzeCommand(BaseSettings):
     """Analyze a factorial-pilot handoff into decisions.json and report.md."""
 
@@ -89,6 +118,7 @@ class RelationCli(BaseModel):
 
     concat: CliSubCommand[ConcatCommand]
     evaluate: CliSubCommand[EvaluateCommand]
+    run_full_grid: CliSubCommand[RunFullGridCommand]
     analyze: CliSubCommand[AnalyzeCommand]
 
     def cli_cmd(self) -> None:
