@@ -66,7 +66,7 @@ const NEIGHBOUR_MIN_RADIUS = 5;
  * grows the radius slightly sub-linearly as you zoom in.
  */
 const ZOOM_RADIUS_RATE = 1;
-const EDGE_COLOR = [64, 71, 92] as const;
+const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
 /** Opacity of the points faded into the background while a node is hovered. */
@@ -323,9 +323,9 @@ export const NetworkGraph = ({
         getSourcePosition: (line) => line.source,
         getTargetPosition: (line) => line.target,
         getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getWidth: 1.5,
+        getWidth: 0.75,
         widthUnits: "pixels",
-        widthMinPixels: 1,
+        widthMinPixels: 0.5,
       }),
       new ScatterplotLayer<NetworkGraphPoint>({
         id: "highlight-neighbours",
