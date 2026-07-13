@@ -23,7 +23,7 @@ echo "Adding wasm32-unknown-unknown target"
 rustup target add wasm32-unknown-unknown
 
 echo "Installing prerequisites"
-mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall aqua:wasm-bindgen/wasm-pack aqua:WebAssembly/binaryen protoc
 
 echo "Rust installation completed. Checking versions:"
 mise list rust

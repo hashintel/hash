@@ -71,7 +71,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall aqua:wasm-bindgen/wasm-pack aqua:WebAssembly/binaryen protoc
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
