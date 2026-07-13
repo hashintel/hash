@@ -117,7 +117,7 @@ const PopoverRoot = ({
   const overlayContextValue = useMemo(
     () => ({
       classes: overlayPartsStyles({ component: "popover" }),
-      onClose,
+      onClose: onClose ? () => setOpen(false) : undefined,
       renderCloseButton: !!onClose,
       // Body/Footer never render these; the popover uses its own <Header>.
       Title: "h2" as const,
