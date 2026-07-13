@@ -6,6 +6,7 @@ Handles cyclic and extra dependencies that turbo's dependency graph doesn't trac
 
 import argparse
 import json
+import shutil
 import subprocess
 from collections.abc import Iterable
 from glob import glob
@@ -168,6 +169,71 @@ def stub_missing_members(*, dry_run: bool = False) -> None:
         out_cargo.write_text(f'[package]\nname = "{name}"\nedition.workspace = true\n')
 
 
+def resolve_python_workspace_members() -> list[Path]:
+    """Read uv workspace members from pyproject.toml and resolve globs to member directories."""
+
+    with open("pyproject.toml", "rb") as fh:
+        pyproject = tomllib.load(fh)
+
+    members: list[str] = pyproject["tool"]["uv"]["workspace"]["members"]
+    paths: list[Path] = []
+
+    for member in members:
+        for match in glob(member):
+            if (Path(match) / "pyproject.toml").exists():
+                paths.append(Path(match))
+
+    return paths
+
+
+def python_workspace_scopes() -> frozenset[str]:
+    """Return the turbo package names of all uv workspace members.
+
+    uv always resolves the whole workspace: `uv sync --locked` and `uv run --frozen`
+    fail when a member directory referenced by the root `pyproject.toml`/`uv.lock` is
+    missing. Python packages are therefore exempt from pruning by adding them to the
+    scopes (which also keeps their entries in the pruned `yarn.lock`). The root
+    `pyproject.toml` and `uv.lock` are restored by the action's copy step.
+    """
+
+    scopes: set[str] = set()
+
+    for directory in resolve_python_workspace_members():
+        package_json = directory / "package.json"
+        if package_json.exists():
+            with open(package_json, "rb") as fh:
+                scopes.add(json.load(fh)["name"])
+
+    return frozenset(scopes)
+
+
+def preserve_python_members(*, dry_run: bool = False) -> None:
+    """Copy uv workspace members without a `package.json` into the pruned tree.
+
+    Members with a `package.json` are turbo workspaces and are kept via
+    `python_workspace_scopes`; anything else is invisible to turbo and copied here.
+    """
+
+    for directory in resolve_python_workspace_members():
+        out_dir = Path("out") / directory
+
+        if out_dir.exists():
+            continue
+
+        if dry_run:
+            print(f"[dry-run] Would preserve Python workspace member: {directory}")
+            continue
+
+        print(f"Preserving Python workspace member: {directory}")
+        shutil.copytree(
+            directory,
+            out_dir,
+            ignore=shutil.ignore_patterns(
+                "__pycache__", ".pytest_cache", ".ruff_cache", ".venv"
+            ),
+        )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prune the turbo workspace to only the packages required for the given scopes.",
@@ -192,9 +258,10 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     dependencies = turbo_dependency_map()
-    scopes = fixpoint_expand(initial, dependencies)
+    scopes = fixpoint_expand(initial | python_workspace_scopes(), dependencies)
     turbo_prune(scopes, dry_run=args.dry_run)
     stub_missing_members(dry_run=args.dry_run)
+    preserve_python_members(dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
