@@ -7,6 +7,12 @@ export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Form } from "./components/Form/form";
+export {
+  GraphChart,
+  type GraphChartEdge,
+  type GraphChartPoint,
+  type GraphChartProps,
+} from "./components/graphChart/graph-chart";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";
 export {
