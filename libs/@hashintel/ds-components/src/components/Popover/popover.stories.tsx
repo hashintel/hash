@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
+import { Tooltip } from "../Tooltip/tooltip";
 import { Popover, type PopoverProps } from "./popover";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -322,6 +323,45 @@ export const Positions: Story = () => (
         />
       );
     })}
+  </div>
+);
+
+/**
+ * Overlays stacked three deep: a popover that opens a popover, which contains a
+ * tooltip. Exercises portal + z-index layering and nested dismissal
+ * (opening/clicking the inner popover must not dismiss the outer one).
+ */
+export const Stacking: Story = () => (
+  <div style={{ padding: 60 }}>
+    <PopoverExample label="Popover 1">
+      {() => (
+        <Popover.Container className={panelWidth}>
+          <Popover.Header title="Popover 1" />
+          <Popover.Body>
+            <div className={css({ display: "grid", gap: "2" })}>
+              <span>Opens a second popover, stacked on top of this one.</span>
+              <PopoverExample label="Popover 2" position="right-start">
+                {() => (
+                  <Popover.Container className={panelWidth}>
+                    <Popover.Header title="Popover 2" />
+                    <Popover.Body>
+                      <div className={css({ display: "grid", gap: "2" })}>
+                        <span>Holds a tooltip.</span>
+                        <span>
+                          <Tooltip variant="light" content="Tooltip 1">
+                            <Button size="xs">Hover for tooltip 1</Button>
+                          </Tooltip>
+                        </span>
+                      </div>
+                    </Popover.Body>
+                  </Popover.Container>
+                )}
+              </PopoverExample>
+            </div>
+          </Popover.Body>
+        </Popover.Container>
+      )}
+    </PopoverExample>
   </div>
 );
 
