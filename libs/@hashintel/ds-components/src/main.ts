@@ -5,6 +5,7 @@ export { CharacterCount } from "./components/CharacterCount/character-count";
 export {
   NetworkGraph,
   type NetworkGraphEdge,
+  type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
 } from "./components/Chart/NetworkGraph/network-graph";

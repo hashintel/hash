@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -9,6 +9,7 @@ import edgesUrl from "./edges.json?url";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
+  type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
 } from "./network-graph";
@@ -92,23 +93,65 @@ const hintStyles = css({
   userSelect: "none",
 });
 
+const tooltipStyles = css({
+  position: "absolute",
+  zIndex: "[2]",
+  paddingX: "3",
+  paddingY: "2",
+  borderRadius: "sm",
+  backgroundColor: "[rgba(15, 18, 25, 0.92)]",
+  color: "white",
+  fontSize: "xs",
+  lineHeight: "snug",
+  pointerEvents: "none",
+  userSelect: "none",
+});
+
 /**
  * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
- * by default; hover a node to reveal its connections and neighbours. Scroll to
- * zoom and drag to pan.
+ * by default; hover a node to reveal its connections and neighbours, and click a
+ * node to inspect it. Scroll to zoom and drag to pan.
  */
 export const Default: Story<NetworkGraphProps> = () => {
   const data = useGraphData();
+  const [selected, setSelected] = useState<{
+    point: NetworkGraphPoint;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
+    setSelected(
+      interaction.point
+        ? { point: interaction.point, x: interaction.x, y: interaction.y }
+        : null,
+    );
+  }, []);
 
   return (
     <div className={frameStyles}>
       {data ? (
         <>
           <span className={hintStyles}>
-            Hover a node to reveal its connections · scroll to zoom · drag to
-            pan
+            Click a node to inspect it · hover to reveal its connections ·
+            scroll to zoom · drag to pan
           </span>
-          <NetworkGraph points={data.points} edges={data.edges} />
+          <NetworkGraph
+            points={data.points}
+            edges={data.edges}
+            onClick={handleClick}
+          />
+          {selected ? (
+            <div
+              className={tooltipStyles}
+              style={{ left: selected.x + 12, top: selected.y + 12 }}
+            >
+              <div>Node {selected.point.id}</div>
+              <div>
+                ({selected.point.x.toFixed(1)}, {selected.point.y.toFixed(1)})
+              </div>
+            </div>
+          ) : null}
         </>
       ) : (
         <span className={centreStyles}>

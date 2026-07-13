@@ -23,6 +23,16 @@ export interface NetworkGraphEdge {
   toId: number;
 }
 
+/** A pointer interaction (hover or click) with the network graph. */
+export interface NetworkGraphInteraction {
+  /** The node under the pointer, or `null` when over empty space. */
+  point: NetworkGraphPoint | null;
+  /** Pointer x position in pixels, relative to the chart's top-left corner. */
+  x: number;
+  /** Pointer y position in pixels, relative to the chart's top-left corner. */
+  y: number;
+}
+
 export interface NetworkGraphProps {
   /** The nodes to plot. */
   points: NetworkGraphPoint[];
@@ -30,6 +40,16 @@ export interface NetworkGraphProps {
   edges: NetworkGraphEdge[];
   /** Extra class name applied to the chart container. */
   className?: string;
+  /**
+   * Called as the pointer moves over the chart, with the node under the pointer
+   * (or `null` over empty space) and its pixel position.
+   */
+  onHover?: (interaction: NetworkGraphInteraction) => void;
+  /**
+   * Called when the chart is clicked, with the clicked node (or `null` when
+   * empty space is clicked) and its pixel position.
+   */
+  onClick?: (interaction: NetworkGraphInteraction) => void;
 }
 
 const RGBA_OPAQUE = 255;
@@ -87,6 +107,8 @@ export const NetworkGraph = ({
   points,
   edges,
   className,
+  onHover,
+  onClick,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
@@ -236,10 +258,24 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [bounds]);
 
-  const handleHover = useCallback((info: PickingInfo<NetworkGraphPoint>) => {
-    const object = info.object ?? null;
-    setHovered((previous) => (previous?.id === object?.id ? previous : object));
-  }, []);
+  const handleHover = useCallback(
+    (info: PickingInfo<NetworkGraphPoint>) => {
+      const object = info.object ?? null;
+      setHovered((previous) =>
+        previous?.id === object?.id ? previous : object,
+      );
+      onHover?.({ point: object, x: info.x, y: info.y });
+    },
+    [onHover],
+  );
+
+  const handleClick = useCallback(
+    (info: PickingInfo) => {
+      const point = (info.object as NetworkGraphPoint | undefined) ?? null;
+      onClick?.({ point, x: info.x, y: info.y });
+    },
+    [onClick],
+  );
 
   /** Current zoom level as a single number (orthographic zoom may be a pair). */
   const currentZoom = useMemo(() => {
@@ -331,18 +367,12 @@ export const NetworkGraph = ({
           viewState={viewState}
           controller
           layers={layers}
+          onClick={handleClick}
           onViewStateChange={(params) => {
             setViewState(params.viewState as OrthographicViewState);
           }}
           getCursor={({ isDragging, isHovering }) =>
             isDragging ? "grabbing" : isHovering ? "pointer" : "grab"
-          }
-          getTooltip={({ object }: PickingInfo<NetworkGraphPoint>) =>
-            object
-              ? {
-                  text: `Node ${object.id}\n(${object.x.toFixed(1)}, ${object.y.toFixed(1)})`,
-                }
-              : null
           }
         />
       ) : null}
