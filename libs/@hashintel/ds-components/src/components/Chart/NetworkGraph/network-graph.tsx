@@ -75,6 +75,8 @@ const ZOOM_RADIUS_RATE = 1;
 /** Zoom range relative to the initial framing — how far out/in the user can zoom. */
 const MIN_ZOOM_OFFSET = -2;
 const MAX_ZOOM_OFFSET = 12;
+/** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
+const ZOOM_OUT_MARGIN = 0.2;
 const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
@@ -260,6 +262,13 @@ export const NetworkGraph = ({
       const zoomX = Math.log2((width * padding) / (bounds.width || 1));
       const zoomY = Math.log2((height * padding) / (bounds.height || 1));
       const zoom = Math.min(zoomX, zoomY);
+      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills
+      // the viewport — i.e. the view can never span more than that much world.
+      const outPadding = 1 / (1 + ZOOM_OUT_MARGIN);
+      const minZoom = Math.min(
+        Math.log2((width * outPadding) / (bounds.width || 1)),
+        Math.log2((height * outPadding) / (bounds.height || 1)),
+      );
       // Capture the first framing as the reference for zoom-based radius growth.
       setReferenceZoom((previous) => previous ?? zoom);
       // Only auto-frame until the user takes control of the view.
@@ -268,7 +277,7 @@ export const NetworkGraph = ({
           previous ?? {
             target: [bounds.centerX, bounds.centerY, 0],
             zoom,
-            minZoom: zoom + MIN_ZOOM_OFFSET,
+            minZoom,
             maxZoom: zoom + MAX_ZOOM_OFFSET,
           },
       );
