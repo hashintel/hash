@@ -50,6 +50,11 @@ export interface NetworkGraphProps {
    * empty space is clicked) and its pixel position.
    */
   onClick?: (interaction: NetworkGraphInteraction) => void;
+  /**
+   * Called when the zoom level changes, with the new zoom as a single number
+   * (orthographic zoom is log2 scale). Not called for pure panning.
+   */
+  onZoom?: (zoom: number) => void;
 }
 
 const RGBA_OPAQUE = 255;
@@ -111,8 +116,11 @@ export const NetworkGraph = ({
   className,
   onHover,
   onClick,
+  onZoom,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
+  const lastZoomRef = useRef<number | null>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
     null,
   );
@@ -371,7 +379,13 @@ export const NetworkGraph = ({
           layers={layers}
           onClick={handleClick}
           onViewStateChange={(params) => {
-            setViewState(params.viewState as OrthographicViewState);
+            const next = params.viewState as OrthographicViewState;
+            setViewState(next);
+            const zoom = Array.isArray(next.zoom) ? next.zoom[0] : next.zoom;
+            if (zoom !== undefined && zoom !== lastZoomRef.current) {
+              lastZoomRef.current = zoom;
+              onZoom?.(zoom);
+            }
           }}
           getCursor={({ isDragging, isHovering }) =>
             isDragging ? "grabbing" : isHovering ? "pointer" : "grab"
