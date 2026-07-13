@@ -128,6 +128,17 @@ export const Default: Story<NetworkGraphProps> = () => {
     );
   }, []);
 
+  const handleNodeHover = useCallback(
+    (interaction: NetworkGraphInteraction) => {
+      // Clear the selection when a different node is hovered, but keep it when the
+      // pointer moves onto empty space.
+      if (interaction.point) {
+        setSelected(null);
+      }
+    },
+    [],
+  );
+
   return (
     <div className={frameStyles}>
       {data ? (
@@ -139,7 +150,9 @@ export const Default: Story<NetworkGraphProps> = () => {
           <NetworkGraph
             points={data.points}
             edges={data.edges}
+            selected={selected?.point.id ?? null}
             onNodeClick={handleClick}
+            onNodeHover={handleNodeHover}
           />
           {selected ? (
             <div

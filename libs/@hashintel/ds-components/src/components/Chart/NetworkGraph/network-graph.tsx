@@ -41,6 +41,11 @@ export interface NetworkGraphProps {
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
+   * Id of a node to highlight with the same treatment as hovering (edges,
+   * neighbour rings and a prominent node). An active hover takes precedence.
+   */
+  selected?: number | null;
+  /**
    * Called when the hovered node changes, with the newly hovered node (or
    * `null` when the pointer leaves all nodes) and its pixel position. Not called
    * while the pointer stays over the same node.
@@ -165,6 +170,7 @@ export const NetworkGraph = ({
   points,
   edges,
   className,
+  selected,
   onNodeHover,
   onNodeClick,
   onZoom,
@@ -261,12 +267,26 @@ export const NetworkGraph = ({
     return map;
   }, [edges]);
 
-  /** Edges + neighbour nodes for the currently hovered node. */
-  const hover = useMemo(() => {
-    if (!hovered) {
+  /**
+   * The node whose neighbourhood is highlighted: the hovered node, or — when
+   * nothing is hovered — the externally `selected` node.
+   */
+  const activeNode = useMemo(() => {
+    if (hovered) {
+      return hovered;
+    }
+    if (selected != null) {
+      return pointById.get(selected) ?? null;
+    }
+    return null;
+  }, [hovered, selected, pointById]);
+
+  /** Edges + neighbour nodes for the active (hovered or selected) node. */
+  const highlight = useMemo(() => {
+    if (!activeNode) {
       return null;
     }
-    const incident = adjacency.get(hovered.id) ?? [];
+    const incident = adjacency.get(activeNode.id) ?? [];
     const lines: HoverLine[] = [];
     const neighbourIds = new Set<number>();
     for (const edge of incident) {
@@ -276,7 +296,7 @@ export const NetworkGraph = ({
         continue;
       }
       lines.push({ source: [from.x, from.y], target: [to.x, to.y] });
-      neighbourIds.add(edge.fromId === hovered.id ? edge.toId : edge.fromId);
+      neighbourIds.add(edge.fromId === activeNode.id ? edge.toId : edge.fromId);
     }
     const neighbours: NetworkGraphPoint[] = [];
     for (const id of neighbourIds) {
@@ -285,8 +305,8 @@ export const NetworkGraph = ({
         neighbours.push(point);
       }
     }
-    return { lines, neighbours, highlighted: [hovered, ...neighbours] };
-  }, [hovered, adjacency, pointById]);
+    return { lines, neighbours };
+  }, [activeNode, adjacency, pointById]);
 
   /** Frame the graph to fit the container on mount and on resize. */
   useEffect(() => {
@@ -375,7 +395,7 @@ export const NetworkGraph = ({
   }, [currentZoom, referenceZoom]);
 
   const layers = useMemo(() => {
-    const isHovering = hover !== null;
+    const isHighlighting = highlight !== null;
     return [
       new ScatterplotLayer<NetworkGraphPoint>({
         id: "points",
@@ -387,14 +407,15 @@ export const NetworkGraph = ({
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: POINT_RADIUS,
-        // Opacity scales with zoom; hovering dims the crowd no brighter than that.
-        opacity: isHovering
+        // Opacity scales with zoom; an active highlight dims the crowd no
+        // brighter than that.
+        opacity: isHighlighting
           ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
           : pointOpacity,
       }),
       new LineLayer<HoverLine>({
         id: "edges",
-        data: hover?.lines ?? [],
+        data: highlight?.lines ?? [],
         getSourcePosition: (line) => line.source,
         getTargetPosition: (line) => line.target,
         getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
@@ -404,7 +425,7 @@ export const NetworkGraph = ({
       }),
       new ScatterplotLayer<NetworkGraphPoint>({
         id: "highlight-neighbours",
-        data: hover?.neighbours ?? [],
+        data: highlight?.neighbours ?? [],
         getPosition: (point) => [point.x, point.y],
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
         getRadius: POINT_RADIUS * 1.6,
@@ -419,7 +440,7 @@ export const NetworkGraph = ({
       }),
       new ScatterplotLayer<NetworkGraphPoint>({
         id: "highlight-hovered",
-        data: hovered ? [hovered] : [],
+        data: activeNode ? [activeNode] : [],
         getPosition: (point) => [point.x, point.y],
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
         getRadius: POINT_RADIUS * 2.2,
@@ -434,7 +455,7 @@ export const NetworkGraph = ({
         lineWidthMinPixels: 1,
       }),
     ];
-  }, [points, hover, hovered, colorByHex, radiusScale, pointOpacity]);
+  }, [points, highlight, activeNode, colorByHex, radiusScale, pointOpacity]);
 
   return (
     <div ref={containerRef} className={cx(containerStyles, className)}>
