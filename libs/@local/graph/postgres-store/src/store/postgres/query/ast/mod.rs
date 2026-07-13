@@ -20,8 +20,8 @@ pub use self::{
     },
     identifier::Identifier,
     statement::{
-        DistinctOn, Distinctness, EmptyDistinctOn, OnConflict, SelectQuantifier, SelectStatement,
-        Statement, bulk_insert,
+        DistinctOn, EmptyDistinctOn, OnConflict, SelectQuantifier, SelectStatement, Statement,
+        bulk_insert,
     },
     table_reference::{TableName, TableReference},
 };

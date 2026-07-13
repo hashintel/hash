@@ -21,9 +21,9 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, CommonTableExpression, DistinctOn, Distinctness, EqualityOperator, Expression,
-    FromItem, Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord,
-    SelectExpression, SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
+    Alias, Column, CommonTableExpression, DistinctOn, EqualityOperator, Expression, FromItem,
+    Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -71,6 +71,12 @@ enum FilterGroup {
     All,
     /// Members are OR-combined.
     Any,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Distinctness {
+    Indistinct,
+    Distinct,
 }
 
 /// A join emitted into the statement, mirrored so the compiler can reuse joins and allocate

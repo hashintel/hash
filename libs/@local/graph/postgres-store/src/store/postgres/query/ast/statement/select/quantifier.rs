@@ -3,29 +3,7 @@ use core::{
     fmt::{self, Write as _},
 };
 
-use crate::store::postgres::query::{
-    Expression, FromItem, GroupByClause, OrderByClause, SelectExpression, Transpile, WhereClause,
-    WithClause,
-};
-
-#[derive(Debug, Clone, PartialEq, bon::Builder)]
-#[builder(derive(Debug, Clone, Into))]
-pub struct SelectStatement {
-    #[builder(default)]
-    pub with: WithClause,
-    pub quantifier: Option<SelectQuantifier>,
-    pub selects: Vec<SelectExpression>,
-    #[builder(into)]
-    pub from: Option<FromItem<'static>>,
-    #[builder(default)]
-    pub where_clause: WhereClause,
-    #[builder(default)]
-    pub order_by_clause: OrderByClause,
-    #[builder(default)]
-    pub group_by_clause: GroupByClause,
-    pub limit: Option<usize>,
-    pub offset: Option<usize>,
-}
+use crate::store::postgres::query::{Expression, Transpile};
 
 /// `SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]`
 #[derive(Debug, Clone, PartialEq)]
@@ -107,66 +85,6 @@ impl TryFrom<Vec<Expression>> for DistinctOn {
             return Err(EmptyDistinctOn);
         }
         Ok(Self(expressions))
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Distinctness {
-    Indistinct,
-    Distinct,
-}
-
-impl Transpile for SelectStatement {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if !self.with.is_empty() {
-            self.with.transpile(fmt)?;
-            fmt.write_char('\n')?;
-        }
-
-        fmt.write_str("SELECT ")?;
-
-        if let Some(quantifier) = &self.quantifier {
-            quantifier.transpile(fmt)?;
-            fmt.write_char(' ')?;
-        }
-
-        for (idx, condition) in self.selects.iter().enumerate() {
-            if idx > 0 {
-                fmt.write_str(", ")?;
-            }
-            condition.transpile(fmt)?;
-        }
-        if let Some(from) = &self.from {
-            fmt.write_str("\nFROM ")?;
-            from.transpile(fmt)?;
-        }
-
-        if !self.where_clause.is_empty() {
-            fmt.write_char('\n')?;
-            self.where_clause.transpile(fmt)?;
-        }
-
-        if !self.order_by_clause.is_empty() {
-            fmt.write_char('\n')?;
-            self.order_by_clause.transpile(fmt)?;
-        }
-
-        if !self.group_by_clause.expressions.is_empty() {
-            fmt.write_char('\n')?;
-            self.group_by_clause.transpile(fmt)?;
-        }
-
-        if let Some(limit) = self.limit {
-            fmt.write_char('\n')?;
-            write!(fmt, "LIMIT {limit}")?;
-        }
-
-        if let Some(offset) = self.offset {
-            fmt.write_char('\n')?;
-            write!(fmt, "OFFSET {offset}")?;
-        }
-
-        Ok(())
     }
 }
 

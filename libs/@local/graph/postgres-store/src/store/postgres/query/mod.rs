@@ -31,14 +31,14 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     ast::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
-        Constant, DistinctOn, Distinctness, EmptyDistinctOn, EqualityOperator, Expression,
-        FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
+        Constant, DistinctOn, EmptyDistinctOn, EqualityOperator, Expression, FromItem,
+        FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder, Function, GroupByClause, Identifier, JoinType, Materialization,
         OnConflict, OrderByClause, SelectExpression, SelectQuantifier, SelectStatement, Statement,
         TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator, WhereClause, WindowDefinition, WithClause, bulk_insert,
     },
-    compile::{SelectCompiler, SelectCompilerError},
+    compile::{Distinctness, SelectCompiler, SelectCompilerError},
     postgres_type::PostgresType,
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
