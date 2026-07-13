@@ -41,15 +41,16 @@ export interface NetworkGraphProps {
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
-   * Called as the pointer moves over the chart, with the node under the pointer
-   * (or `null` over empty space) and its pixel position.
+   * Called when the hovered node changes, with the newly hovered node (or
+   * `null` when the pointer leaves all nodes) and its pixel position. Not called
+   * while the pointer stays over the same node.
    */
-  onHover?: (interaction: NetworkGraphInteraction) => void;
+  onNodeHover?: (interaction: NetworkGraphInteraction) => void;
   /**
    * Called when the chart is clicked, with the clicked node (or `null` when
    * empty space is clicked) and its pixel position.
    */
-  onClick?: (interaction: NetworkGraphInteraction) => void;
+  onNodeClick?: (interaction: NetworkGraphInteraction) => void;
   /**
    * Called when the zoom level changes, with the new zoom as a single number
    * (orthographic zoom is log2 scale). Not called for pure panning.
@@ -71,11 +72,18 @@ const NEIGHBOUR_MIN_RADIUS = 5;
  * grows the radius slightly sub-linearly as you zoom in.
  */
 const ZOOM_RADIUS_RATE = 1;
+/** Zoom range relative to the initial framing — how far out/in the user can zoom. */
+const MIN_ZOOM_OFFSET = -2;
+const MAX_ZOOM_OFFSET = 12;
 const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
+/** Point opacity when zoomed all the way out; fades in to {@link POINT_OPACITY} at mid-zoom. */
+const POINT_MIN_OPACITY = 0.5;
+/** Zoom-range fraction at/above which points are fully opaque (below, they fade out as you zoom out). */
+const OPACITY_FULL_FRACTION = 0.5;
 
 /** Parse a `#RRGGBB` string into a deck.gl `[r, g, b]` colour. */
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -114,13 +122,16 @@ export const NetworkGraph = ({
   points,
   edges,
   className,
-  onHover,
-  onClick,
+  onNodeHover,
+  onNodeClick,
   onZoom,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
   const lastZoomRef = useRef<number | null>(null);
+  // Last hovered node id reported to `onNodeHover` (`null` when none), so we
+  // only fire when the hovered node actually changes.
+  const lastHoveredIdRef = useRef<number | null>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
     null,
   );
@@ -257,8 +268,8 @@ export const NetworkGraph = ({
           previous ?? {
             target: [bounds.centerX, bounds.centerY, 0],
             zoom,
-            minZoom: zoom - 2,
-            maxZoom: zoom + 12,
+            minZoom: zoom + MIN_ZOOM_OFFSET,
+            maxZoom: zoom + MAX_ZOOM_OFFSET,
           },
       );
     };
@@ -268,23 +279,12 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [bounds]);
 
-  const handleHover = useCallback(
-    (info: PickingInfo<NetworkGraphPoint>) => {
-      const object = info.object ?? null;
-      setHovered((previous) =>
-        previous?.id === object?.id ? previous : object,
-      );
-      onHover?.({ point: object, x: info.x, y: info.y });
-    },
-    [onHover],
-  );
-
   const handleClick = useCallback(
     (info: PickingInfo) => {
       const point = (info.object as NetworkGraphPoint | undefined) ?? null;
-      onClick?.({ point, x: info.x, y: info.y });
+      onNodeClick?.({ point, x: info.x, y: info.y });
     },
-    [onClick],
+    [onNodeClick],
   );
 
   /** Current zoom level as a single number (orthographic zoom may be a pair). */
@@ -308,6 +308,22 @@ export const NetworkGraph = ({
     return 2 ** (ZOOM_RADIUS_RATE * (currentZoom - referenceZoom));
   }, [currentZoom, referenceZoom]);
 
+  /**
+   * Point opacity as a function of zoom: {@link POINT_MIN_OPACITY} when zoomed
+   * all the way out, rising linearly to full opacity at the midpoint of the zoom
+   * range and staying fully opaque as the view zooms further in.
+   */
+  const pointOpacity = useMemo(() => {
+    if (currentZoom === null || referenceZoom === null) {
+      return POINT_OPACITY;
+    }
+    const minZoom = referenceZoom + MIN_ZOOM_OFFSET;
+    const maxZoom = referenceZoom + MAX_ZOOM_OFFSET;
+    const fraction = (currentZoom - minZoom) / (maxZoom - minZoom);
+    const fade = Math.min(1, Math.max(0, fraction / OPACITY_FULL_FRACTION));
+    return POINT_MIN_OPACITY + fade * (POINT_OPACITY - POINT_MIN_OPACITY);
+  }, [currentZoom, referenceZoom]);
+
   const layers = useMemo(() => {
     const isHovering = hover !== null;
     return [
@@ -315,15 +331,16 @@ export const NetworkGraph = ({
         id: "points",
         data: points,
         pickable: true,
-        onHover: handleHover,
         getPosition: (point) => [point.x, point.y],
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
         getRadius: POINT_RADIUS,
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: POINT_RADIUS,
-        // Fade the crowd back so the hovered node's neighbourhood stands out.
-        opacity: isHovering ? POINT_DIMMED_OPACITY : POINT_OPACITY,
+        // Opacity scales with zoom; hovering dims the crowd no brighter than that.
+        opacity: isHovering
+          ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
+          : pointOpacity,
       }),
       new LineLayer<HoverLine>({
         id: "edges",
@@ -367,7 +384,7 @@ export const NetworkGraph = ({
         lineWidthMinPixels: 1,
       }),
     ];
-  }, [points, hover, hovered, handleHover, colorByHex, radiusScale]);
+  }, [points, hover, hovered, colorByHex, radiusScale, pointOpacity]);
 
   return (
     <div ref={containerRef} className={cx(containerStyles, className)}>
@@ -378,6 +395,18 @@ export const NetworkGraph = ({
           controller
           layers={layers}
           onClick={handleClick}
+          onHover={(info: PickingInfo) => {
+            const object =
+              (info.object as NetworkGraphPoint | undefined) ?? null;
+            const id = object?.id ?? null;
+            // Only react when the hovered node changes (including to no node).
+            if (id === lastHoveredIdRef.current) {
+              return;
+            }
+            lastHoveredIdRef.current = id;
+            setHovered(object);
+            onNodeHover?.({ point: object, x: info.x, y: info.y });
+          }}
           onViewStateChange={(params) => {
             const next = params.viewState as OrthographicViewState;
             setViewState(next);

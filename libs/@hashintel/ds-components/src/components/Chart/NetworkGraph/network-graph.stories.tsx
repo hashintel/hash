@@ -139,7 +139,7 @@ export const Default: Story<NetworkGraphProps> = () => {
           <NetworkGraph
             points={data.points}
             edges={data.edges}
-            onClick={handleClick}
+            onNodeClick={handleClick}
           />
           {selected ? (
             <div
