@@ -4047,6 +4047,7 @@ dependencies = [
  "temporalio-client",
  "temporalio-common",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
  "tracing-opentelemetry 0.33.0",
  "type-system",
