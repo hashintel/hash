@@ -19,7 +19,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     eval "$(mise activate bash)" && \
-    mise install node
+    mise install --locked node
 
 
 FROM mise AS base
@@ -27,7 +27,7 @@ FROM mise AS base
 WORKDIR /app
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install npm:turbo yq
+    mise install --locked npm:turbo yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
@@ -51,7 +51,7 @@ ENV MISE_CARGO_HOME="/usr/local/cargo" \
 
 COPY rust-toolchain.toml .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install yq && \
+    mise install --locked yq && \
     echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
     echo "Rust installation completed. Checking versions:" && \
@@ -73,7 +73,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install node npm:turbo java npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+    mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
@@ -100,7 +100,7 @@ WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 
 # Set a writable Corepack cache directory
 ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
-RUN GITHUB_TOKEN="" mise install node && \
+RUN GITHUB_TOKEN="" mise install --locked node && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles $COREPACK_HOME && \
