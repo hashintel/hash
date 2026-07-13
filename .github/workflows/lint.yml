@@ -436,15 +436,16 @@ jobs:
       # Download the tools that have pre-resolved URLs in the lockfile so
       # mise verifies their sha256 checksums and sizes. This catches a broken
       # or tampered lockfile entry before the (slower) Docker builds do.
-      # Keep the list in sync with the tools carrying `platforms.*` entries
-      # in `mise.lock`; the dry-run step above already fails on tools missing
-      # from the lockfile. Cargo/npm/pipx tools are excluded, as they install
-      # through their own package managers and have no locked URLs to verify.
+      # The list is derived from the lockfile itself: URL-locked tools are
+      # exactly those with `platforms.*` sections. Cargo/npm/pipx tools have
+      # none, as they install through their own package managers.
       - name: Install URL-locked tools
         if: steps.lockfile.outputs.exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise install --locked cargo-binstall java just node protoc sentry-cli taplo uv yq
+        run: |
+          TOOLS=$(sed -nE 's/^\[tools\."?([^]"]+)"?\."platforms\..*/\1/p' .config/mise/mise.lock | sort -u)
+          mise install --locked $TOOLS
 
   passed:
     name: Linting passed
