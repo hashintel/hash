@@ -78,21 +78,6 @@ const centreStyles = css({
   fontSize: "sm",
 });
 
-const hintStyles = css({
-  position: "absolute",
-  top: "3",
-  left: "3",
-  zIndex: "[1]",
-  paddingX: "4",
-  paddingY: "3",
-  borderRadius: "sm",
-  backgroundColor: "[rgba(255, 255, 255, 0.85)]",
-  color: "neutral.s70",
-  fontSize: "xs",
-  pointerEvents: "none",
-  userSelect: "none",
-});
-
 const tooltipStyles = css({
   position: "absolute",
   zIndex: "[2]",
@@ -114,18 +99,15 @@ const tooltipStyles = css({
  */
 export const Default: Story<NetworkGraphProps> = () => {
   const data = useGraphData();
-  const [selected, setSelected] = useState<{
-    point: NetworkGraphPoint;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [selected, setSelected] = useState<NetworkGraphPoint | null>(null);
+  // The selected node's live on-screen position, updated by the chart as the
+  // user zooms/pans so the tooltip tracks the node.
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
 
   const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
-    setSelected(
-      interaction.point
-        ? { point: interaction.point, x: interaction.x, y: interaction.y }
-        : null,
-    );
+    setSelected(interaction.point);
   }, []);
 
   const handleNodeHover = useCallback(
@@ -143,25 +125,22 @@ export const Default: Story<NetworkGraphProps> = () => {
     <div className={frameStyles}>
       {data ? (
         <>
-          <span className={hintStyles}>
-            Click a node to inspect it · hover to reveal its connections ·
-            scroll to zoom · drag to pan
-          </span>
           <NetworkGraph
             points={data.points}
             edges={data.edges}
-            selected={selected?.point.id ?? null}
+            selected={selected?.id ?? null}
             onNodeClick={handleClick}
             onNodeHover={handleNodeHover}
+            onSelectedPositionChange={setTooltipPos}
           />
-          {selected ? (
+          {selected && tooltipPos ? (
             <div
               className={tooltipStyles}
-              style={{ left: selected.x + 12, top: selected.y + 12 }}
+              style={{ left: tooltipPos.x + 12, top: tooltipPos.y + 12 }}
             >
-              <div>Node {selected.point.id}</div>
+              <div>Node {selected.id}</div>
               <div>
-                ({selected.point.x.toFixed(1)}, {selected.point.y.toFixed(1)})
+                ({selected.x.toFixed(1)}, {selected.y.toFixed(1)})
               </div>
             </div>
           ) : null}

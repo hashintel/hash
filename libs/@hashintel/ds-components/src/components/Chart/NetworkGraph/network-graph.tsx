@@ -46,6 +46,15 @@ export interface NetworkGraphProps {
    */
   selected?: number | null;
   /**
+   * Called with the `selected` node's current on-screen position (CSS pixels,
+   * relative to the chart's top-left) whenever it changes — including as the
+   * user zooms or pans — or `null` when nothing is selected. Lets a consumer
+   * anchor an overlay such as a tooltip to the node.
+   */
+  onSelectedPositionChange?: (
+    position: { x: number; y: number } | null,
+  ) => void;
+  /**
    * Called when the hovered node changes, with the newly hovered node (or
    * `null` when the pointer leaves all nodes) and its pixel position. Not called
    * while the pointer stays over the same node.
@@ -175,6 +184,7 @@ export const NetworkGraph = ({
   edges,
   className,
   selected,
+  onSelectedPositionChange,
   onNodeHover,
   onNodeClick,
   onZoom,
@@ -355,6 +365,30 @@ export const NetworkGraph = ({
     observer.observe(element);
     return () => observer.disconnect();
   }, [bounds]);
+
+  /**
+   * Report the selected node's on-screen position, re-projecting on every view
+   * change so a consumer's overlay can track the node as it zooms/pans.
+   */
+  useEffect(() => {
+    if (!onSelectedPositionChange) {
+      return;
+    }
+    const element = containerRef.current;
+    const node = selected == null ? undefined : pointById.get(selected);
+    if (!element || !viewState || !node) {
+      onSelectedPositionChange(null);
+      return;
+    }
+    const { width, height } = element.getBoundingClientRect();
+    const viewport = view.makeViewport({ width, height, viewState });
+    if (!viewport) {
+      onSelectedPositionChange(null);
+      return;
+    }
+    const [x = 0, y = 0] = viewport.project([node.x, node.y]);
+    onSelectedPositionChange({ x, y });
+  }, [onSelectedPositionChange, selected, pointById, viewState, view]);
 
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
