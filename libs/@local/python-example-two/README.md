@@ -8,6 +8,6 @@ Second example package for the Python monorepo infrastructure ([H-6664](https://
 It keeps two things exercised on every CI run:
 
 - **Cross-package workspace dependencies:** this package depends on [`hash-python-example`](../python-example) via `[tool.uv.sources] hash-python-example = { workspace = true }` and imports from it in both the module and its tests.
-- **The prune path:** pruned CI checkouts must retain *all* uv workspace members (see `.github/actions/prune-repository/prune.py`), which only shows up with more than one Python package in the workspace.
+- **The prune path:** pruned CI checkouts must retain _all_ uv workspace members (see `.github/actions/prune-repository/prune.py`), which only shows up with more than one Python package in the workspace.
 
 See [`python-example`](../python-example) for the general layout conventions.
