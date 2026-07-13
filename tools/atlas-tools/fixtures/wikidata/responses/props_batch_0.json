@@ -549,6 +549,66 @@
         }
       },
       "type": "property"
+    },
+    "P9007": {
+      "claims": {
+        "P2302": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "type": "wikibase-entityid",
+                "value": {
+                  "entity-type": "item",
+                  "id": "Q53869507"
+                }
+              },
+              "property": "P2302",
+              "snaktype": "value"
+            },
+            "qualifiers": {
+              "P5314": [
+                {
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "id": "Q54828449"
+                    }
+                  },
+                  "property": "P5314",
+                  "snaktype": "value"
+                },
+                {
+                  "datavalue": {
+                    "type": "wikibase-entityid",
+                    "value": {
+                      "id": "Q54828450"
+                    }
+                  },
+                  "property": "P5314",
+                  "snaktype": "value"
+                }
+              ]
+            },
+            "rank": "normal",
+            "type": "statement"
+          }
+        ]
+      },
+      "datatype": "wikibase-item",
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic qualifier-scoped statement-metadata property"
+        }
+      },
+      "id": "P9007",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "applies to work"
+        }
+      },
+      "type": "property"
     }
   },
   "success": 1

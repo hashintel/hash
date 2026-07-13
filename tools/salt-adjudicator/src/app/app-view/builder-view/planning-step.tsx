@@ -273,23 +273,6 @@ export const PlanningStep = ({
                 />
               </label>
             ) : null}
-            <label class="field">
-              Coincident quota target
-              <input
-                name="quota"
-                type="number"
-                min={1}
-                step={1}
-                value={values.coincidentTarget}
-                required
-                onInput={(event) =>
-                  onChange({
-                    ...values,
-                    coincidentTarget: event.currentTarget.valueAsNumber,
-                  })
-                }
-              />
-            </label>
           </div>
         </section>
 

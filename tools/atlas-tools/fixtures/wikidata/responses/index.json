@@ -80,22 +80,6 @@
     "status": 200,
     "url": "https://qlever.dev/api/wikidata"
   },
-  "8c337af11a24543d96ab233ff7f8faeb7031142036cebddebdfd457b6b6c44fb": {
-    "file": "props_batch_0.json",
-    "headers": {
-      "content-type": "application/json",
-      "date": "2025-06-01T00:00:00+00:00"
-    },
-    "params": {
-      "action": "wbgetentities",
-      "format": "json",
-      "ids": "P50|P361|P527|P9001|P9002|P9003|P9004|P9005",
-      "languages": "en|de",
-      "props": "labels|descriptions|aliases|claims|datatype"
-    },
-    "status": 200,
-    "url": "https://www.wikidata.org/w/api.php"
-  },
   "968fe540bf47290ea86c5c465a7e1d48ec5c0bcd218bfb432cc6762dc3d677a1": {
     "file": "examples_P50_qlever.json",
     "headers": {
@@ -160,5 +144,21 @@
     },
     "status": 200,
     "url": "https://qlever.dev/api/wikidata"
+  },
+  "fc9ce2445b392bb7ae5d6db69992ae34ffd4378c327edd00e1a759637e829c6d": {
+    "file": "props_batch_0.json",
+    "headers": {
+      "content-type": "application/json",
+      "date": "2025-06-01T00:00:00+00:00"
+    },
+    "params": {
+      "action": "wbgetentities",
+      "format": "json",
+      "ids": "P50|P361|P527|P9001|P9002|P9003|P9004|P9005|P9007",
+      "languages": "en|de",
+      "props": "labels|descriptions|aliases|claims|datatype"
+    },
+    "status": 200,
+    "url": "https://www.wikidata.org/w/api.php"
   }
 }

@@ -84,8 +84,7 @@ const build = async (): Promise<void> => {
     seed: "salt-demo-v1",
     coverageTarget: 1,
     sliceSize: demoCards.length,
-    rubricVersion: "v0.3-demo",
-    coincidentTarget: 3,
+    rubricVersion: "v1",
     title: "SALT demonstration study",
   });
 

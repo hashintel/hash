@@ -58,10 +58,12 @@ only some cards extra reviews.
 
 The final production subset is sampled deterministically from the study seed.
 SALT preserves equivalence/normal prescreen proportions when those strata are
-present and uses seeded uniform sampling for an all-normal atlas pool. The
-study and verification manifest record the source-pool hash and count,
-eligible count, exact sample size, strategy version, planner mode, assumptions,
-and unused capacity.
+present and uses seeded uniform sampling for an all-normal atlas pool. Atlas
+Wikidata corpora must carry `scope_filter: "main-value-only"`; qualifier- and
+reference-only properties are excluded before SALT samples the requested deck
+size. The study and verification manifest record that filter together with the
+source-pool hash and count, eligible count, exact sample size, strategy version,
+planner mode, assumptions, and unused capacity.
 
 ## Annotator flow
 
@@ -75,10 +77,12 @@ and unused capacity.
 
 Primary shortcuts:
 
-- `↑` or `C`: Coincident
-- `→` or `P`: Proximal
-- `←` or `O`: Overlay
-- `↓` or `U`: Unclear
+- `↑` or `C`: Same dot
+- `→` or `P`: Nearby
+- `←` or `O`: Just a line
+- `↓` or `U`: Can't tell
+- `D`: show or hide aliases, inverse name, ancestors, endpoint types, and
+  constraints
 - `F`: toggle flag
 - `N`: open the one-line note field; its open time is excluded from latency
 - `?`: open the geometry class guide; hover or focus a class control for the
@@ -86,7 +90,7 @@ Primary shortcuts:
 - `Z`: append a retraction and re-queue the previous swipe
 - `E`: export the full swipe log
 
-Touch users can swipe horizontally for Overlay or Proximal. Vertical pans
+Touch users can swipe horizontally for Just a line or Nearby. Vertical pans
 scroll long relation documents; the four always-visible direction buttons
 cover every class.
 
@@ -131,17 +135,19 @@ The Study Builder also accepts atlas Wikidata extraction records directly:
   "retrieved_at": "Sat, 11 Jul 2026 21:49:16 GMT",
   "severely_truncated": false,
   "token_count": 559,
-  "truncations": []
+  "truncations": [],
+  "scope_filter": "main-value-only"
 }
 ```
 
 These records are normalized to `relation_id = pid`, `family_id = pid`, and
 `prescreen = normal`; extraction metadata remains attached to the study card.
-The renderer preserves the canonical hierarchy of descriptions, aliases,
-ancestors, source and target types, constraints, examples, and slugs. Only the
-bullet items inside `Examples:` are deterministically re-ordered per annotator
-and pass. Legacy cards containing only a relation heading and example lines
-remain supported.
+The default card shows only the relation, description, and every example.
+**Details** reveals aliases, inverse name, ancestors, source and target types,
+and constraints in one tier; the slug is never shown. A strict reversible
+parser falls back to the original raw `card_text` whenever the canonical
+grammar is not recognized. Only bullet items inside `Examples:` are
+deterministically re-ordered per annotator and pass.
 
 Qualification JSONL parsing remains available for compatibility and tests. A
 record uses the same fields plus:

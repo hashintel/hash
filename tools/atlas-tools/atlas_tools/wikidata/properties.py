@@ -15,24 +15,41 @@ The parsed constraint types are the members of
   (classes from qualifier ``P2308``)
 - ``Q21510855`` inverse constraint           -> ``Constraints.inverse_pid``
   (property from qualifier ``P2306``)
+- ``Q53869507`` property scope constraint    -> ``Constraints.scopes``
+  (allowed placements from qualifier ``P5314``)
 
 Every other constraint type (format, allowed-qualifiers, citation-needed,
-property-scope, allowed-units, one-of, none-of, contemporary, integer, range,
-and so on) is ignored; the ignored type QIDs are recorded in
+allowed-units, one-of, none-of, contemporary, integer, range, and so on)
+is ignored; the ignored type QIDs are recorded in
 ``Constraints.ignored_types`` and never affect output.
 
-Exclusion rules (configurable; applied in this order, first match wins)
------------------------------------------------------------------------
+Exclusion rules (applied in this order, first match wins)
+---------------------------------------------------------
 1. ``datatype:<datatype>``: the datatype is not ``wikibase-item``. The
    inventory SPARQL query already restricts to wikibase-item, but the parser
    defensively re-filters so external-identifier properties (P212-style)
    can never leak through.
 2. ``maintenance``: the property's P31 intersects
    ``extraction.maintenance_classes`` (Q18644435-style "Wikidata property
-   for Wikimedia" classes).
+   for Wikimedia" classes; configurable).
 3. ``deprecated``: the property's P31 intersects
    ``extraction.deprecated_classes`` (Q18644427-style obsolete-property
-   classes; this is the owl:deprecated proxy available in entity documents).
+   classes; this is the owl:deprecated proxy available in entity documents;
+   configurable).
+4. ``qualifier-scoped``: the property declares a property-scope constraint
+   (Q53869507) whose allowed placements (qualifier P5314) omit "as main
+   value" (Q54828448). Such properties (P3831 "object has role", P4390
+   "mapping relation type", P2553 "in work", and so on) are statement
+   metadata, not entity-to-entity link types: any truthy main-value
+   statements they carry are edits that misuse the property, so mined
+   example pairs are inherently garbled and the relation is unanswerable
+   as a link type. The scope vocabulary is fixed Wikidata infrastructure
+   (like the ConstraintKind QIDs), so this rule is not configurable.
+   Properties without a scope constraint are retained: absent evidence is
+   not treated as misuse. A declared constraint with no P5314 placements
+   at all is malformed and excluded: the editor asserted a scope
+   restriction, and no reading of an empty placement set includes "as
+   main value".
 
 Example fallback ladder
 -----------------------
@@ -88,6 +105,7 @@ from atlas_tools.wikidata.cache import RETRIEVED_AT_HEADER
 from atlas_tools.wikidata.config import Config, ExtractionConfig
 from atlas_tools.wikidata.examples import OTHER_WARNING_FRACTION, select_examples
 from atlas_tools.wikidata.model import (
+    SCOPE_AS_MAIN_VALUE,
     ConstraintKind,
     Constraints,
     EntityId,
@@ -118,6 +136,7 @@ WBGETENTITIES_BATCH_SIZE = 50
 
 _QUALIFIER_CLASS = "P2308"
 _QUALIFIER_PROPERTY = "P2306"
+_QUALIFIER_SCOPE = "P5314"
 
 
 class EntityIdValue(BaseModel):
@@ -196,9 +215,9 @@ def _qualifier_entity_ids(statement: Statement, qualifier: str) -> tuple[str, ..
     return tuple(ids)
 
 
-def _qualifier_class_qids(statement: Statement) -> tuple[Qid, ...]:
-    """P2308 class qualifiers, branded at the parse boundary."""
-    return tuple(Qid(entity_id) for entity_id in _qualifier_entity_ids(statement, _QUALIFIER_CLASS))
+def _qualifier_qids(statement: Statement, qualifier: str) -> tuple[Qid, ...]:
+    """Item-valued qualifier snaks (P2308 classes, P5314 scopes), branded at parse."""
+    return tuple(Qid(entity_id) for entity_id in _qualifier_entity_ids(statement, qualifier))
 
 
 def _extend_unique[IdT: str](target: list[IdT], entity_ids: tuple[IdT, ...]) -> None:
@@ -218,6 +237,7 @@ class _ConstraintsInProgress:
     subject_types: list[Qid] = field(default_factory=list)
     value_types: list[Qid] = field(default_factory=list)
     inverse_pid: Pid | None = None
+    scopes: list[Qid] | None = None
     ignored: list[str] = field(default_factory=list)
 
     def apply(self, kind: ConstraintKind, statement: Statement) -> None:
@@ -231,13 +251,22 @@ class _ConstraintsInProgress:
             case ConstraintKind.DISTINCT_VALUES:
                 self.distinct_values = True
             case ConstraintKind.SUBJECT_TYPE:
-                _extend_unique(self.subject_types, _qualifier_class_qids(statement))
+                _extend_unique(self.subject_types, _qualifier_qids(statement, _QUALIFIER_CLASS))
             case ConstraintKind.VALUE_TYPE:
-                _extend_unique(self.value_types, _qualifier_class_qids(statement))
+                _extend_unique(self.value_types, _qualifier_qids(statement, _QUALIFIER_CLASS))
             case ConstraintKind.INVERSE:
                 pids = _qualifier_entity_ids(statement, _QUALIFIER_PROPERTY)
                 if pids and self.inverse_pid is None:
                     self.inverse_pid = Pid(pids[0])
+            case ConstraintKind.PROPERTY_SCOPE:
+                self._apply_scope(statement)
+
+    def _apply_scope(self, statement: Statement) -> None:
+        # A declared scope constraint distinguishes [] from None even when
+        # it carries no P5314 placements (malformed; see module docstring).
+        if self.scopes is None:
+            self.scopes = []
+        _extend_unique(self.scopes, _qualifier_qids(statement, _QUALIFIER_SCOPE))
 
     def build(self) -> Constraints:
         return Constraints(
@@ -248,6 +277,7 @@ class _ConstraintsInProgress:
             subject_types=tuple(self.subject_types),
             value_types=tuple(self.value_types),
             inverse_pid=self.inverse_pid,
+            scopes=None if self.scopes is None else tuple(self.scopes),
             ignored_types=tuple(self.ignored),
         )
 
@@ -312,7 +342,10 @@ def parse_property_document(
 
 
 def exclusion_reason(record: PropertyRecord, extraction: ExtractionConfig) -> str | None:
-    """Return the first matching exclusion rule, or None when the property is retained."""
+    """Return the first matching exclusion rule, or None when the property is retained.
+
+    The rules and their order are documented in the module docstring.
+    """
     if record.datatype != "wikibase-item":
         return f"datatype:{record.datatype}"
     p31 = set(record.p31)
@@ -320,6 +353,9 @@ def exclusion_reason(record: PropertyRecord, extraction: ExtractionConfig) -> st
         return "maintenance"
     if p31 & set(extraction.deprecated_classes):
         return "deprecated"
+    scopes = record.constraints.scopes
+    if scopes is not None and SCOPE_AS_MAIN_VALUE not in scopes:
+        return "qualifier-scoped"
     return None
 
 

@@ -68,12 +68,9 @@ def concat_relations(paths: Iterable[PathLike], *, out: PathLike) -> ConcatPaths
         input_hashes[f"{producer_id}/cards.jsonl"] = input_hash
 
         cards += [
-            ConcatCardRow(
-                producer=producer_id,
-                **CardRow.model_validate_json(line).model_dump(),
-            )
+            ConcatCardRow(producer=producer_id, **row.model_dump())
             for line in cards_path.read_text("utf-8").splitlines()
-            if line
+            if line and (row := CardRow.model_validate_json(line))
         ]
 
         configs[producer_id] = provenance.config

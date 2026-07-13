@@ -9,6 +9,7 @@ import {
   swipesToJsonl,
 } from "../core.ts";
 import {
+  type EmbeddedPayload,
   type GenericEmbeddedPayload,
   buildStudyHtml,
   useAppController,
@@ -23,7 +24,20 @@ const makeStudyPayload = (
   const cards: Card[] = Array.from({ length: cardCount }, (_, cardIndex) => ({
     relation_id: `R${cardIndex + 1}`,
     family_id: `F${cardIndex + 1}`,
-    card_text: `Relation: synthetic ${cardIndex + 1}\nExample A\nExample B`,
+    card_text: [
+      `Relation: synthetic ${cardIndex + 1}`,
+      `Description: synthetic relation ${cardIndex + 1}`,
+      "Inverse Name: none recorded",
+      "",
+      "Constraints:",
+      "  - direction: source -> target",
+      "",
+      "Examples:",
+      `  - example: source ${cardIndex + 1} -> target ${cardIndex + 1}`,
+      "",
+      `Slug: synthetic-${cardIndex + 1}`,
+      "",
+    ].join("\n"),
     card_hash: `hash-${cardIndex + 1}`,
     prescreen: cardIndex === 0 ? "equivalence" : "normal",
   }));
@@ -35,7 +49,6 @@ const makeStudyPayload = (
     coverageTarget: 1,
     sliceSize: cards.length,
     rubricVersion: "test-v1",
-    coincidentTarget: 1,
     title: "Preact test study",
   });
   const code = codeSheet[0]?.code;
@@ -49,7 +62,7 @@ const makeStudyPayload = (
   };
 };
 
-const TestApplication = ({ payload }: { payload: GenericEmbeddedPayload }) => {
+const TestApplication = ({ payload }: { payload: EmbeddedPayload }) => {
   const controller = useAppController(payload, vi.fn());
   return <AppView controller={controller} />;
 };
@@ -118,6 +131,8 @@ describe("Preact application", () => {
           "  - mayor",
           "  - prime minister",
           "",
+          "Inverse Name: government headed by",
+          "",
           "Source types:",
           "  - country (sovereign state)",
           "",
@@ -140,13 +155,18 @@ describe("Preact application", () => {
       screen.getByRole("heading", { name: "head of government", level: 1 }),
     ).toBeTruthy();
     expect(screen.getByText("head of the executive power")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Source types" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Target types" })).toBeTruthy();
     expect(screen.getByText("Germany")).toBeTruthy();
     expect(screen.getByText("Friedrich Merz")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Source types" })).toBeNull();
+    expect(screen.queryByText("head-of-government")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+
+    expect(screen.getByRole("heading", { name: "Source types" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Target types" })).toBeTruthy();
     expect(screen.getByText("symmetric?")).toBeTruthy();
     expect(screen.getByText("no")).toBeTruthy();
-    expect(screen.getByText("head-of-government")).toBeTruthy();
+    expect(screen.queryByText("head-of-government")).toBeNull();
   });
 
   test("navigates public modes through component handlers", () => {
@@ -159,6 +179,29 @@ describe("Preact application", () => {
         name: "Build one reproducible study bundle.",
       }),
     ).toBeTruthy();
+  });
+
+  test("introduces the map task before code entry", () => {
+    const payload = makeStudyPayload();
+    render(
+      <TestApplication
+        payload={{ kind: "study", study: payload.demo_study }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "What you're doing" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        '"If A and B are connected by this kind of link, where should B be relative to A on the map?"',
+      ),
+    ).toBeTruthy();
+    expect(document.querySelector(".intro-labels")?.textContent).toContain(
+      'Same dot — they are the same thing, recorded twice. ("duplicate of")',
+    );
+    expect(screen.getByText(/calibration, not a test/u)).toBeTruthy();
+    expect(screen.getByLabelText("Annotator code")).toBeTruthy();
   });
 
   test("imports, searches, edits, and removes qualification anchors", async () => {
@@ -179,11 +222,9 @@ describe("Preact application", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /POOL-14.*pool relation 14/u }),
     );
-    expect(
-      screen.getByRole("heading", { name: "pool relation 14" }),
-    ).toBeTruthy();
+    expect(screen.getByText(/Relation: pool relation 14/u)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("radio", { name: /O · Overlay/u }));
+    fireEvent.click(screen.getByRole("radio", { name: /O · Just a line/u }));
     fireEvent.input(screen.getByLabelText("Required rationale"), {
       target: {
         value:
@@ -241,7 +282,7 @@ describe("Preact application", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("radio", { name: /C · Coincident/u }));
+    fireEvent.click(screen.getByRole("radio", { name: /C · Same dot/u }));
     fireEvent.input(screen.getByLabelText("Required rationale"), {
       target: {
         value:
@@ -320,6 +361,38 @@ describe("Preact application", () => {
     expect(
       screen.getByRole("region", { name: "Current relation" }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("img", {
+        name: "A is the first item. It points through this relation to B, the second item.",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Where should B sit relative to A on the map?"),
+    ).toBeTruthy();
+  });
+
+  test("toggles card details with D and collapses them on advance", async () => {
+    render(<TestApplication payload={makeStudyPayload()} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /Open the demo deck/u }),
+    );
+
+    expect(screen.queryByRole("heading", { name: "Constraints" })).toBeNull();
+    fireEvent.keyDown(document, { key: "d" });
+    expect(screen.getByRole("heading", { name: "Constraints" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Hide details D/u }),
+    ).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Same dot, like duplicate of, up, C/u,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Details D/u })).toBeTruthy(),
+    );
+    expect(screen.queryByRole("heading", { name: "Constraints" })).toBeNull();
   });
 
   test("serializes a clean DOM-created boot subtree for study exports", () => {
@@ -354,7 +427,7 @@ describe("Preact application", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Coincident, up, C/u,
+        name: /Same dot, like duplicate of, up, C/u,
       }),
     );
 
@@ -393,7 +466,7 @@ describe("Preact application", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Coincident, up, C/u,
+        name: /Same dot, like duplicate of, up, C/u,
       }),
     );
     setItemMock.mockRestore();
@@ -488,7 +561,7 @@ describe("Preact application", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Coincident, up, C/u,
+        name: /Same dot, like duplicate of, up, C/u,
       }),
     );
     expect(savedSession().events).toHaveLength(1);
@@ -537,7 +610,7 @@ describe("Preact application", () => {
     now = 2_300;
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Coincident, up, C/u,
+        name: /Same dot, like duplicate of, up, C/u,
       }),
     );
 
@@ -550,7 +623,7 @@ describe("Preact application", () => {
       screen.getByRole("button", { name: /Open the demo deck/u }),
     );
     const coincidentButton = screen.getByRole("button", {
-      name: /Coincident, up, C/u,
+      name: /Same dot, like duplicate of, up, C/u,
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Class guide/u }));
@@ -579,7 +652,7 @@ describe("Preact application", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Coincident, up, C/u,
+        name: /Same dot, like duplicate of, up, C/u,
       }),
     );
     await waitFor(() => {
@@ -621,7 +694,7 @@ describe("Preact application", () => {
     expect(screen.queryByText(rationale)).toBeNull();
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Proximal, right, P/u,
+        name: /Nearby, like part of, right, P/u,
       }),
     );
 
@@ -631,7 +704,7 @@ describe("Preact application", () => {
       ).toBeTruthy(),
     );
     expect(screen.getByText(rationale)).toBeTruthy();
-    expect(screen.getByText(/C · Coincident/u)).toBeTruthy();
+    expect(screen.getByText(/C · Same dot/u)).toBeTruthy();
   });
 
   test("updates merged file sources without mutating sibling entries", async () => {

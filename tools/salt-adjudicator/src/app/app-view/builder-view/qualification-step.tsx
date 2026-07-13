@@ -229,6 +229,14 @@ export const QualificationStep = ({
             <ul class="pool-card-list">
               {visibleCards.map((card) => {
                 const draft = draftsByRelationId.get(card.relation_id);
+                const parsedCardText = parseCardText(card.card_text);
+                const relationName =
+                  parsedCardText.kind === "structured"
+                    ? parsedCardText.relation
+                    : (card.card_text
+                        .split(/\r?\n/u)
+                        .find((line) => line.trim())
+                        ?.replace(/^Relation:\s*/u, "") ?? card.relation_id);
                 return (
                   <li key={card.card_hash}>
                     <button
@@ -242,7 +250,7 @@ export const QualificationStep = ({
                     >
                       <span>
                         <strong>{card.relation_id}</strong>
-                        <small>{parseCardText(card.card_text).relation}</small>
+                        <small>{relationName}</small>
                       </span>
                       <em>{draft ? `${draft.answer} anchor` : "Open"}</em>
                     </button>

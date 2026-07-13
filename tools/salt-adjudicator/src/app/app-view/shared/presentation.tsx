@@ -60,6 +60,7 @@ export const LabelTooltip = ({ label, id }: { label: Label; id: string }) => {
   return (
     <span class="label-tooltip" id={id} role="tooltip">
       <strong>{detail.name}</strong>
+      <small>{detail.subtitle}</small>
       <span>{detail.description}</span>
     </span>
   );

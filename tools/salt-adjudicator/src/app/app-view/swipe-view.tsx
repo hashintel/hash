@@ -64,7 +64,10 @@ const LabelGuide = ({ controller }: { controller: AppController }) => {
             <div key={label} class={`label-${label.toLowerCase()}`}>
               <dt>
                 <span aria-hidden="true">{detail.arrow}</span>
-                <strong>{detail.name}</strong>
+                <span>
+                  <strong>{detail.name}</strong>
+                  <small>{detail.subtitle}</small>
+                </span>
                 <kbd>{label}</kbd>
               </dt>
               <dd>{detail.description}</dd>
@@ -106,12 +109,15 @@ const DecisionZone = ({
     <button
       class={`decision-zone zone-${position} label-${label.toLowerCase()}`}
       type="button"
-      aria-label={`${detail.name}, ${detail.direction}, ${label}`}
+      aria-label={`${detail.name}, ${detail.subtitle}, ${detail.direction}, ${label}`}
       aria-describedby={tooltipId}
       onClick={() => onDecide(label)}
     >
       <span aria-hidden="true">{detail.arrow}</span>
-      <strong>{detail.name}</strong>
+      <span class="decision-zone-label">
+        <strong>{detail.name}</strong>
+        <small>{detail.subtitle}</small>
+      </span>
       <kbd>{label}</kbd>
       <LabelTooltip label={label} id={tooltipId} />
     </button>
@@ -484,6 +490,26 @@ export const SwipeView = ({ controller }: { controller: AppController }) => {
         <DecisionZone label="O" position="left" onDecide={actions.decide} />
         <DecisionZone label="U" position="bottom" onDecide={actions.decide} />
         <section class="relation-stage" aria-label="Current relation">
+          <div class="framing-question">
+            <span
+              class="framing-equation"
+              role="img"
+              aria-label="A is the first item. It points through this relation to B, the second item."
+            >
+              <span class="framing-node">
+                <strong>A</strong>
+                <small>first item</small>
+              </span>
+              <span class="framing-arrow" aria-hidden="true">
+                →
+              </span>
+              <span class="framing-node">
+                <strong>B</strong>
+                <small>second item</small>
+              </span>
+            </span>
+            <p>Where should B sit relative to A on the map?</p>
+          </div>
           <article
             class={`relation-card ${exitClass}`}
             data-swipe-card
@@ -536,7 +562,7 @@ export const SwipeView = ({ controller }: { controller: AppController }) => {
                 {displayCard.source_metadata
                   ? `${displayCard.source_metadata.token_count.toLocaleString()} tokens`
                   : displayCard.prescreen === "equivalence"
-                    ? "Coincident prescreen"
+                    ? `${LABEL_DETAILS.C.name} prescreen`
                     : "Normal prescreen"}
               </span>
               {displayCard.source_metadata?.severely_truncated ? (

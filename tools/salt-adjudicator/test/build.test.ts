@@ -52,10 +52,7 @@ test("builds one deterministic HTML document with no external assets", async () 
     assert.match(first, /"kind":"generic"/u);
     assert.match(first, /SALT demonstration study/u);
     assert.match(first, /Geometry class guide/u);
-    assert.match(
-      first,
-      /The relation places both sides at the same semantic point/u,
-    );
+    assert.match(first, /They are the same thing, recorded twice\./u);
     assert.doesNotMatch(first, /[ \t]+$/mu);
     assert.doesNotMatch(first, /<script\b[^>]*\bsrc=/iu);
     assert.doesNotMatch(first, /<link\b[^>]*\bhref=/iu);

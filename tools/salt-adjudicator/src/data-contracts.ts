@@ -11,6 +11,10 @@ export const PLANNING_MODES = Object.freeze([
   "sample-first",
   "coverage-first",
 ] as const);
+export const SCOPE_FILTERS = Object.freeze([
+  "main-value-only",
+  "not-applicable",
+] as const);
 
 const nonEmptyString = (message: string = "must be a non-empty string.") =>
   z.string({ error: message }).trim().min(1, { error: message });
@@ -62,6 +66,10 @@ export const PlanningModeSchema = z.enum(PLANNING_MODES);
 
 export type PlanningMode = z.infer<typeof PlanningModeSchema>;
 
+export const ScopeFilterSchema = z.enum(SCOPE_FILTERS);
+
+export type ScopeFilter = z.infer<typeof ScopeFilterSchema>;
+
 export const AnnotatorIdSchema = z
   .string({
     error:
@@ -92,6 +100,7 @@ export const CardSourceMetadataSchema = z.strictObject({
   severely_truncated: z.boolean(),
   token_count: nonNegativeInteger(),
   truncations: z.array(z.string()),
+  scope_filter: ScopeFilterSchema.optional(),
 });
 
 export type CardSourceMetadata = z.infer<typeof CardSourceMetadataSchema>;
@@ -122,6 +131,7 @@ export const WikidataCardRecordSchema = z
     severely_truncated: z.boolean(),
     token_count: nonNegativeInteger(),
     truncations: z.array(z.string()),
+    scope_filter: ScopeFilterSchema.optional(),
     family_id: nonEmptyString().optional(),
     prescreen: PrescreenSchema.optional().default("normal"),
   })
@@ -138,6 +148,9 @@ export const WikidataCardRecordSchema = z
         severely_truncated: record.severely_truncated,
         token_count: record.token_count,
         truncations: record.truncations,
+        ...(record.scope_filter === undefined
+          ? {}
+          : { scope_filter: record.scope_filter }),
       },
     }),
   );
@@ -297,6 +310,7 @@ export const StudySamplingSchema = z
     spare_capacity: nonNegativeInteger(),
     seconds_per_card: positiveInteger(),
     sampling_seed: nonEmptyString(),
+    scope_filter: ScopeFilterSchema,
   })
   .superRefine((sampling, context) => {
     if (sampling.eligible_pool_size > sampling.source_pool_size) {
@@ -368,7 +382,6 @@ const studyMetadataShape = {
   rubric_version: nonEmptyString(),
   coverage_target: positiveInteger(),
   slice_size: positiveInteger(),
-  coincident_target: positiveInteger(),
   required_production_passes: positiveInteger(),
   sampling: StudySamplingSchema.optional(),
 };

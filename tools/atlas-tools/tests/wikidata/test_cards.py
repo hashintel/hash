@@ -191,9 +191,13 @@ class TestGoldenCards:
         # The fixture Date header, not the wall clock at emit time.
         assert pipeline.rows["P361"]["retrieved_at"] == FIXTURE_DATE
 
+    def test_rows_record_main_value_scope_filter(self, pipeline: SimpleNamespace) -> None:
+        assert {row["scope_filter"] for row in pipeline.rows.values()} == {"main-value-only"}
+
     def test_manifest_hashes_match_rows(self, pipeline: SimpleNamespace) -> None:
         details = pipeline.manifest["details"]
         assert details["card_format_version"] == 6
+        assert details["scope_filter"] == "main-value-only"
         assert details["sentence_splitter"] == "naive"
         assert details["untitled"] == []
         assert details["counts"]["untitled"] == 0
@@ -216,6 +220,16 @@ class TestExclusions:
         assert details["excluded"]["P9004"] == "maintenance"
         assert "P9003" not in pipeline.rows
         assert "P9004" not in pipeline.rows
+
+    def test_qualifier_scoped_property_excluded(self, pipeline: SimpleNamespace) -> None:
+        # P9007's property-scope constraint omits "as main value": it is
+        # statement metadata, so it never becomes a card (its example
+        # pairs would be property-misuse noise). No example-ladder fixture
+        # exists for it, so a regression here fails loudly on the probe.
+        details = pipeline.inventory["details"]
+        assert details["excluded"]["P9007"] == "qualifier-scoped"
+        assert "P9007" not in details["retained"]
+        assert "P9007" not in pipeline.rows
 
     def test_usage_count_never_appears_in_card_text(self, pipeline: SimpleNamespace) -> None:
         # Usage is diagnostic metadata only (P361 fixture usage = 500000).

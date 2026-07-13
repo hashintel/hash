@@ -104,6 +104,7 @@ def test_record_round_trip_exercising_all_fields() -> None:
             subject_types=(Qid("Q35120"), Qid("Q571")),
             value_types=(Qid("Q5"),),
             inverse_pid="P527",
+            scopes=(Qid("Q54828448"),),
             ignored_types=("Q99999999",),
         ),
         usage_count=500000,

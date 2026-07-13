@@ -39,6 +39,7 @@ export type LabelDirection = "up" | "right" | "left" | "down";
 
 export interface LabelDetail {
   readonly name: string;
+  readonly subtitle: string;
   readonly direction: LabelDirection;
   readonly arrow: string;
   readonly description: string;
@@ -46,32 +47,34 @@ export interface LabelDetail {
 
 export const LABEL_DETAILS = Object.freeze({
   C: {
-    name: "Coincident",
+    name: "Same dot",
+    subtitle: "like duplicate of",
     direction: "up",
     arrow: "↑",
-    description:
-      "The relation places both sides at the same semantic point: identity, exact equivalence, or a canonical alias.",
+    description: "They are the same thing, recorded twice.",
   },
   P: {
-    name: "Proximal",
+    name: "Nearby",
+    subtitle: "like part of",
     direction: "right",
     arrow: "→",
     description:
-      "The sides remain distinct but structurally close, such as part-of, member-of, or direct containment.",
+      "Different things, but exploring around one, you would be surprised not to find the other.",
   },
   O: {
-    name: "Overlay",
+    name: "Just a line",
+    subtitle: "like author",
     direction: "left",
     arrow: "←",
     description:
-      "The sides are distinct and connected across roles, such as authorship, attribution, or representation.",
+      "Genuinely connected, but the connection says nothing about where either belongs.",
   },
   U: {
-    name: "Unclear",
+    name: "Can't tell",
+    subtitle: "genuinely torn — a real answer",
     direction: "down",
     arrow: "↓",
-    description:
-      "The evidence is mixed, underspecified, or insufficient to assign a stable geometry class.",
+    description: "Genuinely torn. A real answer, not a failure.",
   },
 } satisfies Readonly<Record<Label, LabelDetail>>);
 
@@ -99,7 +102,6 @@ export interface CreateStudyOptions {
   coverageTarget?: number;
   sliceSize?: number;
   rubricVersion?: string;
-  coincidentTarget?: number;
   title?: string;
   sampling?: StudySampling;
 }
@@ -672,8 +674,7 @@ export const createStudy = ({
   seed,
   coverageTarget = 2,
   sliceSize = 150,
-  rubricVersion = "v0.3",
-  coincidentTarget = 300,
+  rubricVersion = "v1",
   title = "SALT geometry adjudication",
   sampling,
 }: CreateStudyOptions): CreateStudyResult => {
@@ -702,12 +703,6 @@ export const createStudy = ({
   if (typeof rubricVersion !== "string" || rubricVersion.trim() === "") {
     throw new SaltValidationError("Rubric version is required.");
   }
-  if (!Number.isInteger(coincidentTarget) || coincidentTarget < 1) {
-    throw new SaltValidationError(
-      "The Coincident quota target must be a positive integer.",
-    );
-  }
-
   const normalizedSeed = String(seed).trim();
   if (normalizedSeed === "") {
     throw new SaltValidationError("A study seed is required.");
@@ -751,7 +746,6 @@ export const createStudy = ({
     rubric_version: rubricVersion.trim(),
     coverage_target: coverageTarget,
     slice_size: sliceSize,
-    coincident_target: coincidentTarget,
     required_production_passes: 1,
     ...(sampling === undefined ? {} : { sampling }),
     cards,
@@ -786,7 +780,6 @@ export const manifestForExport = (study: Study): StudyManifest => ({
   rubric_version: study.rubric_version,
   coverage_target: study.coverage_target,
   slice_size: study.slice_size,
-  coincident_target: study.coincident_target,
   required_production_passes: study.required_production_passes,
   ...(study.sampling === undefined ? {} : { sampling: study.sampling }),
   cards: study.cards.map(

@@ -162,6 +162,7 @@ INVENTORY_ROWS = [
     ("P9003", WIKIBASE_ITEM, 10),
     ("P9004", WIKIBASE_ITEM, 5),
     ("P9005", WIKIBASE_ITEM, 15),
+    ("P9007", WIKIBASE_ITEM, 8),
 ]
 
 
@@ -315,6 +316,21 @@ PROPERTY_DOCS = {
         # Direct parent P9006 -> P50's closed ancestor set gains a
         # grandparent (depth-2 P1647 chain).
         "claims": {"P1647": [_property_snak("P1647", "P9006")]},
+    },
+    "P9007": {
+        "id": "P9007",
+        "type": "property",
+        "datatype": "wikibase-item",
+        "labels": {"en": _label("en", "applies to work")},
+        "descriptions": {
+            "en": _label("en", "synthetic qualifier-scoped statement-metadata property")
+        },
+        # Property-scope constraint (Q53869507) whose P5314 placements are
+        # "as qualifier" + "as reference" only (no "as main value"
+        # Q54828448): excluded as qualifier-scoped before example mining,
+        # so no example-ladder fixture exists for it and an unexpected
+        # probe fails loudly (P3831-style, mirroring live Wikidata).
+        "claims": {"P2302": [_constraint("Q53869507", {"P5314": ["Q54828449", "Q54828450"]})]},
     },
 }
 

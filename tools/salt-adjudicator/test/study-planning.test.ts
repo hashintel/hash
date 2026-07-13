@@ -12,6 +12,7 @@ import {
   planStudy,
   prepareStudySelection,
   sampleProductionCards,
+  scopeFilterForCards,
 } from "../src/study-planning.ts";
 
 const makeCards = (count, equivalenceCount = 0) =>
@@ -256,6 +257,7 @@ describe("qualification curation and provenance", () => {
     assert.equal(selection.sampling.eligible_pool_size, 18);
     assert.equal(selection.sampling.sample_size, 6);
     assert.equal(selection.sampling.spare_capacity, 0);
+    assert.equal(selection.sampling.scope_filter, "not-applicable");
     assert.ok(
       selection.productionCards.every(
         (card) => card.relation_id !== "R0000" && card.relation_id !== "R0005",
@@ -269,12 +271,43 @@ describe("qualification curation and provenance", () => {
       seed: "selection-seed",
       coverageTarget: plan.coverageTarget,
       sliceSize: plan.productionCardsPerAnnotator,
-      coincidentTarget: 1,
       sampling: selection.sampling,
     });
     assert.deepEqual(
       manifestForExport(result.study).sampling,
       selection.sampling,
+    );
+  });
+
+  test("requires filter provenance on Wikidata source pools", () => {
+    const card = makeCards(1)[0];
+    const wikidataCard = {
+      ...card,
+      relation_id: "P2553",
+      source_metadata: {
+        kind: "wikidata-extract",
+        retrieved_at: "Sat, 11 Jul 2026 21:49:16 GMT",
+        severely_truncated: false,
+        token_count: 80,
+        truncations: [],
+      },
+    } as const;
+
+    assert.throws(
+      () => scopeFilterForCards([wikidataCard]),
+      /predates the main-value scope filter/u,
+    );
+    assert.equal(
+      scopeFilterForCards([
+        {
+          ...wikidataCard,
+          source_metadata: {
+            ...wikidataCard.source_metadata,
+            scope_filter: "main-value-only",
+          },
+        },
+      ]),
+      "main-value-only",
     );
   });
 
@@ -295,7 +328,6 @@ describe("qualification curation and provenance", () => {
           seed: "overlap-seed",
           coverageTarget: 1,
           sliceSize: 1,
-          coincidentTarget: 1,
         }),
       /generated study is invalid/u,
     );

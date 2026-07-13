@@ -54,6 +54,20 @@ def test_inverse_constraint_parsed_from_p2306() -> None:
     assert constraints.inverse_pid == "P527"
 
 
+def test_property_scope_placements_parsed_from_p5314() -> None:
+    # P3831-style: qualifier + reference placements, no main value.
+    constraints = parse_constraints(
+        [_constraint("Q53869507", {"P5314": ["Q54828449", "Q54828450"]})]
+    )
+    assert constraints.scopes == ("Q54828449", "Q54828450")
+    assert constraints.ignored_types == ()  # parsed, not ignored
+
+
+def test_property_scope_without_p5314_leaves_scopes_empty() -> None:
+    constraints = parse_constraints([_constraint("Q53869507")])
+    assert constraints.scopes == ()
+
+
 def test_unknown_constraint_type_ignored_without_error() -> None:
     constraints = parse_constraints(
         [_constraint("Q99999999"), _constraint("Q21510862"), _constraint("Q99999999")]

@@ -126,13 +126,6 @@ export const ProgressView = ({ controller }: { controller: AppController }) => {
   const pace =
     sessionMinutes <= 0 ? 0 : productionSwipes.length / sessionMinutes;
   const summaries = relationSummaries(productionSwipes, state.study.cards);
-  const equivalenceSummaries = summaries.filter(
-    (summary) =>
-      summary.card?.prescreen === "equivalence" && summary.labels.length > 0,
-  );
-  const coincidentCount = equivalenceSummaries.filter(
-    (summary) => summary.majority === "C",
-  ).length;
   const disagreementRows = summaries
     .filter((summary) => summary.entropy > 0 || summary.labels.includes("U"))
     .slice(0, 100);
@@ -187,8 +180,7 @@ export const ProgressView = ({ controller }: { controller: AppController }) => {
               <h2>Label analysis is blind while this pass is active.</h2>
               <p>
                 Completion and pace remain visible. Distributions, majority
-                labels, notes, and the Coincident quota unlock when the current
-                pass is complete.
+                labels and notes unlock when the current pass is complete.
               </p>
             </div>
           </section>
@@ -215,25 +207,6 @@ export const ProgressView = ({ controller }: { controller: AppController }) => {
                     />
                   </tbody>
                 </table>
-              </div>
-              <div class="analysis-section quota-panel">
-                <div class="section-heading">
-                  <h2>Coincident quota</h2>
-                  <span>Prescreen = equivalence</span>
-                </div>
-                <strong>
-                  {coincidentCount} / {state.study.coincident_target}
-                </strong>
-                <progress
-                  value={coincidentCount}
-                  max={state.study.coincident_target}
-                >
-                  {coincidentCount}/{state.study.coincident_target}
-                </progress>
-                <p>
-                  The 0.98 LCB gate is unpassable below roughly 150 zero-error
-                  cases.
-                </p>
               </div>
             </section>
             <section class="analysis-section">

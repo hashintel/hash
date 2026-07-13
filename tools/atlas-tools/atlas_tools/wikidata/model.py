@@ -51,6 +51,16 @@ class ConstraintKind(StrEnum):
     SUBJECT_TYPE = "Q21503250"
     VALUE_TYPE = "Q21510865"
     INVERSE = "Q21510855"
+    PROPERTY_SCOPE = "Q53869507"
+
+
+# The P5314 (property scope) vocabulary on the property-scope constraint
+# (Q53869507): Q54828448 "as main value", Q54828449 "as qualifier",
+# Q54828450 "as reference". Only membership of "as main value" matters to
+# this tool: a property whose declared scopes omit it is statement
+# metadata (qualifier- or reference-scoped), never an entity-to-entity
+# link type, so its truthy main-value statements are misuse noise.
+SCOPE_AS_MAIN_VALUE = Qid("Q54828448")
 
 
 class Constraints(BaseModel):
@@ -66,6 +76,11 @@ class Constraints(BaseModel):
     subject_types: tuple[QidField, ...] = ()
     value_types: tuple[QidField, ...] = ()
     inverse_pid: Pid | None = None
+    # Allowed statement placements from the property-scope constraint
+    # (P5314 values, see SCOPE_AS_MAIN_VALUE). None means the property
+    # declares no scope constraint; an empty tuple preserves a malformed
+    # constraint with no declared placement.
+    scopes: tuple[QidField, ...] | None = None
     ignored_types: tuple[str, ...] = ()
 
     model_config = ConfigDict(frozen=True)

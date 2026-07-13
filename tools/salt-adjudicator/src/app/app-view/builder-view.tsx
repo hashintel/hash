@@ -17,14 +17,13 @@ import type { AppController, BuilderFormValues } from "../app-controller.ts";
 
 const defaultBuilderValues: BuilderFormValues = {
   title: "SALT geometry adjudication",
-  rubricVersion: "v0.3",
+  rubricVersion: "v1",
   seed: "salt-gold-v1",
   roster: "",
   plannerMode: "budget-first",
   coverageTarget: DEFAULT_COVERAGE_TARGET,
   productionCardsPerAnnotator: 150,
   sampleSize: 400,
-  coincidentTarget: 300,
 };
 
 export const BuilderView = ({ controller }: { controller: AppController }) => {

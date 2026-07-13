@@ -13,6 +13,7 @@ import {
   type Prescreen,
   type QualificationCard,
   QualificationCardSchema,
+  type ScopeFilter,
   type StudySampling,
   StudySamplingSchema,
 } from "./data-contracts.ts";
@@ -231,6 +232,34 @@ const compareCards = (left: Card, right: Card): number =>
   left.relation_id.localeCompare(right.relation_id) ||
   left.card_hash.localeCompare(right.card_hash);
 
+export const scopeFilterForCards = (cards: readonly Card[]): ScopeFilter => {
+  const wikidataCards = cards.filter(
+    (card) => card.source_metadata?.kind === "wikidata-extract",
+  );
+  if (wikidataCards.length === 0) {
+    return "not-applicable";
+  }
+
+  const cardsWithoutScopeFilter = wikidataCards.filter(
+    (card) => card.source_metadata?.scope_filter !== "main-value-only",
+  );
+  if (cardsWithoutScopeFilter.length > 0) {
+    const examples = cardsWithoutScopeFilter
+      .slice(0, 5)
+      .map((card) => card.relation_id)
+      .join(", ");
+    throw new SaltValidationError(
+      "This Wikidata card pool predates the main-value scope filter.",
+      [
+        `Regenerate the corpus before building a study. Missing filter provenance on ${examples}${
+          cardsWithoutScopeFilter.length > 5 ? ", …" : ""
+        }.`,
+      ],
+    );
+  }
+  return "main-value-only";
+};
+
 export const sampleProductionCards = (
   cards: readonly Card[],
   sampleSize: number,
@@ -371,6 +400,7 @@ export const prepareStudySelection = ({
     normalizedSeed,
   );
   const normalizedSourcePool = [...sourcePool].sort(compareCards);
+  const scopeFilter = scopeFilterForCards(normalizedSourcePool);
   const sampling = StudySamplingSchema.parse({
     strategy: "prescreen-stratified-v1",
     planner_mode: plan.mode,
@@ -385,6 +415,7 @@ export const prepareStudySelection = ({
     spare_capacity: plan.spareCapacity,
     seconds_per_card: plan.secondsPerCard,
     sampling_seed: normalizedSeed,
+    scope_filter: scopeFilter,
   });
 
   return {

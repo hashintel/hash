@@ -129,6 +129,20 @@
           "type": "literal",
           "value": "15"
         }
+      },
+      {
+        "property": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/P9007"
+        },
+        "propertyType": {
+          "type": "uri",
+          "value": "http://wikiba.se/ontology#WikibaseItem"
+        },
+        "usage": {
+          "type": "literal",
+          "value": "8"
+        }
       }
     ]
   }

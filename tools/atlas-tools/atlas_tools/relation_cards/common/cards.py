@@ -1,4 +1,4 @@
-from pydantic import BaseModel, NonNegativeInt
+from pydantic import BaseModel, ConfigDict, NonNegativeInt
 
 from atlas_tools.common import Sha256Hex
 
@@ -11,3 +11,5 @@ class CardRow(BaseModel):
     truncations: list[str]
 
     severely_truncated: bool
+
+    model_config = ConfigDict(extra="allow")

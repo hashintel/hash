@@ -25,6 +25,7 @@ step outside this tool.
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, NonNegativeInt
 
@@ -61,6 +62,7 @@ class WikidataCardRow(CardRow):
     """One cards.jsonl line (written as canonical JSON)."""
 
     pid: Pid
+    scope_filter: Literal["main-value-only"] = "main-value-only"
 
     retrieved_at: str | None
 
@@ -100,6 +102,7 @@ class CardsManifestDetails(BaseModel):
 
     card_format_version: int
     card_hash_canonicalization: str
+    scope_filter: Literal["main-value-only"]
     tokenizer: TokenizerName
     sentence_splitter: SentenceSplitterName
     token_budget: int
@@ -223,6 +226,7 @@ def render_cards(
         details=CardsManifestDetails(
             card_format_version=CARD_FORMAT_VERSION,
             card_hash_canonicalization="utf-8 bytes of card_text",
+            scope_filter="main-value-only",
             tokenizer=counter.name,
             sentence_splitter=splitter.name,
             token_budget=config.cards.token_budget,

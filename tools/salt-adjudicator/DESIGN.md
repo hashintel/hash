@@ -71,9 +71,9 @@ During swiping, a compact top rail carries study identity and session status, a
 large centered relation document owns the viewport, four labeled decision zones
 occupy the cardinal edges, and a bottom rail carries secondary actions. The
 document follows the atlas card hierarchy: relation and description first,
-source-to-target types as the semantic axis, examples as primary evidence, then
-constraints, ancestors, aliases, and additional context. Long taxonomy lists
-show four entries before an inline native disclosure; card metadata remains
+then examples as primary evidence. One Details control reveals aliases, inverse
+name, ancestors, source-to-target types, and constraints together; the slug is
+never displayed. The detail state resets for every card. Card metadata remains
 sticky while the document scrolls. Notes open inline beneath the card and do
 not cover it.
 
@@ -81,8 +81,8 @@ Setup, progress, merge, adjudication, and study-building views use a bounded
 two-column instrument layout where useful. They collapse to one column before
 content becomes cramped. On coarse pointers, decision zones become explicit
 44px-or-larger buttons around the card. Vertical pans scroll long relation
-documents; horizontal swipe gestures remain available for Overlay and
-Proximal.
+documents; horizontal swipe gestures remain available for Just a line and
+Nearby.
 
 The coordinator builder is a five-step instrument flow: source import,
 qualification-anchor curation, production planning, final review, and bundle

@@ -47,6 +47,7 @@ import {
   partitionQualificationCards,
   planStudy,
   prepareStudySelection,
+  scopeFilterForCards,
 } from "../study-planning.ts";
 import {
   activeStudy,
@@ -100,7 +101,6 @@ export interface BuilderFormValues {
   coverageTarget: number;
   productionCardsPerAnnotator: number;
   sampleSize: number;
-  coincidentTarget: number;
 }
 
 export interface AdjudicationFormValues {
@@ -837,6 +837,7 @@ export const useAppController = (
       try {
         const fileText = await file.text();
         const cards = parseCardsJsonl(fileText);
+        scopeFilterForCards(cards);
         const currentState = stateRef.current;
         publish({
           ...currentState,
@@ -966,7 +967,6 @@ export const useAppController = (
           coverageTarget: plan.coverageTarget,
           sliceSize: plan.productionCardsPerAnnotator,
           rubricVersion: values.rubricVersion,
-          coincidentTarget: values.coincidentTarget,
           title: values.title,
           sampling: selection.sampling,
         });

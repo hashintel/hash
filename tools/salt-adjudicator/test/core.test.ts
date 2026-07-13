@@ -32,6 +32,7 @@ import {
   parseSwipesJsonl,
   perAnnotatorGoldAgreement,
   projectSwipes,
+  reassembleCardText,
   relationSummaries,
   resolveAnnotatorCode,
   serializePayload,
@@ -46,7 +47,9 @@ import {
 test("provides an operational explanation for every geometry class", () => {
   assert.deepEqual(Object.keys(LABEL_DETAILS), ["C", "P", "O", "U"]);
   for (const detail of Object.values(LABEL_DETAILS)) {
-    assert.ok(detail.description.length > 40);
+    assert.ok(detail.name.length > 0);
+    assert.ok(detail.subtitle.length > 0);
+    assert.ok(detail.description.length > 0);
   }
 });
 
@@ -121,6 +124,7 @@ describe("JSONL contracts", () => {
         severely_truncated: false,
         token_count: 42,
         truncations: [],
+        scope_filter: "main-value-only",
       })}\n`,
     );
 
@@ -133,6 +137,7 @@ describe("JSONL contracts", () => {
       severely_truncated: false,
       token_count: 42,
       truncations: [],
+      scope_filter: "main-value-only",
     });
   });
 
@@ -255,30 +260,34 @@ describe("hashing and deterministic randomization", () => {
   });
 
   test("parses the canonical Wikidata card hierarchy", () => {
-    const parsed = parseCardText(
-      [
-        "Relation: head of government",
-        "Description: head of executive power",
-        "Aliases:",
-        "  - prime minister",
-        "Inverse Name: government headed by",
-        "",
-        "Source types:",
-        "  - country (sovereign state)",
-        "",
-        "Target types:",
-        "  - human (member of Homo sapiens)",
-        "",
-        "Constraints:",
-        "  - direction: source -> target",
-        "",
-        "Examples:",
-        "  - country: Germany -> Friedrich Merz",
-        "",
-        "Slug: head-of-government",
-      ].join("\n"),
-    );
+    const cardText = [
+      "Relation: head of government",
+      "Description: head of executive power",
+      "Aliases:",
+      "  - prime minister",
+      "Inverse Name: government headed by",
+      "",
+      "Source types:",
+      "  - country (sovereign state)",
+      "",
+      "Target types:",
+      "  - human (member of Homo sapiens)",
+      "",
+      "Constraints:",
+      "  - direction: source -> target",
+      "",
+      "Examples:",
+      "  - country: Germany -> Friedrich Merz",
+      "",
+      "Slug: head-of-government",
+      "",
+    ].join("\n");
+    const parsed = parseCardText(cardText);
 
+    assert.equal(parsed.kind, "structured");
+    if (parsed.kind !== "structured") {
+      return;
+    }
     assert.equal(parsed.relation, "head of government");
     assert.equal(parsed.description, "head of executive power");
     assert.equal(parsed.inverseName, "government headed by");
@@ -296,6 +305,20 @@ describe("hashing and deterministic randomization", () => {
     assert.deepEqual(parsed.sections.examples, [
       "country: Germany -> Friedrich Merz",
     ]);
+    assert.equal(reassembleCardText(parsed), cardText);
+  });
+
+  test("preserves noncanonical card text as raw content", () => {
+    const cardText = [
+      "Relation: unusual relation",
+      "Description: still useful to read",
+      "Unexpected section:",
+      "  - content must not disappear",
+    ].join("\r\n");
+    const parsed = parseCardText(cardText);
+
+    assert.deepEqual(parsed, { kind: "raw", original: cardText });
+    assert.equal(reassembleCardText(parsed), cardText);
   });
 });
 

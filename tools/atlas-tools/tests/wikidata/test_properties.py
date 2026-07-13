@@ -39,8 +39,14 @@ from atlas_tools.wikidata.transport import FixtureTransport, Response, request_k
 from tests.wikidata.conftest import RESPONSES
 
 
-def _record(datatype: str = "wikibase-item", p31: tuple[str, ...] = ()) -> PropertyRecord:
-    return PropertyRecord(pid="P1", datatype=datatype, p31=p31, constraints=Constraints())
+def _record(
+    datatype: str = "wikibase-item",
+    p31: tuple[str, ...] = (),
+    scopes: tuple[str, ...] | None = None,
+) -> PropertyRecord:
+    return PropertyRecord(
+        pid="P1", datatype=datatype, p31=p31, constraints=Constraints(scopes=scopes)
+    )
 
 
 def test_exclusion_reasons() -> None:
@@ -49,6 +55,24 @@ def test_exclusion_reasons() -> None:
     assert exclusion_reason(_record(datatype="external-id"), extraction) == ("datatype:external-id")
     assert exclusion_reason(_record(p31=("Q18644435",)), extraction) == "maintenance"
     assert exclusion_reason(_record(p31=("Q18644427",)), extraction) == "deprecated"
+
+
+def test_qualifier_scoped_properties_excluded() -> None:
+    # Declared placements omitting "as main value" (Q54828448) exclude the
+    # property: qualifier-only, reference-only, or both (P3831-style).
+    extraction = ExtractionConfig()
+    assert exclusion_reason(_record(scopes=("Q54828449",)), extraction) == "qualifier-scoped"
+    assert exclusion_reason(_record(scopes=("Q54828450",)), extraction) == "qualifier-scoped"
+    assert (
+        exclusion_reason(_record(scopes=("Q54828449", "Q54828450")), extraction)
+        == "qualifier-scoped"
+    )
+    # Main value among the placements retains the property. Absence of a
+    # scope constraint is retained, while a malformed constraint with no
+    # placement is excluded.
+    assert exclusion_reason(_record(scopes=("Q54828448", "Q54828449")), extraction) is None
+    assert exclusion_reason(_record(scopes=None), extraction) is None
+    assert exclusion_reason(_record(scopes=()), extraction) == "qualifier-scoped"
 
 
 def test_exclusion_class_lists_are_configurable() -> None:

@@ -288,6 +288,18 @@ not smuggle constraint-violating pairs onto cards. Per-property drop and
 `other` counts land in the manifests' ladder flags, and extraction logs a
 warning when `other` exceeds 25% of a property's typed candidates.
 
+Property retention is scope-aware. Beyond the configurable
+datatype/maintenance/deprecated exclusions (`properties.py` holds the
+authoritative rule list), a property whose property-scope constraint
+(Q53869507, qualifier P5314) omits "as main value" (Q54828448) is
+excluded as `qualifier-scoped`: properties like "object has role",
+"mapping relation type", or "in work" are statement metadata, not
+entity-to-entity link types, so their truthy main-value statements are
+property misuse and mining them yields inherently garbled example pairs.
+Properties declaring no scope constraint are retained; absent evidence
+is not treated as misuse. Records mined before this rule are format v2
+and must be re-extracted (the records format version gates loading).
+
 Config is a typed tree (`extraction:` plus `cards:`; see
 `fixtures/wikidata/config.yaml`). The pipeline is layered so card-format
 changes never re-run mining:

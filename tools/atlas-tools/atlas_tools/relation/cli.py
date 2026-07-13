@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, DirectoryPath
+from pydantic import BaseModel, DirectoryPath, FilePath
 from pydantic_settings import (
     BaseSettings,
     CliApp,
@@ -37,10 +37,60 @@ class ConcatCommand(BaseSettings):
         echo(f"wrote {paths.manifest}")
 
 
+class EvaluateCommand(BaseSettings):
+    """Run the factorial relation-judge pilot and emit an analysis handoff."""
+
+    cards: CliPositionalArg[FilePath]
+    slice: CliPositionalArg[FilePath]
+    config: CliPositionalArg[FilePath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from openrouter.errors import NoResponseError, OpenRouterError
+
+        from atlas_tools.relation.eval.run import load_run_config, run_pilot
+
+        try:
+            paths = run_pilot(
+                cards_path=self.cards,
+                slice_path=self.slice,
+                out_dir=self.out,
+                config=load_run_config(self.config),
+            )
+        except (NoResponseError, OpenRouterError, OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {paths.votes_jsonl}")
+        echo(f"wrote {paths.slice_jsonl}")
+        echo(f"wrote {paths.manifest_json}")
+
+
+class AnalyzeCommand(BaseSettings):
+    """Analyze a factorial-pilot handoff into decisions.json and report.md."""
+
+    handoff: CliPositionalArg[DirectoryPath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.eval.analysis import analyze_handoff
+
+        try:
+            result = analyze_handoff(self.handoff, self.out)
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.decisions_json}")
+        echo(f"wrote {result.report_md}")
+
+
 class RelationCli(BaseModel):
     """Operations over relation-card sets."""
 
     concat: CliSubCommand[ConcatCommand]
+    evaluate: CliSubCommand[EvaluateCommand]
+    analyze: CliSubCommand[AnalyzeCommand]
 
     def cli_cmd(self) -> None:
         CliApp.run_subcommand(self)

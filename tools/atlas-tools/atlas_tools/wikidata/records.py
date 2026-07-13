@@ -57,7 +57,11 @@ from atlas_tools.wikidata.model import (
 )
 from atlas_tools.wikidata.properties import ExtractionResult
 
-RECORDS_FORMAT_VERSION = 2
+# v3: Constraints carry the property-scope placements (P5314 values), and
+# extraction excludes qualifier-scoped properties. v2 records were mined
+# without that rule, so they may retain statement-metadata properties and
+# must be re-extracted rather than re-rendered.
+RECORDS_FORMAT_VERSION = 3
 
 _ENTITY_LABELS_ADAPTER = TypeAdapter(dict[EntityId, EntityLabel])
 
