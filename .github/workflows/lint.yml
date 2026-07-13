@@ -397,9 +397,81 @@ jobs:
           title: "SQLFluff Lint"
           input: "annotations.json"
 
+  mise-lock:
+    name: Mise lockfile (${{ matrix.runner }})
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # The lockfile does not exist on `main` yet (it lands with #9000), so
+      # skip gracefully when it is absent instead of failing.
+      - name: Check for lockfile
+        id: lockfile
+        run: echo "exists=$([[ -f .config/mise/mise.lock ]] && echo true || echo false)" | tee -a $GITHUB_OUTPUT
+
+      # Offline consistency checks: the lockfile matches the `config.toml`
+      # pins, covers all required platforms, and no platform entry points at
+      # an asset built for a different OS/architecture (e.g. a darwin_amd64
+      # asset under a macos-arm64 key).
+      - name: Validate lockfile consistency
+        if: steps.lockfile.outputs.exists == 'true'
+        run: python3 .github/scripts/validate-mise-lock.py
+
+      - name: Install mise
+        if: steps.lockfile.outputs.exists == 'true'
+        uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+        with:
+          install: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # `--locked` makes mise fail if any configured tool is missing from the
+      # lockfile or, for URL-locked backends, has no pre-resolved URL for
+      # this platform. `--dry-run` validates without downloading.
+      - name: Validate lockfile covers configured tools
+        if: steps.lockfile.outputs.exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise install --locked --dry-run
+
+      # Actually install the tools that have pre-resolved URLs for this
+      # platform, so the locked URLs are downloaded and their sha256
+      # checksums and sizes are verified by mise. This catches a broken or
+      # tampered lockfile entry before the (slower) Docker builds do.
+      - name: Install URL-locked tools
+        if: steps.lockfile.outputs.exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TOOLS=$(python3 - <<'EOF'
+          import platform
+          import tomllib
+
+          arch = {"x86_64": "x64", "aarch64": "arm64"}[platform.machine()]
+          key = f"platforms.linux-{arch}"
+          with open(".config/mise/mise.lock", "rb") as f:
+              tools = tomllib.load(f).get("tools", {})
+          print(" ".join(sorted({
+              name
+              for name, entries in tools.items()
+              for entry in entries
+              if entry.get(key, {}).get("url")
+          })))
+          EOF
+          )
+          echo "Installing: $TOOLS"
+          mise install --locked $TOOLS
+
   passed:
     name: Linting passed
-    needs: [setup, package, global]
+    needs: [setup, package, global, mise-lock]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -412,6 +484,9 @@ jobs:
       - name: Check global results
         run: |
           [[ ${{ needs.global.result }} =~ success|skipped ]]
+      - name: Check mise lockfile results
+        run: |
+          [[ ${{ needs.mise-lock.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
