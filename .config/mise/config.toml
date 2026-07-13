@@ -20,8 +20,11 @@ cargo-binstall = "1.19.1"
 uv             = "0.11.18"
 
 # Tools to compile the project
+# wasm-opt comes from binaryen's GitHub releases on amd64/darwin (no crates.io traffic);
+# binaryen ships no linux-arm64 asset, so the arm64 Docker images build it via cargo instead.
 "aqua:WebAssembly/binaryen"   = "116"
 "aqua:wasm-bindgen/wasm-pack" = "0.15.0"
+"cargo:wasm-opt"              = "0.116.1"
 java                          = "25"
 protoc                        = "35.1"
 
