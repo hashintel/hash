@@ -36,6 +36,8 @@ const RGBA_OPAQUE = 255;
 /** Colour used if a point's hex value cannot be resolved. */
 const FALLBACK_COLOR: [number, number, number] = [148, 148, 148];
 const POINT_RADIUS = 0.1;
+/** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
+const HOVERED_MIN_RADIUS = 8;
 /**
  * How strongly the point radius grows with zoom. At `0` the radius is fixed in
  * screen pixels; at `1` it scales 1:1 with the zoom's linear scale factor. `0.8`
@@ -284,12 +286,11 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         widthMinPixels: 1,
       }),
       new ScatterplotLayer<GraphChartPoint>({
-        id: "highlight",
-        data: hover?.highlighted ?? [],
+        id: "highlight-neighbours",
+        data: hover?.neighbours ?? [],
         getPosition: (point) => [point.x, point.y],
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
-        getRadius: (point) =>
-          point.id === hovered?.id ? POINT_RADIUS * 2.2 : POINT_RADIUS * 1.6,
+        getRadius: POINT_RADIUS * 1.6,
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: 2,
@@ -298,12 +299,25 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         getLineWidth: 1.5,
         lineWidthUnits: "pixels",
         lineWidthMinPixels: 1,
-        updateTriggers: {
-          getRadius: [hovered?.id],
-        },
+      }),
+      new ScatterplotLayer<GraphChartPoint>({
+        id: "highlight-hovered",
+        data: hovered ? [hovered] : [],
+        getPosition: (point) => [point.x, point.y],
+        getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
+        getRadius: POINT_RADIUS * 2.2,
+        radiusScale,
+        radiusUnits: "pixels",
+        // Keep the hovered node prominent regardless of zoom level.
+        radiusMinPixels: HOVERED_MIN_RADIUS,
+        stroked: true,
+        getLineColor: [255, 255, 255, RGBA_OPAQUE],
+        getLineWidth: 1.5,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: 1,
       }),
     ];
-  }, [points, hover, hovered?.id, handleHover, colorByHex, radiusScale]);
+  }, [points, hover, hovered, handleHover, colorByHex, radiusScale]);
 
   return (
     <div ref={containerRef} className={cx(containerStyles, className)}>
