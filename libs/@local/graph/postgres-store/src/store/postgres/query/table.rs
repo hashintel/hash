@@ -329,12 +329,25 @@ impl ReferenceTable {
 }
 
 impl Table {
+    /// Renders the alias-qualified table name under the compiler's `{name}_{c}_{d}_{n}` scheme.
+    ///
+    /// This is the only place that knows how alias names are derived from an [`Alias`].
+    #[must_use]
+    pub fn aliased_name(self, alias: Alias) -> TableName<'static> {
+        TableName::from(format!(
+            "{}_{}_{}_{}",
+            self.as_str(),
+            alias.condition_index,
+            alias.chain_depth,
+            alias.number
+        ))
+    }
+
     #[must_use]
     pub fn aliased(self, alias: Alias) -> TableReference<'static> {
         TableReference {
             schema: None,
-            name: TableName::from(self),
-            alias: Some(alias),
+            name: self.aliased_name(alias),
         }
     }
 
@@ -2321,28 +2334,24 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Expression> {
+    pub fn additional_conditions(self, table: Table, alias: Alias) -> Vec<Expression> {
         match self {
             Self::Reference {
                 table: reference_table,
                 ..
-            } if table.name == TableName::from(Table::Reference(reference_table)) => {
-                reference_table
-                    .inheritance_depth_column()
-                    .map(|column| {
-                        column
-                            .inheritance_depth()
-                            .map_or_else(Vec::new, |inheritance_depth| {
-                                vec![Expression::less_or_equal(
-                                    Expression::ColumnReference(
-                                        column.aliased(table.alias.unwrap_or_default()),
-                                    ),
-                                    Expression::Constant(Constant::U32(inheritance_depth)),
-                                )]
-                            })
-                    })
-                    .unwrap_or_default()
-            }
+            } if table == Table::Reference(reference_table) => reference_table
+                .inheritance_depth_column()
+                .map(|column| {
+                    column
+                        .inheritance_depth()
+                        .map_or_else(Vec::new, |inheritance_depth| {
+                            vec![Expression::less_or_equal(
+                                Expression::ColumnReference(column.aliased(alias)),
+                                Expression::Constant(Constant::U32(inheritance_depth)),
+                            )]
+                        })
+                })
+                .unwrap_or_default(),
             Self::OntologyIds
             | Self::OntologyOwnedMetadata
             | Self::OntologyExternalMetadata

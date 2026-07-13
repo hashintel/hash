@@ -389,7 +389,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             let subquery = query::FromItem::Subquery {
                 lateral: true,
                 statement: Box::new(subquery),
-                alias: Some(table_ref.clone()),
+                alias: Some(table_ref.name.clone()),
                 column_alias: Vec::new(),
             };
 

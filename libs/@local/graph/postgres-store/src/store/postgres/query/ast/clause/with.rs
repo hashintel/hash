@@ -107,7 +107,7 @@ mod tests {
                 },
             ])
             .from(
-                FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(Alias {
+                FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased_name(Alias {
                     condition_index: 0,
                     chain_depth: 0,
                     number: 0,
@@ -142,15 +142,13 @@ mod tests {
                 .statement(
                     SelectStatement::builder()
                         .selects(vec![SelectExpression::Asterisk(None)])
-                        .from(
-                            FromItem::table(Table::DataTypes).alias(Table::DataTypes.aliased(
-                                Alias {
-                                    condition_index: 3,
-                                    chain_depth: 4,
-                                    number: 5,
-                                },
-                            )),
-                        )
+                        .from(FromItem::table(Table::DataTypes).alias(
+                            Table::DataTypes.aliased_name(Alias {
+                                condition_index: 3,
+                                chain_depth: 4,
+                                number: 5,
+                            }),
+                        ))
                         .build(),
                 )
                 .build(),

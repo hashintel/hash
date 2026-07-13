@@ -51,7 +51,7 @@ pub struct TableInfo<'p> {
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
-    required_tables: HashSet<TableReference<'p>>,
+    joins: Vec<CompiledJoin>,
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
     has_to_many_join: bool,
@@ -71,6 +71,14 @@ enum FilterGroup {
     All,
     /// Members are OR-combined.
     Any,
+}
+
+/// A join emitted into the statement, mirrored so the compiler can reuse joins and allocate
+/// fresh alias numbers without reading the statement tree back.
+struct CompiledJoin {
+    table: Table,
+    alias: Alias,
+    conditions: Vec<Expression>,
 }
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
@@ -131,17 +139,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             statement: SelectStatement::builder()
                 .selects(Vec::new())
                 .from(
-                    FromItem::table(R::base_table()).alias(R::base_table().aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    })),
+                    FromItem::table(R::base_table())
+                        .alias(R::base_table().aliased_name(Alias::default())),
                 )
                 .build(),
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
-                required_tables: HashSet::new(),
+                joins: Vec::new(),
                 table_info: TableInfo {
                     tables: HashSet::new(),
                     pinned_timestamp_index: None,
@@ -574,16 +579,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     if let Some(FromItem::JoinOn {
                         right: last_from, ..
                     }) = self.statement.from.as_mut()
-                        && let Some(last_reference_table) = last_from.reference_table()
+                        && let Some(last_join) = self.artifacts.joins.last()
                     {
                         ensure!(
-                            last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::PropertyTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityEmbeddings),
+                            matches!(
+                                last_join.table,
+                                Table::DataTypeEmbeddings
+                                    | Table::PropertyTypeEmbeddings
+                                    | Table::EntityTypeEmbeddings
+                                    | Table::EntityEmbeddings
+                            ),
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -665,7 +670,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .collect(),
                                 }),
                         )
-                        .alias(last_reference_table.clone())
+                        .alias(last_join.table.aliased_name(last_join.alias))
                         .build();
                     }
 
@@ -989,7 +994,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         ])
                         .from(
                             FromItem::table(version_column.table())
-                                .alias(version_column.table().aliased(alias))
+                                .alias(version_column.table().aliased_name(alias))
                                 .build(),
                         )
                         .build(),
@@ -1316,14 +1321,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        let mut current_table = Cow::<TableReference<'_>>::Owned(TableReference {
-            schema: None,
-            name: R::base_table().into(),
-            alias: Some(Alias::default()),
-        });
+        let mut current_alias = Alias::default();
 
-        if let Some(hook) = self.table_hooks.get(&current_table.name) {
-            let conditions = hook(self, current_table.alias.unwrap_or_default());
+        if let Some(hook) = self.table_hooks.get(&R::base_table().name()) {
+            let conditions = hook(self, current_alias);
             self.statement.where_clause.conditions.extend(conditions);
         }
 
@@ -1343,77 +1344,54 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     join_type
                 };
 
-                let mut join_table = foreign_key_reference.table().aliased(Alias {
+                let join_table = foreign_key_reference.table();
+                let mut join_alias = Alias {
                     condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
+                    chain_depth: current_alias.chain_depth + 1,
                     number: 0,
-                });
-                let mut conditions = foreign_key_reference.conditions(
-                    current_table.alias.unwrap_or_default(),
-                    join_table.alias.unwrap_or_default(),
-                );
+                };
+                let mut conditions = foreign_key_reference.conditions(current_alias, join_alias);
 
                 let mut found = false;
                 let mut max_number = 0;
 
-                let mut existing = self.statement.from.as_ref();
-                while let Some(FromItem::JoinOn {
-                    left,
-                    join_type: _,
-                    right: existing_from_item,
-                    condition: existing_conditions,
-                }) = existing
-                {
-                    existing = Some(left);
-
-                    let Some(existing_table) = existing_from_item.reference_table() else {
-                        continue;
-                    };
-
+                for existing in self.artifacts.joins.iter().rev() {
                     // Check for exact match to reuse existing join
-                    if *existing_table == join_table {
+                    if existing.table.name() == join_table.name() && existing.alias == join_alias {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing_conditions.starts_with(&conditions) {
+                        if existing.conditions.starts_with(&conditions) {
                             // We already have a join statement for this column, so we can reuse
                             // it.
-                            current_table = Cow::Borrowed(existing_table);
+                            current_alias = existing.alias;
                             found = true;
                             break;
                         }
                     }
 
                     // Track maximum number for joins with same table name and alias prefix
-                    if let Some(existing_alias) = existing_table.alias
-                        && join_table.name == existing_table.name
-                        && join_table
-                            .alias
-                            .map(|alias| (alias.condition_index, alias.chain_depth))
-                            == existing_table
-                                .alias
-                                .map(|alias| (alias.condition_index, alias.chain_depth))
+                    if existing.table.name() == join_table.name()
+                        && (existing.alias.condition_index, existing.alias.chain_depth)
+                            == (join_alias.condition_index, join_alias.chain_depth)
                     {
-                        max_number = max_number.max(existing_alias.number + 1);
+                        max_number = max_number.max(existing.alias.number + 1);
                     }
                 }
 
                 // If we didn't find an exact match but found alias conflicts, update the alias
                 if !found {
                     if max_number > 0 {
-                        join_table.alias.get_or_insert_default().number = max_number;
+                        join_alias.number = max_number;
                         // Recalculate conditions with the updated alias
-                        conditions = foreign_key_reference.conditions(
-                            current_table.alias.unwrap_or_default(),
-                            join_table.alias.unwrap_or_default(),
-                        );
+                        conditions = foreign_key_reference.conditions(current_alias, join_alias);
                     }
 
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = Cow::Owned(join_table.clone());
-                    conditions.extend(relation.additional_conditions(&join_table));
-                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
-                        conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
+                    current_alias = join_alias;
+                    conditions.extend(relation.additional_conditions(join_table, join_alias));
+                    if let Some(hook) = self.table_hooks.get(&join_table.name()) {
+                        conditions.extend(hook(self, join_alias));
                     }
 
                     self.statement.from = Some(
@@ -1425,24 +1403,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             )
                             .join(
                                 join_type,
-                                FromItem::table(TableReference {
-                                    alias: None,
-                                    ..join_table.clone()
-                                })
-                                .alias(join_table),
+                                FromItem::table(join_table)
+                                    .alias(join_table.aliased_name(join_alias)),
                             )
-                            .on(conditions)
+                            .on(conditions.clone())
                             .build(),
                     );
+                    self.artifacts.joins.push(CompiledJoin {
+                        table: join_table,
+                        alias: join_alias,
+                        conditions,
+                    });
                 }
             }
         }
 
-        let alias = current_table.alias.unwrap_or_default();
-        self.artifacts
-            .required_tables
-            .insert(current_table.into_owned());
-        alias
+        current_alias
     }
 }
 

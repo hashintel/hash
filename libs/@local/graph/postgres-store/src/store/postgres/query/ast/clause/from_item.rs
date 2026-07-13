@@ -2,7 +2,7 @@ use core::fmt::{self, Write as _};
 
 use super::{JoinType, TableSample};
 use crate::store::postgres::query::{
-    ColumnName, Expression, Function, SelectStatement, TableReference, Transpile,
+    ColumnName, Expression, Function, SelectStatement, TableName, TableReference, Transpile,
 };
 
 /// A FROM item in a PostgreSQL query.
@@ -52,7 +52,14 @@ pub enum FromItem<'id> {
         ///
         /// When `Some`, the table is referenced using this alias elsewhere in the query.
         /// When `None`, the base table reference is used directly.
-        alias: Option<TableReference<'id>>,
+        ///
+        /// The grammar's `alias` production is a plain name; a [`TableName`]-only reference
+        /// expresses exactly that. The `SelectCompiler` currently also stores its structured
+        /// [`Alias`] numbering in here, which is why the type is not narrowed to
+        /// [`TableName`] yet.
+        ///
+        /// [`Alias`]: crate::store::postgres::query::Alias
+        alias: Option<TableName<'id>>,
         /// Optional column aliases to rename the table's columns.
         ///
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
@@ -91,7 +98,7 @@ pub enum FromItem<'id> {
         ///
         /// While PostgreSQL requires aliases for subqueries in most contexts,
         /// this is `Option` to allow construction before alias assignment.
-        alias: Option<TableReference<'id>>,
+        alias: Option<TableName<'id>>,
         /// Optional column aliases to rename the subquery's result columns.
         ///
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
@@ -141,7 +148,7 @@ pub enum FromItem<'id> {
         /// Optional alias for the function result.
         ///
         /// Required for most set-returning functions to name the result columns.
-        alias: Option<TableReference<'id>>,
+        alias: Option<TableName<'id>>,
         /// Optional column aliases to rename the function's result columns.
         ///
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
@@ -208,7 +215,7 @@ pub enum FromItem<'id> {
         /// of the query, and you cannot use this alias to reference other columns.
         ///
         /// Transpiles to: `AS "join_alias"`.
-        alias: Option<TableReference<'id>>,
+        alias: Option<TableName<'id>>,
     },
 
     /// A CROSS JOIN producing the cartesian product of both sides.
@@ -252,7 +259,7 @@ impl<'id> FromItem<'id> {
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
-        alias: Option<TableReference<'id>>,
+        #[builder(into)] alias: Option<TableName<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
@@ -274,7 +281,7 @@ impl<'id> FromItem<'id> {
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub fn subquery(
         #[builder(start_fn, into)] statement: SelectStatement,
-        alias: Option<TableReference<'id>>,
+        #[builder(into)] alias: Option<TableName<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
@@ -295,7 +302,7 @@ impl<'id> FromItem<'id> {
     pub const fn function(
         #[builder(start_fn, into)] function: Function,
         #[builder(default)] with_ordinality: bool,
-        alias: Option<TableReference<'id>>,
+        #[builder(into)] alias: Option<TableName<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
@@ -323,7 +330,7 @@ impl<'id> FromItem<'id> {
         #[builder(start_fn)] r#type: JoinType,
         #[builder(start_fn, into)] from: Self,
         #[builder(setters(vis = ""))] condition: Vec<Expression>,
-        #[builder(setters(vis = ""))] join_using_alias: Option<TableReference<'id>>,
+        #[builder(setters(vis = ""))] join_using_alias: Option<TableName<'id>>,
         #[builder(setters(vis = ""))] columns: Vec<ColumnName<'id>>,
     ) -> Self {
         if columns.is_empty() {
@@ -360,25 +367,6 @@ impl<'id> FromItem<'id> {
         Self::CrossJoin {
             left: Box::new(self),
             right: Box::new(from.into()),
-        }
-    }
-
-    /// Returns the table reference that can be used to reference this FROM item.
-    ///
-    /// For simple sources (tables, subqueries, functions), returns their alias or name.
-    /// For join expressions, returns `None` as joins don't have a single reference.
-    #[must_use]
-    pub const fn reference_table(&self) -> Option<&TableReference<'id>> {
-        match self {
-            Self::Table {
-                alias: Some(alias), ..
-            } => Some(alias),
-            Self::Table { table, .. } => Some(table),
-            Self::Subquery { alias, .. } | Self::Function { alias, .. } => alias.as_ref(),
-            Self::JoinOn { .. }
-            | Self::JoinUsing { .. }
-            | Self::CrossJoin { .. }
-            | Self::NaturalJoin { .. } => None,
         }
     }
 
@@ -580,7 +568,7 @@ impl Transpile for FromItem<'_> {
 
 mod from_item_join_builder_impl {
     use super::{
-        FromItemJoinBuilder,
+        FromItemJoinBuilder, TableName,
         from_item_join_builder::{
             IsSet, IsUnset, SetColumns, SetCondition, SetJoinUsingAlias, State,
         },
@@ -610,7 +598,7 @@ mod from_item_join_builder_impl {
 
         pub fn alias(
             self,
-            alias: impl Into<TableReference<'id>>,
+            alias: impl Into<TableName<'id>>,
         ) -> FromItemJoinBuilder<'id, SetJoinUsingAlias<S>>
         where
             S: State<Columns: IsSet, JoinUsingAlias: IsUnset>,
@@ -730,7 +718,8 @@ mod tests {
             .build()
             .join(
                 JoinType::Inner,
-                FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(join_alias)),
+                FromItem::table(Table::OntologyIds)
+                    .alias(Table::OntologyIds.aliased_name(join_alias)),
             )
             .on(ForeignKeyReference::Single {
                 on: Column::DataTypes(DataTypes::OntologyId),
@@ -832,11 +821,7 @@ mod tests {
                 .using(vec![ColumnName::from(Column::OntologyIds(
                     OntologyIds::OntologyId
                 ))])
-                .alias(TableReference {
-                    schema: None,
-                    name: TableName::from("joined_ids"),
-                    alias: None,
-                })
+                .alias(TableName::from("joined_ids"))
                 .build()
                 .transpile_to_string(),
             indoc! {r#"
@@ -853,11 +838,7 @@ mod tests {
                     ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
                     ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
                 ])
-                .alias(TableReference {
-                    schema: None,
-                    name: TableName::from("versioned_ids"),
-                    alias: None,
-                })
+                .alias(TableName::from("versioned_ids"))
                 .build()
                 .transpile_to_string(),
             indoc! {r#"
@@ -925,11 +906,7 @@ mod tests {
             .build();
 
         let from_item = FromItem::subquery(subquery)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from("sub"),
-                alias: None,
-            })
+            .alias(TableName::from("sub"))
             .column_aliases(vec![
                 ColumnName::from(Identifier::from("id")),
                 ColumnName::from(Identifier::from("url")),
@@ -966,11 +943,13 @@ mod tests {
             base.clone()
                 .join(
                     JoinType::LeftOuter,
-                    FromItem::subquery(subquery.clone()).alias(Table::OntologyIds.aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 1,
-                        number: 2,
-                    }))
+                    FromItem::subquery(subquery.clone()).alias(Table::OntologyIds.aliased_name(
+                        Alias {
+                            condition_index: 0,
+                            chain_depth: 1,
+                            number: 2,
+                        }
+                    ))
                 )
                 .on(conditions.clone())
                 .build()
@@ -989,7 +968,7 @@ mod tests {
             base.join(
                 JoinType::LeftOuter,
                 FromItem::subquery(subquery)
-                    .alias(Table::OntologyIds.aliased(Alias {
+                    .alias(Table::OntologyIds.aliased_name(Alias {
                         condition_index: 0,
                         chain_depth: 1,
                         number: 2,
@@ -1054,11 +1033,7 @@ mod tests {
             FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
                 Column::DataTypes(DataTypes::OntologyId).into()
             ),]))
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from("ids"),
-                alias: None,
-            })
+            .alias(TableName::from("ids"))
             .build()
             .transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id") AS "ids""#
@@ -1070,11 +1045,7 @@ mod tests {
         let from_item = FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
             Column::DataTypes(DataTypes::OntologyId).into(),
         )]))
-        .alias(TableReference {
-            schema: None,
-            name: TableName::from("ids"),
-            alias: None,
-        })
+        .alias(TableName::from("ids"))
         .column_aliases(vec![ColumnName::from(Identifier::from("id"))])
         .build();
 
@@ -1104,11 +1075,7 @@ mod tests {
             Column::DataTypes(DataTypes::OntologyId).into(),
         )]))
         .with_ordinality(true)
-        .alias(TableReference {
-            schema: None,
-            name: TableName::from("t"),
-            alias: None,
-        })
+        .alias(TableName::from("t"))
         .column_aliases(vec![
             ColumnName::from(Identifier::from("val")),
             ColumnName::from(Identifier::from("ord")),
@@ -1132,11 +1099,7 @@ mod tests {
                 FromItem::function(Function::Unnest(vec![Expression::ColumnReference(
                     Column::DataTypes(DataTypes::OntologyId).into(),
                 )]))
-                .alias(TableReference {
-                    schema: None,
-                    name: TableName::from("unnested_ids"),
-                    alias: None,
-                })
+                .alias(TableName::from("unnested_ids"))
                 .lateral(true)
             )
             .on(Vec::new())
@@ -1152,101 +1115,14 @@ mod tests {
     }
 
     #[test]
-    fn reference_table_returns_alias_when_present() {
-        let table_ref: TableReference = Table::OntologyIds.into();
-        let alias_ref = TableReference {
-            alias: Some(Alias {
-                condition_index: 0,
-                chain_depth: 1,
-                number: 2,
-            }),
-            ..table_ref.clone()
-        };
-
-        let from_item = FromItem::table(table_ref).alias(alias_ref.clone()).build();
-
-        assert_eq!(from_item.reference_table(), Some(&alias_ref));
-    }
-
-    #[test]
-    fn reference_table_returns_table_when_no_alias() {
-        let table_ref: TableReference = Table::OntologyIds.into();
-
-        let from_item = FromItem::table(table_ref.clone()).build();
-
-        assert_eq!(from_item.reference_table(), Some(&table_ref));
-    }
-
-    #[test]
-    fn reference_table_returns_alias_for_function() {
-        let alias_ref = TableReference {
-            schema: None,
-            name: TableName::from("fn_result"),
-            alias: None,
-        };
-
-        // Function with alias
-        assert_eq!(
-            FromItem::function(Function::Now)
-                .alias(alias_ref.clone())
-                .build()
-                .reference_table(),
-            Some(&alias_ref)
-        );
-
-        // Function without alias
-        assert_eq!(
-            FromItem::function(Function::Now).build().reference_table(),
-            None
-        );
-    }
-
-    #[test]
-    fn reference_table_returns_alias_for_subquery() {
-        let alias_ref = TableReference {
-            schema: None,
-            name: TableName::from("sub"),
-            alias: None,
-        };
-
-        let subquery = SelectStatement::builder()
-            .selects(vec![SelectExpression::Asterisk(None)])
-            .from(FromItem::table(Table::OntologyIds))
+    fn transpile_table_with_plain_alias() {
+        let from_item = FromItem::table(Table::OntologyIds)
+            .alias(TableName::from("roots"))
             .build();
 
-        // Subquery with alias
         assert_eq!(
-            FromItem::subquery(subquery.clone())
-                .alias(alias_ref.clone())
-                .build()
-                .reference_table(),
-            Some(&alias_ref)
-        );
-
-        // Subquery without alias
-        assert_eq!(FromItem::subquery(subquery).build().reference_table(), None);
-    }
-
-    #[test]
-    fn reference_table_returns_none_for_joins() {
-        let left = FromItem::table(Table::DataTypes).build();
-        let right = FromItem::table(Table::OntologyIds).build();
-
-        assert_eq!(
-            left.clone()
-                .join(JoinType::Inner, right.clone())
-                .on(Vec::new())
-                .build()
-                .reference_table(),
-            None
-        );
-
-        assert_eq!(
-            left.join(JoinType::Inner, right)
-                .on(Vec::new())
-                .build()
-                .reference_table(),
-            None
+            from_item.transpile_to_string(),
+            r#""ontology_ids" AS "roots""#
         );
     }
 
@@ -1269,31 +1145,26 @@ mod tests {
         let a = FromItem::table(TableReference {
             schema: None,
             name: TableName::from("a"),
-            alias: None,
         })
         .build();
         let b = FromItem::table(TableReference {
             schema: None,
             name: TableName::from("b"),
-            alias: None,
         })
         .build();
         let c = FromItem::table(TableReference {
             schema: None,
             name: TableName::from("c"),
-            alias: None,
         })
         .build();
         let d: FromItem<'_> = FromItem::table(TableReference {
             schema: None,
             name: TableName::from("d"),
-            alias: None,
         })
         .build();
         let e = FromItem::table(TableReference {
             schema: None,
             name: TableName::from("e"),
-            alias: None,
         })
         .build();
 
@@ -1337,7 +1208,7 @@ mod tests {
     fn transpile_table_with_only_and_alias() {
         let from_item = FromItem::table(Table::DataTypes)
             .only(true)
-            .alias(Table::DataTypes.aliased(Alias {
+            .alias(Table::DataTypes.aliased_name(Alias {
                 condition_index: 0,
                 chain_depth: 1,
                 number: 2,
@@ -1353,11 +1224,7 @@ mod tests {
     #[test]
     fn transpile_table_with_column_aliases() {
         let from_item = FromItem::table(Table::DataTypes)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from("dt"),
-                alias: None,
-            })
+            .alias(TableName::from("dt"))
             .column_aliases(vec![
                 ColumnName::from(Identifier::from("id")),
                 ColumnName::from(Identifier::from("name")),
@@ -1374,11 +1241,7 @@ mod tests {
     #[test]
     fn transpile_table_with_alias_but_no_column_aliases() {
         let from_item = FromItem::table(Table::DataTypes)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from("dt"),
-                alias: None,
-            })
+            .alias(TableName::from("dt"))
             .build();
 
         assert_eq!(from_item.transpile_to_string(), r#""data_types" AS "dt""#);
@@ -1408,7 +1271,7 @@ mod tests {
                 percentage: 5.0,
                 repeatable_seed: Some(42),
             })
-            .alias(Table::DataTypes.aliased(Alias {
+            .alias(Table::DataTypes.aliased_name(Alias {
                 condition_index: 0,
                 chain_depth: 1,
                 number: 2,

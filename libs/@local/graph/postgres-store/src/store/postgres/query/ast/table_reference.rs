@@ -93,12 +93,6 @@ pub struct TableReference<'name> {
     pub schema: Option<SchemaReference<'name>>,
     /// The table name, either schema-defined or dynamically provided.
     pub name: TableName<'name>,
-    /// Optional alias for query disambiguation.
-    ///
-    /// When present, modifies the transpiled table name to include position-specific
-    /// identifiers (condition index, chain depth, and number) to uniquely identify
-    /// this table reference within complex queries with multiple joins or subqueries.
-    pub alias: Option<Alias>,
 }
 
 impl fmt::Debug for TableReference<'_> {
@@ -112,18 +106,13 @@ impl From<Table> for TableReference<'_> {
         Self {
             schema: None,
             name: TableName::from(table),
-            alias: None,
         }
     }
 }
 
 impl<'name> From<TableName<'name>> for TableReference<'name> {
     fn from(name: TableName<'name>) -> Self {
-        Self {
-            schema: None,
-            name,
-            alias: None,
-        }
+        Self { schema: None, name }
     }
 }
 
@@ -133,23 +122,7 @@ impl Transpile for TableReference<'_> {
             schema.transpile(fmt)?;
             fmt.write_char('.')?;
         }
-        if let Some(alias) = &self.alias {
-            fmt.write_char('"')?;
-            for ch in self.name.as_str().chars() {
-                if ch == '"' {
-                    fmt.write_str("\"\"")?;
-                } else {
-                    fmt.write_char(ch)?;
-                }
-            }
-            write!(
-                fmt,
-                "_{}_{}_{}\"",
-                alias.condition_index, alias.chain_depth, alias.number
-            )
-        } else {
-            self.name.transpile(fmt)
-        }
+        self.name.transpile(fmt)
     }
 }
 
@@ -162,7 +135,6 @@ mod tests {
         let table_ref = TableReference {
             schema: None,
             name: TableName::from("users"),
-            alias: None,
         };
         assert_eq!(table_ref.transpile_to_string(), r#""users""#);
     }
@@ -175,7 +147,6 @@ mod tests {
                 name: Identifier::from("public"),
             }),
             name: TableName::from("users"),
-            alias: None,
         };
         assert_eq!(table_ref.transpile_to_string(), r#""public"."users""#);
     }
@@ -188,7 +159,6 @@ mod tests {
                 name: Identifier::from("public"),
             }),
             name: TableName::from("users"),
-            alias: None,
         };
         assert_eq!(
             table_ref.transpile_to_string(),
@@ -204,7 +174,6 @@ mod tests {
                 name: Identifier::from("my-schema"),
             }),
             name: TableName::from("user table"),
-            alias: None,
         };
         assert_eq!(
             table_ref.transpile_to_string(),
@@ -220,7 +189,6 @@ mod tests {
                 name: Identifier::from(r#"my"schema"#),
             }),
             name: TableName::from(r#"my"table"#),
-            alias: None,
         };
         assert_eq!(
             table_ref.transpile_to_string(),

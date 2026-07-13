@@ -114,7 +114,6 @@ mod tests {
         let table_ref = TableReference {
             schema: None,
             name: TableName::from(Table::DataTypes),
-            alias: None,
         };
 
         assert_eq!(
