@@ -9,9 +9,9 @@ mod table_reference;
 
 pub use self::{
     clause::{
-        FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
-        FromItemTableBuilder, GroupByExpression, JoinType, OrderByExpression, SelectExpression,
-        WhereExpression, WithExpression,
+        CommonTableExpression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, GroupByExpression, JoinType,
+        Materialization, OrderByExpression, SelectExpression, WhereExpression, WithExpression,
     },
     column_reference::{ColumnName, ColumnReference},
     expression::{

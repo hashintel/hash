@@ -117,6 +117,16 @@ impl From<Table> for TableReference<'_> {
     }
 }
 
+impl<'name> From<TableName<'name>> for TableReference<'name> {
+    fn from(name: TableName<'name>) -> Self {
+        Self {
+            schema: None,
+            name,
+            alias: None,
+        }
+    }
+}
+
 impl Transpile for TableReference<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(schema) = &self.schema {

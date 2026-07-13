@@ -18,5 +18,5 @@ pub use self::{
     select_list::SelectExpression,
     table_sample::TableSample,
     where_clause::WhereExpression,
-    with::WithExpression,
+    with::{CommonTableExpression, Materialization, WithExpression},
 };

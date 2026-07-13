@@ -21,8 +21,8 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, FromItem, Function,
-    GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
+    Alias, Column, CommonTableExpression, Distinctness, EqualityOperator, Expression, FromItem,
+    Function, GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
     SelectStatement, Table, Transpile as _, WindowStatement,
     postgres_type::PostgresType,
     table::{
@@ -968,26 +968,30 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement::builder()
-                .selects(vec![
-                    SelectExpression::Asterisk(None),
-                    SelectExpression::Expression {
-                        expression: Expression::Window(
-                            Box::new(Expression::Function(Function::Max(Box::new(
-                                Expression::ColumnReference(version_column.aliased(alias)),
-                            )))),
-                            WindowStatement::partition_by(Expression::ColumnReference(
-                                Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                            )),
-                        ),
-                        alias: Some(Identifier::from("latest_version")),
-                    },
-                ])
-                .from(
-                    FromItem::table(version_column.table())
-                        .alias(version_column.table().aliased(alias))
+        self.statement.with.push(
+            CommonTableExpression::builder()
+                .name(Table::OntologyIds)
+                .statement(
+                    SelectStatement::builder()
+                        .selects(vec![
+                            SelectExpression::Asterisk(None),
+                            SelectExpression::Expression {
+                                expression: Expression::Window(
+                                    Box::new(Expression::Function(Function::Max(Box::new(
+                                        Expression::ColumnReference(version_column.aliased(alias)),
+                                    )))),
+                                    WindowStatement::partition_by(Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                    )),
+                                ),
+                                alias: Some(Identifier::from("latest_version")),
+                            },
+                        ])
+                        .from(
+                            FromItem::table(version_column.table())
+                                .alias(version_column.table().aliased(alias))
+                                .build(),
+                        )
                         .build(),
                 )
                 .build(),
