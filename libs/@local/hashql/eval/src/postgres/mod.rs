@@ -390,7 +390,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
                 lateral: true,
                 statement: Box::new(subquery),
                 alias: Some(table_ref.name.clone()),
-                column_alias: Vec::new(),
+                column_aliases: Vec::new(),
             };
 
             db.laterals.push(subquery);

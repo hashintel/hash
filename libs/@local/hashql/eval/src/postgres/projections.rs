@@ -222,7 +222,6 @@ impl Projections {
         .build()
     }
 
-    #[expect(clippy::too_many_lines)]
     fn build_entity_type_ids<'item>(
         &self,
         parameters: &mut Parameters<'_, impl Allocator>,
@@ -258,7 +257,7 @@ impl Projections {
                 ]),
                 with_ordinality: true,
                 alias: Some(unnest_ref.name.clone()),
-                column_alias: vec![
+                column_aliases: vec![
                     ColumnName::from(Identifier::from("b")),
                     ColumnName::from(Identifier::from("v")),
                     ColumnName::from(Identifier::from("ordinality")),
@@ -325,7 +324,7 @@ impl Projections {
             lateral: true,
             statement: Box::new(subquery),
             alias: Some(Table::EntityEditionCache.aliased_name(alias)),
-            column_alias: vec![],
+            column_aliases: vec![],
         };
 
         from.join(JoinType::LeftOuter, lateral)

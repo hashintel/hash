@@ -1316,7 +1316,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
-    #[expect(clippy::too_many_lines)]
     fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
     where
         R::QueryPath<'f>: PostgresQueryPath,

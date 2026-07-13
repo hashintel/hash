@@ -1,7 +1,7 @@
 use core::fmt::{self, Write as _};
 
 use super::identifier::Identifier;
-use crate::store::postgres::query::{Alias, Table, Transpile};
+use crate::store::postgres::query::{Table, Transpile};
 
 /// A schema reference in PostgreSQL, optionally qualified with a database name.
 ///

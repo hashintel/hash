@@ -71,7 +71,7 @@ pub enum FromItem<'id> {
         /// - Renaming columns from subqueries or functions with unclear names
         /// - Standardizing column names across different sources
         /// - Avoiding column name conflicts in complex queries
-        column_alias: Vec<ColumnName<'id>>,
+        column_aliases: Vec<ColumnName<'id>>,
         /// Optional TABLESAMPLE clause for row sampling.
         ///
         /// When `Some`, applies SQL:2003 standard TABLESAMPLE sampling to select a random
@@ -105,14 +105,18 @@ pub enum FromItem<'id> {
         /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
         ///
         /// Transpiles to `AS alias(column1, column2, ...)`.
-        column_alias: Vec<ColumnName<'id>>,
+        column_aliases: Vec<ColumnName<'id>>,
     },
 
     /// A function call: `[ LATERAL ] function_name(...) [ WITH ORDINALITY ] [ AS alias [ (
     /// column_alias [, ...] ) ] ]`.
     ///
     /// Represents set-returning functions or table functions in the FROM clause.
-    /// Common use cases include `unnest()`, `generate_series()`, and `json_to_recordset()`.
+    /// Common use cases include `unnest()` and `generate_series()`.
+    ///
+    /// Covers only the first function form of the `from_item` grammar: the
+    /// `column_definition` forms (for functions returning `record`, e.g.
+    /// `jsonb_to_recordset`) and `ROWS FROM(...)` are not representable yet.
     Function {
         /// Whether this is a LATERAL function call.
         ///
@@ -158,7 +162,7 @@ pub enum FromItem<'id> {
         ///
         /// When combined with `with_ordinality`, the column aliases should include both
         /// the function result columns and the ordinality column.
-        column_alias: Vec<ColumnName<'id>>,
+        column_aliases: Vec<ColumnName<'id>>,
     },
 
     /// A JOIN with explicit ON conditions.
@@ -260,7 +264,7 @@ impl<'id> FromItem<'id> {
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
         #[builder(into)] alias: Option<TableName<'id>>,
-        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_aliases: Vec<
             ColumnName<'id>,
         >,
         #[builder(default)] only: bool,
@@ -269,7 +273,7 @@ impl<'id> FromItem<'id> {
         Self::Table {
             table,
             alias,
-            column_alias,
+            column_aliases,
             only,
             tablesample,
         }
@@ -282,7 +286,7 @@ impl<'id> FromItem<'id> {
     pub fn subquery(
         #[builder(start_fn, into)] statement: SelectStatement,
         #[builder(into)] alias: Option<TableName<'id>>,
-        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_aliases: Vec<
             ColumnName<'id>,
         >,
         #[builder(default)] lateral: bool,
@@ -290,7 +294,7 @@ impl<'id> FromItem<'id> {
         Self::Subquery {
             statement: Box::new(statement),
             alias,
-            column_alias,
+            column_aliases,
             lateral,
         }
     }
@@ -303,7 +307,7 @@ impl<'id> FromItem<'id> {
         #[builder(start_fn, into)] function: Function,
         #[builder(default)] with_ordinality: bool,
         #[builder(into)] alias: Option<TableName<'id>>,
-        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_aliases: Vec<
             ColumnName<'id>,
         >,
         #[builder(default)] lateral: bool,
@@ -312,7 +316,7 @@ impl<'id> FromItem<'id> {
             function,
             with_ordinality,
             alias,
-            column_alias,
+            column_aliases,
             lateral,
         }
     }
@@ -410,12 +414,12 @@ impl<'id> FromItem<'id> {
 
     /// Transpiles column aliases: `(col1, col2, ...)`.
     fn transpile_column_aliases(
-        column_alias: &[ColumnName<'_>],
+        column_aliases: &[ColumnName<'_>],
         fmt: &mut fmt::Formatter,
     ) -> fmt::Result {
-        if !column_alias.is_empty() {
+        if !column_aliases.is_empty() {
             fmt.write_str("(")?;
-            Self::transpile_column_list(column_alias, fmt)?;
+            Self::transpile_column_list(column_aliases, fmt)?;
             fmt.write_char(')')?;
         }
         Ok(())
@@ -432,7 +436,7 @@ impl Transpile for FromItem<'_> {
             Self::Table {
                 table,
                 alias,
-                column_alias,
+                column_aliases,
                 only,
                 tablesample,
             } => {
@@ -445,7 +449,7 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-                    Self::transpile_column_aliases(column_alias, fmt)?;
+                    Self::transpile_column_aliases(column_aliases, fmt)?;
                 }
 
                 if let Some(sample) = tablesample {
@@ -456,7 +460,7 @@ impl Transpile for FromItem<'_> {
             Self::Subquery {
                 statement,
                 alias,
-                column_alias,
+                column_aliases,
                 lateral,
             } => {
                 if *lateral {
@@ -468,14 +472,14 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-                    Self::transpile_column_aliases(column_alias, fmt)?;
+                    Self::transpile_column_aliases(column_aliases, fmt)?;
                 }
             }
             Self::Function {
                 function,
                 with_ordinality,
                 alias,
-                column_alias,
+                column_aliases,
                 lateral,
             } => {
                 if *lateral {
@@ -490,7 +494,7 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-                    Self::transpile_column_aliases(column_alias, fmt)?;
+                    Self::transpile_column_aliases(column_aliases, fmt)?;
                 }
             }
             Self::JoinOn {
@@ -573,7 +577,7 @@ mod from_item_join_builder_impl {
             IsSet, IsUnset, SetColumns, SetCondition, SetJoinUsingAlias, State,
         },
     };
-    use crate::store::postgres::query::{ColumnName, Expression, TableReference};
+    use crate::store::postgres::query::{ColumnName, Expression};
 
     impl<'id, S: State> FromItemJoinBuilder<'id, S> {
         pub fn on(
@@ -611,7 +615,7 @@ mod from_item_join_builder_impl {
 mod from_item_table_builder_impl {
     use super::{
         FromItemTableBuilder,
-        from_item_table_builder::{IsSet, IsUnset, SetColumnAlias, State},
+        from_item_table_builder::{IsSet, IsUnset, SetColumnAliases, State},
     };
     use crate::store::postgres::query::ColumnName;
 
@@ -626,9 +630,9 @@ mod from_item_table_builder_impl {
         pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
-        ) -> FromItemTableBuilder<'id, SetColumnAlias<S>>
+        ) -> FromItemTableBuilder<'id, SetColumnAliases<S>>
         where
-            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+            S: State<Alias: IsSet, ColumnAliases: IsUnset>,
         {
             self.set_column_aliases(columns)
         }
@@ -638,7 +642,7 @@ mod from_item_table_builder_impl {
 mod from_item_subquery_builder_impl {
     use super::{
         FromItemSubqueryBuilder,
-        from_item_subquery_builder::{IsSet, IsUnset, SetColumnAlias, State},
+        from_item_subquery_builder::{IsSet, IsUnset, SetColumnAliases, State},
     };
     use crate::store::postgres::query::ColumnName;
 
@@ -653,9 +657,9 @@ mod from_item_subquery_builder_impl {
         pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
-        ) -> FromItemSubqueryBuilder<'id, SetColumnAlias<S>>
+        ) -> FromItemSubqueryBuilder<'id, SetColumnAliases<S>>
         where
-            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+            S: State<Alias: IsSet, ColumnAliases: IsUnset>,
         {
             self.set_column_aliases(columns)
         }
@@ -665,7 +669,7 @@ mod from_item_subquery_builder_impl {
 mod from_item_function_builder_impl {
     use super::{
         FromItemFunctionBuilder,
-        from_item_function_builder::{IsSet, IsUnset, SetColumnAlias, State},
+        from_item_function_builder::{IsSet, IsUnset, SetColumnAliases, State},
     };
     use crate::store::postgres::query::ColumnName;
 
@@ -680,9 +684,9 @@ mod from_item_function_builder_impl {
         pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
-        ) -> FromItemFunctionBuilder<'id, SetColumnAlias<S>>
+        ) -> FromItemFunctionBuilder<'id, SetColumnAliases<S>>
         where
-            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+            S: State<Alias: IsSet, ColumnAliases: IsUnset>,
         {
             self.set_column_aliases(columns)
         }
@@ -1251,8 +1255,7 @@ mod tests {
     fn transpile_table_with_tablesample() {
         let from_item = FromItem::table(Table::DataTypes)
             .tablesample(TableSample {
-                method: SamplingMethod::Bernoulli,
-                percentage: 10.0,
+                method: SamplingMethod::Bernoulli { percentage: 10.0 },
                 repeatable_seed: None,
             })
             .build();
@@ -1267,8 +1270,7 @@ mod tests {
     fn transpile_table_with_alias_and_tablesample() {
         let from_item = FromItem::table(Table::DataTypes)
             .tablesample(TableSample {
-                method: SamplingMethod::System,
-                percentage: 5.0,
+                method: SamplingMethod::System { percentage: 5.0 },
                 repeatable_seed: Some(42),
             })
             .alias(Table::DataTypes.aliased_name(Alias {

@@ -7,15 +7,18 @@ use crate::store::postgres::query::Transpile;
 /// PostgreSQL supports two standard sampling methods:
 /// - BERNOULLI: Row-level sampling where each row has an independent probability of selection
 /// - SYSTEM: Page-level sampling that selects entire table blocks (faster but less random)
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SamplingMethod {
-    /// BERNOULLI sampling: each row independently selected with given probability.
+    /// BERNOULLI sampling: each row independently selected with the given probability.
     ///
     /// More random but slower as it must scan the entire table. Each row has exactly
     /// the specified probability of being included in the sample.
     ///
     /// Use when you need true random sampling for statistical analysis.
-    Bernoulli,
+    Bernoulli {
+        /// Percentage of rows to sample, between 0 and 100.
+        percentage: f64,
+    },
 
     /// SYSTEM sampling: selects random table blocks (8KB pages).
     ///
@@ -24,14 +27,17 @@ pub enum SamplingMethod {
     ///
     /// Use when speed is more important than perfect randomness, or for quick exploration
     /// of large tables.
-    System,
+    System {
+        /// Percentage of blocks to sample, between 0 and 100.
+        percentage: f64,
+    },
 }
 
 impl Transpile for SamplingMethod {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Bernoulli => fmt.write_str("BERNOULLI"),
-            Self::System => fmt.write_str("SYSTEM"),
+            Self::Bernoulli { percentage } => write!(fmt, "BERNOULLI({percentage})"),
+            Self::System { percentage } => write!(fmt, "SYSTEM({percentage})"),
         }
     }
 }
@@ -58,14 +64,8 @@ impl Transpile for SamplingMethod {
 /// Transpiles to: `TABLESAMPLE method(percentage) [ REPEATABLE(seed) ]`.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TableSample {
-    /// The sampling method to use (BERNOULLI or SYSTEM).
+    /// The sampling method to use, carrying its own arguments.
     pub method: SamplingMethod,
-
-    /// Percentage of rows (BERNOULLI) or blocks (SYSTEM) to sample.
-    ///
-    /// Valid range is 0.0 to 100.0. Note that the actual number of rows returned
-    /// may vary, especially with SYSTEM sampling.
-    pub percentage: f64,
 
     /// Optional seed for reproducible sampling.
     ///
@@ -83,7 +83,6 @@ impl Transpile for TableSample {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str("TABLESAMPLE ")?;
         self.method.transpile(fmt)?;
-        write!(fmt, "({})", self.percentage)?;
 
         if let Some(seed) = self.repeatable_seed {
             write!(fmt, " REPEATABLE({seed})")?;
@@ -100,8 +99,7 @@ mod tests {
     #[test]
     fn transpile_bernoulli_sampling() {
         let sample = TableSample {
-            method: SamplingMethod::Bernoulli,
-            percentage: 10.0,
+            method: SamplingMethod::Bernoulli { percentage: 10.0 },
             repeatable_seed: None,
         };
 
@@ -111,8 +109,7 @@ mod tests {
     #[test]
     fn transpile_system_sampling() {
         let sample = TableSample {
-            method: SamplingMethod::System,
-            percentage: 5.0,
+            method: SamplingMethod::System { percentage: 5.0 },
             repeatable_seed: None,
         };
 
@@ -122,8 +119,7 @@ mod tests {
     #[test]
     fn transpile_with_repeatable_seed() {
         let sample = TableSample {
-            method: SamplingMethod::Bernoulli,
-            percentage: 1.0,
+            method: SamplingMethod::Bernoulli { percentage: 1.0 },
             repeatable_seed: Some(42),
         };
 
@@ -136,8 +132,7 @@ mod tests {
     #[test]
     fn transpile_system_with_seed() {
         let sample = TableSample {
-            method: SamplingMethod::System,
-            percentage: 2.5,
+            method: SamplingMethod::System { percentage: 2.5 },
             repeatable_seed: Some(123),
         };
 
@@ -149,11 +144,17 @@ mod tests {
 
     #[test]
     fn transpile_sampling_method_bernoulli() {
-        assert_eq!(SamplingMethod::Bernoulli.transpile_to_string(), "BERNOULLI");
+        assert_eq!(
+            SamplingMethod::Bernoulli { percentage: 10.0 }.transpile_to_string(),
+            "BERNOULLI(10)"
+        );
     }
 
     #[test]
     fn transpile_sampling_method_system() {
-        assert_eq!(SamplingMethod::System.transpile_to_string(), "SYSTEM");
+        assert_eq!(
+            SamplingMethod::System { percentage: 2.5 }.transpile_to_string(),
+            "SYSTEM(2.5)"
+        );
     }
 }
