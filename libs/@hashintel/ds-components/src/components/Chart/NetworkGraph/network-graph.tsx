@@ -1,6 +1,6 @@
 import { OrthographicView } from "@deck.gl/core";
 import { LineLayer, ScatterplotLayer } from "@deck.gl/layers";
-import { DeckGL } from "@deck.gl/react";
+import { DeckGL, type DeckGLRef } from "@deck.gl/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -84,6 +84,10 @@ const MAX_ZOOM_OFFSET = 12;
 const ZOOM_OUT_MARGIN = 0.2;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
 const PAN_PADDING_PX = 10;
+/** Pointer travel (px) above which a release is treated as a pan, not a click. */
+const CLICK_MOVE_THRESHOLD_PX = 4;
+/** Picking radius (px) used to resolve the node under a click. */
+const CLICK_PICK_RADIUS_PX = 4;
 const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
@@ -176,6 +180,9 @@ export const NetworkGraph = ({
   onZoom,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<DeckGLRef>(null);
+  // Pointer-down position, to tell a click apart from a pan on release.
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
   const lastZoomRef = useRef<number | null>(null);
   // Last hovered node id reported to `onNodeHover` (`null` when none), so we
@@ -349,10 +356,39 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [bounds]);
 
-  const handleClick = useCallback(
-    (info: PickingInfo) => {
-      const point = (info.object as NetworkGraphPoint | undefined) ?? null;
-      onNodeClick?.({ point, x: info.x, y: info.y });
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+    pointerDownRef.current = { x: event.clientX, y: event.clientY };
+  }, []);
+
+  // Handle clicks ourselves off the native `pointerup` rather than deck.gl's
+  // `onClick`: deck delays its click ~300ms to disambiguate a double-click,
+  // which makes selection feel laggy. Picking synchronously here fires instantly.
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent) => {
+      const down = pointerDownRef.current;
+      pointerDownRef.current = null;
+      const deck = deckRef.current;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!down || !deck || !rect) {
+        return;
+      }
+      // A release that moved more than the threshold is a pan, not a click.
+      if (
+        Math.hypot(event.clientX - down.x, event.clientY - down.y) >
+        CLICK_MOVE_THRESHOLD_PX
+      ) {
+        return;
+      }
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const info = deck.pickObject({
+        x,
+        y,
+        radius: CLICK_PICK_RADIUS_PX,
+        layerIds: ["points"],
+      });
+      const point = (info?.object as NetworkGraphPoint | undefined) ?? null;
+      onNodeClick?.({ point, x, y });
     },
     [onNodeClick],
   );
@@ -458,14 +494,20 @@ export const NetworkGraph = ({
   }, [points, highlight, activeNode, colorByHex, radiusScale, pointOpacity]);
 
   return (
-    <div ref={containerRef} className={cx(containerStyles, className)}>
+    <div
+      ref={containerRef}
+      className={cx(containerStyles, className)}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+    >
       {viewState ? (
         <DeckGL
+          ref={deckRef}
           views={view}
           viewState={viewState}
-          controller
+          // Double-click-to-zoom off: clicks are handled via `pointerup` above.
+          controller={{ doubleClickZoom: false }}
           layers={layers}
-          onClick={handleClick}
           onHover={(info: PickingInfo) => {
             const object =
               (info.object as NetworkGraphPoint | undefined) ?? null;
