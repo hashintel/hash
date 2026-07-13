@@ -48,7 +48,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Function, PostgresQueryPath as _, Table, TableName, WindowStatement,
+        Alias, Function, PostgresQueryPath as _, Table, TableName, WindowDefinition,
     };
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
                                 })
                         ),
                     )))),
-                    WindowStatement::partition_by(Expression::ColumnReference(
+                    WindowDefinition::partition_by(Expression::ColumnReference(
                         DataTypeQueryPath::BaseUrl
                             .terminating_column()
                             .0

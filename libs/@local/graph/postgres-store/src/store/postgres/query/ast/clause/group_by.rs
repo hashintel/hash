@@ -3,11 +3,11 @@ use core::fmt;
 use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct GroupByExpression {
+pub struct GroupByClause {
     pub expressions: Vec<Expression>,
 }
 
-impl Transpile for GroupByExpression {
+impl Transpile for GroupByClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.expressions.is_empty() {
             return Ok(());
@@ -34,7 +34,7 @@ mod tests {
 
     #[test]
     fn order_one() {
-        let order_by_expression = GroupByExpression {
+        let order_by_clause = GroupByClause {
             expressions: vec![
                 Expression::ColumnReference(EntityQueryPath::WebId.terminating_column().0.aliased(
                     Alias {
@@ -53,7 +53,7 @@ mod tests {
             ],
         };
         assert_eq!(
-            order_by_expression.transpile_to_string(),
+            order_by_clause.transpile_to_string(),
             r#"GROUP BY "entity_temporal_metadata_1_2_3"."web_id", "entity_temporal_metadata_4_5_6"."entity_uuid""#
         );
     }

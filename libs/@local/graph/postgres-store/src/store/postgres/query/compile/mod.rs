@@ -22,8 +22,8 @@ use type_system::knowledge::Entity;
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
     Alias, Column, CommonTableExpression, Distinctness, EqualityOperator, Expression, FromItem,
-    Function, GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WindowStatement,
+    Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectStatement, Table, Transpile as _, WindowDefinition,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -332,7 +332,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 && let Some((ordering, nulls)) = ordering
             {
                 self.statement
-                    .order_by_expression
+                    .order_by_clause
                     .push(stored.column.clone(), ordering, nulls);
                 stored.ordering = Some((ordering, nulls));
             }
@@ -349,7 +349,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             if let Some((ordering, nulls)) = ordering {
                 self.statement
-                    .order_by_expression
+                    .order_by_clause
                     .push(expression.clone(), ordering, nulls);
             }
 
@@ -389,7 +389,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
         let column = self.compile_path_column(path);
         self.statement
-            .where_expression
+            .where_clause
             .add_cursor(lhs(column), rhs, ordering, null_ordering);
         Ok(self.add_distinct_selection_with_ordering(
             path,
@@ -413,7 +413,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.statement.where_expression.conditions.push(condition);
+        self.statement.where_clause.conditions.push(condition);
         Ok(())
     }
 
@@ -658,7 +658,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .collect(),
                                 )
                                 .from(FromItem::table(embeddings_table))
-                                .group_by_expression(GroupByExpression {
+                                .group_by_clause(GroupByClause {
                                     expressions: select_columns
                                         .iter()
                                         .map(|&column| Expression::ColumnReference(column.into()))
@@ -669,7 +669,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .build();
                     }
 
-                    self.statement.order_by_expression.insert_front(
+                    self.statement.order_by_clause.insert_front(
                         distance_expression.clone(),
                         Ordering::Ascending,
                         None,
@@ -980,7 +980,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                     Box::new(Expression::Function(Function::Max(Box::new(
                                         Expression::ColumnReference(version_column.aliased(alias)),
                                     )))),
-                                    WindowStatement::partition_by(Expression::ColumnReference(
+                                    WindowDefinition::partition_by(Expression::ColumnReference(
                                         Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
                                     )),
                                 ),
@@ -1105,10 +1105,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&column.table().into()) {
             let conditions = hook(self, alias);
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+            self.statement.where_clause.conditions.extend(conditions);
         }
 
         let mut column_expression = Expression::ColumnReference(column.aliased(alias));
@@ -1327,10 +1324,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&current_table.name) {
             let conditions = hook(self, current_table.alias.unwrap_or_default());
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+            self.statement.where_clause.conditions.extend(conditions);
         }
 
         let mut is_outer_join_chain = false;

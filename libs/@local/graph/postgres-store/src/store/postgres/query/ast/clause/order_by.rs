@@ -5,11 +5,11 @@ use hash_graph_store::query::{NullOrdering, Ordering};
 use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct OrderByExpression {
+pub struct OrderByClause {
     columns: Vec<(Expression, Ordering, Option<NullOrdering>)>,
 }
 
-impl OrderByExpression {
+impl OrderByClause {
     pub fn push(
         &mut self,
         expression: Expression,
@@ -34,7 +34,7 @@ impl OrderByExpression {
     }
 }
 
-impl Transpile for OrderByExpression {
+impl Transpile for OrderByClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.columns.is_empty() {
             return Ok(());
@@ -73,8 +73,8 @@ mod tests {
 
     #[test]
     fn order_one() {
-        let mut order_by_expression = OrderByExpression::default();
-        order_by_expression.push(
+        let mut order_by_clause = OrderByClause::default();
+        order_by_clause.push(
             Expression::ColumnReference(DataTypeQueryPath::Version.terminating_column().0.aliased(
                 Alias {
                     condition_index: 1,
@@ -86,15 +86,15 @@ mod tests {
             None,
         );
         assert_eq!(
-            order_by_expression.transpile_to_string(),
+            order_by_clause.transpile_to_string(),
             r#"ORDER BY "ontology_ids_1_2_3"."version" ASC"#
         );
     }
 
     #[test]
     fn order_multiple() {
-        let mut order_by_expression = OrderByExpression::default();
-        order_by_expression.push(
+        let mut order_by_clause = OrderByClause::default();
+        order_by_clause.push(
             Expression::ColumnReference(DataTypeQueryPath::BaseUrl.terminating_column().0.aliased(
                 Alias {
                     condition_index: 1,
@@ -105,7 +105,7 @@ mod tests {
             Ordering::Ascending,
             Some(NullOrdering::First),
         );
-        order_by_expression.push(
+        order_by_clause.push(
             Expression::ColumnReference(DataTypeQueryPath::Version.terminating_column().0.aliased(
                 Alias {
                     condition_index: 4,
@@ -118,7 +118,7 @@ mod tests {
         );
 
         assert_eq!(
-            trim_whitespace(&order_by_expression.transpile_to_string()),
+            trim_whitespace(&order_by_clause.transpile_to_string()),
             trim_whitespace(
                 r#"ORDER BY "ontology_ids_1_2_3"."base_url" ASC NULLS FIRST,
                 "ontology_ids_4_5_6"."version" DESC NULLS LAST"#

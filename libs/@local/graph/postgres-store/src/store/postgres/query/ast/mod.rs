@@ -10,13 +10,13 @@ mod table_reference;
 pub use self::{
     clause::{
         CommonTableExpression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
-        FromItemSubqueryBuilder, FromItemTableBuilder, GroupByExpression, JoinType,
-        Materialization, OrderByExpression, SelectExpression, WhereExpression, WithExpression,
+        FromItemSubqueryBuilder, FromItemTableBuilder, GroupByClause, JoinType, Materialization,
+        OrderByClause, SelectExpression, WhereClause, WithClause,
     },
     column_reference::{ColumnName, ColumnReference},
     expression::{
         BinaryExpression, BinaryOperator, Constant, EqualityOperator, Expression, Function,
-        UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowStatement,
+        UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowDefinition,
     },
     identifier::Identifier,
     statement::{Distinctness, OnConflict, SelectStatement, Statement, bulk_insert},

@@ -15,7 +15,7 @@ pub use self::{
     function::Function,
     unary::{UnaryExpression, UnaryOperator},
     variadic::{VariadicExpression, VariadicOperator},
-    window::WindowStatement,
+    window::WindowDefinition,
 };
 use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{SelectStatement, Transpile, postgres_type::PostgresType};
@@ -40,7 +40,7 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
-    Window(Box<Self>, WindowStatement),
+    Window(Box<Self>, WindowDefinition),
     Cast(Box<Self>, PostgresType),
     /// Composite field access - extracts a named field from a composite/row type value.
     ///

@@ -3,11 +3,11 @@ use core::fmt;
 use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WindowStatement {
+pub struct WindowDefinition {
     partition: Vec<Expression>,
 }
 
-impl WindowStatement {
+impl WindowDefinition {
     #[must_use]
     pub fn partition_by(expression: Expression) -> Self {
         Self {
@@ -16,7 +16,7 @@ impl WindowStatement {
     }
 }
 
-impl Transpile for WindowStatement {
+impl Transpile for WindowDefinition {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str("PARTITION BY ")?;
         for (idx, partition) in self.partition.iter().enumerate() {

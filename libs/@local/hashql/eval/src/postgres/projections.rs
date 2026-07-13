@@ -343,8 +343,8 @@ impl Projections {
                 alias: Some(Identifier::from("entity_type_ids")),
             }])
             .from(inner_from)
-            .where_expression({
-                let mut w = query::WhereExpression::default();
+            .where_clause({
+                let mut w = query::WhereClause::default();
                 w.add_condition(correlation);
                 w.add_condition(direct_prefix);
                 w

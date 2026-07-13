@@ -51,11 +51,11 @@ impl Transpile for CommonTableExpression {
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
-pub struct WithExpression {
+pub struct WithClause {
     common_table_expressions: Vec<CommonTableExpression>,
 }
 
-impl WithExpression {
+impl WithClause {
     pub fn push(&mut self, common_table_expression: CommonTableExpression) {
         self.common_table_expressions.push(common_table_expression);
     }
@@ -71,7 +71,7 @@ impl WithExpression {
     }
 }
 
-impl Transpile for WithExpression {
+impl Transpile for WithClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.common_table_expressions.is_empty() {
             return Ok(());
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn transpile_with_expression() {
-        let mut with_clause = WithExpression::default();
+        let mut with_clause = WithClause::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 
         with_clause.push(
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn transpile_materialized_cte() {
-        let mut with_clause = WithExpression::default();
+        let mut with_clause = WithClause::default();
         with_clause.push(
             CommonTableExpression::builder()
                 .name("roots")
@@ -183,7 +183,7 @@ mod tests {
                 .starts_with(r#"WITH "roots" AS MATERIALIZED (SELECT"#)
         );
 
-        let mut with_clause = WithExpression::default();
+        let mut with_clause = WithClause::default();
         with_clause.push(
             CommonTableExpression::builder()
                 .name("roots")
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn transpile_cte_with_column_list() {
-        let mut with_clause = WithExpression::default();
+        let mut with_clause = WithClause::default();
         with_clause.push(
             CommonTableExpression::builder()
                 .name("roots")

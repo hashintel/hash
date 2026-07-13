@@ -31,7 +31,7 @@ use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
-    WhereExpression, table::EntityTemporalMetadata,
+    WhereClause, table::EntityTemporalMetadata,
 };
 use hashql_core::{
     debug_panic,
@@ -77,14 +77,14 @@ mod types;
 /// Mutable compilation state accumulated while building a single SQL query.
 ///
 /// Collects deduplicated [`Parameters`], requested [`Projections`] (lazy joins driven by
-/// [`EntityPath`] usage), the top-level [`WhereExpression`] (temporal constraints and continuation
+/// [`EntityPath`] usage), the top-level [`WhereClause`] (temporal constraints and continuation
 /// filters), and `CROSS JOIN LATERAL` items for island continuations.
 ///
 /// [`EntityPath`]: hashql_mir::pass::execution::traversal::EntityPath
 pub(crate) struct DatabaseContext<'heap, A: Allocator> {
     pub parameters: Parameters<'heap, A>,
     pub projections: Projections,
-    pub where_expression: WhereExpression,
+    pub where_clause: WhereClause,
     pub laterals: Vec<query::FromItem<'static>, A>,
     pub continuation_aliases: Vec<continuation::ContinuationAlias, A>,
 }
@@ -97,7 +97,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
         Self {
             parameters: Parameters::new_in(alloc.clone()),
             projections: Projections::new(),
-            where_expression: WhereExpression::default(),
+            where_clause: WhereClause::default(),
             laterals: Vec::new_in(alloc.clone()),
             continuation_aliases: Vec::new_in(alloc),
         }
@@ -128,7 +128,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
             .temporal_axis(TemporalAxis::Decision)
             .to_expr();
 
-        self.where_expression.add_condition(Expression::overlap(
+        self.where_clause.add_condition(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {
                 correlation: Some(temporal_metadata.clone()),
                 name: Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
@@ -137,7 +137,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
             tx_param,
         ));
 
-        self.where_expression.add_condition(Expression::overlap(
+        self.where_clause.add_condition(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {
                 correlation: Some(temporal_metadata),
                 name: Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime).into(),
@@ -394,7 +394,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             };
 
             db.laterals.push(subquery);
-            db.where_expression
+            db.where_clause
                 .add_condition(continuation::filter_condition(&table_ref));
             db.continuation_aliases.push(cont_alias);
         }
@@ -495,7 +495,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         let query = SelectStatement::builder()
             .selects(select_expressions)
             .from(from)
-            .where_expression(db.where_expression)
+            .where_clause(db.where_clause)
             .build();
 
         PreparedQuery {

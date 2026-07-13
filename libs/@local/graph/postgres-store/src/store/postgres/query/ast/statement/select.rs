@@ -1,26 +1,26 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Expression, FromItem, GroupByExpression, OrderByExpression, SelectExpression, Transpile,
-    WhereExpression, WithExpression,
+    Expression, FromItem, GroupByClause, OrderByClause, SelectExpression, Transpile, WhereClause,
+    WithClause,
 };
 
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
     #[builder(default)]
-    pub with: WithExpression,
+    pub with: WithClause,
     #[builder(default)]
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
     #[builder(into)]
     pub from: Option<FromItem<'static>>,
     #[builder(default)]
-    pub where_expression: WhereExpression,
+    pub where_clause: WhereClause,
     #[builder(default)]
-    pub order_by_expression: OrderByExpression,
+    pub order_by_clause: OrderByClause,
     #[builder(default)]
-    pub group_by_expression: GroupByExpression,
+    pub group_by_clause: GroupByClause,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
@@ -63,19 +63,19 @@ impl Transpile for SelectStatement {
             from.transpile(fmt)?;
         }
 
-        if !self.where_expression.is_empty() {
+        if !self.where_clause.is_empty() {
             fmt.write_char('\n')?;
-            self.where_expression.transpile(fmt)?;
+            self.where_clause.transpile(fmt)?;
         }
 
-        if !self.order_by_expression.is_empty() {
+        if !self.order_by_clause.is_empty() {
             fmt.write_char('\n')?;
-            self.order_by_expression.transpile(fmt)?;
+            self.order_by_clause.transpile(fmt)?;
         }
 
-        if !self.group_by_expression.expressions.is_empty() {
+        if !self.group_by_clause.expressions.is_empty() {
             fmt.write_char('\n')?;
-            self.group_by_expression.transpile(fmt)?;
+            self.group_by_clause.transpile(fmt)?;
         }
 
         if let Some(limit) = self.limit {

@@ -6,7 +6,7 @@ use super::super::expression::Transpiler;
 use crate::store::postgres::query::{Expression, Transpile};
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct WhereExpression {
+pub struct WhereClause {
     pub conditions: Vec<Expression>,
     pub cursor: Vec<(
         Expression,
@@ -16,7 +16,7 @@ pub struct WhereExpression {
     )>,
 }
 
-impl WhereExpression {
+impl WhereClause {
     pub fn add_condition(&mut self, condition: Expression) {
         self.conditions.push(condition);
     }
@@ -42,7 +42,7 @@ impl WhereExpression {
     }
 }
 
-impl Transpile for WhereExpression {
+impl Transpile for WhereClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.conditions.is_empty() && self.cursor.is_empty() {
             return Ok(());
@@ -137,10 +137,10 @@ mod tests {
 
     #[test]
     #[expect(clippy::too_many_lines)]
-    fn transpile_where_expression() {
+    fn transpile_where_clause() {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes), false);
-        let mut where_clause = WhereExpression::default();
+        let mut where_clause = WhereClause::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
         let filter_a = Filter::Equal(

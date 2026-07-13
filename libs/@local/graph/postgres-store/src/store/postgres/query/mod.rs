@@ -33,9 +33,9 @@ pub use self::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
         Constant, Distinctness, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
         FromItemJoinBuilder, FromItemSubqueryBuilder, FromItemTableBuilder, Function,
-        GroupByExpression, Identifier, JoinType, OnConflict, OrderByExpression, SelectExpression,
+        GroupByClause, Identifier, JoinType, OnConflict, OrderByClause, SelectExpression,
         SelectStatement, Statement, TableName, TableReference, UnaryExpression, UnaryOperator,
-        VariadicExpression, VariadicOperator, WhereExpression, WindowStatement, WithExpression,
+        VariadicExpression, VariadicOperator, WhereClause, WindowDefinition, WithClause,
         bulk_insert,
     },
     compile::{SelectCompiler, SelectCompilerError},
@@ -200,7 +200,7 @@ pub(crate) mod test_helper {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use crate::store::postgres::query::{
-        Alias, Expression, Function, PostgresQueryPath as _, WindowStatement,
+        Alias, Expression, Function, PostgresQueryPath as _, WindowDefinition,
     };
 
     pub fn trim_whitespace(string: &str) -> String {
@@ -221,7 +221,7 @@ pub(crate) mod test_helper {
                         }),
                 ),
             )))),
-            WindowStatement::partition_by(Expression::ColumnReference(
+            WindowDefinition::partition_by(Expression::ColumnReference(
                 DataTypeQueryPath::BaseUrl
                     .terminating_column()
                     .0
