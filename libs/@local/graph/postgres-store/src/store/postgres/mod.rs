@@ -130,7 +130,10 @@ where
     }
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Inserts multiple policies into the database.
     ///
     /// # Errors
@@ -3366,7 +3369,10 @@ where
     }
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into

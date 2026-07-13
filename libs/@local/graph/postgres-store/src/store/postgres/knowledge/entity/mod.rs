@@ -3097,7 +3097,10 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     )
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
@@ -3648,7 +3651,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
             .await
             .change_context(UpdateError)?;
 
-        self.client
+        self.as_client()
             .query(
                 "
                     UPDATE entity_editions SET
