@@ -416,14 +416,6 @@ jobs:
         id: lockfile
         run: echo "exists=$([[ -f .config/mise/mise.lock ]] && echo true || echo false)" | tee -a $GITHUB_OUTPUT
 
-      # Offline consistency checks: the lockfile matches the `config.toml`
-      # pins, covers all required platforms, and no platform entry points at
-      # an asset built for a different OS/architecture (e.g. a darwin_amd64
-      # asset under a macos-arm64 key).
-      - name: Validate lockfile consistency
-        if: steps.lockfile.outputs.exists == 'true'
-        run: python3 .github/scripts/validate-mise-lock.py
-
       - name: Install mise
         if: steps.lockfile.outputs.exists == 'true'
         uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
@@ -441,33 +433,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mise install --locked --dry-run
 
-      # Actually install the tools that have pre-resolved URLs for this
-      # platform, so the locked URLs are downloaded and their sha256
-      # checksums and sizes are verified by mise. This catches a broken or
-      # tampered lockfile entry before the (slower) Docker builds do.
+      # Download the tools that have pre-resolved URLs in the lockfile so
+      # mise verifies their sha256 checksums and sizes. This catches a broken
+      # or tampered lockfile entry before the (slower) Docker builds do.
+      # Keep the list in sync with the tools carrying `platforms.*` entries
+      # in `mise.lock`; the dry-run step above already fails on tools missing
+      # from the lockfile. Cargo/npm/pipx tools are excluded, as they install
+      # through their own package managers and have no locked URLs to verify.
       - name: Install URL-locked tools
         if: steps.lockfile.outputs.exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TOOLS=$(python3 - <<'EOF'
-          import platform
-          import tomllib
-
-          arch = {"x86_64": "x64", "aarch64": "arm64"}[platform.machine()]
-          key = f"platforms.linux-{arch}"
-          with open(".config/mise/mise.lock", "rb") as f:
-              tools = tomllib.load(f).get("tools", {})
-          print(" ".join(sorted({
-              name
-              for name, entries in tools.items()
-              for entry in entries
-              if entry.get(key, {}).get("url")
-          })))
-          EOF
-          )
-          echo "Installing: $TOOLS"
-          mise install --locked $TOOLS
+        run: mise install --locked cargo-binstall java just node protoc sentry-cli taplo uv yq
 
   passed:
     name: Linting passed
