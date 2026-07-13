@@ -23,6 +23,7 @@ step outside this tool.
 """
 
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 
 from pydantic import BaseModel, NonNegativeInt
@@ -123,7 +124,7 @@ class ExtractPaths:
 def render_cards(
     record_set: RecordSet,
     config: Config,
-    out_dir: Path | str,
+    out_dir: PathLike,
 ) -> CardsPaths:
     """Render cards.jsonl + cards.manifest.json from a loaded record set.
 
@@ -210,7 +211,7 @@ def render_cards(
 def emit_cards(
     result: ExtractionResult,
     config: Config,
-    out_dir: Path | str,
+    out_dir: PathLike,
 ) -> ExtractPaths:
     """Persist the structured intermediate, then render cards from it.
 

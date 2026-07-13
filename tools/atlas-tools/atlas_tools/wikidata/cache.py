@@ -30,6 +30,7 @@ never from the wall clock at emit time.
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from os import PathLike
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -84,7 +85,7 @@ class CachingTransport:
     def __init__(
         self,
         inner: Transport,
-        cache_dir: Path | str,
+        cache_dir: PathLike,
         *,
         snapshot_date: str,
     ) -> None:

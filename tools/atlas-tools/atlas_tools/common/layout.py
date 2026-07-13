@@ -28,7 +28,7 @@ _XY_NDIM: Final = 2
 _XY_COLUMNS: Final = 2
 
 
-def layout_meta_path_for(path: Path | str) -> Path:
+def layout_meta_path_for(path: PathLike) -> Path:
     """Sidecar path for a layout file: ``layout.npz`` maps to ``layout.meta.json``."""
     path = Path(path)
     stem = path.name.removesuffix(".npz")
@@ -113,7 +113,7 @@ def load_layout(path: PathLike, *, require_provenance: bool = True) -> LayoutArt
 
 
 def write_layout(
-    path: Path | str,
+    path: PathLike,
     xy: np.ndarray,
     row_id: np.ndarray | None = None,
     *,

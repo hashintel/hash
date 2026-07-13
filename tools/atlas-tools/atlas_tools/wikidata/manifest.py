@@ -22,6 +22,7 @@ Documented decisions:
 """
 
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 from typing import NamedTuple
 
@@ -131,10 +132,10 @@ def _plan_table(rows: list[PlanRow]) -> pa.Table:
 
 
 def build_sampling_plan(
-    entities_path: Path | str,
+    entities_path: PathLike,
     *,
     config: Config,
-    out_path: Path | str,
+    out_path: PathLike,
 ) -> SamplingPlanSummary:
     entities_path = Path(entities_path)
     out_path = Path(out_path)

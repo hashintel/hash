@@ -64,7 +64,6 @@ from pydantic import (
 from atlas_tools.battery.datasets import (
     Dataset,
     DatasetHashes,
-    StrPath,
     write_dataset,
 )
 from atlas_tools.battery.engine_runner import (
@@ -166,7 +165,7 @@ class Suite(BaseModel):
         return [generator.shape for generator in self.datasets]
 
 
-def load_suite(path: StrPath) -> Suite:
+def load_suite(path: os.PathLike) -> Suite:
     """Load and validate a versioned suite YAML; fill defaults."""
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
@@ -401,9 +400,9 @@ def _library_versions() -> dict[str, str]:
 
 
 def run_suite(
-    suite_path: StrPath,
-    engines_path: StrPath,
-    out_dir: StrPath,
+    suite_path: os.PathLike,
+    engines_path: os.PathLike,
+    out_dir: os.PathLike,
     *,
     jobs: int | None = None,
 ) -> RunResult:

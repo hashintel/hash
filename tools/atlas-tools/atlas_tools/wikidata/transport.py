@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from http import HTTPStatus
+from os import PathLike
 from pathlib import Path
 from typing import Protocol
 
@@ -264,7 +265,7 @@ _FIXTURE_INDEX_ADAPTER = TypeAdapter(dict[str, FixtureEntry])
 class FixtureTransport:
     """Serves committed responses keyed by ``request_key(url, params)``."""
 
-    def __init__(self, fixture_dir: Path | str) -> None:
+    def __init__(self, fixture_dir: PathLike) -> None:
         self._dir = Path(fixture_dir)
         self._index = _FIXTURE_INDEX_ADAPTER.validate_json((self._dir / "index.json").read_bytes())
 

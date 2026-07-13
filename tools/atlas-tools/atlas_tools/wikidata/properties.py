@@ -74,11 +74,14 @@ typed or not.
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from os import PathLike
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel, Field, JsonValue, ValidationError
 from pydantic_extra_types.language_code import LanguageAlpha2
 
+from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.common.provenance import canonical_json_bytes, sha256_bytes
 from atlas_tools.wikidata.cache import RETRIEVED_AT_HEADER
 from atlas_tools.wikidata.config import Config, ExtractionConfig
@@ -94,7 +97,6 @@ from atlas_tools.wikidata.model import (
     Qid,
     entity_number,
 )
-from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.wikidata.sparql import (
     EXAMPLE_QUERY_VERSION,
     WIKIBASE_ITEM_DATATYPE,
@@ -151,7 +153,7 @@ class TermValue(BaseModel):
 class EntityDocument(BaseModel):
     """The subset of a wbgetentities entity document this tool reads."""
 
-    id: str
+    id: EntityId
     datatype: str = ""
     labels: dict[str, TermValue] = Field(default_factory=dict)
     descriptions: dict[str, TermValue] = Field(default_factory=dict)
@@ -163,21 +165,24 @@ class WbGetEntitiesResponse(BaseModel):
     entities: dict[str, EntityDocument] = Field(default_factory=dict)
 
 
-def _snak_entity_id(snak: Snak) -> str | None:
+def _snak_entity_id(snak: Snak) -> EntityId | None:
     if snak.snaktype != "value" or snak.datavalue is None:
         return None
+
     value = snak.datavalue.value
-    return value.id if isinstance(value, EntityIdValue) else None
+    return cast("EntityId", value.id) if isinstance(value, EntityIdValue) else None
 
 
-def _statement_entity_ids(
+def _statement_entity_ids[T: EntityId = EntityId](
     claims: Mapping[str, Sequence[Statement]], claim_property: str
-) -> tuple[str, ...]:
-    ids: list[str] = []
+) -> tuple[T, ...]:
+    ids: list[T] = []
+
     for statement in claims.get(claim_property, ()):
         entity_id = _snak_entity_id(statement.mainsnak)
         if entity_id is not None and entity_id not in ids:
-            ids.append(entity_id)
+            ids.append(cast("T", entity_id))
+
     return tuple(ids)
 
 
@@ -277,10 +282,11 @@ def parse_property_document(
     extraction phases.
     """
     constraints = parse_constraints(document.claims.get("P2302", []))
-    p1696 = _statement_entity_ids(document.claims, "P1696")
+    p1696 = cast("tuple[Pid, ...]", _statement_entity_ids(document.claims, "P1696"))
     inverse_pid = p1696[0] if p1696 else constraints.inverse_pid
+
     return PropertyRecord(
-        pid=document.id,
+        pid=Pid(document.id),
         datatype=document.datatype,
         labels={
             language: document.labels[language].value
@@ -805,7 +811,7 @@ def extract_properties(
     transport: Transport,
     *,
     taxonomy: Taxonomy | None = None,
-    checkpoint_path: Path | str | None = None,
+    checkpoint_path: PathLike | None = None,
     progress: ProgressReporter = NO_PROGRESS,
 ) -> ExtractionResult:
     """Mine property records through the full pipeline.

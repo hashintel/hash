@@ -44,12 +44,6 @@ _MATRIX_NDIM: Final = 2
 _EDGE_ENDPOINTS: Final = 2
 """Undirected relation edges are node-id pairs."""
 
-type StrPath = str | PathLike[str]
-"""A filesystem path as accepted at the battery's boundaries.
-
-The CLI passes strings and tests pass :class:`~pathlib.Path` objects.
-"""
-
 
 class TruthDetails(BaseModel):
     """Planted-structure descriptor carried in ``truth.json``."""
@@ -121,7 +115,7 @@ class DatasetHashes(BaseModel):
     truth_config_hash: Sha256Hex
 
 
-def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
+def write_dataset(dataset: Dataset, out_dir: PathLike) -> DatasetHashes:
     """Write the dataset artifact directory; return its content hashes."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -160,7 +154,7 @@ def write_dataset(dataset: Dataset, out_dir: StrPath) -> DatasetHashes:
     return DatasetHashes(**input_hashes, truth_config_hash=truth_payload.config_hash)
 
 
-def load_dataset(directory: StrPath) -> Dataset:
+def load_dataset(directory: PathLike) -> Dataset:
     """Load a dataset artifact directory written by :func:`write_dataset`."""
     directory = Path(directory)
     embeddings, _ = load_matrix(directory / EMBEDDINGS_FILE, mmap=False)

@@ -34,8 +34,8 @@ from pydantic_extra_types.path import ExistingPath
 from pydantic_settings import CliSubCommand, CliToggleFlag
 
 from atlas_tools.common.cli import echo, run_cli
+from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter, StderrProgress
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter, StderrProgress
 
 
 def _progress_reporter(*, quiet: bool) -> ProgressReporter:

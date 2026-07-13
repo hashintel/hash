@@ -3,8 +3,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from atlas_tools.common.progress import StderrProgress
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.progress import StderrProgress
 from atlas_tools.wikidata.properties import extract_properties
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport

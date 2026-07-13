@@ -35,6 +35,7 @@ Files written by ``emit_records`` (all in the extraction output directory):
 """
 
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 
 from pydantic import BaseModel, Field, NonNegativeInt, TypeAdapter
@@ -56,8 +57,6 @@ from atlas_tools.wikidata.model import (
 )
 from atlas_tools.wikidata.properties import ExtractionResult
 
-# v2: Example rows gained subject/object QIDs and the constraint-class
-# stratum; ladder flags gained the `other` bucket diagnostics.
 RECORDS_FORMAT_VERSION = 2
 
 _ENTITY_LABELS_ADAPTER = TypeAdapter(dict[EntityId, EntityLabel])
@@ -135,7 +134,7 @@ class RecordSet:
     records_path: Path
 
 
-def emit_records(result: ExtractionResult, config: Config, out_dir: Path | str) -> RecordsPaths:
+def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) -> RecordsPaths:
     """Persist the structured intermediate + inventory (see module doc)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -219,7 +218,7 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: Path | str) 
     )
 
 
-def load_records(path: Path | str) -> RecordSet:
+def load_records(path: PathLike) -> RecordSet:
     """Load the intermediate from a directory or a records.jsonl path.
 
     ``entity_labels.json`` and ``records.meta.json`` must sit next to

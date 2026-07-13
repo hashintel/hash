@@ -28,6 +28,7 @@ gate fails as "not evaluable"; the gate fails closed (see :mod:`atlas_tools.batt
 import shlex
 import subprocess
 import sys
+from os import PathLike
 from pathlib import Path
 from typing import Literal, Self
 
@@ -39,7 +40,6 @@ from atlas_tools.battery.datasets import (
     EDGES_FILE,
     EMBEDDINGS_FILE,
     LABELS_FILE,
-    StrPath,
 )
 from atlas_tools.common.layout import LayoutArtifact, load_layout
 
@@ -83,14 +83,14 @@ class EngineSpec(BaseModel):
         return None
 
 
-def load_engine_file(path: StrPath) -> EngineFile:
+def load_engine_file(path: PathLike) -> EngineFile:
     """Load and validate a versioned engines YAML file."""
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
     return EngineFile.model_validate(data)
 
 
-def load_engines(path: StrPath) -> list[EngineSpec]:
+def load_engines(path: PathLike) -> list[EngineSpec]:
     """Load the engine specs of a versioned engines YAML file."""
     return load_engine_file(path).engines
 
@@ -113,8 +113,8 @@ def render_command(template: str, mapping: dict[str, str]) -> list[str]:
 def run_engine(
     spec: EngineSpec,
     *,
-    dataset_dir: StrPath,
-    out_path: StrPath,
+    dataset_dir: PathLike,
+    out_path: PathLike,
     seed: int,
     use_edges: bool = True,
 ) -> None:
@@ -159,7 +159,7 @@ def run_engine(
         raise RuntimeError(f"engine {spec.name!r} exited 0 but wrote no layout at {out_path}")
 
 
-def load_aligned_layout(path: StrPath, expected_n: int) -> LayoutArtifact:
+def load_aligned_layout(path: PathLike, expected_n: int) -> LayoutArtifact:
     """Load a layout, validate it against the dataset, and align xy by row_id."""
     artifact = load_layout(Path(path))
 

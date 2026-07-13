@@ -27,13 +27,13 @@ drops in later using exactly this mechanism: the same command, a bigger layout.n
 recorded values.
 """
 
+from os import PathLike
 from pathlib import Path
 from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
-from atlas_tools.battery.datasets import StrPath
 from atlas_tools.battery.merge_tree import MergeTreeConfig, merge_tree_persistence
 from atlas_tools.battery.metrics import MetricName
 from atlas_tools.common.layout import load_layout
@@ -89,7 +89,7 @@ class CalibrationReport(BaseModel):
     manifest: Path
 
 
-def load_calibration_manifest(path: StrPath) -> CalibrationManifest:
+def load_calibration_manifest(path: PathLike) -> CalibrationManifest:
     """Load and validate a versioned calibration manifest YAML."""
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
@@ -111,7 +111,7 @@ def _check(
     )
 
 
-def run_calibration(layout_path: StrPath, manifest_path: StrPath) -> CalibrationReport:
+def run_calibration(layout_path: PathLike, manifest_path: PathLike) -> CalibrationReport:
     """Compute merge-tree statistics and compare them with the reference manifest."""
     manifest = load_calibration_manifest(manifest_path)
 

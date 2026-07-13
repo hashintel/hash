@@ -44,6 +44,7 @@ via config; the stream is never hashed locally.
 
 import hashlib
 from dataclasses import dataclass, field
+from os import PathLike
 from pathlib import Path
 from typing import NamedTuple, Protocol
 
@@ -53,12 +54,12 @@ import pyarrow.parquet as pq
 from pydantic import BaseModel, Field, NonNegativeInt
 
 from atlas_tools.common.data import Sha256Hex
+from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.common.provenance import (
     Provenance,
     canonical_json_bytes,
 )
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.progress import NO_PROGRESS, ProgressReporter
 
 
 class EntityManifestDetails(BaseModel):
@@ -350,8 +351,8 @@ def extract_entities(
     input_stream: ByteLineStream,
     *,
     config: Config,
-    out_path: Path | str,
-    checkpoint_dir: Path | str,
+    out_path: PathLike,
+    checkpoint_dir: PathLike,
     input_name: str = "",
     seekable: bool = True,
     hash_rows: bool = True,

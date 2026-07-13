@@ -1,6 +1,7 @@
 """Emit HASH SemType link-type records and canonical relation cards."""
 
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 
 from pydantic import (
@@ -113,7 +114,7 @@ def _write_link_types(path: Path, records: list[HashRelationRecord]) -> None:
 def emit_hash_cards(
     extraction: LiveHashExtraction,
     config: HashCardsConfig,
-    out_dir: Path | str,
+    out_dir: PathLike,
     *,
     connection_info: DatabaseConnectionInfo,
 ) -> HashCardsPaths:
@@ -218,7 +219,7 @@ def emit_hash_cards(
 def extract_and_emit_hash_cards(
     connection_info: DatabaseConnectionInfo,
     config: HashCardsConfig,
-    out_dir: Path | str,
+    out_dir: PathLike,
 ) -> HashCardsPaths:
     """Select directly from live HASH PostgreSQL and emit both artifacts."""
     extraction = extract_live_hash_relations(
