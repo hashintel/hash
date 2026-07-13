@@ -36,6 +36,12 @@ const RGBA_OPAQUE = 255;
 /** Colour used if a point's hex value cannot be resolved. */
 const FALLBACK_COLOR: [number, number, number] = [148, 148, 148];
 const POINT_RADIUS = 0.1;
+/**
+ * How strongly the point radius grows with zoom. At `0` the radius is fixed in
+ * screen pixels; at `1` it scales 1:1 with the zoom's linear scale factor. `0.8`
+ * grows the radius slightly sub-linearly as you zoom in.
+ */
+const ZOOM_RADIUS_RATE = 1;
 const EDGE_COLOR = [64, 71, 92] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
@@ -81,6 +87,9 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
     null,
   );
   const [hovered, setHovered] = useState<GraphChartPoint | null>(null);
+  // The zoom the graph was first framed at, used as the reference point from
+  // which the point radius grows as the user zooms in.
+  const [referenceZoom, setReferenceZoom] = useState<number | null>(null);
 
   const view = useMemo(() => new OrthographicView({ id: "graph-chart" }), []);
 
@@ -202,6 +211,8 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
       const zoomX = Math.log2((width * padding) / (bounds.width || 1));
       const zoomY = Math.log2((height * padding) / (bounds.height || 1));
       const zoom = Math.min(zoomX, zoomY);
+      // Capture the first framing as the reference for zoom-based radius growth.
+      setReferenceZoom((previous) => previous ?? zoom);
       // Only auto-frame until the user takes control of the view.
       setViewState(
         (previous) =>
@@ -224,6 +235,27 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
     setHovered((previous) => (previous?.id === object?.id ? previous : object));
   }, []);
 
+  /** Current zoom level as a single number (orthographic zoom may be a pair). */
+  const currentZoom = useMemo(() => {
+    const zoom = viewState?.zoom;
+    if (zoom === undefined) {
+      return null;
+    }
+    return Array.isArray(zoom) ? zoom[0] : zoom;
+  }, [viewState?.zoom]);
+
+  /**
+   * Multiplier applied to every point radius so it grows as the user zooms in.
+   * `2 ** (zoom - referenceZoom)` is the linear scale factor since orthographic
+   * zoom is log2; raising it to {@link ZOOM_RADIUS_RATE} gives the desired rate.
+   */
+  const radiusScale = useMemo(() => {
+    if (currentZoom === null || referenceZoom === null) {
+      return 1;
+    }
+    return 2 ** (ZOOM_RADIUS_RATE * (currentZoom - referenceZoom));
+  }, [currentZoom, referenceZoom]);
+
   const layers = useMemo(() => {
     const isHovering = hover !== null;
     return [
@@ -235,6 +267,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         getPosition: (point) => [point.x, point.y],
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
         getRadius: POINT_RADIUS,
+        radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: POINT_RADIUS,
         // Fade the crowd back so the hovered node's neighbourhood stands out.
@@ -257,6 +290,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
         getRadius: (point) =>
           point.id === hovered?.id ? POINT_RADIUS * 2.2 : POINT_RADIUS * 1.6,
+        radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: 2,
         stroked: true,
@@ -269,7 +303,7 @@ export const GraphChart = ({ points, edges, className }: GraphChartProps) => {
         },
       }),
     ];
-  }, [points, hover, hovered?.id, handleHover, colorByHex]);
+  }, [points, hover, hovered?.id, handleHover, colorByHex, radiusScale]);
 
   return (
     <div ref={containerRef} className={cx(containerStyles, className)}>
