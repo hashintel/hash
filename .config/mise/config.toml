@@ -29,11 +29,12 @@ java                          = "25"
 protoc                        = "35.1"
 
 # CLI tools
-"aqua:mitsuhiko/insta"                  = "1.47.2"
+# cargo-insta stays on the cargo backend: its prebuilt releases lack linux-arm64 and it runs inside the arm64 image builds.
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.137"
 "aqua:taiki-e/cargo-llvm-cov"           = "0.8.7"
 "cargo:cargo-codspeed"                  = "4.1.0"
 "cargo:cargo-hack"                      = "0.6.45"
+"cargo:cargo-insta"                     = "1.47.2"
 just                                    = "1.51.0"
 markdownlint-cli2                       = "0.22.1"
 "npm:@napi-rs/cli"                      = "3.7.0"
