@@ -11,7 +11,7 @@ pub use self::{
     clause::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder, GroupByExpression, JoinType, OrderByExpression, SelectExpression,
-        TableSample, WhereExpression, WithExpression,
+        WhereExpression, WithExpression,
     },
     column_reference::{ColumnName, ColumnReference},
     expression::{

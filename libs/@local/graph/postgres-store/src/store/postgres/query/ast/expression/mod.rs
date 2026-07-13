@@ -9,8 +9,6 @@ use core::fmt::{
     Display, Formatter, Write as _, {self},
 };
 
-use hash_graph_store::filter::PathToken;
-
 pub use self::{
     binary::{BinaryExpression, BinaryOperator},
     constant::Constant,
