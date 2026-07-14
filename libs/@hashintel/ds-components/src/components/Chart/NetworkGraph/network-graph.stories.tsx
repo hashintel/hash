@@ -5,7 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { LoadingSpinner } from "../../Loading/loading-spinner";
 // Imported with `?url` so the ~23 MB of fixtures are served as static assets
 // and parsed at runtime, rather than inlined into the story bundle.
-import edgesUrl from "./edges.json?url";
+import edgesUrl from "./fixtures/edges.json?url";
+import pointsUrl from "./fixtures/points.json?url";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
@@ -13,7 +14,6 @@ import {
   type NetworkGraphPoint,
   type NetworkGraphProps,
 } from "./network-graph";
-import pointsUrl from "./points.json?url";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
