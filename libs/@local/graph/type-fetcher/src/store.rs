@@ -563,11 +563,17 @@ where
                     "fetching ontology types from type fetcher",
                     urls=?ontology_urls
                 );
+                let requested_urls = ontology_urls
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 fetcher
                     .fetch_ontology_types(ontology_urls)
                     .instrument(span)
                     .await
-                    .change_context(QueryError)?
+                    .change_context(QueryError)
+                    .attach_with(|| format!("Requested URLs from type fetcher: {requested_urls}"))?
             };
 
             for (ontology_type, fetched_at) in ontology_types {
