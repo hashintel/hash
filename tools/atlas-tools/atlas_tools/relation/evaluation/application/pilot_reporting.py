@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from atlas_tools.common import Sha256Hex, sha256_bytes
 from atlas_tools.relation.evaluation.analysis.api import (
@@ -29,6 +29,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     FrozenMapping,
     HandoffManifest,
     JudgeFamilyId,
+    NonNegativeFiniteFloat,
     ReasoningEffort,
     RelationId,
     ShellId,
@@ -100,7 +101,7 @@ class PilotDecisionArtifact(_ReportModel):
     admitted_shells: tuple[ShellId, ...]
     admitted_framings: tuple[FramingId, ...]
     selected_efforts: tuple[EffortSelection, ...]
-    projected_grid_cost_usd: float | None = Field(ge=0.0, allow_inf_nan=False)
+    projected_grid_cost_usd: NonNegativeFiniteFloat | None
     holdout_correctness: tuple[HoldoutCorrectness, ...]
     analysis: PilotAnalysis
 

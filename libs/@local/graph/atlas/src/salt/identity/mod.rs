@@ -279,21 +279,25 @@ impl IdentityDirectory {
     }
 
     /// Returns the number of identities in the generation.
+    #[inline]
     pub(crate) const fn len(&self) -> usize {
         self.entities.len()
     }
 
     /// Returns whether the generation contains no identities.
+    #[inline]
     pub(crate) const fn is_empty(&self) -> bool {
         self.entities.is_empty()
     }
 
     /// Resolves a graph identity to its generation row.
+    #[inline]
     pub(crate) fn row(&self, entity_id: &EntityId) -> Option<GenerationRowId> {
         self.rows.get(entity_id).copied()
     }
 
     /// Resolves a generation row to its graph identity.
+    #[inline]
     pub(crate) fn entity(&self, row: GenerationRowId) -> Option<&EntityId> {
         self.entities.get(row.as_usize())
     }
@@ -364,21 +368,25 @@ impl ArtifactIdentityMap {
     }
 
     /// Returns the number of rows in the artifact.
+    #[inline]
     pub(crate) const fn len(&self) -> usize {
         self.rows.len()
     }
 
     /// Returns whether the artifact contains no rows.
+    #[inline]
     pub(crate) const fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 
     /// Resolves a generation row to its artifact ordinal.
+    #[inline]
     pub(crate) fn ordinal(&self, row: GenerationRowId) -> Option<ArtifactOrdinal> {
         self.ordinals.get(&row).copied()
     }
 
     /// Resolves an artifact ordinal to its generation row.
+    #[inline]
     pub(crate) fn row(&self, ordinal: ArtifactOrdinal) -> Option<GenerationRowId> {
         self.rows.get(ordinal.as_usize()).copied()
     }

@@ -2,10 +2,16 @@
 
 from collections.abc import Sequence
 from contextlib import suppress
+from dataclasses import dataclass
 
 from atlas_tools.relation.evaluation.domain.api import (
+    ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    COMPLETION_REQUEST_POLICY_IDS,
     BaseRunConfig,
+    CompletionRequestPolicyId,
+    HistoricalCompletionRequestPolicyId,
     PhysicalAttempt,
+    RequestHash,
     RequestStage,
     Vote,
     VotePlan,
@@ -19,11 +25,42 @@ from atlas_tools.relation.evaluation.execution.vote import (
 )
 from atlas_tools.relation.evaluation.storage.api import ResumeIndex, index_resume
 from atlas_tools.relation.evaluation.transport.api import (
+    CompletionRequest,
     matches_pinned_route,
     request_hash,
 )
 
 type _AttemptsByStage = dict[RequestStage, tuple[PhysicalAttempt, ...]]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ReconstructedRequestSequence:
+    initial: CompletionRequest
+    repair: CompletionRequest | None
+    initial_raw: str | None
+    repair_raw: str | None
+
+
+def _allowed_request_hashes(
+    request: CompletionRequest,
+    *,
+    task: VoteTask,
+    stage: RequestStage,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+) -> frozenset[RequestHash]:
+    policy_ids: tuple[CompletionRequestPolicyId, ...] = (
+        *historical_request_policy_ids,
+        ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    )
+    return frozenset(
+        request_hash(
+            request,
+            vote_id=task.vote_id,
+            stage=stage,
+            policy_id=policy_id,
+        )
+        for policy_id in policy_ids
+    )
 
 
 def _group_attempts(
@@ -59,15 +96,11 @@ def _group_attempts(
             raise ValueError(f"vote {task.vote_id} resumes the initial stage after repair")
         grouped[attempt.request_stage].append(attempt)
 
-    result: _AttemptsByStage = {
-        stage: tuple(rows) for stage, rows in grouped.items()
-    }
+    result: _AttemptsByStage = {stage: tuple(rows) for stage, rows in grouped.items()}
     for stage, rows in result.items():
         observed_indices = tuple(row.stage_attempt for row in rows)
         if observed_indices != tuple(range(len(rows))):
-            raise ValueError(
-                f"attempts for {task.vote_id}/{stage} are not contiguous from zero"
-            )
+            raise ValueError(f"attempts for {task.vote_id}/{stage} are not contiguous from zero")
         successful = tuple(row for row in rows if row.failure is None)
         if len(successful) > 1:
             raise ValueError(f"vote {task.vote_id} has multiple successful {stage} calls")
@@ -97,13 +130,13 @@ def _accepted_content(task: VoteTask, attempt: PhysicalAttempt) -> str:
     return content
 
 
-def _validate_request_hashes(
+def _reconstruct_request_sequence(
     task: VoteTask,
     grouped: _AttemptsByStage,
     *,
     prompt: VotePrompt,
     config: BaseRunConfig,
-) -> tuple[str | None, str | None]:
+) -> _ReconstructedRequestSequence:
     initial_messages = prompt.initial(task)
     initial_request = _completion_request(
         task,
@@ -111,14 +144,15 @@ def _validate_request_hashes(
         messages=initial_messages,
         config=config,
     )
-    initial_hash = request_hash(initial_request, vote_id=task.vote_id, stage="initial")
-    if any(attempt.request_hash != initial_hash for attempt in grouped["initial"]):
-        raise ValueError(f"initial request hash differs for vote {task.vote_id}")
-
     initial = _successful(grouped, "initial")
     initial_raw = _accepted_content(task, initial) if initial is not None else None
     if not grouped["repair"]:
-        return initial_raw, None
+        return _ReconstructedRequestSequence(
+            initial=initial_request,
+            repair=None,
+            initial_raw=initial_raw,
+            repair_raw=None,
+        )
     if initial_raw is None:
         raise ValueError(f"repair attempts for {task.vote_id} lack an accepted initial call")
     try:
@@ -128,19 +162,107 @@ def _validate_request_hashes(
     else:
         raise ValueError(f"repair attempts for {task.vote_id} follow a valid initial response")
 
-    repair_messages = prompt.repair(initial_messages, initial_raw)
     repair_request = _completion_request(
         task,
         stage="repair",
-        messages=repair_messages,
+        messages=prompt.repair(initial_messages, initial_raw),
         config=config,
     )
-    repair_hash = request_hash(repair_request, vote_id=task.vote_id, stage="repair")
-    if any(attempt.request_hash != repair_hash for attempt in grouped["repair"]):
-        raise ValueError(f"repair request hash differs for vote {task.vote_id}")
     repair = _successful(grouped, "repair")
     repair_raw = _accepted_content(task, repair) if repair is not None else None
-    return initial_raw, repair_raw
+    return _ReconstructedRequestSequence(
+        initial=initial_request,
+        repair=repair_request,
+        initial_raw=initial_raw,
+        repair_raw=repair_raw,
+    )
+
+
+def _validate_request_hashes(
+    task: VoteTask,
+    grouped: _AttemptsByStage,
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+) -> tuple[str | None, str | None]:
+    sequence = _reconstruct_request_sequence(
+        task,
+        grouped,
+        prompt=prompt,
+        config=config,
+    )
+    initial_hashes = _allowed_request_hashes(
+        sequence.initial,
+        task=task,
+        stage="initial",
+        historical_request_policy_ids=historical_request_policy_ids,
+    )
+    if any(attempt.request_hash not in initial_hashes for attempt in grouped["initial"]):
+        raise ValueError(f"initial request hash differs for vote {task.vote_id}")
+    if sequence.repair is None:
+        return sequence.initial_raw, None
+    repair_hashes = _allowed_request_hashes(
+        sequence.repair,
+        task=task,
+        stage="repair",
+        historical_request_policy_ids=historical_request_policy_ids,
+    )
+    if any(attempt.request_hash not in repair_hashes for attempt in grouped["repair"]):
+        raise ValueError(f"repair request hash differs for vote {task.vote_id}")
+    return sequence.initial_raw, sequence.repair_raw
+
+
+def observed_request_policy_ids(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+) -> tuple[CompletionRequestPolicyId, ...]:
+    """Identify every closed request policy represented by durable attempts.
+
+    Each attempt must match exactly one registered policy for its reconstructed
+    content. The result is deduplicated in registry order and is empty only
+    when the supplied attempt sequence is empty.
+
+    Raises:
+        ValueError: Stage evidence is invalid, or a request hash has zero or
+            multiple matching registered policies.
+
+    """
+    grouped = _group_attempts(task, attempts)
+    sequence = _reconstruct_request_sequence(
+        task,
+        grouped,
+        prompt=prompt,
+        config=config,
+    )
+    requests: tuple[tuple[RequestStage, CompletionRequest], ...] = (
+        (("initial", sequence.initial),)
+        if sequence.repair is None
+        else (("initial", sequence.initial), ("repair", sequence.repair))
+    )
+    observed: set[CompletionRequestPolicyId] = set()
+    for stage, request in requests:
+        for attempt in grouped[stage]:
+            matches = tuple(
+                policy_id
+                for policy_id in COMPLETION_REQUEST_POLICY_IDS
+                if attempt.request_hash
+                == request_hash(
+                    request,
+                    vote_id=task.vote_id,
+                    stage=stage,
+                    policy_id=policy_id,
+                )
+            )
+            if len(matches) != 1:
+                raise ValueError(
+                    f"attempt {attempt.attempt_id} matches {len(matches)} request policies"
+                )
+            observed.add(matches[0])
+    return tuple(policy_id for policy_id in COMPLETION_REQUEST_POLICY_IDS if policy_id in observed)
 
 
 def _validate_completed_vote(
@@ -196,6 +318,7 @@ def validate_attempt_sequence(
     *,
     prompt: VotePrompt,
     config: BaseRunConfig,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
 ) -> None:
     """Prove request identity, stage protocol, route pins, and vote projection.
 
@@ -213,6 +336,7 @@ def validate_attempt_sequence(
         grouped,
         prompt=prompt,
         config=config,
+        historical_request_policy_ids=historical_request_policy_ids,
     )
     if vote is not None:
         _validate_completed_vote(
@@ -232,6 +356,7 @@ def build_resume_index(
     attempts: tuple[PhysicalAttempt, ...],
     prompt: VotePrompt,
     config: BaseRunConfig,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
 ) -> ResumeIndex:
     """Validate a replayed plan and return only reusable durable evidence.
 
@@ -256,6 +381,7 @@ def build_resume_index(
             vote,
             prompt=prompt,
             config=config,
+            historical_request_policy_ids=historical_request_policy_ids,
         )
 
     return index_resume(

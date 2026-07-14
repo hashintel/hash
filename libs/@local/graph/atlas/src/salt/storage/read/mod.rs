@@ -43,6 +43,7 @@ pub(crate) trait BaseReader {
     fn len(&self) -> usize;
 
     /// Returns whether the base contains no visible records.
+    #[inline]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -71,6 +72,7 @@ where
     Record: KeyedRecord,
 {
     /// Borrows the affected stable key.
+    #[inline]
     pub(crate) fn key(self) -> &'reader Record::Key {
         match self {
             Self::Upsert(record) => record.key(),
@@ -96,6 +98,7 @@ pub(crate) trait DeltaReader {
     fn len(&self) -> usize;
 
     /// Returns whether the delta contains no visible operations.
+    #[inline]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -117,6 +120,7 @@ pub(crate) struct EmptyDelta<Record> {
 impl<Record> EmptyDelta<Record> {
     /// Creates an empty initial delta.
     #[must_use]
+    #[inline]
     pub(crate) const fn new() -> Self {
         Self {
             marker: PhantomData,
@@ -125,6 +129,7 @@ impl<Record> EmptyDelta<Record> {
 }
 
 impl<Record> Default for EmptyDelta<Record> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -140,18 +145,22 @@ where
         Self: 'reader;
     type Record = Record;
 
+    #[inline]
     fn revision(&self) -> DeltaRevision {
         DeltaRevision::ZERO
     }
 
+    #[inline]
     fn len(&self) -> usize {
         0
     }
 
+    #[inline]
     fn get(&self, _key: &Record::Key) -> Option<DeltaEntry<'_, Record>> {
         None
     }
 
+    #[inline]
     fn iter(&self) -> Self::Iter<'_> {
         iter::empty()
     }
@@ -174,6 +183,7 @@ pub(crate) trait MergedReader {
     fn len(&self) -> usize;
 
     /// Returns whether the merged snapshot contains no visible records.
+    #[inline]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -217,16 +227,19 @@ where
     }
 
     /// Borrows the immutable base reader.
+    #[inline]
     pub(crate) const fn base(&self) -> &Base {
         &self.base
     }
 
     /// Returns the empty initial delta view.
+    #[inline]
     pub(crate) const fn delta(&self) -> EmptyDelta<Base::Record> {
         EmptyDelta::new()
     }
 
     /// Recovers the underlying base reader.
+    #[inline]
     pub(crate) fn into_base(self) -> Base {
         self.base
     }
@@ -242,18 +255,22 @@ where
         Self: 'reader;
     type Record = Base::Record;
 
+    #[inline]
     fn revision(&self) -> DataRevision {
         DataRevision::ZERO
     }
 
+    #[inline]
     fn len(&self) -> usize {
         self.base.len()
     }
 
+    #[inline]
     fn get(&self, key: &<Self::Record as KeyedRecord>::Key) -> Option<&Self::Record> {
         self.base.get(key)
     }
 
+    #[inline]
     fn iter(&self) -> Self::Iter<'_> {
         self.base.iter()
     }

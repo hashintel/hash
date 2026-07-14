@@ -16,6 +16,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     VoteVerdict,
 )
 from atlas_tools.relation.evaluation.modes.api import (
+    GridCanaryPlan,
     GridCard,
     GridPhaseAPlan,
     GridPhaseBPlan,
@@ -193,11 +194,17 @@ def test_grid_plan_is_the_replayable_phase_a_then_phase_b_stream() -> None:
         prompt_pack_hash=PROMPT_PACK_HASH,
         verdicts_by_vote_id=baseline,
     )
-    plan = GridPlan(phase_a=phase_a, phase_b=phase_b)
+    canary = GridCanaryPlan(
+        config=config,
+        cards=(card,),
+        prompt_pack_hash=PROMPT_PACK_HASH,
+    )
+    plan = GridPlan(phase_a=phase_a, phase_b=phase_b, canary=canary)
 
     first = tuple(plan.tasks())
     replay = tuple(plan.tasks())
 
-    assert plan.expected_votes == 6
-    assert tuple(task.repeat_index for task in first) == (0, 0, 1, 1, 2, 2)
+    assert plan.analysis_votes == 6
+    assert plan.expected_votes == 8
+    assert tuple(task.repeat_index for task in first) == (0, 0, 1, 1, 2, 2, 3, 3)
     assert tuple(task.vote_id for task in first) == tuple(task.vote_id for task in replay)

@@ -1,4 +1,4 @@
-"""Convert flat evaluation journals into the current nested contracts.
+"""Adopt retired flat evaluation artifacts into current run contracts.
 
 The migration reads one stopped pilot or grid directory under an exclusive
 run lock. Every legacy row is parsed by a strict, local schema before it is
@@ -6,12 +6,12 @@ transformed and parsed again by the current domain schema. Provider response
 objects are compared as canonical JSON bytes, so linking a vote never depends
 on an SDK projection or a lossy subset of the response.
 
-The destination is published by one directory rename and must not already
-exist. It contains only migrated journals, migrated in-flight markers, and a
-``migration-pending.json`` integration report. Run state, manifests, slice
-records, and corpus records are intentionally omitted until their final
-schemas can regenerate source hashes. Consequently, the command requires
-``--journals-only`` and its output is not resumable by itself.
+Full adoption prepares current state and input artifacts, installs the
+converted journals, and proves them against the current deterministic plan
+and request contract before publication. A complete pilot gains its handoff
+manifest; a stopped incomplete grid remains manifest-free and resumable.
+``--journals-only`` retains the narrower forensic conversion and emits an
+explicitly non-resumable ``migration-pending.json`` report.
 
 The migration performs no network operations. It runs in ``O(b)`` time for
 ``b`` input bytes. Additional memory is proportional to attempt identities
@@ -25,7 +25,7 @@ import os
 import shutil
 import sys
 import tempfile
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -46,6 +46,24 @@ from pydantic import (
 )
 
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
+from atlas_tools.relation.evaluation.analysis.api import analyze_grid
+from atlas_tools.relation.evaluation.application.grid_plan import (
+    derive_grid_plan,
+    split_grid_votes,
+)
+from atlas_tools.relation.evaluation.application.identity import request_contract_hash
+from atlas_tools.relation.evaluation.application.manifest import (
+    build_grid_manifest,
+    build_grid_state,
+    build_pilot_manifest,
+    build_pilot_state,
+)
+from atlas_tools.relation.evaluation.application.preparation import (
+    PreparedGrid,
+    PreparedPilot,
+    prepare_evaluation_inputs,
+)
+from atlas_tools.relation.evaluation.application.prompt import RubricVotePrompt
 from atlas_tools.relation.evaluation.domain.api import (
     AcceptedAttempt,
     AccountingFailure,
@@ -53,12 +71,16 @@ from atlas_tools.relation.evaluation.domain.api import (
     AttemptId,
     AttemptRoute,
     AttemptTiming,
+    BaseRunConfig,
     BundleId,
     CardHash,
+    CompletionRequestPolicyId,
     FailedAttempt,
     FiniteFloat,
     FramingId,
     GridRunConfig,
+    GridRunState,
+    HistoricalCompletionRequestPolicyId,
     InFlightRequest,
     JudgeFamilyId,
     JudgeRequestSpec,
@@ -68,6 +90,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     PaidRequestIdentity,
     PhysicalAttempt,
     PilotRunConfig,
+    PilotRunState,
     PromptPackHash,
     ProviderFailure,
     ProviderResult,
@@ -87,14 +110,38 @@ from atlas_tools.relation.evaluation.domain.api import (
     VoteEvidence,
     VoteId,
     VoteIdentity,
+    VotePlan,
     VoteProvenance,
     VoteRequest,
     VoteTiming,
+    VoteTask,
     VoteVerdict,
     attempt_id,
     bundle_id,
 )
-from atlas_tools.relation.evaluation.storage.api import load_config
+from atlas_tools.relation.evaluation.execution.api import (
+    build_resume_index,
+    executor_policy_payload,
+    observed_request_policy_ids,
+)
+from atlas_tools.relation.evaluation.storage.api import (
+    GridPaths,
+    PilotPaths,
+    ResumeIndex,
+    load_config,
+    load_json,
+    load_jsonl,
+    prepare_grid,
+    prepare_pilot,
+    write_grid_manifest,
+    write_pilot_manifest,
+)
+from atlas_tools.relation.evaluation.transport.api import (
+    COMPLETION_REQUEST_POLICY_IDS,
+    HISTORICAL_COMPLETION_REQUEST_POLICY_IDS,
+    request_policy_payload,
+    transport_versions,
+)
 from atlas_tools.relation_cards.common.cards import RelationId
 
 type MigrationMode = Literal["pilot", "grid"]
@@ -104,6 +151,7 @@ _JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
 _HTTP_CLIENT_ERROR_START = 400
 _HTTP_SERVER_ERROR_START = 500
 _RETRYABLE_CLIENT_STATUSES = frozenset({408, 425, 429})
+_ADOPTION_REPORT = "adoption-report.json"
 
 
 class _LegacyModel(BaseModel):
@@ -172,16 +220,16 @@ class _LegacyPhysicalAttempt(_LegacyModel):
     model_requested: NonEmptyStr
     result: _LegacyProviderResult | None
     failure: _LegacyFailure | None
-    ts_request: AwareDatetime
-    ts_response: AwareDatetime
+    request_at: AwareDatetime = Field(validation_alias="ts_request")
+    response_at: AwareDatetime = Field(validation_alias="ts_response")
     latency: Annotated[timedelta, Field(ge=timedelta())]
 
     @model_validator(mode="after")
     def check_outcome(self) -> Self:
         if self.result is None and self.failure is None:
             raise ValueError("a legacy attempt must contain a result or failure")
-        if self.ts_response < self.ts_request:
-            raise ValueError("legacy ts_response must not precede ts_request")
+        if self.response_at < self.request_at:
+            raise ValueError("legacy response time must not precede request time")
         return self
 
 
@@ -229,8 +277,8 @@ class _LegacyVote(_LegacyModel):
     known_cost_usd: NonNegativeFiniteFloat
     cost_complete: bool
     cost_usd: NonNegativeFiniteFloat | None
-    ts_request: AwareDatetime
-    ts_response: AwareDatetime
+    request_at: AwareDatetime = Field(validation_alias="ts_request")
+    response_at: AwareDatetime = Field(validation_alias="ts_response")
     latency: Annotated[timedelta, Field(ge=timedelta())]
 
     @model_validator(mode="after")
@@ -249,8 +297,8 @@ class _LegacyVote(_LegacyModel):
             raise ValueError("legacy cost completeness disagrees with cost_usd")
         if self.cost_usd is not None and self.cost_usd != self.known_cost_usd:
             raise ValueError("legacy complete cost must equal known cost")
-        if self.ts_response < self.ts_request:
-            raise ValueError("legacy ts_response must not precede ts_request")
+        if self.response_at < self.request_at:
+            raise ValueError("legacy response time must not precede request time")
         return self
 
 
@@ -287,6 +335,69 @@ class MigrationResult(_LegacyModel):
     def regenerated_hashes(self) -> tuple[tuple[str, Sha256Hex], ...]:
         """Return deterministic filename-to-hash pairs for integration."""
         return tuple((artifact.path, artifact.migrated_hash) for artifact in self.artifacts)
+
+
+class ArtifactHash(_LegacyModel):
+    """Identify one input or adopted output by its logical path and bytes."""
+
+    path: NonEmptyStr
+    content_hash: Sha256Hex
+
+
+class PlanTaskPointer(_LegacyModel):
+    """Identify one deterministic plan position without carrying prompt text."""
+
+    plan_index: NonNegativeInt
+    vote_id: VoteId
+    relation_id: RelationId
+    family_id: JudgeFamilyId
+    bundle_id: BundleId
+    effort: ReasoningEffort
+    repeat_index: NonNegativeInt
+
+
+class JournalRequestPolicies(_LegacyModel):
+    """Report registered wire policies observed in one closed journal."""
+
+    path: NonEmptyStr
+    closed_attempts: NonNegativeInt
+    policy_ids: tuple[CompletionRequestPolicyId, ...]
+
+    @model_validator(mode="after")
+    def check_policy_order(self) -> Self:
+        canonical = tuple(
+            policy_id
+            for policy_id in COMPLETION_REQUEST_POLICY_IDS
+            if policy_id in self.policy_ids
+        )
+        if self.policy_ids != canonical:
+            raise ValueError("observed request policy IDs must be unique and in registry order")
+        if bool(self.closed_attempts) != bool(self.policy_ids):
+            raise ValueError("closed attempt count and observed request policies disagree")
+        return self
+
+
+class AdoptionResult(_LegacyModel):
+    """Prove that a fully prepared directory can resume without provider work."""
+
+    kind: Literal["evaluation-artifact-adoption"] = "evaluation-artifact-adoption"
+    schema_version: Literal[1] = 1
+    mode: MigrationMode
+    request_contract_hash: Sha256Hex
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
+    request_policies: tuple[JournalRequestPolicies, ...]
+    source_migrations: tuple[MigratedArtifact, ...]
+    replaced_source_artifacts: tuple[OmittedArtifact, ...]
+    input_hashes: tuple[ArtifactHash, ...]
+    artifact_hashes: tuple[ArtifactHash, ...]
+    ready_for_resume: Literal[True] = True
+    next_plan_index: NonNegativeInt
+    expected_votes: NonNegativeInt
+    accepted_uncommitted: NonNegativeInt
+    accepted_uncommitted_vote_ids: tuple[VoteId, ...]
+    next_unattempted_task: PlanTaskPointer | None
+    manifest_complete: bool
+    network_calls: Literal[0] = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -472,6 +583,14 @@ class _JournalInventory:
         self.marker_vote_ids.add(vote_id)
 
 
+@dataclass(frozen=True, slots=True)
+class _ConvertedJournals:
+    """Carry converted file provenance and its validated identity inventory."""
+
+    artifacts: tuple[MigratedArtifact, ...]
+    inventory: _JournalInventory
+
+
 def _sync_directory(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY)
     try:
@@ -619,8 +738,8 @@ def _attempt(row: _LegacyPhysicalAttempt) -> PhysicalAttempt:
         ),
         outcome=outcome,
         timing=AttemptTiming(
-            request_at=row.ts_request,
-            response_at=row.ts_response,
+            request_at=row.request_at,
+            response_at=row.response_at,
             latency=row.latency,
         ),
     )
@@ -775,7 +894,7 @@ def _check_vote_evidence(
     if accounting != legacy_accounting:
         raise ValueError(f"vote {row.vote_id} accounting disagrees with physical attempts")
     timing = (evidence.request_at, evidence.response_at, evidence.latency)
-    if timing != (row.ts_request, row.ts_response, row.latency):
+    if timing != (row.request_at, row.response_at, row.latency):
         raise ValueError(f"vote {row.vote_id} timing disagrees with physical attempts")
     return tuple(item.attempt_id for item in evidence.accepted)
 
@@ -838,8 +957,8 @@ def _vote(
             cost_complete=row.cost_complete,
         ),
         timing=VoteTiming(
-            request_at=row.ts_request,
-            response_at=row.ts_response,
+            request_at=row.request_at,
+            response_at=row.response_at,
             latency=row.latency,
         ),
     )
@@ -992,6 +1111,53 @@ def _migrate_pair(
     return attempts.artifact, votes
 
 
+def _convert_journals(
+    *,
+    source: Path,
+    destination: Path,
+    config: RunConfig,
+    mode: MigrationMode,
+) -> _ConvertedJournals:
+    judges = _judge_index(config)
+    inventory = _JournalInventory()
+    artifacts: list[MigratedArtifact] = []
+    if mode == "pilot":
+        artifacts.extend(
+            _migrate_pair(
+                source=source,
+                destination=destination,
+                attempts_name="attempts.jsonl",
+                votes_name="votes.jsonl",
+                judges=judges,
+                inventory=inventory,
+            )
+        )
+    else:
+        for attempts_name, votes_name in (
+            ("imported-attempts.jsonl", "imported-votes.jsonl"),
+            ("attempts.jsonl", "votes.jsonl"),
+        ):
+            artifacts.extend(
+                _migrate_pair(
+                    source=source,
+                    destination=destination,
+                    attempts_name=attempts_name,
+                    votes_name=votes_name,
+                    judges=judges,
+                    inventory=inventory,
+                )
+            )
+    artifacts.extend(
+        _migrate_markers(
+            source / "inflight",
+            destination / "inflight",
+            inventory=inventory,
+            display_prefix="inflight",
+        )
+    )
+    return _ConvertedJournals(artifacts=tuple(artifacts), inventory=inventory)
+
+
 def migrate_directory(
     *,
     source: Path,
@@ -1019,8 +1185,6 @@ def migrate_directory(
         raise ValueError("migration source and destination must be separate sibling trees")
     loaded = load_config(config_path)
     _validate_mode(loaded.config, mode)
-    judges = _judge_index(loaded.config)
-    inventory = _JournalInventory()
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(
         tempfile.mkdtemp(
@@ -1030,45 +1194,16 @@ def migrate_directory(
     )
     try:
         with _exclusive_source(source):
-            artifacts: list[MigratedArtifact] = []
-            if mode == "pilot":
-                artifacts.extend(
-                    _migrate_pair(
-                        source=source,
-                        destination=temporary,
-                        attempts_name="attempts.jsonl",
-                        votes_name="votes.jsonl",
-                        judges=judges,
-                        inventory=inventory,
-                    )
-                )
-            else:
-                for attempts_name, votes_name in (
-                    ("imported-attempts.jsonl", "imported-votes.jsonl"),
-                    ("attempts.jsonl", "votes.jsonl"),
-                ):
-                    artifacts.extend(
-                        _migrate_pair(
-                            source=source,
-                            destination=temporary,
-                            attempts_name=attempts_name,
-                            votes_name=votes_name,
-                            judges=judges,
-                            inventory=inventory,
-                        )
-                    )
-            artifacts.extend(
-                _migrate_markers(
-                    source / "inflight",
-                    temporary / "inflight",
-                    inventory=inventory,
-                    display_prefix="inflight",
-                )
+            converted = _convert_journals(
+                source=source,
+                destination=temporary,
+                config=loaded.config,
+                mode=mode,
             )
             result = MigrationResult(
                 mode=mode,
                 config_hash=loaded.content_hash,
-                artifacts=tuple(artifacts),
+                artifacts=converted.artifacts,
                 omitted_artifacts=_omitted_artifacts(source, mode),
                 pending_integration=_pending_integration(mode),
             )
@@ -1083,39 +1218,441 @@ def migrate_directory(
     return result
 
 
+def _request_contract(config: BaseRunConfig) -> tuple[Sha256Hex, str, str]:
+    versions = transport_versions()
+    contract = request_contract_hash(
+        config,
+        executor_policy=executor_policy_payload(),
+        request_policy=request_policy_payload(),
+        openrouter_sdk_version=versions.openrouter_sdk_version,
+        openrouter_openapi_version=versions.openrouter_openapi_version,
+    )
+    return (
+        contract,
+        versions.openrouter_sdk_version,
+        versions.openrouter_openapi_version,
+    )
+
+
+def _prepare_adoption(
+    prepared: PreparedPilot | PreparedGrid,
+    directory: Path,
+) -> tuple[PilotPaths | GridPaths, PilotRunState | GridRunState]:
+    contract, sdk_version, openapi_version = _request_contract(prepared.config)
+    match prepared:
+        case PreparedPilot():
+            state = build_pilot_state(
+                prepared,
+                request_contract_hash=contract,
+                openrouter_sdk_version=sdk_version,
+                openrouter_openapi_version=openapi_version,
+            )
+            paths = PilotPaths.under(directory)
+            prepare_pilot(paths, state=state, slice_records=prepared.slice_records)
+        case PreparedGrid():
+            state = build_grid_state(
+                prepared,
+                request_contract_hash=contract,
+                openrouter_sdk_version=sdk_version,
+                openrouter_openapi_version=openapi_version,
+            )
+            paths = GridPaths.under(directory)
+            prepare_grid(
+                paths,
+                state=state,
+                corpus=prepared.corpus,
+                imported_votes=prepared.pilot_import.votes,
+                imported_attempts=prepared.pilot_import.attempts,
+            )
+    return paths, state
+
+
+def _require_same_imports(converted: Path, prepared: PreparedGrid) -> None:
+    converted_votes = load_jsonl(converted / "imported-votes.jsonl", Vote)
+    converted_attempts = load_jsonl(
+        converted / "imported-attempts.jsonl",
+        PhysicalAttempt,
+    )
+    converted_votes_by_id = {vote.vote_id: vote for vote in converted_votes}
+    prepared_votes_by_id = {vote.vote_id: vote for vote in prepared.pilot_import.votes}
+    if converted_votes_by_id != prepared_votes_by_id:
+        raise ValueError("legacy grid imports differ from the fully adopted pilot votes")
+    converted_attempts_by_id = {attempt.attempt_id: attempt for attempt in converted_attempts}
+    prepared_attempts_by_id = {
+        attempt.attempt_id: attempt for attempt in prepared.pilot_import.attempts
+    }
+    if converted_attempts_by_id != prepared_attempts_by_id:
+        raise ValueError("legacy grid imports differ from the fully adopted pilot attempts")
+
+
+def _replace_file(source: Path, destination: Path) -> None:
+    if not source.is_file() or not destination.is_file():
+        raise ValueError(f"cannot install converted journal {source.name}")
+    source.replace(destination)
+
+
+def _install_converted(
+    converted: Path,
+    paths: PilotPaths | GridPaths,
+    prepared: PreparedPilot | PreparedGrid,
+) -> None:
+    if isinstance(prepared, PreparedGrid):
+        if not isinstance(paths, GridPaths):
+            raise TypeError("grid preparation returned pilot paths")
+        _require_same_imports(converted, prepared)
+        (converted / "imported-votes.jsonl").unlink()
+        (converted / "imported-attempts.jsonl").unlink()
+    _replace_file(converted / "votes.jsonl", paths.journal.votes)
+    _replace_file(converted / "attempts.jsonl", paths.journal.attempts)
+    paths.journal.inflight.rmdir()
+    (converted / "inflight").replace(paths.journal.inflight)
+    converted.rmdir()
+    _sync_directory(paths.journal.votes.parent)
+
+
+def _resume_proof(
+    prepared: PreparedPilot | PreparedGrid,
+    paths: PilotPaths | GridPaths,
+) -> tuple[tuple[Vote, ...], tuple[PhysicalAttempt, ...], ResumeIndex, VotePlan]:
+    markers = tuple(paths.journal.inflight.iterdir())
+    if markers:
+        raise ValueError(
+            f"full adoption cannot prove billing state with {len(markers)} in-flight markers"
+        )
+    votes = load_jsonl(paths.journal.votes, Vote)
+    attempts = load_jsonl(paths.journal.attempts, PhysicalAttempt)
+    prompt = RubricVotePrompt(
+        pack=prepared.prompt_pack,
+        cards=prepared.deck.by_relation_id,
+    )
+    plan = (
+        prepared.plan if isinstance(prepared, PreparedPilot) else derive_grid_plan(prepared, votes)
+    )
+    resume = build_resume_index(
+        plan,
+        votes=votes,
+        attempts=attempts,
+        prompt=prompt,
+        config=prepared.config,
+    )
+    return votes, attempts, resume, plan
+
+
+@dataclass(frozen=True, slots=True)
+class _AdoptionProgress:
+    accepted_uncommitted_vote_ids: tuple[VoteId, ...]
+    next_unattempted_task: PlanTaskPointer | None
+
+
+def _adoption_progress(
+    plan: VotePlan,
+    votes: tuple[Vote, ...],
+    attempts: tuple[PhysicalAttempt, ...],
+) -> _AdoptionProgress:
+    completed = {vote.vote_id for vote in votes}
+    accepted = {
+        attempt.vote_id
+        for attempt in attempts
+        if attempt.result is not None and attempt.failure is None
+    }
+    attempted = {attempt.vote_id for attempt in attempts}
+    pending = accepted - completed
+    ordered_pending: list[VoteId] = []
+    next_unattempted: PlanTaskPointer | None = None
+    for plan_index, task in enumerate(plan.tasks()):
+        if task.vote_id in pending:
+            ordered_pending.append(task.vote_id)
+        if next_unattempted is None and task.vote_id not in attempted:
+            next_unattempted = PlanTaskPointer(
+                plan_index=plan_index,
+                vote_id=task.vote_id,
+                relation_id=task.relation_id,
+                family_id=task.judge.family_id,
+                bundle_id=task.bundle_id,
+                effort=task.effort,
+                repeat_index=task.repeat_index,
+            )
+    if len(ordered_pending) != len(pending):
+        raise ValueError("accepted uncommitted attempts fall outside the current plan")
+    return _AdoptionProgress(
+        accepted_uncommitted_vote_ids=tuple(ordered_pending),
+        next_unattempted_task=next_unattempted,
+    )
+
+
+def _finalize_manifest(
+    prepared: PreparedPilot | PreparedGrid,
+    paths: PilotPaths | GridPaths,
+    state: PilotRunState | GridRunState,
+    *,
+    votes: tuple[Vote, ...],
+    resume: ResumeIndex,
+    expected_votes: int,
+) -> bool:
+    if resume.next_plan_index != expected_votes:
+        return False
+    if isinstance(prepared, PreparedPilot):
+        if not isinstance(paths, PilotPaths) or not isinstance(state, PilotRunState):
+            raise TypeError("pilot preparation returned mismatched state or paths")
+        if load_json(paths.state, PilotRunState) != state:
+            raise ValueError("prepared pilot state changed before finalization")
+        artifact_hashes = {
+            "attempts.jsonl": sha256_file(paths.journal.attempts),
+            "slice.jsonl": sha256_file(paths.slice),
+            "votes.jsonl": sha256_file(paths.journal.votes),
+        }
+        write_pilot_manifest(
+            paths.manifest,
+            build_pilot_manifest(
+                prepared,
+                state=state,
+                votes=votes,
+                artifact_hashes=artifact_hashes,
+            ),
+        )
+        return True
+    if not isinstance(paths, GridPaths) or not isinstance(state, GridRunState):
+        raise TypeError("grid preparation returned mismatched state or paths")
+    if load_json(paths.state, GridRunState) != state:
+        raise ValueError("prepared grid state changed before finalization")
+    grid_votes, canary_votes = split_grid_votes(derive_grid_plan(prepared, votes), votes)
+    analysis = analyze_grid(
+        cards=prepared.pool,
+        family_ids=tuple(judge.family_id for judge in prepared.config.judges),
+        imported_votes=prepared.pilot_import.votes,
+        fresh_votes=grid_votes,
+    )
+    artifact_hashes = {
+        "attempts.jsonl": sha256_file(paths.journal.attempts),
+        "corpus.jsonl": sha256_file(paths.corpus),
+        "imported-attempts.jsonl": sha256_file(paths.imported_attempts),
+        "imported-votes.jsonl": sha256_file(paths.imported_votes),
+        "votes.jsonl": sha256_file(paths.journal.votes),
+    }
+    write_grid_manifest(
+        paths.manifest,
+        build_grid_manifest(
+            prepared,
+            state=state,
+            analysis=analysis,
+            canary_votes=canary_votes,
+            artifact_hashes=artifact_hashes,
+            executor_policy=executor_policy_payload(),
+            request_policy=request_policy_payload(),
+        ),
+    )
+    return True
+
+
+def _verify_adoption_inputs(
+    prepared: PreparedPilot | PreparedGrid,
+    *,
+    pilot_directory: Path | None,
+) -> tuple[ArtifactHash, ...]:
+    expected: dict[str, Sha256Hex] = {
+        "config": prepared.loaded_config.content_hash,
+        "cards/cards.jsonl": prepared.deck.source_hashes["cards.jsonl"],
+        "cards/cards.manifest.json": prepared.deck.source_hashes["cards.manifest.json"],
+    }
+    paths = {
+        "config": prepared.loaded_config.path,
+        "cards/cards.jsonl": prepared.deck.cards_path,
+        "cards/cards.manifest.json": prepared.deck.manifest_path,
+    }
+    if isinstance(prepared, PreparedGrid):
+        if pilot_directory is None:
+            raise TypeError("prepared grid lost its pilot directory")
+        pilot = prepared.pilot_import
+        expected |= {
+            "pilot/manifest.json": pilot.manifest_hash,
+            "pilot/votes.jsonl": pilot.votes_hash,
+            "pilot/attempts.jsonl": pilot.attempts_hash,
+        }
+        paths |= {
+            "pilot/manifest.json": pilot_directory / "manifest.json",
+            "pilot/votes.jsonl": pilot_directory / "votes.jsonl",
+            "pilot/attempts.jsonl": pilot_directory / "attempts.jsonl",
+        }
+    observed = {name: sha256_file(path) for name, path in paths.items()}
+    if observed != expected:
+        changed = tuple(name for name in sorted(expected) if observed[name] != expected[name])
+        raise ValueError(f"adoption inputs changed during validation: {changed}")
+    return tuple(ArtifactHash(path=name, content_hash=observed[name]) for name in sorted(observed))
+
+
+def _artifact_hashes(directory: Path) -> tuple[ArtifactHash, ...]:
+    files = tuple(
+        sorted(
+            path
+            for path in directory.rglob("*")
+            if path.is_file() and path.name != _ADOPTION_REPORT
+        )
+    )
+    return tuple(
+        ArtifactHash(
+            path=str(path.relative_to(directory)),
+            content_hash=sha256_file(path),
+        )
+        for path in files
+    )
+
+
+def adopt_directory(
+    *,
+    source: Path,
+    destination: Path,
+    config_path: Path,
+    cards_directory: Path,
+    mode: MigrationMode,
+    pilot_directory: Path | None = None,
+) -> AdoptionResult:
+    """Publish a current, strongly validated evaluation directory atomically.
+
+    The complete tree is prepared under the destination parent and becomes
+    visible through one directory rename. No provider transport is created.
+
+    Raises:
+        ValueError: Inputs, legacy evidence, current plan replay, or paths disagree.
+        OSError: Durable staging or atomic publication fails.
+    """
+    source = source.resolve()
+    destination = destination.resolve()
+    config_path = config_path.resolve()
+    cards_directory = cards_directory.resolve()
+    pilot_directory = pilot_directory.resolve() if pilot_directory is not None else None
+    if not source.is_dir():
+        raise ValueError(f"migration source is not a directory: {source}")
+    if destination.exists():
+        raise ValueError(f"migration destination already exists: {destination}")
+    if destination.is_relative_to(source) or source.is_relative_to(destination):
+        raise ValueError("migration source and destination must be separate sibling trees")
+    prepared = prepare_evaluation_inputs(
+        config_path,
+        cards_directory,
+        pilot_directory=pilot_directory,
+    )
+    if mode == "pilot" and not isinstance(prepared, PreparedPilot):
+        raise ValueError("pilot artifact adoption requires a pilot config")
+    if mode == "grid" and not isinstance(prepared, PreparedGrid):
+        raise ValueError("grid artifact adoption requires a grid config and pilot handoff")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(
+        tempfile.mkdtemp(prefix=f".{destination.name}.adoption-", dir=destination.parent)
+    )
+    try:
+        with _exclusive_source(source):
+            converted_directory = temporary / ".converted"
+            converted_directory.mkdir()
+            converted = _convert_journals(
+                source=source,
+                destination=converted_directory,
+                config=prepared.config,
+                mode=mode,
+            )
+            paths, state = _prepare_adoption(prepared, temporary)
+            _install_converted(converted_directory, paths, prepared)
+            votes, attempts, resume, plan = _resume_proof(prepared, paths)
+            progress = _adoption_progress(plan, votes, attempts)
+            expected_votes = plan.expected_votes
+            manifest_complete = _finalize_manifest(
+                prepared,
+                paths,
+                state,
+                votes=votes,
+                resume=resume,
+                expected_votes=expected_votes,
+            )
+            input_hashes = _verify_adoption_inputs(
+                prepared,
+                pilot_directory=pilot_directory,
+            )
+            result = AdoptionResult(
+                mode=mode,
+                request_contract_hash=state.request_contract_hash,
+                source_migrations=converted.artifacts,
+                replaced_source_artifacts=_omitted_artifacts(source, mode),
+                input_hashes=input_hashes,
+                artifact_hashes=_artifact_hashes(temporary),
+                next_plan_index=resume.next_plan_index,
+                expected_votes=expected_votes,
+                accepted_uncommitted=len(progress.accepted_uncommitted_vote_ids),
+                accepted_uncommitted_vote_ids=progress.accepted_uncommitted_vote_ids,
+                next_unattempted_task=progress.next_unattempted_task,
+                manifest_complete=manifest_complete,
+            )
+            _write_payload(
+                temporary / _ADOPTION_REPORT,
+                canonical_json_bytes(result) + b"\n",
+            )
+            _sync_directory(temporary)
+        _publish_directory(temporary, destination)
+    except BaseException:
+        shutil.rmtree(temporary, ignore_errors=True)
+        raise
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Migrate flat evaluation journals without making them resumable.",
+        description="Adopt flat evaluation artifacts or convert their journals forensically.",
     )
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--destination", required=True, type=Path)
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--mode", required=True, choices=("pilot", "grid"))
     parser.add_argument(
+        "--cards",
+        type=Path,
+        help="verified cards directory required for full adoption",
+    )
+    parser.add_argument(
+        "--pilot-directory",
+        type=Path,
+        help="fully adopted pilot required for full grid adoption",
+    )
+    parser.add_argument(
         "--journals-only",
         action="store_true",
-        help="acknowledge that state, manifests, slice, and corpus remain pending",
+        help="convert only journals and emit non-resumable forensic output",
     )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the explicit journals-only migration command."""
+    """Run forensic journal conversion or full artifact adoption."""
     parser = _parser()
     arguments = parser.parse_args(argv)
-    if not arguments.journals_only:
-        parser.error(
-            "--journals-only is required until run-state and manifest schemas are integrated"
+    if arguments.journals_only:
+        if arguments.cards is not None or arguments.pilot_directory is not None:
+            parser.error("--journals-only does not accept --cards or --pilot-directory")
+        result = migrate_directory(
+            source=arguments.source,
+            destination=arguments.destination,
+            config_path=arguments.config,
+            mode=arguments.mode,
         )
-    result = migrate_directory(
+        sys.stdout.write(
+            f"migrated {sum(artifact.rows for artifact in result.artifacts)} rows; "
+            "output remains integration-pending\n"
+        )
+        return 0
+    if arguments.cards is None:
+        parser.error("full adoption requires --cards")
+    if arguments.mode == "grid" and arguments.pilot_directory is None:
+        parser.error("full grid adoption requires --pilot-directory")
+    if arguments.mode == "pilot" and arguments.pilot_directory is not None:
+        parser.error("pilot adoption does not accept --pilot-directory")
+    adopted = adopt_directory(
         source=arguments.source,
         destination=arguments.destination,
         config_path=arguments.config,
+        cards_directory=arguments.cards,
         mode=arguments.mode,
+        pilot_directory=arguments.pilot_directory,
     )
     sys.stdout.write(
-        f"migrated {sum(artifact.rows for artifact in result.artifacts)} rows; "
-        "output remains integration-pending\n"
+        f"adopted {adopted.next_plan_index}/{adopted.expected_votes} committed votes; "
+        f"{adopted.accepted_uncommitted} accepted and uncommitted\n"
     )
     return 0
 

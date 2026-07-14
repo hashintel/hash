@@ -31,6 +31,7 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     verify_expected_sources,
 )
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
+    EmbeddingProducerIdentity,
     EmbeddingsArtifact,
     EmbeddingsMetadata,
     hash_mapping,
@@ -43,9 +44,9 @@ _SCHEMA_HASHES = {
 }
 
 
-def _algorithms(embedding_model: str) -> dict[str, str]:
+def _algorithms(producer: EmbeddingProducerIdentity) -> dict[str, str]:
     return {
-        "embedding_model": embedding_model,
+        "embedding_producer_identity": producer.identity_hash,
         "ordering": ORDERING_ALGORITHM,
         "parquet": PARQUET_ALGORITHM,
         "vector_encoding": "f32-le-v1",
@@ -56,7 +57,7 @@ def write_embeddings(
     path: Path,
     rows: Sequence[EmbeddingRow],
     *,
-    embedding_model: str,
+    producer: EmbeddingProducerIdentity,
     source_hashes: Mapping[str, Sha256Hex],
 ) -> EmbeddingsArtifact:
     """Write embeddings in canonical relation order with a hash-bound sidecar.
@@ -72,7 +73,9 @@ def write_embeddings(
     if len(dimensions) != 1:
         raise ValueError("embedding artifact rows must have one dimension")
     dimension = dimensions.pop()
-    algorithms = _algorithms(embedding_model)
+    if producer.response.dimension != dimension:
+        raise ValueError("embedding producer dimension does not match artifact rows")
+    algorithms = _algorithms(producer)
     disk_rows = tuple(EmbeddingDiskRow.from_embedding(row) for row in ordered)
     payload = parquet_bytes(disk_rows, EMBEDDING_SCHEMA)
     metadata = EmbeddingsMetadata(
@@ -83,8 +86,7 @@ def write_embeddings(
         content_hashes={path.name: sha256_bytes(payload)},
         rows=len(ordered),
         relation_order_hash=relation_order_hash(ordered),
-        embedding_model=embedding_model,
-        dimension=dimension,
+        producer=producer,
     )
     manifest_path = sidecar_path(path)
     atomic_replace(path, payload)
@@ -101,7 +103,7 @@ def load_embeddings(
     path: Path,
     *,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
-    expected_embedding_model: str | None = None,
+    expected_producer: EmbeddingProducerIdentity | None = None,
 ) -> EmbeddingsArtifact:
     """Load embeddings only after validating bytes, schema, model, and cards.
 
@@ -111,7 +113,7 @@ def load_embeddings(
     """
     manifest_path = sidecar_path(path)
     metadata = load_model(manifest_path, EmbeddingsMetadata)
-    algorithms = _algorithms(metadata.embedding_model)
+    algorithms = _algorithms(metadata.producer)
     require_exact_mapping(
         metadata.schema_hashes,
         _SCHEMA_HASHES,
@@ -123,11 +125,8 @@ def load_embeddings(
         label="embedding algorithms",
     )
     verify_expected_sources(metadata.source_hashes, expected_source_hashes)
-    if (
-        expected_embedding_model is not None
-        and metadata.embedding_model != expected_embedding_model
-    ):
-        raise ValueError("embedding model does not match the expected model")
+    if expected_producer is not None and metadata.producer != expected_producer:
+        raise ValueError("embedding producer does not match the expected identity")
     payload = read_bytes(path)
     verify_content_hashes(metadata.content_hashes, {path.name: payload})
     table = read_parquet(path, payload, EMBEDDING_SCHEMA)
@@ -157,7 +156,7 @@ async def write_embeddings_async(
     path: Path,
     rows: Sequence[EmbeddingRow],
     *,
-    embedding_model: str,
+    producer: EmbeddingProducerIdentity,
     source_hashes: Mapping[str, Sha256Hex],
 ) -> EmbeddingsArtifact:
     """Write embeddings without blocking Trio's event loop."""
@@ -165,7 +164,7 @@ async def write_embeddings_async(
         write_embeddings,
         path,
         tuple(rows),
-        embedding_model=embedding_model,
+        producer=producer,
         source_hashes=dict(source_hashes),
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)
@@ -175,7 +174,7 @@ async def load_embeddings_async(
     path: Path,
     *,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
-    expected_embedding_model: str | None = None,
+    expected_producer: EmbeddingProducerIdentity | None = None,
 ) -> EmbeddingsArtifact:
     """Validate embeddings without blocking Trio's event loop."""
     expected = None if expected_source_hashes is None else dict(expected_source_hashes)
@@ -183,6 +182,6 @@ async def load_embeddings_async(
         load_embeddings,
         path,
         expected_source_hashes=expected,
-        expected_embedding_model=expected_embedding_model,
+        expected_producer=expected_producer,
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)

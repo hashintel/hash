@@ -42,8 +42,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     JudgeFamilyId,
     JudgePin,
     NonEmptyStr,
+    NonNegativeFiniteFloat,
     OpenProbability,
     PhysicalAttempt,
+    PositiveProbability,
     Probability,
     ProviderResult,
     ReasoningEffort,
@@ -109,7 +111,7 @@ class PilotAnalysisPolicy(AnalysisModel):
     bootstrap_resamples: PositiveInt = 1000
     bootstrap_seed: int = 0
     confidence_level: OpenProbability = 0.95
-    minimum_bootstrap_defined_rate: Annotated[float, Field(gt=0.0, le=1.0)] = 0.95
+    minimum_bootstrap_defined_rate: PositiveProbability = 0.95
     estimated_tokens_per_vote: PositiveInt = 7500
     reason_word_limit: PositiveInt = 60
 
@@ -580,9 +582,9 @@ class FamilyProjection(AnalysisModel):
     cost_basis_bundles: tuple[BundleId, ...]
     observations: NonNegativeInt
     cost_reported: NonNegativeInt
-    measured_cost_per_vote_usd: float | None = Field(ge=0.0, allow_inf_nan=False)
-    billed_tokens_per_vote: float | None = Field(ge=0.0, allow_inf_nan=False)
-    token_inflation_factor: float | None = Field(ge=0.0, allow_inf_nan=False)
+    measured_cost_per_vote_usd: NonNegativeFiniteFloat | None
+    billed_tokens_per_vote: NonNegativeFiniteFloat | None
+    token_inflation_factor: NonNegativeFiniteFloat | None
     projected_calls: NonNegativeInt
 
     @model_validator(mode="after")

@@ -5,6 +5,7 @@ import yaml
 
 from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.application.analysis_codec import (
+    EmbeddingProducerIdentity,
     write_embeddings,
     write_soft_labels,
 )
@@ -68,7 +69,11 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
     embedded = write_embeddings(
         tmp_path / "embeddings.parquet",
         embeddings,
-        embedding_model="fixture-embedding",
+        producer=EmbeddingProducerIdentity.verified(
+            endpoint_url="https://embedding.test/v1/embeddings",
+            model="fixture-embedding",
+            dimension=embeddings[0].dimension,
+        ),
         source_hashes={
             "cards.jsonl": card_hash,
             "cards.manifest.json": "d" * 64,

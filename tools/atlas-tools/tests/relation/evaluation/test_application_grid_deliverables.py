@@ -19,9 +19,9 @@ from atlas_tools.relation.evaluation.application.grid_deliverables import (
 from atlas_tools.relation.evaluation.application.pilot_reporting import (
     PilotDecisionArtifact,
 )
-from atlas_tools.relation.evaluation.domain.api import FamilyGridCounts
-from tests.relation.evaluation.test_analysis_gates import _gate_analysis
-from tests.relation.evaluation.test_analysis_grid import _analysis
+from atlas_tools.relation.evaluation.domain.api import FamilyGridCounts, Vote
+from tests.relation.evaluation.test_analysis_gates import _gate_analysis, _gate_canaries
+from tests.relation.evaluation.test_analysis_grid import _analysis, _vote
 from tests.relation.evaluation.test_analysis_pilot import (
     _analyze as _pilot_analysis,
 )
@@ -60,14 +60,23 @@ def _sources() -> dict[str, str]:
     return {name: sha256_bytes(name.encode()) for name in _SOURCE_NAMES}
 
 
-def _summary(analysis: GridAnalysis) -> GridRunSummary:
-    economics = vote_economics(analysis)
+def _canaries(analysis: GridAnalysis) -> tuple[Vote, ...]:
+    return tuple(
+        _vote(card.card, family.family_id, 3, family.baseline.vote.verdict)
+        for card in analysis.cards
+        for family in card.families
+    )
+
+
+def _summary(analysis: GridAnalysis, canaries: tuple[Vote, ...]) -> GridRunSummary:
+    economics = vote_economics(analysis, canary_votes=canaries)
     family_counts = tuple(
         FamilyGridCounts(
             family_id=row.family_id,
             imported_votes=row.imported_votes,
             fresh_baseline_votes=row.fresh_baseline_votes,
             refinement_votes=row.refinement_votes,
+            canary_votes=row.canary_votes,
             abstentions=row.abstentions,
             known_cost_usd=row.known_cost_usd,
             cost_complete=row.cost_complete,
@@ -107,9 +116,11 @@ def test_grid_bundle_materializes_review_evidence_and_is_byte_deterministic(
     tmp_path: Path,
 ) -> None:
     analysis = _analysis()
+    canaries = _canaries(analysis)
     gate_policy = _passing_policy()
     products = derive_grid_deliverables(
         analysis,
+        canary_votes=canaries,
         pilot_decisions=_pilot_decisions(),
         gate_policy=gate_policy,
         routing_violations=0,
@@ -132,7 +143,7 @@ def test_grid_bundle_materializes_review_evidence_and_is_byte_deterministic(
 
     run = publish_grid_deliverables(
         products,
-        summary=_summary(analysis),
+        summary=_summary(analysis, canaries),
         gate_policy=gate_policy,
         source_hashes=_sources(),
         output_directory=tmp_path,
@@ -151,17 +162,17 @@ def test_grid_bundle_materializes_review_evidence_and_is_byte_deterministic(
     }
     assert observed_hashes == {
         "coincident-queue.jsonl": (
-            "eaa567c4aabaeb1ab39bf67740337fc5a29dd3541fe489aecef3d36198544ec0"
+            "23cc5062d82b600e5e15fbae24859bf11aed4ee551175e95f5c4f9f10e0b62a6"
         ),
         "dissent-ledger.jsonl": (
             "5445177986481b0dfe76022c7d6e985626ded89f0d0a94ac91ded7837672c198"
         ),
-        "gates.json": "e38cffe296c98231ee4aaef54b2ea36c235c5453022a04ce3f8a3a640bafb51f",
+        "gates.json": "c704e0d177e139695454dde141087552a74186d8ff74700c84e1d7a71985bdf5",
         "nomination-queue.jsonl": (
             "b6543554d82a3be19bda7b6489aa4c5599636729077f2ee57a9d34a48c8e30bd"
         ),
         "posteriors.jsonl": ("0794b440cc2c0233b9fc52c895689a3bc9c2f9dc31ce8276a7e67c2258478750"),
-        "report.md": "3d740c1da27a0186f4aca37205bcf04de35c79b947b2501d3e18754c97f15835",
+        "report.md": "825019d0e89a47e3031d42ab812d9ef97df268eca8d042e649592ff6fff70b1e",
     }
     assert all(path.read_bytes().isascii() for path in tmp_path.iterdir())
     assert load_grid_deliverables(tmp_path, expected_source_hashes=_sources()) == run
@@ -173,6 +184,7 @@ def test_grid_bundle_materializes_review_evidence_and_is_byte_deterministic(
 
 def test_failed_gates_commit_the_audit_and_block_downstream_work(tmp_path: Path) -> None:
     analysis = _gate_analysis()
+    canaries = _gate_canaries()
     gate_policy = GridGatePolicy(
         holdouts=(
             HoldoutRule(
@@ -191,6 +203,7 @@ def test_failed_gates_commit_the_audit_and_block_downstream_work(tmp_path: Path)
     )
     products = derive_grid_deliverables(
         analysis,
+        canary_votes=canaries,
         pilot_decisions=_pilot_decisions(),
         gate_policy=gate_policy,
         routing_violations=1,
@@ -199,7 +212,7 @@ def test_failed_gates_commit_the_audit_and_block_downstream_work(tmp_path: Path)
     with pytest.raises(GridGatesBlockedError) as raised:
         publish_grid_deliverables(
             products,
-            summary=_summary(analysis),
+            summary=_summary(analysis, canaries),
             gate_policy=gate_policy,
             source_hashes=_sources(),
             output_directory=tmp_path,

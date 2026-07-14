@@ -5,16 +5,13 @@ and repeat index. These aliases and lookup tables keep that vocabulary finite
 and prevent string assembly from creating impossible bundles.
 """
 
-from typing import Annotated, Literal, Self
+from typing import Final, Literal, Self
 
-from pydantic import Field, StringConstraints
 from pydantic_core import CoreSchema, core_schema
 
 type Verdict = Literal["coincident", "proximal", "overlay", "unclear"]
 type VoteVerdict = Literal["coincident", "proximal", "overlay", "unclear", "ABSTAIN"]
 type PlacementClass = Literal["coincident", "proximal", "overlay"]
-type NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
-
 _SHA256_HEX_LENGTH = 64
 _LOWER_HEXADECIMAL = frozenset("0123456789abcdef")
 
@@ -118,12 +115,6 @@ class SessionId(_Sha256Id):
     """Identify provider requests that may share prompt-cache state."""
 
 
-type FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
-type NonNegativeFiniteFloat = Annotated[float, Field(ge=0.0, allow_inf_nan=False)]
-type PositiveFiniteFloat = Annotated[float, Field(gt=0.0, allow_inf_nan=False)]
-type Probability = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
-type OpenProbability = Annotated[float, Field(gt=0.0, lt=1.0, allow_inf_nan=False)]
-
 type ShellId = Literal["S1", "S2", "S3"]
 type FramingId = Literal["F1", "F2", "F3"]
 type BundleId = Literal[
@@ -157,6 +148,9 @@ BUNDLES: tuple[BundleId, ...] = (
     "S3xF3",
 )
 QUALIFICATION_BUNDLE: BundleId = "S1xF1"
+BASELINE_REPEAT_INDEX: Final = 0
+REFINEMENT_REPEAT_INDICES: Final = (1, 2)
+CANARY_REPEAT_INDEX: Final = 3
 
 _BUNDLE_BY_PARTS: dict[tuple[ShellId, FramingId], BundleId] = {
     ("S1", "F1"): "S1xF1",

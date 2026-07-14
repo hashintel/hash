@@ -16,6 +16,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
 )
 from atlas_tools.relation.evaluation.application.analysis_artifact import ArtifactMetadata
 from atlas_tools.relation.evaluation.application.analysis_codec import (
+    EmbeddingProducerIdentity,
     load_classifier_bundle,
     load_embeddings,
     load_soft_labels,
@@ -31,6 +32,14 @@ from atlas_tools.relation.evaluation.domain.api import (
 )
 
 _SOURCE_HASHES = {"fixture-cards": "a" * 64}
+
+
+def _embedding_producer(model: str, *, dimension: int = 2) -> EmbeddingProducerIdentity:
+    return EmbeddingProducerIdentity.verified(
+        endpoint_url="https://embedding.test/v1/embeddings",
+        model=model,
+        dimension=dimension,
+    )
 
 
 def _card_hash(relation_id: str) -> CardHash:
@@ -133,13 +142,13 @@ def test_table_codecs_are_canonical_deterministic_and_hash_bound(tmp_path: Path)
     first_embeddings = write_embeddings(
         first / "embeddings.parquet",
         tuple(reversed(embeddings)),
-        embedding_model="fixture-v1",
+        producer=_embedding_producer("fixture-v1"),
         source_hashes=_SOURCE_HASHES,
     )
     second_embeddings = write_embeddings(
         second / "embeddings.parquet",
         embeddings,
-        embedding_model="fixture-v1",
+        producer=_embedding_producer("fixture-v1"),
         source_hashes=_SOURCE_HASHES,
     )
 
@@ -176,7 +185,7 @@ def test_table_loaders_reject_semantic_order_and_card_drift(tmp_path: Path) -> N
     embeddings_artifact = write_embeddings(
         tmp_path / "embeddings.parquet",
         embeddings,
-        embedding_model="fixture-v1",
+        producer=_embedding_producer("fixture-v1"),
         source_hashes=_SOURCE_HASHES,
     )
 

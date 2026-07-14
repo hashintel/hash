@@ -3,7 +3,8 @@
 The classifier joins labels and embeddings by exact relation and card
 identity, assigns whole relation families to validation folds, and fits every
 card with its placement posterior weighted by its placement-vote count. No
-filesystem, provider, or orchestration state enters this module.
+training-row calibration or applicability estimate observes its outer fold.
+No filesystem, provider, or orchestration state enters this module.
 """
 
 import math
@@ -14,16 +15,17 @@ import numpy as np
 from atlas_tools.relation.evaluation.analysis._classifier_data import (
     grouped_fold_assignment,
     join_training_data,
+    validate_classifier_cohorts,
     validate_grouped_folds,
 )
 from atlas_tools.relation.evaluation.analysis._classifier_math import (
     applicability,
+    cross_fit_predictions,
     expected_accuracy,
     fit_applicability,
     fit_model,
     fit_temperature,
     model_logits,
-    out_of_fold_logits,
     soft_brier_score,
     soft_cross_entropy,
     softmax,
@@ -32,6 +34,7 @@ from atlas_tools.relation.evaluation.analysis.classifier_model import (
     ApplicabilityModel,
     ClassifierFit,
     ClassifierMetrics,
+    CrossFitFold,
     EmbeddingRow,
     FloatMatrix,
     FloatVector,
@@ -53,6 +56,7 @@ __all__ = [
     "ApplicabilityModel",
     "ClassifierFit",
     "ClassifierMetrics",
+    "CrossFitFold",
     "EmbeddingRow",
     "MultinomialModel",
     "OutOfFoldPrediction",
@@ -62,6 +66,7 @@ __all__ = [
     "predict_policy",
     "soft_brier_score",
     "soft_cross_entropy",
+    "validate_classifier_cohorts",
     "validate_grouped_folds",
 ]
 
@@ -157,8 +162,10 @@ def fit_policy_classifier(
 
     Every label must have exactly one embedding with the same relation ID and
     card hash, positive placement-vote weight, and a relation family. Families
-    are assigned atomically to balanced deterministic folds. Every optimizer
-    invocation must report convergence or the fit fails.
+    are assigned atomically to balanced deterministic folds. Each held-out
+    fold uses inner grouped predictions for temperature fitting and only its
+    outer-training embeddings for applicability. Every optimizer invocation
+    must report convergence or the fit fails.
 
     Raises:
         ValueError: Input identities, weights, dimensions, families, folds, or
@@ -166,19 +173,23 @@ def fit_policy_classifier(
 
     """
     data = join_training_data(labels, embeddings)
+    validate_classifier_cohorts(data.labels, config)
     assignment = grouped_fold_assignment(data, config)
-    held_out_logits, fold_indices, max_fold_iterations = out_of_fold_logits(
+    cross_fit = cross_fit_predictions(
         data,
         config,
         assignment,
     )
     temperature = fit_temperature(
-        held_out_logits,
+        cross_fit.logits,
         data.targets,
         data.vote_weights,
     )
-    raw_probabilities = softmax(held_out_logits)
-    calibrated_probabilities = softmax(held_out_logits / temperature)
+    raw_probabilities = softmax(cross_fit.logits)
+    calibrated_probabilities = softmax(
+        cross_fit.logits / cross_fit.temperature_by_row[:, np.newaxis]
+    )
+    deployed_calibrated_probabilities = softmax(cross_fit.logits / temperature)
     final_model = fit_model(
         data.embeddings,
         data.targets,
@@ -186,21 +197,17 @@ def fit_policy_classifier(
         config,
     )
     applicability_model = fit_applicability(data.embeddings)
-    distances, applicability_scores = applicability(
-        applicability_model,
-        data.embeddings,
-    )
 
     out_of_fold: list[OutOfFoldPrediction] = []
     for index, (label, family_id) in enumerate(zip(data.labels, data.families, strict=True)):
         prediction = _prediction(
             relation_id=label.relation_id,
             card_hash=label.card_hash,
-            logits=held_out_logits[index],
+            logits=cross_fit.logits[index],
             raw=raw_probabilities[index],
             calibrated=calibrated_probabilities[index],
-            distance=float(distances[index]),
-            applicability_score=float(applicability_scores[index]),
+            distance=float(cross_fit.distances[index]),
+            applicability_score=float(cross_fit.applicability_scores[index]),
         )
 
         out_of_fold.append(
@@ -213,9 +220,24 @@ def fit_policy_classifier(
                 raw=prediction.raw,
                 calibrated=prediction.calibrated,
                 family_id=family_id,
-                fold=int(fold_indices[index]),
+                fold=int(cross_fit.fold_indices[index]),
+                calibration_temperature=float(cross_fit.temperature_by_row[index]),
             )
         )
+
+    cross_fit_folds = tuple(
+        CrossFitFold(
+            fold=fold,
+            validation_relation_ids=tuple(
+                label.relation_id
+                for index, label in enumerate(data.labels)
+                if int(cross_fit.fold_indices[index]) == fold
+            ),
+            temperature=cross_fit.temperatures[fold],
+            applicability=cross_fit.applicability_models[fold],
+        )
+        for fold in range(config.folds)
+    )
 
     raw_posteriors = tuple(row.raw for row in out_of_fold)
     calibrated_posteriors = tuple(row.calibrated for row in out_of_fold)
@@ -225,7 +247,7 @@ def fit_policy_classifier(
         training_cards=len(data.labels),
         training_vote_weight=math.fsum(weights),
         folds=config.folds,
-        max_fold_iterations=max_fold_iterations,
+        max_fold_iterations=cross_fit.max_iterations,
         out_of_fold_cross_entropy=soft_cross_entropy(
             raw_posteriors,
             target_posteriors,
@@ -233,6 +255,11 @@ def fit_policy_classifier(
         ),
         calibrated_cross_entropy=soft_cross_entropy(
             calibrated_posteriors,
+            target_posteriors,
+            weights,
+        ),
+        deployed_temperature_cross_entropy=soft_cross_entropy(
+            tuple(posterior_from_array(row) for row in deployed_calibrated_probabilities),
             target_posteriors,
             weights,
         ),
@@ -265,6 +292,7 @@ def fit_policy_classifier(
             temperature=temperature,
             applicability=applicability_model,
         ),
+        cross_fit_folds=cross_fit_folds,
         out_of_fold=tuple(out_of_fold),
         metrics=metrics,
         fold_by_relation_id=assignment,

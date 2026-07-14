@@ -1,6 +1,5 @@
 use crate::salt::representation::{
-    CANONICAL_DIMENSIONS, CanonicalEmbedding, NORMALIZATION_EPSILON, PROJECTOR_DIMENSIONS,
-    RepresentationError,
+    CANONICAL_DIMENSIONS, CanonicalEmbedding, PROJECTOR_DIMENSIONS, RepresentationError,
 };
 
 #[test]
@@ -32,7 +31,7 @@ fn zero_prefix_uses_the_persisted_epsilon() {
     let normalization = embedding.normalize_prefix(&mut projector);
 
     assert_eq!(normalization.norm, 0.0);
-    assert_eq!(normalization.denominator, NORMALIZATION_EPSILON);
+    assert_eq!(normalization.denominator, 1.0e-12);
     assert!(projector.iter().all(|value| *value == 0.0));
 }
 

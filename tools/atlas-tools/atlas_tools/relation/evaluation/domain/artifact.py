@@ -7,7 +7,15 @@ artifact schemas while replacing mutable arrays with tuples in memory.
 
 from typing import Annotated, Literal, Self
 
-from pydantic import AwareDatetime, Field, JsonValue, NonNegativeInt, PositiveInt, model_validator
+from pydantic import (
+    AwareDatetime,
+    Field,
+    JsonValue,
+    NonNegativeInt,
+    PositiveInt,
+    field_validator,
+    model_validator,
+)
 
 from atlas_tools.common import Sha256Hex
 from atlas_tools.relation.evaluation.domain._collection import FrozenMapping
@@ -23,20 +31,26 @@ from atlas_tools.relation.evaluation.domain.identity import (
     BUNDLES,
     BundleId,
     CardHash,
-    FiniteFloat,
     JudgeFamilyId,
     ModelId,
-    NonEmptyStr,
-    NonNegativeFiniteFloat,
     OpenRouterRegion,
     PlanHash,
-    PositiveFiniteFloat,
-    Probability,
     PromptPackHash,
     ProviderName,
     ProviderSlug,
     ReasoningEffort,
     Verdict,
+)
+from atlas_tools.relation.evaluation.domain.request_policy import (
+    HistoricalCompletionRequestPolicyId,
+    validate_historical_request_policy_ids,
+)
+from atlas_tools.relation.evaluation.domain.scalar import (
+    FiniteFloat,
+    NonEmptyStr,
+    NonNegativeFiniteFloat,
+    PositiveFiniteFloat,
+    Probability,
 )
 from atlas_tools.relation_cards.common.cards import RelationId
 
@@ -217,7 +231,19 @@ class GridJudgePin(_JudgePin[GridJudge]):
 type JudgePin = Annotated[PilotJudgePin | GridJudgePin, Field(discriminator="kind")]
 
 
-class PilotRunState(FrozenModel):
+class _HistoricalRequestPolicies(FrozenModel):
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
+
+    @field_validator("historical_request_policy_ids")
+    @classmethod
+    def check_historical_request_policy_ids(
+        cls,
+        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+        return validate_historical_request_policy_ids(policy_ids)
+
+
+class PilotRunState(_HistoricalRequestPolicies):
     """Identify the exact pilot plan accepted by append-only journals."""
 
     schema_version: Literal[3] = 3
@@ -231,7 +257,7 @@ class PilotRunState(FrozenModel):
     openrouter_openapi_version: NonEmptyStr
 
 
-class GridRunState(FrozenModel):
+class GridRunState(_HistoricalRequestPolicies):
     """Identify a dynamic two-phase grid without pretending it has a fixed plan hash."""
 
     schema_version: Literal[2] = 2
@@ -245,8 +271,17 @@ class GridRunState(FrozenModel):
     corpus_hash: Sha256Hex
     imported_votes_hash: Sha256Hex
     imported_attempts_hash: Sha256Hex
+    pilot_historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
     openrouter_sdk_version: NonEmptyStr
     openrouter_openapi_version: NonEmptyStr
+
+    @field_validator("pilot_historical_request_policy_ids")
+    @classmethod
+    def check_pilot_historical_request_policy_ids(
+        cls,
+        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+        return validate_historical_request_policy_ids(policy_ids)
 
     @model_validator(mode="after")
     def check_sources(self) -> Self:
@@ -265,7 +300,7 @@ class GridRunState(FrozenModel):
         return self
 
 
-class HandoffManifest(FrozenModel):
+class HandoffManifest(_HistoricalRequestPolicies):
     """Describe one completed normalized pilot handoff."""
 
     schema_version: Literal[3] = 3
@@ -332,12 +367,13 @@ class FamilyGridCounts(FrozenModel):
     imported_votes: NonNegativeInt
     fresh_baseline_votes: NonNegativeInt
     refinement_votes: NonNegativeInt
+    canary_votes: NonNegativeInt
     abstentions: NonNegativeInt
     known_cost_usd: NonNegativeFiniteFloat
     cost_complete: bool
 
 
-class GridManifest(FrozenModel):
+class GridManifest(_HistoricalRequestPolicies):
     """Describe one finalized normalized production grid."""
 
     schema_version: Literal[3] = 3
@@ -346,6 +382,7 @@ class GridManifest(FrozenModel):
     panel_frozen: bool
     judges: tuple[GridJudgePin, ...]
     pilot_config: PilotRunConfig
+    pilot_historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
     manual_prunes: FrozenMapping[JudgeFamilyId, NonEmptyStr]
     reserve_topology: Literal["dormant"] = "dormant"
     run_dates: RunDates
@@ -365,6 +402,14 @@ class GridManifest(FrozenModel):
     executor_config: FrozenMapping[str, JsonValue]
     executor_policy: FrozenMapping[str, JsonValue]
     request_policy: FrozenMapping[str, JsonValue]
+
+    @field_validator("pilot_historical_request_policy_ids")
+    @classmethod
+    def check_pilot_historical_request_policy_ids(
+        cls,
+        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+        return validate_historical_request_policy_ids(policy_ids)
 
     def _check_panel_contract(self) -> None:
         families = tuple(judge.family_id for judge in self.judges)
@@ -406,11 +451,13 @@ class GridManifest(FrozenModel):
         if self.refined_cards > self.pool_cards:
             raise ValueError("refined cards cannot exceed pool cards")
         expected_votes = sum(
-            row.imported_votes + row.fresh_baseline_votes + row.refinement_votes
+            row.imported_votes + row.fresh_baseline_votes + row.refinement_votes + row.canary_votes
             for row in self.family_counts
         )
         if self.total_votes != expected_votes:
             raise ValueError("total votes must equal the family-count sum")
+        if any(row.canary_votes != self.holdout_cards for row in self.family_counts):
+            raise ValueError("each seated family must have one fresh canary per holdout")
 
     @model_validator(mode="after")
     def check_contract(self) -> Self:

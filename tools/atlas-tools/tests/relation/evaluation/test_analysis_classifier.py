@@ -9,6 +9,7 @@ from atlas_tools.relation.evaluation.analysis.classifier import (
     predict_policy,
     soft_brier_score,
     soft_cross_entropy,
+    validate_classifier_cohorts,
     validate_grouped_folds,
 )
 from atlas_tools.relation.evaluation.analysis.deliverables import (
@@ -144,6 +145,25 @@ def test_grouped_fold_validation_refuses_family_leakage() -> None:
         validate_grouped_folds(labels, leaking, folds=3)
 
 
+def test_cross_fit_preflight_rejects_missing_and_impossible_cohorts() -> None:
+    labels, _ = _dataset()
+    missing = labels[0].model_copy(update={"family_id": None})
+    config = ClassifierConfig(folds=3)
+
+    with pytest.raises(
+        ValueError,
+        match="1 cards lack family_id, for example \\('test:relation-00',\\)",
+    ):
+        validate_classifier_cohorts((missing, *labels[1:]), config)
+
+    one_per_family = (labels[0], labels[2], labels[4])
+    with pytest.raises(
+        ValueError,
+        match="outer fold 0 leaves 2 relation families for 3-fold calibration",
+    ):
+        validate_classifier_cohorts(one_per_family, config)
+
+
 def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
     labels, embeddings = _dataset()
     config = ClassifierConfig(
@@ -181,6 +201,11 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         abs=1e-12,
     )
     assert first.metrics.calibrated_cross_entropy == pytest.approx(
+        0.9006101202960468,
+        rel=1e-12,
+        abs=1e-12,
+    )
+    assert first.metrics.deployed_temperature_cross_entropy == pytest.approx(
         0.602399616384659,
         rel=1e-12,
         abs=1e-12,
@@ -193,7 +218,10 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         )
     assert all(len(folds) == 1 for folds in by_family.values())
     assert set(first.fold_by_relation_id.values()) == {0, 1, 2}
-    assert first.metrics.calibrated_cross_entropy <= first.metrics.out_of_fold_cross_entropy
+    assert (
+        first.metrics.deployed_temperature_cross_entropy
+        <= first.metrics.out_of_fold_cross_entropy
+    )
 
     predictions = predict_policy(
         first.classifier,
@@ -214,6 +242,41 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
     assert center.relation_id == "test:center"
     assert far.distance > center.distance
     assert far.applicability < center.applicability
+
+
+def test_held_out_family_cannot_change_its_fold_calibration_or_applicability() -> None:
+    labels, embeddings = _dataset()
+    config = ClassifierConfig(folds=3, max_iterations=500, seed=17)
+    original = fit_policy_classifier(labels, embeddings, config)
+    changed_label = _label(
+        0,
+        family_id=RelationFamilyId("family-a"),
+        placement_class="overlay",
+    )
+    changed_embedding = EmbeddingRow.from_values(
+        relation_id=embeddings[0].relation_id,
+        card_hash=embeddings[0].card_hash,
+        values=(1000.0, -1000.0),
+    )
+    changed = fit_policy_classifier(
+        (changed_label, *labels[1:]),
+        (changed_embedding, *embeddings[1:]),
+        config,
+    )
+
+    original_row = next(
+        row for row in original.out_of_fold if row.relation_id == "test:relation-04"
+    )
+    changed_row = next(
+        row for row in changed.out_of_fold if row.relation_id == original_row.relation_id
+    )
+    assert original.fold_by_relation_id[changed_label.relation_id] == original_row.fold
+    assert changed.classifier != original.classifier
+    assert changed_row.logits == original_row.logits
+    assert changed_row.calibration_temperature == original_row.calibration_temperature
+    assert changed_row.calibrated == original_row.calibrated
+    assert changed_row.distance == original_row.distance
+    assert changed_row.applicability == original_row.applicability
 
 
 def test_optimizer_matches_weighted_soft_target_mean_for_constant_features() -> None:

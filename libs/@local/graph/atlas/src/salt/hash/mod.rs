@@ -12,7 +12,7 @@ use sha2::{Digest as _, Sha256};
 
 const SHA256_BYTES: usize = 32;
 const SHA256_HEX_BYTES: usize = SHA256_BYTES * 2;
-const READ_BUFFER_BYTES: usize = 64 * 1024;
+const READ_BUFFER_BYTES: usize = 8 * 1024;
 
 /// A canonical SHA-256 content identity.
 ///
@@ -32,12 +32,14 @@ impl ContentHash {
 
     /// Creates an identity from its raw SHA-256 bytes.
     #[must_use]
+    #[inline]
     pub(crate) const fn from_bytes(bytes: [u8; SHA256_BYTES]) -> Self {
         Self(bytes)
     }
 
     /// Borrows the raw SHA-256 bytes.
     #[must_use]
+    #[inline]
     pub(crate) const fn as_bytes(&self) -> &[u8; SHA256_BYTES] {
         &self.0
     }
@@ -82,6 +84,7 @@ impl FromStr for ContentHash {
 }
 
 impl Serialize for ContentHash {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -91,6 +94,7 @@ impl Serialize for ContentHash {
 }
 
 impl<'de> Deserialize<'de> for ContentHash {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -104,10 +108,12 @@ struct ContentHashVisitor;
 impl Visitor<'_> for ContentHashVisitor {
     type Value = ContentHash;
 
+    #[inline]
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a 64-character lowercase SHA-256 hexadecimal string")
     }
 
+    #[inline]
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
@@ -187,6 +193,7 @@ impl ContentHasher {
 
     /// Finishes the composite identity.
     #[must_use]
+    #[inline]
     pub(crate) fn finish(self) -> ContentHash {
         ContentHash::from_bytes(self.0.finalize().into())
     }
@@ -194,7 +201,7 @@ impl ContentHasher {
 
 /// Computes a SHA-256 identity while streaming from `reader`.
 ///
-/// This function uses a fixed-size stack buffer and does not allocate.
+/// This function uses an 8 KiB stack buffer and does not allocate.
 ///
 /// # Errors
 ///

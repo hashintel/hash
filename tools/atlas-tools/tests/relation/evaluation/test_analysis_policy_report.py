@@ -49,6 +49,7 @@ def _prediction(
         card_hash=card.card.card_hash,
         family_id=family_id,
         fold=0,
+        calibration_temperature=1.0,
         applicability=applicability,
         distance=1.0 - applicability,
         logits=(0.0, 0.0, 0.0),

@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
 from atlas_tools.relation.evaluation.domain.api import (
     HandoffManifest,
+    HistoricalCompletionRequestPolicyId,
     PhysicalAttempt,
     PilotRunConfig,
     PromptPackHash,
@@ -33,6 +34,7 @@ class PilotImport:
     manifest_hash: Sha256Hex
     votes_hash: Sha256Hex
     attempts_hash: Sha256Hex
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
     votes: tuple[Vote, ...]
     attempts: tuple[PhysicalAttempt, ...]
 
@@ -94,6 +96,7 @@ def load_pilot_import(
         manifest_hash=sha256_file(directory / "manifest.json"),
         votes_hash=manifest.source_hashes["votes.jsonl"],
         attempts_hash=manifest.source_hashes["attempts.jsonl"],
+        historical_request_policy_ids=manifest.historical_request_policy_ids,
         votes=selected,
         attempts=attempts,
     )

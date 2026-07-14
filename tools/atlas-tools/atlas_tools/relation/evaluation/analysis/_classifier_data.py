@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
+from typing import Protocol
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from atlas_tools.relation.evaluation.analysis.classifier_model import (
     EmbeddingRow,
     FloatMatrix,
     FloatVector,
+    IntVector,
     embedding_view,
     posterior_vector,
 )
@@ -23,6 +25,16 @@ from atlas_tools.relation.evaluation.domain.api import (
 )
 
 _MIN_FOLDS = 2
+
+
+class FamilyGroupedRow(Protocol):
+    """A relation identity with an optional classifier cohort."""
+
+    @property
+    def relation_id(self) -> RelationId: ...
+
+    @property
+    def family_id(self) -> RelationFamilyId | None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,6 +182,90 @@ def validate_grouped_folds(
         raise ValueError(f"fold assignment leaves folds empty: {empty}")
 
 
+def _relations_by_family(
+    rows: Sequence[FamilyGroupedRow],
+) -> dict[RelationFamilyId, list[RelationId]]:
+    """Index unique relations by their required classifier cohort."""
+    if not rows:
+        raise ValueError("classifier cohorts require at least one relation")
+    relation_ids: set[RelationId] = set()
+    by_family: dict[RelationFamilyId, list[RelationId]] = defaultdict(list)
+    missing: list[RelationId] = []
+    for row in rows:
+        if row.relation_id in relation_ids:
+            raise ValueError(f"classifier cohorts repeat relation {row.relation_id}")
+        relation_ids.add(row.relation_id)
+        if row.family_id is None:
+            missing.append(row.relation_id)
+        else:
+            by_family[row.family_id].append(row.relation_id)
+    if missing:
+        examples = tuple(sorted(missing)[:5])
+        raise ValueError(
+            "classifier cross-fitting requires relation-family grouping on every card; "
+            f"{len(missing)} cards lack family_id, for example {examples}"
+        )
+    return by_family
+
+
+def _fold_by_family(
+    relations_by_family: Mapping[RelationFamilyId, Sequence[RelationId]],
+    config: ClassifierConfig,
+) -> dict[RelationFamilyId, int]:
+    if len(relations_by_family) < config.folds:
+        raise ValueError(
+            f"grouped CV needs {config.folds} relation families, "
+            f"found {len(relations_by_family)}"
+        )
+
+    def family_key(
+        item: tuple[RelationFamilyId, Sequence[RelationId]],
+    ) -> tuple[int, bytes, str]:
+        family_id, relation_ids = item
+        digest = hashlib.sha256(f"{config.seed}\0{family_id}".encode()).digest()
+        return -len(relation_ids), digest, family_id
+
+    fold_sizes = [0] * config.folds
+    assignment: dict[RelationFamilyId, int] = {}
+    for family_id, relation_ids in sorted(relations_by_family.items(), key=family_key):
+        fold = min(range(config.folds), key=lambda index: (fold_sizes[index], index))
+        assignment[family_id] = fold
+        fold_sizes[fold] += len(relation_ids)
+    return assignment
+
+
+def validate_classifier_cohorts(
+    rows: Sequence[FamilyGroupedRow],
+    config: ClassifierConfig,
+) -> None:
+    """Validate that nested grouped cross-fitting is possible.
+
+    Every outer validation cohort is removed before its temperature and
+    applicability evidence is fitted. The remaining families must still fill
+    every configured inner fold. Validation takes `O(n log n)` time for `n`
+    relations and performs no fitting or provider work.
+
+    Raises:
+        ValueError: Relations repeat, lack a family, cannot fill the outer
+            folds, or leave an outer-training partition unable to fill every
+            inner fold.
+
+    """
+    relations_by_family = _relations_by_family(rows)
+    family_folds = _fold_by_family(relations_by_family, config)
+    family_count = len(relations_by_family)
+    for fold in range(config.folds):
+        validation_families = sum(
+            assigned_fold == fold for assigned_fold in family_folds.values()
+        )
+        training_families = family_count - validation_families
+        if training_families < config.folds:
+            raise ValueError(
+                f"outer fold {fold} leaves {training_families} relation families for "
+                f"{config.folds}-fold calibration; nested grouped CV is impossible"
+            )
+
+
 def grouped_fold_assignment(
     data: TrainingData,
     config: ClassifierConfig,
@@ -177,26 +273,8 @@ def grouped_fold_assignment(
     """Assign whole families to deterministic size-balanced folds."""
     if config.folds < _MIN_FOLDS:
         raise ValueError("classifier config requires at least two grouped folds")
-    relation_ids_by_family: dict[RelationFamilyId, list[RelationId]] = defaultdict(list)
-    for label, family_id in zip(data.labels, data.families, strict=True):
-        relation_ids_by_family[family_id].append(label.relation_id)
-    if len(relation_ids_by_family) < config.folds:
-        raise ValueError(
-            f"grouped CV needs {config.folds} relation families, "
-            f"found {len(relation_ids_by_family)}"
-        )
-
-    def family_key(item: tuple[RelationFamilyId, list[RelationId]]) -> tuple[int, bytes, str]:
-        family_id, relation_ids = item
-        digest = hashlib.sha256(f"{config.seed}\0{family_id}".encode()).digest()
-        return -len(relation_ids), digest, family_id
-
-    fold_sizes = [0] * config.folds
-    fold_by_family: dict[RelationFamilyId, int] = {}
-    for family_id, relation_ids in sorted(relation_ids_by_family.items(), key=family_key):
-        fold = min(range(config.folds), key=lambda index: (fold_sizes[index], index))
-        fold_by_family[family_id] = fold
-        fold_sizes[fold] += len(relation_ids)
+    relation_ids_by_family = _relations_by_family(data.labels)
+    fold_by_family = _fold_by_family(relation_ids_by_family, config)
 
     assignment = MappingProxyType(
         {
@@ -206,3 +284,17 @@ def grouped_fold_assignment(
     )
     validate_grouped_folds(data.labels, assignment, folds=config.folds)
     return assignment
+
+
+def training_subset(data: TrainingData, indices: IntVector) -> TrainingData:
+    """Select a non-empty training partition while preserving row order."""
+    if indices.ndim != 1 or not len(indices):
+        raise ValueError("classifier training subset must be one-dimensional and non-empty")
+    positions = tuple(int(index) for index in indices)
+    return TrainingData(
+        labels=tuple(data.labels[index] for index in positions),
+        families=tuple(data.families[index] for index in positions),
+        embeddings=data.embeddings[indices],
+        targets=data.targets[indices],
+        vote_weights=data.vote_weights[indices],
+    )

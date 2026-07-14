@@ -26,6 +26,7 @@ from atlas_tools.relation.evaluation.domain.api import (
 
 type FloatMatrix = NDArray[np.float64]
 type FloatVector = NDArray[np.float64]
+type IntVector = NDArray[np.int64]
 type ProbabilityVector = tuple[float, float, float]
 
 _CLASS_COUNT = len(PLACEMENT_CLASSES)
@@ -140,8 +141,8 @@ class ApplicabilityModel(AnalysisModel):
 class PolicyClassifier(AnalysisModel):
     """Carry the final model, calibration, and applicability contract."""
 
-    calibration: Literal["scalar-temperature-golden-section-v1"] = (
-        "scalar-temperature-golden-section-v1"
+    calibration: Literal["grouped-oof-scalar-temperature-golden-section-v2"] = (
+        "grouped-oof-scalar-temperature-golden-section-v2"
     )
     config: ClassifierConfig
     model: MultinomialModel
@@ -180,14 +181,43 @@ class PolicyPrediction(AnalysisModel):
 
 
 class OutOfFoldPrediction(PolicyPrediction):
-    """Add the held-out relation family and audited fold index."""
+    """Add the held-out cohort and its independently fitted temperature."""
 
     family_id: RelationFamilyId
     fold: NonNegativeInt
+    calibration_temperature: PositiveFiniteFloat
+
+
+class CrossFitFold(AnalysisModel):
+    """Validation evidence fitted without the fold's relation families."""
+
+    algorithm: Literal["nested-grouped-calibration-applicability-v1"] = (
+        "nested-grouped-calibration-applicability-v1"
+    )
+    fold: NonNegativeInt
+    validation_relation_ids: tuple[RelationId, ...]
+    temperature: PositiveFiniteFloat
+    applicability: ApplicabilityModel
+
+    @model_validator(mode="after")
+    def check_validation_relations(self) -> Self:
+        if not self.validation_relation_ids:
+            raise ValueError("cross-fit fold requires at least one validation relation")
+        if self.validation_relation_ids != tuple(sorted(self.validation_relation_ids)):
+            raise ValueError("cross-fit validation relations must use ascending order")
+        if len(self.validation_relation_ids) != len(set(self.validation_relation_ids)):
+            raise ValueError("cross-fit validation relations must be unique")
+        return self
 
 
 class ClassifierMetrics(AnalysisModel):
-    """Summarize weighted out-of-fold discrimination and calibration."""
+    """Summarize weighted out-of-fold discrimination and calibration.
+
+    Calibrated row metrics use the temperature fitted without that row's
+    outer fold. `deployed_temperature_cross_entropy` is the all-row grouped
+    out-of-fold objective used to fit the final deployment temperature; it is
+    recorded as fitting evidence rather than an independent estimate.
+    """
 
     training_cards: PositiveInt
     training_vote_weight: PositiveFiniteFloat
@@ -195,6 +225,7 @@ class ClassifierMetrics(AnalysisModel):
     max_fold_iterations: PositiveInt
     out_of_fold_cross_entropy: NonNegativeFiniteFloat
     calibrated_cross_entropy: NonNegativeFiniteFloat
+    deployed_temperature_cross_entropy: NonNegativeFiniteFloat
     out_of_fold_brier: NonNegativeFiniteFloat
     calibrated_brier: NonNegativeFiniteFloat
     raw_expected_accuracy: Probability
@@ -202,8 +233,8 @@ class ClassifierMetrics(AnalysisModel):
 
     @model_validator(mode="after")
     def check_calibration(self) -> Self:
-        if self.calibrated_cross_entropy > self.out_of_fold_cross_entropy + 1e-12:
-            raise ValueError("temperature calibration must not increase cross-entropy")
+        if self.deployed_temperature_cross_entropy > self.out_of_fold_cross_entropy + 1e-12:
+            raise ValueError("deployed temperature must not increase fitting cross-entropy")
 
         return self
 
@@ -213,6 +244,7 @@ class ClassifierFit:
     """Return a fitted classifier and every deterministic validation artifact."""
 
     classifier: PolicyClassifier
+    cross_fit_folds: tuple[CrossFitFold, ...]
     out_of_fold: tuple[OutOfFoldPrediction, ...]
     metrics: ClassifierMetrics
     fold_by_relation_id: MappingProxyType[RelationId, int]

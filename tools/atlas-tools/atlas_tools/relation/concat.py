@@ -68,11 +68,32 @@ class ConcatInput(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+class FamilyOverlayDetails(BaseModel):
+    """Record the reviewed assignment contract applied to a concat artifact."""
+
+    schema_version: Literal[1] = 1
+    algorithm: Literal["user-supplied-exact-overlay-v1"] = "user-supplied-exact-overlay-v1"
+    assignments_hash: Sha256Hex
+    assignment_count: NonNegativeInt
+    family_count: NonNegativeInt
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def check_counts(self) -> Self:
+        if self.family_count > self.assignment_count:
+            raise ValueError("family_count must not exceed assignment_count")
+        if (self.assignment_count == 0) != (self.family_count == 0):
+            raise ValueError("family_count must be zero if and only if assignment_count is zero")
+        return self
+
+
 class ConcatDetails(BaseModel):
     schema_version: Literal[2] = CONCAT_SCHEMA_VERSION
     sources: dict[RelationNamespace, ConcatSource]
     inputs: list[ConcatInput]
     row_count: NonNegativeInt
+    family_overlay: FamilyOverlayDetails | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -84,6 +105,11 @@ class ConcatDetails(BaseModel):
             raise ValueError("concat inputs must not be empty")
         if len({item.artifact_id for item in self.inputs}) != len(self.inputs):
             raise ValueError("concat inputs contain duplicate artifact IDs")
+        if (
+            self.family_overlay is not None
+            and self.family_overlay.assignment_count != self.row_count
+        ):
+            raise ValueError("family overlay assignment_count must equal concat row_count")
         for namespace, source in self.sources.items():
             if namespace != source.namespace:
                 raise ValueError("source map key must equal source namespace")
@@ -99,15 +125,15 @@ class ConcatConfig(BaseModel):
 ConcatProvenance = Provenance[ConcatDetails, ConcatConfig]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ConcatPaths:
-    """Locations of the files written by :func:`concat_relations`."""
+    """Locations of a published ``relation.concat`` artifact."""
 
     cards_jsonl: Path
     manifest: Path
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class _InputArtifact:
     cards_path: Path
     cards_hash: Sha256Hex
@@ -116,6 +142,25 @@ class _InputArtifact:
     sources: dict[RelationNamespace, ConcatSource]
     nested: bool
     expected_rows: int | None
+    provenance: ConcatProvenance | None
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedConcatArtifact:
+    """A concat artifact whose manifest and card content hash agree."""
+
+    directory: Path
+    cards_path: Path
+    manifest_path: Path
+    cards_hash: Sha256Hex
+    manifest_hash: Sha256Hex
+    artifact_id: Sha256Hex
+    provenance: ConcatProvenance
+    _input: _InputArtifact
+
+    def rows(self) -> Iterator[ConcatCardRow]:
+        """Stream rows while proving the card file did not change after verification."""
+        return _rows(self._input)
 
 
 def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
@@ -127,6 +172,19 @@ def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
             }
         )
     )
+
+
+def concat_input_hashes(details: ConcatDetails) -> dict[str, Sha256Hex]:
+    """Return the exact provenance inputs declared by concat details."""
+    hashes = {
+        f"inputs/{item.artifact_id}/cards.jsonl": item.cards_hash for item in details.inputs
+    } | {
+        f"inputs/{item.artifact_id}/cards.manifest.json": item.manifest_hash
+        for item in details.inputs
+    }
+    if details.family_overlay is not None:
+        hashes["family-overlay/assignments.jsonl"] = details.family_overlay.assignments_hash
+    return hashes
 
 
 def _verified_artifact(card_dir: Path) -> _InputArtifact:
@@ -150,13 +208,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
 
     if provenance.producer == "relation.concat":
         nested = ConcatProvenance.model_validate_json(manifest_bytes)
-        expected_input_hashes = {
-            f"inputs/{item.artifact_id}/cards.jsonl": item.cards_hash
-            for item in nested.details.inputs
-        } | {
-            f"inputs/{item.artifact_id}/cards.manifest.json": item.manifest_hash
-            for item in nested.details.inputs
-        }
+        expected_input_hashes = concat_input_hashes(nested.details)
         if nested.input_hashes != expected_input_hashes:
             raise ValueError(f"{manifest_path} input hashes do not match details.inputs")
 
@@ -169,6 +221,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         sources = nested.details.sources
         is_nested = True
         expected_rows = nested.details.row_count
+        concat_provenance = nested
     else:
         if not isinstance(provenance.details, dict):
             raise ValueError(f"{manifest_path} must declare details.relation_source")
@@ -190,6 +243,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         sources = {source.namespace: source}
         is_nested = False
         expected_rows = None
+        concat_provenance = None
 
     return _InputArtifact(
         cards_path=cards_path,
@@ -199,6 +253,26 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         sources=dict(sources),
         nested=is_nested,
         expected_rows=expected_rows,
+        provenance=concat_provenance,
+    )
+
+
+def verify_concat_artifact(directory: PathLike) -> VerifiedConcatArtifact:
+    """Verify one concat artifact without projecting away producer fields."""
+    path = Path(directory)
+    artifact = _verified_artifact(path)
+    if not artifact.nested or artifact.provenance is None:
+        raise ValueError(f"{path} is not a relation.concat artifact")
+
+    return VerifiedConcatArtifact(
+        directory=path,
+        cards_path=artifact.cards_path,
+        manifest_path=path / "cards.manifest.json",
+        cards_hash=artifact.cards_hash,
+        manifest_hash=artifact.manifest_hash,
+        artifact_id=artifact.artifact_id,
+        provenance=artifact.provenance,
+        _input=artifact,
     )
 
 

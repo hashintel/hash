@@ -15,6 +15,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
     ApplicabilityModel,
     ClassifierFit,
     ClassifierMetrics,
+    CrossFitFold,
     MultinomialModel,
     OutOfFoldPrediction,
     PolicyClassifier,
@@ -70,20 +71,30 @@ _SCHEMA_HASHES = {
 }
 
 
-def _algorithms(classifier: PolicyClassifier) -> dict[str, str]:
+def _algorithms(
+    classifier: PolicyClassifier,
+    cross_fit_folds: Sequence[CrossFitFold],
+) -> dict[str, str]:
+    algorithms = {fold.algorithm for fold in cross_fit_folds}
+    if len(algorithms) != 1:
+        raise ValueError("cross-fit folds must use one supported algorithm")
+    [cross_fit_algorithm] = algorithms
     return {
         "applicability": classifier.applicability.algorithm,
         "array_container": "npz-stored-npy-f64-le-v1",
         "calibration": classifier.calibration,
+        "cross_fit": cross_fit_algorithm,
         "multinomial": classifier.model.algorithm,
         "ordering": ORDERING_ALGORITHM,
         "parquet": PARQUET_ALGORITHM,
     }
 
 
-def _classifier_arrays(classifier: PolicyClassifier) -> ClassifierArrays:
+def _classifier_arrays(fit: ClassifierFit) -> ClassifierArrays:
+    classifier = fit.classifier
     model = classifier.model
     applicability = classifier.applicability
+    cross_fit_applicability = tuple(fold.applicability for fold in fit.cross_fit_folds)
     return ClassifierArrays(
         coefficients=immutable_float64(np.asarray(model.coefficients, dtype=np.float64)),
         intercepts=immutable_float64(np.asarray(model.intercepts, dtype=np.float64)),
@@ -94,6 +105,23 @@ def _classifier_arrays(classifier: PolicyClassifier) -> ClassifierArrays:
         applicability_training_distances=immutable_float64(
             np.asarray(applicability.training_distances, dtype=np.float64)
         ),
+        cross_fit_applicability_mean=immutable_float64(
+            np.asarray([model.mean for model in cross_fit_applicability], dtype=np.float64)
+        ),
+        cross_fit_applicability_inverse_scales=immutable_float64(
+            np.asarray(
+                [model.inverse_scales for model in cross_fit_applicability],
+                dtype=np.float64,
+            )
+        ),
+        cross_fit_applicability_training_distances=immutable_float64(
+            np.concatenate(
+                [
+                    np.asarray(model.training_distances, dtype=np.float64)
+                    for model in cross_fit_applicability
+                ]
+            )
+        ),
     )
 
 
@@ -103,6 +131,13 @@ def _array_mapping(arrays: ClassifierArrays) -> dict[str, FloatArray]:
         "applicability_mean": arrays.applicability_mean,
         "applicability_training_distances": arrays.applicability_training_distances,
         "coefficients": arrays.coefficients,
+        "cross_fit_applicability_inverse_scales": (
+            arrays.cross_fit_applicability_inverse_scales
+        ),
+        "cross_fit_applicability_mean": arrays.cross_fit_applicability_mean,
+        "cross_fit_applicability_training_distances": (
+            arrays.cross_fit_applicability_training_distances
+        ),
         "intercepts": arrays.intercepts,
     }
 
@@ -128,9 +163,64 @@ def _probabilities_close(
     )
 
 
+def _validate_prediction(
+    row: OutOfFoldPrediction,
+    evidence: CrossFitFold,
+) -> None:
+    raw = _softmax(row.logits, 1.0)
+    observed_raw = (row.raw.coincident, row.raw.proximal, row.raw.overlay)
+    if not _probabilities_close(observed_raw, raw):
+        raise ValueError(f"raw probabilities disagree with logits for {row.relation_id}")
+    if row.calibration_temperature != evidence.temperature:
+        raise ValueError(
+            f"calibration temperature disagrees with fold evidence for {row.relation_id}"
+        )
+    calibrated = _softmax(row.logits, evidence.temperature)
+    observed_calibrated = (
+        row.calibrated.coincident,
+        row.calibrated.proximal,
+        row.calibrated.overlay,
+    )
+    if not _probabilities_close(observed_calibrated, calibrated):
+        raise ValueError(f"calibrated probabilities disagree with logits for {row.relation_id}")
+    distances = evidence.applicability.training_distances
+    expected_applicability = 1.0 - bisect_left(distances, row.distance) / len(distances)
+    if not math.isclose(
+        row.applicability,
+        expected_applicability,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    ):
+        raise ValueError(f"applicability disagrees with training distances for {row.relation_id}")
+
+
+def _validate_cross_fit_evidence(
+    rows: Sequence[OutOfFoldPrediction],
+    classifier: PolicyClassifier,
+    cross_fit_folds: Sequence[CrossFitFold],
+) -> dict[int, CrossFitFold]:
+    fold_numbers = tuple(fold.fold for fold in cross_fit_folds)
+    if fold_numbers != tuple(range(classifier.config.folds)):
+        raise ValueError("cross-fit evidence does not cover folds in canonical order")
+    observed_by_fold = {
+        fold: tuple(row.relation_id for row in rows if row.fold == fold)
+        for fold in range(classifier.config.folds)
+    }
+    for fold in cross_fit_folds:
+        if fold.validation_relation_ids != observed_by_fold[fold.fold]:
+            raise ValueError(f"cross-fit validation relations disagree for fold {fold.fold}")
+        if fold.applicability.dimension != classifier.model.dimension:
+            raise ValueError(f"cross-fit applicability dimension differs for fold {fold.fold}")
+        expected_training = len(rows) - len(fold.validation_relation_ids)
+        if len(fold.applicability.training_distances) != expected_training:
+            raise ValueError(f"cross-fit applicability sample count differs for fold {fold.fold}")
+    return {fold.fold: fold for fold in cross_fit_folds}
+
+
 def _validate_out_of_fold(
     rows: Sequence[OutOfFoldPrediction],
     classifier: PolicyClassifier,
+    cross_fit_folds: Sequence[CrossFitFold],
     metrics: ClassifierMetrics,
     fold_by_relation_id: Mapping[RelationId, int],
 ) -> None:
@@ -143,34 +233,14 @@ def _validate_out_of_fold(
     folds = {row.fold for row in rows}
     if folds != set(range(classifier.config.folds)):
         raise ValueError("out-of-fold predictions do not cover every configured fold")
+    evidence_by_fold = _validate_cross_fit_evidence(rows, classifier, cross_fit_folds)
     family_folds: dict[RelationFamilyId, int] = {}
-    distances = classifier.applicability.training_distances
     for row in rows:
+        evidence = evidence_by_fold[row.fold]
         previous = family_folds.setdefault(row.family_id, row.fold)
         if previous != row.fold:
             raise ValueError(f"out-of-fold predictions leak relation family {row.family_id}")
-        raw = _softmax(row.logits, 1.0)
-        observed_raw = (row.raw.coincident, row.raw.proximal, row.raw.overlay)
-        if not _probabilities_close(observed_raw, raw):
-            raise ValueError(f"raw probabilities disagree with logits for {row.relation_id}")
-        calibrated = _softmax(row.logits, classifier.temperature)
-        observed_calibrated = (
-            row.calibrated.coincident,
-            row.calibrated.proximal,
-            row.calibrated.overlay,
-        )
-        if not _probabilities_close(observed_calibrated, calibrated):
-            raise ValueError(f"calibrated probabilities disagree with logits for {row.relation_id}")
-        expected_applicability = 1.0 - bisect_left(distances, row.distance) / len(distances)
-        if not math.isclose(
-            row.applicability,
-            expected_applicability,
-            rel_tol=1e-12,
-            abs_tol=1e-12,
-        ):
-            raise ValueError(
-                f"applicability disagrees with training distances for {row.relation_id}"
-            )
+        _validate_prediction(row, evidence)
 
 
 def _validate_fit(fit: ClassifierFit) -> tuple[OutOfFoldPrediction, ...]:
@@ -180,6 +250,7 @@ def _validate_fit(fit: ClassifierFit) -> tuple[OutOfFoldPrediction, ...]:
     _validate_out_of_fold(
         ordered,
         fit.classifier,
+        fit.cross_fit_folds,
         fit.metrics,
         fit.fold_by_relation_id,
     )
@@ -206,11 +277,11 @@ def write_classifier_bundle(
     """
     rows = _validate_fit(fit)
     classifier = fit.classifier
-    arrays = _classifier_arrays(classifier)
+    arrays = _classifier_arrays(fit)
     arrays_payload = deterministic_npz(_array_mapping(arrays))
     disk_rows = tuple(OutOfFoldDiskRow.from_prediction(row) for row in rows)
     out_of_fold_payload = parquet_bytes(disk_rows, OUT_OF_FOLD_SCHEMA)
-    algorithms = _algorithms(classifier)
+    algorithms = _algorithms(classifier, fit.cross_fit_folds)
     metadata = ClassifierBundleMetadata(
         schema_hashes=_SCHEMA_HASHES,
         algorithms=algorithms,
@@ -226,6 +297,7 @@ def write_classifier_bundle(
         embedding_dimension=classifier.model.dimension,
         model_iterations=classifier.model.iterations,
         temperature=classifier.temperature,
+        cross_fit_temperatures=tuple(fold.temperature for fold in fit.cross_fit_folds),
         config=classifier.config,
         metrics=fit.metrics,
     )
@@ -237,6 +309,7 @@ def write_classifier_bundle(
     atomic_replace(metadata_path, model_bytes(metadata))
     canonical_fit = ClassifierFit(
         classifier=classifier,
+        cross_fit_folds=fit.cross_fit_folds,
         out_of_fold=rows,
         metrics=fit.metrics,
         fold_by_relation_id=MappingProxyType({row.relation_id: row.fold for row in rows}),
@@ -257,12 +330,16 @@ def _require_array_shapes(
     *,
     dimension: int,
     rows: int,
+    folds: int,
 ) -> None:
     expected = {
         "applicability_inverse_scales": (dimension,),
         "applicability_mean": (dimension,),
         "applicability_training_distances": (rows,),
         "coefficients": (3, dimension),
+        "cross_fit_applicability_inverse_scales": (folds, dimension),
+        "cross_fit_applicability_mean": (folds, dimension),
+        "cross_fit_applicability_training_distances": (rows * (folds - 1),),
         "intercepts": (3,),
     }
     observed = {name: array.shape for name, array in arrays.items()}
@@ -305,6 +382,39 @@ def _classifier_from_arrays(
     )
 
 
+def _cross_fit_folds_from_arrays(
+    metadata: ClassifierBundleMetadata,
+    arrays: Mapping[str, FloatArray],
+    rows: Sequence[OutOfFoldPrediction],
+) -> tuple[CrossFitFold, ...]:
+    means = arrays["cross_fit_applicability_mean"]
+    inverse_scales = arrays["cross_fit_applicability_inverse_scales"]
+    distances = arrays["cross_fit_applicability_training_distances"]
+    offset = 0
+    folds: list[CrossFitFold] = []
+    for fold in range(metadata.config.folds):
+        validation_relation_ids = tuple(row.relation_id for row in rows if row.fold == fold)
+        training_count = len(rows) - len(validation_relation_ids)
+        upper = offset + training_count
+        folds.append(
+            CrossFitFold(
+                fold=fold,
+                validation_relation_ids=validation_relation_ids,
+                temperature=metadata.cross_fit_temperatures[fold],
+                applicability=ApplicabilityModel(
+                    dimension=metadata.embedding_dimension,
+                    mean=tuple(float(value) for value in means[fold]),
+                    inverse_scales=tuple(float(value) for value in inverse_scales[fold]),
+                    training_distances=tuple(float(value) for value in distances[offset:upper]),
+                ),
+            )
+        )
+        offset = upper
+    if offset != len(distances):
+        raise ValueError("cross-fit applicability arrays have trailing distances")
+    return tuple(folds)
+
+
 def load_classifier_bundle(
     directory: Path,
     *,
@@ -345,13 +455,9 @@ def load_classifier_bundle(
         decoded_arrays,
         dimension=metadata.embedding_dimension,
         rows=metadata.rows,
+        folds=metadata.config.folds,
     )
     classifier = _classifier_from_arrays(metadata, decoded_arrays)
-    require_exact_mapping(
-        metadata.algorithms,
-        _algorithms(classifier),
-        label="classifier algorithms",
-    )
     table = read_parquet(out_of_fold_path, out_of_fold_payload, OUT_OF_FOLD_SCHEMA)
     disk_rows = decode_rows(out_of_fold_path, table, OutOfFoldDiskRow)
     try:
@@ -367,10 +473,17 @@ def load_classifier_bundle(
         raise ValueError("classifier relation/card order does not match metadata")
     if fold_assignment_hash(rows) != metadata.fold_assignment_hash:
         raise ValueError("classifier fold assignment does not match metadata")
+    cross_fit_folds = _cross_fit_folds_from_arrays(metadata, decoded_arrays, rows)
+    require_exact_mapping(
+        metadata.algorithms,
+        _algorithms(classifier, cross_fit_folds),
+        label="classifier algorithms",
+    )
     fold_by_relation_id = MappingProxyType({row.relation_id: row.fold for row in rows})
     _validate_out_of_fold(
         rows,
         classifier,
+        cross_fit_folds,
         metadata.metrics,
         fold_by_relation_id,
     )
@@ -380,9 +493,17 @@ def load_classifier_bundle(
         applicability_mean=decoded_arrays["applicability_mean"],
         applicability_inverse_scales=decoded_arrays["applicability_inverse_scales"],
         applicability_training_distances=decoded_arrays["applicability_training_distances"],
+        cross_fit_applicability_mean=decoded_arrays["cross_fit_applicability_mean"],
+        cross_fit_applicability_inverse_scales=decoded_arrays[
+            "cross_fit_applicability_inverse_scales"
+        ],
+        cross_fit_applicability_training_distances=decoded_arrays[
+            "cross_fit_applicability_training_distances"
+        ],
     )
     fit = ClassifierFit(
         classifier=classifier,
+        cross_fit_folds=cross_fit_folds,
         out_of_fold=rows,
         metrics=metadata.metrics,
         fold_by_relation_id=fold_by_relation_id,

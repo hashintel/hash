@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, DirectoryPath, FilePath
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath
 from pydantic_settings import (
     BaseSettings,
     CliApp,
@@ -31,6 +31,35 @@ class ConcatCommand(BaseSettings):
 
         try:
             paths = concat_relations(self.inputs, out=self.out)
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {paths.cards_jsonl}")
+        echo(f"wrote {paths.manifest}")
+
+
+class FamilyOverlayCommand(BaseSettings):
+    """Apply an exact reviewed relation-family mapping to a concat artifact.
+
+    The JSONL mapping must cover the deck exactly and bind each ``relation_id``
+    to the reviewed ``card_hash``. The destination is a new verified concat
+    artifact and must not already exist.
+    """
+
+    cards: CliPositionalArg[DirectoryPath]
+    assignments: CliPositionalArg[FilePath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.family_overlay import apply_family_overlay
+
+        try:
+            paths = apply_family_overlay(
+                self.cards,
+                self.assignments,
+                out=self.out,
+            )
         except (OSError, ValueError) as error:
             fail(error)
         echo(f"wrote {paths.cards_jsonl}")
@@ -221,22 +250,22 @@ class ReportCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.policy_report import write_report
-        from atlas_tools.relation.eval.run import load_run_config
+        from atlas_tools.relation.evaluation.application.api import write_policy_report
 
         try:
-            result = write_report(
-                run_dir=self.run,
-                cards_dir=self.cards,
-                loaded_config=load_run_config(self.config),
+            result = write_policy_report(
+                run_directory=self.run,
+                cards_directory=self.cards,
+                config_path=self.config,
                 gold_path=self.gold,
-                classifier_dir=self.classifier,
-                out_dir=self.out,
+                classifier_directory=self.classifier,
+                output_directory=self.out,
             )
         except (OSError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.report_json}")
-        echo(f"wrote {result.report_md}")
+        echo(f"wrote {result.report_json_path}")
+        echo(f"wrote {result.report_markdown_path}")
+        echo(f"wrote {result.metadata_path}")
 
 
 class AnalyzeCommand(BaseSettings):
@@ -283,7 +312,10 @@ class VisualizeCommand(BaseSettings):
 class RelationCli(BaseModel):
     """Operations over relation-card sets."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     concat: CliSubCommand[ConcatCommand]
+    family_overlay: CliSubCommand[FamilyOverlayCommand] = Field(alias="family-overlay")
     evaluate: CliSubCommand[EvaluateCommand]
     deliverables: CliSubCommand[DeliverablesCommand]
     aggregate: CliSubCommand[AggregateCommand]

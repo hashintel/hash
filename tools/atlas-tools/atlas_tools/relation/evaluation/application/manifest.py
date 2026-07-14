@@ -29,6 +29,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     GridManifest,
     GridRunState,
     HandoffManifest,
+    HistoricalCompletionRequestPolicyId,
     JudgeFamilyId,
     PilotRunState,
     ReasoningEffort,
@@ -80,6 +81,7 @@ def build_pilot_state(
     request_contract_hash: Sha256Hex,
     openrouter_sdk_version: str,
     openrouter_openapi_version: str,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
 ) -> PilotRunState:
     """Bind a pilot's replayable task stream before any journal is created."""
     return PilotRunState(
@@ -89,6 +91,7 @@ def build_pilot_state(
         prompt_pack_hash=prepared.prompt_pack.content_hash,
         slice_hash=jsonl_hash(prepared.slice_records),
         expected_votes=prepared.plan.expected_votes,
+        historical_request_policy_ids=historical_request_policy_ids,
         openrouter_sdk_version=openrouter_sdk_version,
         openrouter_openapi_version=openrouter_openapi_version,
     )
@@ -100,6 +103,7 @@ def build_grid_state(
     request_contract_hash: Sha256Hex,
     openrouter_sdk_version: str,
     openrouter_openapi_version: str,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
 ) -> GridRunState:
     """Bind the immutable inputs of a two-phase grid before Phase A."""
     return GridRunState(
@@ -113,6 +117,8 @@ def build_grid_state(
         corpus_hash=jsonl_hash(prepared.corpus),
         imported_votes_hash=jsonl_hash(prepared.pilot_import.votes),
         imported_attempts_hash=jsonl_hash(prepared.pilot_import.attempts),
+        historical_request_policy_ids=historical_request_policy_ids,
+        pilot_historical_request_policy_ids=(prepared.pilot_import.historical_request_policy_ids),
         openrouter_sdk_version=openrouter_sdk_version,
         openrouter_openapi_version=openrouter_openapi_version,
     )
@@ -146,6 +152,7 @@ def build_pilot_manifest(
     relation_ids = tuple(row.relation_id for row in prepared.slice_records)
     non_holdouts = tuple(row.relation_id for row in prepared.slice_records if not row.is_holdout)
     return HandoffManifest(
+        historical_request_policy_ids=state.historical_request_policy_ids,
         expected_grid=ExpectedGrid(
             families=families,
             bundles=BUNDLES,
@@ -199,6 +206,7 @@ def _family_counts(
                 imported_votes=family.imported_votes,
                 fresh_baseline_votes=family.fresh_baseline_votes,
                 refinement_votes=family.refinement_votes,
+                canary_votes=family.canary_votes,
                 abstentions=family.abstentions,
                 known_cost_usd=family.known_cost_usd,
                 cost_complete=family.cost_complete,
@@ -212,6 +220,7 @@ def build_grid_manifest(
     *,
     state: GridRunState,
     analysis: GridAnalysis,
+    canary_votes: Sequence[Vote],
     artifact_hashes: Mapping[str, Sha256Hex],
     executor_policy: Mapping[str, JsonValue],
     request_policy: Mapping[str, JsonValue],
@@ -226,15 +235,17 @@ def build_grid_manifest(
     }
     if set(artifact_hashes) != required:
         raise ValueError(f"grid finalization requires artifact hashes {sorted(required)}")
-    economics = vote_economics(analysis)
-    fresh = _fresh_votes(analysis)
+    economics = vote_economics(analysis, canary_votes=canary_votes)
+    fresh = (*_fresh_votes(analysis), *canary_votes)
     dates = _run_dates(fresh or _all_votes(analysis))
     counts = _family_counts(prepared, economics)
     return GridManifest(
+        historical_request_policy_ids=state.historical_request_policy_ids,
         panel_version=prepared.config.panel.version,
         panel_frozen=prepared.config.panel.frozen,
         judges=tuple(judge_pin(judge) for judge in prepared.config.judges),
         pilot_config=prepared.pilot_import.config,
+        pilot_historical_request_policy_ids=(prepared.pilot_import.historical_request_policy_ids),
         manual_prunes={
             prune.family_id: prune.reason for prune in prepared.config.panel.manual_prunes
         },

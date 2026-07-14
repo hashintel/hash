@@ -18,7 +18,10 @@ import trio
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.evaluation.analysis.api import analyze_grid
 from atlas_tools.relation.evaluation.application._lifetime import close_owned_transport
-from atlas_tools.relation.evaluation.application.grid_plan import derive_grid_plan
+from atlas_tools.relation.evaluation.application.grid_plan import (
+    derive_grid_plan,
+    split_grid_votes,
+)
 from atlas_tools.relation.evaluation.application.identity import request_contract_hash
 from atlas_tools.relation.evaluation.application.manifest import (
     build_grid_manifest,
@@ -39,8 +42,11 @@ from atlas_tools.relation.evaluation.application.source import (
 )
 from atlas_tools.relation.evaluation.domain.api import (
     BaseRunConfig,
+    GridRunState,
+    HistoricalCompletionRequestPolicyId,
     JudgeFamilyId,
     PhysicalAttempt,
+    PilotRunState,
     Sha256Hex,
     Vote,
     VotePlan,
@@ -61,6 +67,7 @@ from atlas_tools.relation.evaluation.storage.api import (
     ResumeIndex,
     RunJournal,
     exclusive_run,
+    load_json_async,
     prepare_grid_async,
     prepare_pilot_async,
     write_grid_manifest_async,
@@ -114,8 +121,30 @@ async def _is_file(path: Path) -> bool:
     return await trio.to_thread.run_sync(path.is_file, abandon_on_cancel=False)
 
 
+async def _pilot_historical_request_policy_ids(
+    path: Path,
+) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+    if not await _is_file(path):
+        return ()
+    state = await load_json_async(path, PilotRunState)
+    return state.historical_request_policy_ids
+
+
+async def _grid_historical_request_policy_ids(
+    path: Path,
+) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+    if not await _is_file(path):
+        return ()
+    state = await load_json_async(path, GridRunState)
+    return state.historical_request_policy_ids
+
+
 def _remaining(plan: VotePlan, start_index: int) -> Iterator[VoteTask]:
     return islice(plan.tasks(), start_index, None)
+
+
+def _plan_range(plan: VotePlan, start_index: int, stop_index: int) -> Iterator[VoteTask]:
+    return islice(plan.tasks(), start_index, stop_index)
 
 
 async def _final_snapshot(
@@ -124,6 +153,7 @@ async def _final_snapshot(
     *,
     prompt: RubricVotePrompt,
     config: BaseRunConfig,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
 ) -> tuple[JournalSnapshot, ResumeIndex]:
     snapshot = await journal.snapshot()
     resume = build_resume_index(
@@ -132,6 +162,7 @@ async def _final_snapshot(
         attempts=snapshot.attempts,
         prompt=prompt,
         config=config,
+        historical_request_policy_ids=historical_request_policy_ids,
     )
     if resume.next_plan_index != plan.expected_votes:
         raise ValueError(
@@ -149,14 +180,15 @@ async def _run_pilot(
 ) -> PilotPaths:
     versions = transport_versions()
     contract = _request_contract(prepared.config)
-    state = build_pilot_state(
-        prepared,
-        request_contract_hash=contract,
-        openrouter_sdk_version=versions.openrouter_sdk_version,
-        openrouter_openapi_version=versions.openrouter_openapi_version,
-    )
     paths = PilotPaths.under(output_directory)
     with exclusive_run(paths.journal):
+        state = build_pilot_state(
+            prepared,
+            request_contract_hash=contract,
+            openrouter_sdk_version=versions.openrouter_sdk_version,
+            openrouter_openapi_version=versions.openrouter_openapi_version,
+            historical_request_policy_ids=(await _pilot_historical_request_policy_ids(paths.state)),
+        )
         await prepare_pilot_async(
             paths,
             state=state,
@@ -175,6 +207,7 @@ async def _run_pilot(
             attempts=snapshot.attempts,
             prompt=prompt,
             config=prepared.config,
+            historical_request_policy_ids=state.historical_request_policy_ids,
         )
         manifest_exists = await _is_file(paths.manifest)
         if resume.next_plan_index < prepared.plan.expected_votes:
@@ -205,6 +238,7 @@ async def _run_pilot(
             prepared.plan,
             prompt=prompt,
             config=prepared.config,
+            historical_request_policy_ids=state.historical_request_policy_ids,
         )
         await verify_deck_sources(prepared)
         artifact_hashes = await hash_paths(
@@ -276,6 +310,7 @@ async def _execute_grid(
     manifest_exists: bool,
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
+    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
 ) -> tuple[JournalSnapshot, GridPlan]:
     prompt = RubricVotePrompt(
         pack=prepared.prompt_pack,
@@ -288,6 +323,7 @@ async def _execute_grid(
         attempts=snapshot.attempts,
         prompt=prompt,
         config=prepared.config,
+        historical_request_policy_ids=historical_request_policy_ids,
     )
     phase_a_incomplete = len(snapshot.votes) < prepared.phase_a.expected_votes
     current_incomplete = current_resume.next_plan_index < current_plan.expected_votes
@@ -327,10 +363,37 @@ async def _execute_grid(
             attempts=snapshot.attempts,
             prompt=prompt,
             config=prepared.config,
+            historical_request_policy_ids=historical_request_policy_ids,
         )
-        if complete_resume.next_plan_index < complete_plan.expected_votes:
+        if complete_resume.next_plan_index < complete_plan.analysis_votes:
             progress.phase(
                 "evaluating grid refinement",
+                total=complete_plan.analysis_votes - complete_resume.next_plan_index,
+            )
+            await execute_votes(
+                _plan_range(
+                    complete_plan,
+                    complete_resume.next_plan_index,
+                    complete_plan.analysis_votes,
+                ),
+                runner=runner,
+                config=prepared.config,
+                journal=journal,
+                start_index=complete_resume.next_plan_index,
+                after_commit=_advance_progress(progress),
+            )
+            snapshot = await journal.snapshot()
+            complete_resume = build_resume_index(
+                complete_plan,
+                votes=snapshot.votes,
+                attempts=snapshot.attempts,
+                prompt=prompt,
+                config=prepared.config,
+                historical_request_policy_ids=historical_request_policy_ids,
+            )
+        if complete_resume.next_plan_index < complete_plan.expected_votes:
+            progress.phase(
+                "evaluating grid holdout canaries",
                 total=complete_plan.expected_votes - complete_resume.next_plan_index,
             )
             await execute_votes(
@@ -346,6 +409,7 @@ async def _execute_grid(
         complete_plan,
         prompt=prompt,
         config=prepared.config,
+        historical_request_policy_ids=historical_request_policy_ids,
     )
     return final_snapshot, complete_plan
 
@@ -359,14 +423,15 @@ async def _run_grid(
 ) -> GridPaths:
     versions = transport_versions()
     contract = _request_contract(prepared.config)
-    state = build_grid_state(
-        prepared,
-        request_contract_hash=contract,
-        openrouter_sdk_version=versions.openrouter_sdk_version,
-        openrouter_openapi_version=versions.openrouter_openapi_version,
-    )
     paths = GridPaths.under(output_directory)
     with exclusive_run(paths.journal):
+        state = build_grid_state(
+            prepared,
+            request_contract_hash=contract,
+            openrouter_sdk_version=versions.openrouter_sdk_version,
+            openrouter_openapi_version=versions.openrouter_openapi_version,
+            historical_request_policy_ids=(await _grid_historical_request_policy_ids(paths.state)),
+        )
         await prepare_grid_async(
             paths,
             state=state,
@@ -384,6 +449,7 @@ async def _run_grid(
             manifest_exists=await _is_file(paths.manifest),
             injected_transport=injected_transport,
             progress=progress,
+            historical_request_policy_ids=state.historical_request_policy_ids,
         )
         prompt = RubricVotePrompt(
             pack=prepared.prompt_pack,
@@ -394,12 +460,14 @@ async def _run_grid(
             plan,
             prompt=prompt,
             config=prepared.config,
+            historical_request_policy_ids=state.historical_request_policy_ids,
         )
+        grid_votes, canary_votes = split_grid_votes(plan, snapshot.votes)
         analysis = analyze_grid(
             cards=prepared.pool,
             family_ids=tuple(judge.family_id for judge in prepared.config.judges),
             imported_votes=prepared.pilot_import.votes,
-            fresh_votes=snapshot.votes,
+            fresh_votes=grid_votes,
         )
         await verify_deck_sources(prepared)
         artifact_hashes = await hash_paths(
@@ -415,6 +483,7 @@ async def _run_grid(
             prepared,
             state=state,
             analysis=analysis,
+            canary_votes=canary_votes,
             artifact_hashes=artifact_hashes,
             executor_policy=executor_policy_payload(),
             request_policy=request_policy_payload(),

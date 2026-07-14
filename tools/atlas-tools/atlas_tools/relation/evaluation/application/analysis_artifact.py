@@ -18,7 +18,6 @@ from numpy.typing import NDArray
 from pydantic import (
     BaseModel,
     ConfigDict,
-    Field,
     PositiveInt,
     ValidationInfo,
     computed_field,
@@ -38,10 +37,13 @@ from atlas_tools.relation.evaluation.domain.api import (
     FrozenMapping,
     NonEmptyStr,
     PlacementClass,
+    PositiveFiniteFloat,
     Sha256Hex,
 )
 
 type FloatArray = NDArray[np.float64]
+
+EMBEDDING_PRODUCER_REVISION = "openrouter-native-embedding-v1"
 
 
 def _hash_json(value: object) -> Sha256Hex:
@@ -116,6 +118,87 @@ class ArtifactMetadata(BaseModel):
         return self
 
 
+class EmbeddingRequestIdentity(BaseModel):
+    """Pin the semantics sent to one embedding operation."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    schema_version: Literal[1] = 1
+    endpoint_url: NonEmptyStr
+    model: NonEmptyStr
+    dimension: PositiveInt
+    encoding_format: Literal["float"] = "float"
+
+
+class EmbeddingResponseIdentity(BaseModel):
+    """Record the model and vector shape observed from the provider."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    model: NonEmptyStr
+    dimension: PositiveInt
+
+
+class EmbeddingProducerIdentity(BaseModel):
+    """Bind embedding bytes to one request adapter and provider observation."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    producer_revision: Literal["openrouter-native-embedding-v1"] = (
+        EMBEDDING_PRODUCER_REVISION
+    )
+    request: EmbeddingRequestIdentity
+    response: EmbeddingResponseIdentity
+    vector_encoding: Literal["f32-le-v1"] = "f32-le-v1"
+
+    @classmethod
+    def verified(
+        cls,
+        *,
+        endpoint_url: str,
+        model: str,
+        dimension: int,
+    ) -> Self:
+        """Build the identity for a response proven equal to its request."""
+        return cls(
+            request=EmbeddingRequestIdentity(
+                endpoint_url=endpoint_url,
+                model=model,
+                dimension=dimension,
+            ),
+            response=EmbeddingResponseIdentity(model=model, dimension=dimension),
+        )
+
+    @model_validator(mode="after")
+    def check_observation(self) -> Self:
+        """Reject a response routed to another model or vector shape."""
+        if self.response.model != self.request.model:
+            raise ValueError("observed embedding model differs from the request")
+        if self.response.dimension != self.request.dimension:
+            raise ValueError("observed embedding dimension differs from the request")
+        return self
+
+    @property
+    def identity_hash(self) -> Sha256Hex:
+        """Hash every request, response, producer, and encoding identity field."""
+        return _hash_json(self.model_dump(mode="json"))
+
+
 class SoftLabelsMetadata(ArtifactMetadata):
     """Describe a canonical soft-label Parquet artifact."""
 
@@ -130,14 +213,28 @@ class EmbeddingsMetadata(ArtifactMetadata):
     artifact: Literal["relation-embeddings"] = "relation-embeddings"
     rows: PositiveInt
     relation_order_hash: Sha256Hex
-    embedding_model: NonEmptyStr
-    dimension: PositiveInt
-    vector_encoding: Literal["f32-le-v1"] = "f32-le-v1"
+    producer: EmbeddingProducerIdentity
+
+    @property
+    def embedding_model(self) -> str:
+        """Expose the observed model without duplicating durable metadata."""
+        return self.producer.response.model
+
+    @property
+    def dimension(self) -> int:
+        """Expose the observed dimension without duplicating durable metadata."""
+        return self.producer.response.dimension
+
+    @property
+    def vector_encoding(self) -> str:
+        """Expose the packed-vector contract without duplicating metadata."""
+        return self.producer.vector_encoding
 
 
 class ClassifierBundleMetadata(ArtifactMetadata):
     """Describe all files and scalar contracts in a classifier bundle."""
 
+    schema_version: Literal[2] = 2
     artifact: Literal["relation-policy-classifier"] = "relation-policy-classifier"
     rows: PositiveInt
     relation_order_hash: Sha256Hex
@@ -149,13 +246,20 @@ class ClassifierBundleMetadata(ArtifactMetadata):
     )
     embedding_dimension: PositiveInt
     model_iterations: PositiveInt
-    temperature: float = Field(gt=0.0, allow_inf_nan=False)
+    temperature: PositiveFiniteFloat
+    cross_fit_temperatures: tuple[PositiveFiniteFloat, ...]
     config: ClassifierConfig
     metrics: ClassifierMetrics
 
     @field_validator("classes", mode="before")
     @classmethod
     def normalize_json_classes(cls, value: object) -> object:
+        """Normalize the JSON array after base metadata hash verification."""
+        return tuple(value) if isinstance(value, list) else value
+
+    @field_validator("cross_fit_temperatures", mode="before")
+    @classmethod
+    def normalize_json_temperatures(cls, value: object) -> object:
         """Normalize the JSON array after base metadata hash verification."""
         return tuple(value) if isinstance(value, list) else value
 
@@ -168,6 +272,8 @@ class ClassifierBundleMetadata(ArtifactMetadata):
             raise ValueError("classifier row count does not match its metrics")
         if self.config.folds != self.metrics.folds:
             raise ValueError("classifier fold count does not match its metrics")
+        if len(self.cross_fit_temperatures) != self.config.folds:
+            raise ValueError("cross-fit temperatures do not cover every configured fold")
         if self.config.folds > self.rows:
             raise ValueError("classifier cannot have more folds than training rows")
         if self.model_iterations > self.config.max_iterations:
@@ -206,6 +312,9 @@ class ClassifierArrays:
     applicability_mean: FloatArray
     applicability_inverse_scales: FloatArray
     applicability_training_distances: FloatArray
+    cross_fit_applicability_mean: FloatArray
+    cross_fit_applicability_inverse_scales: FloatArray
+    cross_fit_applicability_training_distances: FloatArray
 
     def __post_init__(self) -> None:
         """Require callers to receive arrays that cannot be made writeable."""
@@ -215,6 +324,9 @@ class ClassifierArrays:
             self.applicability_mean,
             self.applicability_inverse_scales,
             self.applicability_training_distances,
+            self.cross_fit_applicability_mean,
+            self.cross_fit_applicability_inverse_scales,
+            self.cross_fit_applicability_training_distances,
         )
         if any(array.flags.writeable for array in arrays):
             raise ValueError("classifier arrays must be immutable")

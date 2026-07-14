@@ -9,29 +9,49 @@ contract and therefore to logical vote identity.
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Annotated, ClassVar, Literal, Self
+from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import Field, PositiveInt, TypeAdapter, model_validator
+from pydantic import Field, PositiveInt, TypeAdapter, field_validator, model_validator
 
 from atlas_tools.relation.evaluation.domain._model import FrozenModel
 from atlas_tools.relation.evaluation.domain.identity import (
-    FiniteFloat,
     JudgeFamilyId,
     ModelId,
-    NonEmptyStr,
-    OpenProbability,
     OpenRouterRegion,
-    PositiveFiniteFloat,
-    Probability,
     ProviderName,
     ProviderSlug,
     ReasoningEffort,
+)
+from atlas_tools.relation.evaluation.domain.scalar import (
+    FiniteFloat,
+    HttpErrorStatusCode,
+    NonEmptyStr,
+    NonNegativeDuration,
+    OpenProbability,
+    PositiveDuration,
+    PositiveFiniteFloat,
+    Probability,
 )
 
 RUBRIC_VERSION = "rubric-v1"
 HTTP_SERVER_ERROR_START = 500
 RETRYABLE_CLIENT_ERROR_STATUS_CODES = frozenset({408, 425, 429})
 
-type HttpErrorStatusCode = Annotated[int, Field(ge=400, le=599)]
+def normalize_embedding_endpoint_url(endpoint_url: str) -> str:
+    """Return one canonical HTTPS embeddings operation URL."""
+    parsed = urlsplit(endpoint_url)
+    path = parsed.path.rstrip("/")
+    if (
+        parsed.scheme.lower() != "https"
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or not path.endswith("/embeddings")
+    ):
+        raise ValueError("embedding endpoint URL must be an HTTPS /embeddings operation URL")
+    return urlunsplit(("https", parsed.netloc.lower(), path, "", ""))
 
 
 class SliceSamplingConfig(FrozenModel):
@@ -103,8 +123,8 @@ class TransientRetryConfig(FrozenModel):
     """Bound retries for one request stage and reject unsafe status lists."""
 
     maximum_attempts: PositiveInt = 1
-    initial_delay: timedelta = Field(default=timedelta(seconds=2), ge=timedelta())
-    maximum_delay: timedelta = Field(default=timedelta(minutes=1), ge=timedelta())
+    initial_delay: NonNegativeDuration = timedelta(seconds=2)
+    maximum_delay: NonNegativeDuration = timedelta(minutes=1)
     backoff_multiplier: float = Field(default=2.0, ge=1.0, allow_inf_nan=False)
     retry_transport_errors: bool = True
     status_codes: tuple[HttpErrorStatusCode, ...] = (
@@ -162,7 +182,7 @@ class BaseRunConfig(FrozenModel):
     rubric_version: Literal["rubric-v1"] = RUBRIC_VERSION
     baseline_effort: ReasoningEffort = "minimal"
     max_cost_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
-    request_timeout: timedelta = Field(default=timedelta(minutes=2), gt=timedelta())
+    request_timeout: PositiveDuration = timedelta(minutes=2)
     transient_retries: TransientRetryConfig = TransientRetryConfig()
     concurrency: ConcurrencyConfig = ConcurrencyConfig()
 
@@ -236,19 +256,35 @@ class PanelConfig(FrozenModel):
 
 
 class EmbeddingConfig(FrozenModel):
-    """Bound one card-embedding endpoint and its local batching policy."""
+    """Bind vector semantics separately from operational acquisition policy.
 
-    endpoint_url: str = Field(min_length=1)
-    model: str = Field(min_length=1)
-    api_key_env: str | None = "EMBEDDING_API_KEY"
+    Endpoint, model, and dimension identify vector bytes. Batch size, timeout,
+    credentials, and the paid-text ceiling govern acquisition without changing
+    the identity of an individual card vector.
+    """
+
+    endpoint_url: NonEmptyStr
+    model: ModelId
+    api_key_env: NonEmptyStr | None = "EMBEDDING_API_KEY"
     dimension: PositiveInt | None = None
     batch_size: PositiveInt = 64
     max_texts: PositiveInt | None = None
-    request_timeout: timedelta = Field(default=timedelta(minutes=2), gt=timedelta())
+    request_timeout: PositiveDuration = timedelta(minutes=2)
+
+    @field_validator("endpoint_url")
+    @classmethod
+    def normalize_endpoint(cls, endpoint_url: str) -> str:
+        """Store one canonical HTTPS embeddings operation URL."""
+        return normalize_embedding_endpoint_url(endpoint_url)
 
 
 class ClassifierConfig(FrozenModel):
-    """Pin soft-label multinomial logistic-regression fitting."""
+    """Pin nested grouped soft-label classifier fitting.
+
+    `folds` controls both the outer validation split and each outer-training
+    partition's inner calibration split. Grid preparation rejects card
+    cohorts that cannot fill both levels before provider work begins.
+    """
 
     folds: Annotated[int, Field(ge=2)] = 5
     regularization: PositiveFiniteFloat = 1.0

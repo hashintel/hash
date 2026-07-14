@@ -31,6 +31,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     SliceSamplingConfig,
 )
 from atlas_tools.relation.evaluation.modes.api import (
+    HOLDOUTS,
     RETRY_INSTRUCTION,
     PromptCard,
     PromptPack,
@@ -303,6 +304,7 @@ def test_grid_runner_executes_two_phases_and_revalidates_without_network(
     assert progress.phases == [
         ("evaluating grid baseline", 55),
         ("evaluating grid refinement", 30),
+        ("evaluating grid holdout canaries", len(HOLDOUTS) * 5),
     ]
     assert progress.committed == EXPECTED_TOTAL_VOTES
     assert paths.journal.votes.read_bytes().count(b"\n") == EXPECTED_TOTAL_VOTES
@@ -310,6 +312,7 @@ def test_grid_runner_executes_two_phases_and_revalidates_without_network(
     assert manifest.total_votes == EXPECTED_TOTAL_VOTES
     assert manifest.refined_cards == EXPECTED_REFINED_CARDS
     assert sum(row.refinement_votes for row in manifest.family_counts) == 30
+    assert all(row.canary_votes == len(HOLDOUTS) for row in manifest.family_counts)
 
     unused = AsyncMappingTransport()
     repeated_progress = RecordingProgress()

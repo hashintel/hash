@@ -17,6 +17,7 @@ from atlas_tools.relation.evaluation.execution.guard import (
 from atlas_tools.relation.evaluation.execution.policy import executor_policy_payload
 from atlas_tools.relation.evaluation.execution.resume import (
     build_resume_index,
+    observed_request_policy_ids,
     validate_attempt_sequence,
 )
 from atlas_tools.relation.evaluation.execution.scheduler import (
@@ -65,5 +66,6 @@ __all__ = [
     "execute_ordered",
     "execute_votes",
     "executor_policy_payload",
+    "observed_request_policy_ids",
     "validate_attempt_sequence",
 ]

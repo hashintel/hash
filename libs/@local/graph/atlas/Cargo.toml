@@ -47,11 +47,13 @@ pin-project-lite.workspace          = true
 rand                                = { workspace = true }
 rand_xoshiro                        = { workspace = true }
 rayon                               = { workspace = true }
+regex                               = { workspace = true }
 serde                               = { workspace = true, features = ["derive"] }
 serde_json                          = { workspace = true }
 sha2                                = { workspace = true }
 simple-mermaid                      = { workspace = true }
 sprs                                = { version = "0.11.4", default-features = false }
+tiktoken-rs                         = "0.12.0"
 tokio-util.workspace                = true
 tracing                             = { workspace = true }
 usearch                             = "2.25.3"

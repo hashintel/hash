@@ -18,8 +18,13 @@
 //!
 //! [`EntityId`]: type_system::knowledge::entity::id::EntityId
 
+mod card;
+mod classifier;
 mod hash;
 mod identity;
+mod policy;
 mod representation;
 mod revision;
+mod simd;
 mod storage;
+mod strength;

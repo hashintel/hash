@@ -14,9 +14,9 @@ from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.domain._model import FrozenModel
 from atlas_tools.relation.evaluation.domain.identity import (
     CardHash,
-    NonEmptyStr,
     RelationFamilyId,
 )
+from atlas_tools.relation.evaluation.domain.scalar import NonEmptyStr
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 

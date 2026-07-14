@@ -1,14 +1,20 @@
 """Account for imported, fresh, refinement, abstention, and cost evidence."""
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Self
 
-from pydantic import Field, NonNegativeInt, PositiveInt, computed_field, model_validator
+from pydantic import NonNegativeInt, PositiveInt, computed_field, model_validator
 
 from atlas_tools.relation.evaluation.analysis._model import AnalysisModel
 from atlas_tools.relation.evaluation.analysis.grid import GridAnalysis, GridVote
-from atlas_tools.relation.evaluation.domain.api import JudgeFamilyId, Probability
+from atlas_tools.relation.evaluation.domain.api import (
+    JudgeFamilyId,
+    NonNegativeFiniteFloat,
+    Probability,
+    Vote,
+)
 
 
 @dataclass(slots=True)
@@ -16,6 +22,7 @@ class _FamilyAccumulator:
     imported_votes: int = 0
     fresh_baseline_votes: int = 0
     refinement_votes: int = 0
+    canary_votes: int = 0
     abstentions: int = 0
     fresh_costs: list[float] = field(default_factory=list)
     cost_complete: bool = True
@@ -33,6 +40,12 @@ class _FamilyAccumulator:
         else:
             self.refinement_votes += 1
 
+    def add_canary(self, vote: Vote) -> None:
+        self.canary_votes += 1
+        self.abstentions += vote.abstained
+        self.fresh_costs.append(vote.known_cost_usd)
+        self.cost_complete = self.cost_complete and vote.cost_complete
+
 
 class FamilyEconomics(AnalysisModel):
     """One family's vote sources, abstentions, and fresh billing evidence."""
@@ -41,8 +54,9 @@ class FamilyEconomics(AnalysisModel):
     imported_votes: NonNegativeInt
     fresh_baseline_votes: NonNegativeInt
     refinement_votes: NonNegativeInt
+    canary_votes: NonNegativeInt = 0
     abstentions: NonNegativeInt
-    known_cost_usd: float = Field(ge=0.0, allow_inf_nan=False)
+    known_cost_usd: NonNegativeFiniteFloat
     cost_complete: bool
 
     @model_validator(mode="after")
@@ -57,7 +71,12 @@ class FamilyEconomics(AnalysisModel):
     @property
     def total_votes(self) -> int:
         """Count imported and fresh logical votes."""
-        return self.imported_votes + self.fresh_baseline_votes + self.refinement_votes
+        return (
+            self.imported_votes
+            + self.fresh_baseline_votes
+            + self.refinement_votes
+            + self.canary_votes
+        )
 
     @computed_field
     @property
@@ -121,7 +140,11 @@ class VoteEconomics(AnalysisModel):
         return self
 
 
-def vote_economics(analysis: GridAnalysis) -> VoteEconomics:
+def vote_economics(
+    analysis: GridAnalysis,
+    *,
+    canary_votes: Sequence[Vote] = (),
+) -> VoteEconomics:
     """Aggregate counts and cost in one pass over reconciled cells.
 
     Imported pilot cost is excluded because the production run did not buy it.
@@ -134,12 +157,19 @@ def vote_economics(analysis: GridAnalysis) -> VoteEconomics:
             accumulator = accumulators[family.family_id]
             for observed in family.votes():
                 accumulator.add(observed)
+    for vote in canary_votes:
+        try:
+            accumulator = accumulators[vote.family_id]
+        except KeyError:
+            raise ValueError(f"canary vote uses unseated family {vote.family_id}") from None
+        accumulator.add_canary(vote)
     families = tuple(
         FamilyEconomics(
             family_id=family_id,
             imported_votes=accumulator.imported_votes,
             fresh_baseline_votes=accumulator.fresh_baseline_votes,
             refinement_votes=accumulator.refinement_votes,
+            canary_votes=accumulator.canary_votes,
             abstentions=accumulator.abstentions,
             known_cost_usd=math.fsum(accumulator.fresh_costs),
             cost_complete=accumulator.cost_complete,

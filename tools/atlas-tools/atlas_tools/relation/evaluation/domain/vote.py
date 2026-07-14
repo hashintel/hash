@@ -16,17 +16,20 @@ from atlas_tools.relation.evaluation.domain.identity import (
     AttemptId,
     BundleId,
     CardHash,
-    FiniteFloat,
     JudgeFamilyId,
     ModelId,
-    NonEmptyStr,
-    NonNegativeFiniteFloat,
     PromptPackHash,
     ProviderName,
     ReasoningEffort,
     VoteId,
     VoteVerdict,
     bundle_parts,
+)
+from atlas_tools.relation.evaluation.domain.scalar import (
+    FiniteFloat,
+    NonEmptyStr,
+    NonNegativeDuration,
+    NonNegativeFiniteFloat,
 )
 from atlas_tools.relation_cards.common.cards import RelationId
 
@@ -114,7 +117,7 @@ class VoteTiming(FrozenModel):
 
     request_at: AwareDatetime
     response_at: AwareDatetime
-    latency: Annotated[timedelta, Field(ge=timedelta())]
+    latency: NonNegativeDuration
 
     @model_validator(mode="after")
     def check_order(self) -> Self:

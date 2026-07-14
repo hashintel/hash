@@ -200,6 +200,40 @@ rejects duplicate namespaces or relation IDs, and writes the combined
 their leaf source, for example `wikidata:P47` and `hash:<stable-local-id>`.
 Evaluation accepts only this verified schema-v2 `relation.concat` artifact.
 
+Classifier cross-validation additionally needs a reviewed semantic family for
+every card. Apply that mapping as a separate, one-time artifact transform; do
+not edit the generated card JSONL in place:
+
+```json
+{"schema_version":1,"relation_id":"wikidata:P155","card_hash":"<64 lowercase hex characters>","family_id":"wikidata:sequence-order"}
+{"schema_version":1,"relation_id":"wikidata:P156","card_hash":"<64 lowercase hex characters>","family_id":"wikidata:sequence-order"}
+```
+
+```sh
+uv run relation family-overlay cards/ family-assignments.jsonl \
+    --out cards-with-families/
+```
+
+Assignment order is irrelevant, but coverage is exact: each deck relation must
+occur once, no unknown relation may occur, and each assignment must carry the
+current card hash. An existing non-null `family_id` must agree. The command
+never replaces its destination; after full validation it atomically publishes
+a new `relation.concat` directory. Its manifest records
+`user-supplied-exact-overlay-v1`, the source card and manifest hashes, the
+assignment-file hash, and the resulting row and family counts. Pass
+`cards-with-families/` wherever an evaluation command below names a card
+directory.
+
+The mapping is deliberately not inferred from the current generated artifacts.
+The exact Wikidata extraction records explicit inverse IDs and the P1647
+ancestor closure, but no reviewed rule says which shared ancestors or P31
+classes constitute siblings or near duplicates. The HASH link-type artifact
+has inverse display text but no inverse relation identity, and
+`taxonomy.parquet` is an entity taxonomy rather than a property-family map.
+The missing authoritative input is therefore one complete reviewed mapping of
+`(relation_id, card_hash)` to `family_id`; using `relation_id` itself as the
+family would defeat grouped leakage control.
+
 Set `OPENROUTER_API_KEY` and use the checked-in
 `config/eval/pilot.yaml`, which is the source of truth for the recovered nine-judge
 roster. The schema is strict and rejects unknown keys. `request_timeout` is an
@@ -232,7 +266,7 @@ corpus — the pilot's successor.
 From `tools/atlas-tools`, run and inspect the factorial pilot:
 
 ```sh
-uv run relation evaluate runs/cards config/eval/pilot.yaml --out runs/evaluate
+uv run relation evaluate runs/cards-with-families config/eval/pilot.yaml --out runs/evaluate
 uv run relation analyze runs/evaluate --out runs/evaluate-analysis
 cat runs/evaluate-analysis/report.md
 uv run python -m json.tool runs/evaluate-analysis/decisions.json
@@ -287,7 +321,7 @@ and a `manifest.json` reporting imported vs fresh counts per family and the
 realized refinement trigger rate.
 
 ```sh
-uv run relation evaluate runs/cards config/eval/grid.yaml \
+uv run relation evaluate runs/cards-with-families config/eval/grid.yaml \
     --pilot runs/evaluate --out runs/grid
 
 # Deliverables and blocking acceptance gates (exits nonzero on any failure):
@@ -297,17 +331,17 @@ uv run relation evaluate runs/cards config/eval/grid.yaml \
 # forward from pilot decisions, and gates.json covering coverage, routing,
 # the holdout drift canary (every family must still pass >= 5/6 plus both
 # probes), per-family abstention < 5%, and the cost envelope.
-uv run relation deliverables runs/grid runs/cards config/eval/grid.yaml \
+uv run relation deliverables runs/grid runs/cards-with-families config/eval/grid.yaml \
     --decisions runs/evaluate-analysis/decisions.json --out runs/grid-deliverables
 
 # Downstream policy pipeline over the grid votes:
-uv run relation aggregate runs/grid runs/cards config/eval/grid.yaml \
+uv run relation aggregate runs/grid runs/cards-with-families config/eval/grid.yaml \
     --out runs/soft-labels.parquet
-uv run relation embed runs/cards config/eval/grid.yaml \
+uv run relation embed runs/cards-with-families config/eval/grid.yaml \
     --out runs/embeddings.parquet --cache runs/embedding-cache
 uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
     config/eval/grid.yaml --out runs/classifier
-uv run relation report runs/grid runs/cards config/eval/grid.yaml \
+uv run relation report runs/grid runs/cards-with-families config/eval/grid.yaml \
     --gold gold.jsonl --classifier runs/classifier --out runs/report
 ```
 

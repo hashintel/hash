@@ -14,6 +14,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
 )
 from atlas_tools.relation.evaluation.application import policy_report as report_application
 from atlas_tools.relation.evaluation.application.analysis_codec import (
+    EmbeddingProducerIdentity,
     write_embeddings,
     write_soft_labels,
 )
@@ -237,7 +238,11 @@ def test_classifier_from_different_soft_label_lineage_is_rejected(
     embeddings = write_embeddings(
         fixture.root / "embeddings.parquet",
         embedding_rows,
-        embedding_model="fixture-embedding",
+        producer=EmbeddingProducerIdentity.verified(
+            endpoint_url="https://embedding.test/v1/embeddings",
+            model="fixture-embedding",
+            dimension=embedding_rows[0].dimension,
+        ),
         source_hashes={
             "cards.jsonl": completed.manifest.source_hashes["cards.jsonl"],
             "grid-config": completed.prepared.loaded_config.content_hash,

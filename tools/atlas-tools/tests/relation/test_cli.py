@@ -74,6 +74,37 @@ def test_cli_concat_fails_cleanly_on_runtime_error(
     assert "Error: hash mismatch" in capsys.readouterr().err
 
 
+def test_cli_family_overlay_passes_the_reviewed_mapping_and_echoes_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    assignments = tmp_path / "families.jsonl"
+    assignments.touch()
+    out = tmp_path / "enriched"
+    captured: dict[str, object] = {}
+
+    def overlay(cards: Path, assignments: Path, *, out: Path) -> ConcatPaths:
+        captured.update(cards=cards, assignments=assignments, out=out)
+        return ConcatPaths(
+            cards_jsonl=out / "cards.jsonl",
+            manifest=out / "cards.manifest.json",
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.family_overlay.apply_family_overlay",
+        overlay,
+    )
+    cli.main(["family-overlay", str(cards), str(assignments), "--out", str(out)])
+
+    assert captured == {"cards": cards, "assignments": assignments, "out": out}
+    stdout = capsys.readouterr().out
+    assert f"wrote {out / 'cards.jsonl'}" in stdout
+    assert f"wrote {out / 'cards.manifest.json'}" in stdout
+
+
 def test_cli_evaluate_dispatches_pilot_and_echoes_handoff_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -341,6 +372,64 @@ def test_cli_fit_emits_the_complete_classifier_bundle(
     assert f"wrote {output / 'classifier.json'}" in stdout
     assert f"wrote {output / 'arrays.npz'}" in stdout
     assert f"wrote {output / 'out-of-fold.parquet'}" in stdout
+
+
+def test_cli_report_uses_the_validated_policy_report_stack(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    run = tmp_path / "run"
+    cards = tmp_path / "cards"
+    classifier = tmp_path / "classifier"
+    for directory in (run, cards, classifier):
+        directory.mkdir()
+    config = tmp_path / "grid.yaml"
+    gold = tmp_path / "gold.jsonl"
+    for path in (config, gold):
+        path.touch()
+    output = tmp_path / "report"
+    captured: dict[str, Path | None] = {}
+
+    def report(**paths: Path | None) -> SimpleNamespace:
+        captured.update(paths)
+        return SimpleNamespace(
+            report_json_path=output / "report.json",
+            report_markdown_path=output / "report.md",
+            metadata_path=output / "report.meta.json",
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.evaluation.application.api.write_policy_report",
+        report,
+    )
+    cli.main(
+        [
+            "report",
+            str(run),
+            str(cards),
+            str(config),
+            "--gold",
+            str(gold),
+            "--classifier",
+            str(classifier),
+            "--out",
+            str(output),
+        ]
+    )
+
+    assert captured == {
+        "run_directory": run,
+        "cards_directory": cards,
+        "config_path": config,
+        "gold_path": gold,
+        "classifier_directory": classifier,
+        "output_directory": output,
+    }
+    stdout = capsys.readouterr().out
+    assert f"wrote {output / 'report.json'}" in stdout
+    assert f"wrote {output / 'report.md'}" in stdout
+    assert f"wrote {output / 'report.meta.json'}" in stdout
 
 
 def _deliverables_result(out: Path) -> SimpleNamespace:

@@ -1,9 +1,10 @@
 """Plan both production-grid phases from immutable baseline evidence.
 
 Phase A fills baseline S1xF1 cells not imported from the pilot. Phase B buys
-repeat indices 1 and 2 for cards whose baseline row is non-unanimous, contains
-a coincident verdict, or contains an abstention. Both phases preserve relation
-order inside each family stream and interleave those streams round-robin.
+repeat indices 1 and 2 for cards whose baseline row requires refinement. The
+canary phase then buys repeat 3 for every fixed holdout. Appending canaries
+preserves existing Phase A/B journal prefixes while providing fresh drift
+evidence. Every phase interleaves stable per-family streams round-robin.
 """
 
 from collections.abc import Iterator, Mapping, Sequence
@@ -11,7 +12,10 @@ from dataclasses import dataclass
 from typing import Self
 
 from atlas_tools.relation.evaluation.domain.api import (
+    BASELINE_REPEAT_INDEX,
+    CANARY_REPEAT_INDEX,
     QUALIFICATION_BUNDLE,
+    REFINEMENT_REPEAT_INDICES,
     VERDICTS,
     CardHash,
     GridJudge,
@@ -25,8 +29,6 @@ from atlas_tools.relation.evaluation.domain.api import (
 from atlas_tools.relation.evaluation.modes._card import ordered_unique_cards
 from atlas_tools.relation.evaluation.modes._stream import round_robin
 
-BASELINE_REPEAT_INDEX = 0
-REFINEMENT_REPEAT_INDICES = (1, 2)
 _VOTE_VERDICTS = frozenset((*VERDICTS, "ABSTAIN"))
 
 
@@ -211,28 +213,78 @@ class GridPhaseBPlan:
 
 
 @dataclass(frozen=True, slots=True)
+class GridCanaryPlan:
+    """Buy one fresh qualification vote per family and fixed holdout."""
+
+    config: GridRunConfig
+    cards: tuple[GridCard, ...]
+    prompt_pack_hash: PromptPackHash
+
+    def __post_init__(self) -> None:
+        ordered = ordered_unique_cards(self.cards)
+        object.__setattr__(self, "cards", ordered)
+
+    @property
+    def expected_votes(self) -> int:
+        """Return the complete family-by-holdout canary cell count."""
+        return len(self.config.judges) * len(self.cards)
+
+    def tasks(self) -> Iterator[VoteTask]:
+        """Yield fresh holdout cells in stable family round-robin order."""
+        streams = (self._judge_tasks(judge) for judge in self.config.judges)
+        yield from round_robin(streams)
+
+    def _judge_tasks(self, judge: GridJudge) -> Iterator[VoteTask]:
+        for card in self.cards:
+            yield grid_task(
+                config=self.config,
+                judge=judge,
+                card=card,
+                repeat_index=CANARY_REPEAT_INDEX,
+                prompt_pack_hash=self.prompt_pack_hash,
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class GridPlan:
-    """A replayable cumulative plan containing Phase A and optional Phase B."""
+    """A replayable cumulative plan with append-only refinement and canaries."""
 
     phase_a: GridPhaseAPlan
     phase_b: GridPhaseBPlan | None = None
+    canary: GridCanaryPlan | None = None
 
     def __post_init__(self) -> None:
         if self.phase_b is None:
+            if self.canary is not None:
+                raise ValueError("grid canaries require a derived refinement phase")
             return
         if self.phase_b.config != self.phase_a.config:
             raise ValueError("grid phases must use the same run config")
         if self.phase_b.prompt_pack_hash != self.phase_a.prompt_pack_hash:
             raise ValueError("grid phases must use the same prompt pack")
+        if self.canary is None:
+            raise ValueError("a derived grid plan must include fresh holdout canaries")
+        if self.canary.config != self.phase_a.config:
+            raise ValueError("grid canaries must use the same run config")
+        if self.canary.prompt_pack_hash != self.phase_a.prompt_pack_hash:
+            raise ValueError("grid canaries must use the same prompt pack")
+
+    @property
+    def analysis_votes(self) -> int:
+        """Count fresh baseline and refinement votes consumed by grid analysis."""
+        phase_b_votes = self.phase_b.expected_votes if self.phase_b is not None else 0
+        return self.phase_a.expected_votes + phase_b_votes
 
     @property
     def expected_votes(self) -> int:
         """Return the number of fresh tasks across every available phase."""
-        phase_b_votes = self.phase_b.expected_votes if self.phase_b is not None else 0
-        return self.phase_a.expected_votes + phase_b_votes
+        canary_votes = self.canary.expected_votes if self.canary is not None else 0
+        return self.analysis_votes + canary_votes
 
     def tasks(self) -> Iterator[VoteTask]:
         """Yield Phase A completely before yielding Phase B."""
         yield from self.phase_a.tasks()
         if self.phase_b is not None:
             yield from self.phase_b.tasks()
+        if self.canary is not None:
+            yield from self.canary.tasks()

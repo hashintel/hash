@@ -7,4 +7,5 @@
 //! [`BaseRevision`]: crate::salt::revision::BaseRevision
 //! [`DeltaRevision`]: crate::salt::revision::DeltaRevision
 
+pub(crate) mod mmap;
 pub(crate) mod read;

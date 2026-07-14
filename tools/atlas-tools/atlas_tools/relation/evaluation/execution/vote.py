@@ -62,6 +62,7 @@ from atlas_tools.relation.evaluation.execution.scheduler import (
 )
 from atlas_tools.relation.evaluation.storage.api import ResumeIndex, RunJournal
 from atlas_tools.relation.evaluation.transport.api import (
+    ACTIVE_COMPLETION_REQUEST_POLICY_ID,
     AsyncCompletionTransport,
     CompletionAccepted,
     CompletionFailed,
@@ -554,7 +555,12 @@ class LogicalVoteRunner:
             messages=messages,
             config=self._config,
         )
-        hash_value = request_hash(request, vote_id=task.vote_id, stage=stage)
+        hash_value = request_hash(
+            request,
+            vote_id=task.vote_id,
+            stage=stage,
+            policy_id=ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+        )
         stage_attempt = sum(attempt.request_stage == stage for attempt in previous)
         physical_id = attempt_id(request_hash=hash_value, stage_attempt=stage_attempt)
 

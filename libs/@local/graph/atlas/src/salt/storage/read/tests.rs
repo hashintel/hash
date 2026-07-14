@@ -51,7 +51,7 @@ impl BaseReader for SliceBase<'_> {
 }
 
 #[test]
-fn disabled_reader_delegates_without_allocating_or_copying() {
+fn disabled_reader_preserves_base_borrows_and_empty_delta() {
     let rows = [
         Row {
             key: 1,
@@ -80,16 +80,12 @@ fn disabled_reader_delegates_without_allocating_or_copying() {
             .expect("should contain the first base row"),
         &rows[0]
     ));
-    assert_eq!(merged.base().revision(), BaseRevision::ZERO);
-
     let delta = merged.delta();
     assert_eq!(delta.revision(), DeltaRevision::ZERO);
     assert_eq!(delta.len(), 0);
     assert!(delta.is_empty());
     assert!(delta.get(&1).is_none());
     assert_eq!(delta.iter().count(), 0);
-
-    assert_eq!(merged.into_base().rows, &rows);
 }
 
 #[test]

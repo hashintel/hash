@@ -7,6 +7,7 @@ from openrouter.errors import NoResponseError
 from openrouter.operations.createembeddings import (
     CreateEmbeddingsData,
     CreateEmbeddingsResponseBody,
+    CreateEmbeddingsUsage,
 )
 from openrouter.utils.retries import RetryConfig
 
@@ -22,10 +23,16 @@ from atlas_tools.relation.evaluation.transport.api import (
 )
 
 MODEL = "openai/text-embedding-3-large"
+ENDPOINT_URL = "https://openrouter.test/api/v1/embeddings"
 
 
-def _request(*, texts: tuple[str, ...] = ("alpha", "beta")) -> EmbeddingRequest:
+def _request(
+    *,
+    texts: tuple[str, ...] = ("alpha", "beta"),
+    endpoint_url: str = ENDPOINT_URL,
+) -> EmbeddingRequest:
     return EmbeddingRequest(
+        endpoint_url=endpoint_url,
         texts=texts,
         model=MODEL,
         dimension=3,
@@ -38,6 +45,7 @@ def _response(
     *,
     indices: tuple[int | None, ...] | None = None,
     model: str = MODEL,
+    usage: CreateEmbeddingsUsage | None = None,
 ) -> CreateEmbeddingsResponseBody:
     resolved = indices or tuple(range(len(vectors)))
     return CreateEmbeddingsResponseBody(
@@ -51,6 +59,7 @@ def _response(
         ],
         model=model,
         object="list",
+        usage=usage,
     )
 
 
@@ -121,6 +130,11 @@ def test_native_async_embedding_orders_vectors_and_pins_request_policy(
         FakeOpenRouter.response = _response(
             ([4.0, 5.0, 6.0], [1.0, 2.0, 3.0]),
             indices=(1, 0),
+            usage=CreateEmbeddingsUsage(
+                prompt_tokens=7,
+                total_tokens=7,
+                cost=0.003,
+            ),
         )
         monkeypatch.setattr(embedding_module, "OpenRouter", FakeOpenRouter)
         transport = OpenRouterEmbeddingTransport(
@@ -138,6 +152,10 @@ def test_native_async_embedding_orders_vectors_and_pins_request_policy(
             (1.0, 2.0, 3.0),
             (4.0, 5.0, 6.0),
         )
+        assert outcome.usage is not None
+        assert outcome.usage.input_tokens == 7
+        assert outcome.usage.total_tokens == 7
+        assert outcome.usage.cost_usd == 0.003
         client = FakeOpenRouter.instances[0]
         kwargs = client.calls[0]
         assert kwargs["input"] == ["alpha", "beta"]
@@ -191,6 +209,28 @@ def test_embedding_batch_bound_fails_before_any_provider_call(
         with pytest.raises(ValueError, match="maximum is 2"):
             await transport.embed(_request(texts=("alpha", "beta", "gamma")))
 
+        assert FakeOpenRouter.instances[0].calls == []
+        await transport.aclose()
+
+    trio.run(scenario)
+
+
+def test_embedding_endpoint_mismatch_is_rejected_before_provider_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        FakeOpenRouter.instances.clear()
+        monkeypatch.setattr(embedding_module, "OpenRouter", FakeOpenRouter)
+        transport = OpenRouterEmbeddingTransport(
+            "secret",
+            maximum_batch_size=8,
+            server_url="https://other-router.test/v1",
+        )
+
+        outcome = await transport.embed(_request())
+
+        assert isinstance(outcome, EmbeddingRejected)
+        assert "endpoint disagrees" in outcome.failure.message
         assert FakeOpenRouter.instances[0].calls == []
         await transport.aclose()
 

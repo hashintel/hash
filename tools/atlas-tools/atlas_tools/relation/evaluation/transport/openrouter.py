@@ -4,6 +4,7 @@ from typing import Final, Literal, Self, assert_never
 
 from openrouter import OpenRouter
 from openrouter.components import (
+    BYOKProviderSlug,
     ChatAssistantMessage,
     ChatContentCacheControl,
     ChatContentText,
@@ -14,6 +15,9 @@ from openrouter.components import (
     ChatSystemMessage,
     ChatUserMessage,
     ProviderPreferences,
+)
+from openrouter.components import (
+    ProviderName as OpenRouterProviderName,
 )
 from openrouter.errors import NoResponseError, OpenRouterError
 from openrouter.types import UNSET
@@ -27,6 +31,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     MaxTokensLimit,
     ProviderName,
     ProviderResult,
+    ProviderSlug,
     ResponseFailure,
     RoutingFailure,
 )
@@ -51,6 +56,8 @@ _GLOBAL_URL: Final = "https://openrouter.ai/api/v1"
 _EU_URL: Final = "https://eu.openrouter.ai/api/v1"
 _HTTP_OK: Final = 200
 _JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
+_PROVIDER_NAME_ADAPTER = TypeAdapter(OpenRouterProviderName)
+_PROVIDER_SLUG_ADAPTER = TypeAdapter(BYOKProviderSlug)
 
 
 class _RejectedError(ValueError):
@@ -185,13 +192,29 @@ def _provider(result: ChatResult, expected: ProviderName) -> ProviderName:
     selected = tuple(endpoint for endpoint in metadata.endpoints.available if endpoint.selected)
     if len(selected) != 1:
         raise _RejectedError("routing", "completion must identify exactly one selected endpoint")
-    provider_name = selected[0].provider
+    try:
+        provider_name = _PROVIDER_NAME_ADAPTER.validate_python(
+            selected[0].provider,
+            strict=True,
+        )
+    except ValidationError as error:
+        raise _RejectedError(
+            "routing",
+            "completion returned an invalid OpenRouter provider name",
+        ) from error
     if provider_name != expected:
         raise _RejectedError(
             "routing",
             f"selected endpoint used provider {provider_name!r}, expected {expected!r}",
         )
-    return ProviderName(provider_name)
+    return ProviderName(str(provider_name))
+
+
+def _provider_slug(value: ProviderSlug) -> BYOKProviderSlug:
+    try:
+        return _PROVIDER_SLUG_ADAPTER.validate_python(str(value), strict=True)
+    except ValidationError as error:
+        raise ValueError(f"invalid OpenRouter provider slug {value!r}") from error
 
 
 def _validate_route(result: ChatResult, judge: JudgeRequestSpec) -> ProviderName:
@@ -320,7 +343,7 @@ async def _send(client: OpenRouter, request: CompletionRequest) -> ChatResult:
     judge = request.judge
     messages = _cache_marked_messages(request, _messages(request.messages))
     provider = ProviderPreferences(
-        only=[judge.provider_slug],
+        only=[_provider_slug(judge.provider_slug)],
         allow_fallbacks=False,
         require_parameters=True,
         data_collection="deny",

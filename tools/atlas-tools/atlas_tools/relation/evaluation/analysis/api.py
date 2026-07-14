@@ -4,6 +4,7 @@ from atlas_tools.relation.evaluation.analysis.classifier import (
     ApplicabilityModel,
     ClassifierFit,
     ClassifierMetrics,
+    CrossFitFold,
     EmbeddingRow,
     MultinomialModel,
     OutOfFoldPrediction,
@@ -13,6 +14,7 @@ from atlas_tools.relation.evaluation.analysis.classifier import (
     predict_policy,
     soft_brier_score,
     soft_cross_entropy,
+    validate_classifier_cohorts,
     validate_grouped_folds,
 )
 from atlas_tools.relation.evaluation.analysis.deliverables import (
@@ -112,6 +114,7 @@ __all__ = [
     "CoincidentGate",
     "CoincidentQueueEntry",
     "ConfusionRow",
+    "CrossFitFold",
     "EffortCandidate",
     "EffortHoldoutComparison",
     "EmbeddingRow",
@@ -181,6 +184,7 @@ __all__ = [
     "soft_brier_score",
     "soft_cross_entropy",
     "soft_labels",
+    "validate_classifier_cohorts",
     "validate_grouped_folds",
     "vote_economics",
     "wilson_lower_bound",

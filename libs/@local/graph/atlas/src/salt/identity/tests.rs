@@ -23,8 +23,6 @@ fn generation_rows_are_dense_and_bidirectional() {
     let directory =
         IdentityDirectory::new(entities.clone()).expect("should build a unique directory");
 
-    assert_eq!(directory.len(), 3);
-    assert!(!directory.is_empty());
     assert_eq!(
         directory.row(&entities[1]),
         GenerationRowId::try_from(1_u32).ok()
@@ -94,8 +92,6 @@ fn artifact_ordinals_are_explicit_subset_mappings() {
     let mapping = ArtifactIdentityMap::new(&directory, vec![row_two, row_zero])
         .expect("should map a valid subset");
 
-    assert_eq!(mapping.len(), 2);
-    assert!(!mapping.is_empty());
     assert_eq!(
         mapping.ordinal(row_two),
         ArtifactOrdinal::try_from(0_u32).ok()

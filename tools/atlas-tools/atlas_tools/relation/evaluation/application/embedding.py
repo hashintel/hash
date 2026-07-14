@@ -15,18 +15,19 @@ import struct
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import IO, Literal, Self
-from urllib.parse import urlsplit, urlunsplit
+from typing import IO, Annotated, Literal, Self
+from uuid import uuid7
 
 import trio
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
-    PositiveInt,
+    NonNegativeInt,
     ValidationError,
     field_validator,
     model_validator,
@@ -36,6 +37,9 @@ from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.evaluation.analysis.api import EmbeddingRow
 from atlas_tools.relation.evaluation.application._lifetime import close_owned_transport
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
+    EmbeddingProducerIdentity,
+    EmbeddingRequestIdentity,
+    EmbeddingResponseIdentity,
     EmbeddingsArtifact,
 )
 from atlas_tools.relation.evaluation.application.analysis_codec import (
@@ -45,9 +49,12 @@ from atlas_tools.relation.evaluation.application.analysis_codec import (
 from atlas_tools.relation.evaluation.application.settings import OpenRouterSettings
 from atlas_tools.relation.evaluation.domain.api import (
     AttemptFailure,
+    EmbeddingConfig,
     EvaluationCard,
     FiniteFloat,
     GridRunConfig,
+    NonNegativeFiniteFloat,
+    ResponseFailure,
     Sha256Hex,
 )
 from atlas_tools.relation.evaluation.modes.api import FEW_SHOTS
@@ -58,19 +65,24 @@ from atlas_tools.relation.evaluation.storage.api import (
     load_deck_async,
 )
 from atlas_tools.relation.evaluation.transport.api import (
+    EMBEDDING_REQUEST_SCHEMA_VERSION,
     AsyncEmbeddingTransport,
     EmbeddingAccepted,
     EmbeddingFailed,
     EmbeddingRejected,
     EmbeddingRequest,
+    EmbeddingUsage,
     EmbeddingVector,
     OpenRouterEmbeddingTransport,
+    normalize_openrouter_embedding_endpoint,
+    openrouter_embedding_server_url,
 )
 
-_CACHE_ENTRY_ALGORITHM = "relation-embedding-cache-f32-json-v1"
-_CACHE_KEY_ALGORITHM = "relation-embedding-cache-key-v1"
+_CACHE_ENTRY_ALGORITHM = "relation-embedding-cache-f32-json-v2"
+_CACHE_KEY_ALGORITHM = "relation-embedding-cache-key-v2"
 _OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY"
 _FLOAT32_BYTES = 4
+_AUDIT_DIRECTORY = "_requests"
 
 
 class EmbeddingConfigurationError(ValueError):
@@ -87,6 +99,10 @@ class EmbeddingBudgetExceededError(RuntimeError):
 
 class EmbeddingTransportContractError(RuntimeError):
     """Report an accepted transport response that disagrees with its request."""
+
+
+class EmbeddingIncompleteRequestError(RuntimeError):
+    """Refuse to reissue a batch whose prior paid outcome is unknown."""
 
 
 class EmbeddingAcquisitionError(RuntimeError):
@@ -149,21 +165,20 @@ class _CacheModel(BaseModel):
 
 
 class _CacheKey(_CacheModel):
-    """Identify one provider-neutral cache record without path-sensitive text."""
+    """Identify one normalized vector by producer and content, never by path."""
 
-    algorithm: Literal["relation-embedding-cache-key-v1"] = _CACHE_KEY_ALGORITHM
-    model: str = Field(min_length=1)
+    algorithm: Literal["relation-embedding-cache-key-v2"] = _CACHE_KEY_ALGORITHM
+    producer: EmbeddingProducerIdentity
     card_hash: Sha256Hex
 
 
 class _CacheEntry(_CacheModel):
-    """Bind one normalized vector to its exact model, card, and dimension."""
+    """Bind one normalized vector to its full producer and card identity."""
 
-    schema_version: Literal[1] = 1
-    algorithm: Literal["relation-embedding-cache-f32-json-v1"] = _CACHE_ENTRY_ALGORITHM
-    model: str = Field(min_length=1)
+    schema_version: Literal[2] = 2
+    algorithm: Literal["relation-embedding-cache-f32-json-v2"] = _CACHE_ENTRY_ALGORITHM
+    producer: EmbeddingProducerIdentity
     card_hash: Sha256Hex
-    dimension: PositiveInt
     vector: tuple[FiniteFloat, ...] = Field(min_length=1)
 
     @field_validator("vector", mode="before")
@@ -179,10 +194,128 @@ class _CacheEntry(_CacheModel):
     @model_validator(mode="after")
     def check_dimension(self) -> Self:
         """Require the declared dimension to equal the stored vector shape."""
-        if len(self.vector) != self.dimension:
+        dimension = self.producer.response.dimension
+        if len(self.vector) != dimension:
             raise ValueError(
-                f"cached embedding has dimension {len(self.vector)}, expected {self.dimension}"
+                f"cached embedding has dimension {len(self.vector)}, expected {dimension}"
             )
+
+        return self
+
+
+class _AuditRequestKey(_CacheModel):
+    """Identify one ordered batch without storing private card text."""
+
+    schema_version: Literal[1] = 1
+    request: EmbeddingRequestIdentity
+    card_hashes: tuple[Sha256Hex, ...] = Field(min_length=1)
+
+
+class _AuditMarker(_CacheModel):
+    """Prove a provider request may have escaped without a known outcome."""
+
+    kind: Literal["embedding-in-flight"] = "embedding-in-flight"
+    schema_version: Literal[1] = 1
+    request_key: Sha256Hex
+    attempt_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    request_at: AwareDatetime
+    request: EmbeddingRequestIdentity
+    card_hashes: tuple[Sha256Hex, ...] = Field(min_length=1)
+
+
+class _AuditUsage(_CacheModel):
+    """Persist returned usage while making missing cost explicit."""
+
+    input_tokens: NonNegativeInt
+    total_tokens: NonNegativeInt
+    cost_usd: NonNegativeFiniteFloat | None
+
+    @model_validator(mode="after")
+    def check_totals(self) -> Self:
+        if self.total_tokens < self.input_tokens:
+            raise ValueError("embedding total tokens must cover input tokens")
+        return self
+
+    @classmethod
+    def from_usage(cls, usage: EmbeddingUsage | None) -> Self | None:
+        """Preserve returned accounting without manufacturing unknown values."""
+        if usage is None:
+            return None
+        return cls(
+            input_tokens=usage.input_tokens,
+            total_tokens=usage.total_tokens,
+            cost_usd=usage.cost_usd,
+        )
+
+
+class _AuditAccepted(_CacheModel):
+    """Persist a billed response and enough bytes to recover its cache entries."""
+
+    kind: Literal["accepted"] = "accepted"
+    producer: EmbeddingProducerIdentity
+    usage: _AuditUsage | None
+    cost_complete: bool
+    entries: tuple[_CacheEntry, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def check_accounting(self) -> Self:
+        expected = self.usage is not None and self.usage.cost_usd is not None
+        if self.cost_complete is not expected:
+            raise ValueError("embedding cost completeness disagrees with returned usage")
+
+        if any(entry.producer != self.producer for entry in self.entries):
+            raise ValueError("embedding audit entries disagree on producer identity")
+
+        return self
+
+
+class _AuditFailed(_CacheModel):
+    """Persist one transport failure with explicitly incomplete cost."""
+
+    kind: Literal["failed"] = "failed"
+    failure: AttemptFailure
+    cost_complete: Literal[False] = False
+
+
+class _AuditRejected(_CacheModel):
+    """Persist one rejected response with any accounting that survived."""
+
+    kind: Literal["rejected"] = "rejected"
+    failure: AttemptFailure
+    usage: _AuditUsage | None
+    cost_complete: bool
+
+    @model_validator(mode="after")
+    def check_accounting(self) -> Self:
+        expected = self.usage is not None and self.usage.cost_usd is not None
+        if self.cost_complete is not expected:
+            raise ValueError("embedding cost completeness disagrees with returned usage")
+        return self
+
+
+type _AuditOutcome = Annotated[
+    _AuditAccepted | _AuditFailed | _AuditRejected,
+    Field(discriminator="kind"),
+]
+
+
+class _AuditAttempt(_CacheModel):
+    """Record one provider exchange before clearing its in-flight marker."""
+
+    kind: Literal["embedding-attempt"] = "embedding-attempt"
+    schema_version: Literal[1] = 1
+    request_key: Sha256Hex
+    attempt_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    request_at: AwareDatetime
+    response_at: AwareDatetime
+    request: EmbeddingRequestIdentity
+    card_hashes: tuple[Sha256Hex, ...] = Field(min_length=1)
+    outcome: _AuditOutcome
+
+    @model_validator(mode="after")
+    def check_timing(self) -> Self:
+        if self.response_at < self.request_at:
+            raise ValueError("embedding response precedes its request")
         return self
 
 
@@ -196,6 +329,12 @@ class _CardText:
 class _EmbeddingBatch:
     index: int
     cards: tuple[_CardText, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _AcceptedPayload:
+    producer: EmbeddingProducerIdentity
+    vectors: tuple[EmbeddingVector, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -240,14 +379,48 @@ def _model_bytes(model: BaseModel) -> bytes:
     return _canonical_json_bytes(model.model_dump(mode="json")) + b"\n"
 
 
+def _producer_identity(
+    *,
+    endpoint_url: str,
+    model: str,
+    dimension: int,
+) -> EmbeddingProducerIdentity:
+    producer = EmbeddingProducerIdentity.verified(
+        endpoint_url=endpoint_url,
+        model=model,
+        dimension=dimension,
+    )
+
+    if producer.request.schema_version != EMBEDDING_REQUEST_SCHEMA_VERSION:
+        raise RuntimeError("embedding producer and transport schema versions disagree")
+
+    return producer
+
+
+def _configured_producer(embedding: EmbeddingConfig) -> EmbeddingProducerIdentity:
+    if embedding.dimension is None:
+        raise EmbeddingConfigurationError(
+            "grid embedding configuration requires an explicit dimension"
+        )
+    try:
+        endpoint_url = normalize_openrouter_embedding_endpoint(embedding.endpoint_url)
+    except ValueError as error:
+        raise EmbeddingConfigurationError(str(error)) from error
+    return _producer_identity(
+        endpoint_url=endpoint_url,
+        model=embedding.model,
+        dimension=embedding.dimension,
+    )
+
+
 def _cache_path(
     cache_directory: Path,
     *,
-    model: str,
+    producer: EmbeddingProducerIdentity,
     card_hash: Sha256Hex,
 ) -> Path:
-    """Derive a sharded filename while omitting dimension to detect its drift."""
-    key = _CacheKey(model=model, card_hash=card_hash)
+    """Derive a sharded filename from every vector-producing semantic."""
+    key = _CacheKey(producer=producer, card_hash=card_hash)
     digest = hashlib.sha256(_canonical_json_bytes(key.model_dump(mode="json"))).hexdigest()
     return cache_directory / digest[:2] / f"{digest}.json"
 
@@ -256,24 +429,20 @@ def _validate_cache_identity(
     entry: _CacheEntry,
     *,
     path: Path,
-    model: str,
+    producer: EmbeddingProducerIdentity,
     card_hash: Sha256Hex,
-    dimension: int,
 ) -> None:
-    if entry.model != model:
-        raise EmbeddingCacheError(f"cached embedding model disagrees at {path}")
+    if entry.producer != producer:
+        raise EmbeddingCacheError(f"cached embedding producer identity disagrees at {path}")
     if entry.card_hash != card_hash:
         raise EmbeddingCacheError(f"cached embedding card hash disagrees at {path}")
-    if entry.dimension != dimension:
-        raise EmbeddingCacheError(f"cached embedding dimension disagrees at {path}")
 
 
 def _load_cache_entry(
     path: Path,
     *,
-    model: str,
+    producer: EmbeddingProducerIdentity,
     card_hash: Sha256Hex,
-    dimension: int,
 ) -> _CacheEntry | None:
     try:
         information = path.stat(follow_symlinks=False)
@@ -293,9 +462,8 @@ def _load_cache_entry(
     _validate_cache_identity(
         entry,
         path=path,
-        model=model,
+        producer=producer,
         card_hash=card_hash,
-        dimension=dimension,
     )
     return entry
 
@@ -343,13 +511,202 @@ def _ensure_directory(directory: Path) -> None:
         _sync_directory(path.parent)
 
 
+def _publish_exclusive_model(path: Path, model: BaseModel) -> None:
+    """Durably publish one immutable audit model without overwriting a peer."""
+    _ensure_directory(path.parent)
+    payload = _model_bytes(model)
+
+    with tempfile.NamedTemporaryFile(
+        mode="wb",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        delete=False,
+    ) as output:
+        temporary = Path(output.name)
+        try:
+            _write_all(output, payload)
+            output.flush()
+            os.fsync(output.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+
+    try:
+        os.link(temporary, path)
+        _sync_directory(path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _load_audit_model[ModelT: BaseModel](path: Path, model: type[ModelT]) -> ModelT:
+    try:
+        information = path.stat(follow_symlinks=False)
+        if not stat.S_ISREG(information.st_mode):
+            raise EmbeddingCacheError(f"embedding audit record is not regular: {path}")
+        payload = path.read_bytes()
+        record = model.model_validate_json(payload, strict=True)
+    except (OSError, TypeError, ValidationError) as error:
+        raise EmbeddingCacheError(f"invalid embedding audit record {path}: {error}") from error
+    if payload != _model_bytes(record):
+        raise EmbeddingCacheError(f"embedding audit record is not canonical: {path}")
+    return record
+
+
+def _audit_request_key(
+    request: EmbeddingRequestIdentity,
+    card_hashes: tuple[Sha256Hex, ...],
+) -> Sha256Hex:
+    identity = _AuditRequestKey(request=request, card_hashes=card_hashes)
+    return hashlib.sha256(_canonical_json_bytes(identity.model_dump(mode="json"))).hexdigest()
+
+
+def _audit_marker_path(cache_directory: Path, request_key: Sha256Hex) -> Path:
+    return cache_directory / _AUDIT_DIRECTORY / "inflight" / f"{request_key}.json"
+
+
+def _audit_attempt_path(cache_directory: Path, attempt_id: str) -> Path:
+    return cache_directory / _AUDIT_DIRECTORY / "attempts" / f"{attempt_id}.json"
+
+
+def _begin_audit(
+    cache_directory: Path,
+    request: EmbeddingRequestIdentity,
+    cards: Sequence[_CardText],
+) -> _AuditMarker:
+    card_hashes = tuple(card.card_hash for card in cards)
+    request_key = _audit_request_key(request, card_hashes)
+    marker = _AuditMarker(
+        request_key=request_key,
+        attempt_id=uuid7().hex,
+        request_at=datetime.now(UTC),
+        request=request,
+        card_hashes=card_hashes,
+    )
+    path = _audit_marker_path(cache_directory, request_key)
+    try:
+        _publish_exclusive_model(path, marker)
+    except FileExistsError as error:
+        raise EmbeddingIncompleteRequestError(
+            f"embedding batch {request_key} already has an in-flight request"
+        ) from error
+    return marker
+
+
+def _finish_audit(
+    cache_directory: Path,
+    marker: _AuditMarker,
+    outcome: _AuditOutcome,
+) -> _AuditAttempt:
+    attempt = _AuditAttempt(
+        request_key=marker.request_key,
+        attempt_id=marker.attempt_id,
+        request_at=marker.request_at,
+        response_at=datetime.now(UTC),
+        request=marker.request,
+        card_hashes=marker.card_hashes,
+        outcome=outcome,
+    )
+    _publish_exclusive_model(
+        _audit_attempt_path(cache_directory, marker.attempt_id),
+        attempt,
+    )
+    return attempt
+
+
+def _clear_audit_marker(cache_directory: Path, marker: _AuditMarker) -> None:
+    path = _audit_marker_path(cache_directory, marker.request_key)
+    path.unlink()
+    _sync_directory(path.parent)
+
+
+def _validate_audit_pair(marker: _AuditMarker, attempt: _AuditAttempt) -> None:
+    marker_identity = (
+        marker.request_key,
+        marker.attempt_id,
+        marker.request_at,
+        marker.request,
+        marker.card_hashes,
+    )
+    attempt_identity = (
+        attempt.request_key,
+        attempt.attempt_id,
+        attempt.request_at,
+        attempt.request,
+        attempt.card_hashes,
+    )
+    if attempt_identity != marker_identity:
+        raise EmbeddingCacheError("embedding attempt does not match its in-flight marker")
+
+
+def _recover_audit(
+    cache_directory: Path,
+    target_card_hashes: frozenset[Sha256Hex],
+) -> None:
+    marker_directory = cache_directory / _AUDIT_DIRECTORY / "inflight"
+    try:
+        marker_paths = tuple(sorted(marker_directory.glob("*.json")))
+    except OSError as error:
+        raise EmbeddingCacheError(f"cannot inspect embedding audit markers: {error}") from error
+
+    for marker_path in marker_paths:
+        marker = _load_audit_model(marker_path, _AuditMarker)
+        attempt_path = _audit_attempt_path(cache_directory, marker.attempt_id)
+        try:
+            attempt_path.stat(follow_symlinks=False)
+        except FileNotFoundError:
+            if target_card_hashes.intersection(marker.card_hashes):
+                raise EmbeddingIncompleteRequestError(
+                    f"embedding batch {marker.request_key} has an unknown paid outcome"
+                ) from None
+            continue
+        except OSError as error:
+            raise EmbeddingCacheError(
+                f"cannot inspect embedding audit attempt {attempt_path}: {error}"
+            ) from error
+        attempt = _load_audit_model(attempt_path, _AuditAttempt)
+        _validate_audit_pair(marker, attempt)
+        if isinstance(attempt.outcome, _AuditAccepted):
+            entries = tuple(
+                (
+                    _cache_path(
+                        cache_directory,
+                        producer=entry.producer,
+                        card_hash=entry.card_hash,
+                    ),
+                    entry,
+                )
+                for entry in attempt.outcome.entries
+            )
+            _publish_cache_entries(entries)
+        _clear_audit_marker(cache_directory, marker)
+
+
+def _record_terminal_audit(
+    cache_directory: Path,
+    marker: _AuditMarker,
+    outcome: _AuditFailed | _AuditRejected,
+) -> None:
+    _finish_audit(cache_directory, marker, outcome)
+    _clear_audit_marker(cache_directory, marker)
+
+
+def _record_accepted_audit(
+    cache_directory: Path,
+    marker: _AuditMarker,
+    outcome: _AuditAccepted,
+    entries: Sequence[tuple[Path, _CacheEntry]],
+) -> None:
+    _finish_audit(cache_directory, marker, outcome)
+    _publish_cache_entries(entries)
+    _clear_audit_marker(cache_directory, marker)
+
+
 def _publish_cache_entry(path: Path, entry: _CacheEntry) -> None:
     """Publish one immutable cache record or prove an identical record won."""
     existing = _load_cache_entry(
         path,
-        model=entry.model,
+        producer=entry.producer,
         card_hash=entry.card_hash,
-        dimension=entry.dimension,
     )
     if existing is not None:
         if existing != entry:
@@ -378,9 +735,8 @@ def _publish_cache_entry(path: Path, entry: _CacheEntry) -> None:
         except FileExistsError:
             winner = _load_cache_entry(
                 path,
-                model=entry.model,
+                producer=entry.producer,
                 card_hash=entry.card_hash,
-                dimension=entry.dimension,
             )
             if winner != entry:
                 raise EmbeddingCacheError(
@@ -423,16 +779,20 @@ def _normalize_vector(
 
 
 def _pack_cached(entry: _CacheEntry) -> bytes:
+    dimension = entry.producer.response.dimension
     try:
-        packed = struct.pack(f"<{entry.dimension}f", *entry.vector)
+        packed = struct.pack(f"<{dimension}f", *entry.vector)
     except (OverflowError, struct.error) as error:
         raise EmbeddingCacheError(
             "cached embedding cannot be represented as finite float32"
         ) from error
-    if len(packed) != entry.dimension * _FLOAT32_BYTES:
+
+    if len(packed) != dimension * _FLOAT32_BYTES:
         raise EmbeddingCacheError("cached embedding produced an invalid packed shape")
+
     if any(not math.isfinite(value[0]) for value in struct.iter_unpack("<f", packed)):
         raise EmbeddingCacheError("cached embedding is not finite float32")
+
     return packed
 
 
@@ -440,27 +800,27 @@ def _cache_snapshot(
     cache_directory: Path,
     cards: Sequence[_CardText],
     *,
-    model: str,
-    dimension: int,
+    producer: EmbeddingProducerIdentity,
 ) -> tuple[dict[Sha256Hex, bytes], tuple[_CardText, ...]]:
     hits: dict[Sha256Hex, bytes] = {}
     misses: list[_CardText] = []
     for card in cards:
         path = _cache_path(
             cache_directory,
-            model=model,
+            producer=producer,
             card_hash=card.card_hash,
         )
         entry = _load_cache_entry(
             path,
-            model=model,
+            producer=producer,
             card_hash=card.card_hash,
-            dimension=dimension,
         )
+
         if entry is None:
             misses.append(card)
         else:
             hits[card.card_hash] = _pack_cached(entry)
+
     return hits, tuple(misses)
 
 
@@ -506,26 +866,6 @@ def _artifact_presence(path: Path) -> tuple[bool, bool]:
     return path.exists(), sidecar.exists()
 
 
-def _openrouter_server_url(endpoint_url: str) -> str:
-    """Convert the pinned embedding operation URL into the SDK server base."""
-    parsed = urlsplit(endpoint_url)
-    path = parsed.path.rstrip("/")
-    if (
-        parsed.scheme != "https"
-        or not parsed.netloc
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.query
-        or parsed.fragment
-        or not path.endswith("/embeddings")
-    ):
-        raise EmbeddingConfigurationError(
-            "embedding endpoint_url must be an HTTPS /embeddings operation URL"
-        )
-    base_path = path.removesuffix("/embeddings")
-    return urlunsplit((parsed.scheme, parsed.netloc, base_path, "", ""))
-
-
 def _validate_artifact(
     artifact: EmbeddingsArtifact,
     *,
@@ -561,7 +901,8 @@ def _check_miss_budget(cards: Sequence[_CardText], maximum: int | None) -> None:
 def _accepted_vectors(
     accepted: EmbeddingAccepted,
     request: EmbeddingRequest,
-) -> tuple[EmbeddingVector, ...] | str:
+    expected_producer: EmbeddingProducerIdentity,
+) -> _AcceptedPayload | str:
     if accepted.model != request.model:
         return f"embedding response used model {accepted.model!r}, expected {request.model!r}"
     if accepted.dimension != request.dimension:
@@ -574,15 +915,21 @@ def _accepted_vectors(
             f"embedding response returned {len(accepted.vectors)} vectors for "
             f"{len(request.texts)} texts"
         )
-    return accepted.vectors
+    observed = EmbeddingProducerIdentity(
+        request=expected_producer.request,
+        response=EmbeddingResponseIdentity(
+            model=accepted.model,
+            dimension=accepted.dimension,
+        ),
+    )
+    return _AcceptedPayload(producer=observed, vectors=accepted.vectors)
 
 
 async def _embedding_worker(
     batches: trio.MemoryReceiveChannel[_EmbeddingBatch],
     *,
     transport: AsyncEmbeddingTransport,
-    model: str,
-    dimension: int,
+    producer: EmbeddingProducerIdentity,
     request_timeout: timedelta,
     cache_directory: Path,
     results: dict[int, _BatchResult],
@@ -595,44 +942,103 @@ async def _embedding_worker(
                 results[batch.index] = _BatchSkipped()
                 continue
             request = EmbeddingRequest(
+                endpoint_url=producer.request.endpoint_url,
                 texts=tuple(card.text for card in batch.cards),
-                model=model,
-                dimension=dimension,
+                model=producer.request.model,
+                dimension=producer.request.dimension,
                 timeout=request_timeout,
             )
             try:
+                marker = await trio.to_thread.run_sync(
+                    _begin_audit,
+                    cache_directory,
+                    producer.request,
+                    batch.cards,
+                    abandon_on_cancel=False,
+                )
                 outcome = await transport.embed(request)
                 match outcome:
-                    case EmbeddingFailed(failure=failure) | EmbeddingRejected(failure=failure):
+                    case EmbeddingFailed(failure=failure):
+                        await trio.to_thread.run_sync(
+                            _record_terminal_audit,
+                            cache_directory,
+                            marker,
+                            _AuditFailed(failure=failure),
+                            abandon_on_cancel=False,
+                        )
+                        results[batch.index] = _BatchFailed(failure=failure)
+                        stop.set()
+                        continue
+                    case EmbeddingRejected(failure=failure, usage=rejected_usage):
+                        usage = _AuditUsage.from_usage(rejected_usage)
+                        await trio.to_thread.run_sync(
+                            _record_terminal_audit,
+                            cache_directory,
+                            marker,
+                            _AuditRejected(
+                                failure=failure,
+                                usage=usage,
+                                cost_complete=usage is not None and usage.cost_usd is not None,
+                            ),
+                            abandon_on_cancel=False,
+                        )
                         results[batch.index] = _BatchFailed(failure=failure)
                         stop.set()
                         continue
                     case EmbeddingAccepted() as accepted:
-                        values = _accepted_vectors(accepted, request)
-                        if isinstance(values, str):
-                            results[batch.index] = _BatchInvalid(message=values)
+                        accepted_payload = _accepted_vectors(accepted, request, producer)
+                        if isinstance(accepted_payload, str):
+                            failure = ResponseFailure(
+                                exception_type="EmbeddingTransportContractError",
+                                message=accepted_payload,
+                            )
+                            usage = _AuditUsage.from_usage(accepted.usage)
+                            await trio.to_thread.run_sync(
+                                _record_terminal_audit,
+                                cache_directory,
+                                marker,
+                                _AuditRejected(
+                                    failure=failure,
+                                    usage=usage,
+                                    cost_complete=usage is not None and usage.cost_usd is not None,
+                                ),
+                                abandon_on_cancel=False,
+                            )
+                            results[batch.index] = _BatchInvalid(message=accepted_payload)
                             stop.set()
                             continue
 
                 packed: dict[Sha256Hex, bytes] = {}
                 entries: list[tuple[Path, _CacheEntry]] = []
-                for card, vector in zip(batch.cards, values, strict=True):
-                    payload, normalized = _normalize_vector(vector, dimension=dimension)
+                for card, vector in zip(batch.cards, accepted_payload.vectors, strict=True):
+                    vector_bytes, normalized = _normalize_vector(
+                        vector,
+                        dimension=producer.request.dimension,
+                    )
                     entry = _CacheEntry(
-                        model=model,
+                        producer=accepted_payload.producer,
                         card_hash=card.card_hash,
-                        dimension=dimension,
                         vector=normalized,
                     )
                     path = _cache_path(
                         cache_directory,
-                        model=model,
+                        producer=producer,
                         card_hash=card.card_hash,
                     )
-                    packed[card.card_hash] = payload
+                    packed[card.card_hash] = vector_bytes
                     entries.append((path, entry))
+                usage = _AuditUsage.from_usage(accepted.usage)
+                audit_outcome = _AuditAccepted(
+                    producer=accepted_payload.producer,
+                    usage=usage,
+                    cost_complete=usage is not None and usage.cost_usd is not None,
+                    entries=tuple(entry for _, entry in entries),
+                )
                 await trio.to_thread.run_sync(
-                    _publish_cache_entries,
+                    _record_accepted_audit,
+                    cache_directory,
+                    marker,
+                    audit_outcome,
                     tuple(entries),
                     abandon_on_cancel=False,
                 )
@@ -678,6 +1084,7 @@ async def _acquire_missing(
     *,
     transport: AsyncEmbeddingTransport,
     config: GridRunConfig,
+    producer: EmbeddingProducerIdentity,
     cache_directory: Path,
     maximum_concurrency: int,
     progress: ProgressReporter,
@@ -698,8 +1105,7 @@ async def _acquire_missing(
                 partial(
                     _embedding_worker,
                     transport=transport,
-                    model=embedding.model,
-                    dimension=embedding.dimension,
+                    producer=producer,
                     request_timeout=embedding.request_timeout,
                     cache_directory=cache_directory,
                     results=results,
@@ -787,6 +1193,8 @@ async def embed_grid_async(
         raise EmbeddingConfigurationError(
             "grid embedding configuration requires an explicit dimension"
         )
+    producer = _configured_producer(embedding)
+    endpoint_url = producer.request.endpoint_url
     cards = _eligible_cards(deck)
     unique_cards = _unique_card_texts(cards)
     source_hashes = _source_hashes(loaded_config, deck)
@@ -802,7 +1210,7 @@ async def embed_grid_async(
         artifact = await load_embeddings_async(
             output_path,
             expected_source_hashes=source_hashes,
-            expected_embedding_model=embedding.model,
+            expected_producer=producer,
         )
         _validate_artifact(artifact, cards=cards, dimension=embedding.dimension)
         return EmbeddingRun(
@@ -815,11 +1223,16 @@ async def embed_grid_async(
         )
 
     progress.phase("embedding cards", total=len(unique_cards))
+    await trio.to_thread.run_sync(
+        _recover_audit,
+        cache_directory,
+        frozenset(card.card_hash for card in unique_cards),
+        abandon_on_cancel=False,
+    )
     cached, misses = await trio.to_thread.run_sync(
         partial(
             _cache_snapshot,
-            model=embedding.model,
-            dimension=embedding.dimension,
+            producer=producer,
         ),
         cache_directory,
         unique_cards,
@@ -841,13 +1254,14 @@ async def embed_grid_async(
             owned_transport = OpenRouterEmbeddingTransport(
                 settings.api_key.get_secret_value(),
                 maximum_batch_size=embedding.batch_size,
-                server_url=_openrouter_server_url(embedding.endpoint_url),
+                server_url=openrouter_embedding_server_url(endpoint_url),
             )
             try:
                 acquired = await _acquire_missing(
                     misses,
                     transport=owned_transport,
                     config=config,
+                    producer=producer,
                     cache_directory=cache_directory,
                     maximum_concurrency=maximum_concurrency,
                     progress=progress,
@@ -859,6 +1273,7 @@ async def embed_grid_async(
                 misses,
                 transport=transport,
                 config=config,
+                producer=producer,
                 cache_directory=cache_directory,
                 maximum_concurrency=maximum_concurrency,
                 progress=progress,
@@ -882,7 +1297,7 @@ async def embed_grid_async(
     artifact = await write_embeddings_async(
         output_path,
         rows,
-        embedding_model=embedding.model,
+        producer=producer,
         source_hashes=source_hashes,
     )
     return EmbeddingRun(

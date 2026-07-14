@@ -2,12 +2,18 @@
 
 import math
 from typing import Literal, Self
+from urllib.parse import urlsplit, urlunsplit
 
 from openrouter import OpenRouter
 from openrouter.errors import NoResponseError, OpenRouterError
 from openrouter.operations.createembeddings import CreateEmbeddingsResponseBody
 
-from atlas_tools.relation.evaluation.domain.api import ResponseFailure, RoutingFailure
+from atlas_tools.relation.evaluation.domain.api import (
+    AccountingFailure,
+    ResponseFailure,
+    RoutingFailure,
+    normalize_embedding_endpoint_url,
+)
 from atlas_tools.relation.evaluation.transport._lifetime import SdkClientLifetime
 from atlas_tools.relation.evaluation.transport._sdk import (
     NO_RETRIES,
@@ -19,9 +25,32 @@ from atlas_tools.relation.evaluation.transport.embedding import (
     EmbeddingOutcome,
     EmbeddingRejected,
     EmbeddingRequest,
+    EmbeddingUsage,
     EmbeddingVector,
 )
 from atlas_tools.relation.evaluation.transport.failure import request_failure
+
+
+def normalize_openrouter_embedding_endpoint(endpoint_url: str) -> str:
+    """Validate and canonicalize one OpenRouter embeddings operation URL.
+
+    The normalized URL is stable cache identity. It excludes credentials,
+    queries, and fragments and removes a trailing slash from the operation
+    path.
+
+    Raises:
+        ValueError: The URL is not an HTTPS ``/embeddings`` operation.
+
+    """
+    return normalize_embedding_endpoint_url(endpoint_url)
+
+
+def openrouter_embedding_server_url(endpoint_url: str) -> str:
+    """Return the SDK server base for a validated operation URL."""
+    operation_url = normalize_openrouter_embedding_endpoint(endpoint_url)
+    parsed = urlsplit(operation_url)
+    base_path = parsed.path.removesuffix("/embeddings")
+    return urlunsplit((parsed.scheme, parsed.netloc, base_path, "", ""))
 
 
 class _RejectedError(ValueError):
@@ -29,20 +58,30 @@ class _RejectedError(ValueError):
 
     def __init__(
         self,
-        category: Literal["response", "routing"],
+        category: Literal["accounting", "response", "routing"],
         message: str,
     ) -> None:
         super().__init__(message)
         self.category = category
 
 
-def _rejection(error: _RejectedError) -> EmbeddingRejected:
-    failure_type = ResponseFailure if error.category == "response" else RoutingFailure
+def _rejection(
+    error: _RejectedError,
+    *,
+    usage: EmbeddingUsage | None = None,
+) -> EmbeddingRejected:
+    failure_types = {
+        "accounting": AccountingFailure,
+        "response": ResponseFailure,
+        "routing": RoutingFailure,
+    }
+    failure_type = failure_types[error.category]
     return EmbeddingRejected(
         failure=failure_type(
             exception_type=f"{type(error).__module__}.{type(error).__qualname__}",
             message=str(error),
-        )
+        ),
+        usage=usage,
     )
 
 
@@ -72,6 +111,7 @@ def _vector(value: list[float] | str, *, dimension: int, index: int) -> Embeddin
 def _accepted(
     response: CreateEmbeddingsResponseBody,
     request: EmbeddingRequest,
+    usage: EmbeddingUsage | None,
 ) -> EmbeddingAccepted:
     if response.model != request.model:
         raise _RejectedError(
@@ -108,7 +148,21 @@ def _accepted(
         model=response.model,
         dimension=request.dimension,
         vectors=vectors,
+        usage=usage,
     )
+
+
+def _usage(response: CreateEmbeddingsResponseBody) -> EmbeddingUsage | None:
+    if response.usage is not None:
+        try:
+            return EmbeddingUsage(
+                input_tokens=response.usage.prompt_tokens,
+                total_tokens=response.usage.total_tokens,
+                cost_usd=response.usage.cost,
+            )
+        except (TypeError, ValueError) as error:
+            raise _RejectedError("accounting", f"invalid embedding usage: {error}") from error
+    return None
 
 
 class OpenRouterEmbeddingTransport:
@@ -171,13 +225,25 @@ class OpenRouterEmbeddingTransport:
             )
 
         try:
+            request_server_url = openrouter_embedding_server_url(request.endpoint_url)
+        except ValueError as error:
+            return _rejection(_RejectedError("routing", str(error)))
+        if self._server_url is not None and self._server_url.rstrip("/") != request_server_url:
+            return _rejection(
+                _RejectedError(
+                    "routing",
+                    "embedding request endpoint disagrees with the configured SDK server",
+                )
+            )
+
+        try:
             response = await self._client.embeddings.generate_async(
                 input=list(request.texts),
                 model=request.model,
                 dimensions=request.dimension,
                 encoding_format="float",
                 retries=NO_RETRIES,
-                server_url=self._server_url,
+                server_url=request_server_url,
                 timeout_ms=timeout_milliseconds(request.timeout),
             )
         except (OpenRouterError, NoResponseError) as error:
@@ -188,10 +254,12 @@ class OpenRouterEmbeddingTransport:
                 _RejectedError("response", "embedding endpoint returned a non-object response")
             )
 
+        usage: EmbeddingUsage | None = None
         try:
-            return _accepted(response, request)
+            usage = _usage(response)
+            return _accepted(response, request, usage)
         except _RejectedError as error:
-            return _rejection(error)
+            return _rejection(error, usage=usage)
 
     async def aclose(self) -> None:
         """Close both SDK clients, preserving unfinished work for a retry."""

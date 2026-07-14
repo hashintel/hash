@@ -24,12 +24,17 @@ from atlas_tools.relation.evaluation.domain.identity import (
     AttemptId,
     JudgeFamilyId,
     ModelId,
-    NonEmptyStr,
-    NonNegativeFiniteFloat,
     ProviderSlug,
     RequestHash,
     RequestStage,
     VoteId,
+)
+from atlas_tools.relation.evaluation.domain.scalar import (
+    HttpStatusCode,
+    NonEmptyStr,
+    NonNegativeDuration,
+    NonNegativeFiniteFloat,
+    PositiveDuration,
 )
 
 _JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
@@ -157,16 +162,16 @@ class TransportFailure(_Failure):
     """Describe a request failure for which no HTTP response was available."""
 
     kind: Literal["transport"] = "transport"
-    retry_after: Annotated[timedelta, Field(gt=timedelta())] | None = None
+    retry_after: PositiveDuration | None = None
 
 
 class ProviderFailure(_Failure):
     """Describe direct and embedded HTTP failure evidence from a provider."""
 
     kind: Literal["provider"] = "provider"
-    http_status_code: Annotated[int, Field(ge=100, le=599)] | None = None
-    provider_status_code: Annotated[int, Field(ge=100, le=599)] | None = None
-    retry_after: Annotated[timedelta, Field(gt=timedelta())] | None = None
+    http_status_code: HttpStatusCode | None = None
+    provider_status_code: HttpStatusCode | None = None
+    retry_after: PositiveDuration | None = None
     response_body: str | None = None
 
     @model_validator(mode="after")
@@ -242,7 +247,7 @@ class AttemptTiming(FrozenModel):
 
     request_at: AwareDatetime
     response_at: AwareDatetime
-    latency: Annotated[timedelta, Field(ge=timedelta())]
+    latency: NonNegativeDuration
 
     @model_validator(mode="after")
     def check_order(self) -> Self:

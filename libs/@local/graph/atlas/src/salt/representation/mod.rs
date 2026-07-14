@@ -1,10 +1,33 @@
 //! Validated canonical embeddings and projector-prefix normalization.
+//!
+//! A canonical embedding is a finite vector `x` with 3,072 [`f32`]
+//! components. The projector consumes only the first 512 components, normalized
+//! as:
+//!
+//! ```text
+//! norm = sqrt(sum(x[k]^2 for k in 0..512))
+//! denominator = max(norm, 1e-12)
+//! projector[k] = x[k] / denominator
+//! ```
+//!
+//! The squared norm is accumulated in [`f64`] before the normalized prefix is
+//! written as [`f32`]. This keeps small and high-magnitude finite inputs inside
+//! the representable range while preserving the persisted projector width.
+//! Normalization performs no allocation.
+//!
+//! # Numerical behavior
+//!
+//! Reduction order is fixed for a given build target. Targets with native FMA
+//! may differ in the final bits from targets that evaluate multiplication and
+//! addition separately.
 
 use core::{
     error::Error,
     fmt,
     simd::{f32x8, f64x8, num::SimdFloat as _},
 };
+
+use crate::salt::simd::mul_add_f64x8;
 
 /// The stored embedding width.
 pub(crate) const CANONICAL_DIMENSIONS: usize = 3_072;
@@ -15,23 +38,10 @@ pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 /// The lower bound used when normalizing a projector prefix.
 pub(crate) const NORMALIZATION_EPSILON: f64 = 1.0e-12;
 
-/// Fused multiply-add when the target provides native FMA instructions.
-#[inline(always)]
-#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
-fn simd_mul_add(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
-    use std::simd::StdFloat as _;
-
-    lhs.mul_add(rhs, accumulator)
-}
-
-/// Separate multiplication and addition when native FMA is unavailable.
-#[inline(always)]
-#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
-fn simd_mul_add(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
-    lhs * rhs + accumulator
-}
-
 /// A finite canonical embedding with the required width.
+///
+/// Construction validates the complete 3,072-component row, even though
+/// [`Self::normalize_prefix`] reads only its first 512 components.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct CanonicalEmbedding<'embedding>(&'embedding [f32; CANONICAL_DIMENSIONS]);
 
@@ -71,13 +81,20 @@ impl<'embedding> CanonicalEmbedding<'embedding> {
 
     /// Borrows all canonical components.
     #[must_use]
+    #[inline]
     pub(crate) const fn as_array(self) -> &'embedding [f32; CANONICAL_DIMENSIONS] {
         self.0
     }
 
     /// Writes the normalized projector prefix into `output`.
     ///
-    /// The norm is accumulated in `f64`. This method performs no allocation.
+    /// The norm is accumulated in [`f64`]. Every element of `output` is
+    /// overwritten, including when the prefix norm is zero.
+    ///
+    /// # Complexity
+    ///
+    /// This runs in `O(512)` time and uses constant additional space. It does
+    /// not allocate.
     #[must_use]
     pub(crate) fn normalize_prefix(
         self,
@@ -110,10 +127,10 @@ impl<'embedding> CanonicalEmbedding<'embedding> {
 
             let [wide0, wide1, wide2, wide3]: [f64x8; 4] =
                 [input0.cast(), input1.cast(), input2.cast(), input3.cast()];
-            sum0 = simd_mul_add(wide0, wide0, sum0);
-            sum1 = simd_mul_add(wide1, wide1, sum1);
-            sum2 = simd_mul_add(wide2, wide2, sum2);
-            sum3 = simd_mul_add(wide3, wide3, sum3);
+            sum0 = mul_add_f64x8(wide0, wide0, sum0);
+            sum1 = mul_add_f64x8(wide1, wide1, sum1);
+            sum2 = mul_add_f64x8(wide2, wide2, sum2);
+            sum3 = mul_add_f64x8(wide3, wide3, sum3);
             index += 4;
         }
         debug_assert_eq!(index, input.len());

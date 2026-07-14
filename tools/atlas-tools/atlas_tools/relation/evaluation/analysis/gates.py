@@ -1,5 +1,7 @@
 """Evaluate blocking grid acceptance gates from immutable in-memory evidence."""
 
+import math
+from collections.abc import Sequence
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, NonNegativeInt, PositiveInt, computed_field, model_validator
@@ -9,14 +11,19 @@ from atlas_tools.relation.evaluation.analysis.economics import (
     FamilyEconomics,
     vote_economics,
 )
-from atlas_tools.relation.evaluation.analysis.grid import GridAnalysis
+from atlas_tools.relation.evaluation.analysis.grid import CardAnalysis, GridAnalysis
 from atlas_tools.relation.evaluation.domain.api import (
+    CANARY_REPEAT_INDEX,
+    QUALIFICATION_BUNDLE,
     JudgeFamilyId,
     NonEmptyStr,
+    NonNegativeFiniteFloat,
     OpenProbability,
     Probability,
     RelationId,
     Verdict,
+    Vote,
+    VoteId,
     VoteVerdict,
 )
 
@@ -35,6 +42,15 @@ _GATE_ORDER: tuple[GateName, ...] = (
     "abstention",
     "cost-envelope",
 )
+
+
+def _within_cost_ceiling(known_cost_usd: float, ceiling_usd: float | None) -> bool:
+    return ceiling_usd is None or known_cost_usd < ceiling_usd or math.isclose(
+        known_cost_usd,
+        ceiling_usd,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    )
 
 
 class HoldoutRule(AnalysisModel):
@@ -72,8 +88,9 @@ class GridGateEvidence(AnalysisModel):
 
 
 class HoldoutVote(AnalysisModel):
-    """One baseline verdict retained as grid-time qualification evidence."""
+    """One fresh canary verdict retained as grid-time qualification evidence."""
 
+    vote_id: VoteId
     relation_id: RelationId
     verdict: VoteVerdict
     accepted_verdicts: Annotated[frozenset[Verdict], Field(min_length=1)]
@@ -165,9 +182,9 @@ class GridGates(AnalysisModel):
     abstention: tuple[FamilyAbstention, ...]
     routing_violations: NonNegativeInt
     abstention_ceiling: OpenProbability
-    total_known_cost_usd: float = Field(ge=0.0, allow_inf_nan=False)
+    total_known_cost_usd: NonNegativeFiniteFloat
     cost_complete: bool
-    cost_ceiling_usd: float | None = Field(default=None, ge=0.0, allow_inf_nan=False)
+    cost_ceiling_usd: NonNegativeFiniteFloat | None = None
 
     @model_validator(mode="after")
     def check_gate_order(self) -> Self:
@@ -201,8 +218,7 @@ class GridGates(AnalysisModel):
         ):
             raise ValueError("abstention gate must equal its family rates")
         expected_cost = self.cost_complete and (
-            self.cost_ceiling_usd is None
-            or self.total_known_cost_usd <= self.cost_ceiling_usd
+            _within_cost_ceiling(self.total_known_cost_usd, self.cost_ceiling_usd)
         )
         if decisions["cost-envelope"] != expected_cost:
             raise ValueError("cost gate must require complete billing within its envelope")
@@ -215,28 +231,86 @@ class GridGates(AnalysisModel):
         return all(gate.passed for gate in self.gates)
 
 
-def _holdout_drift(
+def _canary_cell(
+    vote: Vote,
+    *,
+    analysis: GridAnalysis,
+    cards: dict[RelationId, CardAnalysis],
+    rules: frozenset[RelationId],
+    families: frozenset[JudgeFamilyId],
+) -> tuple[RelationId, JudgeFamilyId]:
+    if vote.repeat_index != CANARY_REPEAT_INDEX:
+        raise ValueError(f"holdout canary vote {vote.vote_id} must use repeat 3")
+    if vote.bundle_id != QUALIFICATION_BUNDLE:
+        raise ValueError(f"holdout canary vote {vote.vote_id} must use S1xF1")
+    card = cards.get(vote.relation_id)
+    if card is None or vote.relation_id not in rules:
+        raise ValueError(f"canary vote {vote.vote_id} is outside the fixed holdouts")
+    if vote.family_id not in families:
+        raise ValueError(f"canary vote {vote.vote_id} uses an unseated family")
+    if vote.card_hash != card.card.card_hash:
+        raise ValueError(f"canary vote {vote.vote_id} differs from its holdout card")
+    if (
+        vote.prompt_pack_hash != analysis.prompt_pack_hash
+        or vote.rubric_version != analysis.rubric_version
+    ):
+        raise ValueError(f"canary vote {vote.vote_id} differs from the grid prompt contract")
+    return vote.relation_id, vote.family_id
+
+
+def _canary_cells(
     analysis: GridAnalysis,
     policy: GridGatePolicy,
-) -> tuple[HoldoutDrift, ...]:
+    canary_votes: Sequence[Vote],
+) -> dict[tuple[RelationId, JudgeFamilyId], Vote]:
     cards = {card.card.relation_id: card for card in analysis.cards}
     missing = [rule.relation_id for rule in policy.holdouts if rule.relation_id not in cards]
     if missing:
         raise ValueError(f"holdout rules refer to cards outside the grid: {missing}")
 
-    by_card_family = {
-        card.card.relation_id: {family.family_id: family for family in card.families}
-        for card in analysis.cards
-    }
+    rules = frozenset(rule.relation_id for rule in policy.holdouts)
+    families = frozenset(analysis.family_ids)
+    cells: dict[tuple[RelationId, JudgeFamilyId], Vote] = {}
+    for vote in canary_votes:
+        cell = _canary_cell(
+            vote,
+            analysis=analysis,
+            cards=cards,
+            rules=rules,
+            families=families,
+        )
+        if cell in cells:
+            raise ValueError(
+                f"holdout canary cell {vote.relation_id}, {vote.family_id} occurs more than once"
+            )
+        cells[cell] = vote
+
+    expected = frozenset(
+        (relation_id, family_id) for relation_id in rules for family_id in families
+    )
+    missing_cells = expected - cells.keys()
+    if missing_cells:
+        relation_id, family_id = min(missing_cells)
+        raise ValueError(f"holdout canary lacks {relation_id} for {family_id}")
+    return cells
+
+
+def _holdout_drift(
+    analysis: GridAnalysis,
+    policy: GridGatePolicy,
+    canary_votes: Sequence[Vote],
+) -> tuple[HoldoutDrift, ...]:
+    cells = _canary_cells(analysis, policy, canary_votes)
     results: list[HoldoutDrift] = []
     for family_id in analysis.family_ids:
         votes: list[HoldoutVote] = []
         for rule in policy.holdouts:
-            verdict = by_card_family[rule.relation_id][family_id].baseline.vote.verdict
+            canary = cells[(rule.relation_id, family_id)]
             votes.append(
                 HoldoutVote(
+                    vote_id=canary.vote_id,
                     relation_id=rule.relation_id,
-                    verdict=verdict,
+                    verdict=canary.verdict,
                     accepted_verdicts=rule.accepted_verdicts,
                     probe=rule.probe,
                 )
@@ -265,6 +339,7 @@ def _abstention(families: tuple[FamilyEconomics, ...]) -> tuple[FamilyAbstention
 def grid_acceptance_gates(
     analysis: GridAnalysis,
     *,
+    canary_votes: Sequence[Vote],
     policy: GridGatePolicy,
     evidence: GridGateEvidence | None = None,
 ) -> GridGates:
@@ -275,8 +350,8 @@ def grid_acceptance_gates(
     fact so provider payload semantics stay outside this pure subsystem.
     """
     resolved_evidence = GridGateEvidence() if evidence is None else evidence
-    resolved_economics = vote_economics(analysis)
-    drift = _holdout_drift(analysis, policy)
+    drift = _holdout_drift(analysis, policy, canary_votes)
+    resolved_economics = vote_economics(analysis, canary_votes=canary_votes)
     abstention = _abstention(resolved_economics.by_family)
     abstention_failures = tuple(row for row in abstention if row.rate >= policy.abstention_ceiling)
     drift_failures = tuple(row for row in drift if not row.passed)
@@ -317,9 +392,7 @@ def grid_acceptance_gates(
         GateResult(
             gate="cost-envelope",
             passed=resolved_economics.cost_complete
-            and (
-                ceiling is None or resolved_economics.total_known_cost_usd <= ceiling
-            ),
+            and _within_cost_ceiling(resolved_economics.total_known_cost_usd, ceiling),
             detail=(
                 (
                     "complete fresh billing"

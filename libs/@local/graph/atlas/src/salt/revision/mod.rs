@@ -23,12 +23,14 @@ pub(crate) struct GenerationId(ContentHash);
 impl GenerationId {
     /// Creates a generation identity from its complete input/configuration hash.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(hash: ContentHash) -> Self {
         Self(hash)
     }
 
     /// Returns the content hash that identifies the generation.
     #[must_use]
+    #[inline]
     pub(crate) const fn content_hash(self) -> ContentHash {
         self.0
     }
@@ -105,12 +107,14 @@ macro_rules! revision {
 
             /// Creates a revision from its persisted counter.
             #[must_use]
+            #[inline]
             $visibility const fn new(value: u64) -> Self {
                 Self(value)
             }
 
             /// Returns the persisted revision counter.
             #[must_use]
+            #[inline]
             $visibility const fn get(self) -> u64 {
                 self.0
             }
@@ -120,6 +124,7 @@ macro_rules! revision {
             /// # Errors
             ///
             /// This returns an error when the current counter is `u64::MAX`.
+            #[inline]
             $visibility const fn next(self) -> Result<Self, RevisionOverflow> {
                 match self.0.checked_add(1) {
                     Some(next) => Ok(Self(next)),
@@ -158,12 +163,14 @@ pub(crate) struct AuthorizationRevision(ContentHash);
 impl AuthorizationRevision {
     /// Creates an authorization revision from its canonical source identity.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(hash: ContentHash) -> Self {
         Self(hash)
     }
 
     /// Returns the canonical authorization revision identity.
     #[must_use]
+    #[inline]
     pub(crate) const fn content_hash(self) -> ContentHash {
         self.0
     }
@@ -184,12 +191,14 @@ pub(crate) struct ScopeFingerprint(ContentHash);
 impl ScopeFingerprint {
     /// Creates a scope fingerprint from authorization-owned canonical bytes.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(hash: ContentHash) -> Self {
         Self(hash)
     }
 
     /// Returns the canonical scope identity.
     #[must_use]
+    #[inline]
     pub(crate) const fn content_hash(self) -> ContentHash {
         self.0
     }
@@ -213,12 +222,14 @@ pub(crate) struct OperationId(Uuid);
 impl OperationId {
     /// Creates an operation identity from an externally stable UUID.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(uuid: Uuid) -> Self {
         Self(uuid)
     }
 
     /// Returns the underlying UUID.
     #[must_use]
+    #[inline]
     pub(crate) const fn as_uuid(self) -> Uuid {
         self.0
     }
@@ -272,6 +283,7 @@ impl FromStr for OperationId {
 }
 
 impl Serialize for OperationId {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -281,6 +293,7 @@ impl Serialize for OperationId {
 }
 
 impl<'de> Deserialize<'de> for OperationId {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -294,10 +307,12 @@ struct OperationIdVisitor;
 impl Visitor<'_> for OperationIdVisitor {
     type Value = OperationId;
 
+    #[inline]
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a canonical hyphenated UUID operation identity")
     }
 
+    #[inline]
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
@@ -318,12 +333,14 @@ impl VariantId {
 
     /// Creates a variant identity from its manifest value.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(value: u16) -> Self {
         Self(value)
     }
 
     /// Returns the manifest value.
     #[must_use]
+    #[inline]
     pub(crate) const fn get(self) -> u16 {
         self.0
     }
@@ -361,18 +378,21 @@ impl PublishedVariantCount {
 
     /// Returns the validated nonzero count.
     #[must_use]
+    #[inline]
     pub(crate) const fn get(self) -> u16 {
         self.0.get()
     }
 
     /// Returns whether `variant` is included in this dense variant domain.
     #[must_use]
+    #[inline]
     pub(crate) const fn contains(self, variant: VariantId) -> bool {
         variant.get() < self.get()
     }
 }
 
 impl Serialize for PublishedVariantCount {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -426,18 +446,21 @@ impl DataRevision {
 
     /// Creates a data revision head.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(base: BaseRevision, delta: DeltaRevision) -> Self {
         Self { base, delta }
     }
 
     /// Returns the bound base revision.
     #[must_use]
+    #[inline]
     pub(crate) const fn base(self) -> BaseRevision {
         self.base
     }
 
     /// Returns the bound delta revision.
     #[must_use]
+    #[inline]
     pub(crate) const fn delta(self) -> DeltaRevision {
         self.delta
     }
@@ -456,6 +479,7 @@ pub(crate) struct ReadSnapshot {
 impl ReadSnapshot {
     /// Binds the immutable generation, authorization state, and data head.
     #[must_use]
+    #[inline]
     pub(crate) const fn new(
         generation: GenerationId,
         authorization: AuthorizationRevision,
@@ -472,24 +496,28 @@ impl ReadSnapshot {
 
     /// Returns the immutable generation identity.
     #[must_use]
+    #[inline]
     pub(crate) const fn generation(self) -> GenerationId {
         self.generation
     }
 
     /// Returns the bound authorization revision.
     #[must_use]
+    #[inline]
     pub(crate) const fn authorization(self) -> AuthorizationRevision {
         self.authorization
     }
 
     /// Returns the cache-isolating scope fingerprint.
     #[must_use]
+    #[inline]
     pub(crate) const fn scope(self) -> ScopeFingerprint {
         self.scope
     }
 
     /// Returns the bound base and delta revisions.
     #[must_use]
+    #[inline]
     pub(crate) const fn data(self) -> DataRevision {
         self.data
     }

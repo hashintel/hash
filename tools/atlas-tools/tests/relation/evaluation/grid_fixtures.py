@@ -57,7 +57,7 @@ _OVERLAY_JUDGES = frozenset({"test/j4", "test/j5"})
 EXPECTED_REFINED_CARDS = 3
 EXPECTED_TOTAL_VOTES = len(POOL_CARDS) * len(JUDGE_MODELS) + (
     EXPECTED_REFINED_CARDS * len(JUDGE_MODELS) * 2
-)
+) + len(HOLDOUTS) * len(JUDGE_MODELS)
 
 
 def scripted_answer(model: str, local_id: str) -> ScriptedAnswer:
@@ -78,7 +78,7 @@ def scripted_answer(model: str, local_id: str) -> ScriptedAnswer:
     raise KeyError(f"fixture has no scripted card {local_id}")
 
 
-def write_grid_concat(directory: Path) -> Path:
+def write_grid_concat(directory: Path, *, include_families: bool = True) -> Path:
     """Write a real schema-v2 concat artifact for the grid integration test."""
     source = directory.with_name(f"{directory.name}-source")
     source.mkdir()
@@ -102,19 +102,19 @@ def write_grid_concat(directory: Path) -> Path:
     for local_id, family_id in POOL_CARDS.items():
         relation_id = f"wikidata:{local_id}"
         card_text = f"relation card for {relation_id}"
+        payload: dict[str, JsonValue] = {
+            "relation_id": relation_id,
+            "pid": local_id,
+            "card_text": card_text,
+            "card_hash": sha256_bytes(card_text.encode()),
+            "token_count": len(card_text.split()),
+            "truncations": [],
+            "severely_truncated": False,
+        }
+        if include_families:
+            payload["family_id"] = family_id
         rows.append(
-            CardRow.model_validate(
-                {
-                    "relation_id": relation_id,
-                    "pid": local_id,
-                    "card_text": card_text,
-                    "card_hash": sha256_bytes(card_text.encode()),
-                    "token_count": len(card_text.split()),
-                    "truncations": [],
-                    "severely_truncated": False,
-                    "family_id": family_id,
-                }
-            )
+            CardRow.model_validate(payload)
         )
     cards_path.write_bytes(b"".join(canonical_json_bytes(row) + b"\n" for row in rows))
     Provenance[JsonValue, JsonValue].make(

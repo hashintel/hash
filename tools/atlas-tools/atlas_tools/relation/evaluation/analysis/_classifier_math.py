@@ -4,17 +4,22 @@ import math
 import warnings
 from bisect import bisect_left
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 import numpy as np
-from numpy.typing import NDArray
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 
-from atlas_tools.relation.evaluation.analysis._classifier_data import TrainingData
+from atlas_tools.relation.evaluation.analysis._classifier_data import (
+    TrainingData,
+    grouped_fold_assignment,
+    training_subset,
+)
 from atlas_tools.relation.evaluation.analysis.classifier_model import (
     ApplicabilityModel,
     FloatMatrix,
     FloatVector,
+    IntVector,
     MultinomialModel,
     posterior_argmax,
     posterior_value,
@@ -27,8 +32,6 @@ from atlas_tools.relation.evaluation.domain.api import (
     RelationId,
 )
 
-type IntVector = NDArray[np.int64]
-
 _CLASS_COUNT = len(PLACEMENT_CLASSES)
 _MATRIX_DIMENSIONS = 2
 _TEMPERATURE_MIN = 0.05
@@ -37,6 +40,20 @@ _TEMPERATURE_ITERATIONS = 96
 _GOLDEN_RATIO_CONJUGATE = (math.sqrt(5.0) - 1.0) / 2.0
 _PROBABILITY_FLOOR = 1e-12
 _VARIANCE_RELATIVE_FLOOR = 1e-12
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CrossFitPredictions:
+    """Carry row evidence fitted without each row's outer fold."""
+
+    logits: FloatMatrix
+    fold_indices: IntVector
+    temperatures: tuple[float, ...]
+    temperature_by_row: FloatVector
+    applicability_models: tuple[ApplicabilityModel, ...]
+    distances: FloatVector
+    applicability_scores: FloatVector
+    max_iterations: int
 
 
 def _metric_arrays(
@@ -245,6 +262,73 @@ def out_of_fold_logits(
     if not np.isfinite(logits).all():
         raise ValueError("grouped cross-validation left rows without finite logits")
     return logits, fold_indices, max_iterations
+
+
+def cross_fit_predictions(
+    data: TrainingData,
+    config: ClassifierConfig,
+    assignment: Mapping[RelationId, int],
+) -> CrossFitPredictions:
+    """Fit nested grouped calibration and applicability evidence.
+
+    The outer model, scalar temperature, and applicability distribution for a
+    validation row are all fitted after removing that row's complete relation
+    family. Temperature fitting uses inner out-of-fold logits from only the
+    outer-training partition. Fitting performs `1 + k` grouped CV passes for
+    `k` configured folds.
+
+    Raises:
+        ValueError: A fold is empty, leaks a family, cannot support its inner
+            grouped folds, fails optimization, or produces non-finite values.
+
+    """
+    logits, fold_indices, max_iterations = out_of_fold_logits(data, config, assignment)
+    temperatures: list[float] = []
+    applicability_models: list[ApplicabilityModel] = []
+    temperature_by_row = np.full(len(data.labels), np.nan, dtype=np.float64)
+    distances = np.full(len(data.labels), np.nan, dtype=np.float64)
+    applicability_scores = np.full(len(data.labels), np.nan, dtype=np.float64)
+
+    for fold in range(config.folds):
+        validation_indices = np.flatnonzero(fold_indices == fold)
+        training_indices = np.flatnonzero(fold_indices != fold)
+        outer_training = training_subset(data, training_indices)
+        inner_assignment = grouped_fold_assignment(outer_training, config)
+        inner_logits, _, inner_iterations = out_of_fold_logits(
+            outer_training,
+            config,
+            inner_assignment,
+        )
+        temperature = fit_temperature(
+            inner_logits,
+            outer_training.targets,
+            outer_training.vote_weights,
+        )
+        applicability_model = fit_applicability(outer_training.embeddings)
+        fold_distances, fold_scores = applicability(
+            applicability_model,
+            data.embeddings[validation_indices],
+        )
+        temperatures.append(temperature)
+        applicability_models.append(applicability_model)
+        temperature_by_row[validation_indices] = temperature
+        distances[validation_indices] = fold_distances
+        applicability_scores[validation_indices] = fold_scores
+        max_iterations = max(max_iterations, inner_iterations)
+
+    arrays = (temperature_by_row, distances, applicability_scores)
+    if any(not np.isfinite(array).all() for array in arrays):
+        raise ValueError("nested cross-fitting left rows without finite evidence")
+    return CrossFitPredictions(
+        logits=logits,
+        fold_indices=fold_indices,
+        temperatures=tuple(temperatures),
+        temperature_by_row=temperature_by_row,
+        applicability_models=tuple(applicability_models),
+        distances=distances,
+        applicability_scores=applicability_scores,
+        max_iterations=max_iterations,
+    )
 
 
 def fit_temperature(

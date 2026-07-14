@@ -4,7 +4,12 @@ from collections.abc import Sequence
 
 from atlas_tools.relation.evaluation.application.preparation import PreparedGrid
 from atlas_tools.relation.evaluation.domain.api import Vote, VoteId, VoteVerdict
-from atlas_tools.relation.evaluation.modes.api import GridPhaseBPlan, GridPlan
+from atlas_tools.relation.evaluation.modes.api import (
+    HOLDOUTS,
+    GridCanaryPlan,
+    GridPhaseBPlan,
+    GridPlan,
+)
 
 
 def derive_grid_plan(
@@ -34,4 +39,26 @@ def derive_grid_plan(
         prompt_pack_hash=prepared.prompt_pack.content_hash,
         verdicts_by_vote_id=verdicts,
     )
-    return GridPlan(phase_a=phase_a, phase_b=phase_b)
+    holdout_ids = frozenset(holdout.relation_id for holdout in HOLDOUTS)
+    canary_cards = tuple(card for card in phase_a.cards if card.relation_id in holdout_ids)
+    if len(canary_cards) != len(holdout_ids):
+        raise ValueError("grid plan does not contain every fixed holdout canary")
+    canary = GridCanaryPlan(
+        config=prepared.config,
+        cards=canary_cards,
+        prompt_pack_hash=prepared.prompt_pack.content_hash,
+    )
+    return GridPlan(phase_a=phase_a, phase_b=phase_b, canary=canary)
+
+
+def split_grid_votes(
+    plan: GridPlan,
+    votes: Sequence[Vote],
+) -> tuple[tuple[Vote, ...], tuple[Vote, ...]]:
+    """Separate production cells from appended fresh holdout canaries."""
+    if len(votes) != plan.expected_votes:
+        raise ValueError(
+            f"grid journal contains {len(votes)} votes for a {plan.expected_votes}-vote plan"
+        )
+    rows = tuple(votes)
+    return rows[: plan.analysis_votes], rows[plan.analysis_votes :]

@@ -60,9 +60,11 @@ from atlas_tools.relation.evaluation.domain.api import (
     FrozenMapping,
     GridManifest,
     JudgeFamilyId,
+    PositiveProbability,
     Probability,
     RelationId,
     Sha256Hex,
+    Vote,
 )
 
 _POSTERIORS = "posteriors.jsonl"
@@ -107,10 +109,7 @@ class GridDeliverablesPolicy(_DeliverableModel):
     """Pin queue selection and systematic-dissent thresholds."""
 
     schema_version: Literal[1] = 1
-    nomination_fraction: Annotated[
-        float,
-        Field(gt=0.0, le=1.0, allow_inf_nan=False),
-    ] = _NOMINATION_FRACTION
+    nomination_fraction: PositiveProbability = _NOMINATION_FRACTION
     systematic_miss_minimum: Literal[2] = 2
     abstention_ceiling: Probability = _ABSTENTION_CEILING
 
@@ -147,7 +146,7 @@ class CoincidentQueueRow(CoincidentQueueEntry):
     schema_version: Literal[1] = 1
 
     @classmethod
-    def from_entry(cls, entry: CoincidentQueueEntry) -> CoincidentQueueRow:
+    def from_entry(cls, entry: CoincidentQueueEntry) -> Self:
         """Attach the disk schema version to validated queue evidence."""
         return cls.model_validate(
             {"schema_version": 1, **entry.model_dump(mode="python", round_trip=True)},
@@ -167,7 +166,7 @@ class NominationQueueRow(_DeliverableModel):
     entropy: Probability
 
     @classmethod
-    def from_seed(cls, seed: NominationSeed, *, rank: int) -> NominationQueueRow:
+    def from_seed(cls, seed: NominationSeed, *, rank: int) -> Self:
         """Attach a one-based rank and materialize the entropy used to sort."""
         return cls(
             rank=rank,
@@ -232,7 +231,7 @@ class GridRunSummary(_DeliverableModel):
         if self.refined_cards > self.pool_cards:
             raise ValueError("refined cards cannot exceed the pool")
         if self.total_votes != sum(
-            row.imported_votes + row.fresh_baseline_votes + row.refinement_votes
+            row.imported_votes + row.fresh_baseline_votes + row.refinement_votes + row.canary_votes
             for row in self.family_counts
         ):
             raise ValueError("grid summary vote count disagrees with its family rows")
@@ -522,17 +521,23 @@ def dissent_ledger(
     """
     resolved = policy or _DEFAULT_POLICY
     expected_bundles = tuple(sorted(decisions.manifest.expected_grid.bundles))
+
     grouped: dict[tuple[JudgeFamilyId, RelationId], list[tuple[BundleId, bool]]] = defaultdict(list)
     for row in decisions.holdout_correctness:
         grouped[(row.family_id, row.relation_id)].append((row.bundle_id, row.correct))
+
     results: list[DissentLedgerRow] = []
     for (family_id, relation_id), evidence in sorted(grouped.items()):
         observed = tuple(sorted(bundle for bundle, _ in evidence))
         if observed != expected_bundles or len(observed) != len(set(observed)):
             raise ValueError("pilot holdout evidence does not cover each bundle exactly once")
-        missed = tuple(sorted(bundle for bundle, correct in evidence if not correct))
+
+        missed: tuple[BundleId, ...] = tuple(
+            sorted(bundle for bundle, correct in evidence if not correct)
+        )
         if len(missed) < resolved.systematic_miss_minimum:
             continue
+
         results.append(
             DissentLedgerRow(
                 family_id=family_id,
@@ -542,12 +547,14 @@ def dissent_ledger(
                 systematic_miss_minimum=resolved.systematic_miss_minimum,
             )
         )
+
     return tuple(results)
 
 
 def derive_grid_deliverables(
     analysis: GridAnalysis,
     *,
+    canary_votes: Sequence[Vote],
     pilot_decisions: PilotDecisionArtifact,
     gate_policy: GridGatePolicy,
     routing_violations: int,
@@ -562,6 +569,7 @@ def derive_grid_deliverables(
         dissent=dissent_ledger(pilot_decisions, policy=resolved),
         gates=grid_acceptance_gates(
             analysis,
+            canary_votes=canary_votes,
             policy=gate_policy,
             evidence=GridGateEvidence(routing_violations=routing_violations),
         ),
@@ -788,6 +796,7 @@ def _publish(
     gate_policy = _gate_policy(completed, decisions, policy)
     products = derive_grid_deliverables(
         completed.analysis,
+        canary_votes=completed.canary_votes,
         pilot_decisions=decisions,
         gate_policy=gate_policy,
         routing_violations=completed.routing_violations,

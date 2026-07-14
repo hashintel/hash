@@ -13,7 +13,10 @@ from pathlib import Path
 import trio
 
 from atlas_tools.relation.evaluation.analysis.api import GridAnalysis, analyze_grid
-from atlas_tools.relation.evaluation.application.grid_plan import derive_grid_plan
+from atlas_tools.relation.evaluation.application.grid_plan import (
+    derive_grid_plan,
+    split_grid_votes,
+)
 from atlas_tools.relation.evaluation.application.identity import request_contract_hash
 from atlas_tools.relation.evaluation.application.manifest import (
     build_grid_manifest,
@@ -65,6 +68,7 @@ class CompletedGrid:
     journal: JournalSnapshot
     plan: GridPlan
     analysis: GridAnalysis
+    canary_votes: tuple[Vote, ...]
     routing_violations: int
 
 
@@ -157,29 +161,30 @@ async def _load_files(
 def _route_violations(
     prepared: PreparedGrid,
     analysis: GridAnalysis,
+    canary_votes: tuple[Vote, ...],
     attempts: tuple[PhysicalAttempt, ...],
 ) -> int:
     judges = {judge.family_id: judge for judge in prepared.config.judges}
     attempts_by_id = {attempt.attempt_id: attempt for attempt in attempts}
     violations = 0
-    for card in analysis.cards:
-        for observed in card.votes():
-            vote = observed.vote
-            judge = judges.get(vote.family_id)
-            if judge is None:
-                violations += 1
-                continue
-            accepted = tuple(
-                attempts_by_id.get(attempt_id) for attempt_id in vote.accepted_attempt_ids
-            )
-            pinned = vote.provider == judge.provider_name and vote.model_returned == judge.model
-            pinned = pinned and all(
-                attempt is not None
-                and attempt.result is not None
-                and matches_pinned_route(attempt.result, judge)
-                for attempt in accepted
-            )
-            violations += not pinned
+    votes = (
+        *(observed.vote for card in analysis.cards for observed in card.votes()),
+        *canary_votes,
+    )
+    for vote in votes:
+        judge = judges.get(vote.family_id)
+        if judge is None:
+            violations += 1
+            continue
+        accepted = tuple(attempts_by_id.get(attempt_id) for attempt_id in vote.accepted_attempt_ids)
+        pinned = vote.provider == judge.provider_name and vote.model_returned == judge.model
+        pinned = pinned and all(
+            attempt is not None
+            and attempt.result is not None
+            and matches_pinned_route(attempt.result, judge)
+            for attempt in accepted
+        )
+        violations += not pinned
     return violations
 
 
@@ -219,6 +224,7 @@ async def load_completed_grid_async(
             manifest_hash=loaded.manifest.source_hashes["pilot-manifest.json"],
             votes_hash=loaded.manifest.source_hashes["pilot-votes.jsonl"],
             attempts_hash=loaded.manifest.source_hashes["pilot-attempts.jsonl"],
+            historical_request_policy_ids=(loaded.manifest.pilot_historical_request_policy_ids),
             votes=loaded.imported_votes,
             attempts=loaded.imported_attempts,
         )
@@ -238,7 +244,9 @@ async def load_completed_grid_async(
             request_contract_hash=contract,
             openrouter_sdk_version=loaded.state.openrouter_sdk_version,
             openrouter_openapi_version=loaded.state.openrouter_openapi_version,
+            historical_request_policy_ids=(loaded.state.historical_request_policy_ids),
         )
+
         if loaded.state != expected_state:
             raise ValueError("grid run state is not reproducible from the requested inputs")
 
@@ -253,16 +261,18 @@ async def load_completed_grid_async(
             attempts=loaded.journal.attempts,
             prompt=prompt,
             config=prepared.config,
+            historical_request_policy_ids=(loaded.state.historical_request_policy_ids),
         )
         if resume.next_plan_index != plan.expected_votes:
             raise ValueError(
                 f"grid committed {resume.next_plan_index} of {plan.expected_votes} fresh votes"
             )
+        grid_votes, canary_votes = split_grid_votes(plan, loaded.journal.votes)
         analysis = analyze_grid(
             cards=prepared.pool,
             family_ids=tuple(judge.family_id for judge in prepared.config.judges),
             imported_votes=prepared.pilot_import.votes,
-            fresh_votes=loaded.journal.votes,
+            fresh_votes=grid_votes,
         )
         await verify_deck_sources(prepared)
         artifact_hashes = await hash_paths(
@@ -278,6 +288,7 @@ async def load_completed_grid_async(
             prepared,
             state=loaded.state,
             analysis=analysis,
+            canary_votes=canary_votes,
             artifact_hashes=artifact_hashes,
             executor_policy=loaded.manifest.executor_policy,
             request_policy=loaded.manifest.request_policy,
@@ -292,9 +303,11 @@ async def load_completed_grid_async(
             journal=loaded.journal,
             plan=plan,
             analysis=analysis,
+            canary_votes=canary_votes,
             routing_violations=_route_violations(
                 prepared,
                 analysis,
+                canary_votes,
                 (*loaded.imported_attempts, *loaded.journal.attempts),
             ),
         )

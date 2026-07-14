@@ -152,6 +152,7 @@ class OutOfFoldDiskRow(_DiskModel):
     card_hash: CardHash
     family_id: RelationFamilyId
     fold: NonNegativeInt
+    calibration_temperature: float
     applicability: Probability
     distance: float
     logit_coincident: float
@@ -172,6 +173,7 @@ class OutOfFoldDiskRow(_DiskModel):
             card_hash=row.card_hash,
             family_id=row.family_id,
             fold=row.fold,
+            calibration_temperature=row.calibration_temperature,
             applicability=row.applicability,
             distance=row.distance,
             logit_coincident=row.logits[0],
@@ -192,6 +194,7 @@ class OutOfFoldDiskRow(_DiskModel):
             card_hash=self.card_hash,
             family_id=self.family_id,
             fold=self.fold,
+            calibration_temperature=self.calibration_temperature,
             applicability=self.applicability,
             distance=self.distance,
             logits=(
@@ -245,6 +248,7 @@ OUT_OF_FOLD_SCHEMA = pa.schema(
         pa.field("card_hash", pa.string(), nullable=False),
         pa.field("family_id", pa.string(), nullable=False),
         pa.field("fold", pa.int32(), nullable=False),
+        pa.field("calibration_temperature", pa.float64(), nullable=False),
         pa.field("applicability", pa.float64(), nullable=False),
         pa.field("distance", pa.float64(), nullable=False),
         pa.field("logit_coincident", pa.float64(), nullable=False),
@@ -267,6 +271,18 @@ ARRAY_SCHEMA = {
         "shape": ["training_cards"],
     },
     "coefficients": {"dtype": "<f8", "shape": [3, "dimension"]},
+    "cross_fit_applicability_inverse_scales": {
+        "dtype": "<f8",
+        "shape": ["folds", "dimension"],
+    },
+    "cross_fit_applicability_mean": {
+        "dtype": "<f8",
+        "shape": ["folds", "dimension"],
+    },
+    "cross_fit_applicability_training_distances": {
+        "dtype": "<f8",
+        "shape": ["rows*(folds-1)"],
+    },
     "intercepts": {"dtype": "<f8", "shape": [3]},
 }
 
@@ -295,11 +311,23 @@ EMBEDDING_METADATA_SCHEMA = {
     "artifact": "relation-embeddings",
     "fields": {
         **_ARTIFACT_METADATA_FIELDS,
-        "dimension": "positive-int",
-        "embedding_model": "non-empty-string",
+        "producer": {
+            "producer_revision": "literal[openrouter-native-embedding-v1]",
+            "request": {
+                "dimension": "positive-int",
+                "encoding_format": "literal[float]",
+                "endpoint_url": "non-empty-string",
+                "model": "non-empty-string",
+                "schema_version": "literal[1]",
+            },
+            "response": {
+                "dimension": "positive-int",
+                "model": "non-empty-string",
+            },
+            "vector_encoding": "literal[f32-le-v1]",
+        },
         "relation_order_hash": "sha256",
         "rows": "positive-int",
-        "vector_encoding": "literal[f32-le-v1]",
     },
     "schema_version": 1,
 }
@@ -312,17 +340,19 @@ METADATA_SCHEMA = {
     ],
     "fields": {
         **_ARTIFACT_METADATA_FIELDS,
+        "schema_version": "literal[2]",
         "classes": "tuple[coincident,proximal,overlay]",
         "config": "classifier-config-v1",
+        "cross_fit_temperatures": "tuple[positive-finite-float64]",
         "embedding_dimension": "positive-int",
         "fold_assignment_hash": "sha256",
-        "metrics": "classifier-metrics-v1",
+        "metrics": "classifier-metrics-v2",
         "model_iterations": "positive-int",
         "relation_order_hash": "sha256",
         "rows": "positive-int",
         "temperature": "positive-finite-float64",
     },
-    "schema_version": 1,
+    "schema_version": 2,
 }
 
 

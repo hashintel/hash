@@ -2,7 +2,9 @@
 
 from atlas_tools.relation.evaluation.modes.grid import (
     BASELINE_REPEAT_INDEX,
+    CANARY_REPEAT_INDEX,
     REFINEMENT_REPEAT_INDICES,
+    GridCanaryPlan,
     GridCard,
     GridPhaseAPlan,
     GridPhaseBPlan,
@@ -43,12 +45,14 @@ from atlas_tools.relation.evaluation.modes.sampling import (
 
 __all__ = [
     "BASELINE_REPEAT_INDEX",
+    "CANARY_REPEAT_INDEX",
     "FEW_SHOTS",
     "HOLDOUTS",
     "REFINEMENT_REPEAT_INDICES",
     "RETRY_INSTRUCTION",
     "AssistantMessage",
     "FewShot",
+    "GridCanaryPlan",
     "GridCard",
     "GridPhaseAPlan",
     "GridPhaseBPlan",

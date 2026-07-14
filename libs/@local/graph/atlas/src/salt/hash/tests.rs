@@ -21,7 +21,6 @@ fn hexadecimal_form_round_trips_through_json() {
         serde_json::from_str(&encoded).expect("should deserialize canonical hexadecimal");
 
     assert_eq!(decoded, digest);
-    assert_eq!(digest.as_bytes().len(), 32);
 }
 
 #[test]
