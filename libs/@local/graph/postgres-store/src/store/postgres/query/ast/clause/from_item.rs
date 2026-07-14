@@ -699,8 +699,8 @@ mod tests {
 
     use super::{super::table_sample::SamplingMethod, *};
     use crate::store::postgres::query::{
-        Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, Table, TableName,
-        TableReference,
+        Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, SimpleSelect, Table,
+        TableName, TableReference,
         table::{Column, DataTypes, OntologyIds},
     };
 
@@ -904,7 +904,7 @@ mod tests {
 
     #[test]
     fn transpile_subquery_with_column_aliases() {
-        let subquery = SelectStatement::builder()
+        let subquery = SimpleSelect::builder()
             .selects(vec![SelectExpression::Asterisk(None)])
             .from(FromItem::table(Table::OntologyIds))
             .build();
@@ -930,7 +930,7 @@ mod tests {
 
     #[test]
     fn transpile_lateral_subquery() {
-        let subquery = SelectStatement::builder()
+        let subquery = SimpleSelect::builder()
             .selects(vec![SelectExpression::Asterisk(None)])
             .from(FromItem::table(Table::OntologyIds))
             .build();

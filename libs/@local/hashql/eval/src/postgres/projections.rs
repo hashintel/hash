@@ -6,7 +6,7 @@ use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
-    JoinType, PostgresType, SelectExpression, SelectStatement, Table, TableName, TableReference,
+    JoinType, PostgresType, SelectExpression, SimpleSelect, Table, TableName, TableReference,
     table,
 };
 use hashql_core::symbol::sym;
@@ -289,7 +289,7 @@ impl Projections {
             }),
         );
 
-        let subquery = SelectStatement::builder()
+        let subquery = SimpleSelect::builder()
             .selects(vec![SelectExpression::Expression {
                 expression: query::Expression::Function(query::Function::JsonAgg(Box::new(
                     query::Expression::Function(query::Function::JsonBuildObject(vec![
@@ -322,7 +322,7 @@ impl Projections {
 
         let lateral = query::FromItem::Subquery {
             lateral: true,
-            statement: Box::new(subquery),
+            statement: Box::new(subquery.into()),
             alias: Some(Table::EntityEditionCache.aliased_name(alias)),
             column_aliases: vec![],
         };

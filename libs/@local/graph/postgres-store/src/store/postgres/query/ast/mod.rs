@@ -23,6 +23,9 @@ pub use self::{
     identifier::Identifier,
     non_empty::{EmptyVec, NonEmptyVec},
     set_quantifier::SetQuantifier,
-    statement::{OnConflict, SelectQuantifier, SelectStatement, Statement, bulk_insert},
+    statement::{
+        OnConflict, SelectClause, SelectQuantifier, SelectStatement, SetOperator, SimpleSelect,
+        Statement, bulk_insert,
+    },
     table_reference::{TableName, TableReference},
 };

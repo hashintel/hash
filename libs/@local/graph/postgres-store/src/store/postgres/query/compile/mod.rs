@@ -22,9 +22,9 @@ use type_system::knowledge::Entity;
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
     Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
-    GroupByClause, GroupingElement, Identifier, NonEmptyVec, PostgresQueryPath, PostgresRecord,
-    SelectExpression, SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
-    WithClause,
+    GroupByClause, GroupingElement, Identifier, NonEmptyVec, OrderByClause, PostgresQueryPath,
+    PostgresRecord, SelectExpression, SelectQuantifier, SelectStatement, SimpleSelect, Table,
+    Transpile as _, WindowDefinition, WithClause,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -92,7 +92,10 @@ type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Exp
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
-    statement: SelectStatement,
+    simple: SimpleSelect,
+    with: Option<WithClause>,
+    order_by: OrderByClause,
+    limit: Option<usize>,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
@@ -143,13 +146,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
-            statement: SelectStatement::builder()
+            simple: SimpleSelect::builder()
                 .selects(Vec::new())
                 .from(
                     FromItem::table(R::base_table())
                         .alias(R::base_table().aliased_name(Alias::default())),
                 )
                 .build(),
+            with: None,
+            order_by: OrderByClause::default(),
+            limit: None,
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
@@ -180,14 +186,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ) -> Self {
         let mut default = Self::new(temporal_axes, include_drafts);
         default
-            .statement
+            .simple
             .selects
             .push(SelectExpression::Asterisk(None));
         default
     }
 
     pub const fn set_limit(&mut self, limit: usize) {
-        self.statement.limit = Some(limit);
+        self.limit = Some(limit);
     }
 
     fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
@@ -350,35 +356,31 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct
                 && stored.distinctness == Distinctness::Indistinct
             {
-                Self::push_distinct_on(&mut self.statement.quantifier, stored.column.clone());
+                Self::push_distinct_on(&mut self.simple.quantifier, stored.column.clone());
                 stored.distinctness = Distinctness::Distinct;
             }
             if stored.ordering.is_none()
                 && let Some((ordering, nulls)) = ordering
             {
-                self.statement
-                    .order_by
-                    .push(stored.column.clone(), ordering, nulls);
+                self.order_by.push(stored.column.clone(), ordering, nulls);
                 stored.ordering = Some((ordering, nulls));
             }
             stored.index
         } else {
             let expression = self.compile_path_column(path);
-            self.statement.selects.push(SelectExpression::Expression {
+            self.simple.selects.push(SelectExpression::Expression {
                 expression: expression.clone(),
                 output_name: None,
             });
 
             if distinctness == Distinctness::Distinct {
-                Self::push_distinct_on(&mut self.statement.quantifier, expression.clone());
+                Self::push_distinct_on(&mut self.simple.quantifier, expression.clone());
             }
             if let Some((ordering, nulls)) = ordering {
-                self.statement
-                    .order_by
-                    .push(expression.clone(), ordering, nulls);
+                self.order_by.push(expression.clone(), ordering, nulls);
             }
 
-            let index = self.statement.selects.len() - 1;
+            let index = self.simple.selects.len() - 1;
             self.selections.insert(
                 path,
                 PathSelection {
@@ -413,7 +415,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             bail!(SelectCompilerError::CursorDisallowed { reason });
         }
         let column = self.compile_path_column(path);
-        self.statement
+        self.simple
             .where_clause
             .add_cursor(lhs(column), rhs, ordering, null_ordering);
         Ok(self.add_distinct_selection_with_ordering(
@@ -438,7 +440,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.statement.where_clause.conditions.push(condition);
+        self.simple.where_clause.conditions.push(condition);
         Ok(())
     }
 
@@ -446,7 +448,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     #[instrument(level = "info", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
-            self.statement.transpile_to_string(),
+            SelectStatement::builder()
+                .maybe_with(self.with.clone())
+                .select_clause(self.simple.clone())
+                .order_by(self.order_by.clone())
+                .maybe_limit(self.limit)
+                .build()
+                .transpile_to_string(),
             &self.artifacts.parameters,
         )
     }
@@ -603,7 +611,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     if let Some(FromItem::JoinOn {
                         right: last_from, ..
-                    }) = self.statement.from.as_mut()
+                    }) = self.simple.from.as_mut()
                         && let Some(last_join) = self.artifacts.joins.last()
                     {
                         ensure!(
@@ -666,7 +674,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         };
 
                         **last_from = FromItem::subquery(
-                            SelectStatement::builder()
+                            SimpleSelect::builder()
                                 .selects(
                                     select_columns
                                         .iter()
@@ -710,17 +718,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .build();
                     }
 
-                    self.statement.order_by.insert_front(
+                    self.order_by.insert_front(
                         distance_expression.clone(),
                         Ordering::Ascending,
                         None,
                     );
-                    self.statement.selects.push(SelectExpression::Expression {
+                    self.simple.selects.push(SelectExpression::Expression {
                         expression: distance_expression.clone(),
                         output_name: None,
                     });
                     Self::push_distinct_on(
-                        &mut self.statement.quantifier,
+                        &mut self.simple.quantifier,
                         distance_expression.clone(),
                     );
                     Expression::less_or_equal(distance_expression, maximum_expression)
@@ -1015,7 +1023,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let latest_version_cte = CommonTableExpression::builder()
             .name(Table::OntologyIds)
             .statement(
-                SelectStatement::builder()
+                SimpleSelect::builder()
                     .selects(vec![
                         SelectExpression::Asterisk(None),
                         SelectExpression::Expression {
@@ -1038,7 +1046,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             .build(),
                     ),
             );
-        match &mut self.statement.with {
+        match &mut self.with {
             Some(with) => with.push(latest_version_cte),
             with @ None => {
                 *with = Some(
@@ -1157,7 +1165,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&column.table().into()) {
             let conditions = hook(self, alias);
-            self.statement.where_clause.conditions.extend(conditions);
+            self.simple.where_clause.conditions.extend(conditions);
         }
 
         let mut column_expression = Expression::ColumnReference(column.aliased(alias));
@@ -1371,7 +1379,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&R::base_table().name()) {
             let conditions = hook(self, current_alias);
-            self.statement.where_clause.conditions.extend(conditions);
+            self.simple.where_clause.conditions.extend(conditions);
         }
 
         let mut is_outer_join_chain = false;
@@ -1440,8 +1448,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         conditions.extend(hook(self, join_alias));
                     }
 
-                    self.statement.from = Some(
-                        self.statement
+                    self.simple.from = Some(
+                        self.simple
                             .from
                             .take()
                             .expect(

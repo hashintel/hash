@@ -29,7 +29,7 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::store::postgres::query::{
-    Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
+    Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement, SimpleSelect,
     Transpile as _, compile::SelectCompilerError, test_helper::trim_whitespace,
 };
 
@@ -1699,7 +1699,7 @@ fn sort_by_label_and_type_title() {
 #[test]
 fn transpile_offset() {
     let statement = SelectStatement::builder()
-        .selects(vec![SelectExpression::Asterisk(None)])
+        .select_clause(SimpleSelect::builder().selects(vec![SelectExpression::Asterisk(None)]))
         .limit(10)
         .offset(20)
         .build();

@@ -62,6 +62,9 @@ impl Transpile for CommonTableExpression {
 #[derive(Clone, Debug, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct WithClause {
+    /// Marks the clause as `WITH RECURSIVE`, allowing a `with_query` to reference itself.
+    #[builder(default)]
+    recursive: bool,
     /// The `with_query` list of the clause.
     ///
     /// Accepts a single [`CommonTableExpression`] (or its complete builder) as well as a
@@ -80,6 +83,9 @@ impl WithClause {
 impl Transpile for WithClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_str("WITH ")?;
+        if self.recursive {
+            fmt.write_str("RECURSIVE ")?;
+        }
         for (idx, expression) in self.common_table_expressions.iter().enumerate() {
             if idx > 0 {
                 fmt.write_str(", ")?;
@@ -95,12 +101,12 @@ impl Transpile for WithClause {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, FromItem, Identifier, SelectExpression, SelectStatement, Table,
+        Alias, FromItem, Identifier, SelectClause, SelectExpression, SimpleSelect, Table,
         test_helper::{max_version_expression, trim_whitespace},
     };
 
-    fn ontology_ids_statement() -> SelectStatement {
-        SelectStatement::builder()
+    fn ontology_ids_statement() -> SimpleSelect {
+        SimpleSelect::builder()
             .selects(vec![
                 SelectExpression::Asterisk(None),
                 SelectExpression::Expression {
@@ -140,7 +146,7 @@ mod tests {
             CommonTableExpression::builder()
                 .name("data_types")
                 .statement(
-                    SelectStatement::builder()
+                    SimpleSelect::builder()
                         .selects(vec![SelectExpression::Asterisk(None)])
                         .from(FromItem::table(Table::DataTypes).alias(
                             Table::DataTypes.aliased_name(Alias {
@@ -192,6 +198,38 @@ mod tests {
             with_clause
                 .transpile_to_string()
                 .starts_with(r#"WITH "roots" AS NOT MATERIALIZED (SELECT"#)
+        );
+    }
+
+    #[test]
+    fn transpile_recursive_cte() {
+        fn select_all(table: Table) -> SimpleSelect {
+            SimpleSelect::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(FromItem::table(table))
+                .build()
+        }
+
+        let with_clause = WithClause::builder()
+            .recursive(true)
+            .common_table_expressions(
+                CommonTableExpression::builder()
+                    .name("traversal")
+                    .statement(
+                        SelectClause::from(select_all(Table::DataTypes))
+                            .union_all(select_all(Table::PropertyTypes)),
+                    ),
+            )
+            .build();
+
+        assert_eq!(
+            trim_whitespace(&with_clause.transpile_to_string()),
+            trim_whitespace(
+                r#"
+                WITH RECURSIVE "traversal" AS (SELECT * FROM "data_types"
+                UNION ALL
+                SELECT * FROM "property_types")"#
+            )
         );
     }
 

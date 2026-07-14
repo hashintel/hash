@@ -1,32 +1,57 @@
+mod clause;
 mod quantifier;
+mod simple;
 
 use core::fmt::{self, Write as _};
 
-pub use self::quantifier::SelectQuantifier;
-use self::select_statement_builder::{IsComplete, IsUnset, SetQuantifier, State};
-use crate::store::postgres::query::{
-    Expression, FromItem, GroupByClause, NonEmptyVec, OrderByClause, SelectExpression, Statement,
-    Transpile, WhereClause, WithClause,
+use self::select_statement_builder::IsComplete;
+pub use self::{
+    clause::{SelectClause, SetOperator},
+    quantifier::SelectQuantifier,
+    simple::SimpleSelect,
 };
+use crate::store::postgres::query::{OrderByClause, Statement, Transpile, WithClause};
 
+/// gram.y's `select_no_parens`: the clauses that apply to a whole select statement.
+///
+/// `ORDER BY`, `LIMIT`, and `OFFSET` attach to the result of the [`SelectClause`] tree — never
+/// to a bare set-operation operand. The locking (`FOR …`) and `FETCH` forms are not
+/// representable yet.
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
     #[builder(into)]
     pub with: Option<WithClause>,
-    pub quantifier: Option<SelectQuantifier>,
-    pub selects: Vec<SelectExpression>,
     #[builder(into)]
-    pub from: Option<FromItem<'static>>,
-    #[builder(default)]
-    pub where_clause: WhereClause,
-    #[builder(into)]
-    pub group_by: Option<GroupByClause>,
-    pub having: Option<Expression>,
+    pub select_clause: SelectClause,
     #[builder(default)]
     pub order_by: OrderByClause,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
+}
+
+impl From<SimpleSelect> for SelectStatement {
+    fn from(select: SimpleSelect) -> Self {
+        Self::from(SelectClause::from(select))
+    }
+}
+
+impl From<SelectClause> for SelectStatement {
+    fn from(select_clause: SelectClause) -> Self {
+        Self {
+            with: None,
+            select_clause,
+            order_by: OrderByClause::default(),
+            limit: None,
+            offset: None,
+        }
+    }
+}
+
+impl From<SelectClause> for Statement {
+    fn from(select_clause: SelectClause) -> Self {
+        Self::from(SelectStatement::from(select_clause))
+    }
 }
 
 impl<S> From<SelectStatementBuilder<S>> for Statement
@@ -38,30 +63,6 @@ where
     }
 }
 
-impl<S: State> SelectStatementBuilder<S> {
-    /// Sets the quantifier to plain `DISTINCT`, removing duplicate rows.
-    pub fn distinct(self) -> SelectStatementBuilder<SetQuantifier<S>>
-    where
-        S::Quantifier: IsUnset,
-    {
-        self.quantifier(SelectQuantifier::Distinct)
-    }
-
-    /// Sets the quantifier to `DISTINCT ON ( expression [, ...] )`.
-    ///
-    /// Accepts a single [`Expression`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
-    /// beforehand via `NonEmptyVec::try_from`.
-    pub fn distinct_on(
-        self,
-        expressions: impl Into<NonEmptyVec<Expression>>,
-    ) -> SelectStatementBuilder<SetQuantifier<S>>
-    where
-        S::Quantifier: IsUnset,
-    {
-        self.quantifier(SelectQuantifier::DistinctOn(expressions.into()))
-    }
-}
-
 impl Transpile for SelectStatement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if let Some(with) = &self.with {
@@ -69,38 +70,7 @@ impl Transpile for SelectStatement {
             fmt.write_char('\n')?;
         }
 
-        fmt.write_str("SELECT ")?;
-
-        if let Some(quantifier) = &self.quantifier {
-            quantifier.transpile(fmt)?;
-            fmt.write_char(' ')?;
-        }
-
-        for (idx, condition) in self.selects.iter().enumerate() {
-            if idx > 0 {
-                fmt.write_str(", ")?;
-            }
-            condition.transpile(fmt)?;
-        }
-        if let Some(from) = &self.from {
-            fmt.write_str("\nFROM ")?;
-            from.transpile(fmt)?;
-        }
-
-        if !self.where_clause.is_empty() {
-            fmt.write_char('\n')?;
-            self.where_clause.transpile(fmt)?;
-        }
-
-        if let Some(group_by) = &self.group_by {
-            fmt.write_char('\n')?;
-            group_by.transpile(fmt)?;
-        }
-
-        if let Some(having) = &self.having {
-            fmt.write_str("\nHAVING ")?;
-            having.transpile(fmt)?;
-        }
+        self.select_clause.transpile(fmt)?;
 
         if !self.order_by.is_empty() {
             fmt.write_char('\n')?;
@@ -127,22 +97,9 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Constant, Function, GroupingElement, PostgresQueryPath as _, SelectExpression,
+        Alias, Constant, Expression, Function, GroupByClause, GroupingElement,
+        PostgresQueryPath as _, SelectExpression,
     };
-
-    #[test]
-    fn builder_sets_quantifier() {
-        let statement = SelectStatement::builder()
-            .distinct()
-            .selects(vec![SelectExpression::Asterisk(None)])
-            .build();
-
-        assert!(
-            statement
-                .transpile_to_string()
-                .starts_with("SELECT DISTINCT *")
-        );
-    }
 
     #[test]
     fn transpile_clause_order() {
@@ -160,15 +117,18 @@ mod tests {
         order_by.push(web_id(), Ordering::Ascending, None);
 
         let statement = SelectStatement::builder()
-            .selects(vec![SelectExpression::Asterisk(None)])
-            .group_by(
-                GroupByClause::builder()
-                    .grouping_elements(GroupingElement::Expressions(vec![web_id()])),
+            .select_clause(
+                SimpleSelect::builder()
+                    .selects(vec![SelectExpression::Asterisk(None)])
+                    .group_by(
+                        GroupByClause::builder()
+                            .grouping_elements(GroupingElement::Expressions(vec![web_id()])),
+                    )
+                    .having(Expression::greater(
+                        Expression::Function(Function::Max(Box::new(web_id()))),
+                        Expression::Constant(Constant::U32(1)),
+                    )),
             )
-            .having(Expression::greater(
-                Expression::Function(Function::Max(Box::new(web_id()))),
-                Expression::Constant(Constant::U32(1)),
-            ))
             .order_by(order_by)
             .build();
 

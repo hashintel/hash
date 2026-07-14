@@ -30,8 +30,8 @@
 use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, Column, Expression, Identifier, SelectExpression, SelectStatement, Transpile as _,
-    WhereClause, table::EntityTemporalMetadata,
+    self, Column, Expression, Identifier, SelectExpression, SelectStatement, SimpleSelect,
+    Transpile as _, WhereClause, table::EntityTemporalMetadata,
 };
 use hashql_core::{
     debug_panic,
@@ -379,7 +379,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             // We explicitly set an OFFSET, as otherwise the postgres planner inlines the
             // subquery and duplicates the CASE tree per field access, making it much more
             // expensive to compute.
-            let subquery = SelectStatement::builder()
+            let subquery = SimpleSelect::builder()
                 .selects(vec![SelectExpression::Expression {
                     expression,
                     output_name: Some(ContinuationColumn::Entry.identifier()),
@@ -388,7 +388,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
             let subquery = query::FromItem::Subquery {
                 lateral: true,
-                statement: Box::new(subquery),
+                statement: Box::new(subquery.into()),
                 alias: Some(table_ref.name.clone()),
                 column_aliases: Vec::new(),
             };
@@ -492,7 +492,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             });
         }
 
-        let query = SelectStatement::builder()
+        let query = SimpleSelect::builder()
             .selects(select_expressions)
             .from(from)
             .where_clause(db.where_clause)
@@ -501,7 +501,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         PreparedQuery {
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
-            statement: query,
+            statement: query.into(),
             columns,
         }
     }
