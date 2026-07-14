@@ -88,7 +88,7 @@ const NEIGHBOUR_MIN_RADIUS = 5;
 const ZOOM_RADIUS_RATE = 1;
 /** Zoom range relative to the initial framing — how far out/in the user can zoom. */
 const MIN_ZOOM_OFFSET = -2;
-const MAX_ZOOM_OFFSET = 12;
+const MAX_ZOOM_OFFSET = 7;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
