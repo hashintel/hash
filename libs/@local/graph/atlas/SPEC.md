@@ -32,7 +32,9 @@ behind an explicit trigger; `[open]` requires an experiment or sign-off.
 
 **Relation-policy revision:** v1 is open-world. A shared calibrated classifier
 assigns geometry-class probabilities to known and newly minted relation types;
-no exhaustive per-type strength table is assumed.
+no exhaustive per-type strength table is assumed. A shared calibrated strength
+head MAY modulate admitted attraction within fixed bounds under the staged
+ablation contract of §3.6.6b.
 
 **Relation-admission revision:** attraction, no-repel protection, generic negative
 admission, and any future typed Deconflict force are separate decisions. Failure
@@ -77,20 +79,21 @@ collapsed into a single field named `level`.
 
 ## 0. Decision log
 
-| decision                   | resolution                                                                                                                                                                                                                                                                                                                                                                     | basis                                                                                                                                                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| projector prefix           | **512 components, L2-renormalized after truncation**                                                                                                                                                                                                                                                                                                                           | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard                                                                       |
-| layout engine              | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                                                                                                                                                                                                             | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger                                                                    |
-| relation influence         | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                                                                                                                                                                                                                       | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                                                                                   |
-| relation admission         | **three independent channels:** attractive force, no-repel protection, and `[staged]` typed Deconflict; ordinary and hard-negative admission remain pair-derived rather than the complement of attraction                                                                                                                                                                      | a rejected or disabled attraction is not affirmative evidence that a linked pair should be pushed apart; separate gates prevent wrong-sign force and double counting                                                                               |
-| OOD no-repel protection    | **[open ablation]** protection MAY use channel-specific applicability floors $a_{\min,H}$ and $a_{\min,N}$ while attraction continues to use the calibrated applicability $a_r$ unchanged                                                                                                                                                                                      | an unfamiliar linked pair may be unsafe to mine as a targeted negative even when its relation type is too OOD to earn pull; over-protection can still suppress useful hard negatives, so the floor is selected empirically rather than by argument |
-| relation-strength control  | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                                                                                                                                                                                                                | all choices use the same variant-aware storage and client interpolation contract                                                                                                                                                                   |
-| LOD / far field            | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                                                                                                                                                                                                                        | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                                                                                                  |
-| versioning / storage       | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                                                                                                                                                                                                                      | avoids in-place coordinate mutation and supports rollback                                                                                                                                                                                          |
-| permissions                | **delegated to the existing HASH authorization system**                                                                                                                                                                                                                                                                                                                        | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                                                                                    |
-| relation-policy classifier | **open-world v1 default:** diversified synthetic soft labels train a calibrated full-embedding multinomial logistic-regression classifier; every relation type without a higher-precedence override is classified at generation time, and low-applicability predictions fall back toward Overlay for attraction while no-repel protection MAY use the separately ablated floor | the relation-type universe is not known or enumerable at release time; one shared classifier and shared class coefficients generalize to newly minted types without per-type tuning                                                                |
-| landmark fit               | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                                                                                                                                                                                                             | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                                                                                               |
-| release gates              | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                                                                                                                                                                                                              | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                                                                                   |
+| decision                     | resolution                                                                                                                                                                                                                                                                                                                                                                     | basis                                                                                                                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| projector prefix             | **512 components, L2-renormalized after truncation**                                                                                                                                                                                                                                                                                                                           | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard                                                                       |
+| layout engine                | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                                                                                                                                                                                                             | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger                                                                    |
+| relation influence           | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                                                                                                                                                                                                                       | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                                                                                   |
+| relation admission           | **three independent channels:** attractive force, no-repel protection, and `[staged]` typed Deconflict; ordinary and hard-negative admission remain pair-derived rather than the complement of attraction                                                                                                                                                                      | a rejected or disabled attraction is not affirmative evidence that a linked pair should be pushed apart; separate gates prevent wrong-sign force and double counting                                                                               |
+| OOD no-repel protection      | **[open ablation]** protection MAY use channel-specific applicability floors $a_{\min,H}$ and $a_{\min,N}$ while attraction continues to use the calibrated applicability $a_r$ unchanged                                                                                                                                                                                      | an unfamiliar linked pair may be unsafe to mine as a targeted negative even when its relation type is too OOD to earn pull; over-protection can still suppress useful hard negatives, so the floor is selected empirically rather than by argument |
+| relation-strength control    | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                                                                                                                                                                                                                | all choices use the same variant-aware storage and client interpolation contract                                                                                                                                                                   |
+| LOD / far field              | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                                                                                                                                                                                                                        | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                                                                                                  |
+| versioning / storage         | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                                                                                                                                                                                                                      | avoids in-place coordinate mutation and supports rollback                                                                                                                                                                                          |
+| permissions                  | **delegated to the existing HASH authorization system**                                                                                                                                                                                                                                                                                                                        | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                                                                                    |
+| relation-policy classifier   | **open-world v1 default:** diversified synthetic soft labels train a calibrated full-embedding multinomial logistic-regression classifier; every relation type without a higher-precedence override is classified at generation time, and low-applicability predictions fall back toward Overlay for attraction while no-repel protection MAY use the separately ablated floor | the relation-type universe is not known or enumerable at release time; one shared classifier and shared class coefficients generalize to newly minted types without per-type tuning                                                                |
+| relation strength multiplier | **[staged ablation]** a shared calibrated strength head over relation-card embeddings yields bounded $h_r\in[0.5,2]$, fitted on band votes and frozen before projector training; $h\equiv1$ remains the control and an eligible release winner                                                                                                                                 | a type-specific output from a shared head generalizes open-world; unconstrained per-type parameters do not; freezing outside the geometry loss removes the $h\to0$ shortcut                                                                        |
+| landmark fit                 | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                                                                                                                                                                                                             | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                                                                                               |
+| release gates                | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                                                                                                                                                                                                              | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                                                                                   |
 
 ---
 
@@ -807,6 +810,40 @@ immutable generation metadata. This security allow-list controls which link
 instances may influence coordinates; it is distinct from geometry coefficients
 and does not assign a force strength to a relation type.
 
+#### 3.3.5a Type-safety admission ladder
+
+"Security-reviewed" MUST NOT be implemented as universal central human review
+of link types; in an open type system that queue would gate geometric
+influence on reviewer throughput. Admission under `atlas-safe-links` is
+resolved per generation by the following ladder, first match wins:
+
+1. **Deny override.** A central deny-list entry excludes the type from
+   coordinate influence unconditionally. The deny-list is the human override
+   pen; it is small, versioned, and hash-pinned.
+2. **Audience-visibility derivation (mechanical).** A type is admitted for
+   this generation if every snapshot instance of the type is readable by the
+   generation's entire audience under the authorization model, and the type
+   carries no aggregate-inference flag. This is a query against the
+   permission-aware graph, not a judgment.
+3. **Authored declaration.** Type schemas MAY carry a sensitivity class
+   declared at mint time by the type author (safe / aggregate-sensitive /
+   restricted). Declared-safe types are admitted; declared-sensitive types
+   route to the review queue; declared-restricted types are denied.
+   Declarations are subject to sampled central audit.
+4. **Triage queue with default-deny.** Undeclared types in mixed-audience
+   generations are denied by default and enter a review queue ordered by
+   influence mass (instance count x attraction mass). Review effort tracks
+   the Zipf head of edge mass, not the type universe.
+
+Failure semantics make the ladder non-blocking: a denied or unreviewed type
+still renders subject to instance-level visibility and its entities are still
+placed by the semantic encoder; denial withholds geometric pull only. The
+allow-list is stock rather than flow: admissions persist across generations
+and only newly minted or newly flagged types re-enter the ladder. The
+irreducible human judgment is the aggregate-inference case (instances
+individually readable, co-location pattern collectively disclosive), which is
+rare, declarable, and cushioned by the default while queued.
+
 ### 3.4 Build and audit the semantic graph
 
 The default graph is approximate $k$-nearest neighbors with $k=30$ over
@@ -1262,7 +1299,8 @@ $$
 \mathcal{L}_{R}
 =
 \sum_{(i,r,j)\in E_R^{+}}
-c_{ijr}\nu_{ijr}
+c_{ijr}\nu_{ijr}\,
+\operatorname{stopgrad}(h_r)
 \left[
 \kappa_C p^{\star}_{r,C}E_C(z_{ij})
 +
@@ -1272,7 +1310,9 @@ c_{ijr}\nu_{ijr}
 $$
 
 The class probability is applied exactly once to its corresponding class
-energy. There is no additional outer scalar multiplying the same mixture.
+energy. The only permitted outer scalar on this mixture is the frozen strength
+multiplier $\operatorname{stopgrad}(h_r)$ of §3.6.6b, with $h_r\equiv1$ in
+the shared-only arm and whenever the strength head is disabled.
 
 For diagnostics and optional attraction-edge pruning, define
 
@@ -1578,10 +1618,79 @@ attraction-only baseline. The release suite MUST reject settings that improve
 minimum-separation compliance by introducing unsupported fragmentation,
 neighbor loss, or merge-tree noise.
 
-A type-specific or embedding-conditioned strength head remains outside v1 and
-requires an explicit specification amendment, a separately identified training
-signal, and new calibration and release gates. Unconstrained per-type scalars
-remain prohibited.
+A type-specific output from the shared strength head of §3.6.6b is permitted.
+An unconstrained type-specific parameter is prohibited. Per-type lookup
+tables, free scalars, and geometry-loss-trained multipliers remain outside v1.
+
+#### 3.6.6b Calibrated shared strength head `[staged ablation]`
+
+The strength multiplier $h_r$ is a shared, calibrated function of the full
+relation-card embedding. It modulates how strongly an admitted attractive
+relation pulls; it never decides admission.
+
+**Training signal.** Strength is a second, conditional measurement pass over
+the judged corpus (operational contract: strength-axis PRD). Eligibility:
+admitted-configuration posterior $\widetilde p_{r,P}\ge0.2$ or membership in
+the coincident review queue; Overlay-dominant populations are never asked.
+Votes return one band per call, $m\in\mathcal B=\{\text{weak},
+\text{standard},\text{strong}\}$, under the same routing, decoding, and
+effort policy as class votes. Soft targets are Dirichlet-smoothed band
+frequencies
+
+$$
+q^{S}_{rm}=\frac{n^{S}_{rm}+\alpha_S}{m_r^{+}+M\alpha_S},
+\qquad \alpha_S=1 .
+$$
+
+**Head.** A shared low-dof head over the relation-card embedding $e_r$
+predicts band probabilities $\pi^{S}_{r}$: ordinal (cumulative-link over
+weak $<$ standard $<$ strong) preferred; softmax with temperature $T_S$ over
+$o_r^{S}=Ue_r+d$ is the fallback. The head has no per-type parameters.
+
+**Multiplier and OOD behavior.** With fixed band multipliers
+$\zeta=(\zeta_{\mathrm{weak}},\zeta_{\mathrm{standard}},
+\zeta_{\mathrm{strong}})=(0.5,1,2)$,
+
+$$
+h_r^{\mathrm{raw}}=\sum_{m\in\mathcal B}\zeta_m\pi^{S}_{rm},
+\qquad
+h_r=a_r^{S}h_r^{\mathrm{raw}}+\left(1-a_r^{S}\right)\cdot1 ,
+$$
+
+where $a_r^{S}$ uses the classifier's applicability machinery. Hence
+$0.5\le h_r\le2$ and $a_r^{S}\to0\Rightarrow h_r\to1$: newly minted and
+post-cutoff relation types receive the shared-class baseline, never zero and
+never an extreme band. $\zeta$ is not retuned in v1.
+
+**Training boundary.** The head is fitted and calibrated on card-level splits
+BEFORE any projector training and is frozen thereafter. $\mathcal L_R$
+consumes $\operatorname{stopgrad}(h_r)$; no gradient from any atlas objective
+may reach $U$, $d$, $T_S$, or $a_r^{S}$. The head MUST NOT be trained through
+any loss it multiplies; this removes the $h\to0$ shortcut that motivated the
+prior prohibition.
+
+**Independence.** No-repel protection, generic and hard-negative admission,
+the security predicate $S_{ijr}$, and typed-Deconflict candidacy are
+independent of $h_r$. $h_r$ scales admitted attraction only.
+
+**Instrument admission.** The head enters the experiment matrix only if the
+strength pilot passes its instrument gates (non-degenerate band variance,
+cross-family weighted kappa, ordinal noise floor, non-redundancy with graph
+fan-out statistics; thresholds in the strength-axis PRD). Any gate failure
+records $h\equiv1$ as the v1 answer.
+
+**Ablation and release.** Phase 2 compares $h\equiv1$ (control, eligible
+release winner) against $h_r=h_\psi(e_r)$ with at least two seeds per arm.
+The head is admitted to the release candidate only if relation-family
+satisfaction improves beyond rerun noise with no degradation in
+semantic-neighbor fidelity, merge-tree leaf persistence, subgroup behavior,
+temporal stability, incremental placement, or training throughput. Ties go
+to the control.
+
+**Materialization.** Per-type $h_r$ values MAY be materialized in the
+generation artifact for performance and reproducibility. Materialized values
+are immutable within a generation, reproducible from the relation-card and
+strength-model hashes, and MUST NOT be editable as per-type configuration.
 
 #### 3.6.7 Temporal anchors and landmarks
 
@@ -2226,7 +2335,11 @@ $$
 plus semantic-fidelity change, relation-gradient clipping rate, derived
 strength distributions, and results by degree decile and subgroup. The release
 suite MUST verify that classifier probabilities are applied exactly once and
-that no authoritative free per-type strength scalar exists.
+that no authoritative free per-type strength scalar exists. Materialized
+strength-head outputs $h_r$ are derived artifacts under §3.6.6b, reproducible
+from the relation-card and strength-model hashes; the suite MUST fail a
+generation whose materialized $h_r$ deviates from recomputation or whose
+strength values were edited as configuration.
 
 Typed Deconflict remains disabled unless all of the following are satisfied:
 
@@ -2427,6 +2540,15 @@ relations:
   applicability_config_hash: ...
   classifier_ood_edge_volume_fraction: ...
   reviewed_edge_volume_fraction: ...
+  strength_head:
+    enabled: true | false
+    band_vote_corpus_hash: ...
+    eligibility_threshold_p_P: 0.2
+    model_form: ordinal | softmax
+    model_hash: ...
+    calibration_hash: ...
+    zeta: [0.5, 1.0, 2.0]
+    materialized_h_table_hash: null | ...
   attraction_geometry_coefficients:
     coincident: ...
     proximal: 1.0

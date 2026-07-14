@@ -30,9 +30,11 @@ from atlas_tools.relation.eval.contract import (
     VoteTask,
 )
 from atlas_tools.relation.eval.schema import (
+    PLACEMENT_CLASSES,
     VERDICTS,
     BundleId,
     FramingId,
+    PlacementClass,
     Verdict,
     VoteRow,
     VoteVerdict,
@@ -72,6 +74,14 @@ class CardLadderOutcome:
     verdict_counts: dict[Verdict, int]
     abstentions: int
     votes: tuple[VoteRow, ...]
+
+    @property
+    def placement_counts(self) -> dict[PlacementClass, int]:
+        """Valid placement-vote counts; unclear ambiguity votes are excluded."""
+        return {
+            placement_class: self.verdict_counts[placement_class]
+            for placement_class in PLACEMENT_CLASSES
+        }
 
 
 @dataclass(frozen=True)

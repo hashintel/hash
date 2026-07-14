@@ -21,6 +21,12 @@ from atlas_tools.relation_cards.common.cards import RelationId
 
 type Verdict = Literal["coincident", "proximal", "overlay", "unclear"]
 type VoteVerdict = Literal["coincident", "proximal", "overlay", "unclear", "ABSTAIN"]
+type PlacementClass = Literal["coincident", "proximal", "overlay"]
+"""The three classes that carry a placement claim; ``unclear`` carries none."""
+type RelationFamilyId = Annotated[str, StringConstraints(min_length=1)]
+"""Track A relation-family grouping: a relation, its inverse, and siblings."""
+type JudgeFamilyId = Annotated[str, StringConstraints(min_length=1)]
+"""A judge's analysis family identity: its canonical dated model ID."""
 type ShellId = Literal["S1", "S2", "S3"]
 type FramingId = Literal["F1", "F2", "F3"]
 type BundleId = Literal[
@@ -47,6 +53,7 @@ type OpenProbability = Annotated[float, Field(gt=0.0, lt=1.0, allow_inf_nan=Fals
 type PositiveFiniteFloat = Annotated[float, Field(gt=0.0, allow_inf_nan=False)]
 
 VERDICTS: tuple[Verdict, ...] = ("coincident", "proximal", "overlay", "unclear")
+PLACEMENT_CLASSES: tuple[PlacementClass, ...] = ("coincident", "proximal", "overlay")
 SHELLS: tuple[ShellId, ...] = ("S1", "S2", "S3")
 FRAMINGS: tuple[FramingId, ...] = ("F1", "F2", "F3")
 BUNDLES: tuple[BundleId, ...] = (
@@ -363,7 +370,7 @@ class LadderManifest(StrictModel):
     panel_version: PositiveInt
     panel_frozen: bool
     judges: list[JudgePin]
-    judge_rungs: dict[NonEmptyStr, PositiveInt]
+    judge_rungs: dict[JudgeFamilyId, PositiveInt]
     run_dates: RunDates
     prompt_pack_hash: Sha256Hex
     rubric_version: Literal["rubric-v1"]

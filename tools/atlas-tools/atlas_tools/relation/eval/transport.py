@@ -5,6 +5,7 @@ import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
+from threading import Lock, Semaphore
 from typing import Final, Protocol, Self, assert_never, cast
 
 from openrouter import OpenRouter
@@ -299,6 +300,79 @@ class OpenRouterTransportFactory:
 
     def __call__(self) -> OpenRouterTransport:
         return OpenRouterTransport(self.api_key)
+
+
+class _ProviderLimits:
+    """Process-wide concurrent-request semaphores keyed by provider slug."""
+
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self._guard = Lock()
+        self._semaphores: dict[str, Semaphore] = {}
+
+    def semaphore(self, provider_slug: str) -> Semaphore:
+        with self._guard:
+            semaphore = self._semaphores.get(provider_slug)
+            if semaphore is None:
+                semaphore = Semaphore(self._limit)
+                self._semaphores[provider_slug] = semaphore
+            return semaphore
+
+
+@dataclass
+class ProviderLimitedTransport:
+    """Bound the number of in-flight physical requests per provider slug.
+
+    Workers block on the provider's semaphore around the visible request; the
+    wait is bounded by the executor's own concurrency ceiling, so this only
+    trades global concurrency for per-provider politeness.
+    """
+
+    inner: CloseableCompletionTransport
+    limits: _ProviderLimits
+
+    def complete(
+        self,
+        *,
+        messages: list[ChatMessages],
+        judge: JudgeConfig,
+        effort: ReasoningEffort,
+        session_id: str,
+        timeout: timedelta,
+    ) -> ChatResult:
+        with self.limits.semaphore(judge.provider_slug):
+            return self.inner.complete(
+                messages=messages,
+                judge=judge,
+                effort=effort,
+                session_id=session_id,
+                timeout=timeout,
+            )
+
+    def close(self) -> None:
+        self.inner.close()
+
+
+@dataclass
+class ProviderLimitedTransportFactory:
+    """Share one per-provider limit table across every worker's transport."""
+
+    inner: CompletionTransportFactory
+    limits: _ProviderLimits
+
+    def __call__(self) -> ProviderLimitedTransport:
+        return ProviderLimitedTransport(inner=self.inner(), limits=self.limits)
+
+
+def provider_limited_factory(
+    factory: CompletionTransportFactory,
+    *,
+    limit: int | None,
+) -> CompletionTransportFactory:
+    """Wrap a factory with a per-provider concurrency cap; None passes through."""
+    if limit is None:
+        return factory
+    return ProviderLimitedTransportFactory(inner=factory, limits=_ProviderLimits(limit))
 
 
 def _completion_content(result: ChatResult) -> str:

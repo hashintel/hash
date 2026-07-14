@@ -9,52 +9,57 @@ import openrouter
 
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.eval.artifacts import (
-    FullGridPaths,
-    FullGridRunState,
+    LadderPaths,
+    LadderRunState,
     PilotPaths,
     PilotRunState,
-    finalize_full_grid_output,
+    finalize_ladder_output,
     finalize_pilot_output,
-    full_grid_input_hashes,
+    ladder_input_hashes,
     pilot_slice_hash,
-    prepare_full_grid_run_state,
+    prepare_ladder_run_state,
     prepare_pilot_run_state,
-    validate_completed_full_grid_output,
+    validate_completed_ladder_output,
     validate_completed_pilot_output,
 )
-from atlas_tools.relation.eval.authorization import load_analysis_decisions
 from atlas_tools.relation.eval.contract import (
     RUBRIC_VERSION,
     BaseRunConfig,
     ConcurrencyConfig,
     EvaluationCard,
-    FullGridVotePlan,
-    FullRunConfig,
     JudgeConfig,
+    LadderJudge,
+    LadderPreparedInputs,
+    LadderRunConfig,
     LoadedRunConfig,
     MaxCompletionTokensLimit,
     MaxTokensLimit,
     OpenRouterRegion,
     OutputTokenLimit,
+    PanelConfig,
     PilotRunConfig,
     PilotVotePlan,
     RunConfig,
     SliceSamplingConfig,
     TransientRetryConfig,
+    VoteTask,
 )
 from atlas_tools.relation.eval.executor import execute_plan
 from atlas_tools.relation.eval.inputs import (
     load_run_config,
-    prepare_full_inputs,
+    prepare_ladder_inputs,
     prepare_pilot_inputs,
 )
-from atlas_tools.relation.eval.journal import exclusive_run_lock
+from atlas_tools.relation.eval.journal import exclusive_run_lock, load_jsonl
+from atlas_tools.relation.eval.ladder import LadderRoundsPlan, derive_round
 from atlas_tools.relation.eval.provenance import plan_hash, request_contract_hash
+from atlas_tools.relation.eval.schema import VoteRow
 from atlas_tools.relation.eval.transport import (
     CompletionTransport,
     CompletionTransportFactory,
     OpenRouterTransport,
     OpenRouterTransportFactory,
+    provider_limited_factory,
 )
 
 
@@ -76,16 +81,16 @@ def _pilot_state(config: PilotRunConfig, plan: PilotVotePlan) -> PilotRunState:
     )
 
 
-def _full_state(config: FullRunConfig, plan: FullGridVotePlan) -> FullGridRunState:
-    prepared = plan.prepared
-    return FullGridRunState(
-        plan_hash=plan_hash(config, plan),
+def _ladder_state(config: LadderRunConfig, prepared: LadderPreparedInputs) -> LadderRunState:
+    return LadderRunState(
         request_contract_hash=request_contract_hash(config),
-        source_hashes=full_grid_input_hashes(prepared),
+        source_hashes=ladder_input_hashes(prepared),
         prompt_pack_hash=prepared.pack_hash,
         rubric_version=config.rubric_version,
-        decisions_hash=prepared.decisions_hash,
-        expected_votes=plan.expected_votes,
+        shell=config.shell,
+        panel_version=config.panel.version,
+        panel_frozen=config.panel.frozen,
+        eligible_cards=len(prepared.eligible),
         openrouter_sdk_version=_sdk_version(),
         openrouter_openapi_version=openrouter.OPENAPI_DOC_VERSION,
     )
@@ -136,34 +141,37 @@ def run_pilot(
         return paths
 
 
-def run_full_grid(
+def _derive_complete_plan(
+    config: LadderRunConfig,
     *,
-    cards_dir: PathLike,
-    out_dir: PathLike,
-    loaded_config: LoadedRunConfig,
-    transport_factory: CompletionTransportFactory | None = None,
-    transport: CompletionTransport | None = None,
-    progress: ProgressReporter = NO_PROGRESS,
-) -> FullGridPaths:
-    """Execute the full admitted grid from a config-bound decisions artifact."""
-    config, _decisions_path = loaded_config.full()
-    prepared = prepare_full_inputs(cards_dir, loaded_config)
-    plan = FullGridVotePlan(config=config, prepared=prepared)
-    state = _full_state(config, plan)
-    output = Path(out_dir)
+    prepared: LadderPreparedInputs,
+    paths: LadderPaths,
+    transport_factory: CompletionTransportFactory | None,
+    transport: CompletionTransport | None,
+    progress: ProgressReporter,
+) -> LadderRoundsPlan:
+    """Execute the ladder round by round until every card's path is complete.
 
-    with exclusive_run_lock(output / ".run.lock"):
-        paths = prepare_full_grid_run_state(output, state=state)
-        if paths.manifest_json.exists():
-            validate_completed_full_grid_output(
-                paths=paths,
-                prepared=prepared,
-                config=config,
-                state=state,
-                plan=plan,
-            )
-            return paths
-        execute_plan(
+    Each round is derived from the committed vote journal, so re-deriving
+    after a kill produces the identical cumulative task stream; the durable
+    executor then resumes its journal prefix instead of paying again.
+    """
+    votes_by_id = {vote.vote_id: vote for vote in load_jsonl(paths.votes_jsonl, VoteRow)}
+    rounds: list[tuple[VoteTask, ...]] = []
+    for rung_index in range(1, config.rung_count + 1):
+        round_tasks = derive_round(
+            config,
+            rung_index=rung_index,
+            prepared=prepared,
+            votes_by_id=votes_by_id,
+        )
+        if not round_tasks:
+            break
+        rounds.append(round_tasks)
+        if all(task.vote_id in votes_by_id for task in round_tasks):
+            continue
+        plan = LadderRoundsPlan(rounds=tuple(rounds))
+        votes = execute_plan(
             paths=paths,
             prepared=prepared,
             config=config,
@@ -172,7 +180,94 @@ def run_full_grid(
             transport=transport,
             progress=progress,
         )
-        finalize_full_grid_output(
+        votes_by_id = {vote.vote_id: vote for vote in votes}
+    complete = LadderRoundsPlan(rounds=tuple(rounds))
+    if complete.expected_votes != len(votes_by_id):
+        raise ValueError(
+            f"votes.jsonl contains {len(votes_by_id)} votes but the derived ladder "
+            f"plan expects {complete.expected_votes}; the journal belongs to another run"
+        )
+    return complete
+
+
+def _journal_plan(
+    config: LadderRunConfig,
+    *,
+    prepared: LadderPreparedInputs,
+    paths: LadderPaths,
+) -> LadderRoundsPlan:
+    """Re-derive the complete round structure from an already-complete journal."""
+    votes_by_id = {vote.vote_id: vote for vote in load_jsonl(paths.votes_jsonl, VoteRow)}
+    rounds: list[tuple[VoteTask, ...]] = []
+    for rung_index in range(1, config.rung_count + 1):
+        round_tasks = derive_round(
+            config,
+            rung_index=rung_index,
+            prepared=prepared,
+            votes_by_id=votes_by_id,
+        )
+        if not round_tasks:
+            break
+        rounds.append(round_tasks)
+    return LadderRoundsPlan(rounds=tuple(rounds))
+
+
+def run_ladder(
+    *,
+    cards_dir: PathLike,
+    out_dir: PathLike,
+    loaded_config: LoadedRunConfig,
+    transport_factory: CompletionTransportFactory | None = None,
+    transport: CompletionTransport | None = None,
+    progress: ProgressReporter = NO_PROGRESS,
+    allow_unfrozen_panel: bool = False,
+) -> LadderPaths:
+    """Execute or resume the vote ladder over the full verified corpus.
+
+    A corpus run refuses an unfrozen panel; only the pilot qualification
+    entry point passes ``allow_unfrozen_panel=True``.
+    """
+    config = loaded_config.ladder()
+    if not config.panel.frozen and not allow_unfrozen_panel:
+        raise ValueError(
+            "judges.yaml panel is not frozen; freeze the panel (with its documented "
+            "pruning floor) before running the corpus, or run pilot qualification"
+        )
+    prepared = prepare_ladder_inputs(cards_dir, loaded_config)
+    state = _ladder_state(config, prepared)
+    output = Path(out_dir)
+
+    if transport_factory is None and transport is None:
+        transport_factory = provider_limited_factory(
+            OpenRouterTransportFactory.from_environment(),
+            limit=config.per_provider_concurrency,
+        )
+    elif transport_factory is not None:
+        transport_factory = provider_limited_factory(
+            transport_factory,
+            limit=config.per_provider_concurrency,
+        )
+
+    with exclusive_run_lock(output / ".run.lock"):
+        paths = prepare_ladder_run_state(output, state=state)
+        if paths.manifest_json.exists():
+            validate_completed_ladder_output(
+                paths=paths,
+                prepared=prepared,
+                config=config,
+                state=state,
+                plan=_journal_plan(config, prepared=prepared, paths=paths),
+            )
+            return paths
+        plan = _derive_complete_plan(
+            config,
+            prepared=prepared,
+            paths=paths,
+            transport_factory=transport_factory,
+            transport=transport,
+            progress=progress,
+        )
+        finalize_ladder_output(
             paths=paths,
             prepared=prepared,
             config=config,
@@ -190,8 +285,8 @@ def run_evaluation(
     transport_factory: CompletionTransportFactory | None = None,
     transport: CompletionTransport | None = None,
     progress: ProgressReporter = NO_PROGRESS,
-) -> PilotPaths | FullGridPaths:
-    """Dispatch pilot or full execution solely from the config's discriminated mode."""
+) -> PilotPaths | LadderPaths:
+    """Dispatch pilot or ladder execution solely from the config's discriminated mode."""
     match loaded_config.config:
         case PilotRunConfig() as config:
             return run_pilot(
@@ -202,8 +297,8 @@ def run_evaluation(
                 transport=transport,
                 progress=progress,
             )
-        case FullRunConfig():
-            return run_full_grid(
+        case LadderRunConfig():
+            return run_ladder(
                 cards_dir=cards_dir,
                 out_dir=out_dir,
                 loaded_config=loaded_config,
@@ -222,9 +317,10 @@ __all__ = [
     "CompletionTransportFactory",
     "ConcurrencyConfig",
     "EvaluationCard",
-    "FullGridPaths",
-    "FullRunConfig",
     "JudgeConfig",
+    "LadderJudge",
+    "LadderPaths",
+    "LadderRunConfig",
     "LoadedRunConfig",
     "MaxCompletionTokensLimit",
     "MaxTokensLimit",
@@ -232,14 +328,14 @@ __all__ = [
     "OpenRouterTransport",
     "OpenRouterTransportFactory",
     "OutputTokenLimit",
+    "PanelConfig",
     "PilotPaths",
     "PilotRunConfig",
     "RunConfig",
     "SliceSamplingConfig",
     "TransientRetryConfig",
-    "load_analysis_decisions",
     "load_run_config",
     "run_evaluation",
-    "run_full_grid",
+    "run_ladder",
     "run_pilot",
 ]

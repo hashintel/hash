@@ -24,7 +24,9 @@ from atlas_tools.relation.eval.schema import (
     QUALIFICATION_BUNDLE,
     BundleId,
     FramingId,
+    JudgeFamilyId,
     ReasoningEffort,
+    RelationFamilyId,
     ShellId,
     SliceDerivation,
     SliceRow,
@@ -37,7 +39,6 @@ HTTP_CLIENT_ERROR_START = 400
 HTTP_SERVER_ERROR_START = 500
 RETRYABLE_CLIENT_ERROR_STATUS_CODES = frozenset({408, 425, 429})
 
-type JudgeFamilyId = str
 type OpenRouterRegion = Literal["global", "eu"]
 type RequestStage = Literal["initial", "repair"]
 type HttpErrorStatusCode = Annotated[int, Field(ge=400, le=599)]
@@ -352,7 +353,7 @@ class EvaluationCard(ConcatCardRow):
 
     prescreen_stratum: str = "unstratified"
     pilot_strata: list[str] = Field(default_factory=list)
-    family_id: str | None = None
+    family_id: RelationFamilyId | None = None
 
 
 @dataclass(frozen=True)
