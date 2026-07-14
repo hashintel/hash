@@ -38,11 +38,16 @@ class ConcatCommand(BaseSettings):
 
 
 class EvaluateCommand(BaseSettings):
-    """Run the pilot or vote-ladder evaluation selected by the config's mode."""
+    """Run the pilot or production-grid evaluation selected by the config's mode.
+
+    A grid run requires ``--pilot``: the factorial pilot's handoff directory,
+    whose matching votes are imported instead of re-bought.
+    """
 
     cards: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
     out: Path
+    pilot: DirectoryPath | None = None
     quiet: bool = False
 
     model_config = SettingsConfigDict(extra="forbid")
@@ -51,7 +56,7 @@ class EvaluateCommand(BaseSettings):
         from openrouter.errors import NoResponseError, OpenRouterError
 
         from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
-        from atlas_tools.relation.eval.artifacts import LadderPaths, PilotPaths
+        from atlas_tools.relation.eval.artifacts import GridPaths, PilotPaths
         from atlas_tools.relation.eval.run import load_run_config, run_evaluation
 
         progress = NO_PROGRESS if self.quiet else StderrProgress()
@@ -60,6 +65,7 @@ class EvaluateCommand(BaseSettings):
                 cards_dir=self.cards,
                 out_dir=self.out,
                 loaded_config=load_run_config(self.config),
+                pilot_dir=self.pilot,
                 progress=progress,
             )
         except (NoResponseError, OpenRouterError, OSError, RuntimeError, ValueError) as error:
@@ -68,47 +74,49 @@ class EvaluateCommand(BaseSettings):
         echo(f"wrote {paths.attempts_jsonl}")
         if isinstance(paths, PilotPaths):
             echo(f"wrote {paths.slice_jsonl}")
-        if isinstance(paths, LadderPaths):
-            echo(f"wrote {paths.review_queue_jsonl}")
+        if isinstance(paths, GridPaths):
+            echo(f"wrote {paths.corpus_jsonl}")
+            echo(f"wrote {paths.imported_votes_jsonl}")
         echo(f"wrote {paths.manifest_json}")
 
 
-class QualifyCommand(BaseSettings):
-    """Run the ladder pilot on a small deck and emit the judge qualification table.
+class DeliverablesCommand(BaseSettings):
+    """Emit grid deliverables: posteriors, both queues, ledger, and gates.
 
-    This is the only entry point that accepts an unfrozen judges.yaml panel.
+    Exits nonzero when any blocking acceptance gate fails.
     """
 
+    run: CliPositionalArg[DirectoryPath]
     cards: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
-    gold: FilePath
+    decisions: FilePath
     out: Path
-    quiet: bool = False
 
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from openrouter.errors import NoResponseError, OpenRouterError
-
-        from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
-        from atlas_tools.relation.eval.qualify import run_qualification
+        from atlas_tools.relation.eval.grid_report import write_grid_deliverables
         from atlas_tools.relation.eval.run import load_run_config
 
-        progress = NO_PROGRESS if self.quiet else StderrProgress()
         try:
-            result = run_qualification(
+            result = write_grid_deliverables(
+                run_dir=self.run,
                 cards_dir=self.cards,
-                out_dir=self.out,
                 loaded_config=load_run_config(self.config),
-                gold_path=self.gold,
-                progress=progress,
+                decisions_path=self.decisions,
+                out_dir=self.out,
             )
-        except (NoResponseError, OpenRouterError, OSError, RuntimeError, ValueError) as error:
+        except (OSError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.run_paths.votes_jsonl}")
-        echo(f"wrote {result.soft_labels_parquet}")
-        echo(f"wrote {result.qualification_json}")
-        echo(f"wrote {result.qualification_md}")
+        echo(f"wrote {result.posteriors_jsonl}")
+        echo(f"wrote {result.coincident_queue_jsonl}")
+        echo(f"wrote {result.nomination_queue_jsonl}")
+        echo(f"wrote {result.dissent_ledger_jsonl}")
+        echo(f"wrote {result.gates_json}")
+        echo(f"wrote {result.report_md}")
+        if not result.gates.all_passed:
+            failed = [gate.gate for gate in result.gates.gates if not gate.passed]
+            fail(ValueError(f"blocking acceptance gates failed: {', '.join(failed)}"))
 
 
 class AggregateCommand(BaseSettings):
@@ -198,7 +206,7 @@ class FitCommand(BaseSettings):
 
 
 class ReportCommand(BaseSettings):
-    """Render the per-run evaluation report (machine JSON plus markdown)."""
+    """Render the policy evaluation report (machine JSON plus markdown)."""
 
     run: CliPositionalArg[DirectoryPath]
     cards: CliPositionalArg[DirectoryPath]
@@ -210,7 +218,7 @@ class ReportCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.ladder_report import write_report
+        from atlas_tools.relation.eval.policy_report import write_report
         from atlas_tools.relation.eval.run import load_run_config
 
         try:
@@ -274,7 +282,7 @@ class RelationCli(BaseModel):
 
     concat: CliSubCommand[ConcatCommand]
     evaluate: CliSubCommand[EvaluateCommand]
-    qualify: CliSubCommand[QualifyCommand]
+    deliverables: CliSubCommand[DeliverablesCommand]
     aggregate: CliSubCommand[AggregateCommand]
     embed: CliSubCommand[EmbedCommand]
     fit: CliSubCommand[FitCommand]

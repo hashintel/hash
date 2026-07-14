@@ -34,7 +34,7 @@ from pydantic import (
 from atlas_tools.common import Provenance, Sha256Hex, sha256_file
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.eval.contract import EmbeddingConfig, LoadedRunConfig
-from atlas_tools.relation.eval.inputs import prepare_ladder_inputs
+from atlas_tools.relation.eval.inputs import prepare_grid_review_inputs
 from atlas_tools.relation_cards.common.cards import RelationId
 
 EMBEDDINGS_SCHEMA_VERSION = 1
@@ -238,12 +238,12 @@ def embed_cards(
     transport: EmbeddingTransport | None = None,
     progress: ProgressReporter = NO_PROGRESS,
 ) -> EmbedResult:
-    """Embed every eligible card once per (model, card_hash) and write parquet."""
-    config = loaded_config.ladder()
+    """Embed every pool card once per (model, card_hash) and write parquet."""
+    config = loaded_config.grid()
     if config.embedding is None:
         raise ValueError("config has no embedding section; embeddings cannot be produced")
     embedding = config.embedding
-    prepared = prepare_ladder_inputs(cards_dir, loaded_config)
+    prepared = prepare_grid_review_inputs(cards_dir, loaded_config)
     if transport is None:
         transport = HttpEmbeddingTransport(config=embedding)
 
@@ -252,7 +252,7 @@ def embed_cards(
 
     vectors: dict[Sha256Hex, EmbeddingVector] = {}
     uncached = []
-    for card in prepared.eligible:
+    for card in prepared.pool:
         cached = _load_cached(
             model_cache / f"{card.card_hash}.json",
             card_hash=card.card_hash,
@@ -288,7 +288,7 @@ def embed_cards(
             vectors[card.card_hash] = vector
         progress.advance(len(batch))
 
-    ordered = [(card, vectors[card.card_hash]) for card in prepared.eligible]
+    ordered = [(card, vectors[card.card_hash]) for card in prepared.pool]
     dimension = _validate_dimension(
         [vector for _, vector in ordered],
         expected=embedding.dimension,
@@ -304,7 +304,7 @@ def embed_cards(
     output.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(table, output)
     sidecar = EmbeddingsProvenance.make(
-        producer="relation.ladder-embed",
+        producer="relation.grid-embed",
         input_hashes={
             "cards.jsonl": prepared.source_hashes["cards.jsonl"],
             "judges-panel": prepared.panel_hash,
@@ -323,5 +323,5 @@ def embed_cards(
         rows=len(ordered),
         dimension=dimension,
         requested_texts=requested,
-        cached_texts=len(prepared.eligible) - len(uncached),
+        cached_texts=len(prepared.pool) - len(uncached),
     )

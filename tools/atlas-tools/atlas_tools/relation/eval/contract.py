@@ -461,8 +461,21 @@ class ImportedVotes:
 
 
 @dataclass(frozen=True)
-class GridPreparedInputs(PreparedCards):
-    """Verified corpus plus the deterministic voting pool for a grid run.
+class GridReviewInputs(PreparedCards):
+    """The verified deck and panel identity, without the pilot import.
+
+    Downstream stages (aggregation, embeddings, deliverables, reports) load a
+    completed run whose imported material is already bound inside the run
+    directory, so they re-derive only the deck, prompt pack, and panel hash.
+    """
+
+    panel_hash: Sha256Hex
+    pool: tuple[EvaluationCard, ...]
+
+
+@dataclass(frozen=True)
+class GridPreparedInputs(GridReviewInputs):
+    """Verified corpus plus the voting pool and pilot import for a grid run.
 
     ``pool`` is every eligible card — the deck minus the fixed few-shot PIDs,
     holdout anchors included — in ascending ``relation_id`` order; that order
@@ -471,8 +484,6 @@ class GridPreparedInputs(PreparedCards):
     cap or concurrency between sessions never orphans a run.
     """
 
-    panel_hash: Sha256Hex
-    pool: tuple[EvaluationCard, ...]
     imported: ImportedVotes
 
 

@@ -1,11 +1,12 @@
-"""Soft-label aggregation from a completed ladder vote journal.
+"""Soft-label aggregation from a completed grid run.
 
-One parquet row per eligible relation: the Dirichlet(1,1,1)-smoothed posterior
-mean over {coincident, proximal, overlay} from valid votes, with unclear votes
-counted in the ambiguity column, plus n_votes, entropy, the rung reached, and
-the review-queue flag. Every downstream fit consumes every row weighted by
-``n_votes``; there is deliberately no full-panel-only selection, because
-restricting to full-panel cards selects on ambiguity.
+One parquet row per pool relation: the Dirichlet(1,1,1)-smoothed posterior
+mean over {coincident, proximal, overlay} from valid votes (baseline plus any
+refinement repeats, imported pilot votes included), with unclear votes counted
+in the ambiguity column, plus n_votes, entropy, the refinement flag, and the
+coincident-review flag. Every downstream fit consumes every row weighted by
+``n_votes``; there is deliberately no unanimous-only or refined-only
+selection, because both select on ambiguity.
 
 :class:`SoftLabelRow` owns the on-disk column contract: rows are written from
 validated models and read back through the same model, so a malformed or
@@ -31,24 +32,21 @@ from pydantic import (
 
 from atlas_tools.common import Provenance, Sha256Hex, sha256_file
 from atlas_tools.relation.concat import CONCAT_SCHEMA_VERSION
-from atlas_tools.relation.eval.artifacts import ladder_paths
+from atlas_tools.relation.eval.artifacts import load_completed_grid
 from atlas_tools.relation.eval.contract import LoadedRunConfig
 from atlas_tools.relation.eval.gates import (
     dirichlet_posterior_mean,
     normalized_posterior_entropy,
 )
-from atlas_tools.relation.eval.inputs import prepare_ladder_inputs
-from atlas_tools.relation.eval.journal import load_jsonl
-from atlas_tools.relation.eval.ladder import CardLadderOutcome, complete_card_outcomes
+from atlas_tools.relation.eval.grid import CardGridRecord
 from atlas_tools.relation.eval.schema import (
-    LadderManifest,
+    PlacementClass,
     Probability,
     RelationFamilyId,
-    VoteRow,
 )
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
-SOFT_LABELS_SCHEMA_VERSION = 1
+SOFT_LABELS_SCHEMA_VERSION = 2
 
 
 class SoftLabelRow(BaseModel):
@@ -69,8 +67,7 @@ class SoftLabelRow(BaseModel):
     unclear_votes: NonNegativeInt
     abstentions: NonNegativeInt
     entropy: Probability
-    rung_reached: PositiveInt
-    early_exit: bool
+    refined: bool
     review: bool
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -85,30 +82,37 @@ class SoftLabelRow(BaseModel):
             )
         if self.n_votes != self.coincident_votes + self.proximal_votes + self.overlay_votes:
             raise ValueError("n_votes must equal the placement vote counts")
+        if self.coincident_votes > 0 and not self.review:
+            raise ValueError("any coincident vote makes the card review-queue material")
         return self
 
     @classmethod
-    def from_outcome(cls, outcome: CardLadderOutcome) -> Self:
-        posterior = dirichlet_posterior_mean(outcome.placement_counts)
+    def from_record(cls, record: CardGridRecord) -> Self:
+        counts = record.verdict_counts
+        placement: dict[PlacementClass, int] = {
+            "coincident": counts["coincident"],
+            "proximal": counts["proximal"],
+            "overlay": counts["overlay"],
+        }
+        posterior = dirichlet_posterior_mean(placement)
         return cls(
-            relation_id=outcome.card.relation_id,
-            card_hash=outcome.card.card_hash,
-            producer=outcome.card.producer,
-            family_id=outcome.card.family_id,
-            prescreen_stratum=outcome.card.prescreen_stratum,
+            relation_id=record.card.relation_id,
+            card_hash=record.card.card_hash,
+            producer=record.card.producer,
+            family_id=record.card.family_id,
+            prescreen_stratum=record.card.prescreen_stratum,
             p_coincident=posterior["coincident"],
             p_proximal=posterior["proximal"],
             p_overlay=posterior["overlay"],
-            n_votes=sum(outcome.placement_counts.values()),
-            coincident_votes=outcome.verdict_counts["coincident"],
-            proximal_votes=outcome.verdict_counts["proximal"],
-            overlay_votes=outcome.verdict_counts["overlay"],
-            unclear_votes=outcome.verdict_counts["unclear"],
-            abstentions=outcome.abstentions,
+            n_votes=sum(placement.values()),
+            coincident_votes=counts["coincident"],
+            proximal_votes=counts["proximal"],
+            overlay_votes=counts["overlay"],
+            unclear_votes=counts["unclear"],
+            abstentions=record.abstentions,
             entropy=normalized_posterior_entropy(posterior),
-            rung_reached=outcome.rung_reached,
-            early_exit=outcome.early_exit,
-            review=outcome.first_coincident_rung is not None,
+            refined=record.refined,
+            review=counts["coincident"] > 0,
         )
 
 
@@ -129,15 +133,14 @@ _SOFT_LABELS_SCHEMA = pa.schema(
         pa.field("unclear_votes", pa.int32(), nullable=False),
         pa.field("abstentions", pa.int32(), nullable=False),
         pa.field("entropy", pa.float64(), nullable=False),
-        pa.field("rung_reached", pa.int32(), nullable=False),
-        pa.field("early_exit", pa.bool_(), nullable=False),
+        pa.field("refined", pa.bool_(), nullable=False),
         pa.field("review", pa.bool_(), nullable=False),
     ]
 )
 
 
 class AggregateDetails(BaseModel):
-    """Sidecar details binding the parquet to its journal and smoothing policy."""
+    """Sidecar details binding the parquet to its run and smoothing policy."""
 
     schema_version: PositiveInt = SOFT_LABELS_SCHEMA_VERSION
     rows: PositiveInt
@@ -176,16 +179,6 @@ def read_soft_labels(path: Path) -> list[SoftLabelRow]:
     return rows
 
 
-def _validate_run(run_dir: Path, votes_hash: Sha256Hex) -> LadderManifest:
-    paths = ladder_paths(run_dir)
-    if not paths.manifest_json.is_file():
-        raise ValueError(f"{run_dir} is not a completed ladder run: manifest.json is missing")
-    manifest = LadderManifest.model_validate_json(paths.manifest_json.read_bytes())
-    if manifest.source_hashes["votes.jsonl"] != votes_hash:
-        raise ValueError("votes.jsonl does not match the run manifest")
-    return manifest
-
-
 def aggregate_soft_labels(
     *,
     run_dir: PathLike,
@@ -193,26 +186,15 @@ def aggregate_soft_labels(
     loaded_config: LoadedRunConfig,
     out_path: PathLike,
 ) -> AggregateResult:
-    """Aggregate a completed ladder run into ``soft-labels.parquet``."""
-    config = loaded_config.ladder()
-    run_directory = Path(run_dir)
-    paths = ladder_paths(run_directory)
-    prepared = prepare_ladder_inputs(cards_dir, loaded_config)
-    manifest = _validate_run(run_directory, sha256_file(paths.votes_jsonl))
-    if manifest.source_hashes["cards.jsonl"] != prepared.source_hashes["cards.jsonl"]:
-        raise ValueError("cards.jsonl differs from the corpus the ladder voted on")
-    if manifest.source_hashes["judges-panel"] != prepared.panel_hash:
-        raise ValueError("judges panel differs from the one the ladder ran with")
-
-    votes = load_jsonl(paths.votes_jsonl, VoteRow)
-    outcomes = complete_card_outcomes(
-        config,
-        prepared=prepared,
-        votes_by_id={vote.vote_id: vote for vote in votes},
+    """Aggregate a completed grid run into ``soft-labels.parquet``."""
+    run = load_completed_grid(
+        run_dir=Path(run_dir),
+        cards_dir=Path(cards_dir),
+        loaded_config=loaded_config,
     )
-    rows = tuple(SoftLabelRow.from_outcome(outcome) for outcome in outcomes)
+    rows = tuple(SoftLabelRow.from_record(record) for record in run.records)
     if not rows:
-        raise ValueError("cannot aggregate an empty ladder run")
+        raise ValueError("cannot aggregate an empty grid run")
 
     table = pa.Table.from_pylist(
         [row.model_dump(mode="python") for row in rows],
@@ -222,17 +204,17 @@ def aggregate_soft_labels(
     output.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(table, output)
     sidecar = AggregateProvenance.make(
-        producer="relation.ladder-aggregate",
+        producer="relation.grid-aggregate",
         input_hashes={
-            "cards.jsonl": prepared.source_hashes["cards.jsonl"],
-            "judges-panel": prepared.panel_hash,
-            "votes.jsonl": manifest.source_hashes["votes.jsonl"],
-            "review-queue.jsonl": manifest.source_hashes["review-queue.jsonl"],
+            "cards.jsonl": run.manifest.source_hashes["cards.jsonl"],
+            "judges-panel": run.panel_hash,
+            "votes.jsonl": run.manifest.source_hashes["votes.jsonl"],
+            "imported-votes.jsonl": run.manifest.source_hashes["imported-votes.jsonl"],
         },
         content_hashes={output.name: sha256_file(output)},
         details=AggregateDetails(
             rows=len(rows),
-            rubric_version=config.rubric_version,
+            rubric_version=loaded_config.grid().rubric_version,
         ),
     ).write(output.with_name(f"{output.name}.meta.json"))
     return AggregateResult(soft_labels_parquet=output, sidecar=sidecar, rows=rows)

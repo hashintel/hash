@@ -1,5 +1,6 @@
 """Filesystem-bound loading and preparation for relation evaluation inputs."""
 
+import json
 import math
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
@@ -23,8 +24,10 @@ from atlas_tools.relation.eval.contract import (
     CardCandidate,
     DerivedSlice,
     EvaluationCard,
-    LadderPreparedInputs,
-    LadderRunConfig,
+    GridPreparedInputs,
+    GridReviewInputs,
+    GridRunConfig,
+    ImportedVotes,
     LoadedRunConfig,
     PilotRunConfig,
     PreparedInputs,
@@ -32,6 +35,8 @@ from atlas_tools.relation.eval.contract import (
     SliceSamplingConfig,
     VerifiedConcat,
 )
+from atlas_tools.relation.eval.grid import baseline_cells
+from atlas_tools.relation.eval.journal import load_jsonl
 from atlas_tools.relation.eval.prompt import (
     FEW_SHOT,
     HOLDOUT,
@@ -44,13 +49,16 @@ from atlas_tools.relation.eval.schema import (
     BUNDLES,
     BundleId,
     FramingId,
+    PhysicalAttemptRow,
     ShellId,
     SliceDerivation,
     SliceRow,
+    VoteRow,
 )
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 _JSON_VALUE_ADAPTER: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
+_SHA256_ADAPTER: TypeAdapter[Sha256Hex] = TypeAdapter(Sha256Hex)
 
 
 def load_run_config(path: str | PathLike[str]) -> LoadedRunConfig:
@@ -380,16 +388,68 @@ def prepare_pilot_inputs(
     )
 
 
-def prepare_ladder_inputs(
+def _pilot_prompt_pack_hash(manifest_path: Path) -> Sha256Hex:
+    """Read the pilot handoff's recorded prompt pack hash for the drift stop."""
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read pilot manifest {manifest_path}: {error}") from error
+    recorded = payload.get("prompt_pack_hash") if isinstance(payload, dict) else None
+    if not isinstance(recorded, str) or not recorded:
+        raise ValueError(f"pilot manifest {manifest_path} does not record a prompt pack hash")
+    return _SHA256_ADAPTER.validate_python(recorded)
+
+
+def _import_pilot_votes(
+    pilot_dir: Path,
+    *,
+    planned_baseline: frozenset[Sha256Hex],
+) -> ImportedVotes:
+    """Admit pilot votes whose identity tuple matches a planned baseline cell."""
+    votes_path = pilot_dir / "votes.jsonl"
+    attempts_path = pilot_dir / "attempts.jsonl"
+    if not votes_path.is_file() or not attempts_path.is_file():
+        raise ValueError(f"{pilot_dir} is not a pilot handoff: votes or attempts are missing")
+    votes = load_jsonl(votes_path, VoteRow)
+    imported = tuple(
+        sorted(
+            (vote for vote in votes if vote.vote_id in planned_baseline),
+            key=lambda vote: vote.vote_id,
+        )
+    )
+    imported_ids = {vote.vote_id for vote in imported}
+    if len(imported_ids) != len(imported):
+        raise ValueError("pilot votes.jsonl contains duplicate importable vote IDs")
+    attempts_by_vote: dict[Sha256Hex, tuple[PhysicalAttemptRow, ...]] = {}
+    for attempt in load_jsonl(attempts_path, PhysicalAttemptRow):
+        if attempt.vote_id in imported_ids:
+            attempts_by_vote[attempt.vote_id] = (
+                *attempts_by_vote.get(attempt.vote_id, ()),
+                attempt,
+            )
+    missing_audit = sorted(imported_ids - set(attempts_by_vote))
+    if missing_audit:
+        raise ValueError(
+            f"pilot handoff lacks physical attempts for imported votes: {missing_audit[:5]}"
+        )
+    return ImportedVotes(
+        pilot_dir=pilot_dir,
+        votes_hash=sha256_file(votes_path),
+        votes=imported,
+        attempts_by_vote=attempts_by_vote,
+    )
+
+
+def prepare_grid_review_inputs(
     cards_dir: str | PathLike[str],
     loaded_config: LoadedRunConfig,
-) -> LadderPreparedInputs:
-    """Verify the corpus and derive the ladder's deterministic voting population.
+) -> GridReviewInputs:
+    """Verify the deck and derive the grid pool, panel hash, and prompt pack.
 
-    Every verified non-few-shot card is eligible, in ascending ``relation_id``
-    order. The fixed few-shot cards remain in the prompt pack but never
-    receive votes.
+    The pool is every verified non-few-shot card — holdout anchors included —
+    in ascending ``relation_id`` order.
     """
+    config = loaded_config.grid()
     cards_directory = Path(cards_dir)
     verified = verify_concat(cards_directory)
     candidates, _ = _card_candidates(
@@ -405,12 +465,12 @@ def prepare_ladder_inputs(
     cards = _load_required_cards(verified.cards_path, required)
     pack_hash = prompt_pack_hash(cards)
     if sha256_file(verified.cards_path) != verified.source_hashes["cards.jsonl"]:
-        raise ValueError("cards.jsonl changed while preparing the ladder")
-    eligible = tuple(
+        raise ValueError("cards.jsonl changed while preparing the grid")
+    pool = tuple(
         cards[candidate.relation_id]
         for candidate in sorted(candidates, key=lambda candidate: candidate.relation_id)
     )
-    return LadderPreparedInputs(
+    return GridReviewInputs(
         cards_dir=cards_directory,
         cards_path=verified.cards_path,
         manifest_path=verified.manifest_path,
@@ -418,21 +478,62 @@ def prepare_ladder_inputs(
         cards=cards,
         prefixes=prepare_prompt_prefixes(cards),
         pack_hash=pack_hash,
-        panel_hash=panel_hash(loaded_config.ladder()),
-        eligible=eligible,
+        panel_hash=panel_hash(config),
+        pool=pool,
+    )
+
+
+def prepare_grid_inputs(
+    cards_dir: str | PathLike[str],
+    loaded_config: LoadedRunConfig,
+    *,
+    pilot_dir: str | PathLike[str],
+) -> GridPreparedInputs:
+    """Verify the corpus, stop on prompt-pack drift, and import pilot votes.
+
+    A prompt pack hash differing from the pilot's is not a drift to log, it
+    is a stop: changed conditioning voids the qualification.
+    """
+    config = loaded_config.grid()
+    pilot_directory = Path(pilot_dir)
+    review = prepare_grid_review_inputs(cards_dir, loaded_config)
+    pilot_pack_hash = _pilot_prompt_pack_hash(pilot_directory / "manifest.json")
+    if review.pack_hash != pilot_pack_hash:
+        raise ValueError(
+            "prompt_pack_hash differs from the pilot's: changed conditioning voids "
+            f"the qualification (pilot {pilot_pack_hash}, current {review.pack_hash})"
+        )
+    planned_baseline = frozenset(
+        baseline_cells(config, pool=review.pool, pack_hash=review.pack_hash)
+    )
+    return GridPreparedInputs(
+        cards_dir=review.cards_dir,
+        cards_path=review.cards_path,
+        manifest_path=review.manifest_path,
+        source_hashes=review.source_hashes,
+        cards=review.cards,
+        prefixes=review.prefixes,
+        pack_hash=review.pack_hash,
+        panel_hash=review.panel_hash,
+        pool=review.pool,
+        imported=_import_pilot_votes(pilot_directory, planned_baseline=planned_baseline),
     )
 
 
 def prepare_inputs(
     cards_dir: str | PathLike[str],
     loaded_config: LoadedRunConfig,
-) -> PreparedInputs | LadderPreparedInputs:
+    *,
+    pilot_dir: str | PathLike[str] | None = None,
+) -> PreparedInputs | GridPreparedInputs:
     """Prepare mode-specific inputs from one loaded run config."""
     config: RunConfig = loaded_config.config
     match config:
         case PilotRunConfig():
             return prepare_pilot_inputs(cards_dir, config)
-        case LadderRunConfig():
-            return prepare_ladder_inputs(cards_dir, loaded_config)
+        case GridRunConfig():
+            if pilot_dir is None:
+                raise ValueError("a grid run requires the pilot handoff directory")
+            return prepare_grid_inputs(cards_dir, loaded_config, pilot_dir=pilot_dir)
         case unexpected:
             assert_never(unexpected)

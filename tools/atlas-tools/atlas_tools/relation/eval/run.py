@@ -1,25 +1,30 @@
 """Public composition facade for resumable relation-judge evaluations."""
 
+from datetime import timedelta
 from importlib.metadata import version
 from os import PathLike
 from pathlib import Path
 from typing import assert_never
 
 import openrouter
+from openrouter.components import ChatMessages, ChatResult
 
+from atlas_tools.common import sha256_bytes
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.eval.artifacts import (
-    LadderPaths,
-    LadderRunState,
+    GridPaths,
+    GridRunState,
     PilotPaths,
     PilotRunState,
-    finalize_ladder_output,
+    finalize_grid_output,
     finalize_pilot_output,
-    ladder_input_hashes,
+    grid_corpus_rows,
+    grid_input_hashes,
+    grid_votes_by_id,
     pilot_slice_hash,
-    prepare_ladder_run_state,
+    prepare_grid_run_state,
     prepare_pilot_run_state,
-    validate_completed_ladder_output,
+    validate_completed_grid_output,
     validate_completed_pilot_output,
 )
 from atlas_tools.relation.eval.contract import (
@@ -27,11 +32,12 @@ from atlas_tools.relation.eval.contract import (
     BaseRunConfig,
     ConcurrencyConfig,
     EvaluationCard,
+    GridJudge,
+    GridPreparedInputs,
+    GridRunConfig,
     JudgeConfig,
-    LadderJudge,
-    LadderPreparedInputs,
-    LadderRunConfig,
     LoadedRunConfig,
+    ManualPrune,
     MaxCompletionTokensLimit,
     MaxTokensLimit,
     OpenRouterRegion,
@@ -45,21 +51,33 @@ from atlas_tools.relation.eval.contract import (
     VoteTask,
 )
 from atlas_tools.relation.eval.executor import execute_plan
+from atlas_tools.relation.eval.grid import (
+    GridRoundsPlan,
+    phase_a_tasks,
+    phase_b_tasks,
+    refined_cards,
+)
 from atlas_tools.relation.eval.inputs import (
     load_run_config,
-    prepare_ladder_inputs,
+    prepare_grid_inputs,
     prepare_pilot_inputs,
 )
-from atlas_tools.relation.eval.journal import exclusive_run_lock, load_jsonl
-from atlas_tools.relation.eval.ladder import LadderRoundsPlan, derive_round
+from atlas_tools.relation.eval.journal import (
+    exclusive_run_lock,
+    jsonl_bytes,
+    load_jsonl,
+)
+from atlas_tools.relation.eval.prompt import parse_response
 from atlas_tools.relation.eval.provenance import plan_hash, request_contract_hash
-from atlas_tools.relation.eval.schema import VoteRow
+from atlas_tools.relation.eval.schema import ReasoningEffort, VoteRow
 from atlas_tools.relation.eval.transport import (
     CompletionTransport,
     CompletionTransportFactory,
+    FamilyStreamGuards,
+    GuardedTransport,
+    GuardedTransportFactory,
     OpenRouterTransport,
     OpenRouterTransportFactory,
-    provider_limited_factory,
 )
 
 
@@ -81,16 +99,26 @@ def _pilot_state(config: PilotRunConfig, plan: PilotVotePlan) -> PilotRunState:
     )
 
 
-def _ladder_state(config: LadderRunConfig, prepared: LadderPreparedInputs) -> LadderRunState:
-    return LadderRunState(
+def _grid_state(config: GridRunConfig, prepared: GridPreparedInputs) -> GridRunState:
+    return GridRunState(
         request_contract_hash=request_contract_hash(config),
-        source_hashes=ladder_input_hashes(prepared),
+        source_hashes=grid_input_hashes(prepared),
         prompt_pack_hash=prepared.pack_hash,
         rubric_version=config.rubric_version,
-        shell=config.shell,
         panel_version=config.panel.version,
         panel_frozen=config.panel.frozen,
-        eligible_cards=len(prepared.eligible),
+        pool_cards=len(prepared.pool),
+        corpus_hash=sha256_bytes(jsonl_bytes(grid_corpus_rows(prepared))),
+        imported_votes_hash=sha256_bytes(jsonl_bytes(prepared.imported.votes)),
+        imported_attempts_hash=sha256_bytes(
+            jsonl_bytes(
+                [
+                    attempt
+                    for vote in prepared.imported.votes
+                    for attempt in prepared.imported.attempts_by_vote[vote.vote_id]
+                ]
+            )
+        ),
         openrouter_sdk_version=_sdk_version(),
         openrouter_openapi_version=openrouter.OPENAPI_DOC_VERSION,
     )
@@ -141,133 +169,152 @@ def run_pilot(
         return paths
 
 
-def _derive_complete_plan(
-    config: LadderRunConfig,
+def _grid_guards(config: GridRunConfig) -> FamilyStreamGuards:
+    return FamilyStreamGuards(
+        cache_check_vote=config.guards.cache_check_vote,
+        cost_window=config.guards.cost_window,
+        cost_multiplier=config.guards.cost_multiplier,
+        pilot_cost_per_vote_usd={
+            judge.family_id: judge.pilot_cost_per_vote_usd for judge in config.judges
+        },
+        parse_verdict=parse_response,
+    )
+
+
+def _derive_grid_plan(
+    config: GridRunConfig,
     *,
-    prepared: LadderPreparedInputs,
-    paths: LadderPaths,
+    prepared: GridPreparedInputs,
+    paths: GridPaths,
     transport_factory: CompletionTransportFactory | None,
     transport: CompletionTransport | None,
     progress: ProgressReporter,
-) -> LadderRoundsPlan:
-    """Execute the ladder round by round until every card's path is complete.
+    execute: bool,
+) -> GridRoundsPlan:
+    """Run (or re-derive) both grid phases against the durable fresh journal.
 
-    Each round is derived from the committed vote journal, so re-deriving
-    after a kill produces the identical cumulative task stream; the durable
-    executor then resumes its journal prefix instead of paying again.
+    Phase B's task set is a pure function of the complete baseline row, so
+    re-deriving after any interruption reproduces the identical cumulative
+    task stream and the durable executor resumes its journal prefix instead
+    of paying again.
     """
+    imported_ids = frozenset(vote.vote_id for vote in prepared.imported.votes)
+    phase_a = phase_a_tasks(
+        config,
+        pool=prepared.pool,
+        pack_hash=prepared.pack_hash,
+        imported_vote_ids=imported_ids,
+    )
+    phases: list[tuple[VoteTask, ...]] = [phase_a]
     votes_by_id = {vote.vote_id: vote for vote in load_jsonl(paths.votes_jsonl, VoteRow)}
-    rounds: list[tuple[VoteTask, ...]] = []
-    for rung_index in range(1, config.rung_count + 1):
-        round_tasks = derive_round(
-            config,
-            rung_index=rung_index,
-            prepared=prepared,
-            votes_by_id=votes_by_id,
-        )
-        if not round_tasks:
-            break
-        rounds.append(round_tasks)
-        if all(task.vote_id in votes_by_id for task in round_tasks):
-            continue
-        plan = LadderRoundsPlan(rounds=tuple(rounds))
+
+    def execute_cumulative() -> None:
+        nonlocal votes_by_id
+        if not execute:
+            raise ValueError("grid journal is incomplete but execution was not requested")
         votes = execute_plan(
             paths=paths,
             prepared=prepared,
             config=config,
-            plan=plan,
+            plan=GridRoundsPlan(phases=tuple(phases)),
             transport_factory=transport_factory,
             transport=transport,
             progress=progress,
         )
         votes_by_id = {vote.vote_id: vote for vote in votes}
-    complete = LadderRoundsPlan(rounds=tuple(rounds))
+
+    if any(task.vote_id not in votes_by_id for task in phase_a):
+        execute_cumulative()
+
+    refined = refined_cards(
+        config,
+        pool=prepared.pool,
+        pack_hash=prepared.pack_hash,
+        votes_by_id=grid_votes_by_id(prepared, list(votes_by_id.values())),
+    )
+    if refined:
+        phase_b = phase_b_tasks(config, refined=refined, pack_hash=prepared.pack_hash)
+        phases.append(phase_b)
+        if any(task.vote_id not in votes_by_id for task in phase_b):
+            execute_cumulative()
+
+    complete = GridRoundsPlan(phases=tuple(phases))
     if complete.expected_votes != len(votes_by_id):
         raise ValueError(
-            f"votes.jsonl contains {len(votes_by_id)} votes but the derived ladder "
+            f"votes.jsonl contains {len(votes_by_id)} fresh votes but the derived grid "
             f"plan expects {complete.expected_votes}; the journal belongs to another run"
         )
     return complete
 
 
-def _journal_plan(
-    config: LadderRunConfig,
-    *,
-    prepared: LadderPreparedInputs,
-    paths: LadderPaths,
-) -> LadderRoundsPlan:
-    """Re-derive the complete round structure from an already-complete journal."""
-    votes_by_id = {vote.vote_id: vote for vote in load_jsonl(paths.votes_jsonl, VoteRow)}
-    rounds: list[tuple[VoteTask, ...]] = []
-    for rung_index in range(1, config.rung_count + 1):
-        round_tasks = derive_round(
-            config,
-            rung_index=rung_index,
-            prepared=prepared,
-            votes_by_id=votes_by_id,
-        )
-        if not round_tasks:
-            break
-        rounds.append(round_tasks)
-    return LadderRoundsPlan(rounds=tuple(rounds))
-
-
-def run_ladder(
+def run_grid(
     *,
     cards_dir: PathLike,
     out_dir: PathLike,
     loaded_config: LoadedRunConfig,
+    pilot_dir: PathLike,
     transport_factory: CompletionTransportFactory | None = None,
     transport: CompletionTransport | None = None,
     progress: ProgressReporter = NO_PROGRESS,
-    allow_unfrozen_panel: bool = False,
-) -> LadderPaths:
-    """Execute or resume the vote ladder over the full verified corpus.
+) -> GridPaths:
+    """Execute or resume the production grid over the full verified corpus.
 
-    A corpus run refuses an unfrozen panel; only the pilot qualification
-    entry point passes ``allow_unfrozen_panel=True``.
+    Both phases run through the pilot's durable executor with the grid's
+    family-stream guards layered on the transport: per-family serialization
+    (parallel across families, sequential within one), the first-vote check,
+    the cache assertion, and the rolling cost tripwire. Guard breaches stop
+    the run resumably; imported pilot votes never touch the network.
     """
-    config = loaded_config.ladder()
-    if not config.panel.frozen and not allow_unfrozen_panel:
+    config = loaded_config.grid()
+    if not config.panel.frozen:
         raise ValueError(
-            "judges.yaml panel is not frozen; freeze the panel (with its documented "
-            "pruning floor) before running the corpus, or run pilot qualification"
+            "judges.yaml panel is not frozen; the production grid runs only the "
+            "frozen roster (changes require re-qualification)"
         )
-    prepared = prepare_ladder_inputs(cards_dir, loaded_config)
-    state = _ladder_state(config, prepared)
+    prepared = prepare_grid_inputs(cards_dir, loaded_config, pilot_dir=pilot_dir)
+    state = _grid_state(config, prepared)
     output = Path(out_dir)
 
-    if transport_factory is None and transport is None:
-        transport_factory = provider_limited_factory(
-            OpenRouterTransportFactory.from_environment(),
-            limit=config.per_provider_concurrency,
-        )
+    guards = _grid_guards(config)
+    if transport is not None:
+        transport = GuardedTransport(inner=_closeable(transport), guards=guards)
     elif transport_factory is not None:
-        transport_factory = provider_limited_factory(
-            transport_factory,
-            limit=config.per_provider_concurrency,
+        transport_factory = GuardedTransportFactory(inner=transport_factory, guards=guards)
+    else:
+        transport_factory = GuardedTransportFactory(
+            inner=OpenRouterTransportFactory.from_environment(),
+            guards=guards,
         )
 
     with exclusive_run_lock(output / ".run.lock"):
-        paths = prepare_ladder_run_state(output, state=state)
+        paths = prepare_grid_run_state(output, state=state, prepared=prepared)
         if paths.manifest_json.exists():
-            validate_completed_ladder_output(
+            validate_completed_grid_output(
                 paths=paths,
                 prepared=prepared,
                 config=config,
                 state=state,
-                plan=_journal_plan(config, prepared=prepared, paths=paths),
+                plan=_derive_grid_plan(
+                    config,
+                    prepared=prepared,
+                    paths=paths,
+                    transport_factory=None,
+                    transport=None,
+                    progress=progress,
+                    execute=False,
+                ),
             )
             return paths
-        plan = _derive_complete_plan(
+        plan = _derive_grid_plan(
             config,
             prepared=prepared,
             paths=paths,
             transport_factory=transport_factory,
             transport=transport,
             progress=progress,
+            execute=True,
         )
-        finalize_ladder_output(
+        finalize_grid_output(
             paths=paths,
             prepared=prepared,
             config=config,
@@ -277,16 +324,50 @@ def run_ladder(
         return paths
 
 
+class _CloseableAdapter:
+    """Give an injected plain transport the close() the guard wrapper expects."""
+
+    def __init__(self, inner: CompletionTransport) -> None:
+        self._inner = inner
+
+    def complete(
+        self,
+        *,
+        messages: list[ChatMessages],
+        judge: JudgeConfig,
+        effort: ReasoningEffort,
+        session_id: str,
+        timeout: timedelta,
+    ) -> ChatResult:
+        return self._inner.complete(
+            messages=messages,
+            judge=judge,
+            effort=effort,
+            session_id=session_id,
+            timeout=timeout,
+        )
+
+    def close(self) -> None:
+        closer = getattr(self._inner, "close", None)
+        if callable(closer):
+            closer()
+
+
+def _closeable(transport: CompletionTransport) -> _CloseableAdapter:
+    return _CloseableAdapter(transport)
+
+
 def run_evaluation(
     *,
     cards_dir: PathLike,
     out_dir: PathLike,
     loaded_config: LoadedRunConfig,
+    pilot_dir: PathLike | None = None,
     transport_factory: CompletionTransportFactory | None = None,
     transport: CompletionTransport | None = None,
     progress: ProgressReporter = NO_PROGRESS,
-) -> PilotPaths | LadderPaths:
-    """Dispatch pilot or ladder execution solely from the config's discriminated mode."""
+) -> PilotPaths | GridPaths:
+    """Dispatch pilot or grid execution solely from the config's discriminated mode."""
     match loaded_config.config:
         case PilotRunConfig() as config:
             return run_pilot(
@@ -297,11 +378,14 @@ def run_evaluation(
                 transport=transport,
                 progress=progress,
             )
-        case LadderRunConfig():
-            return run_ladder(
+        case GridRunConfig():
+            if pilot_dir is None:
+                raise ValueError("a grid run requires the pilot handoff directory")
+            return run_grid(
                 cards_dir=cards_dir,
                 out_dir=out_dir,
                 loaded_config=loaded_config,
+                pilot_dir=pilot_dir,
                 transport_factory=transport_factory,
                 transport=transport,
                 progress=progress,
@@ -317,11 +401,12 @@ __all__ = [
     "CompletionTransportFactory",
     "ConcurrencyConfig",
     "EvaluationCard",
+    "GridJudge",
+    "GridPaths",
+    "GridRunConfig",
     "JudgeConfig",
-    "LadderJudge",
-    "LadderPaths",
-    "LadderRunConfig",
     "LoadedRunConfig",
+    "ManualPrune",
     "MaxCompletionTokensLimit",
     "MaxTokensLimit",
     "OpenRouterRegion",
@@ -336,6 +421,6 @@ __all__ = [
     "TransientRetryConfig",
     "load_run_config",
     "run_evaluation",
-    "run_ladder",
+    "run_grid",
     "run_pilot",
 ]

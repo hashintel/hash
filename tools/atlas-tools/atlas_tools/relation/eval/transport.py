@@ -2,7 +2,8 @@
 
 import math
 import os
-from collections.abc import Mapping, Sequence
+from collections import deque
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
 from threading import Lock, Semaphore
@@ -302,34 +303,145 @@ class OpenRouterTransportFactory:
         return OpenRouterTransport(self.api_key)
 
 
-class _ProviderLimits:
-    """Process-wide concurrent-request semaphores keyed by provider slug."""
+class GridGuardError(RuntimeError):
+    """A family stream guard fired; the run stops resumably and pages the operator."""
 
-    def __init__(self, limit: int) -> None:
-        self._limit = limit
+
+class _FamilyStreamState:
+    """One family's fresh-call accounting behind the shared guard lock."""
+
+    def __init__(self) -> None:
+        self.semaphore = Semaphore(1)
+        self.calls = 0
+        self.recent_costs: deque[float] = deque()
+
+
+class FamilyStreamGuards:
+    """Per-family serialization plus the grid's three fresh-stream guards.
+
+    Shared across every worker's transport so the whole run sees one stream
+    per family. The semaphore keeps at most one physical request in flight
+    per family (families run in parallel with each other, never interleaved
+    within themselves — the property that keeps the prefix cache hot). The
+    guards observe only fresh calls; imported pilot votes never pass here.
+
+    1. First-vote check: the family's first call must succeed, come back on
+       the pinned model, and parse to a verdict. A failure is a roster
+       problem, not a retry problem.
+    2. Cache assertion: from the configured call index, every accepted
+       completion must report cached prompt tokens; a cold cache halts.
+    3. Cost tripwire: the rolling mean of reported costs must stay under the
+       configured multiple of the family's pilot-measured per-vote cost.
+    """
+
+    def __init__(
+        self,
+        *,
+        cache_check_vote: int,
+        cost_window: int,
+        cost_multiplier: float,
+        pilot_cost_per_vote_usd: Mapping[str, float],
+        parse_verdict: Callable[[str], object],
+    ) -> None:
+        self._cache_check_vote = cache_check_vote
+        self._cost_window = cost_window
+        self._cost_multiplier = cost_multiplier
+        self._pilot_costs = dict(pilot_cost_per_vote_usd)
+        self._parse_verdict = parse_verdict
         self._guard = Lock()
-        self._semaphores: dict[str, Semaphore] = {}
+        self._families: dict[str, _FamilyStreamState] = {}
 
-    def semaphore(self, provider_slug: str) -> Semaphore:
+    def _state(self, family_id: str) -> _FamilyStreamState:
         with self._guard:
-            semaphore = self._semaphores.get(provider_slug)
-            if semaphore is None:
-                semaphore = Semaphore(self._limit)
-                self._semaphores[provider_slug] = semaphore
-            return semaphore
+            state = self._families.get(family_id)
+            if state is None:
+                state = _FamilyStreamState()
+                self._families[family_id] = state
+            return state
+
+    def guarded_complete(
+        self,
+        inner: CompletionTransport,
+        *,
+        messages: list[ChatMessages],
+        judge: JudgeConfig,
+        effort: ReasoningEffort,
+        session_id: str,
+        timeout: timedelta,
+    ) -> ChatResult:
+        state = self._state(judge.family_id)
+        with state.semaphore:
+            with self._guard:
+                call_index = state.calls
+                state.calls += 1
+            try:
+                result = inner.complete(
+                    messages=messages,
+                    judge=judge,
+                    effort=effort,
+                    session_id=session_id,
+                    timeout=timeout,
+                )
+            except Exception as error:
+                if call_index == 0:
+                    raise GridGuardError(
+                        f"first-vote check failed for {judge.family_id}: the stream's "
+                        f"opening request errored ({error}); this is a roster problem, "
+                        "not a retry problem — paging the operator"
+                    ) from error
+                raise
+            self._check_result(judge, call_index, result)
+            return result
+
+    def _check_result(self, judge: JudgeConfig, call_index: int, result: ChatResult) -> None:
+        if call_index == 0:
+            if result.model != judge.model:
+                raise GridGuardError(
+                    f"first-vote check failed for {judge.family_id}: returned model "
+                    f"{result.model!r} does not carry the pinned name"
+                )
+            content = _completion_content(result)
+            try:
+                self._parse_verdict(content)
+            except ValueError as error:
+                raise GridGuardError(
+                    f"first-vote check failed for {judge.family_id}: the opening "
+                    f"completion does not parse to a verdict ({error})"
+                ) from error
+        usage = aggregate_usage([result])
+        if call_index + 1 >= self._cache_check_vote and usage.tokens_cached <= 0:
+            raise GridGuardError(
+                f"cache assertion failed for {judge.family_id}: call "
+                f"{call_index + 1} reports no cached prompt tokens; a cold cache at "
+                "this depth is a surcharge, not a warm-up"
+            )
+        expected = self._pilot_costs.get(judge.family_id)
+        if expected is None or usage.cost_usd is None:
+            return
+        with self._guard:
+            state = self._families[judge.family_id]
+            state.recent_costs.append(usage.cost_usd)
+            while len(state.recent_costs) > self._cost_window:
+                state.recent_costs.popleft()
+            if len(state.recent_costs) < self._cost_window:
+                return
+            rolling_mean = sum(state.recent_costs) / len(state.recent_costs)
+        ceiling = self._cost_multiplier * expected
+        if rolling_mean > ceiling:
+            raise GridGuardError(
+                f"cost tripwire fired for {judge.family_id}: rolling mean "
+                f"${rolling_mean:.6f}/vote over the last {self._cost_window} votes "
+                f"exceeds {self._cost_multiplier}x the pilot-measured "
+                f"${expected:.6f}/vote"
+            )
 
 
 @dataclass
-class ProviderLimitedTransport:
-    """Bound the number of in-flight physical requests per provider slug.
-
-    Workers block on the provider's semaphore around the visible request; the
-    wait is bounded by the executor's own concurrency ceiling, so this only
-    trades global concurrency for per-provider politeness.
-    """
+class GuardedTransport:
+    """A worker transport routed through the shared family stream guards."""
 
     inner: CloseableCompletionTransport
-    limits: _ProviderLimits
+    guards: FamilyStreamGuards
 
     def complete(
         self,
@@ -340,39 +452,28 @@ class ProviderLimitedTransport:
         session_id: str,
         timeout: timedelta,
     ) -> ChatResult:
-        with self.limits.semaphore(judge.provider_slug):
-            return self.inner.complete(
-                messages=messages,
-                judge=judge,
-                effort=effort,
-                session_id=session_id,
-                timeout=timeout,
-            )
+        return self.guards.guarded_complete(
+            self.inner,
+            messages=messages,
+            judge=judge,
+            effort=effort,
+            session_id=session_id,
+            timeout=timeout,
+        )
 
     def close(self) -> None:
         self.inner.close()
 
 
 @dataclass
-class ProviderLimitedTransportFactory:
-    """Share one per-provider limit table across every worker's transport."""
+class GuardedTransportFactory:
+    """Share one family guard table across every worker's transport."""
 
     inner: CompletionTransportFactory
-    limits: _ProviderLimits
+    guards: FamilyStreamGuards
 
-    def __call__(self) -> ProviderLimitedTransport:
-        return ProviderLimitedTransport(inner=self.inner(), limits=self.limits)
-
-
-def provider_limited_factory(
-    factory: CompletionTransportFactory,
-    *,
-    limit: int | None,
-) -> CompletionTransportFactory:
-    """Wrap a factory with a per-provider concurrency cap; None passes through."""
-    if limit is None:
-        return factory
-    return ProviderLimitedTransportFactory(inner=factory, limits=_ProviderLimits(limit))
+    def __call__(self) -> GuardedTransport:
+        return GuardedTransport(inner=self.inner(), guards=self.guards)
 
 
 def _completion_content(result: ChatResult) -> str:

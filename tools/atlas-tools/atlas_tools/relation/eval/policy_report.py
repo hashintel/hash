@@ -1,10 +1,12 @@
-"""Per-run ladder evaluation report: gold agreement, gates, health, economics.
+"""Policy evaluation report over a grid run: gold agreement, gates, health.
 
-The report is emitted twice from one payload: ``report.json`` (the machine
-contract) and ``report.md`` (its deterministic rendering). The Coincident gate
-follows the release rule: the one-sided Wilson lower confidence bound of
-precision among coincident-predicted gold cards against the configured target,
-with an explicit feedability line. A stratum too small to ever clear the bound
+This is the downstream (classifier-facing) report, distinct from the grid's
+blocking acceptance gates in ``grid_report``. It is emitted twice from one
+payload: ``report.json`` (the machine contract) and ``report.md`` (its
+deterministic rendering). The Coincident gate follows the release rule: the
+one-sided Wilson lower confidence bound of precision among
+coincident-predicted gold cards against the configured target, with an
+explicit feedability line. A stratum too small to ever clear the bound
 reports UNPASSABLE BY SAMPLE SIZE rather than a failure.
 """
 
@@ -17,7 +19,7 @@ from typing import Literal
 from pydantic import Field, NonNegativeInt, PositiveInt, ValidationError
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_file
-from atlas_tools.relation.eval.artifacts import ladder_paths
+from atlas_tools.relation.eval.artifacts import CompletedGridRun, load_completed_grid
 from atlas_tools.relation.eval.classifier import (
     ClassifierBundleMetadata,
     PredictionRow,
@@ -29,18 +31,15 @@ from atlas_tools.relation.eval.gates import (
     minimum_feedable_count,
     wilson_lower_bound,
 )
-from atlas_tools.relation.eval.inputs import prepare_ladder_inputs
-from atlas_tools.relation.eval.journal import load_jsonl
-from atlas_tools.relation.eval.ladder import CardLadderOutcome, complete_card_outcomes
+from atlas_tools.relation.eval.grid import CardGridRecord
 from atlas_tools.relation.eval.schema import (
     PLACEMENT_CLASSES,
     VERDICTS,
+    FamilyGridCounts,
     GoldRow,
     JudgeFamilyId,
-    LadderManifest,
     PlacementClass,
     Probability,
-    RungEconomics,
     StrictModel,
     Verdict,
     VoteRow,
@@ -120,7 +119,6 @@ class ApplicabilitySummary(StrictModel):
 
 class JudgeHealth(StrictModel):
     family_id: JudgeFamilyId
-    rung: PositiveInt
     votes: NonNegativeInt
     abstentions: NonNegativeInt
     schema_compliance: Probability | None
@@ -134,14 +132,14 @@ class JudgeHealth(StrictModel):
 class VoteEconomics(StrictModel):
     total_votes: NonNegativeInt
     total_known_cost_usd: float
-    early_exit_cards: NonNegativeInt
-    early_exit_rate: Probability | None
+    refined_cards: NonNegativeInt
+    realized_trigger_rate: Probability
     review_queue_cards: NonNegativeInt
-    by_rung: list[RungEconomics]
+    by_family: list[FamilyGridCounts]
     cost_by_judge: dict[JudgeFamilyId, float]
 
 
-class LadderReport(StrictModel):
+class PolicyReport(StrictModel):
     schema_version: Literal[1] = REPORT_SCHEMA_VERSION
     rubric_version: str
     eligible_cards: PositiveInt
@@ -167,7 +165,7 @@ ReportProvenance = Provenance[ReportDetails]
 class ReportResult:
     report_json: Path
     report_md: Path
-    report: LadderReport
+    report: PolicyReport
 
 
 def load_gold(path: Path) -> list[GoldRow]:
@@ -191,9 +189,16 @@ def load_gold(path: Path) -> list[GoldRow]:
     return rows
 
 
-def panel_argmax(outcome: CardLadderOutcome) -> PlacementClass:
+def panel_argmax(record: CardGridRecord) -> PlacementClass:
     """Return the posterior-mean argmax; ties break toward the earlier class."""
-    posterior = dirichlet_posterior_mean(outcome.placement_counts)
+    counts = record.verdict_counts
+    posterior = dirichlet_posterior_mean(
+        {
+            "coincident": counts["coincident"],
+            "proximal": counts["proximal"],
+            "overlay": counts["overlay"],
+        }
+    )
     return max(
         PLACEMENT_CLASSES,
         key=lambda placement_class: (
@@ -366,11 +371,11 @@ def _applicability_by_producer(
 def judge_health(
     *,
     votes: Sequence[VoteRow],
-    judge_rungs: Mapping[JudgeFamilyId, int],
+    families: Sequence[JudgeFamilyId],
     gold_by_relation: Mapping[RelationId, GoldRow],
 ) -> list[JudgeHealth]:
     rows: list[JudgeHealth] = []
-    for family_id in sorted(judge_rungs):
+    for family_id in sorted(families):
         family_votes = [vote for vote in votes if vote.family_id == family_id]
         abstentions = sum(vote.abstained for vote in family_votes)
         repairs = sum(vote.parse_retries for vote in family_votes)
@@ -386,7 +391,6 @@ def judge_health(
         rows.append(
             JudgeHealth(
                 family_id=family_id,
-                rung=judge_rungs[family_id],
                 votes=len(family_votes),
                 abstentions=abstentions,
                 schema_compliance=(1.0 - abstentions / len(family_votes) if family_votes else None),
@@ -400,25 +404,20 @@ def judge_health(
     return rows
 
 
-def _economics(
-    *,
-    manifest: LadderManifest,
-    votes: Sequence[VoteRow],
-) -> VoteEconomics:
+def _economics(run: CompletedGridRun) -> VoteEconomics:
+    votes = [vote for record in run.records for vote in record.votes]
     cost_by_judge: dict[JudgeFamilyId, float] = {}
     for vote in votes:
         cost_by_judge[vote.family_id] = cost_by_judge.get(vote.family_id, 0.0) + (
             vote.known_cost_usd
         )
     return VoteEconomics(
-        total_votes=manifest.total_votes,
-        total_known_cost_usd=sum(vote.known_cost_usd for vote in votes),
-        early_exit_cards=manifest.early_exit_cards,
-        early_exit_rate=(
-            manifest.early_exit_cards / manifest.eligible_cards if manifest.eligible_cards else None
-        ),
-        review_queue_cards=manifest.review_queue_cards,
-        by_rung=manifest.rung_economics,
+        total_votes=run.manifest.total_votes,
+        total_known_cost_usd=sum(row.known_cost_usd for row in run.manifest.family_counts),
+        refined_cards=run.manifest.refined_cards,
+        realized_trigger_rate=run.manifest.realized_trigger_rate,
+        review_queue_cards=sum(record.verdict_counts["coincident"] > 0 for record in run.records),
+        by_family=run.manifest.family_counts,
         cost_by_judge=dict(sorted(cost_by_judge.items())),
     )
 
@@ -445,32 +444,24 @@ def build_report(
     loaded_config: LoadedRunConfig,
     gold_path: PathLike,
     classifier_dir: PathLike | None = None,
-) -> LadderReport:
+) -> PolicyReport:
     """Assemble the machine report from a completed run, gold, and optional bundle."""
-    config = loaded_config.ladder()
-    run_directory = Path(run_dir)
-    paths = ladder_paths(run_directory)
-    if not paths.manifest_json.is_file():
-        raise ValueError(f"{run_directory} is not a completed ladder run")
-    manifest = LadderManifest.model_validate_json(paths.manifest_json.read_bytes())
-    prepared = prepare_ladder_inputs(cards_dir, loaded_config)
-    if manifest.source_hashes["cards.jsonl"] != prepared.source_hashes["cards.jsonl"]:
-        raise ValueError("cards.jsonl differs from the corpus the ladder voted on")
-    votes = load_jsonl(paths.votes_jsonl, VoteRow)
-    outcomes = complete_card_outcomes(
-        config,
-        prepared=prepared,
-        votes_by_id={vote.vote_id: vote for vote in votes},
+    config = loaded_config.grid()
+    run = load_completed_grid(
+        run_dir=Path(run_dir),
+        cards_dir=Path(cards_dir),
+        loaded_config=loaded_config,
     )
+    votes = [vote for record in run.records for vote in record.votes]
     gold = load_gold(Path(gold_path))
     gold_by_relation = {row.relation_id: row for row in gold}
-    known_relations = {card.relation_id for card in prepared.eligible}
+    known_relations = {card.relation_id for card in run.pool}
     unknown_gold = sorted(set(gold_by_relation) - known_relations)
     if unknown_gold:
         raise ValueError(f"gold.jsonl labels relations outside the corpus: {unknown_gold[:5]}")
 
     panel_predictions: dict[RelationId, PredictedLabel] = {
-        outcome.card.relation_id: panel_argmax(outcome) for outcome in outcomes
+        record.card.relation_id: panel_argmax(record) for record in run.records
     }
     panel_gold = (
         _gold_agreement(source="panel", gold=gold, predictions=panel_predictions) if gold else None
@@ -509,9 +500,9 @@ def build_report(
         if gold
         else None
     )
-    return LadderReport(
+    return PolicyReport(
         rubric_version=config.rubric_version,
-        eligible_cards=len(prepared.eligible),
+        eligible_cards=len(run.pool),
         gold_cards=len(gold),
         gold_post_exposure=sum(row.post_exposure for row in gold),
         panel_gold=panel_gold,
@@ -521,15 +512,15 @@ def build_report(
         applicability=applicability,
         judges=judge_health(
             votes=votes,
-            judge_rungs=manifest.judge_rungs,
+            families=[row.family_id for row in run.manifest.family_counts],
             gold_by_relation=gold_by_relation,
         ),
-        economics=_economics(manifest=manifest, votes=votes),
+        economics=_economics(run),
     )
 
 
 def _validate_bundle(metadata: ClassifierBundleMetadata, loaded_config: LoadedRunConfig) -> None:
-    config = loaded_config.ladder()
+    config = loaded_config.grid()
     if metadata.rubric_version != config.rubric_version:
         raise ValueError("classifier bundle was fitted under a different rubric version")
     if metadata.judges_config_hash != loaded_config.content_hash:
@@ -626,12 +617,12 @@ def _judge_lines(judges: Sequence[JudgeHealth]) -> list[str]:
     lines = [
         "## Judge health and gold agreement",
         "",
-        "| judge | rung | votes | schema compliance | repair rate | gold votes "
+        "| judge | votes | schema compliance | repair rate | gold votes "
         "| gold agreement | median latency (s) | known cost (USD) |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     lines.extend(
-        f"| {judge.family_id} | {judge.rung} | {judge.votes} "
+        f"| {judge.family_id} | {judge.votes} "
         f"| {_rate(judge.schema_compliance)} | {_rate(judge.parse_repair_rate)} "
         f"| {judge.gold_votes} | {_rate(judge.gold_agreement)} "
         f"| {_rate(judge.median_latency_seconds)} | {judge.known_cost_usd:.6f} |"
@@ -646,18 +637,18 @@ def _economics_lines(economics: VoteEconomics) -> list[str]:
         "## Vote economics",
         "",
         f"- Total votes: {economics.total_votes} "
-        f"(known cost ${economics.total_known_cost_usd:.6f}).",
-        f"- Early-exit cards: {economics.early_exit_cards} "
-        f"(rate {_rate(economics.early_exit_rate)}).",
-        f"- Review-queue cards: {economics.review_queue_cards}.",
+        f"(known fresh cost ${economics.total_known_cost_usd:.6f}).",
+        f"- Refined cards: {economics.refined_cards} "
+        f"(realized trigger rate {economics.realized_trigger_rate:.3f}).",
+        f"- Coincident review-queue cards: {economics.review_queue_cards}.",
         "",
-        "| rung | cards | votes | abstentions | early exits | known cost (USD) |",
-        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| family | imported | fresh baseline | refinement | abstentions | known cost (USD) |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     lines.extend(
-        f"| {rung.rung} | {rung.cards} | {rung.votes} | {rung.abstentions} "
-        f"| {rung.early_exits} | {rung.known_cost_usd:.6f} |"
-        for rung in economics.by_rung
+        f"| {row.family_id} | {row.imported_votes} | {row.fresh_baseline_votes} "
+        f"| {row.refinement_votes} | {row.abstentions} | {row.known_cost_usd:.6f} |"
+        for row in economics.by_family
     )
     lines.append("")
     lines.append("Cost by judge:")
@@ -669,9 +660,9 @@ def _economics_lines(economics: VoteEconomics) -> list[str]:
     return lines
 
 
-def render_report_markdown(report: LadderReport) -> str:
+def render_report_markdown(report: PolicyReport) -> str:
     lines = [
-        "# Relation ladder evaluation report",
+        "# Relation policy evaluation report",
         "",
         f"- Rubric: {report.rubric_version}.",
         f"- Eligible cards: {report.eligible_cards}.",
@@ -716,7 +707,7 @@ def write_report(
     report_json.write_bytes(canonical_json_bytes(report.model_dump(mode="json")) + b"\n")
     report_md.write_text(render_report_markdown(report), encoding="utf-8")
     ReportProvenance.make(
-        producer="relation.ladder-report",
+        producer="relation.grid-policy-report",
         input_hashes={"gold.jsonl": sha256_file(Path(gold_path))},
         content_hashes={
             "report.json": sha256_file(report_json),

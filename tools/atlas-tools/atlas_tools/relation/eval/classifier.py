@@ -429,7 +429,7 @@ def fit_classifier(
     out_dir: PathLike,
 ) -> FitResult:
     """Fit, calibrate, and score the policy classifier into one versioned bundle."""
-    config = loaded_config.ladder()
+    config = loaded_config.grid()
     labels_path = Path(soft_labels_path)
     vectors_path = Path(embeddings_path)
     data, table = load_training_data(labels_path, vectors_path)

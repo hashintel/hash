@@ -406,7 +406,7 @@ class GridManifest(StrictModel):
         judge_families = [judge.family_id for judge in self.judges]
         if len(judge_families) != len(set(judge_families)):
             raise ValueError("judges contains duplicate family_id values")
-        if set(row.family_id for row in self.family_counts) != set(judge_families):
+        if {row.family_id for row in self.family_counts} != set(judge_families):
             raise ValueError("family_counts must cover exactly the seated judges")
         overlap = sorted(set(self.manual_prunes) & set(judge_families))
         if overlap:
@@ -416,6 +416,7 @@ class GridManifest(StrictModel):
             "cards.jsonl",
             "cards.manifest.json",
             "corpus.jsonl",
+            "imported-attempts.jsonl",
             "imported-votes.jsonl",
             "judges-panel",
             "pilot-votes.jsonl",
