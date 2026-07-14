@@ -150,6 +150,8 @@ export const Button = (props: ButtonProps) => {
     ((!!suffixContent && !prefixContent) ||
       (!!prefixContent && !suffixContent)) &&
     !children;
+  const isPressed =
+    !!pressed || !!rest["aria-pressed"] || !!rest["aria-expanded"];
 
   const classes = styles({
     size,
@@ -158,7 +160,7 @@ export const Button = (props: ButtonProps) => {
     tone,
     isLoading: loading,
     isDisabled: disabled || loading,
-    isPressed: pressed,
+    isPressed,
     hasIcon,
     hasIconLeft: !!prefixContent,
     hasIconRight: !!suffixContent,
@@ -198,7 +200,7 @@ export const Button = (props: ButtonProps) => {
   const sharedProps = {
     className: cx(classes.button, className),
     tabIndex,
-    "aria-pressed": pressed,
+    "aria-pressed": isPressed,
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,
     "aria-disabled": disabled || loading || undefined,
