@@ -2,7 +2,7 @@ import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
-import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
+import type { Place, SDCPN, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =
   | "Initializing"
@@ -31,15 +31,26 @@ export interface SimulationTransport {
 export type WorkerFactory = WorkerFactoryLike;
 
 /**
+ * One token attribute value in an initial marking. In addition to runtime
+ * token values, `uuid` attributes may be supplied as canonical UUID strings
+ * (the JSON-serializable at-rest form) — the simulator coerces both. Strings
+ * are literal values for `string` attributes.
+ */
+export type InitialTokenAttributeValue = number | boolean | bigint | string;
+
+/**
  * Initial token distribution for starting a simulation.
  *
- * This is intentionally JSON-serializable. The simulator is responsible for
+ * This is intentionally JSON-serializable (supply `uuid` attributes as
+ * strings, not bigints, when serializing). The simulator is responsible for
  * converting it into its internal packed frame representation.
  *
  * - Uncolored places use a token count.
  * - Colored places use one record per token, keyed by color element name.
  */
-export type InitialPlaceMarking = number | TokenRecord[];
+export type InitialPlaceMarking =
+  | number
+  | Record<string, InitialTokenAttributeValue>[];
 export type InitialMarking = Record<string, InitialPlaceMarking>;
 
 /**
@@ -92,11 +103,6 @@ export type SimulationFrameState = {
   };
 };
 
-export type SimulationPlaceTokenValues = {
-  values: Float64Array;
-  count: number;
-};
-
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
@@ -104,8 +110,8 @@ export interface SimulationFrameReader {
   readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
-  getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;
-  getPlaceTokens(place: Place, color: Color | null | undefined): TokenRecord[];
+  /** Typed token records for a coloured place; `[]` for uncoloured places. */
+  getPlaceTokens(place: Place): TokenRecord[];
   getTransitionState(transitionId: string): {
     /**
      * Time elapsed since this transition last fired, in milliseconds.

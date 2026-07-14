@@ -4,9 +4,10 @@ pub use self::{
         EntityQuerySortingToken, EntityQueryToken,
     },
     store::{
-        ClosedMultiEntityTypeMap, CreateEntityParams, DeleteEntitiesParams, DeletionScope,
-        DeletionSummary, DiffEntityParams, DiffEntityResult, EntityPermissions, EntityStore,
-        EntityValidationType, HasPermissionForEntitiesParams, LinkDeletionBehavior,
+        ClosedMultiEntityTypeMap, ClusterEntitiesParams, ClusterEntitiesResponse,
+        CreateEntityParams, CreateEntityPolicyParams, DeleteEntitiesParams, DeletionScope,
+        DeletionSummary, DiffEntityParams, DiffEntityResult, EntityCluster, EntityPermissions,
+        EntityStore, EntityValidationType, HasPermissionForEntitiesParams, LinkDeletionBehavior,
         PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
         QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesFilter,
         SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,

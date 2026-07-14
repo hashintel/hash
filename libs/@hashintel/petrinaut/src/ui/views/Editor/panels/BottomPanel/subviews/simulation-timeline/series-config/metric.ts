@@ -1,7 +1,6 @@
 import {
   buildMetricState,
   type CompiledMetric,
-  type Color,
   type Metric,
   type Place,
 } from "@hashintel/petrinaut-core";
@@ -21,9 +20,8 @@ export function buildMetricSeriesConfig(args: {
   metric: Metric | null;
   compiledMetric: CompiledMetric | null;
   places: Place[];
-  types: Color[];
 }): TimelineSeriesConfig {
-  const { metric, compiledMetric, places, types } = args;
+  const { metric, compiledMetric, places } = args;
 
   if (!metric || !compiledMetric) {
     return {
@@ -42,7 +40,7 @@ export function buildMetricSeriesConfig(args: {
     ],
     extract: (frame) => {
       try {
-        return compiledMetric(buildMetricState(frame, places, types));
+        return compiledMetric(buildMetricState(frame, places));
       } catch {
         return Number.NaN;
       }

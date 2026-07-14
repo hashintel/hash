@@ -286,6 +286,12 @@ where
 
 pub struct EntityPreprocessor {
     pub components: ValidateEntityComponents,
+    /// Whether to convert values from their original data type to the target data type.
+    ///
+    /// Stored values are already expressed in the target data type, `original_data_type_id` is
+    /// only kept as provenance, so re-processing persisted data (e.g. on snapshot restore) must
+    /// not apply the conversion again.
+    pub convert_values: bool,
 }
 
 impl EntityVisitor for EntityPreprocessor {
@@ -471,7 +477,7 @@ impl EntityVisitor for EntityPreprocessor {
             let source_data_type_ref: &DataTypeReference = source_data_type_id.into();
             let target_data_type_ref: &DataTypeReference = target_data_type_id.into();
 
-            if source_data_type_ref != target_data_type_ref {
+            if self.convert_values && source_data_type_ref != target_data_type_ref {
                 match type_provider
                     .find_conversion(source_data_type_ref, target_data_type_ref)
                     .await

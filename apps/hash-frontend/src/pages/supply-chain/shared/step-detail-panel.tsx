@@ -63,6 +63,7 @@ import { recomputeSupplierBlock } from "./supplier-otif";
 import { TIME_RANGE_OPTIONS, timeRangeLongLabel } from "./time-range";
 import { useTimeRange } from "./time-range-context";
 
+import type { BaseMeasure } from "./measure-context";
 import type {
   StepDetail as StepDetailType,
   StepStats,
@@ -313,6 +314,8 @@ interface StepDetailPanelProps {
    */
   stepMaterial?: string | null;
   briefHref?: string;
+  /** Overrides the global headline measure for context-specific entry points. */
+  measureOverride?: BaseMeasure;
   /** All status updates left against this step/node (any order; rendered newest-first). */
   statusEntries?: StatusEntry[];
   /** Opens the shared status dialog for this step. */
@@ -350,6 +353,7 @@ export const StepDetailPanel = ({
   productName,
   stepMaterial,
   briefHref,
+  measureOverride,
   statusEntries = [],
   onStatus,
   statusDialog,
@@ -756,6 +760,7 @@ export const StepDetailPanel = ({
                   timeRange={timeRange}
                   selectedComponent={selectedComponent != null}
                   countOverride={selectedComponentReconciliationCount}
+                  previousCount={periodComparison.previousStats?.n ?? 0}
                 />
 
                 {excludeOutliers && (filteredStep.excluded_count ?? 0) > 0 && (
@@ -884,6 +889,7 @@ export const StepDetailPanel = ({
                       unfilteredStep={step}
                       comparison={periodComparison}
                       timeRange={timeRange}
+                      measureOverride={measureOverride}
                     />
 
                     <StatsRow

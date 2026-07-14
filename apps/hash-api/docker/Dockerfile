@@ -14,12 +14,12 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.4.22 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    export MISE_VERSION=2026.7.0 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     eval "$(mise activate bash)" && \
-    mise install node
+    mise install --locked node
 
 
 FROM mise AS base
@@ -27,7 +27,7 @@ FROM mise AS base
 WORKDIR /app
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install npm:turbo yq
+    mise install --locked npm:turbo yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
@@ -51,7 +51,7 @@ ENV MISE_CARGO_HOME="/usr/local/cargo" \
 
 COPY rust-toolchain.toml .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install yq && \
+    mise install --locked yq && \
     echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
     echo "Rust installation completed. Checking versions:" && \
@@ -65,17 +65,22 @@ FROM rust AS builder
 
 WORKDIR /usr/local/src/
 
+# Install system packages and tools before copying the JS dependency manifests
+# so this layer stays cached across dependency changes and tools are not
+# re-downloaded from upstream sources on every dependency bump.
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    apt-get update && \
-    apt-get install -y --no-install-recommends build-essential && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    mise install node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc && \
     yarn install --immutable && \
     yarn cache clean
 

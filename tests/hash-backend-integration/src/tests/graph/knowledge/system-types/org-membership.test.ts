@@ -10,7 +10,6 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -56,8 +55,6 @@ describe("OrgMembership", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

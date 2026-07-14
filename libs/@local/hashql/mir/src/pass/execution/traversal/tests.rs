@@ -333,9 +333,9 @@ fn insert_all_len() {
     let mut bitset = empty_bitset();
     bitset.insert_all();
 
-    // 25 variants - 7 children (EntityId, WebId, EntityUuid, DraftId, EditionId,
-    // DecisionTime, TransactionTime) = 18
-    assert_eq!(bitset.len(), 18);
+    // 30 variants - 7 children (EntityId, WebId, EntityUuid, DraftId, EditionId,
+    // DecisionTime, TransactionTime) = 23
+    assert_eq!(bitset.len(), 23);
 }
 
 /// An empty bitset has len 0.
@@ -513,8 +513,8 @@ fn composite_transfer_size_matches_children() {
 
 /// `ProvenanceInferred` has a static `transfer_size` independent of config.
 ///
-/// The type is a fixed structure (3 required scalars + 2 optional timestamps), so its
-/// size is a constant `3..=5` regardless of `TransferCostConfig` values.
+/// The blob holds only optional scalars — two first-non-draft timestamps and three deletion
+/// fields — so its size is a constant `0..=5` regardless of `TransferCostConfig` values.
 #[test]
 fn inferred_provenance_transfer_size_is_static() {
     let small_config = TransferCostConfig::new(InformationRange::zero());
@@ -527,7 +527,7 @@ fn inferred_provenance_transfer_size_is_static() {
     assert_eq!(
         small,
         InformationRange::new(
-            InformationUnit::new(3),
+            InformationUnit::new(0),
             Bound::Included(InformationUnit::new(5))
         )
     );

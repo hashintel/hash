@@ -90,7 +90,13 @@
     "lint": {
       "dependsOn": ["codegen"]
     },
-    "lint:clippy": {},
+    // The clippy invocation differs between pull requests (`--all-features`) and other runs
+    // such as the merge queue (`cargo hack --feature-powerset`), selected via
+    // `GITHUB_EVENT_NAME` in the `.justfile`. Include it in the hash so the two run modes
+    // cannot share caches.
+    "lint:clippy": {
+      "env": ["GITHUB_EVENT_NAME"]
+    },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "@local/eslint#build"]

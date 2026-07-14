@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
 import { variableNameSchema } from "../validation/variable-name";
@@ -159,9 +160,9 @@ export const colorElementSchema = z
         description:
           "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.",
       }),
-    type: z.enum(["real", "integer", "boolean"]).meta({
+    type: z.enum(COLOR_ELEMENT_TYPES).meta({
       description:
-        "`real` is continuous and may be updated by dynamics. `integer` and `boolean` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently.",
+        "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them.",
     }),
   })
   .meta({

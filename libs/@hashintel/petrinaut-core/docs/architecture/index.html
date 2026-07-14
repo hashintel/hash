@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petrinaut Simulation — Architecture Overview</title>
+    <link rel="stylesheet" href="./architecture.css" />
+  </head>
+  <body>
+    <nav class="docs">
+      <a class="current" href="./index.html">Overview</a>
+      <a class="tag-engine" href="./engine.html">Engine</a>
+      <a class="tag-authoring" href="./authoring.html">Compilation</a>
+      <a class="tag-worker" href="./worker.html">Worker</a>
+      <a class="tag-mc" href="./monte-carlo.html">Monte Carlo</a>
+    </nav>
+
+    <h1>Simulation Architecture — Overview</h1>
+    <p class="subtitle">
+      How Petrinaut runs SDCPN simulations: who owns the memory, what crosses
+      thread boundaries, and how results are read back. Code lives in
+      <code>petrinaut-core/src/simulation/</code> (engine, authoring, worker,
+      runtime, monte-carlo). These pages describe the headless core only —
+      consumers appear as "the host application" using the public API; the React
+      integration is documented separately in
+      <a href="../../../petrinaut/ARCHITECTURE.md"
+        ><code>@hashintel/petrinaut/ARCHITECTURE.md</code></a
+      >.
+    </p>
+
+    <div class="legend">
+      <span class="l-engine">Engine (stepping &amp; frames)</span>
+      <span class="l-authoring">Compilation (user code)</span>
+      <span class="l-worker">Worker &amp; protocol</span>
+      <span class="l-mc">Monte Carlo</span>
+      <span class="l-memory">Memory / buffers</span>
+      <span class="l-ui">Host application</span>
+    </div>
+
+    <h2>The two execution paths</h2>
+    <p>
+      There are two independent ways to execute a net.
+      <strong>Quick Simulation</strong> runs one interactive simulation and
+      keeps <em>every frame</em> so the host can scrub.
+      <strong>Experiments</strong> run many Monte&nbsp;Carlo simulations with
+      <em>bounded memory</em> (two reusable buffers per run) and only ship
+      metric aggregates to the host — frame buffers never leave the worker.
+    </p>
+
+    <div class="lanes three">
+      <div class="lane">
+        <h4>Main thread — host application</h4>
+        <div class="box b-ui">
+          <strong>Run configuration</strong>
+          <small
+            >owns <code>InitialMarking</code>, parameter values, seed/dt/maxTime
+            (null = unbounded); calls <code>createSimulation()</code></small
+          >
+        </div>
+        <div class="box b-ui">
+          <strong>Playback driver</strong>
+          <small
+            >core <code>playback</code> module — picks the viewed frame
+            (<code>getFrame(i)</code>), drives ack/backpressure per play
+            mode</small
+          >
+        </div>
+        <div class="box b-ui">
+          <strong>Experiment consumer</strong>
+          <small
+            >one <code>MonteCarloExperiment</code> handle per experiment,
+            subscribed to its stores</small
+          >
+        </div>
+        <div class="box b-ui">
+          <strong>Rendering &amp; metrics</strong>
+          <small
+            >read via <code>SimulationFrameReader</code> / metric frames</small
+          >
+        </div>
+      </div>
+      <div class="lane">
+        <h4>Main thread — core runtime</h4>
+        <div class="box b-worker">
+          <strong>createSimulation()</strong>
+          <small
+            >runtime/simulation.ts — sanitizes SDCPN for extensions, flattens
+            component instances, owns lifecycle stores + events</small
+          >
+        </div>
+        <div class="box b-memory">
+          <strong>SimulationFrameStore</strong>
+          <small
+            >runtime/frame-store.ts — retains every
+            <code>SimulationFramePayload</code> (ArrayBuffer + time)</small
+          >
+        </div>
+        <div class="box b-engine">
+          <strong>SimulationFrameReader</strong>
+          <small
+            >frames/frame-reader.ts — typed-array views over a stored frame,
+            zero-copy reads</small
+          >
+        </div>
+        <div class="box b-mc">
+          <strong>createMonteCarloExperiment()</strong>
+          <small
+            >monte-carlo/runtime/experiment.ts — status / progress / metrics
+            stores</small
+          >
+        </div>
+      </div>
+      <div class="lane">
+        <h4>Worker threads</h4>
+        <div class="box b-worker">
+          <strong>simulation.worker</strong>
+          <small
+            >init → <code>buildSimulation()</code>; loop →
+            <code>computeNextFrame()</code>; streams frames under ack
+            backpressure</small
+          >
+        </div>
+        <div class="box b-memory">
+          <strong>SimulationInstance.frames[]</strong>
+          <small>full EngineFrame history — the compute source of truth</small>
+        </div>
+        <div class="box b-mc">
+          <strong>monte-carlo.worker</strong>
+          <small
+            ><code>MonteCarloSimulator</code> — round-robin
+            <code>advanceAll()</code>, metrics observed in-worker</small
+          >
+        </div>
+        <div class="box b-memory">
+          <strong>2 × ArrayBuffer per run</strong>
+          <small>current / next, swapped each step; no history</small>
+        </div>
+      </div>
+    </div>
+
+    <h2>Where the memory actually lives</h2>
+    <p>
+      Everything the simulation computes is stored in raw
+      <code>ArrayBuffer</code>s read through typed-array views. There is
+      <strong>no object graph of tokens</strong> — tokens are packed structs
+      (<code>real</code>/<code>integer</code> as f64 fields,
+      <code>boolean</code> as one u8 byte, stride rounded to 8 B), decoded to JS
+      objects only at the read boundary.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Memory</th>
+          <th>Structure</th>
+          <th>Thread</th>
+          <th>Lifetime / role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>SDCPN document</strong></td>
+          <td>Plain JS objects (editor state)</td>
+          <td>Main</td>
+          <td>
+            Snapshot is structured-cloned into the worker at <code>init</code>;
+            later edits don’t affect a running simulation.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Initial marking</strong></td>
+          <td>
+            JSON (<code>InitialMarking</code>: count or
+            <code>TokenRecord[]</code> per place)
+          </td>
+          <td>Main (host state)</td>
+          <td>
+            Packed into frame 0 by
+            <code>buildSimulation → packInitialPlaceMarking</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>EngineFrame</strong> (quick sim)</td>
+          <td>
+            <code>ArrayBuffer</code>: 64-byte header +
+            <code>Uint32</code>/<code>Float64</code>/<code>Uint8</code> sections
+            + packed token structs (byte-addressed places)
+          </td>
+          <td>Worker</td>
+          <td>
+            Immutable snapshot per step. The worker appends every frame to
+            <code>SimulationInstance.frames[]</code> — compute source of truth.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>SimulationFramePayload</strong></td>
+          <td><code>{ time, frame: ArrayBuffer }</code></td>
+          <td>Worker → Main</td>
+          <td>
+            <em>Structured-clone copy</em> per frame (no transfer list).
+            Retained forever by the in-memory frame store for scrubbing.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>SimulationFrameReader</strong></td>
+          <td>
+            <code>Uint32Array</code>/<code>Float64Array</code> views over the
+            stored buffer
+          </td>
+          <td>Main</td>
+          <td>
+            Zero-copy views. <code>getPlaceTokens()</code> materializes typed
+            <code>TokenRecord</code> objects via the place’s
+            <code>TokenSlotLayout</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Monte Carlo run buffers</strong></td>
+          <td>
+            2 × <code>ArrayBuffer</code> per run (current / next), token-value
+            region has capacity + growth policy
+          </td>
+          <td>MC worker</td>
+          <td>
+            Swapped each step. Never sent to the main thread — only progress
+            counters and metric frames (small JSON) cross the boundary.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Compiled user code</strong></td>
+          <td>Plain JS closures (<code>new Function</code>, same realm)</td>
+          <td>Worker (lambda/kernel/dynamics) · Main (scenario, metrics)</td>
+          <td>
+            Produced by <a href="./authoring.html">authoring</a> at init time.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note refactor">
+      <strong>Refactoring seam — triple retention.</strong> Each quick-sim frame
+      currently exists three times: in the worker history
+      (<code>SimulationInstance.frames[]</code>), as a structured-clone copy in
+      the main-thread frame store, and transiently in the
+      <code>postMessage</code> queue. Frames are never transferred
+      (<code>Transferable</code>) and the worker history is only read by the
+      stepping loop’s latest entry. Retention policy is deliberately isolated
+      behind <code>runtime/frame-store.ts</code> so this can change without
+      touching consumers.
+    </div>
+
+    <h2>Quick Simulation — end-to-end data flow</h2>
+
+    <div class="pipeline">
+      <div class="step box b-ui">
+        <strong
+          >SDCPN snapshot + InitialMarking + parameters +
+          seed/dt/maxTime</strong
+        >
+        <small
+          >Assembled by the host (main thread). Scenario compilation may have
+          produced the marking and parameter overrides first.</small
+        >
+      </div>
+      <div class="step box b-worker" data-arrow='postMessage {type:"init"}'>
+        <strong>simulation.worker — buildSimulation()</strong>
+        <small
+          >Sanitize by extensions → compile lambdas / kernels / dynamics → pack
+          frame 0. Replies <code>frame(0)</code> + <code>ready</code>.</small
+        >
+      </div>
+      <div class="step box b-engine" data-arrow="loop, gated by ack">
+        <strong>computeNextFrame() × batch</strong>
+        <small
+          >Dynamics (Euler) → transitions (enablement, lambda, kernel) → new
+          immutable EngineFrame appended; time += dt.</small
+        >
+      </div>
+      <div class="step box b-memory" data-arrow='postMessage {type:"frames"}'>
+        <strong>SimulationFrameStore (main)</strong>
+        <small
+          >Appends every payload; publishes <code>{count, latest}</code> through
+          the <code>frames</code> store.</small
+        >
+      </div>
+      <div class="step box b-engine">
+        <strong>SimulationFrameReader</strong>
+        <small
+          ><code>compileSimulationFrameReader(sdcpn)</code> specialises the
+          layout once; readers are created per frame on demand (<code
+            >latest()</code
+          >
+          / <code>getFrame(i)</code>).</small
+        >
+      </div>
+      <div class="step box b-ui">
+        <strong>Host reads</strong>
+        <small
+          >The playback driver picks <code>frameIndex</code>; the host renders
+          from <code>getTransitionState()</code>, <code>getPlaceTokens()</code>,
+          and <code>getPlaceTokenCount()</code>; metric code runs against
+          <code>buildMetricState(reader)</code>.</small
+        >
+      </div>
+    </div>
+
+    <h2>Protocols at a glance</h2>
+    <p>
+      Both workers speak a small typed message protocol over
+      <code>postMessage</code>, wrapped in a
+      <code>SimulationTransport</code> (queues messages until the worker boots).
+      Full payloads and sequence diagrams are on the
+      <a href="./worker.html">Worker</a> and
+      <a href="./monte-carlo.html">Monte Carlo</a> pages.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Host → Worker</th>
+          <th>Worker → Host</th>
+          <th>Flow control</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong style="color: var(--worker)">Quick sim</strong><br /><code
+              >worker/messages.ts</code
+            >
+          </td>
+          <td>
+            <code>init · start · pause · stop · setBackpressure · ack</code>
+          </td>
+          <td>
+            <code>ready · frame · frames · paused · complete · error</code>
+          </td>
+          <td>
+            Ack-based backpressure: worker computes at most
+            <code>maxFramesAhead</code> past the last acked frame.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <strong style="color: var(--mc)">Monte Carlo</strong><br /><code
+              >monte-carlo/worker/messages.ts</code
+            >
+          </td>
+          <td><code>init · start · cancel</code></td>
+          <td>
+            <code
+              >ready · progress · metricFrames · complete · cancelled ·
+              error</code
+            >
+          </td>
+          <td>
+            Fire-and-forget batches (<code>advanceAll()</code> × batchSize per
+            loop tick); cancellation checked between batches.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Module map</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Path</th>
+          <th>Owns</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color: var(--engine)">Engine</strong></td>
+          <td><code>engine/</code>, <code>frames/</code></td>
+          <td>Build + stepping, EngineFrame binary format, frame readers</td>
+          <td><a href="./engine.html">engine.html</a></td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--authoring)">Compilation</strong></td>
+          <td><code>authoring/</code></td>
+          <td>
+            User code → JS functions (lambda, kernel, dynamics, metric,
+            scenario), sandbox hardening
+          </td>
+          <td><a href="./authoring.html">authoring.html</a></td>
+        </tr>
+        <tr>
+          <td>
+            <strong style="color: var(--worker)">Worker + runtime</strong>
+          </td>
+          <td><code>worker/</code>, <code>runtime/</code></td>
+          <td>
+            Transport protocol, backpressure, lifecycle stores, frame retention
+          </td>
+          <td><a href="./worker.html">worker.html</a></td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--mc)">Monte Carlo</strong></td>
+          <td><code>monte-carlo/</code></td>
+          <td>
+            Batch runs, bounded buffers, metric pipeline, experiment handle
+          </td>
+          <td><a href="./monte-carlo.html">monte-carlo.html</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Design invariants worth keeping</h2>
+    <ul>
+      <li>
+        <strong>Frames are opaque outside the engine.</strong>
+        <code>EngineFrame</code> is “not a public API or stable storage format”;
+        it can only be decoded with the SDCPN-derived
+        <code>EngineFrameLayout</code>. All consumers go through
+        <code>SimulationFrameReader</code>.
+      </li>
+      <li>
+        <strong>Simulation time lives outside the frame.</strong> The run
+        controller owns frame number and time; payloads carry time as metadata.
+      </li>
+      <li>
+        <strong>Runs are snapshots.</strong> A simulation never re-reads the
+        live document; extension sanitization + component flattening happen once
+        at init on both sides of the boundary (they must agree on the place
+        list, or the layout check throws).
+      </li>
+      <li>
+        <strong>Determinism.</strong> One seeded RNG
+        (<code>seeded-rng.ts</code>) threaded through lambda sampling and
+        distribution draws; same seed → same run.
+      </li>
+    </ul>
+  </body>
+</html>

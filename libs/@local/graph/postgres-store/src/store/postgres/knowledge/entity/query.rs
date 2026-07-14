@@ -9,7 +9,7 @@ use tracing::instrument;
 use type_system::{
     knowledge::{
         entity::{
-            Entity, EntityMetadata, EntityProvenance, LinkData,
+            Entity, EntityMetadata, LinkData,
             id::{EntityId, EntityRecordId},
             metadata::EntityTemporalMetadata,
         },
@@ -20,6 +20,7 @@ use type_system::{
 
 use crate::store::postgres::{
     crud::QueryRecordDecode,
+    knowledge::entity::provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
     query::{Distinctness, PostgresRecord, SelectCompiler, Table},
 };
 
@@ -42,7 +43,11 @@ pub struct EntityRecordRowIndices {
     pub right_entity_web_id: usize,
 
     pub provenance: usize,
+    pub created_by_id: usize,
+    pub created_at_transaction_time: usize,
+    pub created_at_decision_time: usize,
     pub edition_provenance: usize,
+    pub edition_created_by_id: usize,
     pub property_metadata: usize,
 
     pub entity_confidence: usize,
@@ -173,10 +178,17 @@ impl QueryRecordDecode for Entity {
                         .take(direct_type_count)
                         .collect()
                 },
-                provenance: EntityProvenance {
-                    inferred: row.get(indices.provenance),
-                    edition: row.get(indices.edition_provenance),
-                },
+                provenance: SqlEntityProvenance {
+                    created_by_id: row.get(indices.created_by_id),
+                    created_at_transaction_time: row.get(indices.created_at_transaction_time),
+                    created_at_decision_time: row.get(indices.created_at_decision_time),
+                    json: row.get(indices.provenance),
+                    edition: SqlEntityEditionProvenance {
+                        created_by_id: row.get(indices.edition_created_by_id),
+                        json: row.get(indices.edition_provenance),
+                    },
+                }
+                .into(),
                 confidence: row.get(indices.entity_confidence),
                 properties: property_metadata,
                 archived: row.get(indices.archived),
@@ -245,8 +257,15 @@ impl PostgresRecord for Entity {
             right_entity_web_id: compiler.add_selection_path(&paths.right_web_id),
 
             provenance: compiler.add_selection_path(&EntityQueryPath::Provenance(None)),
+            created_by_id: compiler.add_selection_path(&EntityQueryPath::CreatedById),
+            created_at_transaction_time: compiler
+                .add_selection_path(&EntityQueryPath::CreatedAtTransactionTime),
+            created_at_decision_time: compiler
+                .add_selection_path(&EntityQueryPath::CreatedAtDecisionTime),
             edition_provenance: compiler
                 .add_selection_path(&EntityQueryPath::EditionProvenance(None)),
+            edition_created_by_id: compiler
+                .add_selection_path(&EntityQueryPath::EditionCreatedById),
             property_metadata: compiler
                 .add_selection_path(&EntityQueryPath::PropertyMetadata(None)),
 

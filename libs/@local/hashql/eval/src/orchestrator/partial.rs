@@ -301,6 +301,10 @@ impl<A: Allocator> Default for PartialLinkEntityId<'_, A> {
 
 /// Partial representation of `EntityProvenance`.
 pub(crate) struct PartialProvenance<'heap, A: Allocator> {
+    pub created_by_id: Required<Value<'heap, A>>,
+    pub created_at_transaction_time: Required<Value<'heap, A>>,
+    pub created_at_decision_time: Required<Value<'heap, A>>,
+    pub edition_created_by_id: Required<Value<'heap, A>>,
     pub inferred: Required<Value<'heap, A>>,
     pub edition: Required<Value<'heap, A>>,
 }
@@ -310,7 +314,15 @@ impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
     where
         A: Clone,
     {
-        let mut builder: StructBuilder<'heap, A, 2> = StructBuilder::new();
+        let mut builder: StructBuilder<'heap, A, 6> = StructBuilder::new();
+        self.created_by_id
+            .finish_in(&mut builder, sym::created_by_id);
+        self.created_at_transaction_time
+            .finish_in(&mut builder, sym::created_at_transaction_time);
+        self.created_at_decision_time
+            .finish_in(&mut builder, sym::created_at_decision_time);
+        self.edition_created_by_id
+            .finish_in(&mut builder, sym::edition_created_by_id);
         self.inferred.finish_in(&mut builder, sym::inferred);
         self.edition.finish_in(&mut builder, sym::edition);
 
@@ -326,6 +338,10 @@ impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
 impl<A: Allocator> Default for PartialProvenance<'_, A> {
     fn default() -> Self {
         Self {
+            created_by_id: Required::Skipped,
+            created_at_transaction_time: Required::Skipped,
+            created_at_decision_time: Required::Skipped,
+            edition_created_by_id: Required::Skipped,
             inferred: Required::Skipped,
             edition: Required::Skipped,
         }
@@ -531,6 +547,7 @@ pub(crate) struct PartialMetadata<'heap, A: Allocator> {
     pub temporal_versioning: Required<PartialTemporalVersioning<'heap, A>>,
     pub entity_type_ids: Required<Value<'heap, A>>,
     pub archived: Required<Value<'heap, A>>,
+    pub read_only: Required<Value<'heap, A>>,
     pub provenance: Required<PartialProvenance<'heap, A>>,
     pub confidence: Optional<Value<'heap, A>>,
     pub property_metadata: Required<Value<'heap, A>>,
@@ -541,7 +558,7 @@ impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
     where
         A: Clone,
     {
-        let mut builder: StructBuilder<'heap, A, 7> = StructBuilder::new();
+        let mut builder: StructBuilder<'heap, A, 8> = StructBuilder::new();
 
         self.record_id
             .map(|partial| partial.finish_in(interner, alloc.clone()))
@@ -552,6 +569,7 @@ impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
         self.entity_type_ids
             .finish_in(&mut builder, sym::entity_type_ids);
         self.archived.finish_in(&mut builder, sym::archived);
+        self.read_only.finish_in(&mut builder, sym::read_only);
         self.provenance
             .map(|partial| partial.finish_in(interner, alloc.clone()))
             .finish_in(&mut builder, sym::provenance);
@@ -575,6 +593,7 @@ impl<A: Allocator> Default for PartialMetadata<'_, A> {
             temporal_versioning: Required::Skipped,
             entity_type_ids: Required::Skipped,
             archived: Required::Skipped,
+            read_only: Required::Skipped,
             provenance: Required::Skipped,
             confidence: Optional::Skipped,
             property_metadata: Required::Skipped,
@@ -733,6 +752,46 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
             EntityPath::Confidence => {
                 let value: Option<f64> = row.try_get(column.index).map_err(row_hydration_error)?;
                 hydrate!(self->metadata->confidence = value.map(Num::from).map(Value::Number));
+            }
+            EntityPath::ReadOnly => {
+                let value: bool = row.try_get(column.index).map_err(row_hydration_error)?;
+                hydrate!(self->metadata->read_only = Value::Integer(Int::from(value)));
+            }
+            EntityPath::CreatedById => {
+                let value: Uuid = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_created_by_id(
+                    env,
+                    decoder,
+                    column,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                )?;
+            }
+            EntityPath::CreatedAtTransactionTime => {
+                let value: i64 = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_created_at_transaction_time(
+                    env,
+                    decoder,
+                    column,
+                    &serde_json::Value::from(value),
+                )?;
+            }
+            EntityPath::CreatedAtDecisionTime => {
+                let value: i64 = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_created_at_decision_time(
+                    env,
+                    decoder,
+                    column,
+                    &serde_json::Value::from(value),
+                )?;
+            }
+            EntityPath::EditionCreatedById => {
+                let value: Uuid = row.try_get(column.index).map_err(row_hydration_error)?;
+                self.hydrate_edition_created_by_id(
+                    env,
+                    decoder,
+                    column,
+                    JsonValueRef::String(&value.hyphenated().to_string()),
+                )?;
             }
             EntityPath::ProvenanceInferred => {
                 let value: serde_json::Value =
@@ -981,6 +1040,86 @@ impl<'heap, A: Allocator> PartialEntity<'heap, A> {
         let value =
             decoder.try_decode(EntityPath::EditionId.expect_type(env), value.into(), column)?;
         hydrate!(self->metadata->record_id->edition_id = value);
+
+        Ok(())
+    }
+
+    fn hydrate_created_by_id<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        decoder: &Decoder<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<JsonValueRef<'value>>,
+    ) -> Result<(), BridgeError<'heap>>
+    where
+        A: Clone,
+    {
+        let value = decoder.try_decode(
+            EntityPath::CreatedById.expect_type(env),
+            value.into(),
+            column,
+        )?;
+        hydrate!(self->metadata->provenance->created_by_id = value);
+
+        Ok(())
+    }
+
+    fn hydrate_created_at_transaction_time<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        decoder: &Decoder<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<JsonValueRef<'value>>,
+    ) -> Result<(), BridgeError<'heap>>
+    where
+        A: Clone,
+    {
+        let value = decoder.try_decode(
+            EntityPath::CreatedAtTransactionTime.expect_type(env),
+            value.into(),
+            column,
+        )?;
+        hydrate!(self->metadata->provenance->created_at_transaction_time = value);
+
+        Ok(())
+    }
+
+    fn hydrate_created_at_decision_time<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        decoder: &Decoder<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<JsonValueRef<'value>>,
+    ) -> Result<(), BridgeError<'heap>>
+    where
+        A: Clone,
+    {
+        let value = decoder.try_decode(
+            EntityPath::CreatedAtDecisionTime.expect_type(env),
+            value.into(),
+            column,
+        )?;
+        hydrate!(self->metadata->provenance->created_at_decision_time = value);
+
+        Ok(())
+    }
+
+    fn hydrate_edition_created_by_id<'value>(
+        &mut self,
+        env: &Environment<'heap>,
+        decoder: &Decoder<'_, 'heap, A>,
+        column: Indexed<ColumnDescriptor>,
+        value: impl Into<JsonValueRef<'value>>,
+    ) -> Result<(), BridgeError<'heap>>
+    where
+        A: Clone,
+    {
+        let value = decoder.try_decode(
+            EntityPath::EditionCreatedById.expect_type(env),
+            value.into(),
+            column,
+        )?;
+        hydrate!(self->metadata->provenance->edition_created_by_id = value);
 
         Ok(())
     }

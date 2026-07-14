@@ -1,0 +1,478 @@
+/* Shared styles for the simulation architecture docs (architecture*.html). */
+
+:root {
+  /* One colour per module, used consistently across all pages. */
+  --engine: #2563eb; /* blue   — engine (stepping, frames)        */
+  --engine-bg: #eff6ff;
+  --authoring: #9333ea; /* purple — compilation of user code        */
+  --authoring-bg: #faf5ff;
+  --worker: #059669; /* green  — worker + transport protocol     */
+  --worker-bg: #ecfdf5;
+  --mc: #ea580c; /* orange — monte carlo / experiments       */
+  --mc-bg: #fff7ed;
+  --memory: #dc2626; /* red    — buffers, where bytes live       */
+  --memory-bg: #fef2f2;
+  --ui: #0891b2; /* cyan   — React / UI consumers            */
+  --ui-bg: #ecfeff;
+  --ink: #111111;
+  --muted: #555555;
+  --line: #d9d9d9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+  max-width: 1000px;
+  background: #ffffff;
+  color: var(--ink);
+  font:
+    15px/1.55 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+h1 {
+  font-size: 1.7rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 2.5rem 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--line);
+}
+
+h3 {
+  font-size: 1.02rem;
+  margin: 1.75rem 0 0.5rem;
+}
+
+p {
+  max-width: 76ch;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+code,
+pre {
+  font-family:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+code {
+  padding: 0.1em 0.35em;
+}
+
+pre {
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  border: 1px solid #ececec;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+}
+
+a {
+  color: var(--engine);
+}
+
+/* ---- Top navigation ------------------------------------------------- */
+
+nav.docs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.6rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--ink);
+  font-size: 0.9rem;
+}
+
+nav.docs a {
+  text-decoration: none;
+  color: var(--ink);
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+nav.docs a.current {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+nav.docs a.tag-engine.current {
+  background: var(--engine);
+  border-color: var(--engine);
+}
+nav.docs a.tag-authoring.current {
+  background: var(--authoring);
+  border-color: var(--authoring);
+}
+nav.docs a.tag-worker.current {
+  background: var(--worker);
+  border-color: var(--worker);
+}
+nav.docs a.tag-mc.current {
+  background: var(--mc);
+  border-color: var(--mc);
+}
+
+/* ---- Legend chips ---------------------------------------------------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0.75rem 0 1.25rem;
+  font-size: 0.82rem;
+}
+
+.legend span::before {
+  content: "";
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.4em;
+  border-radius: 3px;
+  vertical-align: -0.05em;
+}
+
+.legend .l-engine::before {
+  background: var(--engine);
+}
+.legend .l-authoring::before {
+  background: var(--authoring);
+}
+.legend .l-worker::before {
+  background: var(--worker);
+}
+.legend .l-mc::before {
+  background: var(--mc);
+}
+.legend .l-memory::before {
+  background: var(--memory);
+}
+.legend .l-ui::before {
+  background: var(--ui);
+}
+
+/* ---- Tables ----------------------------------------------------------- */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0 1.25rem;
+  font-size: 0.88rem;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f6f6f6;
+  font-weight: 600;
+}
+
+/* ---- Generic diagram primitives -------------------------------------- */
+
+.box {
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  background: #fff;
+}
+
+.box strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.box small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  display: block;
+}
+
+.box.b-engine {
+  border-color: var(--engine);
+  background: var(--engine-bg);
+}
+.box.b-engine strong {
+  color: var(--engine);
+}
+.box.b-authoring {
+  border-color: var(--authoring);
+  background: var(--authoring-bg);
+}
+.box.b-authoring strong {
+  color: var(--authoring);
+}
+.box.b-worker {
+  border-color: var(--worker);
+  background: var(--worker-bg);
+}
+.box.b-worker strong {
+  color: var(--worker);
+}
+.box.b-mc {
+  border-color: var(--mc);
+  background: var(--mc-bg);
+}
+.box.b-mc strong {
+  color: var(--mc);
+}
+.box.b-memory {
+  border-color: var(--memory);
+  background: var(--memory-bg);
+}
+.box.b-memory strong {
+  color: var(--memory);
+}
+.box.b-ui {
+  border-color: var(--ui);
+  background: var(--ui-bg);
+}
+.box.b-ui strong {
+  color: var(--ui);
+}
+
+/* Vertical pipeline: boxes separated by a downward arrow. */
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 1rem 0 1.5rem;
+  max-width: 620px;
+}
+
+.pipeline > .step {
+  position: relative;
+}
+
+.pipeline > .step + .step {
+  margin-top: 1.6rem;
+}
+
+.pipeline > .step + .step::before {
+  content: "▼";
+  position: absolute;
+  top: -1.45rem;
+  left: 2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.pipeline > .step + .step[data-arrow]::after {
+  content: attr(data-arrow);
+  position: absolute;
+  top: -1.5rem;
+  left: 3.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+/* Horizontal flow: boxes with a → between them. */
+.hflow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.35rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.hflow > .box {
+  flex: 1 1 0;
+  min-width: 118px;
+}
+
+.hflow > .arr {
+  align-self: center;
+  color: var(--muted);
+  font-size: 1rem;
+  padding: 0 0.1rem;
+}
+
+/* Two/three column thread lanes. */
+.lanes {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.lanes.two {
+  grid-template-columns: 1fr 1fr;
+}
+.lanes.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.lane {
+  border: 1px dashed #bbb;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #fcfcfc;
+}
+
+.lane > h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.lane .box {
+  margin-bottom: 0.6rem;
+}
+
+.lane .box:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Byte-layout bars -------------------------------------------------- */
+
+.bytes {
+  display: flex;
+  width: 100%;
+  margin: 0.75rem 0 0.25rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.bytes .seg {
+  padding: 0.45rem 0.2rem;
+  border-right: 1.5px solid var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bytes .seg:last-child {
+  border-right: none;
+}
+
+.bytes .seg em {
+  display: block;
+  font-style: normal;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.seg.s-header {
+  background: #ededed;
+}
+.seg.s-u32 {
+  background: #d3e5ff;
+}
+.seg.s-f64 {
+  background: #fecaca;
+}
+.seg.s-u8 {
+  background: #d1fae5;
+}
+.seg.s-tokens {
+  background: #fee2b8;
+}
+
+.bytes-caption {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0.15rem 0 1.25rem;
+}
+
+/* ---- Callouts ----------------------------------------------------------- */
+
+.note {
+  border-left: 4px solid #eab308;
+  background: #fefce8;
+  padding: 0.6rem 0.9rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+}
+
+.note.refactor {
+  border-left-color: var(--memory);
+  background: var(--memory-bg);
+}
+
+.note strong {
+  display: inline;
+}
+
+/* ---- At-a-glance card ---------------------------------------------------- */
+
+.glance {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.88rem;
+  background: #fafafa;
+}
+
+.glance dt {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.glance dd {
+  margin: 0;
+}
+
+/* ---- SVG diagrams --------------------------------------------------------- */
+
+figure {
+  margin: 1rem 0 1.5rem;
+}
+
+figure svg {
+  max-width: 100%;
+  height: auto;
+}
+
+figcaption {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 720px) {
+  .lanes.two,
+  .lanes.three {
+    grid-template-columns: 1fr;
+  }
+}

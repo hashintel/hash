@@ -36,7 +36,6 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -207,7 +206,6 @@ beforeAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser2.kratosIdentityId,
     });
-    await resetGraph();
   };
 });
 

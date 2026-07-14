@@ -1,8 +1,9 @@
 import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
 import { type ReactNode, type RefObject } from "react";
 
+import { useScrollLock } from "@hashintel/ds-components";
+
 import { useSlideStack } from "../../../pages/shared/slide-stack";
-import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
 
 import type { DataEditorProps } from "@glideapps/glide-data-grid";

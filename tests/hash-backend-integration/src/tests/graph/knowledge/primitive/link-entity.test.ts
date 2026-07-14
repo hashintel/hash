@@ -17,7 +17,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
@@ -151,8 +150,6 @@ describe("Link entity", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

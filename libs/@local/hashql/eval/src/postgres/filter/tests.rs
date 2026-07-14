@@ -762,6 +762,68 @@ fn nested_property_access() {
     assert_snapshot!("nested_property_access", report.to_string());
 }
 
+/// Creator access: `vertex.metadata.provenance.created_by_id` → the dedicated
+/// `entity_ids.created_by_id` column, not a JSONB access on the provenance blob.
+#[test]
+fn created_by_id_column_equality() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             val: ?, input_val: ?, result: Bool;
+        @proj v_metadata = vertex.metadata: ?,
+              v_provenance = v_metadata.provenance: ?,
+              v_created_by = v_provenance.created_by_id: ?;
+
+        bb0() {
+            val = load v_created_by;
+            input_val = input.load! "creator";
+            result = bin.== val input_val;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_filter_islands(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("created_by_id_column_equality", report.to_string());
+}
+
+/// Creation timestamp access: `vertex.metadata.provenance.created_at_transaction_time` →
+/// the `entity_ids.created_at_transaction_time` column as epoch milliseconds.
+#[test]
+fn created_at_column_comparison() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             val: ?, input_val: ?, result: Bool;
+        @proj v_metadata = vertex.metadata: ?,
+              v_provenance = v_metadata.provenance: ?,
+              v_created_at = v_provenance.created_at_transaction_time: ?;
+
+        bb0() {
+            val = load v_created_at;
+            input_val = input.load! "cutoff";
+            result = bin.== val input_val;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_filter_islands(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("created_at_column_comparison", report.to_string());
+}
+
 /// Link data field access: `vertex.link_data.left_entity_id.entity_uuid` →
 /// LEFT OUTER JOIN on `entity_has_left_entity`, correct column reference.
 #[test]
@@ -1083,7 +1145,7 @@ fn temporal_decision_time_interval() {
     assert_snapshot!("temporal_decision_time_interval", report.to_string());
 }
 
-/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::bigint` casts.
+/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::int8` casts.
 #[test]
 fn binary_bitand_bigint_cast() {
     let heap = Heap::new();
@@ -1110,7 +1172,7 @@ fn binary_bitand_bigint_cast() {
     assert_snapshot!("binary_bitand_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::boolean` casts.
+/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::bool` casts.
 #[test]
 fn binary_bitand_boolean_and() {
     let heap = Heap::new();
@@ -1137,7 +1199,7 @@ fn binary_bitand_boolean_and() {
     assert_snapshot!("binary_bitand_boolean_and", report.to_string());
 }
 
-/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::bigint` casts.
+/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::int8` casts.
 #[test]
 fn binary_bitor_bigint_cast() {
     let heap = Heap::new();
@@ -1164,7 +1226,7 @@ fn binary_bitor_bigint_cast() {
     assert_snapshot!("binary_bitor_bigint_cast", report.to_string());
 }
 
-/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::boolean` casts.
+/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::bool` casts.
 #[test]
 fn binary_bitor_boolean_or() {
     let heap = Heap::new();

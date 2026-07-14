@@ -21,21 +21,14 @@ import { type TimeRange, timeRangeLongLabel } from "../shared/time-range";
 import { useTimeRange } from "../shared/time-range-context";
 import { ToolbarCheckbox } from "../shared/toolbar-checkbox";
 import { useSearchParams } from "../shared/use-search-params";
-import { CategoryFilter } from "./site/category-filter";
 import { DwellTable } from "./site/dwell-table";
 import {
   buildSiteOpportunities,
   type OpportunityStatusActions,
-  type OpportunityStatuses,
   type OpportunityKind,
 } from "./site/opportunities";
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
-import {
-  ALL_CATEGORY_KEYS,
-  categoryMatcher,
-  parseCategoryParam,
-} from "./site/shared/helpers";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
 import { SupplierTable } from "./site/supplier-table";
 import { TabButton } from "./site/tab-button";
@@ -43,8 +36,9 @@ import { TrendTable } from "./site/trend-table";
 import { useSiteOverviewRows } from "./site/use-site-overview-rows";
 import { VendorDetailPanel } from "./site/vendor-detail-panel";
 
-import type { StatusStore } from "../shared/status";
-import type { Product, SiteNode } from "../shared/types";
+import type { BaseMeasure } from "../shared/measure-context";
+import type { StatusActionLabel, StatusStore } from "../shared/status";
+import type { Product, SiteNode, StepType } from "../shared/types";
 import type {
   Tab,
   SortKey,
@@ -53,6 +47,7 @@ import type {
 } from "./site/shared/row-types";
 
 const errorPad = css({ px: "6", py: "4" });
+
 // Fill the layout's main area (a flex column) and clamp our own height to it so
 // the content pane can scroll internally instead of overflowing the viewport.
 // `minH:0` is required for the inner `overflow:auto` pane to actually scroll.
@@ -104,6 +99,7 @@ const settingsCollapse = css({
 });
 const settingsCollapseOpen = css({ gridTemplateRows: "1fr", opacity: "1" });
 const settingsCollapseInner = css({ minH: "0", overflow: "hidden" });
+
 // The content area is the page scroller inside the viewport-bounded main
 // (`flex:1; minH:0`). Each table caps its own height to ~the viewport (see
 // `card` / `tableContainer`) so it scrolls internally once tall, while the page
@@ -134,28 +130,17 @@ const tabBar = css({
   pb: "[1px]",
 });
 const tabButtons = css({ display: "flex", alignItems: "flex-end", gap: "3" });
-const tabFilterSlot = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  pb: "2",
-});
 // Groups the tab bar with its active table so they stack tightly.
-const tableSection = css({ display: "flex", flexDirection: "column" });
-const DWELL_CATEGORY_KEY = "dwell";
-const PLANNING_FILTER_HIDDEN_KEYS = new Set([DWELL_CATEGORY_KEY]);
-const NO_HIDDEN_FILTER_KEYS = new Set<string>();
+const tableSection = css({ display: "flex", flexDirection: "column", pb: "6" });
 
 interface SiteOverviewProps {
   products: Product[];
   /** Route site slug; keys the precomputed `site/{slug}/summary.json` artifact. */
   siteId: string;
-  opportunityStatuses?: OpportunityStatuses;
   opportunityStatusHistory?: StatusStore;
   opportunityStatusActions?: OpportunityStatusActions;
 }
 
-const emptyOpportunityStatuses: OpportunityStatuses = {};
 const emptyOpportunityStatusHistory: StatusStore = {};
 const noopOpportunityStatusActions: OpportunityStatusActions = {
   onMarkRead: () => {},
@@ -169,15 +154,11 @@ function opportunityBriefHref(
   type: "dwell" | "planning",
   node: SiteNode,
   timeRange: TimeRange,
-  catParam: string | null,
   currentSearchParams: URLSearchParams,
   kind?: OpportunityKind,
 ): string {
   const productId = node.products[0]?.id ?? "";
   const params = new URLSearchParams({ range: timeRange });
-  if (catParam) {
-    params.set("cat", catParam);
-  }
   if (kind) {
     params.set("op", kind);
   }
@@ -187,8 +168,11 @@ function opportunityBriefHref(
       params.set(key, value);
     }
   }
-  return `/supply-chain/site/${siteSlug}/opportunity/${type}/${productId}/${node.id}?${params.toString()}`;
+  return `/supply-chain/site/${siteSlug}/opportunity/${type}/${productId}/${
+    node.id
+  }?${params.toString()}`;
 }
+
 function statusTitleForNode(node: SiteNode, fallbackTitle: string): string {
   if (node.products.length !== 1) {
     return fallbackTitle;
@@ -196,10 +180,10 @@ function statusTitleForNode(node: SiteNode, fallbackTitle: string): string {
   const product = node.products[0];
   return product ? `${fallbackTitle} (${product.name})` : fallbackTitle;
 }
+
 export const SiteOverview = ({
   products,
   siteId,
-  opportunityStatuses = emptyOpportunityStatuses,
   opportunityStatusHistory = emptyOpportunityStatusHistory,
   opportunityStatusActions = noopOpportunityStatusActions,
 }: SiteOverviewProps) => {
@@ -208,53 +192,8 @@ export const SiteOverview = ({
   const siteSlug = siteId;
   const [tab, setTab] = useState<Tab>("dwell");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { excludeLowSamples, setExcludeLowSamples } = useLowSampleSetting();
-  const selectedCategories = useMemo(
-    () => parseCategoryParam(searchParams.get("cat")),
-    [searchParams],
-  );
-  const allCategories = useMemo(() => new Set(ALL_CATEGORY_KEYS), []);
-  const visibleFilterKeys =
-    tab === "planning"
-      ? ALL_CATEGORY_KEYS.filter((key) => key !== DWELL_CATEGORY_KEY)
-      : ALL_CATEGORY_KEYS;
-  const effectiveFilterCategories = useMemo(() => {
-    const visible = new Set(visibleFilterKeys);
-    const next = new Set(
-      [...selectedCategories].filter((key) => visible.has(key)),
-    );
-    return next.size > 0 ? next : visible;
-  }, [selectedCategories, visibleFilterKeys]);
-  const setSelectedCategories = useCallback(
-    (next: Set<string>, visibleKeys = ALL_CATEGORY_KEYS) => {
-      setSearchParams(
-        (prev) => {
-          const params = new URLSearchParams(prev);
-          const visible = new Set(visibleKeys);
-          const selectedVisibleKeys = visibleKeys.filter((key) =>
-            next.has(key),
-          );
-          const serialized =
-            selectedVisibleKeys.length === visible.size
-              ? null
-              : selectedVisibleKeys.join(",");
-          if (serialized) {
-            params.set("cat", serialized);
-          } else {
-            params.delete("cat");
-          }
-          return params;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-  const setVisibleSelectedCategories = useCallback(
-    (next: Set<string>) => setSelectedCategories(next, visibleFilterKeys),
-    [setSelectedCategories, visibleFilterKeys],
-  );
   const [selectedStep, setSelectedStep] = useState<{
     productId: string;
     stepId: string;
@@ -262,11 +201,13 @@ export const SiteOverview = ({
     title: string;
     siteContext: { products: Array<{ id: string; name: string }> };
     briefHref: string;
+    measureOverride?: BaseMeasure;
   } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{
     node: SiteNode;
     title: string;
   } | null>(null);
+
   const openStatus = useCallback(
     (node: SiteNode, title: string) => {
       trackSupplyChainInteraction({
@@ -297,6 +238,57 @@ export const SiteOverview = ({
   }>({ key: "otif", dir: "asc" });
   const [supplierMode] = useState<SupplierMode>("worst");
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+
+  // Detail-table column filters, stored per tab as the set of *hidden* values
+  // (empty = everything shown). Persisted here so they survive tab switches.
+  const [dwellTypeHidden, setDwellTypeHidden] = useState<Set<StepType>>(
+    () => new Set(),
+  );
+  const [planningTypeHidden, setPlanningTypeHidden] = useState<Set<StepType>>(
+    () => new Set(),
+  );
+  const [trendTypeHidden, setTrendTypeHidden] = useState<Set<StepType>>(
+    () => new Set(),
+  );
+  const [dwellProductHidden, setDwellProductHidden] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [planningProductHidden, setPlanningProductHidden] = useState<
+    Set<string>
+  >(() => new Set());
+  const [trendProductHidden, setTrendProductHidden] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [dwellStatusHidden, setDwellStatusHidden] = useState<
+    Set<StatusActionLabel>
+  >(() => new Set());
+  const [planningStatusHidden, setPlanningStatusHidden] = useState<
+    Set<StatusActionLabel>
+  >(() => new Set());
+  const [trendStatusHidden, setTrendStatusHidden] = useState<
+    Set<StatusActionLabel>
+  >(() => new Set());
+
+  // Opportunities table sort. Defaults to impact (per-section score) descending,
+  // which matches the order rows are built in, so the header reflects it.
+  const [oppSort, setOppSort] = useState<{
+    key: SortKey;
+    dir: SortDir;
+  } | null>({ key: "impact", dir: "desc" });
+  const [oppTypeHidden, setOppTypeHidden] = useState<Set<OpportunityKind>>(
+    () => new Set(),
+  );
+  const [oppProductHidden, setOppProductHidden] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [oppStatusHidden, setOppStatusHidden] = useState<
+    Set<StatusActionLabel>
+  >(() => new Set());
+  const [oppSectionRevealRequest, setOppSectionRevealRequest] = useState<{
+    kind: OpportunityKind;
+    requestId: number;
+  } | null>(null);
+
   const {
     loading,
     error,
@@ -310,36 +302,13 @@ export const SiteOverview = ({
   } = useSiteOverviewRows({
     siteSlug,
     products,
-    selectedCategories: allCategories,
     excludeLowSamples,
-    dwellSort,
-    planSort,
     supplierMode,
     supplierPerformanceEnabled,
   });
-  const tableCategoryMatcher = useMemo(
-    () => categoryMatcher(effectiveFilterCategories),
-    [effectiveFilterCategories],
-  );
-  const filteredPlanningRows = useMemo(
-    () => planningRows.filter((row) => tableCategoryMatcher(row.type)),
-    [planningRows, tableCategoryMatcher],
-  );
-  const filteredTrendRows = useMemo(
-    () => trendRows.filter((row) => tableCategoryMatcher(row.type)),
-    [trendRows, tableCategoryMatcher],
-  );
   const buildBriefHref = useCallback(
     (type: "dwell" | "planning", node: SiteNode, kind?: OpportunityKind) =>
-      opportunityBriefHref(
-        siteSlug,
-        type,
-        node,
-        timeRange,
-        null,
-        searchParams,
-        kind,
-      ),
+      opportunityBriefHref(siteSlug, type, node, timeRange, searchParams, kind),
     [searchParams, siteSlug, timeRange],
   );
   const opportunities = useMemo(
@@ -361,8 +330,17 @@ export const SiteOverview = ({
       buildBriefHref,
     ],
   );
+
+  const overPlanCount = useMemo(
+    () =>
+      opportunities.filter(
+        (opportunity) => opportunity.kind === "planning_over",
+      ).length,
+    [opportunities],
+  );
+
   const handleStepClick = useCallback(
-    (node: SiteNode) => {
+    (node: SiteNode, opportunityKind?: OpportunityKind) => {
       const firstProduct = node.products[0];
       if (!firstProduct) {
         return;
@@ -382,11 +360,33 @@ export const SiteOverview = ({
         briefHref: buildBriefHref(
           isDwellType(node.type) ? "dwell" : "planning",
           node,
+          opportunityKind,
         ),
+        measureOverride:
+          opportunityKind === "planning_over" ||
+          opportunityKind === "planning_under"
+            ? "p95"
+            : undefined,
       });
     },
     [buildBriefHref, siteId],
   );
+
+  const revealOverPlanOpportunities = useCallback(() => {
+    setOppTypeHidden((hiddenKinds) => {
+      if (!hiddenKinds.has("planning_over")) {
+        return hiddenKinds;
+      }
+      const nextHiddenKinds = new Set(hiddenKinds);
+      nextHiddenKinds.delete("planning_over");
+      return nextHiddenKinds;
+    });
+    setOppSectionRevealRequest((previousRequest) => ({
+      kind: "planning_over",
+      requestId: (previousRequest?.requestId ?? 0) + 1,
+    }));
+  }, []);
+
   const handlePanelClose = useCallback(() => {
     trackSupplyChainInteraction({
       interaction: "step_detail_panel_closed",
@@ -396,14 +396,17 @@ export const SiteOverview = ({
     });
     setSelectedStep(null);
   }, [selectedStep?.stepId, siteId]);
+
   const statusTargetIsSelectedStep =
     selectedStep != null &&
     statusTarget != null &&
     statusTarget.node.id === selectedStep.node.id &&
     statusTarget.node.products[0]?.id === selectedStep.productId;
+
   const selectedStepStatusTarget = statusTargetIsSelectedStep
     ? statusTarget
     : null;
+
   if (loading) {
     return <SupplyChainAppSkeleton />;
   }
@@ -427,11 +430,12 @@ export const SiteOverview = ({
                   isHighlight
                 />
               )}
-              {summaryStats.badParams > 0 && (
+              {overPlanCount > 0 && (
                 <StatChip
-                  value={String(summaryStats.badParams)}
-                  label="steps exceeding plan"
+                  value={String(overPlanCount)}
+                  label="steps over plan"
                   isHighlight
+                  onClick={revealOverPlanOpportunities}
                 />
               )}
             </div>
@@ -474,12 +478,21 @@ export const SiteOverview = ({
       <div className={content}>
         <OpportunitiesTable
           opportunities={opportunities}
-          statuses={opportunityStatuses}
+          siteId={siteSlug}
           statusHistory={opportunityStatusHistory}
-          onRowClick={handleStepClick}
-          onMarkRead={opportunityStatusActions.onMarkRead}
-          onMarkUnread={opportunityStatusActions.onMarkUnread}
+          onRowClick={(opportunity) =>
+            handleStepClick(opportunity.node, opportunity.kind)
+          }
           onStatus={openStatus}
+          sort={oppSort}
+          onSort={setOppSort}
+          typeHidden={oppTypeHidden}
+          onTypeHiddenChange={setOppTypeHidden}
+          productHidden={oppProductHidden}
+          onProductHiddenChange={setOppProductHidden}
+          statusHidden={oppStatusHidden}
+          onStatusHiddenChange={setOppStatusHidden}
+          revealSectionRequest={oppSectionRevealRequest}
         />
 
         <div className={chartShrink}>
@@ -518,7 +531,7 @@ export const SiteOverview = ({
                   setTab("planning");
                 }}
                 label="Planning Parameters"
-                count={filteredPlanningRows.length}
+                count={planningRows.length}
               />
 
               <TabButton
@@ -532,7 +545,7 @@ export const SiteOverview = ({
                   setTab("trends");
                 }}
                 label="Trend"
-                count={filteredTrendRows.length}
+                count={trendRows.length}
               />
 
               {supplierPerformanceEnabled && (
@@ -551,19 +564,6 @@ export const SiteOverview = ({
                 />
               )}
             </div>
-            {(tab === "planning" || tab === "trends") && (
-              <div className={tabFilterSlot}>
-                <CategoryFilter
-                  selected={effectiveFilterCategories}
-                  onChange={setVisibleSelectedCategories}
-                  hiddenKeys={
-                    tab === "planning"
-                      ? PLANNING_FILTER_HIDDEN_KEYS
-                      : NO_HIDDEN_FILTER_KEYS
-                  }
-                />
-              </div>
-            )}
           </div>
 
           {/* Detail tables */}
@@ -574,34 +574,50 @@ export const SiteOverview = ({
               sort={dwellSort}
               onSort={setDwellSort}
               onRowClick={handleStepClick}
-              briefHref={(node) => buildBriefHref("dwell", node)}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
               timeRange={timeRange}
               currency={siteCurrency}
+              typeHidden={dwellTypeHidden}
+              onTypeHiddenChange={setDwellTypeHidden}
+              productHidden={dwellProductHidden}
+              onProductHiddenChange={setDwellProductHidden}
+              statusHidden={dwellStatusHidden}
+              onStatusHiddenChange={setDwellStatusHidden}
             />
           )}
           {tab === "planning" && (
             <PlanningTable
-              rows={filteredPlanningRows}
+              rows={planningRows}
               siteId={siteSlug}
               sort={planSort}
               onSort={setPlanSort}
               onRowClick={handleStepClick}
-              briefHref={(node) => buildBriefHref("planning", node)}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
+              typeHidden={planningTypeHidden}
+              onTypeHiddenChange={setPlanningTypeHidden}
+              productHidden={planningProductHidden}
+              onProductHiddenChange={setPlanningProductHidden}
+              statusHidden={planningStatusHidden}
+              onStatusHiddenChange={setPlanningStatusHidden}
             />
           )}
           {tab === "trends" && (
             <TrendTable
-              rows={filteredTrendRows}
+              rows={trendRows}
               siteId={siteSlug}
               sort={trendSort}
               onSort={setTrendSort}
               onRowClick={handleStepClick}
               statusHistory={opportunityStatusHistory}
               onStatus={openStatus}
+              typeHidden={trendTypeHidden}
+              onTypeHiddenChange={setTrendTypeHidden}
+              productHidden={trendProductHidden}
+              onProductHiddenChange={setTrendProductHidden}
+              statusHidden={trendStatusHidden}
+              onStatusHiddenChange={setTrendStatusHidden}
             />
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (
@@ -626,6 +642,7 @@ export const SiteOverview = ({
           siteContext={selectedStep.siteContext}
           stepMaterial={selectedStep.node.material}
           briefHref={selectedStep.briefHref}
+          measureOverride={selectedStep.measureOverride}
           statusEntries={
             opportunityStatusHistory[statusKey(siteSlug, selectedStep.node)] ??
             []
@@ -639,7 +656,9 @@ export const SiteOverview = ({
           statusDialog={
             selectedStepStatusTarget ? (
               <StatusDialog
-                key={`${statusKey(siteSlug, selectedStepStatusTarget.node)}-${selectedStepStatusTarget.title}`}
+                key={`${statusKey(siteSlug, selectedStepStatusTarget.node)}-${
+                  selectedStepStatusTarget.title
+                }`}
                 title={selectedStepStatusTarget.title}
                 inline
                 onClose={() => setStatusTarget(null)}
@@ -666,7 +685,9 @@ export const SiteOverview = ({
       )}
       {statusTarget && !statusTargetIsSelectedStep && (
         <StatusDialog
-          key={`${statusKey(siteSlug, statusTarget.node)}-${statusTarget.title}`}
+          key={`${statusKey(siteSlug, statusTarget.node)}-${
+            statusTarget.title
+          }`}
           title={statusTarget.title}
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {

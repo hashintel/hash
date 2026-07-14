@@ -3,6 +3,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Drawer,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -18,7 +19,6 @@ import { useStableCallback } from "../../../../../../react/hooks/use-stable-call
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
@@ -1018,188 +1018,201 @@ export const CreateExperimentDrawer = ({
     }
   };
 
-  return (
-    <Drawer.Root open={open} onClose={handleClose}>
-      <Drawer.Card onClose={handleClose}>
-        <Drawer.Header description="Run a Monte Carlo experiment from the current model and scenario">
-          Create an experiment
-        </Drawer.Header>
-        <Drawer.Body>
-          <SectionList>
-            <Section title="Experiment" collapsible defaultOpen>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Name</span>
-                <TextInput size="sm" value={name} onChange={setName} />
-              </div>
-              <div className={gridStyle}>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Runs</span>
-                  <NumberInput
-                    size="sm"
-                    min={1}
-                    value={runCount === "" ? null : Number(runCount)}
-                    onChange={(nextRunCount) =>
-                      setRunCount(
-                        nextRunCount === null ? "" : String(nextRunCount),
-                      )
-                    }
-                  />
-                </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Time step</span>
-                  <NumberInput
-                    size="sm"
-                    min={0}
-                    step="any"
-                    value={dt === "" ? null : Number(dt)}
-                    onChange={(nextDt) =>
-                      setDt(nextDt === null ? "" : String(nextDt))
-                    }
-                  />
-                </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Max time (s)</span>
-                  <NumberInput
-                    size="sm"
-                    min={0}
-                    step="any"
-                    value={maxTime === "" ? null : Number(maxTime)}
-                    onChange={(nextMaxTime) =>
-                      setMaxTime(
-                        nextMaxTime === null ? "" : String(nextMaxTime),
-                      )
-                    }
-                  />
-                </div>
-              </div>
-            </Section>
+  if (!open) {
+    return null;
+  }
 
-            <Section title="Scenario" collapsible defaultOpen>
+  return (
+    <Drawer
+      shouldCloseOn={isSubmitting ? "none" : undefined}
+      showBackdrop={false}
+      onClose={handleClose}
+    >
+      <Drawer.Header
+        title="Create an experiment"
+        description="Run a Monte Carlo experiment from the current model and scenario"
+      />
+      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+        <SectionList>
+          <Section title="Experiment" collapsible defaultOpen>
+            <div className={fieldStyle}>
+              <span className={labelStyle}>Name</span>
+              <TextInput size="sm" value={name} onChange={setName} />
+            </div>
+            <div className={gridStyle}>
               <div className={fieldStyle}>
-                <Select
-                  required
-                  value={effectiveSelectedScenarioId}
-                  onChange={handleScenarioChange}
-                  items={scenarioOptions}
+                <span className={labelStyle}>Runs</span>
+                <NumberInput
                   size="sm"
-                  renderItem={(value) => {
-                    const option = scenarioOptions.find(
-                      (opt) => opt.value === value,
-                    );
-                    return (
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        {value === NO_SCENARIO_VALUE && (
-                          <Icon
-                            name="dash"
-                            size="xs"
-                            className={css({ opacity: "[0.4]" })}
-                          />
-                        )}
-                        {option?.text}
-                      </span>
-                    );
-                  }}
+                  min={1}
+                  value={runCount === "" ? null : Number(runCount)}
+                  onChange={(nextRunCount) =>
+                    setRunCount(
+                      nextRunCount === null ? "" : String(nextRunCount),
+                    )
+                  }
                 />
               </div>
-
-              {selectedScenario ? (
-                selectedScenario.scenarioParameters.length === 0 ? (
-                  <div className={emptyParamsStyle}>No scenario parameters</div>
-                ) : (
-                  selectedScenario.scenarioParameters.map((param) => (
-                    <ScenarioParameterRow
-                      key={param.identifier}
-                      param={param}
-                      value={paramValues[param.identifier] ?? ""}
-                      onChange={(v) =>
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [param.identifier]: v,
-                        }))
-                      }
-                    />
-                  ))
-                )
-              ) : null}
-            </Section>
-
-            <Section title="Metrics" collapsible defaultOpen>
-              <div className={metricListStyle}>
-                <div className={metricHeaderStyle}>
-                  <span className={metricCountStyle}>
-                    {metricDrafts.length === 0
-                      ? "No experiment metrics"
-                      : `${metricDrafts.length} experiment metric${
-                          metricDrafts.length === 1 ? "" : "s"
-                        }`}
-                  </span>
-                  <Button
-                    variant="subtle"
-                    tone="neutral"
-                    size="sm"
-                    prefix={<Icon name="plus" size="sm" />}
-                    onClick={handleAddMetric}
-                  >
-                    Add metric
-                  </Button>
-                </div>
-
-                {metricDrafts.map((metric) => (
-                  <ExperimentMetricRow
-                    key={metric.id}
-                    metric={metric}
-                    sdcpn={petriNetDefinition}
-                    kindGroups={metricKindGroups}
-                    autoFocusLabel={metric.id === metricLabelFocusId}
-                    onChange={handleMetricChange}
-                    onLspDiagnosticsChange={(diagnostics) =>
-                      handleMetricLspDiagnosticsChange(metric.id, diagnostics)
-                    }
-                    onRemove={() => handleMetricRemove(metric.id)}
-                  />
-                ))}
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Time step</span>
+                <NumberInput
+                  size="sm"
+                  min={0}
+                  step="any"
+                  value={dt === "" ? null : Number(dt)}
+                  onChange={(nextDt) =>
+                    setDt(nextDt === null ? "" : String(nextDt))
+                  }
+                />
               </div>
-            </Section>
-          </SectionList>
-        </Drawer.Body>
-      </Drawer.Card>
-      <Drawer.Footer>
-        {footerError ? <span className={errorStyle}>{footerError}</span> : null}
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          disabled={isSubmitting}
-          onClick={handleClose}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="solid"
-          tone="neutral"
-          size="sm"
-          disabled={!canRun}
-          tooltip={metricFormError ?? undefined}
-          prefix={
-            isSubmitting ? (
-              <LoadingSpinner size="sm" variant="bars" />
-            ) : (
-              <Icon name="play" size="sm" />
-            )
-          }
-          onClick={() => {
-            void handleSubmit();
-          }}
-        >
-          {isSubmitting ? "Starting" : "Run"}
-        </Button>
-      </Drawer.Footer>
-    </Drawer.Root>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Max time (s)</span>
+                <NumberInput
+                  size="sm"
+                  min={0}
+                  step="any"
+                  value={maxTime === "" ? null : Number(maxTime)}
+                  onChange={(nextMaxTime) =>
+                    setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
+                  }
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Scenario" collapsible defaultOpen>
+            <div className={fieldStyle}>
+              <Select
+                required
+                value={effectiveSelectedScenarioId}
+                onChange={handleScenarioChange}
+                items={scenarioOptions}
+                size="sm"
+                renderItem={(value) => {
+                  const option = scenarioOptions.find(
+                    (opt) => opt.value === value,
+                  );
+                  return (
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {value === NO_SCENARIO_VALUE && (
+                        <Icon
+                          name="dash"
+                          size="xs"
+                          className={css({ opacity: "[0.4]" })}
+                        />
+                      )}
+                      {option?.text}
+                    </span>
+                  );
+                }}
+              />
+            </div>
+
+            {selectedScenario ? (
+              selectedScenario.scenarioParameters.length === 0 ? (
+                <div className={emptyParamsStyle}>No scenario parameters</div>
+              ) : (
+                selectedScenario.scenarioParameters.map((param) => (
+                  <ScenarioParameterRow
+                    key={param.identifier}
+                    param={param}
+                    value={paramValues[param.identifier] ?? ""}
+                    onChange={(v) =>
+                      setParamValues((prev) => ({
+                        ...prev,
+                        [param.identifier]: v,
+                      }))
+                    }
+                  />
+                ))
+              )
+            ) : null}
+          </Section>
+
+          <Section title="Metrics" collapsible defaultOpen>
+            <div className={metricListStyle}>
+              <div className={metricHeaderStyle}>
+                <span className={metricCountStyle}>
+                  {metricDrafts.length === 0
+                    ? "No experiment metrics"
+                    : `${metricDrafts.length} experiment metric${
+                        metricDrafts.length === 1 ? "" : "s"
+                      }`}
+                </span>
+                <Button
+                  variant="subtle"
+                  tone="neutral"
+                  size="sm"
+                  prefix={<Icon name="plus" size="sm" />}
+                  onClick={handleAddMetric}
+                >
+                  Add metric
+                </Button>
+              </div>
+
+              {metricDrafts.map((metric) => (
+                <ExperimentMetricRow
+                  key={metric.id}
+                  metric={metric}
+                  sdcpn={petriNetDefinition}
+                  kindGroups={metricKindGroups}
+                  autoFocusLabel={metric.id === metricLabelFocusId}
+                  onChange={handleMetricChange}
+                  onLspDiagnosticsChange={(diagnostics) =>
+                    handleMetricLspDiagnosticsChange(metric.id, diagnostics)
+                  }
+                  onRemove={() => handleMetricRemove(metric.id)}
+                />
+              ))}
+            </div>
+          </Section>
+        </SectionList>
+      </Drawer.Body>
+      <Drawer.Footer
+        secondaryActions={
+          footerError ? (
+            <span className={errorStyle}>{footerError}</span>
+          ) : undefined
+        }
+        actions={
+          <>
+            <Button
+              variant="subtle"
+              tone="neutral"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={handleClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              tone="neutral"
+              size="sm"
+              disabled={!canRun}
+              tooltip={metricFormError ?? undefined}
+              prefix={
+                isSubmitting ? (
+                  <LoadingSpinner size="sm" variant="bars" />
+                ) : (
+                  <Icon name="play" size="sm" />
+                )
+              }
+              onClick={() => {
+                void handleSubmit();
+              }}
+            >
+              {isSubmitting ? "Starting" : "Run"}
+            </Button>
+          </>
+        }
+      />
+    </Drawer>
   );
 };

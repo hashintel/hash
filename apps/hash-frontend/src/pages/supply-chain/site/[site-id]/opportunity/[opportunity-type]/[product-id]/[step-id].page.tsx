@@ -1,3 +1,4 @@
+import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
@@ -34,6 +35,17 @@ const OpportunityPage: NextPageWithLayout = () => {
   const stepId = query["step-id"] ?? "";
   const opportunityType = normaliseOpportunityType(query["opportunity-type"]);
 
+  const productName = products.find(
+    (product) => product.id === productId,
+  )?.name;
+
+  const opportunityLabel =
+    opportunityType === "planning" ? "Planning" : "Dwell";
+
+  const seoTitle = `${opportunityLabel}${
+    productName ? ` – ${productName}` : ""
+  }`;
+
   useEffect(() => {
     if (!siteId || !productId || !stepId) {
       return;
@@ -58,22 +70,23 @@ const OpportunityPage: NextPageWithLayout = () => {
     });
   }, [opportunityType, productId, siteId, stepId]);
 
-  if (!router.isReady) {
-    return <SupplyChainAppSkeleton />;
-  }
-
-  if (!siteId || !productId || !stepId) {
-    return <ErrorState message="Opportunity route is missing required IDs." />;
-  }
-
   return (
-    <OpportunityBrief
-      products={products}
-      siteId={siteId}
-      productId={productId}
-      stepId={stepId}
-      opportunityType={opportunityType}
-    />
+    <>
+      <NextSeo title={seoTitle} />
+      {!router.isReady ? (
+        <SupplyChainAppSkeleton />
+      ) : !siteId || !productId || !stepId ? (
+        <ErrorState message="Opportunity route is missing required IDs." />
+      ) : (
+        <OpportunityBrief
+          products={products}
+          siteId={siteId}
+          productId={productId}
+          stepId={stepId}
+          opportunityType={opportunityType}
+        />
+      )}
+    </>
   );
 };
 

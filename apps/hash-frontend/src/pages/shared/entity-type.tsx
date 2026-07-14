@@ -42,6 +42,7 @@ import {
 } from "./entity-type-page/use-entity-type-dependents";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { NotFound } from "./not-found";
+import { largePageMaxWidthCss } from "./page-width";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
 import {
@@ -118,6 +119,46 @@ const TypeDefinition = ({
       ) : null}
       {isFile && tab === "upload" ? <FileUploadsTab isImage={isImage} /> : null}
     </>
+  );
+};
+
+const EntityTypeTabHeaderContainer = ({
+  children,
+  isInSlide,
+}: {
+  children: React.ReactNode;
+  isInSlide: boolean;
+}) => {
+  const { tab } = useEntityTypeTab();
+
+  return (
+    <Container
+      sx={{
+        ...(isInSlide ? inSlideContainerStyles : {}),
+        ...(!isInSlide && tab === "entities" ? largePageMaxWidthCss : {}),
+      }}
+    >
+      {children}
+    </Container>
+  );
+};
+
+const EntityTypeTabBodyContainer = ({
+  children,
+  isInSlide,
+}: {
+  children: React.ReactNode;
+  isInSlide: boolean;
+}) => {
+  const { tab } = useEntityTypeTab();
+
+  return (
+    <TypeDefinitionContainer
+      inSlide={isInSlide}
+      wide={!isInSlide && tab === "entities"}
+    >
+      {children}
+    </TypeDefinitionContainer>
   );
 };
 
@@ -521,7 +562,7 @@ export const EntityType = ({
 
             <EntityTypeTabProvider isInSlide={isInSlide}>
               <Box ref={titleWrapperRef} sx={typeHeaderContainerStyles}>
-                <Container sx={isInSlide ? inSlideContainerStyles : {}}>
+                <EntityTypeTabHeaderContainer isInSlide={isInSlide}>
                   <EntityTypeHeader
                     currentVersion={currentVersion}
                     entityTypeSchema={entityType.schema}
@@ -540,10 +581,10 @@ export const EntityType = ({
                     isImage={isImage}
                     isInSlide={isInSlide}
                   />
-                </Container>
+                </EntityTypeTabHeaderContainer>
               </Box>
 
-              <TypeDefinitionContainer inSlide={isInSlide}>
+              <EntityTypeTabBodyContainer isInSlide={isInSlide}>
                 <TypeDefinition
                   entityTypeBaseUrl={entityTypeBaseUrl ?? null}
                   entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
@@ -552,7 +593,7 @@ export const EntityType = ({
                   onNavigateToType={onNavigateToType}
                   readonly={isReadonly}
                 />
-              </TypeDefinitionContainer>
+              </EntityTypeTabBodyContainer>
             </EntityTypeTabProvider>
           </Box>
         </EntityTypeContext.Provider>

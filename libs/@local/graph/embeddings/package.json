@@ -4,12 +4,19 @@
   "private": true,
   "license": "AGPL-3",
   "scripts": {
+    "build:codspeed": "cargo codspeed build -p hash-graph-embeddings",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-embeddings --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy"
+    "lint:clippy": "just clippy",
+    "test:codspeed": "cargo codspeed run -p hash-graph-embeddings",
+    "test:miri": "cargo miri nextest run -- kernel clustering::tests::nearest_centroid_argmax_independent_of_inv_norm",
+    "test:unit": "mise run test:unit @rust/hash-graph-embeddings"
   },
   "dependencies": {
     "@rust/error-stack": "workspace:*",
     "@rust/hash-graph-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/darwin-kperf-criterion": "workspace:*"
   }
 }

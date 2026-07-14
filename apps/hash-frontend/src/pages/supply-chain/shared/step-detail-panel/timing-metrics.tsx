@@ -19,6 +19,7 @@ import {
   DeltaWithTooltip,
 } from "./step-detail-primitives";
 
+import type { BaseMeasure } from "../measure-context";
 import type { TimeRange } from "../time-range";
 import type { StepDetail as StepDetailType } from "../types";
 
@@ -114,17 +115,20 @@ export const KeyMetricsRow = ({
   unfilteredStep,
   comparison,
   timeRange,
+  measureOverride,
 }: {
   step: StepDetailType;
   unfilteredStep: StepDetailType;
   comparison: PeriodComparison | null;
   timeRange: TimeRange;
+  measureOverride?: BaseMeasure;
 }) => {
   const plan = step.plan;
   const hasPlan = plan != null;
   const pep = step.pct_exceeding_plan;
   const { waccRate, storageCost } = useCostParams();
   const { measure } = useBaseMeasure();
+  const effectiveMeasure = measureOverride ?? measure;
   const { basis } = useProcurementBasis();
 
   // Secondary procurement lead-time figure. `complete_timing` carries the other
@@ -133,9 +137,9 @@ export const KeyMetricsRow = ({
   // counterpart and its gap vs the headline.
   const secondaryStats = step.complete_timing?.stats;
   const secondaryValue = secondaryStats
-    ? selectStat(secondaryStats, measure)
+    ? selectStat(secondaryStats, effectiveMeasure)
     : null;
-  const headlineValue = selectStat(step.stats, measure);
+  const headlineValue = selectStat(step.stats, effectiveMeasure);
   const secondaryGap =
     secondaryValue != null && headlineValue != null
       ? secondaryValue - headlineValue
@@ -184,7 +188,9 @@ export const KeyMetricsRow = ({
         <PlanningAssumptionCell
           plan={plan}
           hasPlan={hasPlan}
-          medianMeetsPlan={(step.stats.median ?? 0) <= (plan ?? 0)}
+          measureMeetsPlan={
+            headlineValue == null || plan == null || headlineValue <= plan
+          }
           planLabel={planLabel}
           noteRaw={planNote}
         />
@@ -229,7 +235,7 @@ export const KeyMetricsRow = ({
         {secondaryValue != null && (
           <div className={cellPlain}>
             <div className={labelWide}>
-              {secondaryLabel} ({MEASURE_LABELS[measure]})
+              {secondaryLabel} ({MEASURE_LABELS[effectiveMeasure]})
             </div>
             <div className={valueRow}>
               <span className={cx(valueBase, valueStrong)}>

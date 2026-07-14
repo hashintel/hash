@@ -16,8 +16,8 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, hashql::CompilerContext,
-        rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, entity::ClusteringContext,
+        hashql::CompilerContext, rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -239,6 +239,13 @@ pub struct ServerConfig {
     #[clap(flatten)]
     pub compiler: CompilerConfig,
 
+    /// Maximum number of entity-clustering requests processed at the same time.
+    ///
+    /// Excess requests wait until a slot frees up. If not set, the number of concurrent
+    /// clustering requests is unbounded.
+    #[clap(long, env = "HASH_GRAPH_CLUSTERING_CONCURRENCY_LIMIT")]
+    pub clustering_concurrency_limit: Option<NonZero<usize>>,
+
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
@@ -457,6 +464,7 @@ where
         query_logger,
         api_config: config.api_config,
         compiler,
+        clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
     });
     start_rest_server(router, config.http_address, lifecycle);
 

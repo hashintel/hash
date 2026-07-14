@@ -49,9 +49,12 @@ const sdcpn: Pick<SDCPN, "places" | "transitions" | "types"> = {
 };
 
 function makeFrame(): EngineFrame {
+  // Two 16-byte tokens ({x, y} as two f64 fields) preceded by 16 junk bytes.
+  const buffer = new Uint8Array(new Float64Array([99, 99, 1, 2, 3, 4]).buffer);
+
   return createEngineFrame(createEngineFrameLayout(sdcpn), {
     places: {
-      [place.id]: { offset: 2, count: 2, dimensions: 2 },
+      [place.id]: { byteOffset: 16, count: 2, strideBytes: 16 },
     },
     transitions: {
       "transition-1": {
@@ -60,7 +63,7 @@ function makeFrame(): EngineFrame {
         firingCount: 3,
       },
     },
-    buffer: new Float64Array([99, 99, 1, 2, 3, 4]),
+    buffer,
   });
 }
 
@@ -73,11 +76,7 @@ describe("SimulationFrameReader", () => {
     expect(reader.getPlaceTokenCount(place.id)).toBe(2);
     expect(reader.getPlaceTokenCount("missing")).toBe(0);
 
-    expect(reader.getPlaceTokenValues(place.id)).toEqual({
-      values: new Float64Array([1, 2, 3, 4]),
-      count: 2,
-    });
-    expect(reader.getPlaceTokens(place, color)).toEqual([
+    expect(reader.getPlaceTokens(place)).toEqual([
       { x: 1, y: 2 },
       { x: 3, y: 4 },
     ]);
@@ -98,15 +97,65 @@ describe("SimulationFrameReader", () => {
     });
   });
 
-  it("returns a copied token value buffer", () => {
+  it("returns copied token records", () => {
     const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7, 1.25);
-    const values = reader.getPlaceTokenValues(place.id);
+    const tokens = reader.getPlaceTokens(place);
 
-    expect(values).not.toBeNull();
-    values!.values[0] = 42;
+    expect(tokens).toHaveLength(2);
+    tokens[0]!.x = 42;
 
-    expect(reader.getPlaceTokenValues(place.id)?.values).toEqual(
-      new Float64Array([1, 2, 3, 4]),
-    );
+    expect(reader.getPlaceTokens(place)).toEqual([
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]);
+  });
+
+  it("decodes string fields through the provided pool accessor", () => {
+    const stringColor: Color = {
+      id: "color-str",
+      name: "Labelled",
+      iconSlug: "circle",
+      displayColor: "#000000",
+      elements: [
+        { elementId: "label", name: "label", type: "string" },
+        { elementId: "x", name: "x", type: "real" },
+      ],
+    };
+    const stringPlace: Place = {
+      ...place,
+      id: "place-str",
+      colorId: stringColor.id,
+    };
+    const stringSdcpn: Pick<SDCPN, "places" | "transitions" | "types"> = {
+      places: [stringPlace],
+      transitions: [],
+      types: [stringColor],
+    };
+
+    // Two 16-byte tokens: u64 pool id at offset 0, f64 x at offset 8.
+    const buffer = new Uint8Array(32);
+    const view = new DataView(buffer.buffer);
+    view.setBigUint64(0, 1n, true);
+    view.setFloat64(8, 1.5, true);
+    view.setBigUint64(16, 2n, true);
+    view.setFloat64(24, 2.5, true);
+
+    const pool = ["", "alpha", "beta"];
+    const frame = createEngineFrame(createEngineFrameLayout(stringSdcpn), {
+      places: {
+        [stringPlace.id]: { byteOffset: 0, count: 2, strideBytes: 16 },
+      },
+      transitions: {},
+      buffer,
+    });
+
+    const reader = compileSimulationFrameReader(stringSdcpn, {
+      get: (id) => pool[id] ?? "",
+    })(frame, 0, 0);
+
+    expect(reader.getPlaceTokens(stringPlace)).toEqual([
+      { label: "alpha", x: 1.5 },
+      { label: "beta", x: 2.5 },
+    ]);
   });
 });

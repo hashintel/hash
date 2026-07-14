@@ -149,11 +149,63 @@ pub mod types {
         ty.opaque(sym::path::Confidence, ty.number())
     }
 
+    // newtype CreatedById = Uuid;
+    pub struct CreatedByIdDependencies {
+        pub uuid: TypeId,
+    }
+
+    #[must_use]
+    pub fn created_by_id(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<CreatedByIdDependencies>,
+    ) -> TypeId {
+        let CreatedByIdDependencies { uuid } = deps.unwrap_or_else(|| CreatedByIdDependencies {
+            uuid: std_lib::core::uuid::types::uuid(ty),
+        });
+
+        ty.opaque(sym::path::CreatedById, uuid)
+    }
+
+    // newtype CreatedAtTransactionTime = Timestamp;
+    #[must_use]
+    pub fn created_at_transaction_time(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(
+            sym::path::CreatedAtTransactionTime,
+            std_lib::graph::temporal::types::timestamp(ty),
+        )
+    }
+
+    // newtype CreatedAtDecisionTime = Timestamp;
+    #[must_use]
+    pub fn created_at_decision_time(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(
+            sym::path::CreatedAtDecisionTime,
+            std_lib::graph::temporal::types::timestamp(ty),
+        )
+    }
+
+    // newtype EditionCreatedById = Uuid;
+    pub struct EditionCreatedByIdDependencies {
+        pub uuid: TypeId,
+    }
+
+    #[must_use]
+    pub fn edition_created_by_id(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<EditionCreatedByIdDependencies>,
+    ) -> TypeId {
+        let EditionCreatedByIdDependencies { uuid } =
+            deps.unwrap_or_else(|| EditionCreatedByIdDependencies {
+                uuid: std_lib::core::uuid::types::uuid(ty),
+            });
+
+        ty.opaque(sym::path::EditionCreatedById, uuid)
+    }
+
     // newtype InferredEntityProvenance = Unknown
     //
-    // JSONB blob in `entity_ids.provenance`. Contains `created_by_id`,
-    // `created_at_transaction_time`, `created_at_decision_time`, and optional
-    // `first_non_draft_created_at_*` timestamps.
+    // JSONB blob in `entity_ids.provenance`. Contains the optional
+    // `first_non_draft_created_at_*` timestamps and deletion provenance.
     #[must_use]
     pub fn inferred_entity_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::InferredEntityProvenance, ty.unknown())
@@ -161,19 +213,26 @@ pub mod types {
 
     // newtype EntityEditionProvenance = Unknown
     //
-    // JSONB blob in `entity_editions.provenance`. Contains `created_by_id`,
-    // optional `archived_by_id`, `actor_type`, `OriginProvenance`, and
-    // `Vec<SourceProvenance>`.
+    // JSONB blob in `entity_editions.provenance`. Contains optional `archived_by_id`,
+    // `actor_type`, `OriginProvenance`, and `Vec<SourceProvenance>`.
     #[must_use]
     pub fn entity_edition_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
         ty.opaque(sym::path::EntityEditionProvenance, ty.unknown())
     }
 
     // newtype EntityProvenance = (
+    //     created_by_id: CreatedById,
+    //     created_at_transaction_time: CreatedAtTransactionTime,
+    //     created_at_decision_time: CreatedAtDecisionTime,
+    //     edition_created_by_id: EditionCreatedById,
     //     inferred: InferredEntityProvenance,
     //     edition: EntityEditionProvenance,
     // )
     pub struct EntityProvenanceDependencies {
+        pub created_by_id: TypeId,
+        pub created_at_transaction_time: TypeId,
+        pub created_at_decision_time: TypeId,
+        pub edition_created_by_id: TypeId,
         pub inferred: TypeId,
         pub edition: TypeId,
     }
@@ -183,15 +242,35 @@ pub mod types {
         ty: &TypeBuilder<'_, '_>,
         deps: Option<EntityProvenanceDependencies>,
     ) -> TypeId {
-        let EntityProvenanceDependencies { inferred, edition } =
-            deps.unwrap_or_else(|| EntityProvenanceDependencies {
-                inferred: self::inferred_entity_provenance(ty),
-                edition: self::entity_edition_provenance(ty),
-            });
+        let EntityProvenanceDependencies {
+            created_by_id,
+            created_at_transaction_time,
+            created_at_decision_time,
+            edition_created_by_id,
+            inferred,
+            edition,
+        } = deps.unwrap_or_else(|| EntityProvenanceDependencies {
+            created_by_id: self::created_by_id(ty, None),
+            created_at_transaction_time: self::created_at_transaction_time(ty),
+            created_at_decision_time: self::created_at_decision_time(ty),
+            edition_created_by_id: self::edition_created_by_id(ty, None),
+            inferred: self::inferred_entity_provenance(ty),
+            edition: self::entity_edition_provenance(ty),
+        });
 
         ty.opaque(
             sym::path::EntityProvenance,
-            ty.r#struct([(sym::inferred, inferred), (sym::edition, edition)]),
+            ty.r#struct([
+                (sym::created_by_id, created_by_id),
+                (
+                    sym::created_at_transaction_time,
+                    created_at_transaction_time,
+                ),
+                (sym::created_at_decision_time, created_at_decision_time),
+                (sym::edition_created_by_id, edition_created_by_id),
+                (sym::inferred, inferred),
+                (sym::edition, edition),
+            ]),
         )
     }
 
@@ -218,6 +297,7 @@ pub mod types {
     //     temporal_versioning: EntityTemporalMetadata,
     //     entity_type_ids: List<VersionedUrl>,
     //     archived: Boolean,
+    //     read_only: Boolean,
     //     provenance: EntityProvenance,
     //     confidence: Option<Confidence>,
     //     properties: PropertyObjectMetadata,
@@ -261,6 +341,7 @@ pub mod types {
                 (sym::temporal_versioning, temporal_versioning),
                 (sym::entity_type_ids, entity_type_ids),
                 (sym::archived, ty.boolean()),
+                (sym::read_only, ty.boolean()),
                 (sym::provenance, provenance),
                 (sym::confidence, option(ty, confidence)),
                 (sym::properties, properties),
@@ -454,6 +535,34 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ItemDef::newtype(ty.env, confidence_ty, &[]),
         );
 
+        let created_by_id_ty =
+            types::created_by_id(ty, Some(types::CreatedByIdDependencies { uuid: uuid_ty }));
+        def.push(
+            sym::CreatedById,
+            ItemDef::newtype(ty.env, created_by_id_ty, &[]),
+        );
+
+        let created_at_transaction_time_ty = types::created_at_transaction_time(ty);
+        def.push(
+            sym::CreatedAtTransactionTime,
+            ItemDef::newtype(ty.env, created_at_transaction_time_ty, &[]),
+        );
+
+        let created_at_decision_time_ty = types::created_at_decision_time(ty);
+        def.push(
+            sym::CreatedAtDecisionTime,
+            ItemDef::newtype(ty.env, created_at_decision_time_ty, &[]),
+        );
+
+        let edition_created_by_id_ty = types::edition_created_by_id(
+            ty,
+            Some(types::EditionCreatedByIdDependencies { uuid: uuid_ty }),
+        );
+        def.push(
+            sym::EditionCreatedById,
+            ItemDef::newtype(ty.env, edition_created_by_id_ty, &[]),
+        );
+
         let inferred_provenance_ty = types::inferred_entity_provenance(ty);
         def.push(
             sym::InferredEntityProvenance,
@@ -469,6 +578,10 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let entity_provenance_ty = types::entity_provenance(
             ty,
             Some(types::EntityProvenanceDependencies {
+                created_by_id: created_by_id_ty,
+                created_at_transaction_time: created_at_transaction_time_ty,
+                created_at_decision_time: created_at_decision_time_ty,
+                edition_created_by_id: edition_created_by_id_ty,
                 inferred: inferred_provenance_ty,
                 edition: edition_provenance_ty,
             }),

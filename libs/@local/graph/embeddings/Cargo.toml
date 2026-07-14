@@ -17,6 +17,9 @@ error-stack = { workspace = true }
 
 # Private third-party dependencies
 derive_more        = { workspace = true, features = ["display", "error"] }
+rand               = { workspace = true }
+rand_xoshiro       = { workspace = true }
+rayon              = { workspace = true }
 reqwest            = { workspace = true }
 reqwest-middleware = { workspace = true, features = ["json"] }
 reqwest-retry      = { workspace = true }
@@ -24,6 +27,15 @@ reqwest-tracing    = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 simple-mermaid     = { workspace = true }
 tracing            = { workspace = true }
+
+[dev-dependencies]
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+
+[[bench]]
+name    = "clustering"
+harness = false
+
 
 [lints]
 workspace = true

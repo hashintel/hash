@@ -1,5 +1,5 @@
 mod crud;
-mod knowledge;
+pub(crate) mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
@@ -2338,8 +2338,7 @@ where
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_editions.entity_edition_id
                     INNER JOIN actor AS created_by
-                        ON (entity_editions.provenance ->> 'createdById')::UUID
-                           = created_by.id
+                        ON entity_editions.created_by_id = created_by.id
                     INNER JOIN entity_is_of_type
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_is_of_type.entity_edition_id

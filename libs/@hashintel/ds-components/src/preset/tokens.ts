@@ -10,6 +10,7 @@ import {
   red,
   staticColors,
 } from "./tokens/gen";
+import { durations } from "./tokens/stubs/durations";
 import { zIndex } from "./tokens/stubs/z-index";
 import { createSemanticSet } from "./tokens/utils";
 
@@ -88,6 +89,7 @@ export const tokens = {
   radii: scaledRadii,
   lineHeights: scaledLineHeights as typeof pandaPreset.theme.tokens.lineHeights,
   zIndex,
+  durations,
 };
 
 export const semanticTokens = {

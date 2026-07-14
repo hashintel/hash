@@ -1,10 +1,10 @@
 import { SDCPNItemError } from "../../errors";
-import { isDistribution } from "../authoring/user-code/distribution";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { encodeKernelOutputToken } from "./encode-kernel-token";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
-import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
-import { decodeTokenRecord, encodeTokenAttributeValue } from "./token-values";
+import { createTokenRegionViews, readTokenRecord } from "./token-layout";
+import { describeTokenValuesForError } from "./token-values";
 
 import type { ID } from "../../types/sdcpn";
 import type {
@@ -15,12 +15,14 @@ import type {
 
 type PlaceID = ID;
 
+const EMPTY_TOKEN_BYTES = new Uint8Array(0);
+
 /**
  * Takes an EngineFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
  * Returns a record with:
  * - removed: Map from PlaceID to Set of token indices to remove.
- * - added: Map from PlaceID to array of token values to create.
+ * - added: Map from PlaceID to array of packed token byte blocks to create.
  * - newRngState: Updated RNG seed after consuming randomness
  */
 export function computePossibleTransition(
@@ -30,7 +32,7 @@ export function computePossibleTransition(
   rngState: number,
 ): null | {
   remove: Record<PlaceID, Set<number> | number>;
-  add: Record<PlaceID, number[][]>;
+  add: Record<PlaceID, Uint8Array[]>;
   newRngState: number;
 } {
   const snapshot = materializeEngineFrame(simulation.frameLayout, frame);
@@ -82,17 +84,21 @@ export function computePossibleTransition(
   const [U1, newRngState] = nextRandom(rngState);
   const { timeSinceLastFiringMs } = transitionState;
 
-  // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
-  // (just multiply by time since last transition)
+  // Shared views over the frame's token byte region.
+  const tokenViews = createTokenRegionViews(
+    snapshot.buffer.buffer,
+    snapshot.buffer.byteOffset,
+    snapshot.buffer.byteLength,
+  );
 
   const inputPlacesWithTokenValues = inputPlaces.filter(
-    (place) => place.dimensions > 0 && place.arcType !== "inhibitor",
+    (place) => place.strideBytes > 0 && place.arcType !== "inhibitor",
   );
-  const standardInputPlacesWithZeroDimensions = inputPlaces.filter(
-    (place) => place.dimensions === 0 && place.arcType === "standard",
+  const standardInputPlacesWithZeroStride = inputPlaces.filter(
+    (place) => place.strideBytes === 0 && place.arcType === "standard",
   );
 
-  // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
+  // TODO: This should accumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
   const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
     inputPlacesWithTokenValues,
@@ -109,17 +115,11 @@ export function computePossibleTransition(
       placeTokenIndices,
     ] of tokenCombinationIndices.entries()) {
       const inputPlace = inputPlacesWithTokenValues[placeIndex]!;
-      const placeOffsetInBuffer = inputPlace.offset;
-      const dimensions = inputPlace.dimensions;
+      const placeByteOffset = inputPlace.byteOffset;
+      const strideBytes = inputPlace.strideBytes;
 
-      if (!inputPlace.elementNames) {
-        throw new SDCPNItemError(
-          `Place \`${inputPlace.placeName}\` has no type defined`,
-          inputPlace.placeId,
-        );
-      }
-      const elements = inputPlace.elements;
-      if (!elements) {
+      const tokenLayout = inputPlace.tokenLayout;
+      if (!tokenLayout) {
         throw new SDCPNItemError(
           `Place \`${inputPlace.placeName}\` has no type defined`,
           inputPlace.placeId,
@@ -127,16 +127,14 @@ export function computePossibleTransition(
       }
 
       // Convert tokens for this place to objects with named dimensions
-      const placeTokens = placeTokenIndices.map((tokenIndexInPlace) => {
-        // Offset within the global buffer
-        const globalIndex =
-          placeOffsetInBuffer + tokenIndexInPlace * dimensions;
-
-        return decodeTokenRecord(
-          elements,
-          snapshot.buffer.subarray(globalIndex, globalIndex + dimensions),
-        );
-      });
+      const placeTokens = placeTokenIndices.map((tokenIndexInPlace) =>
+        readTokenRecord(
+          tokenLayout,
+          tokenViews,
+          placeByteOffset + tokenIndexInPlace * strideBytes,
+          simulation.stringPool,
+        ),
+      );
 
       tokenCombinationValues[inputPlace.placeName] = placeTokens;
     }
@@ -152,7 +150,7 @@ export function computePossibleTransition(
       throw new SDCPNItemError(
         `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
           (err as Error).message
-        }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+        }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
         transition.id,
       );
     }
@@ -183,16 +181,17 @@ export function computePossibleTransition(
         throw new SDCPNItemError(
           `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
             (err as Error).message
-          }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+          }\n\nInput:\n${describeTokenValuesForError(tokenCombinationValues)}`,
           transition.id,
         );
       }
 
       // Convert transition kernel output back to place-indexed format
       // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
-      // We need to convert this to place IDs and flatten to number[][]
+      // We need to convert this to place IDs and pack each token into its
+      // stride-sized byte block.
       // Distribution values are sampled here, advancing the RNG state.
-      const addMap: Record<PlaceID, number[][]> = {};
+      const addMap: Record<PlaceID, Uint8Array[]> = {};
       let currentRngState = newRngState;
 
       for (const outputPlace of transition.outputPlaces) {
@@ -203,13 +202,12 @@ export function computePossibleTransition(
           );
         }
 
-        // If place has no type, create n empty tuples where n is the arc weight
-        if (!outputPlace.elementNames) {
-          const emptyTokens: number[][] = Array.from(
+        // If place has no type, create n empty blocks where n is the arc weight
+        if (!outputPlace.tokenLayout) {
+          addMap[outputPlace.placeId] = Array.from(
             { length: outputPlace.weight },
-            () => [],
+            () => EMPTY_TOKEN_BYTES,
           );
-          addMap[outputPlace.placeId] = emptyTokens;
           continue;
         }
 
@@ -222,38 +220,25 @@ export function computePossibleTransition(
           );
         }
 
-        // Convert token objects back to number arrays in correct order,
-        // sampling any Distribution values using the RNG
-        const tokenArrays: number[][] = [];
+        // Resolve Distribution samples and uuid values using the RNG (in
+        // element declaration order), then pack each token into a
+        // stride-sized byte block.
+        const tokenBlocks: Uint8Array[] = [];
         for (const token of outputTokens) {
-          const values: number[] = [];
-          for (const element of outputPlace.elements ?? []) {
-            let raw = token[element.name];
-            if (isDistribution(raw)) {
-              if (element.type !== "real") {
-                throw new Error(
-                  `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
-                );
-              }
-              const [sampled, nextRng] = sampleDistribution(
-                raw,
-                currentRngState,
-              );
-              currentRngState = nextRng;
-              raw = sampled;
-            }
-            values.push(
-              encodeTokenAttributeValue(
-                element,
-                raw,
-                `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
-              ),
-            );
-          }
-          tokenArrays.push(values);
+          const { bytes, nextRngState } = encodeKernelOutputToken({
+            token,
+            elements: outputPlace.elements ?? [],
+            tokenLayout: outputPlace.tokenLayout,
+            rngState: currentRngState,
+            transitionId: transition.id,
+            placeName: outputPlace.placeName,
+            stringPool: simulation.stringPool,
+          });
+          currentRngState = nextRngState;
+          tokenBlocks.push(bytes);
         }
 
-        addMap[outputPlace.placeId] = tokenArrays;
+        addMap[outputPlace.placeId] = tokenBlocks;
       }
 
       return {
@@ -261,7 +246,7 @@ export function computePossibleTransition(
         // TODO: Need to provide better typing here, to not let TS infer to any[]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
-          ...standardInputPlacesWithZeroDimensions.map((inputPlace) => [
+          ...standardInputPlacesWithZeroStride.map((inputPlace) => [
             inputPlace.placeId,
             inputPlace.weight,
           ]),
@@ -274,7 +259,7 @@ export function computePossibleTransition(
             },
           ),
         ]),
-        // Map from place ID to array of token values to
+        // Map from place ID to array of packed token byte blocks to
         // create as per transition kernel output
         add: addMap,
         newRngState: currentRngState,

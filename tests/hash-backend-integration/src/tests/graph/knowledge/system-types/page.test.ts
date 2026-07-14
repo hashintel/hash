@@ -22,7 +22,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
@@ -58,8 +57,6 @@ describe("Page", () => {
       await deleteKratosIdentity({
         kratosIdentityId: testUser.kratosIdentityId,
       });
-
-      await resetGraph();
     };
   });
 

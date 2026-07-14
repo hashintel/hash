@@ -2,7 +2,7 @@ import * as Babel from "@babel/standalone";
 import { createElement, type ReactElement } from "react";
 
 type VisualizerProps = {
-  tokens: Record<string, number | boolean>[];
+  tokens: Record<string, number | boolean | bigint | string>[];
   parameters: Record<string, number | boolean>;
 };
 

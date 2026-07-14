@@ -1,23 +1,21 @@
+import { TYPE_POLICIES } from "./simulation/engine/type-policies";
+
 import type { Color } from "./types/sdcpn";
 
 const defaultTokenAttributeSource = (
   element: Color["elements"][number],
-): string => {
-  switch (element.type) {
-    case "boolean":
-      return "false";
-    case "integer":
-    case "real":
-      return "0";
-  }
-};
+): string => TYPE_POLICIES[element.type].defaultValueSource;
 
 export function generateDefaultVisualizerCode(type: Color): string {
-  return `// This function defines how to visualize the tokens in the place of type "${type.name}".
+  return `// This function defines how to visualize the tokens in the place of type "${
+    type.name
+  }".
 // It receives the current tokens and parameters.
 export default Visualization(({ tokens, parameters }) => {
   return <svg viewBox="0 0 800 600">
-    {tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }, index) => (
+    {tokens.map(({ ${type.elements
+      .map((el) => el.name)
+      .join(", ")} }, index) => (
       // Example: simple circle for each token
       <circle />
     ))}
@@ -45,7 +43,9 @@ export function generateDefaultDifferentialEquationCode(type: Color): string {
     }; // Example: all real-valued derivatives = 1`
       : `{}; // This type has no real-valued attributes; discrete values are unchanged by dynamics`;
 
-  return `// This function defines the differential equation for the place of type "${type.name}".
+  return `// This function defines the differential equation for the place of type "${
+    type.name
+  }".
 // The function receives the current tokens in this place and the parameters.
 // It should return derivatives for real-valued token attributes in this place.
 export default Dynamics((tokens, parameters) => {
@@ -88,7 +88,11 @@ export default Lambda((tokensByPlace, parameters) => {
   //  2. Infinity means always enabled
   //  3. Any other number is the average rate per second
 
-  ${lambdaType === "predicate" ? "return true; // Always enabled (alternative: return Infinity;)" : "return 1.0; // Average firing rate of once per second"}
+  ${
+    lambdaType === "predicate"
+      ? "return true; // Always enabled (alternative: return Infinity;)"
+      : "return 1.0; // Average firing rate of once per second"
+  }
 });`;
 
 export function generateDefaultTransitionKernelCode(
@@ -115,7 +119,9 @@ export default TransitionKernel((tokensByPlace, parameters) => {
       ${Array.from({ length: arc.weight })
         .map(
           () =>
-            `{ ${arc.type.elements.map((el) => `${el.name}: ${defaultTokenAttributeSource(el)}`).join(", ")} }`,
+            `{ ${arc.type.elements
+              .map((el) => `${el.name}: ${defaultTokenAttributeSource(el)}`)
+              .join(", ")} }`,
         )
         .join(",\n      ")}
     ],`,

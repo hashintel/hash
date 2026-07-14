@@ -4,17 +4,32 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Library Features
+    portable_simd,
+    integer_widen_truncate
+)]
 
-pub use self::{
-    error::EmbeddingError,
-    openai::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig},
-};
+extern crate alloc;
 
 mod error;
 mod openai;
 
+pub mod clustering;
+mod dimension;
+// Hidden from docs: the kernel is an implementation detail, exposed only so
+// the `embedding` bench target can measure it in isolation.
+#[doc(hidden)]
+pub mod kernel;
+
 use error_stack::Report;
 use hash_graph_types::Embedding;
+
+pub use self::{
+    dimension::{D128, D256, D512, D1536, D3072, Dimension},
+    error::EmbeddingError,
+    openai::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig},
+};
 
 /// Generates embedding vectors for text inputs.
 ///

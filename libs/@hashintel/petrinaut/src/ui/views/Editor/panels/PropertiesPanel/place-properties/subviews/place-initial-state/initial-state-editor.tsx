@@ -1,5 +1,7 @@
 import { use, useMemo } from "react";
 
+import { defaultTokenAttributeValue, toUuid } from "@hashintel/petrinaut-core";
+
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
@@ -10,15 +12,41 @@ import type {
 } from "../../../../../../../components/spreadsheet";
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
-const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue => {
-  switch (column.type) {
-    case "boolean":
-      return false;
-    case "integer":
-    case "real":
-    default:
-      return 0;
+const getDefaultValue = (column: SpreadsheetColumn): SpreadsheetCellValue =>
+  column.type ? defaultTokenAttributeValue(column.type) : 0;
+
+/**
+ * Converts one stored marking value to a spreadsheet cell value. uuid columns
+ * may hold at-rest strings — parse them to bigints for the spreadsheet.
+ * String columns keep their text verbatim.
+ */
+const toCellValue = (
+  column: SpreadsheetColumn,
+  raw: number | boolean | bigint | string | undefined,
+): SpreadsheetCellValue => {
+  if (raw === undefined) {
+    return getDefaultValue(column);
   }
+  if (column.type === "uuid") {
+    return toUuid(raw);
+  }
+  if (column.type === "string") {
+    return typeof raw === "string" ? raw : String(raw);
+  }
+  // Mirror the engine's coercion (parseCellValue in spreadsheet.tsx):
+  // integers round, booleans accept "true"/"1" — so the display never
+  // disagrees with what the run will use.
+  if (typeof raw === "string") {
+    if (column.type === "boolean") {
+      const normalized = raw.trim().toLowerCase();
+      return normalized === "true" || normalized === "1";
+    }
+    const parsed = Number.parseFloat(raw) || 0;
+    return column.type === "integer" ? Math.round(parsed) : parsed;
+  }
+  return column.type === "integer" && typeof raw === "number"
+    ? Math.round(raw)
+    : raw;
 };
 
 /**
@@ -57,7 +85,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const data: SpreadsheetCellValue[][] = useMemo(() => {
     if (hasSimulation && currentFrameReader) {
       return currentFrameReader
-        .getPlaceTokens(place, placeType)
+        .getPlaceTokens(place)
         .map((token) =>
           columns.map(
             (column) => token[column.name] ?? getDefaultValue(column),
@@ -71,16 +99,9 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     }
 
     return marking.map((token) =>
-      columns.map((column) => token[column.name] ?? getDefaultValue(column)),
+      columns.map((column) => toCellValue(column, token[column.name])),
     );
-  }, [
-    hasSimulation,
-    currentFrameReader,
-    place,
-    placeType,
-    columns,
-    initialMarking,
-  ]);
+  }, [hasSimulation, currentFrameReader, place, columns, initialMarking]);
 
   // Convert spreadsheet rows back to serializable token records.
   const handleChange = useMemo(() => {

@@ -1,15 +1,13 @@
 import { coerceTokenRecord } from "../../engine/token-values";
+import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
+import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type {
-  Color,
-  Parameter,
-  Place,
-  Scenario,
-  TokenAttributeValue,
-  TokenRecord,
-} from "../../../types/sdcpn";
-import type { InitialMarking, InitialPlaceMarking } from "../../api";
+  InitialMarking,
+  InitialPlaceMarking,
+  InitialTokenAttributeValue,
+} from "../../api";
 
 // -- Result types -------------------------------------------------------------
 
@@ -93,23 +91,50 @@ function evaluateExpression(
   );
 }
 
-function tokenRecordsFromRows(
-  rows: TokenAttributeValue[][],
+type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
+
+/**
+ * Coerces one raw token source through the runtime codec, then converts each
+ * attribute to its at-rest form (uuid bigints become canonical lowercase
+ * strings) so the compiled initial state stays JSON-serializable. Arbitrary
+ * uuid inputs (free text, numbers) are normalized deterministically via
+ * `toUuid` inside `coerceTokenRecord`.
+ */
+function compileTokenRecord(
+  source: Record<string, unknown>,
   elements: Color["elements"],
-): TokenRecord[] {
+): MarkingTokenRecord {
+  const coerced = coerceTokenRecord(
+    source,
+    elements,
+    "Scenario initial state token",
+  );
+  const token: MarkingTokenRecord = {};
+  for (const element of elements) {
+    token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
+      coerced[element.name]!,
+    );
+  }
+  return token;
+}
+
+function tokenRecordsFromRows(
+  rows: readonly (number | boolean | string)[][],
+  elements: Color["elements"],
+): MarkingTokenRecord[] {
   return rows.map((row) => {
     const token: Record<string, unknown> = {};
     for (let i = 0; i < elements.length; i++) {
       token[elements[i]!.name] = row[i];
     }
-    return coerceTokenRecord(token, elements, "Scenario initial state token");
+    return compileTokenRecord(token, elements);
   });
 }
 
 function normalizeTokenRecords(
   tokens: unknown[],
   elements: Color["elements"],
-): TokenRecord[] {
+): MarkingTokenRecord[] {
   return tokens.flatMap((rawToken) => {
     if (
       typeof rawToken !== "object" ||
@@ -120,9 +145,7 @@ function normalizeTokenRecords(
     }
 
     const source = rawToken as Record<string, unknown>;
-    return [
-      coerceTokenRecord(source, elements, "Scenario initial state token"),
-    ];
+    return [compileTokenRecord(source, elements)];
   });
 }
 

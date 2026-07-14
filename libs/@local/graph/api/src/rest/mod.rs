@@ -100,6 +100,7 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
+    entity::ClusteringContext,
     status::{BoxedResponse, report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
@@ -543,6 +544,7 @@ where
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub compiler: Arc<hashql::CompilerContext>,
+    pub clustering: Arc<ClusteringContext>,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
@@ -593,7 +595,8 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
-        .layer(Extension(dependencies.compiler));
+        .layer(Extension(dependencies.compiler))
+        .layer(Extension(dependencies.clustering));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));

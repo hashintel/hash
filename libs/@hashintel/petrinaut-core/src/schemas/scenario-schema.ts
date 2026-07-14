@@ -6,7 +6,14 @@ import { idSchema } from "./entity-schemas";
 import type { Scenario } from "../types/sdcpn";
 
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
-const tokenAttributeValueSchema = z.union([z.number(), z.boolean()]);
+// Strings supply `string` element values literally, and `uuid` element
+// values by parsing/coercion (canonical UUID strings pass through; any other
+// text converts deterministically via UUIDv5 at compile time).
+const tokenAttributeValueSchema = z.union([
+  z.number(),
+  z.boolean(),
+  z.string(),
+]);
 
 export const scenarioParameterSchema = z
   .strictObject({
@@ -46,7 +53,7 @@ const initialStateSchema = z
             description: [
               "Map keyed by place ID (NOT place name).",
               'For uncoloured places, the value is a string expression with `parameters` and `scenario` in scope (e.g. `"scenario.population * (1 - scenario.infected_ratio)"`). The result is `Math.round`ed and clamped to >= 0 (token counts are always non-negative integers).',
-              "For coloured places, the value is a row array where each inner array supplies element values in the SAME ORDER as the colour type's `elements`. Extra columns throw at compile time; missing columns default to the element type's zero value.",
+              "For coloured places, the value is a row array where each inner array supplies element values in the SAME ORDER as the colour type's `elements`. Extra columns throw at compile time; missing columns default to the element type's zero value. String values are literal for `string` elements; for `uuid` elements they parse/coerce to UUIDs.",
               "`parameters` in expressions is keyed by each parameter's `variableName` value (lower_snake_case).",
             ].join(" "),
           }),

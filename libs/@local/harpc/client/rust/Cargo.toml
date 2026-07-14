@@ -23,7 +23,6 @@ harpc-types = { workspace = true }
 
 # Private third-party dependencies
 bytes          = { workspace = true }
-derive-where   = { workspace = true }
 derive_more    = { workspace = true, features = ["display"] }
 futures        = { workspace = true }
 multiaddr      = { workspace = true }

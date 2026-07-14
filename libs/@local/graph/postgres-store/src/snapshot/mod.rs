@@ -56,8 +56,58 @@ use uuid::Uuid;
 
 use crate::{
     snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
-    store::postgres::{AsClient, PolicyParts, PostgresStore, PostgresStorePool},
+    store::postgres::{
+        AsClient, PolicyParts, PostgresStore, PostgresStorePool,
+        query::{OnConflict, TableName, bulk_insert, rows::PostgresRow},
+    },
 };
+
+/// Options for restoring a batch of rows into the `<table>_tmp` staging tables.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct SnapshotInsertOptions {
+    /// Deduplicate the rows with `SELECT DISTINCT`.
+    pub distinct: bool,
+    /// How to handle rows conflicting with existing ones.
+    pub on_conflict: OnConflict,
+}
+
+/// Bulk-inserts `rows` into the temporary staging table created by
+/// [`WriteBatch::begin`] and returns the number of inserted rows.
+///
+/// The target is `<table>_tmp`, staged by `begin` and moved into the real table on `commit`.
+/// The insert names its columns explicitly, so any staging table containing the row type's
+/// columns works — the `LIKE <table> INCLUDING ALL` clone used by `begin` additionally
+/// carries the unique indexes [`OnConflict::DoNothing`] needs to detect duplicates.
+async fn insert_rows_batch<R: PostgresRow + Sync>(
+    client: &tokio_postgres::Client,
+    rows: &[R],
+    options: SnapshotInsertOptions,
+) -> Result<u64, Report<InsertionError>> {
+    let table_name = format!("{}_tmp", R::table().as_str());
+    let (statement, parameters) = bulk_insert()
+        .rows(rows)
+        .table_name(TableName::from(table_name.clone()))
+        .distinct(options.distinct)
+        .on_conflict(options.on_conflict)
+        .compile();
+    client
+        .execute_raw(
+            &statement,
+            parameters
+                .iter()
+                .map(|parameter| &**parameter as &(dyn ToSql + Sync)),
+        )
+        .instrument(tracing::info_span!(
+            "INSERT",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+            db.query.text = statement,
+        ))
+        .await
+        .change_context(InsertionError)
+        .attach(format!("could not insert into `{table_name}`"))
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {

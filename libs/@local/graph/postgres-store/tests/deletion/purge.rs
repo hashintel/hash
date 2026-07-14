@@ -18,14 +18,14 @@ use type_system::{
             PropertyWithMetadata,
         },
     },
-    principal::actor_group::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use uuid::Uuid;
 
 use crate::{
     DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
-    create_second_user, get_deletion_provenance, get_inferred_provenance, person_type_id,
-    provenance, raw_count, raw_entity_ids_exists, seed,
+    create_second_user, get_created_by_id, get_deletion_provenance, person_type_id, provenance,
+    raw_count, raw_entity_ids_exists, seed,
 };
 
 /// Helper: purge with default settings (`include_drafts=false`, Ignore link behavior).
@@ -682,7 +682,7 @@ async fn cross_web_batch() {
     let entity_a = create_person(&mut api, alice(), false).await;
     let id_a = entity_a.metadata.record_id.entity_id;
 
-    let second_user = create_second_user(&mut api).await;
+    let second_user: ActorEntityUuid = create_second_user(&mut api).await.into();
     let entity_b = api
         .store
         .create_entity(
@@ -807,7 +807,7 @@ async fn different_actor_deleting() {
     let entity_id = entity.metadata.record_id.entity_id;
 
     // Delete as actor B
-    let actor_b = create_second_user(&mut api).await;
+    let actor_b: ActorEntityUuid = create_second_user(&mut api).await.into();
     let summary = api
         .store
         .delete_entities(
@@ -1050,16 +1050,12 @@ async fn archived_entity() {
     assert!(raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
-/// Verifies the JSONB `||` merge in `update_entity_ids_provenance` preserves existing provenance
-/// keys.
+/// Verifies the soft-delete's provenance merge only adds deletion keys.
 ///
-/// `entity_ids.provenance` already contains `createdById`, `createdAtTransactionTime`,
-/// `createdAtDecisionTime`, and potentially `firstNonDraftCreatedAt*` from entity creation. The `||
-/// jsonb_build_object('deletion', ...)` merge adds a new top-level `deletion` key. PostgreSQL's
-/// `||` on JSONB objects merges top-level keys (overwrites on collision, preserves non-colliding
-/// ones). Since `deletion` is a new key, all existing keys must survive intact.
+/// The deletion is written as a JSONB `||` merge into `entity_ids.provenance`, which must leave
+/// the creator column and any other JSONB-resident keys untouched.
 #[tokio::test]
-async fn provenance_merge_preserves_existing_keys() {
+async fn provenance_merge_only_adds_deletion_keys() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
@@ -1074,15 +1070,19 @@ async fn provenance_merge_preserves_existing_keys() {
         .await
         .expect("could not delete entity");
 
-    let prov = get_inferred_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
+    // The creation column is untouched by the soft-delete's provenance merge.
+    let created_by_id = get_created_by_id(&api, entity_id.web_id, entity_id.entity_uuid)
         .await
-        .expect("provenance should exist");
+        .expect("entity_ids row should exist");
+    assert_eq!(created_by_id, api.account_id);
 
-    // Deserialization as InferredEntityProvenance guarantees creation keys survived the merge
-    assert_eq!(prov.created_by_id, api.account_id);
-
-    // Deletion key must be added
-    assert!(prov.deletion.is_some(), "deletion key must be present");
+    // Deletion provenance must be added to the JSONB.
+    assert!(
+        get_deletion_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
+            .await
+            .is_some(),
+        "deletion provenance must be present"
+    );
 }
 
 /// Attempting to erase a previously purged entity is a no-op.
