@@ -22,6 +22,7 @@ import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
 
+import type { LanguageClientContextValue } from "../lsp/context";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -149,14 +150,21 @@ const sdcpnContextValue: SDCPNContextValue = {
  * Overrides the (no-op) default language client so experiment expression
  * metrics compile for real — the provider requires HIR metric artifacts.
  */
-const LanguageClientOverride = ({ children }: React.PropsWithChildren) => {
+const LanguageClientOverride = ({
+  children,
+  requestHirArtifacts,
+}: React.PropsWithChildren<{
+  requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
+}>) => {
   const value = use(LanguageClientContext);
   return (
     <LanguageClientContext.Provider
       value={{
         ...value,
-        requestHirArtifacts: (sdcpn, extensions) =>
-          Promise.resolve(compileHirArtifacts(sdcpn, extensions)),
+        requestHirArtifacts:
+          requestHirArtifacts ??
+          ((sdcpn, extensions) =>
+            Promise.resolve(compileHirArtifacts(sdcpn, extensions))),
       }}
     >
       {children}
@@ -176,10 +184,12 @@ const ExperimentsContextConsumer = ({
 
 const TestWrapper = ({
   addNotification,
+  requestHirArtifacts,
   worker,
   onContextValue,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
+  requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
@@ -190,7 +200,7 @@ const TestWrapper = ({
     }}
   >
     <SDCPNContext.Provider value={sdcpnContextValue}>
-      <LanguageClientOverride>
+      <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
         <ExperimentsProvider
           workerFactory={() =>
             worker as WorkerLike<
@@ -210,6 +220,7 @@ function renderExperimentsProvider(
   worker: FakeMonteCarloWorker,
   options: {
     addNotification?: (notification: AddNotificationInput) => string;
+    requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
@@ -223,6 +234,7 @@ function renderExperimentsProvider(
   const renderResult = render(
     <TestWrapper
       addNotification={options.addNotification}
+      requestHirArtifacts={options.requestHirArtifacts}
       worker={worker}
       onContextValue={captureValue}
     />,
@@ -350,6 +362,56 @@ describe("ExperimentsProvider", () => {
         id: experimentId,
         status: "cancelled",
       });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("ignores a compile failure after an initializing experiment is cancelled", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const addNotification = vi.fn(() => "notification-id");
+    let rejectCompilation: (reason: Error) => void = () => {};
+    const requestHirArtifacts = vi.fn(
+      () =>
+        new Promise<never>((_resolve, reject) => {
+          rejectCompilation = reject;
+        }),
+    );
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification,
+      requestHirArtifacts,
+    });
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Cancel during compile",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+      });
+
+      act(() => {
+        getValue().cancelExperiment(experimentId);
+      });
+      await act(async () => {
+        rejectCompilation(new Error("late compile failure"));
+        await flushWorkerSetup();
+      });
+
+      expect(getValue().selectedExperiment).toMatchObject({
+        id: experimentId,
+        status: "cancelled",
+        error: null,
+      });
+      expect(worker.sent).toEqual([]);
+      expect(addNotification).not.toHaveBeenCalled();
     } finally {
       renderResult.unmount();
     }

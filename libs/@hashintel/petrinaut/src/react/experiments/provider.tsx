@@ -59,10 +59,6 @@ function mapExperimentStatus(
   }
 }
 
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
-}
-
 function parseScenarioParameterValue(
   parameter: ScenarioParameter,
   rawValue: string | undefined,
@@ -384,6 +380,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           experimentExtensions,
         );
 
+        // Compilation cannot currently be aborted. A cancelled or removed
+        // experiment must stop here rather than turning a late compile result
+        // (or failure below) into a worker or an error notification.
+        if (!pendingRegistrationsRef.current.has(experimentId)) {
+          return;
+        }
+
         const metricSpecs = input.metricSpecs.map((spec) => {
           if (spec.kind !== "expression") {
             return spec;
@@ -440,7 +443,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       } catch (error) {
         const wasPending = pendingRegistrationsRef.current.delete(experimentId);
 
-        if (!wasPending && isAbortError(error)) {
+        if (!wasPending) {
           return;
         }
 

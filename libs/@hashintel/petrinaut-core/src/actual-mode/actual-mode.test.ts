@@ -194,6 +194,31 @@ describe("Actual mode recordings", () => {
     });
   });
 
+  it.each([
+    { marking: -1, expected: 0 },
+    { marking: 2.9, expected: 2 },
+  ])(
+    "normalizes a numeric marking of $marking consistently",
+    ({ marking, expected }) => {
+      const reader = createActualModeTimelineFrameReader({
+        definition,
+        initialState: { queued: marking },
+        transitionFirings: [],
+        transitionFiringTimesMs: [],
+        point: {
+          kind: "initial",
+          timeMs: 0,
+          transitionFiringIndex: null,
+        },
+        number: 0,
+      });
+
+      expect(reader.getPlaceTokenCount("queued")).toBe(expected);
+      expect(reader.toFrameState().places.queued?.tokenCount).toBe(expected);
+      expect(reader.getRawView?.().placeCounts[0]).toBe(expected);
+    },
+  );
+
   it("keeps count-only coloured markings consistent for HIR metrics", () => {
     const colouredDefinition = {
       ...definition,
@@ -230,7 +255,7 @@ describe("Actual mode recordings", () => {
     } satisfies SDCPN;
     const reader = createActualModeTimelineFrameReader({
       definition: colouredDefinition,
-      initialState: { items: 2 },
+      initialState: { items: 2.9 },
       transitionFirings: [],
       transitionFiringTimesMs: [],
       point: {
