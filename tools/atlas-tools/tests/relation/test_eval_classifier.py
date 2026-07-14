@@ -11,6 +11,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from pydantic import ValidationError
 
 from atlas_tools.relation.eval.aggregate import (
     _SOFT_LABELS_SCHEMA,
@@ -18,6 +19,7 @@ from atlas_tools.relation.eval.aggregate import (
     aggregate_soft_labels,
     read_soft_labels,
 )
+from atlas_tools.relation.eval.artifacts import GridPaths
 from atlas_tools.relation.eval.classifier import (
     TrainingData,
     fit_classifier,
@@ -26,7 +28,7 @@ from atlas_tools.relation.eval.classifier import (
     read_predictions,
     soft_cross_entropy,
 )
-from atlas_tools.relation.eval.contract import ClassifierConfig, EmbeddingConfig
+from atlas_tools.relation.eval.contract import ClassifierConfig, EmbeddingConfig, LoadedRunConfig
 from atlas_tools.relation.eval.embeddings import (
     EmbeddingBudgetExceededError,
     EmbeddingVector,
@@ -39,26 +41,43 @@ from atlas_tools.relation.eval.gates import (
     normalized_posterior_entropy,
     wilson_lower_bound,
 )
-from atlas_tools.relation.eval.ladder_report import write_report
-from atlas_tools.relation.eval.run import load_run_config, run_ladder
+from atlas_tools.relation.eval.inputs import prepare_grid_review_inputs
+from atlas_tools.relation.eval.policy_report import write_report
+from atlas_tools.relation.eval.run import load_run_config, run_grid
 from atlas_tools.relation.eval.schema import GoldRow
-from tests.relation.ladder_fixtures import (
+from tests.relation.grid_fixtures import (
+    CARD_A,
+    CARD_B,
     CARD_C,
-    CARD_O,
-    CARD_P,
-    CARD_U,
-    LIVE_CARDS,
+    CARD_E,
+    POOL_SIZE,
     MappingTransport,
-    ladder_config,
+    grid_config,
     live_relation_id,
-    write_ladder_concat,
-    write_ladder_config,
+    write_empty_pilot,
+    write_grid_concat,
+    write_grid_config,
 )
 
 
 @pytest.fixture
 def cards_dir(tmp_path: Path) -> Path:
-    return write_ladder_concat(tmp_path / "concat")
+    return write_grid_concat(tmp_path / "concat")
+
+
+def _run_grid_fixture(tmp_path: Path, cards_dir: Path, loaded: LoadedRunConfig) -> GridPaths:
+    """Execute the deterministic grid once via the empty-pilot handoff."""
+    pilot_dir = write_empty_pilot(
+        tmp_path / "pilot",
+        pack_hash=prepare_grid_review_inputs(cards_dir, loaded).pack_hash,
+    )
+    return run_grid(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "run",
+        loaded_config=loaded,
+        pilot_dir=pilot_dir,
+        transport=MappingTransport(),
+    )
 
 
 # --- Gates (acceptance 7 arithmetic) ---------------------------------------------
@@ -88,6 +107,45 @@ def test_minimum_feedable_count_for_the_coincident_gate() -> None:
     assert minimum == 133
     assert wilson_lower_bound(minimum, minimum, confidence=0.95) >= 0.98
     assert wilson_lower_bound(minimum - 1, minimum - 1, confidence=0.95) < 0.98
+
+
+# --- Soft-label row contract --------------------------------------------------------
+
+
+def _soft_label_row(
+    *,
+    coincident_votes: int = 0,
+    review: bool = False,
+) -> SoftLabelRow:
+    proximal_votes = 8 - coincident_votes
+    posterior = dirichlet_posterior_mean(
+        {"coincident": coincident_votes, "proximal": proximal_votes, "overlay": 0}
+    )
+    return SoftLabelRow(
+        relation_id="wikidata:P8000001",
+        card_hash=sha256(b"card").hexdigest(),
+        producer="wikidata",
+        family_id="fam-x",
+        prescreen_stratum="ordinary",
+        p_coincident=posterior["coincident"],
+        p_proximal=posterior["proximal"],
+        p_overlay=posterior["overlay"],
+        n_votes=8,
+        coincident_votes=coincident_votes,
+        proximal_votes=proximal_votes,
+        overlay_votes=0,
+        unclear_votes=0,
+        abstentions=0,
+        entropy=0.5,
+        refined=coincident_votes > 0,
+        review=review,
+    )
+
+
+def test_any_coincident_vote_makes_the_row_review_queue_material() -> None:
+    assert _soft_label_row(coincident_votes=1, review=True).review
+    with pytest.raises(ValidationError, match="review-queue material"):
+        _soft_label_row(coincident_votes=1, review=False)
 
 
 # --- Embeddings -------------------------------------------------------------------
@@ -121,8 +179,8 @@ def _embedding_config(*, max_texts: int | None = None) -> EmbeddingConfig:
 
 
 def test_embeddings_are_cached_forever_by_hash(cards_dir: Path, tmp_path: Path) -> None:
-    config_path = write_ladder_config(
-        tmp_path / "judges.yaml", ladder_config(embedding=_embedding_config())
+    config_path = write_grid_config(
+        tmp_path / "judges.yaml", grid_config(embedding=_embedding_config())
     )
     transport = CountingEmbeddingTransport()
     first = embed_cards(
@@ -132,9 +190,9 @@ def test_embeddings_are_cached_forever_by_hash(cards_dir: Path, tmp_path: Path) 
         cache_dir=tmp_path / "cache",
         transport=transport,
     )
-    assert first.rows == len(LIVE_CARDS)
-    assert first.requested_texts == len(LIVE_CARDS)
-    assert sum(transport.batch_sizes) == len(LIVE_CARDS)
+    assert first.rows == POOL_SIZE
+    assert first.requested_texts == POOL_SIZE
+    assert sum(transport.batch_sizes) == POOL_SIZE
 
     again = embed_cards(
         cards_dir=cards_dir,
@@ -144,7 +202,7 @@ def test_embeddings_are_cached_forever_by_hash(cards_dir: Path, tmp_path: Path) 
         transport=transport,
     )
     assert again.requested_texts == 0
-    assert again.cached_texts == len(LIVE_CARDS)
+    assert again.cached_texts == POOL_SIZE
     assert (tmp_path / "embeddings.parquet").read_bytes() == (
         tmp_path / "embeddings-again.parquet"
     ).read_bytes()
@@ -152,15 +210,15 @@ def test_embeddings_are_cached_forever_by_hash(cards_dir: Path, tmp_path: Path) 
     table = read_embeddings(tmp_path / "embeddings.parquet")
     assert table.details.embedding_model == "test-embed-1"
     assert table.details.dimension == 4
-    assert table.matrix.shape == (len(LIVE_CARDS), 4)
+    assert table.matrix.shape == (POOL_SIZE, 4)
 
 
 def test_embedding_budget_aborts_cleanly_and_resumes_from_cache(
     cards_dir: Path, tmp_path: Path
 ) -> None:
-    capped = write_ladder_config(
+    capped = write_grid_config(
         tmp_path / "judges-capped.yaml",
-        ladder_config(embedding=_embedding_config(max_texts=2)),
+        grid_config(embedding=_embedding_config(max_texts=2)),
     )
     transport = CountingEmbeddingTransport()
     with pytest.raises(EmbeddingBudgetExceededError, match="budget of 2 uncached texts"):
@@ -173,8 +231,8 @@ def test_embedding_budget_aborts_cleanly_and_resumes_from_cache(
         )
     assert sum(transport.batch_sizes) == 2
 
-    uncapped = write_ladder_config(
-        tmp_path / "judges.yaml", ladder_config(embedding=_embedding_config())
+    uncapped = write_grid_config(
+        tmp_path / "judges.yaml", grid_config(embedding=_embedding_config())
     )
     resumed = embed_cards(
         cards_dir=cards_dir,
@@ -184,7 +242,7 @@ def test_embedding_budget_aborts_cleanly_and_resumes_from_cache(
         transport=transport,
     )
     assert resumed.cached_texts == 2
-    assert resumed.requested_texts == len(LIVE_CARDS) - 2
+    assert resumed.requested_texts == POOL_SIZE - 2
 
 
 # --- Grouped CV and leakage (acceptance 5) -----------------------------------------
@@ -213,8 +271,7 @@ def _sibling_training_data(*, families: int, siblings: int = 2) -> TrainingData:
             unclear_votes=0,
             abstentions=0,
             entropy=0.5,
-            rung_reached=2,
-            early_exit=False,
+            refined=False,
             review=False,
         )
         for index in range(count)
@@ -281,29 +338,58 @@ def test_fit_refuses_cards_without_a_relation_family(tmp_path: Path) -> None:
 # --- Pipeline: run -> aggregate -> embed -> fit -> report ---------------------------
 
 
+def _assert_aggregate_shapes(rows: tuple[SoftLabelRow, ...]) -> None:
+    """Pin the hand-computed vote shapes the aggregation must reproduce."""
+    rows_by_id = {row.relation_id: row for row in rows}
+    assert len(rows_by_id) == POOL_SIZE
+    # Unanimous cards keep their five baseline votes; refined cards carry the
+    # full fifteen; the abstaining family's card has only unclear placements.
+    card_a = rows_by_id[live_relation_id(CARD_A)]
+    assert (card_a.n_votes, card_a.refined, card_a.review) == (5, False, False)
+    card_c = rows_by_id[live_relation_id(CARD_C)]
+    assert (card_c.n_votes, card_c.refined, card_c.review) == (15, True, True)
+    assert card_c.coincident_votes == 3
+    card_e = rows_by_id[live_relation_id(CARD_E)]
+    assert (card_e.n_votes, card_e.refined, card_e.review) == (0, True, False)
+    assert card_e.unclear_votes == 12
+    assert card_e.abstentions == 3
+
+
+def _write_gold(path: Path) -> Path:
+    gold_rows = [
+        GoldRow(
+            relation_id=live_relation_id(CARD_C), verdict="coincident", pass_count=3, entropy=0.0
+        ),
+        GoldRow(
+            relation_id=live_relation_id(CARD_A), verdict="proximal", pass_count=3, entropy=0.0
+        ),
+        GoldRow(relation_id=live_relation_id(CARD_B), verdict="overlay", pass_count=3, entropy=0.0),
+        GoldRow(relation_id=live_relation_id(CARD_E), verdict="unclear", pass_count=2, entropy=0.9),
+    ]
+    path.write_text("".join(row.model_dump_json() + "\n" for row in gold_rows), encoding="utf-8")
+    return path
+
+
 def test_pipeline_fits_calibrates_and_reports_with_the_classifier(
     cards_dir: Path, tmp_path: Path
 ) -> None:
-    config_path = write_ladder_config(
+    config_path = write_grid_config(
         tmp_path / "judges.yaml",
-        ladder_config(
+        grid_config(
             embedding=_embedding_config(),
             classifier=ClassifierConfig(folds=2, seed=0),
         ),
     )
     loaded = load_run_config(config_path)
-    paths = run_ladder(
-        cards_dir=cards_dir,
-        out_dir=tmp_path / "run",
-        loaded_config=loaded,
-        transport=MappingTransport(),
-    )
+    paths = _run_grid_fixture(tmp_path, cards_dir, loaded)
     aggregate = aggregate_soft_labels(
         run_dir=tmp_path / "run",
         cards_dir=cards_dir,
         loaded_config=loaded,
         out_path=tmp_path / "soft-labels.parquet",
     )
+    _assert_aggregate_shapes(aggregate.rows)
+
     embedded = embed_cards(
         cards_dir=cards_dir,
         loaded_config=loaded,
@@ -322,15 +408,16 @@ def test_pipeline_fits_calibrates_and_reports_with_the_classifier(
     assert metadata.embedding_model == "test-embed-1"
     assert metadata.embedding_dimension == 4
     assert metadata.judges_config_hash == loaded.content_hash
-    assert metadata.training_cards == len(LIVE_CARDS)
-    # Early exits carry four votes, full-panel cards eight, all-unclear zero.
-    assert metadata.training_vote_weight == pytest.approx(4.0 + 4.0 + 8.0 + 8.0)
+    assert metadata.training_cards == POOL_SIZE
+    # Two unanimous cards and six holdouts carry five votes each, the two
+    # refined placement cards fifteen, and the all-unclear card zero.
+    assert metadata.training_vote_weight == pytest.approx(8 * 5.0 + 2 * 15.0)
     assert metadata.temperature > 0.0
     assert metadata.calibrated_cross_entropy <= metadata.out_of_fold_cross_entropy + 1e-9
 
     reloaded_metadata, predictions = load_bundle(fitted.bundle_dir)
     assert reloaded_metadata == metadata
-    assert len(predictions) == len(LIVE_CARDS)
+    assert len(predictions) == POOL_SIZE
     assert predictions == read_predictions(fitted.predictions_parquet)
     for row in predictions:
         total = row.p_cal_coincident + row.p_cal_proximal + row.p_cal_overlay
@@ -341,20 +428,7 @@ def test_pipeline_fits_calibrates_and_reports_with_the_classifier(
     assert arrays["coefficients"].shape == (3, 4)
     assert arrays["applicability_precision"].shape == (4, 4)
 
-    gold_path = tmp_path / "gold.jsonl"
-    gold_rows = [
-        GoldRow(
-            relation_id=live_relation_id(CARD_C), verdict="coincident", pass_count=3, entropy=0.0
-        ),
-        GoldRow(
-            relation_id=live_relation_id(CARD_P), verdict="proximal", pass_count=3, entropy=0.0
-        ),
-        GoldRow(relation_id=live_relation_id(CARD_O), verdict="overlay", pass_count=3, entropy=0.0),
-        GoldRow(relation_id=live_relation_id(CARD_U), verdict="unclear", pass_count=2, entropy=0.9),
-    ]
-    gold_path.write_text(
-        "".join(row.model_dump_json() + "\n" for row in gold_rows), encoding="utf-8"
-    )
+    gold_path = _write_gold(tmp_path / "gold.jsonl")
     result = write_report(
         run_dir=paths.votes_jsonl.parent,
         cards_dir=cards_dir,
@@ -371,26 +445,26 @@ def test_pipeline_fits_calibrates_and_reports_with_the_classifier(
     assert report.coincident_gate.source == "classifier"
     assert report.coincident_gate.verdict == "UNPASSABLE BY SAMPLE SIZE"
     assert report.calibration is not None
-    assert len(report.calibration) == loaded.ladder().report.calibration_bins
+    assert len(report.calibration) == loaded.grid().report.calibration_bins
     assert report.applicability is not None
     assert [summary.producer for summary in report.applicability] == ["wikidata"]
+    assert report.economics.refined_cards == 3
+    assert report.economics.realized_trigger_rate == pytest.approx(3 / POOL_SIZE)
+    assert report.economics.review_queue_cards == 1
+    assert len(report.economics.by_family) == 5
+    assert {judge.family_id: judge.abstentions for judge in report.judges}["test/j3"] == 3
     markdown = result.report_md.read_text(encoding="utf-8")
     assert "Applicability by source" in markdown
     assert "Calibration" in markdown
 
 
 def test_fit_fails_loudly_when_family_ids_are_missing(cards_dir: Path, tmp_path: Path) -> None:
-    config_path = write_ladder_config(
+    config_path = write_grid_config(
         tmp_path / "judges.yaml",
-        ladder_config(embedding=_embedding_config(), classifier=ClassifierConfig(folds=2)),
+        grid_config(embedding=_embedding_config(), classifier=ClassifierConfig(folds=2)),
     )
     loaded = load_run_config(config_path)
-    run_ladder(
-        cards_dir=cards_dir,
-        out_dir=tmp_path / "run",
-        loaded_config=loaded,
-        transport=MappingTransport(),
-    )
+    _run_grid_fixture(tmp_path, cards_dir, loaded)
     aggregate = aggregate_soft_labels(
         run_dir=tmp_path / "run",
         cards_dir=cards_dir,

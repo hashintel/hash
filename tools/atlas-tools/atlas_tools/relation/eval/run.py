@@ -51,6 +51,7 @@ from atlas_tools.relation.eval.contract import (
     VoteTask,
 )
 from atlas_tools.relation.eval.executor import execute_plan
+from atlas_tools.relation.eval.failures import first_vote_pages
 from atlas_tools.relation.eval.grid import (
     GridRoundsPlan,
     phase_a_tasks,
@@ -69,7 +70,7 @@ from atlas_tools.relation.eval.journal import (
 )
 from atlas_tools.relation.eval.prompt import parse_response
 from atlas_tools.relation.eval.provenance import plan_hash, request_contract_hash
-from atlas_tools.relation.eval.schema import ReasoningEffort, VoteRow
+from atlas_tools.relation.eval.schema import PhysicalAttemptRow, ReasoningEffort, VoteRow
 from atlas_tools.relation.eval.transport import (
     CompletionTransport,
     CompletionTransportFactory,
@@ -169,7 +170,14 @@ def run_pilot(
         return paths
 
 
-def _grid_guards(config: GridRunConfig) -> FamilyStreamGuards:
+def _grid_guards(
+    config: GridRunConfig,
+    *,
+    established_families: frozenset[str],
+) -> FamilyStreamGuards:
+    def pages(error: Exception) -> bool:
+        return first_vote_pages(error, policy=config.transient_retries)
+
     return FamilyStreamGuards(
         cache_check_vote=config.guards.cache_check_vote,
         cost_window=config.guards.cost_window,
@@ -178,6 +186,28 @@ def _grid_guards(config: GridRunConfig) -> FamilyStreamGuards:
             judge.family_id: judge.pilot_cost_per_vote_usd for judge in config.judges
         },
         parse_verdict=parse_response,
+        first_vote_pages=pages,
+        established_families=established_families,
+    )
+
+
+def _established_families(paths: GridPaths) -> frozenset[str]:
+    """Families whose route this run has proven with an accepted physical attempt.
+
+    Attempts journal in completion order, so a family whose accepted work is
+    not yet committed as a vote (votes commit strictly in plan order) still
+    counts as proven. The first-vote roster check applies only to unproven
+    streams: a resumed session's opening call on an established family is an
+    ordinary request whose transient failures take the normal retry path.
+    Imported pilot votes deliberately do not count — they proved the route at
+    pilot time, not now.
+    """
+    if not paths.attempts_jsonl.is_file():
+        return frozenset()
+    return frozenset(
+        attempt.family_id
+        for attempt in load_jsonl(paths.attempts_jsonl, PhysicalAttemptRow)
+        if attempt.result is not None and attempt.failure is None
     )
 
 
@@ -275,19 +305,18 @@ def run_grid(
     state = _grid_state(config, prepared)
     output = Path(out_dir)
 
-    guards = _grid_guards(config)
-    if transport is not None:
-        transport = GuardedTransport(inner=_closeable(transport), guards=guards)
-    elif transport_factory is not None:
-        transport_factory = GuardedTransportFactory(inner=transport_factory, guards=guards)
-    else:
-        transport_factory = GuardedTransportFactory(
-            inner=OpenRouterTransportFactory.from_environment(),
-            guards=guards,
-        )
-
     with exclusive_run_lock(output / ".run.lock"):
         paths = prepare_grid_run_state(output, state=state, prepared=prepared)
+        guards = _grid_guards(config, established_families=_established_families(paths))
+        if transport is not None:
+            transport = GuardedTransport(inner=_closeable(transport), guards=guards)
+        elif transport_factory is not None:
+            transport_factory = GuardedTransportFactory(inner=transport_factory, guards=guards)
+        else:
+            transport_factory = GuardedTransportFactory(
+                inner=OpenRouterTransportFactory.from_environment(),
+                guards=guards,
+            )
         if paths.manifest_json.exists():
             validate_completed_grid_output(
                 paths=paths,

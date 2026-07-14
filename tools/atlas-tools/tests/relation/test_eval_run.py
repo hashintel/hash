@@ -11,17 +11,19 @@ from typing import ClassVar, Literal, Self
 import httpx
 import pytest
 from openrouter.components import (
-    AnthropicCacheControlDirective,
     ChatAssistantMessage,
     ChatChoice,
+    ChatContentText,
     ChatMessages,
     ChatRequestReasoning,
     ChatResult,
+    ChatSystemMessage,
     ChatToolCall,
     ChatToolCallFunction,
     ChatUsage,
     ChatUsageCompletionTokensDetails,
     ChatUsagePromptTokensDetails,
+    ChatUserMessage,
     EndpointInfo,
     EndpointsMetadata,
     OpenRouterMetadata,
@@ -457,9 +459,15 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
             }
         )
     )
+    prompt: list[ChatMessages] = [
+        ChatSystemMessage(role="system", content="system"),
+        ChatUserMessage(role="user", content="shot question"),
+        ChatAssistantMessage(role="assistant", content="shot answer"),
+        ChatUserMessage(role="user", content="live card"),
+    ]
     transport = OpenRouterTransport("secret")
     returned = transport.complete(
-        messages=[],
+        messages=prompt,
         judge=judge,
         effort="minimal",
         session_id="session",
@@ -495,23 +503,45 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
     assert unexpected_parameter not in client.chat.kwargs
     assert client.chat.kwargs["seed"] is UNSET
     assert client.chat.kwargs["temperature"] is UNSET
-    # Prompt caching is an Anthropic-vendor directive: absent for other models,
-    # attached as OpenRouter's automatic ephemeral breakpoint for anthropic/*.
-    assert client.chat.kwargs["cache_control"] is None
+    # Prompt caching is an Anthropic-vendor concern: other vendors' prompts
+    # pass through untouched, with no top-level directive in the request.
+    assert "cache_control" not in client.chat.kwargs
+    assert client.chat.kwargs["messages"] == prompt
     anthropic_judge = judge.model_copy(update={"model": "anthropic/claude-test"})
     transport.complete(
-        messages=[],
+        messages=prompt,
         judge=anthropic_judge,
         effort="minimal",
         session_id="session",
         timeout=timedelta(seconds=5),
     )
     assert client.chat.kwargs is not None
-    directive = client.chat.kwargs["cache_control"]
-    assert isinstance(directive, AnthropicCacheControlDirective)
-    assert directive.type == "ephemeral"
+    _assert_anthropic_prefix_breakpoint(client.chat.kwargs["messages"], prompt)
     transport.close()
     assert client.closed
+
+
+def _assert_anthropic_prefix_breakpoint(
+    marked: object,
+    prompt: list[ChatMessages],
+) -> None:
+    """Anthropic routes get one explicit ephemeral breakpoint closing the prefix.
+
+    Bedrock ignores the top-level automatic directive, which also marks the
+    wrong block (the unique live turn). Judge-visible bytes stay unchanged;
+    only the boundary block's shape becomes a single text part.
+    """
+    assert isinstance(marked, list)
+    assert marked[:2] == prompt[:2]
+    assert isinstance(marked[3].content, str)
+    boundary = marked[2].content
+    assert isinstance(boundary, list)
+    assert len(boundary) == 1
+    part = boundary[0]
+    assert isinstance(part, ChatContentText)
+    assert part.text == "shot answer"
+    assert part.cache_control is not None
+    assert part.cache_control.type == "ephemeral"
 
 
 @pytest.mark.parametrize(

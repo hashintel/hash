@@ -125,5 +125,6 @@ python = "./.venv"
 [dependency-groups]
 dev = [
     "ruff>=0.15.21",
+    "tach>=0.35,<0.36",
     "ty>=0.0.59",
 ]

@@ -62,7 +62,7 @@ _SHA256_ADAPTER: TypeAdapter[Sha256Hex] = TypeAdapter(Sha256Hex)
 
 
 def load_run_config(path: str | PathLike[str]) -> LoadedRunConfig:
-    """Load a pilot (schema-v3) or ladder (schema-v4) YAML config strictly."""
+    """Load a pilot (schema-v3) or grid (schema-v4) YAML config strictly."""
     config_path = Path(path).resolve()
     try:
         raw = config_path.read_bytes()

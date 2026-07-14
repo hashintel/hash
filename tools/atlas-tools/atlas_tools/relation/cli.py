@@ -53,31 +53,32 @@ class EvaluateCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from openrouter.errors import NoResponseError, OpenRouterError
-
         from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
-        from atlas_tools.relation.eval.artifacts import GridPaths, PilotPaths
-        from atlas_tools.relation.eval.run import load_run_config, run_evaluation
+        from atlas_tools.relation.evaluation.application.api import (
+            GridPaths,
+            PilotPaths,
+            run_evaluation,
+        )
 
         progress = NO_PROGRESS if self.quiet else StderrProgress()
         try:
             paths = run_evaluation(
-                cards_dir=self.cards,
-                out_dir=self.out,
-                loaded_config=load_run_config(self.config),
-                pilot_dir=self.pilot,
+                cards_directory=self.cards,
+                config_path=self.config,
+                output_directory=self.out,
+                pilot_directory=self.pilot,
                 progress=progress,
             )
-        except (NoResponseError, OpenRouterError, OSError, RuntimeError, ValueError) as error:
+        except (OSError, RuntimeError, ValueError) as error:
             fail(error)
-        echo(f"wrote {paths.votes_jsonl}")
-        echo(f"wrote {paths.attempts_jsonl}")
+        echo(f"wrote {paths.journal.votes}")
+        echo(f"wrote {paths.journal.attempts}")
         if isinstance(paths, PilotPaths):
-            echo(f"wrote {paths.slice_jsonl}")
+            echo(f"wrote {paths.slice}")
         if isinstance(paths, GridPaths):
-            echo(f"wrote {paths.corpus_jsonl}")
-            echo(f"wrote {paths.imported_votes_jsonl}")
-        echo(f"wrote {paths.manifest_json}")
+            echo(f"wrote {paths.corpus}")
+            echo(f"wrote {paths.imported_votes}")
+        echo(f"wrote {paths.manifest}")
 
 
 class DeliverablesCommand(BaseSettings):
@@ -95,32 +96,37 @@ class DeliverablesCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.grid_report import write_grid_deliverables
-        from atlas_tools.relation.eval.run import load_run_config
+        from atlas_tools.relation.evaluation.application.api import (
+            GridGatesBlockedError,
+            write_grid_deliverables,
+        )
 
+        blocked: GridGatesBlockedError | None = None
         try:
             result = write_grid_deliverables(
-                run_dir=self.run,
-                cards_dir=self.cards,
-                loaded_config=load_run_config(self.config),
-                decisions_path=self.decisions,
-                out_dir=self.out,
+                run_directory=self.run,
+                cards_directory=self.cards,
+                config_path=self.config,
+                pilot_decisions_path=self.decisions,
+                output_directory=self.out,
             )
+        except GridGatesBlockedError as error:
+            result = error.run
+            blocked = error
         except (OSError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.posteriors_jsonl}")
-        echo(f"wrote {result.coincident_queue_jsonl}")
-        echo(f"wrote {result.nomination_queue_jsonl}")
-        echo(f"wrote {result.dissent_ledger_jsonl}")
-        echo(f"wrote {result.gates_json}")
-        echo(f"wrote {result.report_md}")
-        if not result.gates.all_passed:
-            failed = [gate.gate for gate in result.gates.gates if not gate.passed]
-            fail(ValueError(f"blocking acceptance gates failed: {', '.join(failed)}"))
+        echo(f"wrote {result.posteriors_path}")
+        echo(f"wrote {result.coincident_queue_path}")
+        echo(f"wrote {result.nomination_queue_path}")
+        echo(f"wrote {result.dissent_ledger_path}")
+        echo(f"wrote {result.gates_path}")
+        echo(f"wrote {result.report_path}")
+        if blocked is not None:
+            fail(blocked)
 
 
 class AggregateCommand(BaseSettings):
-    """Aggregate a completed ladder run into soft-labels.parquet."""
+    """Aggregate a completed grid into soft-labels.parquet."""
 
     run: CliPositionalArg[DirectoryPath]
     cards: CliPositionalArg[DirectoryPath]
@@ -130,20 +136,19 @@ class AggregateCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.aggregate import aggregate_soft_labels
-        from atlas_tools.relation.eval.run import load_run_config
+        from atlas_tools.relation.evaluation.application.api import aggregate_soft_labels
 
         try:
             result = aggregate_soft_labels(
-                run_dir=self.run,
-                cards_dir=self.cards,
-                loaded_config=load_run_config(self.config),
-                out_path=self.out,
+                run_directory=self.run,
+                cards_directory=self.cards,
+                config_path=self.config,
+                output_path=self.out,
             )
         except (OSError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.soft_labels_parquet}")
-        echo(f"wrote {result.sidecar}")
+        echo(f"wrote {result.path}")
+        echo(f"wrote {result.sidecar_path}")
 
 
 class EmbedCommand(BaseSettings):
@@ -159,22 +164,21 @@ class EmbedCommand(BaseSettings):
 
     def cli_cmd(self) -> None:
         from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
-        from atlas_tools.relation.eval.embeddings import embed_cards
-        from atlas_tools.relation.eval.run import load_run_config
+        from atlas_tools.relation.evaluation.application.api import embed_grid
 
         progress = NO_PROGRESS if self.quiet else StderrProgress()
         try:
-            result = embed_cards(
-                cards_dir=self.cards,
-                loaded_config=load_run_config(self.config),
-                out_path=self.out,
-                cache_dir=self.cache,
+            result = embed_grid(
+                config_path=self.config,
+                deck_directory=self.cards,
+                output_path=self.out,
+                cache_directory=self.cache,
                 progress=progress,
             )
         except (OSError, RuntimeError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.embeddings_parquet}")
-        echo(f"wrote {result.sidecar}")
+        echo(f"wrote {result.artifact.path}")
+        echo(f"wrote {result.artifact.sidecar_path}")
 
 
 class FitCommand(BaseSettings):
@@ -188,21 +192,20 @@ class FitCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.classifier import fit_classifier
-        from atlas_tools.relation.eval.run import load_run_config
+        from atlas_tools.relation.evaluation.application.api import fit_classifier
 
         try:
             result = fit_classifier(
                 soft_labels_path=self.soft_labels,
                 embeddings_path=self.embeddings,
-                loaded_config=load_run_config(self.config),
-                out_dir=self.out,
+                config_path=self.config,
+                output_directory=self.out,
             )
         except (OSError, ValueError) as error:
             fail(error)
-        echo(f"wrote {result.metadata_json}")
-        echo(f"wrote {result.arrays_npz}")
-        echo(f"wrote {result.predictions_parquet}")
+        echo(f"wrote {result.metadata_path}")
+        echo(f"wrote {result.arrays_path}")
+        echo(f"wrote {result.out_of_fold_path}")
 
 
 class ReportCommand(BaseSettings):
@@ -245,7 +248,7 @@ class AnalyzeCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.analysis import analyze_handoff
+        from atlas_tools.relation.evaluation.application.api import analyze_handoff
 
         try:
             result = analyze_handoff(self.handoff, self.out)
@@ -264,7 +267,7 @@ class VisualizeCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.eval.visualization import visualize_analysis
+        from atlas_tools.relation.evaluation.application.api import visualize_analysis
 
         try:
             result = visualize_analysis(self.analysis, self.out)

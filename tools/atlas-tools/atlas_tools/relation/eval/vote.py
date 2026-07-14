@@ -47,6 +47,7 @@ from atlas_tools.relation.eval.schema import FramingId, PhysicalAttemptRow, Shel
 from atlas_tools.relation.eval.transport import (
     AcceptedCompletion,
     CompletionTransport,
+    GridGuardError,
     accepted_completion,
     aggregate_physical_usage,
     request_hash,
@@ -131,7 +132,11 @@ def _call_transport(
     )
     if isinstance(called, outcome.Error):
         error = _normal_exception(called)
-        return _PhysicalOutcome(None, error, request_failure_category(error))
+        # A guard breach may carry the accepted completion it was inspecting;
+        # the provider already billed it, so its usage evidence is journaled
+        # alongside the failure instead of being discarded.
+        billed = error.result if isinstance(error, GridGuardError) else None
+        return _PhysicalOutcome(billed, error, request_failure_category(error))
 
     result = called.value
     validated = outcome.capture(accepted_completion, result, task.judge)
@@ -490,9 +495,12 @@ def _build_vote(
 
 
 def _systemic(error: Exception) -> bool:
-    return isinstance(error, PhysicalRequestFailedError) and (
-        error.attempt.failure is not None and is_systemic_failure(error.attempt.failure)
-    )
+    # Guard breaches inspecting an accepted (billed) completion surface as
+    # rejected responses; both failure shapes carry the durable attempt row
+    # whose recorded failure decides whether the whole session must stop.
+    if not isinstance(error, PhysicalRequestFailedError | ProviderResponseRejectedError):
+        return False
+    return error.attempt.failure is not None and is_systemic_failure(error.attempt.failure)
 
 
 def execute_logical_vote(

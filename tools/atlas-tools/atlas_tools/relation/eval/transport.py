@@ -11,10 +11,14 @@ from typing import Final, Protocol, Self, assert_never, cast
 
 from openrouter import OpenRouter
 from openrouter.components import (
-    AnthropicCacheControlDirective,
+    ChatAssistantMessage,
+    ChatContentCacheControl,
+    ChatContentText,
     ChatMessages,
     ChatRequestReasoning,
     ChatResult,
+    ChatSystemMessage,
+    ChatUserMessage,
     ProviderPreferences,
 )
 from openrouter.types import UNSET
@@ -31,6 +35,7 @@ from atlas_tools.relation.eval.contract import (
     VoteTask,
     session_id,
 )
+from atlas_tools.relation.eval.prompt import RETRY_INSTRUCTION
 from atlas_tools.relation.eval.schema import PhysicalAttemptRow, ReasoningEffort
 
 _NO_RETRIES: Final = RetryConfig(
@@ -40,7 +45,9 @@ _NO_RETRIES: Final = RetryConfig(
 )
 _RESPONSE_CACHE_HEADERS: Final = {"X-OpenRouter-Cache": "false"}
 _ANTHROPIC_MODEL_PREFIX: Final = "anthropic/"
-_ANTHROPIC_PROMPT_CACHING: Final = "automatic-ephemeral-for-anthropic-models-v1"
+_ANTHROPIC_PROMPT_CACHING: Final = "explicit-prefix-breakpoint-ephemeral-v2"
+_INITIAL_PREFIX_BOUNDARY: Final = -2
+_REPAIR_PREFIX_BOUNDARY: Final = -4
 _HTTP_OK: Final = 200
 _GLOBAL_OPENROUTER_SERVER_URL: Final = "https://openrouter.ai/api/v1"
 _EU_OPENROUTER_SERVER_URL: Final = "https://eu.openrouter.ai/api/v1"
@@ -191,18 +198,72 @@ def _duration_milliseconds(duration: timedelta) -> int:
     return milliseconds
 
 
-def _prompt_cache_directive(judge: JudgeConfig) -> AnthropicCacheControlDirective | None:
-    """Return the top-level prompt-caching directive for Anthropic-vendor models.
+def _prefix_boundary_index(messages: Sequence[ChatMessages]) -> int:
+    """Return the index of the last stable-prefix message in a judge prompt.
 
-    Anthropic routes require explicit cache breakpoints; OpenRouter's automatic
-    mode places the breakpoint on the last cacheable block, so the shared shell
-    and few-shot prefix is served from cache on every subsequent call. Other
-    vendors either cache implicitly or do not consume the directive, and it is
-    a billing/infrastructure concern, so it stays outside vote identity.
+    Every prompt is the byte-stable pack prefix followed by exactly one live
+    user turn — or, on the malformed-output repair shape, by live turn,
+    malformed assistant answer, and the fixed retry instruction. The
+    breakpoint must sit on the last *shared* block: a breakpoint on a unique
+    block caches nothing and reads nothing, which is precisely the top-level
+    "automatic" directive's failure (it marks the final block).
+    """
+    last = messages[-1]
+    is_repair = (
+        isinstance(last, ChatUserMessage)
+        and isinstance(last.content, str)
+        and last.content == RETRY_INSTRUCTION
+    )
+    boundary = _REPAIR_PREFIX_BOUNDARY if is_repair else _INITIAL_PREFIX_BOUNDARY
+    if len(messages) < -boundary + 1:
+        raise ValueError("judge prompt is shorter than its stable prefix shape")
+    return len(messages) + boundary
+
+
+def _with_prefix_breakpoint(messages: Sequence[ChatMessages]) -> list[ChatMessages]:
+    """Copy a prompt with one explicit ephemeral breakpoint closing the prefix.
+
+    Anthropic routes cache nothing without explicit breakpoints (Bedrock
+    ignores the top-level automatic directive entirely; the pilot's cold
+    Anthropic streams and the grid's cache-assertion halt are the evidence).
+    The single breakpoint converts the message's string content into the
+    equivalent one-part text block carrying ``cache_control``; the judge-
+    visible bytes are unchanged, so vote identity and the prompt pack hash
+    are deliberately untouched.
+    """
+    boundary = _prefix_boundary_index(messages)
+    target = messages[boundary]
+    if not isinstance(target, ChatSystemMessage | ChatUserMessage | ChatAssistantMessage):
+        raise TypeError("prefix boundary is not a cacheable chat message")
+    if not isinstance(target.content, str):
+        raise TypeError("prefix boundary message does not carry text content")
+    marked = target.model_copy(
+        update={
+            "content": [
+                ChatContentText(
+                    type="text",
+                    text=target.content,
+                    cache_control=ChatContentCacheControl(type="ephemeral"),
+                )
+            ]
+        }
+    )
+    return [*messages[:boundary], marked, *messages[boundary + 1 :]]
+
+
+def _cache_marked_messages(
+    judge: JudgeConfig,
+    messages: list[ChatMessages],
+) -> list[ChatMessages]:
+    """Attach the explicit prefix breakpoint for vendors that require one.
+
+    Other vendors cache implicitly or ignore the annotation; caching is a
+    billing/infrastructure concern, so it stays outside vote identity and
+    request hashes.
     """
     if judge.model.startswith(_ANTHROPIC_MODEL_PREFIX):
-        return AnthropicCacheControlDirective(type="ephemeral")
-    return None
+        return _with_prefix_breakpoint(messages)
+    return messages
 
 
 class OpenRouterTransport:
@@ -236,18 +297,17 @@ class OpenRouterTransport:
         reasoning = ChatRequestReasoning(effort=effort)
         temperature = judge.temperature if judge.temperature is not None else UNSET
         seed = judge.seed if judge.seed is not None else UNSET
-        cache_control = _prompt_cache_directive(judge)
+        marked_messages = _cache_marked_messages(judge, messages)
         match judge.output_token_limit:
             case MaxTokensLimit(tokens=tokens):
                 result = self._client.chat.send(
-                    messages=messages,
+                    messages=marked_messages,
                     model=judge.model,
                     provider=provider,
                     reasoning=reasoning,
                     temperature=temperature,
                     seed=seed,
                     max_tokens=tokens,
-                    cache_control=cache_control,
                     x_open_router_metadata="enabled",
                     server_url=openrouter_server_url(judge.openrouter_region),
                     session_id=session_id,
@@ -258,14 +318,13 @@ class OpenRouterTransport:
                 )
             case MaxCompletionTokensLimit(tokens=tokens):
                 result = self._client.chat.send(
-                    messages=messages,
+                    messages=marked_messages,
                     model=judge.model,
                     provider=provider,
                     reasoning=reasoning,
                     temperature=temperature,
                     seed=seed,
                     max_completion_tokens=tokens,
-                    cache_control=cache_control,
                     x_open_router_metadata="enabled",
                     server_url=openrouter_server_url(judge.openrouter_region),
                     session_id=session_id,
@@ -304,7 +363,16 @@ class OpenRouterTransportFactory:
 
 
 class GridGuardError(RuntimeError):
-    """A family stream guard fired; the run stops resumably and pages the operator."""
+    """A family stream guard fired; the run stops resumably and pages the operator.
+
+    ``result`` carries the accepted completion the guard was inspecting, when
+    one exists: the provider already billed it, so the attempt journal must
+    keep its usage evidence even though the vote fails.
+    """
+
+    def __init__(self, message: str, *, result: ChatResult | None = None) -> None:
+        super().__init__(message)
+        self.result = result
 
 
 class _FamilyStreamState:
@@ -313,6 +381,7 @@ class _FamilyStreamState:
     def __init__(self) -> None:
         self.semaphore = Semaphore(1)
         self.calls = 0
+        self.cumulative_cached_tokens = 0
         self.recent_costs: deque[float] = deque()
 
 
@@ -325,11 +394,22 @@ class FamilyStreamGuards:
     within themselves — the property that keeps the prefix cache hot). The
     guards observe only fresh calls; imported pilot votes never pass here.
 
-    1. First-vote check: the family's first call must succeed, come back on
-       the pinned model, and parse to a verdict. A failure is a roster
-       problem, not a retry problem.
-    2. Cache assertion: from the configured call index, every accepted
-       completion must report cached prompt tokens; a cold cache halts.
+    1. First-vote check: an unproven family stream's first call must come
+       back on the pinned model and parse to a verdict, and must not fail in
+       a roster-shaped way (authentication, billing, permanent client
+       errors). ``first_vote_pages`` classifies exceptions: transient
+       weather — a 429 or 5xx, direct or embedded in an HTTP-200 envelope —
+       takes the normal retry/Retry-After path even on the opening call.
+       The check is scoped to the stream, not the session: a family with an
+       accepted attempt already journaled (``established_families``) has
+       proven its route and never pages here again.
+    2. Cache assertion: by the configured call index the session stream's
+       cumulative cached prompt tokens must be rising above zero.
+       Cumulative, not per-call: best-effort caches (Azure) legitimately
+       miss single calls among hits, while a stream that has never cached
+       at that depth is the surcharge the guard exists to stop. Session
+       scoping is deliberate: a resumed run re-warms an expired cache
+       within its first calls.
     3. Cost tripwire: the rolling mean of reported costs must stay under the
        configured multiple of the family's pilot-measured per-vote cost.
     """
@@ -342,12 +422,16 @@ class FamilyStreamGuards:
         cost_multiplier: float,
         pilot_cost_per_vote_usd: Mapping[str, float],
         parse_verdict: Callable[[str], object],
+        first_vote_pages: Callable[[Exception], bool],
+        established_families: frozenset[str] = frozenset(),
     ) -> None:
         self._cache_check_vote = cache_check_vote
         self._cost_window = cost_window
         self._cost_multiplier = cost_multiplier
         self._pilot_costs = dict(pilot_cost_per_vote_usd)
         self._parse_verdict = parse_verdict
+        self._first_vote_pages = first_vote_pages
+        self._established = set(established_families)
         self._guard = Lock()
         self._families: dict[str, _FamilyStreamState] = {}
 
@@ -374,6 +458,7 @@ class FamilyStreamGuards:
             with self._guard:
                 call_index = state.calls
                 state.calls += 1
+                unproven = judge.family_id not in self._established
             try:
                 result = inner.complete(
                     messages=messages,
@@ -383,22 +468,32 @@ class FamilyStreamGuards:
                     timeout=timeout,
                 )
             except Exception as error:
-                if call_index == 0:
+                if call_index == 0 and unproven and self._first_vote_pages(error):
                     raise GridGuardError(
                         f"first-vote check failed for {judge.family_id}: the stream's "
-                        f"opening request errored ({error}); this is a roster problem, "
-                        "not a retry problem — paging the operator"
+                        f"opening request failed in a roster-shaped way ({error}); "
+                        "paging the operator instead of retrying"
                     ) from error
                 raise
-            self._check_result(judge, call_index, result)
+            self._check_result(judge, call_index, result, unproven=unproven)
+            with self._guard:
+                self._established.add(judge.family_id)
             return result
 
-    def _check_result(self, judge: JudgeConfig, call_index: int, result: ChatResult) -> None:
-        if call_index == 0:
+    def _check_result(
+        self,
+        judge: JudgeConfig,
+        call_index: int,
+        result: ChatResult,
+        *,
+        unproven: bool,
+    ) -> None:
+        if call_index == 0 and unproven:
             if result.model != judge.model:
                 raise GridGuardError(
                     f"first-vote check failed for {judge.family_id}: returned model "
-                    f"{result.model!r} does not carry the pinned name"
+                    f"{result.model!r} does not carry the pinned name",
+                    result=result,
                 )
             content = _completion_content(result)
             try:
@@ -406,14 +501,20 @@ class FamilyStreamGuards:
             except ValueError as error:
                 raise GridGuardError(
                     f"first-vote check failed for {judge.family_id}: the opening "
-                    f"completion does not parse to a verdict ({error})"
+                    f"completion does not parse to a verdict ({error})",
+                    result=result,
                 ) from error
         usage = aggregate_usage([result])
-        if call_index + 1 >= self._cache_check_vote and usage.tokens_cached <= 0:
+        with self._guard:
+            state = self._families[judge.family_id]
+            state.cumulative_cached_tokens += usage.tokens_cached
+            cumulative_cached = state.cumulative_cached_tokens
+        if call_index + 1 >= self._cache_check_vote and cumulative_cached <= 0:
             raise GridGuardError(
-                f"cache assertion failed for {judge.family_id}: call "
-                f"{call_index + 1} reports no cached prompt tokens; a cold cache at "
-                "this depth is a surcharge, not a warm-up"
+                f"cache assertion failed for {judge.family_id}: no cached prompt "
+                f"tokens across the stream's first {call_index + 1} calls; a cache "
+                "still cold at this depth is a surcharge, not a warm-up",
+                result=result,
             )
         expected = self._pilot_costs.get(judge.family_id)
         if expected is None or usage.cost_usd is None:
@@ -432,7 +533,8 @@ class FamilyStreamGuards:
                 f"cost tripwire fired for {judge.family_id}: rolling mean "
                 f"${rolling_mean:.6f}/vote over the last {self._cost_window} votes "
                 f"exceeds {self._cost_multiplier}x the pilot-measured "
-                f"${expected:.6f}/vote"
+                f"${expected:.6f}/vote",
+                result=result,
             )
 
 

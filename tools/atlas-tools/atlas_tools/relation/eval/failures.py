@@ -16,6 +16,7 @@ from atlas_tools.relation.eval.contract import (
     TransientRetryConfig,
 )
 from atlas_tools.relation.eval.schema import AttemptFailure, PhysicalAttemptRow
+from atlas_tools.relation.eval.transport import GridGuardError
 
 type FailureCategory = Literal["transport", "provider", "response", "routing", "accounting"]
 
@@ -28,9 +29,21 @@ the account. All other failures are vote-local; the executor defers the vote
 and keeps working the rest of the plan.
 """
 
+GRID_GUARD_EXCEPTION_TYPE = f"{GridGuardError.__module__}.{GridGuardError.__qualname__}"
+"""The grid's stream guards page the operator; deferral would erase the evidence.
+
+A guard breach (first-vote check, cold cache, cost tripwire) is a roster or
+provider problem, not a vote-local fault: re-passing the vote would burn spend
+against the very condition the guard exists to stop, and the first-vote check
+would not even re-fire on a re-pass. Guard failures therefore stop the session
+immediately, like authentication and billing failures.
+"""
+
 
 def is_systemic_failure(failure: AttemptFailure) -> bool:
-    """Return whether a durable failure indicates an account-wide condition."""
+    """Return whether a durable failure indicates a session-wide condition."""
+    if failure.exception_type == GRID_GUARD_EXCEPTION_TYPE:
+        return True
     return any(
         status in SYSTEMIC_STATUS_CODES
         for status in (failure.http_status_code, failure.provider_status_code)
@@ -164,6 +177,36 @@ def failure_from_exception(
         retry_after=retry_after,
         response_body=body,
     )
+
+
+def first_vote_pages(error: Exception, *, policy: TransientRetryConfig) -> bool:
+    """Return whether an unproven stream's opening failure is roster-shaped.
+
+    Authentication and billing statuses, permanent client errors, and
+    unclassifiable response failures page the operator: retrying cannot fix a
+    broken roster. Transient weather — a 429 or 5xx, whether direct or
+    embedded in an HTTP-200 envelope, or a plain transport fault under a
+    transport-retrying policy — takes the ordinary retry path even on the
+    stream's first call.
+    """
+    failure = failure_from_exception(error, request_failure_category(error))
+    if is_systemic_failure(failure):
+        return True
+    http_ok = 200
+    statuses = [
+        status
+        for status in (failure.provider_status_code, failure.http_status_code)
+        if status is not None and status != http_ok
+    ]
+    if any(
+        HTTP_CLIENT_ERROR_START <= status < HTTP_SERVER_ERROR_START
+        and status not in RETRYABLE_CLIENT_ERROR_STATUS_CODES
+        for status in statuses
+    ):
+        return True
+    if any(status in policy.status_codes for status in statuses):
+        return False
+    return not (failure.category == "transport" and policy.retry_transport_errors)
 
 
 def retry_directive(
