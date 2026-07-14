@@ -4,18 +4,9 @@ import { defineConfig } from "vitest/config";
 import type { TestUserConfig } from "vitest/config";
 
 /**
- * The backend integration tests are split into two groups which run as
- * separate, sequential vitest invocations (see the `test:integration` script
- * in `package.json`):
- *
- * - the seeded group (this config, `src/tests/graph/`): runs against the
- *   shared system graph seeded once per run by `globalSetup` and must never
- *   wipe it, and
- * - the snapshot group (`vitest.snapshot.config.ts`, `src/tests/subgraph/`):
- *   wipes the graph and restores standalone snapshots, so it runs after the
- *   seeded group.
- *
- * These test options are shared between the two configs.
+ * Test options shared between the seeded group (this config) and the snapshot
+ * group (`vitest.snapshot.config.ts`), which `test:integration` runs as
+ * separate, sequential vitest invocations.
  */
 export const sharedTestConfig = {
   coverage: {

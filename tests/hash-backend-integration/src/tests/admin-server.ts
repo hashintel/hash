@@ -7,20 +7,13 @@ import { StatusCode } from "@local/status";
 import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 
 /**
- * Throw unless running in the snapshot group of the backend integration
- * tests.
- *
- * Destructive graph operations wipe the shared system graph that the seeded
- * group (`vitest.config.ts`) seeds once per run via `globalSetup`, so they
- * may only run in the snapshot group (`vitest.snapshot.config.ts`), which
- * runs as a separate vitest invocation after the seeded group and owns the
- * wipe. The snapshot group's config sets the `HASH_TEST_GROUP` marker checked
- * here.
+ * Throw unless running in the snapshot group (`vitest.snapshot.config.ts`),
+ * the only group allowed to wipe the shared system graph.
  */
 const assertRunningInSnapshotGroup = (operation: string) => {
   if (process.env.HASH_TEST_GROUP !== "snapshot") {
     throw new Error(
-      `\`${operation}\` wipes the graph and may only run in the snapshot group of the backend integration tests, which runs as a separate vitest invocation after the seeded group so it cannot destroy the system graph seeded by \`globalSetup\`. To make a test file destructive, place it under \`src/tests/subgraph/\` so that \`vitest.snapshot.config.ts\` picks it up.`,
+      `\`${operation}\` wipes the graph seeded by \`globalSetup\`, so it may only run in the snapshot group (\`vitest.snapshot.config.ts\`). To make a test file destructive, place it under \`src/tests/subgraph/\`.`,
     );
   }
 };
@@ -116,8 +109,7 @@ export const deleteEntities = async () => {
 /**
  * Restore a snapshot from a file.
  *
- * May only be called from the snapshot group of the backend integration
- * tests (`vitest.snapshot.config.ts`).
+ * Destructive – may only run in the snapshot group.
  */
 export const restoreSnapshot = async (snapshotPath: string) => {
   assertRunningInSnapshotGroup("restoreSnapshot");
@@ -162,8 +154,7 @@ export const deleteUser = async (
  *
  * This is a convenience function for deleting all entities, entity types, property types, data types, and accounts.
  *
- * May only be called from the snapshot group of the backend integration
- * tests (`vitest.snapshot.config.ts`).
+ * Destructive – may only run in the snapshot group.
  */
 export const resetGraph = async () => {
   assertRunningInSnapshotGroup("resetGraph");
