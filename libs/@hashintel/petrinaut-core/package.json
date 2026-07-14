@@ -61,6 +61,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "doc:dependency-diagram": "node scripts/generate-dependency-diagrams.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
@@ -77,6 +78,7 @@
   "devDependencies": {
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "dependency-cruiser": "18.0.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "rolldown": "1.1.2",

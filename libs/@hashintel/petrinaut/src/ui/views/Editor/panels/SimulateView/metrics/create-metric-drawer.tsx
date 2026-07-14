@@ -16,7 +16,7 @@ import {
   useMetricLspSession,
 } from "./metric-form";
 import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
-import { summarizeMetricLspErrors } from "./metric-lsp";
+import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 
 // -- Footer -------------------------------------------------------------------
@@ -90,11 +90,9 @@ interface CreateMetricDrawerProps {
   onClose: () => void;
 }
 
-export const CreateMetricDrawer = ({
-  open,
-  onClose,
-}: CreateMetricDrawerProps) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { addMetric } = usePetrinautMutations();
 
   const existingMetricNames = new Set(
@@ -113,7 +111,16 @@ export const CreateMetricDrawer = ({
       onClose();
       ctx.reset();
     },
-    { existingMetricNames },
+    {
+      existingMetricNames,
+      validateOnSubmit: async (value) =>
+        await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: petriNetDefinition,
+          extensions,
+          metric: buildMetricFromFormState(value, "metric-submit-validation"),
+        }),
+    },
   );
 
   // Live validation (TypeScript + HIR semantic/compilability checks) comes
@@ -123,10 +130,6 @@ export const CreateMetricDrawer = ({
   // Owned here (not in MetricFormBody) so the footer can scope its LSP
   // diagnostics summary to the same session.
   const metricSessionId = useMetricLspSession(values.code);
-
-  if (!open) {
-    return null;
-  }
 
   return (
     <Drawer showBackdrop={false} onClose={onClose} swapKey="metric">
@@ -148,4 +151,15 @@ export const CreateMetricDrawer = ({
       />
     </Drawer>
   );
+};
+
+export const CreateMetricDrawer = ({
+  open,
+  onClose,
+}: CreateMetricDrawerProps) => {
+  if (!open) {
+    return null;
+  }
+
+  return <CreateMetricContent onClose={onClose} />;
 };

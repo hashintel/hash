@@ -6,6 +6,7 @@
  * analyses (`typecheckHir`, `analyzeHir`) / linting (`lintHirUserCode`) /
  * compilation (`emit-js` via `tryCompileHir*`).
  */
+export { fingerprintHirCompilationInput } from "./hir/artifact-fingerprint";
 export {
   analyzeHir,
   foldHir,

@@ -614,6 +614,31 @@ return tokens.reduce((sum, t) => sum + t.x, 0) / tokens.length;`,
     ).toBe(2.5);
   });
 
+  it("rejects invalid metric token indices before reading adjacent bytes", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const outOfBounds = compileMetric(
+      `return state.places.Pool.tokens[state.places.Pool.count].x;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    const fractional = compileMetric(
+      `return state.places.Pool.tokens[0.5].x;`,
+      pool,
+      frame.placeIndexByName,
+    );
+
+    const args = [
+      frame.views.f64,
+      frame.views.u64,
+      frame.views.u8,
+      frame.placeCounts,
+      frame.placeOffsets,
+    ] as const;
+    expect(() => outOfBounds(...args)).toThrow(/out of bounds/i);
+    expect(() => fractional(...args)).toThrow(/out of bounds/i);
+  });
+
   it("registers referenced places in first-reference order", () => {
     const program = emitBufferMetricJs(
       lower(

@@ -76,6 +76,8 @@ const RESERVED_NAMES = [
   "__params",
   "__dist",
   "Math",
+  "Number",
+  "RangeError",
   "Infinity",
   "NaN",
 ];
@@ -426,10 +428,17 @@ class BufferEmitter {
       case "indexAccess": {
         const target = this.eval(expr.target, env);
         if (target.kind === "placeTokens") {
-          // Metric token counts are dynamic, so any scalar index is allowed;
-          // metric code is expected to guard with `.length` (out-of-range
-          // reads land in other places' token bytes or zeroed capacity).
-          const index = this.scalar(this.eval(expr.index, env));
+          // Metric token counts are dynamic. Preserve array-index semantics
+          // instead of allowing an invalid index to read an adjacent place's
+          // packed bytes.
+          const indexCode = this.scalar(this.eval(expr.index, env));
+          const index = this.names.allocate("__metricIndex");
+          const count = this.metricCountCode(target.ordinal);
+          const placeName = this.placeNames[target.ordinal] ?? "unknown";
+          this.lines.push(`const ${index} = ${indexCode};`);
+          this.lines.push(
+            `if (!Number.isInteger(${index}) || ${index} < 0 || ${index} >= ${count}) throw new RangeError(${quoteKey(`Metric token index for place "${placeName}" is out of bounds`)});`,
+          );
           const stride = this.layoutOf(target.elements).strideBytes;
           const strideCode = stride === 0 ? "0" : `(${index}) * ${stride}`;
           return {

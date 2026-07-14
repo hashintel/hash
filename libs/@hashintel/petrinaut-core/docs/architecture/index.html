@@ -25,7 +25,8 @@
       integration is documented separately in
       <a href="../../../petrinaut/ARCHITECTURE.md"
         ><code>@hashintel/petrinaut/ARCHITECTURE.md</code></a
-      >.
+      >. Generated import maps spanning core, React, and UI modules are in the
+      <a href="./dependency-diagrams.md">dependency diagrams</a>.
     </p>
 
     <div class="legend">
@@ -228,8 +229,8 @@
         </tr>
         <tr>
           <td><strong>Compiled user code</strong></td>
-          <td>Plain JS closures (<code>new Function</code>, same realm)</td>
-          <td>Worker (lambda/kernel/dynamics) · Main (scenario, metrics)</td>
+          <td>Versioned HIR buffer programs; scenarios remain plain JS</td>
+          <td>Workers (HIR programs) · Main (scenarios, timeline metrics)</td>
           <td>
             Produced by <a href="./authoring.html">authoring</a> at init time.
           </td>
@@ -298,8 +299,8 @@
         <small
           >The playback driver picks <code>frameIndex</code>; the host renders
           from <code>getTransitionState()</code>, <code>getPlaceTokens()</code>,
-          and <code>getPlaceTokenCount()</code>; metric code runs against
-          <code>buildMetricState(reader)</code>.</small
+          and <code>getPlaceTokenCount()</code>; metric code reads the raw
+          packed frame through a HIR evaluator.</small
         >
       </div>
     </div>

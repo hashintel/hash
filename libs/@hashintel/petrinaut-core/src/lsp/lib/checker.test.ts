@@ -72,8 +72,10 @@ describe("checkSDCPN", () => {
           {
             colorId: "color1",
             code: `export default Dynamics((tokens, parameters) => {
-              const value = tokens[0].x;
-              return tokens;
+              return tokens.map((token) => {
+                const value = token.x;
+                return { x: value };
+              });
             });`,
           },
         ],
@@ -82,14 +84,9 @@ describe("checkSDCPN", () => {
       // WHEN
       const result = check(sdcpn);
 
-      // THEN — valid; only the HIR unused-binding hint remains (`value`)
+      // THEN
       expect(result.isValid).toBe(true);
-      const nonHintDiagnostics = result.itemDiagnostics.flatMap((item) =>
-        item.diagnostics.filter(
-          (diag) => diag.category !== ts.DiagnosticCategory.Suggestion,
-        ),
-      );
-      expect(nonHintDiagnostics).toHaveLength(0);
+      expect(result.itemDiagnostics).toHaveLength(0);
     });
 
     it("returns valid for code accessing defined parameters", () => {
@@ -111,7 +108,7 @@ describe("checkSDCPN", () => {
             code: `export default Dynamics((tokens, parameters) => {
               const a = parameters.alpha;
               const e = parameters.enabled;
-              return tokens;
+              return tokens.map(({ x }) => ({ x }));
             });`,
           },
         ],

@@ -75,7 +75,8 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {
-        version: 3,
+        version: 4,
+        fingerprint: "0000000000000000",
         dynamics: {},
         lambdas: {},
         kernels: {},

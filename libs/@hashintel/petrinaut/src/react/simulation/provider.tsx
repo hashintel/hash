@@ -355,9 +355,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   }) => {
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
-    const simulationSdcpn = extensionsRef.current.parameters
+    const simulationExtensions = extensionsRef.current;
+    const simulationSdcpn = simulationExtensions.parameters
       ? sdcpn
       : { ...sdcpn, parameters: [] };
+    // Snapshot every compile-sensitive input before awaiting the worker so
+    // artifacts and execution always use the same model configuration.
+    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+    const initialMarking = effectiveInitialMarkingRef.current;
+    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+    const parameterValues = effectiveParameterValuesRef.current;
 
     // Dispose any in-flight simulation before starting a new one. Update both
     // the ref (synchronous, so callers in the same tick see `null` not the
@@ -380,16 +387,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       // the simulation engine has no compiler of its own.
       const { artifacts } = await requestHirArtifacts(
         simulationSdcpn,
-        extensionsRef.current,
+        simulationExtensions,
       );
       sim = await createSimulation({
         sdcpn: simulationSdcpn,
-        extensions: extensionsRef.current,
+        extensions: simulationExtensions,
         hirArtifacts: artifacts,
-        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-        initialMarking: effectiveInitialMarkingRef.current,
-        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-        parameterValues: effectiveParameterValuesRef.current,
+        initialMarking,
+        parameterValues,
         seed,
         dt,
         maxTime: currentState.maxTime,

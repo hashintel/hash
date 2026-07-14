@@ -362,6 +362,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     pendingRegistrationsRef.current.set(experimentId, { abortController });
 
     const initializeExperiment = async () => {
+      const experimentExtensions = extensionsRef.current;
       try {
         // Compile the net's user code to HIR artifacts in the language
         // worker — the simulation engine has no compiler of its own. The
@@ -379,7 +380,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
               code: spec.code,
             })),
           },
-          extensionsRef.current,
+          experimentExtensions,
         );
 
         const metricSpecs = input.metricSpecs.map((spec) => {
@@ -407,7 +408,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         const experimentConfigBase = {
           sdcpn: experimentSdcpn,
-          extensions: extensionsRef.current,
+          extensions: experimentExtensions,
           initialMarking,
           parameterValues,
           seed: input.seed,

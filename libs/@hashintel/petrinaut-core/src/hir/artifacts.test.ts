@@ -151,7 +151,7 @@ function packToken(token: TokenRecord, pool: StringPool) {
 }
 
 describe("compileHirArtifacts", () => {
-  it("emits stable v3 artifact shapes", () => {
+  it("emits stable v4 artifact shapes", () => {
     const artifacts = compile();
 
     expect({
@@ -205,7 +205,7 @@ describe("compileHirArtifacts", () => {
         return count;
       }",
         },
-        "version": 3,
+        "version": 4,
       }
     `);
   });

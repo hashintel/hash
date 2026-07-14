@@ -1,9 +1,18 @@
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   createHirMetricEvaluator,
+  sanitizeSDCPNForExtensions,
   type Metric,
 } from "@hashintel/petrinaut-core";
+import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
@@ -133,16 +142,24 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   const [state, setState] = useState<TimelineMetricState>(
     EMPTY_TIMELINE_METRIC_STATE,
   );
+  const compilationFingerprint = useMemo(
+    () =>
+      fingerprintHirCompilationInput(
+        sanitizeSDCPNForExtensions(petriNetDefinition, extensions),
+        extensions,
+      ),
+    [extensions, petriNetDefinition],
+  );
+  const key = metric
+    ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}`
+    : null;
 
   useEffect(() => {
-    if (!metric) {
-      // No compile needed; callers key results off the metric identity, so
-      // stale state is simply ignored.
+    if (!metric || !key) {
       return;
     }
 
     let cancelled = false;
-    const key = `${metric.id}\u0000${metric.code}`;
     requestHirArtifacts(
       { ...petriNetDefinition, metrics: [metric] },
       extensions,
@@ -192,9 +209,11 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
     return () => {
       cancelled = true;
     };
-  }, [metric, extensions, petriNetDefinition, requestHirArtifacts]);
+  }, [metric, key, extensions, petriNetDefinition, requestHirArtifacts]);
 
-  return state;
+  // Effects run after render. Hide a previous evaluator/error synchronously
+  // whenever the metric, schema, code, or extension settings change.
+  return state.key === key ? state : EMPTY_TIMELINE_METRIC_STATE;
 }
 
 /**
@@ -229,13 +248,7 @@ export function useStreamingData(source: ExecutionFrameSource): {
       : null;
 
   const timelineMetric = useTimelineMetric(selectedMetric);
-  // Ignore evaluators compiled for a previous metric/code while a new
-  // compile is in flight (the old synchronous path could never be stale).
-  const evaluateMetric =
-    selectedMetric &&
-    timelineMetric.key === `${selectedMetric.id}\u0000${selectedMetric.code}`
-      ? timelineMetric.evaluate
-      : null;
+  const evaluateMetric = timelineMetric.evaluate;
   const availableTypes = colorsEnabled ? types : [];
   const availablePlaces = colorsEnabled
     ? places

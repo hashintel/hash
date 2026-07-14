@@ -21,6 +21,7 @@ import {
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../extensions";
+import { fingerprintHirCompilationInput } from "./artifact-fingerprint";
 import {
   emitBufferDynamicsJs,
   emitBufferKernelJs,
@@ -105,7 +106,8 @@ export function compileHirArtifacts(
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const artifacts: HirArtifacts = {
-    version: 3,
+    version: 4,
+    fingerprint: fingerprintHirCompilationInput(sanitized, extensions),
     dynamics: {},
     lambdas: {},
     kernels: {},

@@ -1,6 +1,6 @@
 ---
 "@hashintel/petrinaut": patch
-"@hashintel/petrinaut-core": patch
+"@hashintel/petrinaut-core": minor
 ---
 
 Compile all user code (dynamics, rates, kernels, metrics) through a new HIR

@@ -127,7 +127,9 @@ export function getHirDiagnosticsForItem(
   code: string,
   context: HirSurfaceContext,
 ): ts.Diagnostic[] {
-  if (code.trim() === "") {
+  // An empty lambda intentionally uses the runtime default (Infinity/true).
+  // Every other surface requires a program and must report its lowering error.
+  if (code.trim() === "" && context.surface === "lambda") {
     return [];
   }
   // Out-of-subset code is an error: the HIR pipeline is the only compiler,

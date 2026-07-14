@@ -11,7 +11,12 @@
  * severity chosen by the caller) and no artifacts.
  */
 import { analyzeHir, foldHir } from "./analyze";
-import { emitBufferMetricJs } from "./emit-buffer-js";
+import {
+  emitBufferDynamicsJs,
+  emitBufferKernelJs,
+  emitBufferLambdaJs,
+  emitBufferMetricJs,
+} from "./emit-buffer-js";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 import { typecheckHir } from "./typecheck";
@@ -69,6 +74,22 @@ function collectMathRandomSpans(fn: HirFunction): Span[] {
     }
   });
   return spans;
+}
+
+function canEmitBufferProgram(
+  fn: HirFunction,
+  context: HirSurfaceContext,
+): boolean {
+  switch (context.surface) {
+    case "dynamics":
+      return emitBufferDynamicsJs(fn, context.elements) !== null;
+    case "lambda":
+      return emitBufferLambdaJs(fn, context) !== null;
+    case "kernel":
+      return emitBufferKernelJs(fn, context) !== null;
+    case "metric":
+      return emitBufferMetricJs(fn, context) !== null;
+  }
 }
 
 /**
@@ -174,13 +195,12 @@ export function lintHirUserCode(
     }
   }
 
-  // --- Buffer compilability (metrics) ---------------------------------------
-  // Metrics have exactly one program shape — surface non-compilable bodies
-  // here so the editor errors match `compileHirArtifacts` failures.
+  // --- Buffer compilability -------------------------------------------------
+  // Every runtime surface has exactly one program shape. Surface emitter
+  // failures here so editor gating matches `compileHirArtifacts` exactly.
   if (
-    context.surface === "metric" &&
     !diagnostics.some((diagnostic) => diagnostic.severity === "error") &&
-    emitBufferMetricJs(fn, context) === null
+    !canEmitBufferProgram(fn, context)
   ) {
     diagnostics.push({
       code: "hir:not-compilable",

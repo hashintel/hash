@@ -12,7 +12,7 @@ TypeScript user code
   -> hir.ts
   -> typecheck.ts / analyze.ts / lint.ts
   -> emit-buffer-js.ts
-  -> HirArtifacts version 3
+  -> HirArtifacts version 4
   -> instantiate.ts
   -> packed simulation buffers
 ```
@@ -45,6 +45,22 @@ Rejected code cannot run: loops, mutation, arbitrary helper calls, spread,
 computed object keys, dynamic transition-token indexes and structurally dynamic
 transition outputs.
 
+## Compilation coverage
+
+| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                 |
+| ----------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                         |
+| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                           |
+| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                   |
+| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                     |
+| Scenario initial-state code and per-place expressions | No                   | Compiled separately by `simulation/authoring/scenario/compile-scenario.ts` using sandboxed `new Function`; evaluated once before a run starts. |
+| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                     |
+
+There is no runtime fallback from an HIR surface to the non-HIR compilers. Code
+outside the supported HIR subset is a blocking diagnostic. The proposed
+Petrinaut DSL in [`dsl-sketch.md`](./dsl-sketch.md) is not implemented; it is a
+future frontend intended to lower to the same HIR.
+
 ## Main modules
 
 | Module                | Role                                                                      |
@@ -65,7 +81,8 @@ transition outputs.
 
 ```ts
 {
-  version: 3,
+  version: 4,
+  fingerprint: string,
   dynamics: Record<string, { source: string }>,
   lambdas: Record<string, { source: string; inputSlotCount: number }>,
   kernels: Record<string, {
@@ -77,9 +94,9 @@ transition outputs.
 }
 ```
 
-The engine validates artifact metadata before running. Missing or stale
-artifacts produce per-item errors instead of falling back to runtime
-compilation.
+The engine validates the artifact version and compilation-input fingerprint
+before running, then checks per-program metadata. Missing or stale artifacts
+produce errors instead of falling back to runtime compilation.
 
 ## ABI
 
@@ -107,5 +124,4 @@ The HIR test suite covers:
 ## Related notes
 
 - [`BUFFER_ABI.md`](./BUFFER_ABI.md): packed-buffer runtime contract.
-- [`HIR_REVIEW.md`](./HIR_REVIEW.md): architecture review and concepts.
 - [`dsl-sketch.md`](./dsl-sketch.md): possible future Petrinaut DSL frontend.

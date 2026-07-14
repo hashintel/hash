@@ -246,6 +246,44 @@ describe("lintHirUserCode", () => {
   });
 
   describe("semantic rules", () => {
+    it("reports buffer emission failures for every runtime surface", () => {
+      expect(
+        codes(
+          `export default Dynamics((tokens) => [{ x: 1, v: 1 }]);`,
+          dynamicsContext,
+        ),
+      ).toContainEqual(["hir:not-compilable", "error"]);
+
+      const dynamicIndexLambdaContext: HirLambdaContext = {
+        ...lambdaContext,
+        parameters: [
+          ...lambdaContext.parameters,
+          { name: "index", type: "integer" },
+        ],
+      };
+      expect(
+        codes(
+          `export default Lambda((input, parameters) => input.Pool[parameters.index].x);`,
+          dynamicIndexLambdaContext,
+        ),
+      ).toContainEqual(["hir:not-compilable", "error"]);
+
+      expect(
+        codes(
+          `export default TransitionKernel((input, parameters) => ({
+  Out: [{ x: input.Pool[parameters.index].x, count: 0 }],
+}));`,
+          {
+            ...kernelContext,
+            parameters: [
+              ...kernelContext.parameters,
+              { name: "index", type: "integer" },
+            ],
+          },
+        ),
+      ).toContainEqual(["hir:not-compilable", "error"]);
+    });
+
     it("warns on Math.random", () => {
       expect(
         codes(

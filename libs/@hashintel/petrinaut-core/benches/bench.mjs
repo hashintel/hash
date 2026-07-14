@@ -1,3 +1,4 @@
+/* eslint-disable no-console, typescript/no-unsafe-assignment, typescript/no-unsafe-call -- This cross-version CLI intentionally feature-detects dynamically imported package APIs and reports results to stdout. */
 import { writeFileSync } from "node:fs";
 /**
  * Simple simulator + experiments benchmark, runnable on both the HIR branch
@@ -465,7 +466,18 @@ if (flag("--compile")) {
 }
 
 const results = [];
-const selected = ONLY === null ? SCENARIOS : [SCENARIOS[Number(ONLY)]];
+const onlyIndex = ONLY === null ? null : Number(ONLY);
+if (
+  onlyIndex !== null &&
+  (!Number.isInteger(onlyIndex) ||
+    onlyIndex < 0 ||
+    onlyIndex >= SCENARIOS.length)
+) {
+  throw new Error(
+    `--only must be an integer from 0 to ${SCENARIOS.length - 1}; received ${JSON.stringify(ONLY)}`,
+  );
+}
+const selected = onlyIndex === null ? SCENARIOS : [SCENARIOS[onlyIndex]];
 for (const scenario of selected) {
   for (let index = 0; index < WARMUPS; index += 1) {
     sample(scenario);

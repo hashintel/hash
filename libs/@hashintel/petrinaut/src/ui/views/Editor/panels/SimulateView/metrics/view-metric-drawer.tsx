@@ -16,7 +16,7 @@ import {
   useMetricForm,
   useMetricLspSession,
 } from "./metric-form";
-import { summarizeMetricLspErrors } from "./metric-lsp";
+import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 
 // -- Defaults -----------------------------------------------------------------
@@ -107,7 +107,8 @@ const ViewMetricContent = ({
   metric: Metric;
   onClose: () => void;
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { updateMetric, removeMetric } = usePetrinautMutations();
 
   // Names of OTHER metrics — exclude the one being edited so it can keep
@@ -136,7 +137,16 @@ const ViewMetricContent = ({
       });
       onClose();
     },
-    { existingMetricNames },
+    {
+      existingMetricNames,
+      validateOnSubmit: async (value) =>
+        await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: petriNetDefinition,
+          extensions,
+          metric: buildMetricFromFormState(value, metric.id),
+        }),
+    },
   );
 
   // Live validation (TypeScript + HIR semantic/compilability checks) comes

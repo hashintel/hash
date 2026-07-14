@@ -115,10 +115,12 @@ compile to loops over `placeCounts` and `placeOffsets`.
 
 ## Artifact validation
 
-Artifacts are `version: 3`.
+Artifacts are `version: 4` and carry a fingerprint of the sanitized SDCPN and
+extension settings used for compilation.
 
 The engine rejects stale artifacts by checking:
 
+- artifact version and compilation-input fingerprint;
 - lambda `inputSlotCount`;
 - kernel `inputSlotCount`;
 - kernel `outputByteCount`;

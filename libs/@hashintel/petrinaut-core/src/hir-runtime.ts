@@ -6,6 +6,7 @@
  * `typescript` dependency) into worker bundles. The full pipeline lives in
  * `./hir.ts`.
  */
+export { fingerprintHirCompilationInput } from "./hir/artifact-fingerprint";
 export {
   hirDistributionRuntime,
   instantiateHirBufferDynamics,

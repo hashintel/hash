@@ -140,7 +140,8 @@ describe("buildSimulation with HIR artifacts", () => {
   it("compiles buffer programs for all three surfaces", () => {
     const { artifacts, failures } = compileHirArtifacts(sdcpn);
     expect(failures).toEqual([]);
-    expect(artifacts.version).toBe(3);
+    expect(artifacts.version).toBe(4);
+    expect(artifacts.fingerprint).toMatch(/^[0-9a-f]{16}$/);
     expect(typeof artifacts.dynamics.de1!.source).toBe("string");
     expect(typeof artifacts.lambdas.t1!.source).toBe("string");
     expect(artifacts.lambdas.t1!.inputSlotCount).toBe(1);
@@ -185,5 +186,29 @@ describe("buildSimulation with HIR artifacts", () => {
     expect(() => buildSimulation(makeInput(stale))).toThrow(
       /does not match|stale|has not been compiled/i,
     );
+  });
+
+  it("rejects artifacts from an unsupported ABI version", () => {
+    const { artifacts } = compileHirArtifacts(sdcpn);
+    const stale = { ...artifacts, version: 3 } as unknown as HirArtifacts;
+
+    expect(() => buildSimulation(makeInput(stale))).toThrow(
+      /unsupported version 3/i,
+    );
+  });
+
+  it("rejects artifacts compiled for a different same-width layout", () => {
+    const { artifacts } = compileHirArtifacts(sdcpn);
+    const reorderedSdcpn: SDCPN = {
+      ...sdcpn,
+      types: sdcpn.types.map((type) => ({
+        ...type,
+        elements: [...type.elements].reverse(),
+      })),
+    };
+
+    expect(() =>
+      buildSimulation({ ...makeInput(artifacts), sdcpn: reorderedSdcpn }),
+    ).toThrow(/do not match the current net/i);
   });
 });

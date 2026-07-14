@@ -112,7 +112,9 @@ export type HirMetricArtifact = {
  * `compileHirArtifacts`; the engine has no other compilation path.
  */
 export type HirArtifacts = {
-  version: 3;
+  version: 4;
+  /** Hash of the sanitized SDCPN + extensions used during compilation. */
+  fingerprint: string;
   dynamics: Record<string, HirDynamicsArtifact>;
   lambdas: Record<string, HirLambdaArtifact>;
   kernels: Record<string, HirKernelArtifact>;

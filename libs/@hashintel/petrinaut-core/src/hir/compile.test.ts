@@ -48,7 +48,8 @@ describe("compileHirArtifacts on example models", () => {
     (_name, sdcpn) => {
       const { artifacts, failures } = compileHirArtifacts(sdcpn);
       expect(failures).toEqual([]);
-      expect(artifacts.version).toBe(3);
+      expect(artifacts.version).toBe(4);
+      expect(artifacts.fingerprint).toMatch(/^[0-9a-f]{16}$/);
 
       const colorById = new Map(
         [

@@ -8,6 +8,7 @@ import {
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import {
+  fingerprintHirCompilationInput,
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
@@ -35,6 +36,7 @@ import {
 import { coerceTokenRecord } from "./token-values";
 
 import type {
+  HirArtifacts,
   HirCompiledBufferKernel,
   HirCompiledBufferLambda,
   HirDynamicsArtifact,
@@ -56,6 +58,33 @@ type PackedInitialPlaceMarking = {
   bytes: Uint8Array;
   count: number;
 };
+
+function validateHirArtifacts(
+  artifacts: HirArtifacts | undefined,
+  sanitizedSdcpn: SimulationInput["sdcpn"],
+  extensions: PetrinautExtensionSettings,
+): void {
+  if (!artifacts) {
+    return;
+  }
+
+  const runtimeVersion: unknown = (artifacts as { version?: unknown }).version;
+  if (runtimeVersion !== 4) {
+    throw new Error(
+      `The compiled HIR artifacts use unsupported version ${String(runtimeVersion)}; expected version 4. Recompile them from the current net.`,
+    );
+  }
+
+  const expectedFingerprint = fingerprintHirCompilationInput(
+    sanitizedSdcpn,
+    extensions,
+  );
+  if (artifacts.fingerprint !== expectedFingerprint) {
+    throw new Error(
+      "The compiled HIR artifacts do not match the current net, code, or extension settings. Recompile them before starting the simulation.",
+    );
+  }
+}
 
 function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
@@ -554,6 +583,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   } = input;
   const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sanitizedSdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
+  validateHirArtifacts(input.hirArtifacts, sanitizedSdcpn, extensions);
 
   const defaultParameterValues = deriveDefaultParameterValues(
     sanitizedSdcpn.parameters,
