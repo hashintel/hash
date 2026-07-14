@@ -95,8 +95,8 @@ fn simple_expression() {
         FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
         INNER JOIN "data_types" AS "data_types_0_1_0"
           ON "data_types_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "data_types_0_1_0"."schema"->>'$id' = $2
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("data_types_0_1_0"."schema"->>'$id' = $2)
         "#,
         &[
             &pinned_timestamp,
@@ -124,10 +124,10 @@ fn limited_temporal() {
         r#"
         SELECT *
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $3)
         "#,
         &[
             &temporal_axes.pinned_timestamp(),
@@ -155,8 +155,8 @@ fn full_temporal() {
         r#"
         SELECT *
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)
         "#,
         &[&Uuid::nil()],
     );
@@ -200,8 +200,8 @@ fn specific_version() {
         FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
         INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
           ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND (("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3))
         "#,
         &[
             &pinned_timestamp,
@@ -233,13 +233,14 @@ fn latest_version() {
     test_compilation(
         &compiler,
         r#"
-        WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
+        WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version"
+        FROM "ontology_ids" AS "ontology_ids_0_0_0")
         SELECT *
         FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
         INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
           ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version")
         "#,
         &[&pinned_timestamp],
     );
@@ -267,13 +268,14 @@ fn not_latest_version() {
     test_compilation(
         &compiler,
         r#"
-        WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
+        WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version"
+        FROM "ontology_ids" AS "ontology_ids_0_0_0")
         SELECT *
         FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
         INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
           ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "ontology_ids_0_1_0"."version" != "ontology_ids_0_1_0"."latest_version"
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("ontology_ids_0_1_0"."version" != "ontology_ids_0_1_0"."latest_version")
         "#,
         &[&pinned_timestamp],
     );
@@ -312,9 +314,9 @@ fn property_type_by_referenced_data_types() {
           ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
          AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "data_types" AS "data_types_0_3_0"
-         ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "data_types_0_3_0"."schema"->>'title' = $2
+          ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("data_types_0_3_0"."schema"->>'title' = $2)
         "#,
         &[&pinned_timestamp, &"Text"],
     );
@@ -368,9 +370,9 @@ fn property_type_by_referenced_data_types() {
          AND "ontology_temporal_metadata_1_2_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
           ON "ontology_ids_1_3_0"."ontology_id" = "ontology_temporal_metadata_1_2_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "data_types_0_3_0"."schema"->>'title' = $2
-          AND ("ontology_ids_1_3_0"."base_url" = $3) AND ("ontology_ids_1_3_0"."version" = $4)
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("data_types_0_3_0"."schema"->>'title' = $2)
+          AND (("ontology_ids_1_3_0"."base_url" = $3) AND ("ontology_ids_1_3_0"."version" = $4))
         "#,
         &[
             &pinned_timestamp,
@@ -415,8 +417,8 @@ fn property_type_by_referenced_property_types() {
          AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "property_types" AS "property_types_0_3_0"
           ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "property_types_0_3_0"."schema"->>'title' = $2
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("property_types_0_3_0"."schema"->>'title' = $2)
         "#,
         &[&pinned_timestamp, &"Text"],
     );
@@ -457,8 +459,8 @@ fn entity_type_by_referenced_property_types() {
          AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "property_types" AS "property_types_0_3_0"
           ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "property_types_0_3_0"."schema"->>'title' = $2
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("property_types_0_3_0"."schema"->>'title' = $2)
         "#,
         &[&pinned_timestamp, &"Name"],
     );
@@ -496,8 +498,7 @@ fn entity_type_by_referenced_link_types() {
         &compiler,
         r#"
         SELECT *
-        FROM "ontology_temporal_metadata"
-          AS "ontology_temporal_metadata_0_0_0"
+        FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
         LEFT OUTER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
           ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
          AND "entity_type_constrains_links_on_0_1_0"."inheritance_depth" <= 0
@@ -512,8 +513,8 @@ fn entity_type_by_referenced_link_types() {
          AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "entity_types" AS "entity_types_0_5_0"
           ON "entity_types_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_types_0_5_0"."schema"->>'title' = $2
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_types_0_5_0"."schema"->>'title' = $2)
         "#,
         &[&pinned_timestamp, &"Friend Of"],
     );
@@ -557,8 +558,8 @@ fn entity_type_by_inheritance() {
          AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
           ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
-        WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "ontology_ids_0_3_0"."base_url" = $2
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("ontology_ids_0_3_0"."base_url" = $2)
         "#,
         &[
             &pinned_timestamp,
@@ -589,10 +590,10 @@ fn entity_simple_query() {
         r#"
         SELECT *
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $3)
         "#,
         &[
             &pinned_timestamp,
@@ -628,10 +629,10 @@ fn filter_entity_by_created_by_id() {
         INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
           ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_ids_0_1_0"."created_by_id" = $3
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_ids_0_1_0"."created_by_id" = $3)
         "#,
         &[
             &pinned_timestamp,
@@ -655,15 +656,13 @@ fn sort_entity_by_created_at_transaction_time() {
     test_compilation(
         &compiler,
         r#"
-        SELECT
-            DISTINCT ON("entity_ids_0_1_0"."created_at_transaction_time")
-            "entity_ids_0_1_0"."created_at_transaction_time"
+        SELECT DISTINCT ON("entity_ids_0_1_0"."created_at_transaction_time") "entity_ids_0_1_0"."created_at_transaction_time"
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
           ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
         ORDER BY "entity_ids_0_1_0"."created_at_transaction_time" DESC NULLS FIRST
         "#,
         &[&pinned_timestamp, &temporal_axes.variable_interval()],
@@ -701,19 +700,14 @@ fn entity_with_manual_selection() {
     test_compilation(
         &compiler,
         r#"
-        SELECT
-            DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time")
-            "entity_temporal_metadata_0_0_0"."entity_uuid",
-            "entity_temporal_metadata_0_0_0"."decision_time",
-            "entity_editions_0_1_0"."properties"
+        SELECT DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time") "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time", "entity_editions_0_1_0"."properties"
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
           ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_temporal_metadata_0_0_0"."draft_id" = $3
-        ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
-                 "entity_temporal_metadata_0_0_0"."decision_time" DESC NULLS LAST
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_0_0"."draft_id" = $3)
+        ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC, "entity_temporal_metadata_0_0_0"."decision_time" DESC NULLS LAST
         "#,
         &[
             &pinned_timestamp,
@@ -750,10 +744,10 @@ fn entity_property_query() {
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
           ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-          AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) = $4
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $3)
+          AND (jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) = $4)
         "#,
         &[
             &json_path,
@@ -785,10 +779,10 @@ fn entity_property_null_query() {
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
           ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-          AND jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) IS NOT NULL
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $3)
+          AND (jsonb_path_query_first("entity_editions_0_1_0"."properties", (($1::text)::jsonpath)) IS NOT NULL)
         "#,
         &[
             &json_path,
@@ -846,10 +840,10 @@ fn entity_outgoing_link_query() {
          AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
          AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
          AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_4_0"."entity_edition_id" = $3)
         "#,
         &[
             &pinned_timestamp,
@@ -958,10 +952,10 @@ fn entity_incoming_link_query() {
          AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
          AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
          AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_4_0"."entity_edition_id" = $3)
         "#,
         &[
             &pinned_timestamp,
@@ -1044,13 +1038,10 @@ fn link_entity_left_right_id() {
         LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
           ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
-          AND ("entity_has_left_entity_0_1_0"."left_web_id" = $4)
-          AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5)
-          AND ("entity_has_right_entity_0_1_0"."right_web_id" = $6)
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3) AND ("entity_has_left_entity_0_1_0"."left_web_id" = $4) AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5) AND ("entity_has_right_entity_0_1_0"."right_web_id" = $6))
         "#,
         &[
             &pinned_timestamp,
@@ -1120,11 +1111,11 @@ fn two_linked_entities() {
         LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_1_1_0"
           ON "entity_has_right_entity_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_has_right_entity_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = $3
-          AND "entity_has_right_entity_1_1_0"."right_entity_uuid" = $4
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $3)
+          AND ("entity_has_right_entity_1_1_0"."right_entity_uuid" = $4)
         "#,
         &[
             &pinned_timestamp,
@@ -1149,11 +1140,10 @@ fn two_linked_entities() {
         LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
           ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $3)
-          AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $4)
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_has_right_entity_0_1_0"."right_entity_uuid" = $3) AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $4))
         "#,
         &[
             &pinned_timestamp,
@@ -1251,11 +1241,10 @@ fn filter_left_and_right() {
          AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
         LEFT OUTER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
           ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND ("ontology_ids_0_5_0"."base_url" = $3)
-          AND ("ontology_ids_0_5_1"."base_url" = $4)
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("ontology_ids_0_5_0"."base_url" = $3) AND ("ontology_ids_0_5_1"."base_url" = $4))
         "#,
         &[
             &pinned_timestamp,
@@ -1281,15 +1270,15 @@ fn filter_entity_by_type_versioned_url() {
     test_compilation(
         &compiler,
         r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-              ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[]
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[])
+        "#,
         &[
             &pinned_timestamp,
             &temporal_axes.variable_interval(),
@@ -1319,15 +1308,15 @@ fn filter_entity_by_any_type_versioned_url() {
     test_compilation(
         &compiler,
         r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-                ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-                AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND ("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
+        "#,
         &[
             &pinned_timestamp,
             &temporal_axes.variable_interval(),
@@ -1358,15 +1347,15 @@ fn filter_entity_by_all_type_versioned_url() {
     test_compilation(
         &compiler,
         r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-                ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-                AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[])
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[]))
+        "#,
         &[
             &pinned_timestamp,
             &temporal_axes.variable_interval(),
@@ -1426,27 +1415,26 @@ fn filter_entity_own_and_linked_type_stay_separate() {
     test_compilation(
         &compiler,
         r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-                ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
-                ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
-               AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
-                ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
-               AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
-               AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
-               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-            LEFT OUTER JOIN "entity_edition_cache" AS "entity_edition_cache_0_3_0"
-                ON "entity_edition_cache_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-                AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[])
-                AND ("entity_edition_cache_0_3_0"."versioned_urls" @> ARRAY[$4]::text[])
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+          ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        LEFT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+          ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
+         AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
+         AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
+         AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+         AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+        LEFT OUTER JOIN "entity_edition_cache" AS "entity_edition_cache_0_3_0"
+          ON "entity_edition_cache_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[]) AND ("entity_edition_cache_0_3_0"."versioned_urls" @> ARRAY[$4]::text[]))
+        "#,
         &[
             &pinned_timestamp,
             &temporal_axes.variable_interval(),
@@ -1486,15 +1474,15 @@ fn filter_entity_by_no_type_versioned_url() {
     test_compilation(
         &compiler,
         r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-                ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-                AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ((NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])))
+        "#,
         &[
             &pinned_timestamp,
             &temporal_axes.variable_interval(),
@@ -1570,10 +1558,10 @@ fn filter_entity_by_type_versioned_url_not_equal() {
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
           ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND NOT("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[])
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3]::text[]))
         "#,
         &[
             &pinned_timestamp,
@@ -1602,10 +1590,10 @@ fn filter_entity_by_type_base_url() {
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
           ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-          AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-          AND "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[]
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[])
         "#,
         &[
             &pinned_timestamp,
@@ -1637,22 +1625,16 @@ fn filter_embedding_distance() {
     test_compilation(
         &compiler,
         r#"
-          SELECT DISTINCT ON("entity_embeddings_0_1_0"."distance")
-            *,
-            "entity_embeddings_0_1_0"."distance"
-          FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-          LEFT OUTER JOIN (SELECT
-                "entity_embeddings"."web_id",
-                "entity_embeddings"."entity_uuid",
-                MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
-              FROM "entity_embeddings"
-              GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid")
-             AS "entity_embeddings_0_1_0"
-             ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
-            AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-          WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-            AND "entity_embeddings_0_1_0"."distance" <= $2
-          ORDER BY "entity_embeddings_0_1_0"."distance" ASC
+        SELECT DISTINCT ON("entity_embeddings_0_1_0"."distance") *, "entity_embeddings_0_1_0"."distance"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        LEFT OUTER JOIN (SELECT "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid", MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
+        FROM "entity_embeddings"
+        GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid") AS "entity_embeddings_0_1_0"
+          ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_embeddings_0_1_0"."distance" <= $2)
+        ORDER BY "entity_embeddings_0_1_0"."distance" ASC
         "#,
         &[
             &Embedding::from(vec![0.0; 1536]),
@@ -1680,17 +1662,13 @@ fn sort_by_label_and_type_title() {
     test_compilation(
         &compiler,
         r#"
-        SELECT
-            DISTINCT ON(("entity_edition_cache_0_1_0"."labels")[1], ("entity_edition_cache_0_1_0"."type_titles")[1])
-            ("entity_edition_cache_0_1_0"."labels")[1],
-            ("entity_edition_cache_0_1_0"."type_titles")[1]
+        SELECT DISTINCT ON(("entity_edition_cache_0_1_0"."labels")[1], ("entity_edition_cache_0_1_0"."type_titles")[1]) ("entity_edition_cache_0_1_0"."labels")[1], ("entity_edition_cache_0_1_0"."type_titles")[1]
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
         INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
           ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-          AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-        ORDER BY ("entity_edition_cache_0_1_0"."labels")[1] ASC NULLS LAST,
-                 ("entity_edition_cache_0_1_0"."type_titles")[1] DESC NULLS LAST
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+        ORDER BY ("entity_edition_cache_0_1_0"."labels")[1] ASC NULLS LAST, ("entity_edition_cache_0_1_0"."type_titles")[1] DESC NULLS LAST
         "#,
         &[&pinned_timestamp, &temporal_axes.variable_interval()],
     );
@@ -1699,7 +1677,7 @@ fn sort_by_label_and_type_title() {
 #[test]
 fn transpile_offset() {
     let statement = SelectStatement::builder()
-        .select_clause(SimpleSelect::builder().selects(vec![SelectExpression::Asterisk(None)]))
+        .select_clause(SimpleSelect::builder().selects(SelectExpression::Asterisk(None)))
         .limit(10)
         .offset(20)
         .build();
@@ -1743,13 +1721,13 @@ mod predefined {
         test_compilation(
             &compiler,
             r#"
-            SELECT *
-            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
-              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
-            "#,
+        SELECT *
+        FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+        INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+          ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND (("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3))
+        "#,
             &[&pinned_timestamp, &url.base_url, &url.version],
         );
     }
@@ -1772,14 +1750,13 @@ mod predefined {
         test_compilation(
             &compiler,
             r#"
-            SELECT *
-            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ("entity_temporal_metadata_0_0_0"."web_id" = $3)
-              AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)
-            "#,
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND (("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4))
+        "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
@@ -1920,6 +1897,110 @@ mod property_masking {
         assert!(
             sql.contains(r#"ORDER BY jsonb_path_query_first(("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
             "ORDER BY should use masked properties expression: {sql}"
+        );
+    }
+}
+
+mod cursor_condition {
+    use hash_graph_store::query::{NullOrdering, Ordering};
+
+    use super::*;
+    use crate::store::postgres::query::{Alias, Expression, PostgresQueryPath as _};
+
+    fn key(number: usize) -> Expression {
+        Expression::ColumnReference(EntityQueryPath::Uuid.terminating_column().0.aliased(Alias {
+            condition_index: 0,
+            chain_depth: 0,
+            number,
+        }))
+    }
+
+    fn transpiled(
+        cursor: &[(
+            Expression,
+            Option<Expression>,
+            Ordering,
+            Option<NullOrdering>,
+        )],
+    ) -> Option<String> {
+        SelectCompiler::<Entity>::cursor_condition(cursor)
+            .map(|condition| condition.transpile_to_string())
+    }
+
+    #[test]
+    fn single_key_continues_past_value() {
+        assert_eq!(
+            transpiled(&[(
+                key(0),
+                Some(Expression::Parameter(1)),
+                Ordering::Ascending,
+                None
+            )])
+            .expect("a cursor with a value should produce a condition"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
+        );
+        assert_eq!(
+            transpiled(&[(
+                key(0),
+                Some(Expression::Parameter(1)),
+                Ordering::Descending,
+                Some(NullOrdering::First),
+            )])
+            .expect("a cursor with a value should produce a condition"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" < $1"#
+        );
+    }
+
+    #[test]
+    fn nulls_last_also_continues_into_nulls() {
+        assert_eq!(
+            transpiled(&[(
+                key(0),
+                Some(Expression::Parameter(1)),
+                Ordering::Ascending,
+                Some(NullOrdering::Last),
+            )])
+            .expect("a cursor with a value should produce a condition"),
+            r#"(("entity_temporal_metadata_0_0_0"."entity_uuid" > $1) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" IS NULL))"#
+        );
+    }
+
+    #[test]
+    fn null_cursor_value_continues_into_non_null() {
+        assert_eq!(
+            transpiled(&[(key(0), None, Ordering::Ascending, Some(NullOrdering::First))])
+                .expect("a `NULL` cursor with nulls first should produce a condition"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" IS NOT NULL"#
+        );
+    }
+
+    #[test]
+    fn null_cursor_value_with_nulls_last_has_no_continuation() {
+        assert_eq!(
+            transpiled(&[(key(0), None, Ordering::Ascending, Some(NullOrdering::Last))]),
+            None
+        );
+    }
+
+    #[test]
+    fn later_keys_require_equality_on_earlier_keys() {
+        assert_eq!(
+            transpiled(&[
+                (
+                    key(0),
+                    Some(Expression::Parameter(1)),
+                    Ordering::Ascending,
+                    None
+                ),
+                (
+                    key(1),
+                    Some(Expression::Parameter(2)),
+                    Ordering::Descending,
+                    None
+                ),
+            ])
+            .expect("a two-key cursor should produce a condition"),
+            r#"((("entity_temporal_metadata_0_0_0"."entity_uuid" = $1) AND ("entity_temporal_metadata_0_0_1"."entity_uuid" < $2)) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" > $1))"#
         );
     }
 }

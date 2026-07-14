@@ -31,7 +31,7 @@ use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Column, Expression, Identifier, SelectExpression, SelectStatement, SimpleSelect,
-    Transpile as _, WhereClause, table::EntityTemporalMetadata,
+    Transpile as _, table::EntityTemporalMetadata,
 };
 use hashql_core::{
     debug_panic,
@@ -77,14 +77,14 @@ mod types;
 /// Mutable compilation state accumulated while building a single SQL query.
 ///
 /// Collects deduplicated [`Parameters`], requested [`Projections`] (lazy joins driven by
-/// [`EntityPath`] usage), the top-level [`WhereClause`] (temporal constraints and continuation
-/// filters), and `CROSS JOIN LATERAL` items for island continuations.
+/// [`EntityPath`] usage), the top-level `WHERE` conditions (temporal constraints and
+/// continuation filters), and `CROSS JOIN LATERAL` items for island continuations.
 ///
 /// [`EntityPath`]: hashql_mir::pass::execution::traversal::EntityPath
 pub(crate) struct DatabaseContext<'heap, A: Allocator> {
     pub parameters: Parameters<'heap, A>,
     pub projections: Projections,
-    pub where_clause: WhereClause,
+    pub conditions: Vec<Expression>,
     pub laterals: Vec<query::FromItem<'static>, A>,
     pub continuation_aliases: Vec<continuation::ContinuationAlias, A>,
 }
@@ -97,7 +97,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
         Self {
             parameters: Parameters::new_in(alloc.clone()),
             projections: Projections::new(),
-            where_clause: WhereClause::default(),
+            conditions: Vec::new(),
             laterals: Vec::new_in(alloc.clone()),
             continuation_aliases: Vec::new_in(alloc),
         }
@@ -128,7 +128,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
             .temporal_axis(TemporalAxis::Decision)
             .to_expr();
 
-        self.where_clause.add_condition(Expression::overlap(
+        self.conditions.push(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {
                 correlation: Some(temporal_metadata.clone()),
                 name: Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
@@ -137,7 +137,7 @@ impl<A: Allocator> DatabaseContext<'_, A> {
             tx_param,
         ));
 
-        self.where_clause.add_condition(Expression::overlap(
+        self.conditions.push(Expression::overlap(
             Expression::ColumnReference(query::ColumnReference {
                 correlation: Some(temporal_metadata),
                 name: Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime).into(),
@@ -380,10 +380,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             // subquery and duplicates the CASE tree per field access, making it much more
             // expensive to compute.
             let subquery = SimpleSelect::builder()
-                .selects(vec![SelectExpression::Expression {
+                .selects(SelectExpression::Expression {
                     expression,
                     output_name: Some(ContinuationColumn::Entry.identifier()),
-                }])
+                })
                 .build();
 
             let subquery = query::FromItem::Subquery {
@@ -394,8 +394,8 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             };
 
             db.laterals.push(subquery);
-            db.where_clause
-                .add_condition(continuation::filter_condition(&table_ref));
+            db.conditions
+                .push(continuation::filter_condition(&table_ref));
             db.continuation_aliases.push(cont_alias);
         }
     }
@@ -493,9 +493,12 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
 
         let query = SimpleSelect::builder()
-            .selects(select_expressions)
+            .selects(
+                query::NonEmptyVec::try_from(select_expressions)
+                    .expect("a placeholder is added when nothing is selected"),
+            )
             .from(from)
-            .where_clause(db.where_clause)
+            .maybe_where_clause(Expression::conjunction(db.conditions.into_iter().collect()))
             .build();
 
         PreparedQuery {

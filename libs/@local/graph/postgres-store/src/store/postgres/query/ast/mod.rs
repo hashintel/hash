@@ -13,7 +13,8 @@ pub use self::{
     clause::{
         CommonTableExpression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
         FromItemSubqueryBuilder, FromItemTableBuilder, GroupByClause, GroupingElement, JoinType,
-        Materialization, OrderByClause, SelectExpression, WhereClause, WithClause,
+        Materialization, NonFinitePercentage, NullsOrder, OrderByClause, SamplePercentage,
+        SamplingMethod, SelectExpression, SortBy, SortDirection, TableSample, WithClause,
     },
     column_reference::{ColumnName, ColumnReference},
     expression::{

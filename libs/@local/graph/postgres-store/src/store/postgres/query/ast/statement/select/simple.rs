@@ -3,7 +3,7 @@ use core::fmt::{self, Write as _};
 use self::simple_select_builder::{IsComplete, IsUnset, SetQuantifier, State};
 use crate::store::postgres::query::{
     Expression, FromItem, GroupByClause, NonEmptyVec, SelectClause, SelectExpression,
-    SelectQuantifier, SelectStatement, Statement, Transpile, WhereClause,
+    SelectQuantifier, SelectStatement, Statement, Transpile,
 };
 
 /// The `SELECT …` arm of gram.y's `simple_select`.
@@ -16,11 +16,15 @@ use crate::store::postgres::query::{
 #[builder(derive(Debug, Clone, Into))]
 pub struct SimpleSelect {
     pub quantifier: Option<SelectQuantifier>,
-    pub selects: Vec<SelectExpression>,
+    /// The target list of the statement.
+    ///
+    /// Accepts a single [`SelectExpression`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
+    /// beforehand via `NonEmptyVec::try_from`.
+    #[builder(into)]
+    pub selects: NonEmptyVec<SelectExpression>,
     #[builder(into)]
     pub from: Option<FromItem<'static>>,
-    #[builder(default)]
-    pub where_clause: WhereClause,
+    pub where_clause: Option<Expression>,
     #[builder(into)]
     pub group_by: Option<GroupByClause>,
     pub having: Option<Expression>,
@@ -103,9 +107,9 @@ impl Transpile for SimpleSelect {
             from.transpile(fmt)?;
         }
 
-        if !self.where_clause.is_empty() {
-            fmt.write_char('\n')?;
-            self.where_clause.transpile(fmt)?;
+        if let Some(where_clause) = &self.where_clause {
+            fmt.write_str("\nWHERE ")?;
+            where_clause.transpile(fmt)?;
         }
 
         if let Some(group_by) = &self.group_by {
@@ -130,7 +134,7 @@ mod tests {
     fn builder_sets_quantifier() {
         let statement = SimpleSelect::builder()
             .distinct()
-            .selects(vec![SelectExpression::Asterisk(None)])
+            .selects(SelectExpression::Asterisk(None))
             .build();
 
         assert!(

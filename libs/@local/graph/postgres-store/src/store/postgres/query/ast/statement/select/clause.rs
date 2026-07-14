@@ -140,7 +140,7 @@ mod tests {
 
     fn select_all(table: Table) -> SimpleSelect {
         SimpleSelect::builder()
-            .selects(vec![SelectExpression::Asterisk(None)])
+            .selects(SelectExpression::Asterisk(None))
             .from(crate::store::postgres::query::FromItem::table(table))
             .build()
     }

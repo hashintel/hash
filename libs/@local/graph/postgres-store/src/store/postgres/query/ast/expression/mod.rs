@@ -118,6 +118,26 @@ impl Expression {
         })
     }
 
+    /// Folds conditions into one `AND` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn conjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::all(conditions)),
+        }
+    }
+
+    /// Folds conditions into one `OR` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn disjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::any(conditions)),
+        }
+    }
+
     #[must_use]
     #[expect(clippy::should_implement_trait)]
     pub fn not(self) -> Self {
@@ -716,7 +736,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new(None, false);
+        let mut compiler = SelectCompiler::with_asterisk(None, false);
         let condition = compiler
             .compile_filter(filter)
             .expect("failed to compile filter");

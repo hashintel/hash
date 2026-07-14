@@ -37,9 +37,9 @@ CROSS JOIN LATERAL
             ) AS "row"
     ) AS "continuation_0_0"
 WHERE
-    "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange)
-    AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
-    AND ("continuation_0_0"."row")."filter" IS NOT FALSE
+    ("entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange))
+    AND ("entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange))
+    AND (("continuation_0_0"."row")."filter" IS NOT FALSE)
 
 ================================== Parameters ==================================
 

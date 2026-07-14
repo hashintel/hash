@@ -24,8 +24,8 @@ pub struct SelectStatement {
     pub with: Option<WithClause>,
     #[builder(into)]
     pub select_clause: SelectClause,
-    #[builder(default)]
-    pub order_by: OrderByClause,
+    #[builder(into)]
+    pub order_by: Option<OrderByClause>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
@@ -41,7 +41,7 @@ impl From<SelectClause> for SelectStatement {
         Self {
             with: None,
             select_clause,
-            order_by: OrderByClause::default(),
+            order_by: None,
             limit: None,
             offset: None,
         }
@@ -72,9 +72,9 @@ impl Transpile for SelectStatement {
 
         self.select_clause.transpile(fmt)?;
 
-        if !self.order_by.is_empty() {
+        if let Some(order_by) = &self.order_by {
             fmt.write_char('\n')?;
-            self.order_by.transpile(fmt)?;
+            order_by.transpile(fmt)?;
         }
 
         if let Some(limit) = self.limit {
@@ -93,12 +93,12 @@ impl Transpile for SelectStatement {
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_store::{entity::EntityQueryPath, query::Ordering};
+    use hash_graph_store::entity::EntityQueryPath;
 
     use super::*;
     use crate::store::postgres::query::{
         Alias, Constant, Expression, Function, GroupByClause, GroupingElement,
-        PostgresQueryPath as _, SelectExpression,
+        PostgresQueryPath as _, SelectExpression, SortBy, SortDirection,
     };
 
     #[test]
@@ -113,13 +113,10 @@ mod tests {
             ))
         };
 
-        let mut order_by = OrderByClause::default();
-        order_by.push(web_id(), Ordering::Ascending, None);
-
         let statement = SelectStatement::builder()
             .select_clause(
                 SimpleSelect::builder()
-                    .selects(vec![SelectExpression::Asterisk(None)])
+                    .selects(SelectExpression::Asterisk(None))
                     .group_by(
                         GroupByClause::builder()
                             .grouping_elements(GroupingElement::Expressions(vec![web_id()])),
@@ -129,7 +126,13 @@ mod tests {
                         Expression::Constant(Constant::U32(1)),
                     )),
             )
-            .order_by(order_by)
+            .order_by(
+                OrderByClause::builder().sort_by(
+                    SortBy::builder()
+                        .expression(web_id())
+                        .direction(SortDirection::Ascending),
+                ),
+            )
             .build();
 
         assert_eq!(

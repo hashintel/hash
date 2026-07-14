@@ -697,7 +697,10 @@ mod from_item_function_builder_impl {
 mod tests {
     use indoc::indoc;
 
-    use super::{super::table_sample::SamplingMethod, *};
+    use super::{
+        super::table_sample::{SamplePercentage, SamplingMethod},
+        *,
+    };
     use crate::store::postgres::query::{
         Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, SimpleSelect, Table,
         TableName, TableReference,
@@ -905,7 +908,7 @@ mod tests {
     #[test]
     fn transpile_subquery_with_column_aliases() {
         let subquery = SimpleSelect::builder()
-            .selects(vec![SelectExpression::Asterisk(None)])
+            .selects(SelectExpression::Asterisk(None))
             .from(FromItem::table(Table::OntologyIds))
             .build();
 
@@ -931,7 +934,7 @@ mod tests {
     #[test]
     fn transpile_lateral_subquery() {
         let subquery = SimpleSelect::builder()
-            .selects(vec![SelectExpression::Asterisk(None)])
+            .selects(SelectExpression::Asterisk(None))
             .from(FromItem::table(Table::OntologyIds))
             .build();
 
@@ -1255,7 +1258,9 @@ mod tests {
     fn transpile_table_with_tablesample() {
         let from_item = FromItem::table(Table::DataTypes)
             .tablesample(TableSample {
-                method: SamplingMethod::Bernoulli { percentage: 10.0 },
+                method: SamplingMethod::Bernoulli {
+                    percentage: SamplePercentage::try_from(10.0).expect("finite"),
+                },
                 repeatable_seed: None,
             })
             .build();
@@ -1270,7 +1275,9 @@ mod tests {
     fn transpile_table_with_alias_and_tablesample() {
         let from_item = FromItem::table(Table::DataTypes)
             .tablesample(TableSample {
-                method: SamplingMethod::System { percentage: 5.0 },
+                method: SamplingMethod::System {
+                    percentage: SamplePercentage::try_from(5.0).expect("finite"),
+                },
                 repeatable_seed: Some(42),
             })
             .alias(Table::DataTypes.aliased_name(Alias {

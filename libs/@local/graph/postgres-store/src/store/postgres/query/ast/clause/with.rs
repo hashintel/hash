@@ -19,8 +19,11 @@ pub struct CommonTableExpression {
     #[builder(into)]
     name: TableName<'static>,
     /// Output column names, renaming the columns produced by the statement.
-    #[builder(default)]
-    columns: Vec<ColumnName<'static>>,
+    ///
+    /// Accepts a single [`ColumnName`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
+    /// beforehand via `NonEmptyVec::try_from`.
+    #[builder(into)]
+    columns: Option<NonEmptyVec<ColumnName<'static>>>,
     #[builder(into)]
     statement: Statement,
     materialization: Option<Materialization>,
@@ -38,13 +41,14 @@ where
 impl Transpile for CommonTableExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.name.transpile(fmt)?;
-        if let Some((last, columns)) = self.columns.split_last() {
+        if let Some(columns) = &self.columns {
             fmt.write_str(" (")?;
-            for column in columns {
+            for (idx, column) in columns.iter().enumerate() {
+                if idx > 0 {
+                    fmt.write_str(", ")?;
+                }
                 column.transpile(fmt)?;
-                fmt.write_str(", ")?;
             }
-            last.transpile(fmt)?;
             fmt.write_char(')')?;
         }
         fmt.write_str(" AS ")?;
@@ -107,13 +111,16 @@ mod tests {
 
     fn ontology_ids_statement() -> SimpleSelect {
         SimpleSelect::builder()
-            .selects(vec![
-                SelectExpression::Asterisk(None),
-                SelectExpression::Expression {
-                    expression: max_version_expression(),
-                    output_name: Some(Identifier::from("latest_version")),
-                },
-            ])
+            .selects(
+                NonEmptyVec::try_from(vec![
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
+                        expression: max_version_expression(),
+                        output_name: Some(Identifier::from("latest_version")),
+                    },
+                ])
+                .expect("two select expressions should form a valid target list"),
+            )
             .from(
                 FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased_name(Alias {
                     condition_index: 0,
@@ -147,7 +154,7 @@ mod tests {
                 .name("data_types")
                 .statement(
                     SimpleSelect::builder()
-                        .selects(vec![SelectExpression::Asterisk(None)])
+                        .selects(SelectExpression::Asterisk(None))
                         .from(FromItem::table(Table::DataTypes).alias(
                             Table::DataTypes.aliased_name(Alias {
                                 condition_index: 3,
@@ -205,7 +212,7 @@ mod tests {
     fn transpile_recursive_cte() {
         fn select_all(table: Table) -> SimpleSelect {
             SimpleSelect::builder()
-                .selects(vec![SelectExpression::Asterisk(None)])
+                .selects(SelectExpression::Asterisk(None))
                 .from(FromItem::table(table))
                 .build()
         }
@@ -239,7 +246,10 @@ mod tests {
             .common_table_expressions(
                 CommonTableExpression::builder()
                     .name("roots")
-                    .columns(vec!["web_id".into(), "entity_uuid".into()])
+                    .columns(
+                        NonEmptyVec::try_from(vec!["web_id".into(), "entity_uuid".into()])
+                            .expect("two column names should form a valid column list"),
+                    )
                     .statement(ontology_ids_statement()),
             )
             .build();

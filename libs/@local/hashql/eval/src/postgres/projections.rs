@@ -290,7 +290,7 @@ impl Projections {
         );
 
         let subquery = SimpleSelect::builder()
-            .selects(vec![SelectExpression::Expression {
+            .selects(SelectExpression::Expression {
                 expression: query::Expression::Function(query::Function::JsonAgg(Box::new(
                     query::Expression::Function(query::Function::JsonBuildObject(vec![
                         (
@@ -310,14 +310,9 @@ impl Projections {
                     ])),
                 ))),
                 output_name: Some(Identifier::from("entity_type_ids")),
-            }])
-            .from(inner_from)
-            .where_clause({
-                let mut w = query::WhereClause::default();
-                w.add_condition(correlation);
-                w.add_condition(direct_prefix);
-                w
             })
+            .from(inner_from)
+            .where_clause(query::Expression::all(vec![correlation, direct_prefix]))
             .build();
 
         let lateral = query::FromItem::Subquery {
