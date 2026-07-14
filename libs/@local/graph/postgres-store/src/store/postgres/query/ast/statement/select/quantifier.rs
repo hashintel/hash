@@ -2,7 +2,7 @@ use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{Expression, NonEmptyVec, Transpile};
 
-/// `SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]`
+/// `SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectQuantifier {
     All,

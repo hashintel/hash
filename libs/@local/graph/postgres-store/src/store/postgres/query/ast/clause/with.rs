@@ -1,6 +1,6 @@
 use core::fmt::{self, Write as _};
 
-use crate::store::postgres::query::{ColumnName, Statement, TableName, Transpile};
+use crate::store::postgres::query::{ColumnName, NonEmptyVec, Statement, TableName, Transpile};
 
 /// Controls whether Postgres materializes a common table expression.
 ///
@@ -50,33 +50,21 @@ impl Transpile for CommonTableExpression {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, bon::Builder)]
+#[builder(derive(Debug, Clone))]
 pub struct WithClause {
-    common_table_expressions: Vec<CommonTableExpression>,
+    #[builder(setters(vis = "", name = "set_common_table_expressions"))]
+    common_table_expressions: NonEmptyVec<CommonTableExpression>,
 }
 
 impl WithClause {
     pub fn push(&mut self, common_table_expression: CommonTableExpression) {
         self.common_table_expressions.push(common_table_expression);
     }
-
-    #[must_use]
-    pub const fn len(&self) -> usize {
-        self.common_table_expressions.len()
-    }
-
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        self.common_table_expressions.is_empty()
-    }
 }
 
 impl Transpile for WithClause {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if self.common_table_expressions.is_empty() {
-            return Ok(());
-        }
-
         fmt.write_str("WITH ")?;
         for (idx, expression) in self.common_table_expressions.iter().enumerate() {
             if idx > 0 {
@@ -89,11 +77,52 @@ impl Transpile for WithClause {
     }
 }
 
+mod with_clause_builder_impl {
+    use super::{
+        CommonTableExpression, WithClauseBuilder,
+        with_clause_builder::{IsUnset, SetCommonTableExpressions, State},
+    };
+    use crate::store::postgres::query::NonEmptyVec;
+
+    impl<S: State> WithClauseBuilder<S> {
+        /// Sets a single `with_query`, the infallible special case of
+        /// [`common_table_expressions`](Self::common_table_expressions).
+        pub fn common_table_expression(
+            self,
+            expression: CommonTableExpression,
+        ) -> WithClauseBuilder<SetCommonTableExpressions<S>>
+        where
+            S: State<CommonTableExpressions: IsUnset>,
+        {
+            let Ok(builder) = self.common_table_expressions(expression);
+            builder
+        }
+
+        /// Sets the `with_query` list of the clause.
+        ///
+        /// # Errors
+        ///
+        /// Returns `E::Error` when the conversion fails — for [`Vec`] input this is
+        /// [`EmptyVec`](crate::store::postgres::query::EmptyVec) on an empty list. Single
+        /// [`CommonTableExpression`] input is infallible.
+        pub fn common_table_expressions<E>(
+            self,
+            expressions: E,
+        ) -> Result<WithClauseBuilder<SetCommonTableExpressions<S>>, E::Error>
+        where
+            E: TryInto<NonEmptyVec<CommonTableExpression>>,
+            S: State<CommonTableExpressions: IsUnset>,
+        {
+            Ok(self.set_common_table_expressions(expressions.try_into()?))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, FromItem, Identifier, SelectExpression, SelectStatement, Table,
+        Alias, EmptyVec, FromItem, Identifier, SelectExpression, SelectStatement, Table,
         test_helper::{max_version_expression, trim_whitespace},
     };
 
@@ -118,15 +147,14 @@ mod tests {
 
     #[test]
     fn transpile_with_expression() {
-        let mut with_clause = WithClause::default();
-        assert_eq!(with_clause.transpile_to_string(), "");
-
-        with_clause.push(
-            CommonTableExpression::builder()
-                .name(Table::OntologyIds)
-                .statement(ontology_ids_statement())
-                .build(),
-        );
+        let mut with_clause = WithClause::builder()
+            .common_table_expression(
+                CommonTableExpression::builder()
+                    .name(Table::OntologyIds)
+                    .statement(ontology_ids_statement())
+                    .build(),
+            )
+            .build();
 
         assert_eq!(
             trim_whitespace(&with_clause.transpile_to_string()),
@@ -166,14 +194,15 @@ mod tests {
 
     #[test]
     fn transpile_materialized_cte() {
-        let mut with_clause = WithClause::default();
-        with_clause.push(
-            CommonTableExpression::builder()
-                .name("roots")
-                .statement(ontology_ids_statement())
-                .materialization(Materialization::Materialized)
-                .build(),
-        );
+        let with_clause = WithClause::builder()
+            .common_table_expression(
+                CommonTableExpression::builder()
+                    .name("roots")
+                    .statement(ontology_ids_statement())
+                    .materialization(Materialization::Materialized)
+                    .build(),
+            )
+            .build();
 
         assert!(
             with_clause
@@ -181,14 +210,15 @@ mod tests {
                 .starts_with(r#"WITH "roots" AS MATERIALIZED (SELECT"#)
         );
 
-        let mut with_clause = WithClause::default();
-        with_clause.push(
-            CommonTableExpression::builder()
-                .name("roots")
-                .statement(ontology_ids_statement())
-                .materialization(Materialization::NotMaterialized)
-                .build(),
-        );
+        let with_clause = WithClause::builder()
+            .common_table_expression(
+                CommonTableExpression::builder()
+                    .name("roots")
+                    .statement(ontology_ids_statement())
+                    .materialization(Materialization::NotMaterialized)
+                    .build(),
+            )
+            .build();
 
         assert!(
             with_clause
@@ -199,19 +229,30 @@ mod tests {
 
     #[test]
     fn transpile_cte_with_column_list() {
-        let mut with_clause = WithClause::default();
-        with_clause.push(
-            CommonTableExpression::builder()
-                .name("roots")
-                .columns(vec!["web_id".into(), "entity_uuid".into()])
-                .statement(ontology_ids_statement())
-                .build(),
-        );
+        let with_clause = WithClause::builder()
+            .common_table_expression(
+                CommonTableExpression::builder()
+                    .name("roots")
+                    .columns(vec!["web_id".into(), "entity_uuid".into()])
+                    .statement(ontology_ids_statement())
+                    .build(),
+            )
+            .build();
 
         assert!(
             with_clause
                 .transpile_to_string()
                 .starts_with(r#"WITH "roots" ("web_id", "entity_uuid") AS (SELECT"#)
+        );
+    }
+
+    #[test]
+    fn with_clause_rejects_empty_expressions() {
+        assert_eq!(
+            WithClause::builder()
+                .common_table_expressions(Vec::new())
+                .expect_err("a `WITH` clause without common table expressions should be rejected"),
+            EmptyVec
         );
     }
 }

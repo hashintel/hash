@@ -12,8 +12,7 @@ use crate::store::postgres::query::{
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
-    #[builder(default)]
-    pub with: WithClause,
+    pub with: Option<WithClause>,
     pub quantifier: Option<SelectQuantifier>,
     pub selects: Vec<SelectExpression>,
     #[builder(into)]
@@ -59,8 +58,8 @@ impl<S: State> SelectStatementBuilder<S> {
 
 impl Transpile for SelectStatement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if !self.with.is_empty() {
-            self.with.transpile(fmt)?;
+        if let Some(with) = &self.with {
+            with.transpile(fmt)?;
             fmt.write_char('\n')?;
         }
 

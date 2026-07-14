@@ -7,8 +7,16 @@ use core::{
 /// A [`Vec`] that is guaranteed to hold at least one element.
 ///
 /// The field is private: construction goes through `From<T>` (a single element) or
-/// `TryFrom<Vec<T>>`, and no operation can empty it — mutable access is only handed out as a
-/// slice, which cannot change the length.
+/// `TryFrom<Vec<T>>`, and no operation can empty it — mutable access is only handed out as a slice,
+/// which cannot change the length.
+///
+/// # Builder convention
+///
+/// [`bon`] builder members of this type hide the generated setter (`setters(vis = "", name =
+/// "set_<member>")`) and expose hand-written extensions instead: a plural setter bounded on
+/// `TryInto<NonEmptyVec<T>>` returning `Result` (fallible for [`Vec`] input), plus optionally a
+/// singular sibling that takes one element and discharges the
+/// [`Infallible`](core::convert::Infallible) error internally via `let Ok(…)`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NonEmptyVec<T>(Vec<T>);
 
@@ -25,7 +33,9 @@ impl<T> NonEmptyVec<T> {
 
     #[must_use]
     pub fn first(&self) -> &T {
-        &self.0[0]
+        self.0
+            .first()
+            .unwrap_or_else(|| unreachable!("the vector is never empty"))
     }
 
     #[must_use]

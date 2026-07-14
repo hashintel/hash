@@ -24,6 +24,7 @@ use crate::store::postgres::query::{
     Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
     GroupByClause, GroupingElement, Identifier, NonEmptyVec, PostgresQueryPath, PostgresRecord,
     SelectExpression, SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
+    WithClause,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -1000,34 +1001,42 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.push(
-            CommonTableExpression::builder()
-                .name(Table::OntologyIds)
-                .statement(
-                    SelectStatement::builder()
-                        .selects(vec![
-                            SelectExpression::Asterisk(None),
-                            SelectExpression::Expression {
-                                expression: Expression::Window(
-                                    Box::new(Expression::Function(Function::Max(Box::new(
-                                        Expression::ColumnReference(version_column.aliased(alias)),
-                                    )))),
-                                    WindowDefinition::partition_by(Expression::ColumnReference(
-                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                                    )),
-                                ),
-                                output_name: Some(Identifier::from("latest_version")),
-                            },
-                        ])
-                        .from(
-                            FromItem::table(version_column.table())
-                                .alias(version_column.table().aliased_name(alias))
-                                .build(),
-                        )
+        let latest_version_cte = CommonTableExpression::builder()
+            .name(Table::OntologyIds)
+            .statement(
+                SelectStatement::builder()
+                    .selects(vec![
+                        SelectExpression::Asterisk(None),
+                        SelectExpression::Expression {
+                            expression: Expression::Window(
+                                Box::new(Expression::Function(Function::Max(Box::new(
+                                    Expression::ColumnReference(version_column.aliased(alias)),
+                                )))),
+                                WindowDefinition::partition_by(Expression::ColumnReference(
+                                    Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                )),
+                            ),
+                            output_name: Some(Identifier::from("latest_version")),
+                        },
+                    ])
+                    .from(
+                        FromItem::table(version_column.table())
+                            .alias(version_column.table().aliased_name(alias))
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build();
+        match &mut self.statement.with {
+            Some(with) => with.push(latest_version_cte),
+            with @ None => {
+                *with = Some(
+                    WithClause::builder()
+                        .common_table_expression(latest_version_cte)
                         .build(),
-                )
-                .build(),
-        );
+                );
+            }
+        }
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version

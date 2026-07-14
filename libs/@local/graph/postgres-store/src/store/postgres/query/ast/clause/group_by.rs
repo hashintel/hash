@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, SetQuantifier, Transpile};
 
-/// `GROUP BY [ ALL | DISTINCT ] grouping_element [, ...]`
+/// `GROUP BY [ ALL | DISTINCT ] grouping_element [, ...]`.
 ///
 /// An empty `elements` list means the clause is omitted entirely.
 #[derive(Debug, Clone, Default, PartialEq)]
