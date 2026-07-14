@@ -103,7 +103,7 @@ mod tests {
                 SelectExpression::Asterisk(None),
                 SelectExpression::Expression {
                     expression: max_version_expression(),
-                    alias: Some(Identifier::from("latest_version")),
+                    output_name: Some(Identifier::from("latest_version")),
                 },
             ])
             .from(

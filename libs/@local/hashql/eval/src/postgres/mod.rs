@@ -382,7 +382,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             let subquery = SelectStatement::builder()
                 .selects(vec![SelectExpression::Expression {
                     expression,
-                    alias: Some(ContinuationColumn::Entry.identifier()),
+                    output_name: Some(ContinuationColumn::Entry.identifier()),
                 }])
                 .build();
 
@@ -449,7 +449,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
 
             select_expressions.push(SelectExpression::Expression {
                 expression,
-                alias: Some(alias),
+                output_name: Some(alias),
             });
             columns.push(ColumnDescriptor::Path {
                 path: traversal_path,
@@ -470,7 +470,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             ] {
                 select_expressions.push(SelectExpression::Expression {
                     expression: continuation::field_access(&table_ref, field.into()),
-                    alias: Some(cont_alias.field_identifier(field.into())),
+                    output_name: Some(cont_alias.field_identifier(field.into())),
                 });
                 columns.push(ColumnDescriptor::Continuation {
                     body: cont_alias.body,
@@ -488,7 +488,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         if select_expressions.is_empty() {
             select_expressions.push(SelectExpression::Expression {
                 expression: Expression::Constant(query::Constant::U32(1)),
-                alias: Some(Identifier::from("placeholder")),
+                output_name: Some(Identifier::from("placeholder")),
             });
         }
 

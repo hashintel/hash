@@ -13,7 +13,7 @@ pub enum SelectExpression {
     /// Transpiles to: `expression` or `expression AS "alias"`.
     Expression {
         expression: Expression,
-        alias: Option<Identifier<'static>>,
+        output_name: Option<Identifier<'static>>,
     },
     /// Asterisk wildcard selecting all columns.
     ///
@@ -25,11 +25,14 @@ pub enum SelectExpression {
 impl Transpile for SelectExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Expression { expression, alias } => {
+            Self::Expression {
+                expression,
+                output_name,
+            } => {
                 expression.transpile(fmt)?;
-                if let Some(alias) = alias {
+                if let Some(output_name) = output_name {
                     fmt.write_str(" AS ")?;
-                    alias.transpile(fmt)?;
+                    output_name.transpile(fmt)?;
                 }
                 Ok(())
             }
@@ -65,7 +68,7 @@ mod tests {
                             number: 3,
                         })
                 ),
-                alias: None
+                output_name: None
             }
             .transpile_to_string(),
             r#""ontology_ids_1_2_3"."base_url""#
@@ -97,7 +100,7 @@ mod tests {
                             })
                     ))
                 ),
-                alias: Some(Identifier::from("latest_version"))
+                output_name: Some(Identifier::from("latest_version"))
             }
             .transpile_to_string(),
             r#"MAX("ontology_ids_1_2_3"."version") OVER (PARTITION BY "ontology_ids_1_2_3"."base_url") AS "latest_version""#

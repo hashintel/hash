@@ -20,9 +20,9 @@ pub struct SelectStatement {
     #[builder(default)]
     pub where_clause: WhereClause,
     #[builder(default)]
-    pub order_by_clause: OrderByClause,
-    #[builder(default)]
     pub group_by_clause: GroupByClause,
+    #[builder(default)]
+    pub order_by_clause: OrderByClause,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }

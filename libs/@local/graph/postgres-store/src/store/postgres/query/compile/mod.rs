@@ -365,7 +365,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             let expression = self.compile_path_column(path);
             self.statement.selects.push(SelectExpression::Expression {
                 expression: expression.clone(),
-                alias: None,
+                output_name: None,
             });
 
             if distinctness == Distinctness::Distinct {
@@ -666,7 +666,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .iter()
                                         .map(|&column| SelectExpression::Expression {
                                             expression: Expression::ColumnReference(column.into()),
-                                            alias: None,
+                                            output_name: None,
                                         })
                                         .chain(once(SelectExpression::Expression {
                                             expression: Expression::Function(Function::Min(
@@ -677,7 +677,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                                     parameter_expression,
                                                 )),
                                             )),
-                                            alias: Some(Identifier::from("distance")),
+                                            output_name: Some(Identifier::from("distance")),
                                         }))
                                         .collect(),
                                 )
@@ -700,7 +700,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     );
                     self.statement.selects.push(SelectExpression::Expression {
                         expression: distance_expression.clone(),
-                        alias: None,
+                        output_name: None,
                     });
                     Self::push_distinct_on(
                         &mut self.statement.quantifier,
@@ -1011,7 +1011,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
                                     )),
                                 ),
-                                alias: Some(Identifier::from("latest_version")),
+                                output_name: Some(Identifier::from("latest_version")),
                             },
                         ])
                         .from(

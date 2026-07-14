@@ -309,7 +309,7 @@ impl Projections {
                         ),
                     ])),
                 ))),
-                alias: Some(Identifier::from("entity_type_ids")),
+                output_name: Some(Identifier::from("entity_type_ids")),
             }])
             .from(inner_from)
             .where_clause({
