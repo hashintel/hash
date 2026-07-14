@@ -3,6 +3,7 @@ import {
   createTokenRegionViews,
   encodeTokenToBytes,
 } from "../simulation/engine/token-layout";
+import { defaultTokenAttributeValue } from "../simulation/engine/token-values";
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "./constants";
 import {
   getActualModeMarkingAtTransitionFiringIndex,
@@ -16,7 +17,7 @@ import type {
   SimulationFrameReader,
   SimulationFrameState,
 } from "../simulation/api";
-import type { Place, SDCPN } from "../types/sdcpn";
+import type { Place, SDCPN, TokenRecord } from "../types/sdcpn";
 import type {
   ActualModeContextValue,
   ActualModeMarking,
@@ -192,13 +193,44 @@ export const createActualModeTimelineFrameReader = (params: {
     transitionFirings,
     transitionFiringIndex: point.transitionFiringIndex,
   });
+  const colorById = new Map(definition.types.map((color) => [color.id, color]));
+  const tokensByPlaceId = new Map<string, readonly TokenRecord[]>();
+
+  for (const place of definition.places) {
+    if (!place.colorId) {
+      continue;
+    }
+
+    const color = colorById.get(place.colorId);
+    if (!color) {
+      continue;
+    }
+
+    const placeMarking = marking[place.id];
+    if (isActualModeTokenColourArray(placeMarking)) {
+      tokensByPlaceId.set(
+        place.id,
+        placeMarking.map((token) => ({ ...token })),
+      );
+      continue;
+    }
+
+    const tokenCount = getActualModePlaceMarkingTokenCount(placeMarking);
+    const defaultToken = Object.fromEntries(
+      color.elements.map((element) => [
+        element.name,
+        defaultTokenAttributeValue(element.type),
+      ]),
+    ) as TokenRecord;
+    tokensByPlaceId.set(
+      place.id,
+      Array.from({ length: tokenCount }, () => ({ ...defaultToken })),
+    );
+  }
 
   // Packs the object marking into a format-v2 token buffer on demand so
   // HIR-compiled expression metrics can run against actual-mode frames.
   const createRawView = (): SimulationFrameRawView => {
-    const colorById = new Map(
-      definition.types.map((color) => [color.id, color]),
-    );
     const placeIndexById = new Map<string, number>();
     const placeCounts = new Uint32Array(definition.places.length);
     const placeOffsets = new Uint32Array(definition.places.length);
@@ -224,7 +256,7 @@ export const createActualModeTimelineFrameReader = (params: {
 
     type PackedPlace = {
       layout: ReturnType<typeof computeTokenSlotLayout>;
-      tokens: readonly Record<string, number>[];
+      tokens: readonly TokenRecord[];
       byteOffset: number;
     };
     const packedPlaces: PackedPlace[] = [];
@@ -233,10 +265,13 @@ export const createActualModeTimelineFrameReader = (params: {
     for (const [index, place] of definition.places.entries()) {
       placeIndexById.set(place.id, index);
       const placeMarking = marking[place.id];
-      placeCounts[index] = getActualModePlaceMarkingTokenCount(placeMarking);
+      const color = place.colorId ? colorById.get(place.colorId) : undefined;
+      const tokens = tokensByPlaceId.get(place.id) ?? [];
+      placeCounts[index] = color
+        ? tokens.length
+        : getActualModePlaceMarkingTokenCount(placeMarking);
       placeOffsets[index] = byteLength;
 
-      const color = place.colorId ? colorById.get(place.colorId) : undefined;
       if (!color || color.elements.length === 0) {
         continue;
       }
@@ -244,13 +279,7 @@ export const createActualModeTimelineFrameReader = (params: {
       if (layout.strideBytes === 0) {
         continue;
       }
-      const tokens = isActualModeTokenColourArray(placeMarking)
-        ? placeMarking
-        : [];
-      // Reserve stride bytes per counted token even when attribute values are
-      // unavailable (count-only markings) so out-of-place reads stay
-      // in-bounds and decode to zeros.
-      byteLength += placeCounts[index]! * layout.strideBytes;
+      byteLength += tokens.length * layout.strideBytes;
       packedPlaces.push({ layout, tokens, byteOffset: placeOffsets[index]! });
     }
 
@@ -289,13 +318,9 @@ export const createActualModeTimelineFrameReader = (params: {
       return rawView;
     },
     getPlaceTokens: (place: Place) => {
-      const placeMarking = marking[place.id];
-
-      if (!place.colorId || !isActualModeTokenColourArray(placeMarking)) {
-        return [];
-      }
-
-      return placeMarking.map((token) => ({ ...token }));
+      return (tokensByPlaceId.get(place.id) ?? []).map((token) => ({
+        ...token,
+      }));
     },
     getTransitionState: (transitionId: string) => {
       const firedInThisFrame =
