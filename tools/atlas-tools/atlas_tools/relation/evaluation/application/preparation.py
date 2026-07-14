@@ -15,7 +15,6 @@ from typing import assert_never
 
 import trio
 
-from atlas_tools.relation.evaluation.analysis.api import validate_classifier_cohorts
 from atlas_tools.relation.evaluation.application.identity import panel_hash
 from atlas_tools.relation.evaluation.application.prompt import RubricVotePrompt
 from atlas_tools.relation.evaluation.domain.api import (
@@ -33,7 +32,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     VoteId,
     VoteTask,
 )
-from atlas_tools.relation.evaluation.execution.api import validate_attempt_sequence
+from atlas_tools.relation.evaluation.execution.api import (
+    validate_attempt_sequence,
+    verify_historical_request_subset,
+)
 from atlas_tools.relation.evaluation.modes.api import (
     BASELINE_REPEAT_INDEX,
     FEW_SHOTS,
@@ -289,8 +291,6 @@ def _prepare_grid_base(loaded: LoadedConfig, deck: VerifiedDeck) -> _GridBase:
     config = _grid_config(loaded)
     prompt_pack = _prompt_pack(deck)
     pool = _grid_pool(deck)
-    if config.embedding is not None:
-        validate_classifier_cohorts(pool, config.classifier)
     pool_index = {card.relation_id: card for card in pool}
     if len(pool_index) != len(pool):
         raise ValueError("grid pool contains duplicate relations")
@@ -387,6 +387,10 @@ def _validate_imported_evidence(
     prompt: RubricVotePrompt,
 ) -> None:
     pilot_judges = {judge.family_id: judge for judge in imported.config.judges}
+    historical_request_scope = verify_historical_request_subset(
+        imported.attempts,
+        imported.historical_request_subset,
+    )
     for vote_id, vote in votes.items():
         evidence = attempts.get(vote_id)
         if evidence is None:
@@ -410,7 +414,7 @@ def _validate_imported_evidence(
             vote,
             prompt=prompt,
             config=imported.config,
-            historical_request_policy_ids=imported.historical_request_policy_ids,
+            historical_request_scope=historical_request_scope,
         )
 
 

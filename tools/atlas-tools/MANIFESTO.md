@@ -40,7 +40,12 @@ For the current schema, the persisted `family_id` is derived from the exact `mod
 
 ## Prompt and execution invariants
 
-- The prompt pack lives in `atlas_tools/relation/eval/prompt.py`, not in YAML.
+- Rubric-v1 literals live in
+  `atlas_tools/relation/evaluation/modes/_rubric_v1.py`. Provider-neutral prompt
+  assembly, hashing, framing, holdouts, and repair turns live in
+  `atlas_tools/relation/evaluation/modes/prompt.py`; the application adapter in
+  `atlas_tools/relation/evaluation/application/prompt.py` binds a verified card
+  to a task. Prompt content does not live in YAML.
 - `S1`-`S3` select the three system-prompt shells.
 - `F1`-`F3` select the three live-card framings.
 - Every request contains one system prompt, the fixed source-qualified few-shot turns, and one live relation card.
@@ -50,10 +55,24 @@ For the current schema, the persisted `family_id` is derived from the exact `mod
 - One malformed completion gets one conversational repair turn. A second malformed completion becomes `ABSTAIN`.
 - A valid but semantically wrong answer is evidence and is never retried.
 - Holdout scoring accepts every defensible reading of a contested card, with full credit: fractional scoring would smuggle a preferred reading back in, and the mandatory probes carry the discriminative weight. `P3403` "coextensive with" accepts both `coincident` (two names, one shared physical footprint) and `proximal` (a city and a county with identical boundaries are distinct governments and legal persons). Operator decision (2026-07-14), pinned in `HOLDOUT_ALTERNATES`; the slice artifacts keep the canonical verdict, and the report and visualization render alternate-reading matches distinctly (amber / `(alt)`).
-- Retryable transport/provider failures receive the configured visible physical-attempt budget per pass; routing, response-envelope, and accounting failures do not retry within a vote. None are abstentions.
-- A vote-local failure (an exhausted budget, a non-retryable status, or a rejected completion envelope) defers the vote instead of stopping the session. Deferred votes are re-executed in passes at the end of the plan with fresh budgets; passes repeat while at least one vote succeeds. A pass with zero successes ends the session with a report of every remaining failed vote.
-- Only systemic conditions stop a session immediately: 401/402 authentication and billing statuses, the cost cap, and journal I/O failures. Nothing else can succeed until an operator intervenes, so continuing would only burn time.
-- No failure permanently poisons a vote. Field evidence (2026-07-14): Mercury 2 emitted a one-off `finish_reason: tool_calls` envelope — a stochastic model behavior, not a deterministic contract violation. The cost cap, not fail-fast, is the money backstop.
+- Retryable transport/provider failures receive the configured visible
+  physical-attempt budget per execution session. Routing, response-envelope,
+  and accounting failures do not retry within the same vote execution. None
+  are abstentions.
+- A vote-local failure (an exhausted budget, a non-retryable status, or a
+  rejected completion envelope) defers the vote instead of stopping the
+  session. Deferred votes are revisited in deterministic passes while at least
+  one vote succeeds. The same session does not repurchase a terminal or
+  exhausted stage. A pass with zero successes ends the session with every
+  unresolved vote reported; an explicit resume provides a fresh visible
+  attempt budget.
+- Session-scoped conditions stop immediately: permanent client errors, a grid
+  roster/cache/cost guard, the cost cap, and journal I/O failures. A retryable
+  429 remains vote-scoped and also resets only its family's adaptive window.
+- No failure permanently poisons a vote. Field evidence (2026-07-14): Mercury
+  2 emitted a one-off `finish_reason: tool_calls` envelope, which is stochastic
+  model behavior rather than a deterministic contract violation. The cost cap,
+  not fail-fast, is the money backstop.
 
 ## Routing and privacy invariants
 
@@ -65,7 +84,13 @@ Every physical OpenRouter request must:
 - require `data_collection: deny`;
 - require ZDR;
 - disable the OpenRouter response cache (deduplicated completions would corrupt the factorial design; this is unrelated to prompt caching);
-- attach OpenRouter's automatic ephemeral `cache_control` directive for `anthropic/*` models: Anthropic routes only cache prompts on explicit breakpoints, and the 2026-07-14 pilot paid full price for every ~13k-token prompt as a result (0% cache, $165 of $252 across the two Claude families). Prompt caching is a billing concern and stays outside vote and judge-pin identity;
+- for `anthropic/*` models, attach one explicit ephemeral `cache_control`
+  breakpoint to the final message of the reusable prompt prefix. The live card
+  and any repair turns remain outside the prefix. The 2026-07-14 pilot sent no
+  breakpoint and therefore paid full price for every roughly 13k-token prompt
+  (0% cache, $165 of $252 across the two Claude families). Prompt caching is a
+  billing concern, while the named request policy remains part of request and
+  run-contract identity;
 - disable SDK retries so every retry is controlled and durably visible to the executor;
 - request router metadata;
 - record the native result, route, usage, cost, and timestamps.
@@ -97,10 +122,12 @@ The first accepted Opus call used 12,956 prompt tokens and cost `$0.066505`, so
 the old 7,500-token planning estimate is not credible. The completed 2026-07-14
 pilot cost `$252.28` for 14,796 votes; `$165` of it was the two Anthropic
 families paying full prompt price on every call because no cache breakpoints
-were sent. The transport now attaches the automatic ephemeral directive for
-Anthropic models, which should cut Claude prompt costs by roughly 85% on the
-full grid. The cost gate counts already-settled attempt costs from the journal,
-so a `max_cost_usd` cap bounds the whole run, not the remainder.
+were sent. The active request policy,
+`explicit-prefix-breakpoint-ephemeral-v2`, makes the fixed prefix eligible for
+reuse on Anthropic routes. Provider-reported cached-token counts and the grid
+cache guard verify whether reuse actually occurred; projected savings are not
+treated as evidence. The cost gate counts already-settled attempt costs from
+the journal, so a `max_cost_usd` cap bounds the whole run, not the remainder.
 
 ## Before launching the pilot
 
@@ -118,25 +145,48 @@ A dedicated `relation preflight` command would make steps 2-4 explicit and cheap
 
 ## Implemented execution architecture
 
-- `contract.py` owns schema-v3 pilot/full configs and deterministic round-robin vote plans.
-- `inputs.py` verifies cards and derives the pilot slice; `authorization.py` binds full mode to the analyzed corpus, exact judge request pins, admissions, efforts, and reviewed call counts.
-- `transport.py` owns native OpenRouter request and response contracts.
-- `journal.py` owns durable append and per-attempt in-flight markers; `resume.py` owns semantic journal validation.
-- `vote.py` executes one physical/logical vote; `executor.py` owns Trio workers, channels, ramping, draining, and ordered commits.
-- `artifacts.py` owns run state and manifests; `run.py` is a small composition facade.
+- `domain/` owns strict immutable configs, identities, tasks, votes, attempts,
+  artifacts, and shared scalar contracts. It has no Trio, filesystem, CLI, or
+  OpenRouter SDK dependency.
+- `modes/` owns rubric-v1 prompt content and provider-neutral pilot and grid
+  planning. Grid planning appends repeat 1 and 2 refinement tasks and repeat 3
+  holdout canaries without rewriting the repeat 0 baseline prefix.
+- `transport/` is the OpenRouter adapter boundary. SDK-native types do not
+  cross into the domain, execution, storage, or analysis layers.
+- `execution/` owns paid-request authorization, adaptive family limits,
+  retries, guards, ordered scheduling, vote construction, and semantic resume
+  validation.
+- `storage/` owns canonical codecs, verified decks, append-only journals,
+  in-flight markers, run locks, manifests, and pilot import.
+- `application/` composes modes, execution, storage, and transport into the
+  public async operations while keeping provider ownership explicit.
+- `analysis/` owns deterministic pilot, grid, soft-label, classifier, gate, and
+  report calculations without provider or orchestration state.
 
-The executor starts at `concurrency.initial`, doubles its worker limit after a
+The import direction is executable policy in `tach.toml`. Domain modules
+cannot import Trio, filesystem code, CLI code, or OpenRouter SDK types; the SDK
+is confined to the transport adapter.
+
+Global dispatch starts at `concurrency.initial`, doubles after a complete
 current-limit cohort of successful logical votes, and caps at
-`concurrency.maximum`. Workers steal from a shared bounded channel and each owns
-its OpenRouter client. A systemic failure (401/402, cost cap, journal I/O)
-atomically closes the physical-request boundary. Calls with an existing durable
-in-flight marker finish and journal; peer workers cannot start a repair or retry
-afterward. Vote-local failures defer instead: the vote re-enters the plan on the
-next pass carrying its durable attempts, and the ordered commit cursor stalls at
-the lowest unresolved index while later completions stay buffered (they remain
-durable in attempts.jsonl regardless). Attempts may be recorded in completion
-order; votes remain a deterministic plan prefix. Resume reuses successful
-attempts beyond that prefix.
+`concurrency.maximum`. One shared async OpenRouter connection pool serves the
+workers. Inside the global bound, every judge family begins with one physical
+request in flight, doubles after a complete successful family-window cohort,
+and caps at `concurrency.family_maximum`. Ordinary failures do not grow the
+family window. A direct or embedded 429 resets only its family to one and
+invalidates ramp credit from exchanges already in flight; other families keep
+their windows. Provider I/O overlaps, while guard state and durable attempt
+publication resolve in family admission order.
+
+A session-scoped failure, cost cap, or journal I/O failure atomically closes
+the physical-request boundary. Calls with an existing durable in-flight marker
+finish and journal; peer workers cannot start a repair or retry afterward.
+Vote-local failures defer instead: the vote re-enters the plan on the next pass
+carrying its durable attempts, and the ordered commit cursor stalls at the
+lowest unresolved index while later completions stay buffered. Those attempts
+remain durable in `attempts.jsonl`. Attempts may be recorded in completion
+order across families; votes remain a deterministic plan prefix. Resume reuses
+successful attempts beyond that prefix.
 
 Transient retries are executor-owned because the SDK retries only a narrower
 class of failures and cannot journal each attempt. Initial and malformed-repair
@@ -145,24 +195,31 @@ execution session. Every failed attempt is durable before a retry. Backoff is
 deterministic and interruptible by a peer terminal failure; a provider
 `Retry-After` value may extend it. HTTP and embedded provider statuses are stored
 separately, which covers HTTP-200 envelopes carrying an upstream 502.
-Permanent 4xx, route validation, completion-envelope, and accounting failures do
-not retry within a session. On resume, votes whose last durable failure was a
-transport or provider outcome receive a fresh session budget (attempt numbering
-continues in the journal); routing, response-envelope, and accounting failures
-stay permanently terminal. If a configured cost cap encounters an attempt with
-unknown billed cost, the next physical request is denied rather than weakening
-the cap.
+Permanent 4xx failures are session-scoped. Vote-scoped route validation,
+completion-envelope, and accounting failures do not retry within the same
+execution session. An explicit resume creates a fresh visible attempt budget;
+attempt numbering continues in the journal. If a configured cost cap
+encounters an attempt with unknown billed cost, the next physical request is
+denied rather than weakening the cap.
 
 The request contract hash binds the config minus its operational knobs:
 `max_cost_usd` and `concurrency` cannot change any request's semantics, so an
 operator may retune them between resumed sessions of the same run directory.
 `request_timeout` stays bound because it is part of every request hash.
 
+The active request policy is
+`explicit-prefix-breakpoint-ephemeral-v2`. Offline adoption may recognize a
+retired policy only for attempt IDs inside a finite, hash-bound source prefix
+or imported subset. A suffix attempt receives no historical allowance and must
+match the active policy. This preserves paid evidence without allowing a
+resumed run to issue new calls under retired request semantics.
+
 One `relation evaluate` command handles both phases. The config discriminates
-`mode: pilot` from `mode: full`; full mode binds the schema-v3 analysis
-`decisions` artifact. Those decisions hash every pilot judge request and record the
-exact concat card and manifest hashes, so a changed route or card population cannot
-inherit an unrelated qualification result.
+schema-v3 `mode: pilot` from schema-v4 `mode: grid`. Grid preparation requires
+a completed, hash-bound pilot handoff and imports only exact repeat 0 baseline
+identities. Phase B adds repeat indices 1 and 2 for baseline-triggered cards;
+the final fresh holdout canary uses repeat index 3. Changed cards, prompts,
+routes, efforts, or decoding pins match no paid pilot vote by construction.
 
 ## Next implementation work
 

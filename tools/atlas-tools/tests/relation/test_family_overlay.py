@@ -7,6 +7,7 @@ from pydantic import JsonValue
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes, sha256_file
 from atlas_tools.relation.concat import (
+    FAMILY_OVERLAY_ALGORITHM,
     ConcatCardRow,
     ConcatProvenance,
     concat_relations,
@@ -14,7 +15,6 @@ from atlas_tools.relation.concat import (
 )
 from atlas_tools.relation.evaluation.storage.deck import load_deck
 from atlas_tools.relation.family_overlay import (
-    FAMILY_OVERLAY_ALGORITHM,
     FamilyAssignment,
     apply_family_overlay,
 )
@@ -37,7 +37,7 @@ def _write_leaf(
             "pid": pid,
             "relation_id": qualify_relation_id("wikidata", pid),
             "card_text": text,
-            "card_hash": sha256_bytes(text.encode()),
+            "card_hash": sha256_bytes(text.encode("utf-8")),
             "token_count": len(text.split()),
             "truncations": [],
             "severely_truncated": False,
@@ -154,7 +154,7 @@ def test_family_overlay_rejects_stale_card_binding_without_publishing(tmp_path: 
         [(rows[0], "sequence"), (rows[1], "sequence")],
     )
     original = assignments.read_bytes()
-    assignments.write_bytes(original.replace(rows[0].card_hash.encode(), b"0" * 64))
+    assignments.write_bytes(original.replace(rows[0].card_hash.encode("ascii"), b"0" * 64))
     destination = tmp_path / "enriched"
 
     with pytest.raises(ValueError, match="binds card_hash"):

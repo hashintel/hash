@@ -181,7 +181,7 @@ class BaseRunConfig(FrozenModel):
 
     rubric_version: Literal["rubric-v1"] = RUBRIC_VERSION
     baseline_effort: ReasoningEffort = "minimal"
-    max_cost_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    max_cost_usd: PositiveFiniteFloat | None = None
     request_timeout: PositiveDuration = timedelta(minutes=2)
     transient_retries: TransientRetryConfig = TransientRetryConfig()
     concurrency: ConcurrencyConfig = ConcurrencyConfig()

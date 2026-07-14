@@ -44,10 +44,10 @@ from atlas_tools.relation.evaluation.execution.accounting import (
     CostLimitReachedError,
 )
 from atlas_tools.relation.evaluation.execution.control import (
+    AdaptiveFamilyLimiter,
     ExecutionControl,
     ExecutionStoppedError,
     FamilyPermit,
-    FamilySerialiser,
 )
 from atlas_tools.relation.evaluation.execution.guard import CompletionPolicy
 from atlas_tools.relation.evaluation.execution.scheduler import (
@@ -95,6 +95,7 @@ class VotePrompt(Protocol):
 
     def initial(self, task: VoteTask) -> tuple[CompletionMessage, ...]:
         """Build the initial messages for one logical vote."""
+        ...
 
     def repair(
         self,
@@ -102,9 +103,11 @@ class VotePrompt(Protocol):
         malformed_completion: str,
     ) -> tuple[CompletionMessage, ...]:
         """Build the sole conversational repair request."""
+        ...
 
     def parse(self, completion: str) -> ParsedVote:
         """Parse a completion or raise `ValueError` when it is malformed."""
+        ...
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -359,7 +362,7 @@ class LogicalVoteRunner:
             maximum_usd=config.max_cost_usd,
             attempts=attempts,
         )
-        self._families = FamilySerialiser(
+        self._families = AdaptiveFamilyLimiter(
             maximum=min(config.concurrency.family_maximum, config.concurrency.maximum)
         )
         self._attempts: dict[VoteId, list[PhysicalAttempt]] = {}

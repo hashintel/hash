@@ -1,5 +1,6 @@
 use crate::salt::representation::{
-    CANONICAL_DIMENSIONS, CanonicalEmbedding, PROJECTOR_DIMENSIONS, RepresentationError,
+    CANONICAL_DIMENSIONS, CanonicalEmbedding, OwnedCanonicalEmbedding, PROJECTOR_DIMENSIONS,
+    RepresentationError,
 };
 
 #[test]
@@ -52,6 +53,21 @@ fn rejects_wrong_width_and_non_finite_components() {
         CanonicalEmbedding::new(&canonical),
         Err(RepresentationError::NonFinite { index: 2_417 })
     ));
+}
+
+#[test]
+fn owned_embedding_reuses_the_validated_vector_allocation() {
+    let values = vec![0.25_f32; CANONICAL_DIMENSIONS];
+    let allocation = values.as_ptr();
+
+    let owned =
+        OwnedCanonicalEmbedding::from_vec(values).expect("finite canonical vector should validate");
+
+    assert_eq!(owned.as_array().as_ptr(), allocation);
+    assert_eq!(
+        owned.as_borrowed().as_array()[CANONICAL_DIMENSIONS - 1],
+        0.25
+    );
 }
 
 #[test]

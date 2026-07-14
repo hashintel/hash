@@ -18,13 +18,26 @@
 //!
 //! [`EntityId`]: type_system::knowledge::entity::id::EntityId
 
+mod activation;
+mod alignment;
+mod analytic;
 mod card;
 mod classifier;
+mod embedding;
+mod evaluation;
+mod graph;
 mod hash;
 mod identity;
+mod landmark;
+mod manifest;
+mod materialize;
 mod policy;
+mod projector;
+mod relation;
+mod release;
 mod representation;
 mod revision;
 mod simd;
+mod snapshot;
 mod storage;
 mod strength;

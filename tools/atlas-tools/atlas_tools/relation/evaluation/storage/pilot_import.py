@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
 from atlas_tools.relation.evaluation.domain.api import (
     HandoffManifest,
-    HistoricalCompletionRequestPolicyId,
+    HistoricalRequestSubset,
     PhysicalAttempt,
     PilotRunConfig,
     PromptPackHash,
@@ -24,6 +24,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     VoteId,
 )
 from atlas_tools.relation.evaluation.storage.codec import load_jsonl
+from atlas_tools.relation.evaluation.storage.hashing import build_historical_request_subset
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -34,7 +35,7 @@ class PilotImport:
     manifest_hash: Sha256Hex
     votes_hash: Sha256Hex
     attempts_hash: Sha256Hex
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
+    historical_request_subset: HistoricalRequestSubset | None
     votes: tuple[Vote, ...]
     attempts: tuple[PhysicalAttempt, ...]
 
@@ -83,7 +84,9 @@ def load_pilot_import(
     if len(selected_ids) != len(selected):
         raise ValueError("pilot contains duplicate importable vote IDs")
     by_vote: dict[VoteId, list[PhysicalAttempt]] = {vote_id: [] for vote_id in selected_ids}
-    for attempt in load_jsonl(attempts_path, PhysicalAttempt):
+    all_attempts = load_jsonl(attempts_path, PhysicalAttempt)
+    evidence = manifest.historical_request_evidence
+    for attempt in all_attempts:
         bucket = by_vote.get(attempt.vote_id)
         if bucket is not None:
             bucket.append(attempt)
@@ -91,12 +94,17 @@ def load_pilot_import(
     if missing:
         raise ValueError(f"pilot lacks physical attempts for imported votes: {missing[:5]}")
     attempts = tuple(attempt for vote in selected for attempt in by_vote[vote.vote_id])
+    historical_request_subset = build_historical_request_subset(
+        all_attempts,
+        attempts,
+        evidence,
+    )
     return PilotImport(
         config=config,
         manifest_hash=sha256_file(directory / "manifest.json"),
         votes_hash=manifest.source_hashes["votes.jsonl"],
         attempts_hash=manifest.source_hashes["attempts.jsonl"],
-        historical_request_policy_ids=manifest.historical_request_policy_ids,
+        historical_request_subset=historical_request_subset,
         votes=selected,
         attempts=attempts,
     )

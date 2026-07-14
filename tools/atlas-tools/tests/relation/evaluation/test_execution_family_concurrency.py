@@ -5,8 +5,8 @@ from trio.testing import wait_all_tasks_blocked
 
 from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig, JudgeFamilyId
 from atlas_tools.relation.evaluation.execution.api import (
+    AdaptiveFamilyLimiter,
     ExecutionControl,
-    FamilySerialiser,
     TaskCompleted,
     TaskOutcome,
     WorkItem,
@@ -19,7 +19,7 @@ _BETA = JudgeFamilyId("beta")
 
 def test_same_family_overlaps_after_a_successful_ramp() -> None:
     async def scenario() -> None:
-        families = FamilySerialiser(maximum=4)
+        families = AdaptiveFamilyLimiter(maximum=4)
 
         async with families.hold(_ALPHA) as permit:
             permit.succeeded()
@@ -46,7 +46,7 @@ def test_same_family_overlaps_after_a_successful_ramp() -> None:
 
 def test_family_windows_ramp_independently() -> None:
     async def scenario() -> None:
-        families = FamilySerialiser(maximum=2)
+        families = AdaptiveFamilyLimiter(maximum=2)
         alpha_entered = trio.Event()
         alpha_peer_entered = trio.Event()
         alpha_release = trio.Event()
@@ -87,7 +87,7 @@ def test_family_windows_ramp_independently() -> None:
 
 def test_family_resolution_follows_admission_when_responses_reverse() -> None:
     async def scenario() -> None:
-        families = FamilySerialiser(maximum=2)
+        families = AdaptiveFamilyLimiter(maximum=2)
         async with families.hold(_ALPHA) as permit, permit.ordered():
             permit.succeeded()
 
@@ -122,7 +122,7 @@ def test_family_resolution_follows_admission_when_responses_reverse() -> None:
 
 def test_rate_limit_resets_only_its_family_and_stale_successes_cannot_reramp() -> None:
     async def scenario() -> None:
-        families = FamilySerialiser(maximum=4)
+        families = AdaptiveFamilyLimiter(maximum=4)
 
         # One success opens width two; two more successful exchanges open four.
         for _ in range(3):
@@ -181,7 +181,7 @@ def test_rate_limit_resets_only_its_family_and_stale_successes_cannot_reramp() -
 
 @dataclass(slots=True)
 class _ControlledRunner:
-    families: FamilySerialiser
+    families: AdaptiveFamilyLimiter
     entered: tuple[trio.Event, ...]
     release: tuple[trio.Event, ...]
     finished: tuple[trio.Event, ...]
@@ -207,7 +207,7 @@ def test_adaptive_overlap_keeps_logical_commits_deterministic() -> None:
         release = tuple(trio.Event() for _ in range(3))
         finished = tuple(trio.Event() for _ in range(3))
         runner = _ControlledRunner(
-            families=FamilySerialiser(maximum=2),
+            families=AdaptiveFamilyLimiter(maximum=2),
             entered=entered,
             release=release,
             finished=finished,

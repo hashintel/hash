@@ -4,7 +4,6 @@ from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 
-import pytest
 import trio
 
 from atlas_tools.relation.evaluation.application.api import (
@@ -14,16 +13,9 @@ from atlas_tools.relation.evaluation.application.api import (
 )
 from atlas_tools.relation.evaluation.domain.api import (
     CorpusRecord,
-    EmbeddingConfig,
-    ModelId,
     PhysicalAttempt,
     SliceRecord,
     Vote,
-)
-from tests.relation.evaluation.grid_fixtures import (
-    grid_config,
-    write_grid_concat,
-    write_grid_config,
 )
 
 ROOT = Path(__file__).parents[3]
@@ -87,6 +79,7 @@ def test_current_grid_preparation_imports_the_exact_paid_baseline() -> None:
         "c5051313a3d70a7410242ff56952ccea8adc8c438d1a8eed6e39791357fbb7c1"
     )
     assert len(prepared.pool) == 1_670
+    assert all(card.family_id is None for card in prepared.pool)
     assert len(prepared.corpus) == 1_684
     assert sum(row.is_shot_excluded for row in prepared.corpus) == 14
     assert sum(row.is_holdout for row in prepared.corpus) == 6
@@ -125,29 +118,3 @@ def test_async_pilot_preparation_preserves_the_paid_artifact_identity() -> None:
         )
 
     trio.run(scenario)
-
-
-def test_classifier_cohort_preflight_precedes_pilot_import_and_provider_work(
-    tmp_path: Path,
-) -> None:
-    cards = write_grid_concat(tmp_path / "cards", include_families=False)
-    config = grid_config().model_copy(
-        update={
-            "embedding": EmbeddingConfig(
-                endpoint_url="https://embedding.test/v1/embeddings",
-                model=ModelId("test/embedding"),
-                dimension=2,
-            )
-        }
-    )
-    config_path = write_grid_config(tmp_path / "grid.yaml", config)
-
-    with pytest.raises(
-        ValueError,
-        match="11 cards lack family_id",
-    ):
-        prepare_grid_inputs(
-            config_path,
-            cards,
-            pilot_directory=tmp_path / "pilot-does-not-exist",
-        )

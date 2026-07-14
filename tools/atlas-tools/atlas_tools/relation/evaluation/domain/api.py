@@ -109,6 +109,8 @@ from atlas_tools.relation.evaluation.domain.request_policy import (
     ActiveCompletionRequestPolicyId,
     CompletionRequestPolicyId,
     HistoricalCompletionRequestPolicyId,
+    HistoricalRequestEvidence,
+    HistoricalRequestSubset,
 )
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
@@ -194,6 +196,8 @@ __all__ = [
     "GuardConfig",
     "HandoffManifest",
     "HistoricalCompletionRequestPolicyId",
+    "HistoricalRequestEvidence",
+    "HistoricalRequestSubset",
     "HttpErrorStatusCode",
     "HttpStatusCode",
     "InFlightRequest",

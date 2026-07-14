@@ -26,8 +26,8 @@
 //! [`ArtifactView::new`] validates borrowed bytes. [`MappedArtifact`] keeps a
 //! shared file lock alive with its read-only mapping and returns
 //! [`ArtifactView`] values whose typed sections borrow that mapping. Section
-//! conversion validates scalar type and alignment without copying numeric
-//! arrays.
+//! headers, descriptors, and numeric arrays are borrowed through `zerocopy`;
+//! semantic validation remains explicit and no numeric section is copied.
 //!
 //! The file lock is advisory. Artifact writers must honor it and must publish
 //! immutable files instead of rewriting mapped paths.

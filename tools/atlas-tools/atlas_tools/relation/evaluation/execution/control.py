@@ -227,7 +227,7 @@ class FamilyPermit:
         self._closed = True
 
 
-class FamilySerialiser:
+class AdaptiveFamilyLimiter:
     """Adapt physical-request concurrency independently for each family.
 
     Every family starts with one request in flight. A full current-window

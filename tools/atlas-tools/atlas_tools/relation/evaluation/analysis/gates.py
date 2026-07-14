@@ -67,7 +67,7 @@ class GridGatePolicy(AnalysisModel):
     holdouts: Annotated[tuple[HoldoutRule, ...], Field(min_length=1)]
     holdout_minimum_correct: PositiveInt
     abstention_ceiling: OpenProbability = 0.05
-    cost_ceiling_usd: float | None = Field(default=None, ge=0.0, allow_inf_nan=False)
+    cost_ceiling_usd: NonNegativeFiniteFloat | None = None
 
     @model_validator(mode="after")
     def check_holdouts(self) -> Self:

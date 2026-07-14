@@ -200,39 +200,14 @@ rejects duplicate namespaces or relation IDs, and writes the combined
 their leaf source, for example `wikidata:P47` and `hash:<stable-local-id>`.
 Evaluation accepts only this verified schema-v2 `relation.concat` artifact.
 
-Classifier cross-validation additionally needs a reviewed semantic family for
-every card. Apply that mapping as a separate, one-time artifact transform; do
-not edit the generated card JSONL in place:
-
-```json
-{"schema_version":1,"relation_id":"wikidata:P155","card_hash":"<64 lowercase hex characters>","family_id":"wikidata:sequence-order"}
-{"schema_version":1,"relation_id":"wikidata:P156","card_hash":"<64 lowercase hex characters>","family_id":"wikidata:sequence-order"}
-```
-
-```sh
-uv run relation family-overlay cards/ family-assignments.jsonl \
-    --out cards-with-families/
-```
-
-Assignment order is irrelevant, but coverage is exact: each deck relation must
-occur once, no unknown relation may occur, and each assignment must carry the
-current card hash. An existing non-null `family_id` must agree. The command
-never replaces its destination; after full validation it atomically publishes
-a new `relation.concat` directory. Its manifest records
-`user-supplied-exact-overlay-v1`, the source card and manifest hashes, the
-assignment-file hash, and the resulting row and family counts. Pass
-`cards-with-families/` wherever an evaluation command below names a card
-directory.
-
-The mapping is deliberately not inferred from the current generated artifacts.
-The exact Wikidata extraction records explicit inverse IDs and the P1647
-ancestor closure, but no reviewed rule says which shared ancestors or P31
-classes constitute siblings or near duplicates. The HASH link-type artifact
-has inverse display text but no inverse relation identity, and
-`taxonomy.parquet` is an entity taxonomy rather than a property-family map.
-The missing authoritative input is therefore one complete reviewed mapping of
-`(relation_id, card_hash)` to `family_id`; using `relation_id` itself as the
-family would defeat grouped leakage control.
+Paid evaluation, soft-label aggregation, and embedding acquisition consume this
+verified concat artifact directly. They do not require a relation-family
+overlay. Grouped classifier fitting has a separate, fail-closed lineage
+requirement: it must join a source-derived relation family closure by exact
+`(relation_id, card_hash)` before assigning folds. The normative future
+contract is [Relation family closure](docs/relation-family-closure.md). Until
+that artifact producer and classifier binding exist, classifier fitting cannot
+claim grouped cross-validation evidence.
 
 Set `OPENROUTER_API_KEY` and use the checked-in
 `config/eval/pilot.yaml`, which is the source of truth for the recovered nine-judge
@@ -266,7 +241,7 @@ corpus — the pilot's successor.
 From `tools/atlas-tools`, run and inspect the factorial pilot:
 
 ```sh
-uv run relation evaluate runs/cards-with-families config/eval/pilot.yaml --out runs/evaluate
+uv run relation evaluate runs/cards config/eval/pilot.yaml --out runs/evaluate
 uv run relation analyze runs/evaluate --out runs/evaluate-analysis
 cat runs/evaluate-analysis/report.md
 uv run python -m json.tool runs/evaluate-analysis/decisions.json
@@ -293,26 +268,32 @@ The pool is every deck card minus the fourteen few-shot PIDs; the six holdout
 anchors are voted. Pilot votes are production votes: `--pilot` names the
 factorial pilot's handoff directory, and any pilot vote whose identity tuple
 (card, family pins, S1xF1, effort, decoding, prompt pack, repeat 0) matches a
-planned baseline cell is imported, never re-bought — a drifted pin matches
+planned baseline cell is imported, never re-bought; a drifted pin matches
 nothing by construction. Phase A buys one fresh vote per remaining
-(card × family) cell: per-family streams over cards in stable relation_id
-order, parallel across families and serialized within each family, which is
-what keeps each family's prefix cache hot. Phase B then refines every card
-whose five baseline verdicts are not unanimous, that received any coincident
-vote, or that carries any abstention: two repeats per (family × refined
-card), identical configuration — refined cards end with 15 votes, unanimous
-cards with 5.
+(card x family) cell. Tasks are round-robin interleaved across families while
+each family's cards retain stable `relation_id` order. Provider I/O may overlap
+within a family: each family starts with one in-flight request, doubles its
+window after a full window of successful exchanges, and stops at
+`concurrency.family_maximum`. A direct or embedded 429 resets only that family
+to one; other families keep their independently learned windows. Phase B then
+refines every card whose five baseline verdicts are not unanimous, that
+received any coincident vote, or that carries any abstention: repeat indices 1
+and 2 add two votes per (family x refined card), with the same request
+configuration. After refinement, repeat index 3 buys one fresh vote for every
+(family x fixed holdout) cell. This canary is appended so existing Phase A and
+Phase B journal prefixes remain valid.
 
 Three family-stream guards run over fresh calls and stop the run immediately
 (resumably, with the operator paged through the terminal error) when they
-fire: the first-vote check (a stream's opening request must succeed on the
-pinned model and parse to a verdict — a 429 or auth failure there is a roster
-problem, not a retry problem), the cache assertion (from the configured call
-index every completion must report cached prompt tokens), and the rolling
-cost tripwire (mean $/vote over the window must stay under the configured
-multiple of the seat's pilot-measured cost). Everything else follows the
-pilot's fail-closed executor: durable journals, in-flight markers,
-deterministic resume in batches until 100% coverage, and the central
+fire: the first-vote check (a family is established only after an accepted
+completion uses the pinned model and parses to a verdict), the cache assertion
+(from the configured call index every completion must report cached prompt
+tokens), and the rolling cost tripwire (mean $/vote over the window must stay
+under the configured multiple of the seat's pilot-measured cost). A retryable
+opening failure, including 429, follows the visible retry policy; a permanent
+client error or a rejected opening route or response pages the run. Everything
+else follows the pilot's fail-closed executor: durable journals, in-flight
+markers, deterministic resume in batches until 100% coverage, and the central
 `max_cost_usd` gate as the hard envelope ceiling. A completed run publishes
 `votes.jsonl` (fresh journal), `imported-votes.jsonl` /
 `imported-attempts.jsonl` (the pilot import, hash-bound), `corpus.jsonl` (the
@@ -321,7 +302,7 @@ and a `manifest.json` reporting imported vs fresh counts per family and the
 realized refinement trigger rate.
 
 ```sh
-uv run relation evaluate runs/cards-with-families config/eval/grid.yaml \
+uv run relation evaluate runs/cards config/eval/grid.yaml \
     --pilot runs/evaluate --out runs/grid
 
 # Deliverables and blocking acceptance gates (exits nonzero on any failure):
@@ -331,41 +312,56 @@ uv run relation evaluate runs/cards-with-families config/eval/grid.yaml \
 # forward from pilot decisions, and gates.json covering coverage, routing,
 # the holdout drift canary (every family must still pass >= 5/6 plus both
 # probes), per-family abstention < 5%, and the cost envelope.
-uv run relation deliverables runs/grid runs/cards-with-families config/eval/grid.yaml \
+uv run relation deliverables runs/grid runs/cards config/eval/grid.yaml \
     --decisions runs/evaluate-analysis/decisions.json --out runs/grid-deliverables
 
 # Downstream policy pipeline over the grid votes:
-uv run relation aggregate runs/grid runs/cards-with-families config/eval/grid.yaml \
+uv run relation aggregate runs/grid runs/cards config/eval/grid.yaml \
     --out runs/soft-labels.parquet
-uv run relation embed runs/cards-with-families config/eval/grid.yaml \
+uv run relation embed runs/cards config/eval/grid.yaml \
     --out runs/embeddings.parquet --cache runs/embedding-cache
-uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
-    config/eval/grid.yaml --out runs/classifier
-uv run relation report runs/grid runs/cards-with-families config/eval/grid.yaml \
-    --gold gold.jsonl --classifier runs/classifier --out runs/report
+uv run relation report runs/grid runs/cards config/eval/grid.yaml \
+    --gold gold.jsonl --out runs/report
 ```
+
+Classifier fitting is omitted from the runnable sequence until the independent
+relation family closure producer and its `fit` binding are implemented. The
+pilot, grid, aggregate, embed, and panel-only report remain valid without it.
 
 `aggregate` emits soft labels (Dirichlet(1,1,1) posterior means over
 {C, P, O}, unclear votes in the ambiguity column, n_votes, entropy, the
-refinement flag, and the coincident-review flag); `embed` caches one
-embedding per (model, card_hash) forever under `--cache` — the embedding
-endpoint is the pipeline's only network surface besides OpenRouter; `fit`
-trains the multinomial logistic policy classifier against the soft labels
-(soft-target cross-entropy weighted by n_votes, every card included, grouped
-CV by the card's relation `family_id`, temperature scaling, embedding-space
-applicability) into one versioned bundle; `report` renders gold agreement,
-per-class precision/recall, confusion matrices, the Coincident Wilson-LCB
-gate with its feedability line, calibration and applicability sections,
-per-judge health, and vote economics.
+refinement flag, and the coincident-review flag). `embed` keys each immutable
+cache entry by the card hash and complete producer identity: normalized
+endpoint, requested and observed model and dimension, request schema, producer
+revision, and `f32-le-v1` vector encoding. Before each cache-miss batch it
+durably records an in-flight marker under `--cache/_requests`; it records the
+accepted, rejected, or failed outcome before clearing that marker. An
+unmatched marker for a requested card has unknown billing state and blocks an
+automatic reissue. The embedding endpoint is the pipeline's only network
+surface besides OpenRouter completion requests.
+
+`fit` trains the multinomial logistic policy classifier against every soft
+label, using soft-target cross-entropy weighted by n_votes. It must first bind
+the complete soft-label and embedding cohort to the independently verified
+[relation family closure](docs/relation-family-closure.md). Whole lineage
+components are then assigned to deterministic outer folds. Each held-out fold
+gets a temperature fitted from inner grouped out-of-fold predictions on the
+outer training rows, and an applicability model fitted only from outer-training
+embeddings. Consequently, neither a row nor its lineage component contributes
+to its own reported calibration or applicability evidence. The final
+deployment model, closure binding, separately identified fitting evidence,
+per-fold validation evidence, and immutable numeric arrays form one versioned
+bundle. `report` renders gold agreement, per-class precision/recall, confusion
+matrices, the Coincident Wilson-LCB gate with its feedability line, calibration
+and applicability sections, per-judge health, and vote economics.
 
 `gold.jsonl` is the swipe-tool export: one row per relation with the majority
 `verdict`, `pass_count`, label `entropy`, and an optional `post_exposure` flag
 for rulings made after the adjudicator saw panel outputs. Classifier fitting
-requires a `family_id` on every card (a relation and its inverse/siblings
-share one), so sibling relations can never straddle a train/test split. If the
-C-predicted gold stratum is too small for the precision bound to ever clear
-its target, the report says `UNPASSABLE BY SAMPLE SIZE` rather than reporting
-a failure.
+fails when the closure is missing, stale, or does not cover the joined cohort;
+there is no singleton fallback. If the C-predicted gold stratum is too small
+for the precision bound to ever clear its target, the report says
+`UNPASSABLE BY SAMPLE SIZE` rather than reporting a failure.
 
 The pilot slice is not a separately maintained or hand-authored file. `evaluate`
 verifies the concatenated cards, excludes the fixed `FEW_SHOT` prompt examples,
@@ -397,7 +393,8 @@ The fixed `FEW_SHOT` cards remain in the prompt pack but are excluded from
 pilot sampling, analysis, and grid votes to prevent contamination. Other
 verified cards remain eligible, including severely truncated cards; truncation
 is recorded for analysis rather than silently changing the population. Grid
-baseline votes carry `repeat_index` 0; refinement repeats carry 1 and 2.
+baseline votes carry `repeat_index` 0, refinement repeats carry 1 and 2, and
+the fresh post-refinement holdout canary carries 3.
 
 Execution is deliberately fail-closed:
 
@@ -407,6 +404,13 @@ Execution is deliberately fail-closed:
   requested model, direct-route metadata, selected endpoint, and `provider_name`
   must match the pin. If OpenRouter includes detailed attempt metadata, it must
   contain exactly one HTTP-200 provider attempt.
+- The active request policy is
+  `explicit-prefix-breakpoint-ephemeral-v2`. For Anthropic requests, the
+  transport places one explicit ephemeral `cache_control` marker on the final
+  message of the reusable prompt prefix. The live card and any repair exchange
+  remain outside that prefix. The policy is part of the request hash and run
+  contract; provider-reported cached-token evidence and the grid cache guard
+  determine whether the route actually reused it.
 - A syntactically malformed judge response receives one conversational parser
   repair. If that response is also malformed, the logical vote is `ABSTAIN`.
   A schema-valid but semantically wrong verdict is evidence and is never
@@ -419,20 +423,25 @@ Execution is deliberately fail-closed:
   transport failures and configured HTTP or embedded provider status codes are
   journaled before deterministic exponential backoff. A provider `Retry-After`
   value can lengthen, but never shorten, that delay. Backoff is interrupted if a
-  peer terminal failure closes the run. Exhaustion and permanent routing,
-  response-envelope, or accounting failures stop the run; none become
-  abstentions.
+  peer terminal failure closes the run. Exhaustion and vote-scoped permanent
+  routing, response-envelope, or accounting failures defer the vote. Deferred
+  votes run again in deterministic passes; a complete pass with no successful
+  vote stops and reports the unresolved set. Session-scoped failures stop new
+  dispatch immediately. None of these failures become abstentions.
 - Every physical request, including failed and repair calls, is appended and
   `fsync`ed to `attempts.jsonl`; every completed logical vote is durably appended
   to `votes.jsonl`. Before each call, `inflight/<attempt-id>.json` is durably
   written and is deleted only after that exact outcome is journaled.
-- Trio workers share a bounded work channel. Execution starts at
+- Trio workers share a bounded work channel. Global dispatch starts at
   `concurrency.initial`, doubles after a full current-limit cohort of successful
-  logical votes, and stops at `concurrency.maximum`. Judge task streams are
-  round-robin interleaved, so a concurrency window spreads across pinned routes
-  instead of hammering one family. Physical attempts may be journaled in
-  completion order, but logical votes are committed strictly in deterministic
-  plan order.
+  logical votes, and stops at `concurrency.maximum`. Inside that bound, each
+  family has the independent adaptive window described above. Provider I/O may
+  complete concurrently, but guard evaluation and durable attempt publication
+  resolve in family admission order. Ordinary failures cannot grow a family
+  window. A structured 429 resets only its family and invalidates ramp credit
+  from exchanges already in flight; those already-authorized exchanges still
+  drain. Physical attempts may be journaled in completion order across
+  families, while logical votes commit strictly in deterministic plan order.
 - A terminal worker failure stops new dispatch and atomically closes the
   physical-request boundary. Calls whose durable in-flight marker already exists
   are not cancelled: they finish and journal before workers retire. Peer workers
@@ -440,12 +449,13 @@ Execution is deliberately fail-closed:
   partial stage is reused by a later explicit resume rather than paid for again.
 - Re-running the identical command against the same output directory resumes a
   journal prefix only when its source hashes, plan, request contract, and run
-  state still match. Output created by an older run-state or plan schema must use
-  a fresh directory; it is intentionally not migrated across paid-call journal
-  contracts. A failed attempt with a known outcome may be retried as the
+  state still match. A failed attempt with a known outcome may be retried as the
   next numbered physical attempt. An in-flight marker without a corresponding
   journaled outcome has unknown billing state and blocks automatic retry. A run
   lock also prevents concurrent evaluators from sharing an output directory.
+  Retired flat artifacts must first pass the offline adoption procedure below;
+  the current executor never guesses how an old paid-call row maps to a current
+  contract.
 - `max_cost_usd` is checked by a thread-safe central gate before every physical
   request, including parser repair. Reaching the cap stops with all prior work
   resumable; raising the operational cap and rerunning continues the same plan.
@@ -454,6 +464,42 @@ Execution is deliberately fail-closed:
   the active concurrency window. If any physical attempt lacks usable cost data,
   a configured cap cannot be enforced; the run stops before another request,
   including a transient retry, rather than silently weakening the budget.
+
+#### Adopting stopped flat runs
+
+`scripts/migrate_evaluation_artifacts.py` converts a retired flat pilot or grid
+without contacting a provider. The source must be stopped: the script acquires
+its existing `.run.lock` non-blockingly and fails if an evaluator still owns
+the run. The destination must not exist and must be separate from the source.
+Publication uses a new sibling tree, leaving the source bytes unchanged.
+
+Adopt the pilot first, then use that adopted handoff when adopting a grid:
+
+```sh
+uv run python scripts/migrate_evaluation_artifacts.py \
+    --source <stopped-pilot> --destination <adopted-pilot> \
+    --config config/eval/pilot.yaml --cards <pilot-cards> --mode pilot
+uv run python scripts/migrate_evaluation_artifacts.py \
+    --source <stopped-grid> --destination <adopted-grid> \
+    --config config/eval/grid.yaml --cards <grid-cards> --mode grid \
+    --pilot-directory <adopted-pilot>
+```
+
+Full adoption strictly parses the retired rows, converts them to current vote
+and attempt contracts, reconstructs the deterministic plan and every request,
+and proves resume state before atomically publishing the destination. A
+complete pilot receives its current handoff manifest; an incomplete grid stays
+manifest-free and resumable. `adoption-report.json` records source and output
+hashes, policy evidence, the commit cursor, accepted-but-uncommitted vote IDs,
+the next unattempted task, and `network_calls: 0`.
+
+Historical request policies are accepted only for attempt IDs inside the
+cryptographically bound source prefix or imported subset recorded by the
+adoption. Attempts outside that finite evidence must match the active request
+policy. This prevents a resumed run from appending new requests under a retired
+policy. `--journals-only` is available for forensic conversion, but its
+`migration-pending.json` is explicitly non-resumable and is not a substitute
+for full adoption.
 
 Artifacts are append-only journals plus hash-bound manifests. `pilot/` contains
 `slice.jsonl`, `votes.jsonl`, `attempts.jsonl`, `run-state.json`, and the finalized
@@ -674,7 +720,7 @@ Throughput notes live in `atlas_tools/wikidata/BENCHMARK.md`.
 
 ## Repository layout
 
-```
+```text
 atlas_tools/
   common/       shared contracts (matrix, layout, provenance, knn)
   audit/        prefix representation audit

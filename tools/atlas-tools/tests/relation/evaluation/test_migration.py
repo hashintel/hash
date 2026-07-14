@@ -18,11 +18,13 @@ from atlas_tools.relation.evaluation.domain.api import (
     AcceptedAttempt,
     AttemptRoute,
     AttemptTiming,
+    CompletionRequestPolicyId,
     FailedAttempt,
     GridJudge,
     GridRunConfig,
     GridRunState,
     HandoffManifest,
+    HistoricalCompletionRequestPolicyId,
     InFlightRequest,
     JudgeConfig,
     ModelId,
@@ -44,6 +46,8 @@ from atlas_tools.relation.evaluation.domain.api import (
 from atlas_tools.relation.evaluation.storage.api import load_json, load_jsonl
 from atlas_tools.relation.evaluation.transport.api import (
     ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    AUTOMATIC_ANTHROPIC_COMPLETION_REQUEST_POLICY_ID,
+    LEGACY_COMPLETION_REQUEST_POLICY_ID,
     request_hash,
 )
 from scripts.migrate_evaluation_artifacts import (
@@ -55,9 +59,9 @@ from scripts.migrate_evaluation_artifacts import (
 )
 from tests.relation.evaluation.grid_fixtures import write_grid_concat
 
-_MODEL = ModelId("test/model-v1")
-_PROVIDER_NAME = ProviderName("Test Provider")
-_PROVIDER_SLUG = ProviderSlug("test-provider")
+_MODEL = "test/model-v1"
+_PROVIDER_NAME = "Test Provider"
+_PROVIDER_SLUG = "test-provider"
 _VOTE_ID = "a" * 64
 _MARKER_VOTE_ID = "b" * 64
 _CARD_HASH = "c" * 64
@@ -106,9 +110,9 @@ def _write_current_config(path: Path, config: PilotRunConfig | GridRunConfig) ->
 
 def _adoption_judge() -> JudgeConfig:
     return JudgeConfig(
-        provider_slug=_PROVIDER_SLUG,
-        provider_name=_PROVIDER_NAME,
-        model=_MODEL,
+        provider_slug=ProviderSlug(_PROVIDER_SLUG),
+        provider_name=ProviderName(_PROVIDER_NAME),
+        model=ModelId(_MODEL),
         temperature=0.0,
         seed=7,
     )
@@ -120,6 +124,7 @@ def _legacy_current_pair(
     prompt: RubricVotePrompt,
     config: PilotRunConfig,
     index: int,
+    policy_id: CompletionRequestPolicyId,
 ) -> tuple[dict[str, object], dict[str, object]]:
     content = '{"reason":"fixture evidence","verdict":"overlay"}'
     native_result: dict[str, object] = {
@@ -170,7 +175,7 @@ def _legacy_current_pair(
         completion_request,
         vote_id=task.vote_id,
         stage="initial",
-        policy_id=ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+        policy_id=policy_id,
     )
     request_at = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(milliseconds=index * 2)
     response_at = request_at + timedelta(milliseconds=1)
@@ -274,7 +279,12 @@ def _write_adoption_source(
     return directory
 
 
-def _adoption_fixture(tmp_path: Path, *, complete: bool) -> _AdoptionFixture:
+def _adoption_fixture(
+    tmp_path: Path,
+    *,
+    complete: bool,
+    policy_id: CompletionRequestPolicyId = ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+) -> _AdoptionFixture:
     cards = write_grid_concat(tmp_path / "cards")
     config = _write_current_config(
         tmp_path / "pilot-adoption.yaml",
@@ -292,7 +302,13 @@ def _adoption_fixture(tmp_path: Path, *, complete: bool) -> _AdoptionFixture:
     tasks = tuple(prepared.plan.tasks())
     selected = tasks if complete else tasks[:1]
     pairs = tuple(
-        _legacy_current_pair(task, prompt=prompt, config=prepared.config, index=index)
+        _legacy_current_pair(
+            task,
+            prompt=prompt,
+            config=prepared.config,
+            index=index,
+            policy_id=policy_id,
+        )
         for index, task in enumerate(selected)
     )
     attempts = tuple(pair[0] for pair in pairs)
@@ -719,6 +735,8 @@ def test_full_pilot_adoption_proves_plan_and_publishes_handoff(tmp_path: Path) -
     assert result.accepted_uncommitted_vote_ids == ()
     assert result.next_unattempted_task is None
     assert state.expected_votes == result.expected_votes
+    assert state.historical_request_evidence is None
+    assert result.request_policies[0].policy_ids == (ACTIVE_COMPLETION_REQUEST_POLICY_ID,)
     assert manifest.source_hashes["attempts.jsonl"] == sha256_file(destination / "attempts.jsonl")
     assert manifest.source_hashes["votes.jsonl"] == sha256_file(destination / "votes.jsonl")
     assert report.ready_for_resume is True
@@ -742,7 +760,7 @@ def test_full_adoption_rejects_unpinned_request_contract_atomically(tmp_path: Pa
     source_hash = sha256_file(fixture.source / "attempts.jsonl")
     destination = tmp_path / "adopted-pilot"
 
-    with pytest.raises(ValueError, match="initial request hash differs"):
+    with pytest.raises(ValueError, match="matches 0 request policies"):
         adopt_directory(
             source=fixture.source,
             destination=destination,
@@ -754,6 +772,40 @@ def test_full_adoption_rejects_unpinned_request_contract_atomically(tmp_path: Pa
     assert not destination.exists()
     assert sha256_file(fixture.source / "attempts.jsonl") == source_hash
     assert not tuple(tmp_path.glob(".adopted-pilot.adoption-*"))
+
+
+@pytest.mark.parametrize(
+    "policy_id",
+    [
+        LEGACY_COMPLETION_REQUEST_POLICY_ID,
+        AUTOMATIC_ANTHROPIC_COMPLETION_REQUEST_POLICY_ID,
+    ],
+)
+def test_adoption_infers_and_pins_historical_request_policy(
+    tmp_path: Path,
+    policy_id: HistoricalCompletionRequestPolicyId,
+) -> None:
+    fixture = _adoption_fixture(tmp_path, complete=False, policy_id=policy_id)
+    destination = tmp_path / "adopted-pilot"
+
+    result = adopt_directory(
+        source=fixture.source,
+        destination=destination,
+        config_path=fixture.config,
+        cards_directory=fixture.cards,
+        mode="pilot",
+    )
+
+    state = load_json(destination / "run-state.json", PilotRunState)
+    evidence = state.historical_request_evidence
+    assert evidence is not None
+    assert evidence.request_policy_ids == (policy_id,)
+    assert evidence.attempt_count == 1
+    assert evidence.attempts_prefix_hash == sha256_file(destination / "attempts.jsonl")
+    assert result.historical_request_evidence == evidence
+    assert result.request_policies[0].path == "attempts.jsonl"
+    assert result.request_policies[0].policy_ids == (policy_id,)
+    assert result.next_plan_index == 1
 
 
 def test_adoption_reports_reusable_acceptance_and_first_untouched_task(tmp_path: Path) -> None:
@@ -780,7 +832,11 @@ def test_adoption_reports_reusable_acceptance_and_first_untouched_task(tmp_path:
 
 
 def test_grid_adoption_rebuilds_imports_from_adopted_pilot(tmp_path: Path) -> None:
-    fixture = _adoption_fixture(tmp_path, complete=True)
+    fixture = _adoption_fixture(
+        tmp_path,
+        complete=True,
+        policy_id=LEGACY_COMPLETION_REQUEST_POLICY_ID,
+    )
     pilot_directory = tmp_path / "adopted-pilot"
     pilot_result = adopt_directory(
         source=fixture.source,
@@ -830,8 +886,20 @@ def test_grid_adoption_rebuilds_imports_from_adopted_pilot(tmp_path: Path) -> No
     assert result.accepted_uncommitted_vote_ids == ()
     assert result.next_unattempted_task is not None
     assert result.next_unattempted_task.plan_index == 0
+    assert tuple(journal.path for journal in result.request_policies) == (
+        "imported-attempts.jsonl",
+        "attempts.jsonl",
+    )
+    assert result.request_policies[0].policy_ids == (LEGACY_COMPLETION_REQUEST_POLICY_ID,)
+    assert result.request_policies[1].policy_ids == ()
     assert result.manifest_complete is False
     assert not (destination / "manifest.json").exists()
+    assert state.historical_request_evidence is None
+    subset = state.pilot_historical_request_subset
+    assert subset is not None
+    assert subset.source_evidence.attempt_count == len(fixture.attempts)
+    assert len(subset.attempt_ids) == len(imported_attempts)
+    assert result.pilot_historical_request_subset == state.pilot_historical_request_subset
     assert {vote.vote_id for vote in adopted_imports} == imported_vote_ids
     assert state.source_hashes["pilot-manifest.json"] == sha256_file(
         pilot_directory / "manifest.json"

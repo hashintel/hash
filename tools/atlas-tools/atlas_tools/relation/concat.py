@@ -26,6 +26,8 @@ from atlas_tools.relation_cards.common.cards import (
 )
 
 CONCAT_SCHEMA_VERSION = 2
+type FamilyOverlayAlgorithm = Literal["user-supplied-exact-overlay-v1"]
+FAMILY_OVERLAY_ALGORITHM: FamilyOverlayAlgorithm = "user-supplied-exact-overlay-v1"
 
 
 class ConcatCardRow(CardRow):
@@ -72,7 +74,7 @@ class FamilyOverlayDetails(BaseModel):
     """Record the reviewed assignment contract applied to a concat artifact."""
 
     schema_version: Literal[1] = 1
-    algorithm: Literal["user-supplied-exact-overlay-v1"] = "user-supplied-exact-overlay-v1"
+    algorithm: FamilyOverlayAlgorithm = FAMILY_OVERLAY_ALGORITHM
     assignments_hash: Sha256Hex
     assignment_count: NonNegativeInt
     family_count: NonNegativeInt

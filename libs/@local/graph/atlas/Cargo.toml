@@ -32,33 +32,36 @@ tokio-postgres = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-candle-core                         = { version = "0.10.2" }
-candle-nn                           = { version = "0.10.2" }
-error-stack.workspace               = true
-faer                                = "0.24.4"
-futures.workspace                   = true
-hash-graph-postgres-store.workspace = true
-hash-graph-store.workspace          = true
-hash-graph-types.workspace          = true
-levenberg-marquardt                 = "0.15.0"
-memmap2                             = "0.9.11"
-nalgebra                            = "0.34.1"
-pin-project-lite.workspace          = true
-rand                                = { workspace = true }
-rand_xoshiro                        = { workspace = true }
-rayon                               = { workspace = true }
-regex                               = { workspace = true }
-serde                               = { workspace = true, features = ["derive"] }
-serde_json                          = { workspace = true }
-sha2                                = { workspace = true }
-simple-mermaid                      = { workspace = true }
-sprs                                = { version = "0.11.4", default-features = false }
-tiktoken-rs                         = "0.12.0"
-tokio-util.workspace                = true
-tracing                             = { workspace = true }
-usearch                             = "2.25.3"
-uuid.workspace                      = true
-zerocopy                            = "0.8.54"
+candle-core                              = { version = "0.10.2" }
+candle-nn                                = { version = "0.10.2" }
+error-stack.workspace                    = true
+faer                                     = "0.24.4"
+futures.workspace                        = true
+hash-graph-authorization.workspace       = true
+hash-graph-postgres-store.workspace      = true
+hash-graph-store.workspace               = true
+hash-graph-temporal-versioning.workspace = true
+hash-graph-types.workspace               = true
+levenberg-marquardt                      = "0.15.0"
+memmap2                                  = "0.9.11"
+nalgebra                                 = "0.34.1"
+pin-project-lite.workspace               = true
+rand                                     = { workspace = true }
+rand_xoshiro                             = { workspace = true }
+rayon                                    = { workspace = true }
+regex                                    = { workspace = true }
+serde                                    = { workspace = true, features = ["derive"] }
+serde_json                               = { workspace = true }
+sha2                                     = { workspace = true }
+simple-mermaid                           = { workspace = true }
+sprs                                     = { version = "0.11.4", default-features = false }
+tiktoken-rs                              = "0.12.0"
+time                                     = { workspace = true, features = ["serde"] }
+tokio-util.workspace                     = true
+tracing                                  = { workspace = true }
+usearch                                  = "2.25.3"
+uuid.workspace                           = true
+zerocopy                                 = "0.8.54"
 
 [dev-dependencies]
 burn                  = { version = "0.21.0", features = ["candle"] }

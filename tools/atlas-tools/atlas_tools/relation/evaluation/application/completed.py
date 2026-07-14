@@ -224,7 +224,7 @@ async def load_completed_grid_async(
             manifest_hash=loaded.manifest.source_hashes["pilot-manifest.json"],
             votes_hash=loaded.manifest.source_hashes["pilot-votes.jsonl"],
             attempts_hash=loaded.manifest.source_hashes["pilot-attempts.jsonl"],
-            historical_request_policy_ids=(loaded.manifest.pilot_historical_request_policy_ids),
+            historical_request_subset=(loaded.manifest.pilot_historical_request_subset),
             votes=loaded.imported_votes,
             attempts=loaded.imported_attempts,
         )
@@ -244,7 +244,7 @@ async def load_completed_grid_async(
             request_contract_hash=contract,
             openrouter_sdk_version=loaded.state.openrouter_sdk_version,
             openrouter_openapi_version=loaded.state.openrouter_openapi_version,
-            historical_request_policy_ids=(loaded.state.historical_request_policy_ids),
+            historical_request_evidence=loaded.state.historical_request_evidence,
         )
 
         if loaded.state != expected_state:
@@ -261,7 +261,7 @@ async def load_completed_grid_async(
             attempts=loaded.journal.attempts,
             prompt=prompt,
             config=prepared.config,
-            historical_request_policy_ids=(loaded.state.historical_request_policy_ids),
+            historical_request_evidence=loaded.state.historical_request_evidence,
         )
         if resume.next_plan_index != plan.expected_votes:
             raise ValueError(

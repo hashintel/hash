@@ -150,6 +150,44 @@ impl<'embedding> CanonicalEmbedding<'embedding> {
     }
 }
 
+/// An owned finite canonical embedding.
+///
+/// Construction reuses the input vector allocation when its length and values
+/// are valid. Borrowing the validated row does not rescan its components.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct OwnedCanonicalEmbedding(Box<[f32; CANONICAL_DIMENSIONS]>);
+
+impl OwnedCanonicalEmbedding {
+    /// Validates and takes ownership of one canonical embedding.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when `values` has the wrong width or contains a
+    /// non-finite component.
+    pub(crate) fn from_vec(values: Vec<f32>) -> Result<Self, RepresentationError> {
+        CanonicalEmbedding::new(&values)?;
+        let values = values
+            .into_boxed_slice()
+            .try_into()
+            .expect("validated canonical embedding should have the required width");
+        Ok(Self(values))
+    }
+
+    /// Borrows the validated row.
+    #[must_use]
+    #[inline]
+    pub(crate) fn as_borrowed(&self) -> CanonicalEmbedding<'_> {
+        CanonicalEmbedding(&self.0)
+    }
+
+    /// Borrows the backing array.
+    #[must_use]
+    #[inline]
+    pub(crate) fn as_array(&self) -> &[f32; CANONICAL_DIMENSIONS] {
+        &self.0
+    }
+}
+
 /// Diagnostics from projector-prefix normalization.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct PrefixNormalization {

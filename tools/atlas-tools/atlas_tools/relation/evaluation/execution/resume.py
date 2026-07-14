@@ -7,11 +7,13 @@ from dataclasses import dataclass
 from atlas_tools.relation.evaluation.domain.api import (
     ACTIVE_COMPLETION_REQUEST_POLICY_ID,
     COMPLETION_REQUEST_POLICY_IDS,
+    AttemptId,
     BaseRunConfig,
     CompletionRequestPolicyId,
     HistoricalCompletionRequestPolicyId,
+    HistoricalRequestEvidence,
+    HistoricalRequestSubset,
     PhysicalAttempt,
-    RequestHash,
     RequestStage,
     Vote,
     VotePlan,
@@ -23,7 +25,12 @@ from atlas_tools.relation.evaluation.execution.vote import (
     _build_vote,
     _completion_request,
 )
-from atlas_tools.relation.evaluation.storage.api import ResumeIndex, index_resume
+from atlas_tools.relation.evaluation.storage.api import (
+    ResumeIndex,
+    historical_request_prefix_ids,
+    index_resume,
+    jsonl_hash,
+)
 from atlas_tools.relation.evaluation.transport.api import (
     CompletionRequest,
     matches_pinned_route,
@@ -41,19 +48,80 @@ class _ReconstructedRequestSequence:
     repair_raw: str | None
 
 
-def _allowed_request_hashes(
+@dataclass(frozen=True, slots=True, kw_only=True)
+class HistoricalRequestScope:
+    """Carry a verified finite set of attempts allowed to use old policies."""
+
+    request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
+    attempt_ids: frozenset[AttemptId]
+
+
+def build_historical_request_evidence(
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+) -> HistoricalRequestEvidence:
+    """Commit historical policies to the exact current attempt journal."""
+    if not attempts:
+        raise ValueError("historical request evidence requires at least one attempt")
+    return HistoricalRequestEvidence(
+        request_policy_ids=request_policy_ids,
+        attempt_count=len(attempts),
+        attempts_prefix_hash=jsonl_hash(attempts),
+    )
+
+
+def verify_historical_request_evidence(
+    attempts: tuple[PhysicalAttempt, ...],
+    evidence: HistoricalRequestEvidence | None,
+) -> HistoricalRequestScope:
+    """Verify a committed prefix and return its finite historical-policy scope."""
+    if evidence is None:
+        return HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+    attempt_ids = historical_request_prefix_ids(attempts, evidence)
+    return HistoricalRequestScope(
+        request_policy_ids=evidence.request_policy_ids,
+        attempt_ids=attempt_ids,
+    )
+
+
+def verify_historical_request_subset(
+    attempts: tuple[PhysicalAttempt, ...],
+    subset: HistoricalRequestSubset | None,
+) -> HistoricalRequestScope:
+    """Bind a persisted imported subset to the attempts being validated."""
+    if subset is None:
+        return HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+    available = frozenset(attempt.attempt_id for attempt in attempts)
+    missing = tuple(attempt_id for attempt_id in subset.attempt_ids if attempt_id not in available)
+    if missing:
+        raise ValueError(f"historical request subset lacks attempts: {missing[:5]}")
+    return HistoricalRequestScope(
+        request_policy_ids=subset.source_evidence.request_policy_ids,
+        attempt_ids=frozenset(subset.attempt_ids),
+    )
+
+
+def _request_hash_matches(
     request: CompletionRequest,
+    attempt: PhysicalAttempt,
     *,
     task: VoteTask,
     stage: RequestStage,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
-) -> frozenset[RequestHash]:
+    historical_request_scope: HistoricalRequestScope,
+) -> bool:
+    historical_policy_ids = (
+        historical_request_scope.request_policy_ids
+        if attempt.attempt_id in historical_request_scope.attempt_ids
+        else ()
+    )
     policy_ids: tuple[CompletionRequestPolicyId, ...] = (
-        *historical_request_policy_ids,
+        *historical_policy_ids,
         ACTIVE_COMPLETION_REQUEST_POLICY_ID,
     )
-    return frozenset(
-        request_hash(
+    return any(
+        attempt.request_hash
+        == request_hash(
             request,
             vote_id=task.vote_id,
             stage=stage,
@@ -184,7 +252,7 @@ def _validate_request_hashes(
     *,
     prompt: VotePrompt,
     config: BaseRunConfig,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    historical_request_scope: HistoricalRequestScope,
 ) -> tuple[str | None, str | None]:
     sequence = _reconstruct_request_sequence(
         task,
@@ -192,23 +260,29 @@ def _validate_request_hashes(
         prompt=prompt,
         config=config,
     )
-    initial_hashes = _allowed_request_hashes(
-        sequence.initial,
-        task=task,
-        stage="initial",
-        historical_request_policy_ids=historical_request_policy_ids,
-    )
-    if any(attempt.request_hash not in initial_hashes for attempt in grouped["initial"]):
+    if any(
+        not _request_hash_matches(
+            sequence.initial,
+            attempt,
+            task=task,
+            stage="initial",
+            historical_request_scope=historical_request_scope,
+        )
+        for attempt in grouped["initial"]
+    ):
         raise ValueError(f"initial request hash differs for vote {task.vote_id}")
     if sequence.repair is None:
         return sequence.initial_raw, None
-    repair_hashes = _allowed_request_hashes(
-        sequence.repair,
-        task=task,
-        stage="repair",
-        historical_request_policy_ids=historical_request_policy_ids,
-    )
-    if any(attempt.request_hash not in repair_hashes for attempt in grouped["repair"]):
+    if any(
+        not _request_hash_matches(
+            sequence.repair,
+            attempt,
+            task=task,
+            stage="repair",
+            historical_request_scope=historical_request_scope,
+        )
+        for attempt in grouped["repair"]
+    ):
         raise ValueError(f"repair request hash differs for vote {task.vote_id}")
     return sequence.initial_raw, sequence.repair_raw
 
@@ -318,7 +392,7 @@ def validate_attempt_sequence(
     *,
     prompt: VotePrompt,
     config: BaseRunConfig,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
+    historical_request_scope: HistoricalRequestScope | None = None,
 ) -> None:
     """Prove request identity, stage protocol, route pins, and vote projection.
 
@@ -336,7 +410,11 @@ def validate_attempt_sequence(
         grouped,
         prompt=prompt,
         config=config,
-        historical_request_policy_ids=historical_request_policy_ids,
+        historical_request_scope=(
+            HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+            if historical_request_scope is None
+            else historical_request_scope
+        ),
     )
     if vote is not None:
         _validate_completed_vote(
@@ -356,7 +434,7 @@ def build_resume_index(
     attempts: tuple[PhysicalAttempt, ...],
     prompt: VotePrompt,
     config: BaseRunConfig,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = (),
+    historical_request_evidence: HistoricalRequestEvidence | None = None,
 ) -> ResumeIndex:
     """Validate a replayed plan and return only reusable durable evidence.
 
@@ -369,6 +447,10 @@ def build_resume_index(
             evidence differs from the deterministic replay.
 
     """
+    historical_request_scope = verify_historical_request_evidence(
+        attempts,
+        historical_request_evidence,
+    )
 
     def validate(
         task: VoteTask,
@@ -381,7 +463,7 @@ def build_resume_index(
             vote,
             prompt=prompt,
             config=config,
-            historical_request_policy_ids=historical_request_policy_ids,
+            historical_request_scope=historical_request_scope,
         )
 
     return index_resume(

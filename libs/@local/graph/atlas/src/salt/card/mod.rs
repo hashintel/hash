@@ -1,9 +1,12 @@
-//! Deterministic relation-card format v5.
+//! Deterministic relation-card rendering.
 //!
 //! Relation cards are identifier-free labeled text used to embed relation
 //! semantics. Rendering preserves one canonical block order and one trailing
-//! newline. Descriptions attached to referenced types are split into a retained
-//! lead sentence and removable detail.
+//! newline. The labeled-text layout was introduced in format v5. Format v6
+//! additionally requires datasource adapters to rewrite or remove identifier
+//! references before constructing [`RelationCardInput`]. Descriptions attached
+//! to referenced types are split into a retained lead sentence and removable
+//! detail.
 //!
 //! When a card exceeds its target token budget, truncation proceeds in this
 //! order:
@@ -39,6 +42,9 @@ pub(crate) use self::{
 
 const DEFAULT_TOKEN_BUDGET: usize = 6_000;
 const DEFAULT_HARD_TOKEN_BUDGET: usize = 7_500;
+
+/// Current relation-card corpus contract.
+pub(crate) const CARD_FORMAT_VERSION: u32 = 6;
 
 /// A display phrase referenced by a relation.
 #[derive(Debug, Copy, Clone)]

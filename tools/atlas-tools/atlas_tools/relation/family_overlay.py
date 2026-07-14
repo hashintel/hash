@@ -4,7 +4,7 @@ The source artifacts do not define a complete semantic-family policy. This
 module therefore treats the assignment file as an explicit reviewed input: it
 must cover the deck exactly and bind every relation to the card hash that was
 reviewed. The transform publishes a fresh concat directory only after all rows
-and both input hashes have been verified.
+and all declared input hashes have been verified.
 """
 
 import hashlib
@@ -27,6 +27,7 @@ from pydantic import (
 
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
 from atlas_tools.relation.concat import (
+    FAMILY_OVERLAY_ALGORITHM,
     ConcatCardRow,
     ConcatConfig,
     ConcatDetails,
@@ -40,7 +41,6 @@ from atlas_tools.relation.concat import (
 )
 from atlas_tools.relation_cards.common.cards import RelationId
 
-FAMILY_OVERLAY_ALGORITHM = "user-supplied-exact-overlay-v1"
 _CONTROL_CHARACTER_BOUND = 32
 _DELETE = 127
 

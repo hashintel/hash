@@ -6,6 +6,9 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 
 from atlas_tools.common import canonical_json_bytes
 from atlas_tools.relation.evaluation.domain.api import (
+    ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    AUTOMATIC_ANTHROPIC_COMPLETION_REQUEST_POLICY_ID,
+    LEGACY_COMPLETION_REQUEST_POLICY_ID,
     CardHash,
     ConcurrencyConfig,
     HandoffManifest,
@@ -40,9 +43,7 @@ def test_paid_pilot_vote_identity_remains_stable() -> None:
         judge=judge,
         bundle_id="S1xF1",
         relation_id="hash:https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
-        card_hash=CardHash(
-            "b6651be3939273fa29d86bd0bf1c857fab794fca27632ccadf76488c7e2c2702"
-        ),
+        card_hash=CardHash("b6651be3939273fa29d86bd0bf1c857fab794fca27632ccadf76488c7e2c2702"),
         effort="minimal",
         repeat_index=0,
         prompt_pack_hash=PromptPackHash(
@@ -101,3 +102,35 @@ def test_paid_pilot_state_and_manifest_remain_loadable() -> None:
     assert canonical_json_bytes(manifest) == canonical_json_bytes(
         _JSON_OBJECT_ADAPTER.validate_json(manifest_bytes, strict=True)
     )
+
+
+@pytest.mark.parametrize(
+    "policy_ids",
+    [
+        [ACTIVE_COMPLETION_REQUEST_POLICY_ID],
+        ["unknown-request-policy-v1"],
+        [
+            AUTOMATIC_ANTHROPIC_COMPLETION_REQUEST_POLICY_ID,
+            LEGACY_COMPLETION_REQUEST_POLICY_ID,
+        ],
+        [
+            LEGACY_COMPLETION_REQUEST_POLICY_ID,
+            LEGACY_COMPLETION_REQUEST_POLICY_ID,
+        ],
+    ],
+)
+def test_run_state_rejects_unregistered_or_noncanonical_historical_policies(
+    policy_ids: list[str],
+) -> None:
+    payload = _JSON_OBJECT_ADAPTER.validate_json(
+        (_PAID_PILOT / "run-state.json").read_bytes(),
+        strict=True,
+    )
+    payload["historical_request_evidence"] = {
+        "attempt_count": 1,
+        "attempts_prefix_hash": "a" * 64,
+        "request_policy_ids": policy_ids,
+    }
+
+    with pytest.raises(ValidationError):
+        PilotRunState.model_validate_json(canonical_json_bytes(payload), strict=True)

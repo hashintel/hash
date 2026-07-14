@@ -28,7 +28,12 @@ from atlas_tools.relation.evaluation.storage.deck import (
     load_deck,
     load_deck_async,
 )
-from atlas_tools.relation.evaluation.storage.hashing import file_hash, jsonl_hash
+from atlas_tools.relation.evaluation.storage.hashing import (
+    build_historical_request_subset,
+    file_hash,
+    historical_request_prefix_ids,
+    jsonl_hash,
+)
 from atlas_tools.relation.evaluation.storage.journal import (
     DurableAttempt,
     JournalPaths,
@@ -59,8 +64,10 @@ __all__ = [
     "RunJournal",
     "UnknownBillingStateError",
     "VerifiedDeck",
+    "build_historical_request_subset",
     "exclusive_run",
     "file_hash",
+    "historical_request_prefix_ids",
     "index_resume",
     "jsonl_hash",
     "load_config",

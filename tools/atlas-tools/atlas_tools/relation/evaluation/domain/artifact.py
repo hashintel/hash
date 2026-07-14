@@ -13,7 +13,6 @@ from pydantic import (
     JsonValue,
     NonNegativeInt,
     PositiveInt,
-    field_validator,
     model_validator,
 )
 
@@ -42,8 +41,8 @@ from atlas_tools.relation.evaluation.domain.identity import (
     Verdict,
 )
 from atlas_tools.relation.evaluation.domain.request_policy import (
-    HistoricalCompletionRequestPolicyId,
-    validate_historical_request_policy_ids,
+    HistoricalRequestEvidence,
+    HistoricalRequestSubset,
 )
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
@@ -53,6 +52,12 @@ from atlas_tools.relation.evaluation.domain.scalar import (
     Probability,
 )
 from atlas_tools.relation_cards.common.cards import RelationId
+
+
+def _exclude_absent_historical_request_evidence(
+    evidence: HistoricalRequestEvidence | HistoricalRequestSubset | None,
+) -> bool:
+    return evidence is None
 
 
 class SliceRecord(FrozenModel):
@@ -231,19 +236,14 @@ class GridJudgePin(_JudgePin[GridJudge]):
 type JudgePin = Annotated[PilotJudgePin | GridJudgePin, Field(discriminator="kind")]
 
 
-class _HistoricalRequestPolicies(FrozenModel):
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
-
-    @field_validator("historical_request_policy_ids")
-    @classmethod
-    def check_historical_request_policy_ids(
-        cls,
-        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
-    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
-        return validate_historical_request_policy_ids(policy_ids)
+class _HistoricalRequestEvidenceContract(FrozenModel):
+    historical_request_evidence: HistoricalRequestEvidence | None = Field(
+        default=None,
+        exclude_if=_exclude_absent_historical_request_evidence,
+    )
 
 
-class PilotRunState(_HistoricalRequestPolicies):
+class PilotRunState(_HistoricalRequestEvidenceContract):
     """Identify the exact pilot plan accepted by append-only journals."""
 
     schema_version: Literal[3] = 3
@@ -257,7 +257,7 @@ class PilotRunState(_HistoricalRequestPolicies):
     openrouter_openapi_version: NonEmptyStr
 
 
-class GridRunState(_HistoricalRequestPolicies):
+class GridRunState(_HistoricalRequestEvidenceContract):
     """Identify a dynamic two-phase grid without pretending it has a fixed plan hash."""
 
     schema_version: Literal[2] = 2
@@ -271,17 +271,12 @@ class GridRunState(_HistoricalRequestPolicies):
     corpus_hash: Sha256Hex
     imported_votes_hash: Sha256Hex
     imported_attempts_hash: Sha256Hex
-    pilot_historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
+    pilot_historical_request_subset: HistoricalRequestSubset | None = Field(
+        default=None,
+        exclude_if=_exclude_absent_historical_request_evidence,
+    )
     openrouter_sdk_version: NonEmptyStr
     openrouter_openapi_version: NonEmptyStr
-
-    @field_validator("pilot_historical_request_policy_ids")
-    @classmethod
-    def check_pilot_historical_request_policy_ids(
-        cls,
-        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
-    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
-        return validate_historical_request_policy_ids(policy_ids)
 
     @model_validator(mode="after")
     def check_sources(self) -> Self:
@@ -300,7 +295,7 @@ class GridRunState(_HistoricalRequestPolicies):
         return self
 
 
-class HandoffManifest(_HistoricalRequestPolicies):
+class HandoffManifest(_HistoricalRequestEvidenceContract):
     """Describe one completed normalized pilot handoff."""
 
     schema_version: Literal[3] = 3
@@ -373,7 +368,7 @@ class FamilyGridCounts(FrozenModel):
     cost_complete: bool
 
 
-class GridManifest(_HistoricalRequestPolicies):
+class GridManifest(_HistoricalRequestEvidenceContract):
     """Describe one finalized normalized production grid."""
 
     schema_version: Literal[3] = 3
@@ -382,7 +377,10 @@ class GridManifest(_HistoricalRequestPolicies):
     panel_frozen: bool
     judges: tuple[GridJudgePin, ...]
     pilot_config: PilotRunConfig
-    pilot_historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...] = ()
+    pilot_historical_request_subset: HistoricalRequestSubset | None = Field(
+        default=None,
+        exclude_if=_exclude_absent_historical_request_evidence,
+    )
     manual_prunes: FrozenMapping[JudgeFamilyId, NonEmptyStr]
     reserve_topology: Literal["dormant"] = "dormant"
     run_dates: RunDates
@@ -402,14 +400,6 @@ class GridManifest(_HistoricalRequestPolicies):
     executor_config: FrozenMapping[str, JsonValue]
     executor_policy: FrozenMapping[str, JsonValue]
     request_policy: FrozenMapping[str, JsonValue]
-
-    @field_validator("pilot_historical_request_policy_ids")
-    @classmethod
-    def check_pilot_historical_request_policy_ids(
-        cls,
-        policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
-    ) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
-        return validate_historical_request_policy_ids(policy_ids)
 
     def _check_panel_contract(self) -> None:
         families = tuple(judge.family_id for judge in self.judges)

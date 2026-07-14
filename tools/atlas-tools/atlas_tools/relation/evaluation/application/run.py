@@ -43,7 +43,7 @@ from atlas_tools.relation.evaluation.application.source import (
 from atlas_tools.relation.evaluation.domain.api import (
     BaseRunConfig,
     GridRunState,
-    HistoricalCompletionRequestPolicyId,
+    HistoricalRequestEvidence,
     JudgeFamilyId,
     PhysicalAttempt,
     PilotRunState,
@@ -121,22 +121,22 @@ async def _is_file(path: Path) -> bool:
     return await trio.to_thread.run_sync(path.is_file, abandon_on_cancel=False)
 
 
-async def _pilot_historical_request_policy_ids(
+async def _pilot_historical_request_evidence(
     path: Path,
-) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+) -> HistoricalRequestEvidence | None:
     if not await _is_file(path):
-        return ()
+        return None
     state = await load_json_async(path, PilotRunState)
-    return state.historical_request_policy_ids
+    return state.historical_request_evidence
 
 
-async def _grid_historical_request_policy_ids(
+async def _grid_historical_request_evidence(
     path: Path,
-) -> tuple[HistoricalCompletionRequestPolicyId, ...]:
+) -> HistoricalRequestEvidence | None:
     if not await _is_file(path):
-        return ()
+        return None
     state = await load_json_async(path, GridRunState)
-    return state.historical_request_policy_ids
+    return state.historical_request_evidence
 
 
 def _remaining(plan: VotePlan, start_index: int) -> Iterator[VoteTask]:
@@ -153,7 +153,7 @@ async def _final_snapshot(
     *,
     prompt: RubricVotePrompt,
     config: BaseRunConfig,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    historical_request_evidence: HistoricalRequestEvidence | None,
 ) -> tuple[JournalSnapshot, ResumeIndex]:
     snapshot = await journal.snapshot()
     resume = build_resume_index(
@@ -162,7 +162,7 @@ async def _final_snapshot(
         attempts=snapshot.attempts,
         prompt=prompt,
         config=config,
-        historical_request_policy_ids=historical_request_policy_ids,
+        historical_request_evidence=historical_request_evidence,
     )
     if resume.next_plan_index != plan.expected_votes:
         raise ValueError(
@@ -187,7 +187,7 @@ async def _run_pilot(
             request_contract_hash=contract,
             openrouter_sdk_version=versions.openrouter_sdk_version,
             openrouter_openapi_version=versions.openrouter_openapi_version,
-            historical_request_policy_ids=(await _pilot_historical_request_policy_ids(paths.state)),
+            historical_request_evidence=(await _pilot_historical_request_evidence(paths.state)),
         )
         await prepare_pilot_async(
             paths,
@@ -207,7 +207,7 @@ async def _run_pilot(
             attempts=snapshot.attempts,
             prompt=prompt,
             config=prepared.config,
-            historical_request_policy_ids=state.historical_request_policy_ids,
+            historical_request_evidence=state.historical_request_evidence,
         )
         manifest_exists = await _is_file(paths.manifest)
         if resume.next_plan_index < prepared.plan.expected_votes:
@@ -238,7 +238,7 @@ async def _run_pilot(
             prepared.plan,
             prompt=prompt,
             config=prepared.config,
-            historical_request_policy_ids=state.historical_request_policy_ids,
+            historical_request_evidence=state.historical_request_evidence,
         )
         await verify_deck_sources(prepared)
         artifact_hashes = await hash_paths(
@@ -310,7 +310,7 @@ async def _execute_grid(
     manifest_exists: bool,
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+    historical_request_evidence: HistoricalRequestEvidence | None,
 ) -> tuple[JournalSnapshot, GridPlan]:
     prompt = RubricVotePrompt(
         pack=prepared.prompt_pack,
@@ -323,7 +323,7 @@ async def _execute_grid(
         attempts=snapshot.attempts,
         prompt=prompt,
         config=prepared.config,
-        historical_request_policy_ids=historical_request_policy_ids,
+        historical_request_evidence=historical_request_evidence,
     )
     phase_a_incomplete = len(snapshot.votes) < prepared.phase_a.expected_votes
     current_incomplete = current_resume.next_plan_index < current_plan.expected_votes
@@ -363,7 +363,7 @@ async def _execute_grid(
             attempts=snapshot.attempts,
             prompt=prompt,
             config=prepared.config,
-            historical_request_policy_ids=historical_request_policy_ids,
+            historical_request_evidence=historical_request_evidence,
         )
         if complete_resume.next_plan_index < complete_plan.analysis_votes:
             progress.phase(
@@ -389,7 +389,7 @@ async def _execute_grid(
                 attempts=snapshot.attempts,
                 prompt=prompt,
                 config=prepared.config,
-                historical_request_policy_ids=historical_request_policy_ids,
+                historical_request_evidence=historical_request_evidence,
             )
         if complete_resume.next_plan_index < complete_plan.expected_votes:
             progress.phase(
@@ -409,7 +409,7 @@ async def _execute_grid(
         complete_plan,
         prompt=prompt,
         config=prepared.config,
-        historical_request_policy_ids=historical_request_policy_ids,
+        historical_request_evidence=historical_request_evidence,
     )
     return final_snapshot, complete_plan
 
@@ -430,7 +430,7 @@ async def _run_grid(
             request_contract_hash=contract,
             openrouter_sdk_version=versions.openrouter_sdk_version,
             openrouter_openapi_version=versions.openrouter_openapi_version,
-            historical_request_policy_ids=(await _grid_historical_request_policy_ids(paths.state)),
+            historical_request_evidence=(await _grid_historical_request_evidence(paths.state)),
         )
         await prepare_grid_async(
             paths,
@@ -449,7 +449,7 @@ async def _run_grid(
             manifest_exists=await _is_file(paths.manifest),
             injected_transport=injected_transport,
             progress=progress,
-            historical_request_policy_ids=state.historical_request_policy_ids,
+            historical_request_evidence=state.historical_request_evidence,
         )
         prompt = RubricVotePrompt(
             pack=prepared.prompt_pack,
@@ -460,7 +460,7 @@ async def _run_grid(
             plan,
             prompt=prompt,
             config=prepared.config,
-            historical_request_policy_ids=state.historical_request_policy_ids,
+            historical_request_evidence=state.historical_request_evidence,
         )
         grid_votes, canary_votes = split_grid_votes(plan, snapshot.votes)
         analysis = analyze_grid(

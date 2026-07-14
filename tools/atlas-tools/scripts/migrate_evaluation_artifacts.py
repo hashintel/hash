@@ -13,9 +13,11 @@ manifest; a stopped incomplete grid remains manifest-free and resumable.
 ``--journals-only`` retains the narrower forensic conversion and emits an
 explicitly non-resumable ``migration-pending.json`` report.
 
-The migration performs no network operations. It runs in ``O(b)`` time for
-``b`` input bytes. Additional memory is proportional to attempt identities
-plus the accepted provider payloads needed to link votes to physical evidence.
+The migration performs no network operations. Forensic conversion runs in
+``O(b)`` time for ``b`` input bytes; full adoption adds ``O(p)`` deterministic
+plan validation for ``p`` tasks. Additional memory is proportional to plan and
+attempt identities plus accepted provider payloads needed to link votes to
+physical evidence.
 """
 
 import argparse
@@ -80,7 +82,8 @@ from atlas_tools.relation.evaluation.domain.api import (
     FramingId,
     GridRunConfig,
     GridRunState,
-    HistoricalCompletionRequestPolicyId,
+    HistoricalRequestEvidence,
+    HistoricalRequestSubset,
     InFlightRequest,
     JudgeFamilyId,
     JudgeRequestSpec,
@@ -113,13 +116,14 @@ from atlas_tools.relation.evaluation.domain.api import (
     VotePlan,
     VoteProvenance,
     VoteRequest,
-    VoteTiming,
     VoteTask,
+    VoteTiming,
     VoteVerdict,
     attempt_id,
     bundle_id,
 )
 from atlas_tools.relation.evaluation.execution.api import (
+    build_historical_request_evidence,
     build_resume_index,
     executor_policy_payload,
     observed_request_policy_ids,
@@ -366,9 +370,7 @@ class JournalRequestPolicies(_LegacyModel):
     @model_validator(mode="after")
     def check_policy_order(self) -> Self:
         canonical = tuple(
-            policy_id
-            for policy_id in COMPLETION_REQUEST_POLICY_IDS
-            if policy_id in self.policy_ids
+            policy_id for policy_id in COMPLETION_REQUEST_POLICY_IDS if policy_id in self.policy_ids
         )
         if self.policy_ids != canonical:
             raise ValueError("observed request policy IDs must be unique and in registry order")
@@ -384,7 +386,8 @@ class AdoptionResult(_LegacyModel):
     schema_version: Literal[1] = 1
     mode: MigrationMode
     request_contract_hash: Sha256Hex
-    historical_request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
+    historical_request_evidence: HistoricalRequestEvidence | None
+    pilot_historical_request_subset: HistoricalRequestSubset | None
     request_policies: tuple[JournalRequestPolicies, ...]
     source_migrations: tuple[MigratedArtifact, ...]
     replaced_source_artifacts: tuple[OmittedArtifact, ...]
@@ -1218,6 +1221,123 @@ def migrate_directory(
     return result
 
 
+@dataclass(frozen=True, slots=True)
+class _RequestPolicyProof:
+    historical_request_evidence: HistoricalRequestEvidence | None
+    journals: tuple[JournalRequestPolicies, ...]
+
+
+def _task_index(plan: VotePlan) -> dict[VoteId, VoteTask]:
+    tasks: dict[VoteId, VoteTask] = {}
+    for task in plan.tasks():
+        if task.vote_id in tasks:
+            raise ValueError(f"current plan repeats logical vote {task.vote_id}")
+        tasks[task.vote_id] = task
+    return tasks
+
+
+def _journal_request_policies(
+    path: Path,
+    *,
+    display_path: str,
+    tasks: Mapping[VoteId, VoteTask],
+    prompt: RubricVotePrompt,
+    config: BaseRunConfig,
+) -> JournalRequestPolicies:
+    attempts = load_jsonl(path, PhysicalAttempt)
+    grouped: dict[VoteId, list[PhysicalAttempt]] = {}
+    for attempt in attempts:
+        grouped.setdefault(attempt.vote_id, []).append(attempt)
+    observed: set[CompletionRequestPolicyId] = set()
+    for vote_id, rows in grouped.items():
+        task = tasks.get(vote_id)
+        if task is None:
+            raise ValueError(f"{display_path} contains attempt outside the current plan: {vote_id}")
+        observed.update(
+            observed_request_policy_ids(
+                task,
+                tuple(rows),
+                prompt=prompt,
+                config=config,
+            )
+        )
+    return JournalRequestPolicies(
+        path=display_path,
+        closed_attempts=len(attempts),
+        policy_ids=tuple(
+            policy_id for policy_id in COMPLETION_REQUEST_POLICY_IDS if policy_id in observed
+        ),
+    )
+
+
+def _pilot_import_task_index(prepared: PreparedGrid) -> dict[VoteId, VoteTask]:
+    pilot_judges = {judge.family_id: judge for judge in prepared.pilot_import.config.judges}
+    tasks: dict[VoteId, VoteTask] = {}
+    for vote_id in prepared.imported_by_vote_id:
+        baseline = prepared.baseline_by_vote_id[vote_id]
+        pilot_judge = pilot_judges.get(baseline.judge.family_id)
+        if pilot_judge is None:
+            raise ValueError(f"pilot config lacks imported family {baseline.judge.family_id}")
+        tasks[vote_id] = baseline.model_copy(update={"judge": pilot_judge})
+    return tasks
+
+
+def _request_policy_proof(
+    prepared: PreparedPilot | PreparedGrid,
+    converted: Path,
+) -> _RequestPolicyProof:
+    prompt = RubricVotePrompt(
+        pack=prepared.prompt_pack,
+        cards=prepared.deck.by_relation_id,
+    )
+    if isinstance(prepared, PreparedPilot):
+        journals = (
+            _journal_request_policies(
+                converted / "attempts.jsonl",
+                display_path="attempts.jsonl",
+                tasks=_task_index(prepared.plan),
+                prompt=prompt,
+                config=prepared.config,
+            ),
+        )
+        own_journal = journals[0]
+    else:
+        fresh_votes = load_jsonl(converted / "votes.jsonl", Vote)
+        fresh_plan = derive_grid_plan(prepared, fresh_votes)
+        journals = (
+            _journal_request_policies(
+                converted / "imported-attempts.jsonl",
+                display_path="imported-attempts.jsonl",
+                tasks=_pilot_import_task_index(prepared),
+                prompt=prompt,
+                config=prepared.pilot_import.config,
+            ),
+            _journal_request_policies(
+                converted / "attempts.jsonl",
+                display_path="attempts.jsonl",
+                tasks=_task_index(fresh_plan),
+                prompt=prompt,
+                config=prepared.config,
+            ),
+        )
+        own_journal = journals[1]
+    historical_policy_ids = tuple(
+        policy_id
+        for policy_id in HISTORICAL_COMPLETION_REQUEST_POLICY_IDS
+        if policy_id in own_journal.policy_ids
+    )
+    historical_request_evidence = None
+    if historical_policy_ids:
+        historical_request_evidence = build_historical_request_evidence(
+            load_jsonl(converted / "attempts.jsonl", PhysicalAttempt),
+            request_policy_ids=historical_policy_ids,
+        )
+    return _RequestPolicyProof(
+        historical_request_evidence=historical_request_evidence,
+        journals=journals,
+    )
+
+
 def _request_contract(config: BaseRunConfig) -> tuple[Sha256Hex, str, str]:
     versions = transport_versions()
     contract = request_contract_hash(
@@ -1237,6 +1357,8 @@ def _request_contract(config: BaseRunConfig) -> tuple[Sha256Hex, str, str]:
 def _prepare_adoption(
     prepared: PreparedPilot | PreparedGrid,
     directory: Path,
+    *,
+    historical_request_evidence: HistoricalRequestEvidence | None,
 ) -> tuple[PilotPaths | GridPaths, PilotRunState | GridRunState]:
     contract, sdk_version, openapi_version = _request_contract(prepared.config)
     match prepared:
@@ -1246,6 +1368,7 @@ def _prepare_adoption(
                 request_contract_hash=contract,
                 openrouter_sdk_version=sdk_version,
                 openrouter_openapi_version=openapi_version,
+                historical_request_evidence=historical_request_evidence,
             )
             paths = PilotPaths.under(directory)
             prepare_pilot(paths, state=state, slice_records=prepared.slice_records)
@@ -1255,6 +1378,7 @@ def _prepare_adoption(
                 request_contract_hash=contract,
                 openrouter_sdk_version=sdk_version,
                 openrouter_openapi_version=openapi_version,
+                historical_request_evidence=historical_request_evidence,
             )
             paths = GridPaths.under(directory)
             prepare_grid(
@@ -1313,6 +1437,7 @@ def _install_converted(
 def _resume_proof(
     prepared: PreparedPilot | PreparedGrid,
     paths: PilotPaths | GridPaths,
+    state: PilotRunState | GridRunState,
 ) -> tuple[tuple[Vote, ...], tuple[PhysicalAttempt, ...], ResumeIndex, VotePlan]:
     markers = tuple(paths.journal.inflight.iterdir())
     if markers:
@@ -1334,6 +1459,7 @@ def _resume_proof(
         attempts=attempts,
         prompt=prompt,
         config=prepared.config,
+        historical_request_evidence=state.historical_request_evidence,
     )
     return votes, attempts, resume, plan
 
@@ -1549,9 +1675,14 @@ def adopt_directory(
                 config=prepared.config,
                 mode=mode,
             )
-            paths, state = _prepare_adoption(prepared, temporary)
+            policy_proof = _request_policy_proof(prepared, converted_directory)
+            paths, state = _prepare_adoption(
+                prepared,
+                temporary,
+                historical_request_evidence=policy_proof.historical_request_evidence,
+            )
             _install_converted(converted_directory, paths, prepared)
-            votes, attempts, resume, plan = _resume_proof(prepared, paths)
+            votes, attempts, resume, plan = _resume_proof(prepared, paths, state)
             progress = _adoption_progress(plan, votes, attempts)
             expected_votes = plan.expected_votes
             manifest_complete = _finalize_manifest(
@@ -1569,6 +1700,13 @@ def adopt_directory(
             result = AdoptionResult(
                 mode=mode,
                 request_contract_hash=state.request_contract_hash,
+                historical_request_evidence=state.historical_request_evidence,
+                pilot_historical_request_subset=(
+                    prepared.pilot_import.historical_request_subset
+                    if isinstance(prepared, PreparedGrid)
+                    else None
+                ),
+                request_policies=policy_proof.journals,
                 source_migrations=converted.artifacts,
                 replaced_source_artifacts=_omitted_artifacts(source, mode),
                 input_hashes=input_hashes,

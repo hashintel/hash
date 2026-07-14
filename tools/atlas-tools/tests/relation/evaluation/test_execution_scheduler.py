@@ -6,12 +6,12 @@ import trio
 from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig, JudgeFamilyId
 from atlas_tools.relation.evaluation.execution import scheduler as scheduler_module
 from atlas_tools.relation.evaluation.execution.api import (
+    AdaptiveFamilyLimiter,
     ExecutionControl,
     ExecutionFailedError,
     ExecutionFailure,
     ExecutionStalledError,
     ExecutionStoppedError,
-    FamilySerialiser,
     TaskCompleted,
     TaskDeferred,
     TaskFailed,
@@ -199,9 +199,9 @@ def test_worker_stops_before_a_terminal_event_can_release_queued_paid_work() -> 
     trio.run(scenario)
 
 
-def test_family_lanes_serialize_one_family_without_serializing_the_run() -> None:
+def test_family_lanes_bound_one_family_without_serializing_the_run() -> None:
     async def scenario() -> None:
-        serialiser = FamilySerialiser()
+        limiter = AdaptiveFamilyLimiter()
         active_by_family: dict[str, int] = {}
         maximum_by_family: dict[str, int] = {}
         active_total = 0
@@ -212,7 +212,7 @@ def test_family_lanes_serialize_one_family_without_serializing_the_run() -> None
             _control: ExecutionControl,
         ) -> TaskOutcome[int]:
             nonlocal active_total, maximum_total
-            async with serialiser.hold(JudgeFamilyId(item.task)):
+            async with limiter.hold(JudgeFamilyId(item.task)):
                 active_by_family[item.task] = active_by_family.get(item.task, 0) + 1
                 maximum_by_family[item.task] = max(
                     maximum_by_family.get(item.task, 0), active_by_family[item.task]

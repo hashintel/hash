@@ -40,6 +40,7 @@ class CompletionPolicy(Protocol):
         outcome: CompletionOutcome,
     ) -> CompletionOutcome:
         """Return the outcome execution must persist and act upon."""
+        ...
 
 
 @dataclass(slots=True)
