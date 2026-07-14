@@ -5,6 +5,7 @@ export type MetricLspDiagnosticSummary = {
 
 export type ExperimentMetricDiagnosticDraft = {
   kind: string;
+  type?: "Metric" | "Predicate";
   label: string;
   lspDiagnostics: MetricLspDiagnosticSummary;
 };
@@ -34,9 +35,13 @@ export function getExperimentMetricDiagnosticError(
 
   const diagnosticCount = firstMetricWithDiagnostics.lspDiagnostics.count;
   const firstMessage = firstMetricWithDiagnostics.lspDiagnostics.firstMessage;
-  const label = firstMetricWithDiagnostics.label.trim() || "Untitled metric";
+  const itemType =
+    firstMetricWithDiagnostics.type === "Predicate" ? "Predicate" : "Metric";
+  const label =
+    firstMetricWithDiagnostics.label.trim() ||
+    (itemType === "Predicate" ? "Untitled predicate" : "Untitled metric");
 
-  return `Metric "${label}" has ${diagnosticCount} code diagnostic${
+  return `${itemType} "${label}" has ${diagnosticCount} code diagnostic${
     diagnosticCount === 1 ? "" : "s"
   }${firstMessage ? `: ${firstMessage}` : "."}`;
 }

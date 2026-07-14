@@ -101,11 +101,17 @@ The field order matches `TokenSlotLayout.realFieldF64Offsets`.
 
 ## Metrics
 
-Metrics read a frame's raw token region and dense place metadata:
+Metric-shaped frame readers — numeric metrics and boolean experiment
+predicates — read a frame's raw token region and dense place metadata:
 
 ```ts
-(f64, u64, u8, placeCounts, placeOffsets) => number;
+(f64, u64, u8, placeCounts, placeOffsets) => number | boolean;
 ```
+
+Numeric metrics must return a finite number. Predicates are compiled with a
+boolean return type (`HirMetricContext.returnType` /
+`HirCompileOptions.metricReturnTypes`) and must return a boolean; the runtime
+evaluators enforce the respective return type per call.
 
 `HirMetricArtifact.placeNames` records places in first-reference order. At
 instantiation, `__places[ordinal]` maps those names to frame place indexes.

@@ -13,6 +13,7 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { HirCompileOptions } from "../../hir";
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type {
   Diagnostic,
@@ -51,8 +52,9 @@ export type ScenarioSessionParams = {
  */
 export type MetricSessionParams = {
   sessionId: string;
-  /** Metric function body (must `return` a finite number). */
+  /** Metric-shaped function body. Metrics return numbers; predicates return booleans. */
   code: string;
+  returnType?: "number" | "boolean";
 };
 
 /** Position in a text document (LSP standard: line/character based). */
@@ -143,6 +145,7 @@ type ClientRequest =
       params: {
         sdcpn: SDCPN;
         extensions?: PetrinautExtensionSettings;
+        options?: HirCompileOptions;
       };
     };
 

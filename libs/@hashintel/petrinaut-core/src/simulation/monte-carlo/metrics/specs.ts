@@ -2,10 +2,38 @@ import { createHirMetricEvaluator } from "../../frames/hir-metric";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
+  MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloMetricSpecBase,
+  MonteCarloNumericMetricSpec,
+  MonteCarloPredicateSpec,
   MonteCarloUserDefinedMetricConfig,
 } from "./types";
+
+/**
+ * Splits an experiment's combined `metricSpecs` list into numeric metric
+ * specs and predicate specs. The two kinds share one channel (config field,
+ * init message); runtimes split once at the point they build executables.
+ */
+export function splitMonteCarloMetricSpecs(
+  specs: readonly MonteCarloMetricSpec[] | undefined,
+): {
+  metricSpecs: MonteCarloNumericMetricSpec[];
+  predicateSpecs: MonteCarloPredicateSpec[];
+} {
+  const metricSpecs: MonteCarloNumericMetricSpec[] = [];
+  const predicateSpecs: MonteCarloPredicateSpec[] = [];
+
+  for (const spec of specs ?? []) {
+    if (spec.type === "Predicate") {
+      predicateSpecs.push(spec);
+    } else {
+      metricSpecs.push(spec);
+    }
+  }
+
+  return { metricSpecs, predicateSpecs };
+}
 
 function applyMetricSpecBase(
   spec: MonteCarloMetricSpecBase,
@@ -27,7 +55,7 @@ function applyMetricSpecBase(
 }
 
 function createExpressionMetricConfig(
-  spec: Extract<MonteCarloMetricSpec, { kind: "expression" }>,
+  spec: MonteCarloExpressionMetricSpec,
   sdcpn: SDCPN,
 ): MonteCarloUserDefinedMetricConfig {
   // Expression metrics run exclusively as HIR-compiled buffer programs.
@@ -48,7 +76,7 @@ function createExpressionMetricConfig(
 }
 
 export function createMonteCarloUserDefinedMetricConfigsFromSpecs(
-  specs: readonly MonteCarloMetricSpec[],
+  specs: readonly MonteCarloNumericMetricSpec[],
   sdcpn: SDCPN,
 ): MonteCarloUserDefinedMetricConfig[] {
   return specs.flatMap((spec) => {

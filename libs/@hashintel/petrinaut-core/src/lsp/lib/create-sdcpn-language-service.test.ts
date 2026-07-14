@@ -409,4 +409,26 @@ describe("SDCPNLanguageServer completions", () => {
       expect(names).toContain("gravity");
     });
   });
+
+  describe("metric session files", () => {
+    it("wraps boolean-return sessions as predicates", () => {
+      const sdcpn = createSDCPN({
+        places: [{ id: "place1", name: "Done", colorId: null }],
+      });
+      const server = new SDCPNLanguageServer();
+      server.syncMetricFiles(sdcpn, {
+        sessionId: "predicate-session",
+        code: "return state.places.Done.count > 0;",
+        returnType: "boolean",
+      });
+
+      const filePath = getItemFilePath("metric-code", {
+        sessionId: "predicate-session",
+      });
+
+      expect(server.getFileContent(filePath)).toContain(
+        "function __metric(state: MetricState): boolean",
+      );
+    });
+  });
 });

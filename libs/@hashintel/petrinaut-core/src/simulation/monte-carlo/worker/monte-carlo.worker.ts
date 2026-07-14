@@ -3,12 +3,16 @@ import { SDCPNItemError } from "../../../errors";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
+  createMonteCarloUserDefinedPredicate,
+  createMonteCarloUserDefinedPredicateConfigsFromSpecs,
+  splitMonteCarloMetricSpecs,
 } from "../metrics";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
 import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedPredicate,
 } from "../metrics";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
@@ -27,10 +31,12 @@ const DEFAULT_BATCH_SIZE = 4;
 
 let simulator: MonteCarloSimulator | null = null;
 let userMetrics: MonteCarloUserDefinedMetric[] = [];
+let userPredicates: MonteCarloUserDefinedPredicate[] = [];
 let isRunning = false;
 let isInitialized = false;
 let batchSize = DEFAULT_BATCH_SIZE;
 let lastSentMetricFrameCounts = new Map<string, number>();
+let lastSentPredicateVersions = new Map<string, number>();
 let latestProgress: MonteCarloWorkerProgress | null = null;
 
 function postTypedMessage(message: MonteCarloToMainMessage): void {
@@ -141,14 +147,40 @@ function postPendingMetricFrames(): void {
   }
 }
 
+function postPendingPredicateSnapshots(): void {
+  if (userPredicates.length === 0) {
+    return;
+  }
+
+  const snapshots = userPredicates.flatMap((predicate) => {
+    const lastSentVersion = lastSentPredicateVersions.get(predicate.id) ?? 0;
+    if (predicate.version === lastSentVersion) {
+      return [];
+    }
+
+    lastSentPredicateVersions.set(predicate.id, predicate.version);
+    const snapshot = predicate.getLatestSnapshot();
+
+    return snapshot ? [snapshot] : [];
+  });
+
+  if (snapshots.length > 0) {
+    postTypedMessage({ type: "predicateSnapshots", snapshots });
+  }
+}
+
 function initialize(message: MonteCarloInitMessage): void {
-  const metricSpecs = message.metricSpecs;
-  userMetrics = metricSpecs
-    ? createMonteCarloUserDefinedMetricConfigsFromSpecs(
-        metricSpecs,
-        message.sdcpn,
-      ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
-    : [];
+  const specs = splitMonteCarloMetricSpecs(message.metricSpecs);
+  userMetrics = createMonteCarloUserDefinedMetricConfigsFromSpecs(
+    specs.metricSpecs,
+    message.sdcpn,
+  ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig));
+  userPredicates = createMonteCarloUserDefinedPredicateConfigsFromSpecs(
+    specs.predicateSpecs,
+    message.sdcpn,
+  ).map((predicateConfig) =>
+    createMonteCarloUserDefinedPredicate(predicateConfig),
+  );
   simulator = createMonteCarloSimulator({
     sdcpn: message.sdcpn,
     extensions: message.extensions,
@@ -159,16 +191,18 @@ function initialize(message: MonteCarloInitMessage): void {
     maxTime: message.maxTime,
     hirArtifacts: message.hirArtifacts,
     runCount: message.runCount,
-    metrics: userMetrics,
+    metrics: [...userMetrics, ...userPredicates],
   });
   batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
   isInitialized = true;
   isRunning = false;
   lastSentMetricFrameCounts = new Map();
+  lastSentPredicateVersions = new Map();
   latestProgress = initialProgress(message.runCount);
 
   postTypedMessage({ type: "ready" });
   postPendingMetricFrames();
+  postPendingPredicateSnapshots();
   postTypedMessage({ type: "progress", progress: latestProgress });
 }
 
@@ -191,6 +225,7 @@ async function computeLoop(): Promise<void> {
     if (result) {
       latestProgress = progressFromResult(result);
       postPendingMetricFrames();
+      postPendingPredicateSnapshots();
       postTypedMessage({ type: "progress", progress: latestProgress });
 
       if (result.allFinished) {
@@ -214,6 +249,7 @@ workerRuntime.onMessage((message) => {
         isRunning = false;
         simulator = null;
         userMetrics = [];
+        userPredicates = [];
         postTypedMessage({
           type: "error",
           message:

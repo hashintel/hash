@@ -3,7 +3,14 @@ export {
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
 } from "./accumulators";
-export { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "./specs";
+export {
+  createMonteCarloUserDefinedMetricConfigsFromSpecs,
+  splitMonteCarloMetricSpecs,
+} from "./specs";
+export {
+  createMonteCarloUserDefinedPredicate,
+  createMonteCarloUserDefinedPredicateConfigsFromSpecs,
+} from "./predicates";
 export { createMonteCarloUserDefinedMetric } from "./user-defined";
 export type {
   MonteCarloMetricHistogramAccumulatorState,
@@ -19,6 +26,9 @@ export type {
   MonteCarloFrameMetricContext,
   MonteCarloMetricSpec,
   MonteCarloMetricSpecBase,
+  MonteCarloMetricType,
+  MonteCarloNumericMetricSpec,
+  MonteCarloPredicateSpec,
   MonteCarloMetricRunOutput,
   MonteCarloMetricRunStatus,
   MonteCarloPlaceTokenCountMeanMetricSpec,
@@ -35,4 +45,9 @@ export type {
   MonteCarloUserDefinedMetricSampleRuns,
   MonteCarloUserDefinedScalarMetricFrame,
   MonteCarloUserDefinedMetricTimeAggregation,
+  MonteCarloUserDefinedPredicate,
+  MonteCarloUserDefinedPredicateConfig,
+  MonteCarloUserDefinedPredicateMeasureInput,
+  MonteCarloUserDefinedPredicateRunResult,
+  MonteCarloUserDefinedPredicateSnapshot,
 } from "./types";

@@ -58,6 +58,17 @@ export type HirCompileResult = {
   failures: HirCompileFailure[];
 };
 
+export type HirMetricReturnType = "number" | "boolean";
+
+export type HirCompileOptions = {
+  /**
+   * Optional per-metric return-type override. Regular model metrics default to
+   * numeric; experiment predicates use the same metric-shaped frame surface but
+   * compile as boolean-returning artifacts.
+   */
+  metricReturnTypes?: Readonly<Record<string, HirMetricReturnType>>;
+};
+
 function notCompilableDiagnostic(fn: HirFunction): HirDiagnostic {
   return {
     code: "hir:not-compilable",
@@ -103,6 +114,7 @@ function lowerAndCheck(
 export function compileHirArtifacts(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  options: HirCompileOptions = {},
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const artifacts: HirArtifacts = {
@@ -250,7 +262,10 @@ export function compileHirArtifacts(
       // error, but they must not block the rest of the net from compiling.
       continue;
     }
-    const item = lowerAndCheck(metric.code, "metric", metricContext);
+    const item = lowerAndCheck(metric.code, "metric", {
+      ...metricContext,
+      returnType: options.metricReturnTypes?.[metric.id] ?? "number",
+    });
     if (!item.ok) {
       failures.push({
         itemId: metric.id,

@@ -2,8 +2,11 @@ import { createContext } from "react";
 
 import type {
   MonteCarloExpressionMetricSpec,
-  MonteCarloMetricSpec,
+  MonteCarloPlaceTokenCountMeanMetricSpec,
+  MonteCarloPredicateSpec,
+  MonteCarloTransitionFiringCountMetricSpec,
   MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedPredicateSnapshot,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
 
@@ -15,13 +18,16 @@ export type ExperimentStatus =
   | "cancelled";
 
 /**
- * Metric spec as authored by the experiment form. Expression metrics are
- * provided without a compiled `artifact` — the experiments provider compiles
- * them through the HIR (in the language worker) before starting the run.
+ * Metric or predicate spec as authored by the experiment form. Expression
+ * metrics and predicates are provided without a compiled `artifact` — the
+ * experiments provider compiles them through the HIR (in the language worker)
+ * before starting the run.
  */
 export type ExperimentMetricSpecInput =
-  | Exclude<MonteCarloMetricSpec, MonteCarloExpressionMetricSpec>
-  | Omit<MonteCarloExpressionMetricSpec, "artifact">;
+  | MonteCarloPlaceTokenCountMeanMetricSpec
+  | MonteCarloTransitionFiringCountMetricSpec
+  | Omit<MonteCarloExpressionMetricSpec, "artifact">
+  | Omit<MonteCarloPredicateSpec, "artifact">;
 
 export type CreateExperimentInput = {
   name: string;
@@ -51,6 +57,9 @@ export type ExperimentRecord = {
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   latestMetricFramesById: Readonly<
     Record<string, MonteCarloUserDefinedMetricFrame>
+  >;
+  latestPredicateSnapshotsById: Readonly<
+    Record<string, MonteCarloUserDefinedPredicateSnapshot>
   >;
 };
 

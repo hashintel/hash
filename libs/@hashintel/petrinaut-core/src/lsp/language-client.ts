@@ -8,7 +8,7 @@ import {
 
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
-import type { HirCompileResult } from "../hir";
+import type { HirCompileOptions, HirCompileResult } from "../hir";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -93,6 +93,7 @@ export interface LanguageClient {
     this: void,
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: HirCompileOptions,
   ): Promise<HirCompileResult>;
 
   /**
@@ -314,10 +315,11 @@ export function createLanguageClient(
         position,
       });
     },
-    requestHirArtifacts(sdcpn, extensions) {
+    requestHirArtifacts(sdcpn, extensions, options) {
       return sendRequest<HirCompileResult>("sdcpn/compileHirArtifacts", {
         sdcpn,
         extensions,
+        options,
       });
     },
 

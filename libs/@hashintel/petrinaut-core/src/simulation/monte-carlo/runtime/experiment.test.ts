@@ -6,7 +6,10 @@ import { createMonteCarloExperiment } from "./experiment";
 import type { HirMetricArtifact } from "../../../hir/instantiate";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";
-import type { MonteCarloUserDefinedMetricFrame } from "../metrics";
+import type {
+  MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedPredicateSnapshot,
+} from "../metrics";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -26,11 +29,16 @@ const empty = (): SDCPN => ({
 function metricArtifact(
   code: string,
   sdcpn: SDCPN = empty(),
+  returnType: "number" | "boolean" = "number",
 ): HirMetricArtifact {
-  const { artifacts, failures } = compileHirArtifacts({
-    ...sdcpn,
-    metrics: [{ id: "__test__", name: "test", code }],
-  });
+  const { artifacts, failures } = compileHirArtifacts(
+    {
+      ...sdcpn,
+      metrics: [{ id: "__test__", name: "test", code }],
+    },
+    undefined,
+    { metricReturnTypes: { __test__: returnType } },
+  );
   const artifact = artifacts.metrics.__test__;
   if (!artifact) {
     throw new Error(
@@ -70,6 +78,27 @@ function makeMetricFrame(
     timeValue: null,
     runSampleCount: 1,
     timeSampleCount: frameNumber + 1,
+  };
+}
+
+function makePredicateSnapshot(
+  trueRunCount: number,
+): MonteCarloUserDefinedPredicateSnapshot {
+  return {
+    predicateId: "done",
+    label: "Done",
+    frameNumber: 1,
+    time: 1,
+    runCount: 2,
+    trueRunCount,
+    runResults: [
+      { runIndex: 0, value: true, trueAt: 0 },
+      {
+        runIndex: 1,
+        value: trueRunCount === 2,
+        trueAt: trueRunCount === 2 ? 1 : null,
+      },
+    ],
   };
 }
 
@@ -218,6 +247,53 @@ describe("createMonteCarloExperiment", () => {
       frames: [firstFrame, secondFrame],
       latestByMetricId: {
         constant: secondFrame,
+      },
+    });
+
+    experiment.dispose();
+  });
+
+  it("sends predicate metric specs to the worker and stores predicate snapshots", async () => {
+    const mock = makeMockTransport();
+    const metricSpecs = [
+      {
+        id: "done",
+        label: "Done",
+        type: "Predicate",
+        kind: "expression",
+        code: "return true;",
+        artifact: metricArtifact("return true;", empty(), "boolean"),
+      },
+    ] as const;
+    const promise = createMonteCarloExperiment({
+      transport: mock.transport,
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 10,
+      runCount: 2,
+      metricSpecs,
+    });
+
+    // Predicate specs travel in-band in `metricSpecs`; the worker splits them.
+    expect(mock.sent[0]).toMatchObject({
+      type: "init",
+      metricSpecs,
+    });
+
+    mock.simulate({ type: "ready" });
+    const experiment = await promise;
+    const snapshot = makePredicateSnapshot(2);
+    mock.simulate({
+      type: "predicateSnapshots",
+      snapshots: [snapshot],
+    });
+
+    expect(experiment.predicates.get()).toEqual({
+      latestByPredicateId: {
+        done: snapshot,
       },
     });
 
@@ -391,6 +467,121 @@ describe("createMonteCarloExperiment", () => {
         timeSampleCount: 2,
         value: null,
       }),
+    );
+  });
+
+  it("checks local predicates until each run first becomes true", async () => {
+    const callsByRunIndex = new Map<number, number[]>();
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      runCount: 2,
+      metrics: [],
+      predicates: [
+        {
+          id: "done",
+          label: "Done",
+          test: ({ frame, runIndex }) => {
+            callsByRunIndex.set(runIndex, [
+              ...(callsByRunIndex.get(runIndex) ?? []),
+              frame.number,
+            ]);
+
+            return frame.number >= runIndex;
+          },
+        },
+      ],
+    });
+
+    expect(experiment.predicates.get().latestByPredicateId.done).toEqual(
+      expect.objectContaining({
+        trueRunCount: 1,
+        runResults: [
+          { runIndex: 0, value: true, trueAt: 0 },
+          { runIndex: 1, value: false, trueAt: null },
+        ],
+      }),
+    );
+
+    const complete = new Promise<void>((resolve) => {
+      experiment.events.subscribe((event) => {
+        if (event.type === "complete") {
+          resolve();
+        }
+      });
+    });
+
+    experiment.start();
+    await complete;
+
+    expect(experiment.predicates.get().latestByPredicateId.done).toEqual(
+      expect.objectContaining({
+        trueRunCount: 2,
+        runResults: [
+          { runIndex: 0, value: true, trueAt: 0 },
+          { runIndex: 1, value: true, trueAt: 1 },
+        ],
+      }),
+    );
+    expect(callsByRunIndex.get(0)).toEqual([0]);
+    expect(callsByRunIndex.get(1)).toEqual([0, 1]);
+  });
+
+  it("evaluates compiled predicate artifacts against real frames", async () => {
+    const sdcpn: SDCPN = {
+      ...empty(),
+      places: [
+        {
+          id: "place-done",
+          name: "Done",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+    const predicateSpec = (id: string, code: string) =>
+      ({
+        id,
+        label: id,
+        type: "Predicate",
+        kind: "expression",
+        code,
+        artifact: metricArtifact(code, sdcpn, "boolean"),
+      }) as const;
+
+    const experiment = await createMonteCarloExperiment({
+      sdcpn,
+      initialMarking: { "place-done": 2 },
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      runCount: 2,
+      metricSpecs: [
+        predicateSpec("has-tokens", "return state.places.Done.count > 0;"),
+        predicateSpec("many-tokens", "return state.places.Done.count > 100;"),
+      ],
+    });
+
+    const { latestByPredicateId } = experiment.predicates.get();
+    expect(latestByPredicateId["has-tokens"]).toEqual(
+      expect.objectContaining({
+        trueRunCount: 2,
+        runResults: [
+          { runIndex: 0, value: true, trueAt: 0 },
+          { runIndex: 1, value: true, trueAt: 0 },
+        ],
+      }),
+    );
+    expect(latestByPredicateId["many-tokens"]).toEqual(
+      expect.objectContaining({ runCount: 2, trueRunCount: 0 }),
     );
   });
 

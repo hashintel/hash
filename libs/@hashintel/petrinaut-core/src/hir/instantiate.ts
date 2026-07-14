@@ -57,8 +57,9 @@ export type HirCompiledBufferLambda = (
 /**
  * Buffer-ABI metric: reads a frame's packed token region through shared
  * views plus its dense per-place `placeCounts`/`placeOffsets` arrays and
- * returns one number. The place-ordinal→frame-place-index table and string
- * pool are pre-bound at instantiation.
+ * returns one scalar. Numeric metrics and boolean predicates share this ABI.
+ * The place-ordinal→frame-place-index table and string pool are pre-bound at
+ * instantiation.
  */
 export type HirCompiledMetric = (
   f64: Float64Array,
@@ -66,7 +67,7 @@ export type HirCompiledMetric = (
   u8: Uint8Array,
   placeCounts: Uint32Array,
   placeOffsets: Uint32Array,
-) => number;
+) => number | boolean;
 
 /** Buffer-ABI kernel: writes output attributes into per-transition staging
  * (place-major, baked offsets); RNG-consuming slots defer through the sink. */
@@ -205,11 +206,12 @@ export function instantiateHirBufferKernel(
 }
 
 /**
- * Instantiates a compiled metric program. `placeIndices[ordinal]` maps each
+ * Instantiates a compiled metric-shaped frame-reader program.
+ * `placeIndices[ordinal]` maps each
  * of the artifact's `placeNames` to the frame's place index (resolve once
- * per experiment/simulation, not per frame). Metrics have no parameters
- * object and never intern strings; `__params`/`__dist` are bound for ABI
- * parity with the other programs but unused.
+ * per experiment/simulation, not per frame). Metrics and predicates have no
+ * parameters object and never intern strings; `__params`/`__dist` are bound
+ * for ABI parity with the other programs but unused.
  */
 export function instantiateHirMetric(
   source: string,

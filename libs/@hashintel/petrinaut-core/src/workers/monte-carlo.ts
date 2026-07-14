@@ -6,6 +6,7 @@ export type {
   MonteCarloErrorMessage,
   MonteCarloInitMessage,
   MonteCarloMetricFramesMessage,
+  MonteCarloPredicateSnapshotsMessage,
   MonteCarloProgressMessage,
   MonteCarloReadyMessage,
   MonteCarloStartMessage,

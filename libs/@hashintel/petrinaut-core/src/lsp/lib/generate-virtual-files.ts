@@ -583,8 +583,9 @@ export function generateScenarioSessionFiles(
  */
 export type MetricSessionData = {
   sessionId: string;
-  /** Metric function body (must `return` a finite number). */
+  /** Metric-shaped function body. Metrics return numbers; predicates return booleans. */
   code: string;
+  returnType?: "number" | "boolean";
 };
 
 /**
@@ -592,7 +593,8 @@ export type MetricSessionData = {
  *
  * The user code is a function body whose `state` parameter exposes
  * `state.places.<PlaceName>` with `count` and (for colored places) `tokens`.
- * The expression is wrapped so the body is type-checked as `(state) => number`.
+ * The expression is wrapped so the body is type-checked as `(state) => number`
+ * for metrics and `(state) => boolean` for predicates.
  */
 export function generateMetricSessionFiles(
   sdcpn: SDCPN,
@@ -659,7 +661,7 @@ export function generateMetricSessionFiles(
   files.set(codePath, {
     prefix: [
       `import type { MetricState } from "${defsPath}";`,
-      `function __metric(state: MetricState): number {`,
+      `function __metric(state: MetricState): ${session.returnType ?? "number"} {`,
       "",
     ].join("\n"),
     content: session.code,

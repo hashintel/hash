@@ -5,6 +5,8 @@ export {
   createMonteCarloMetricNumericAccumulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
+  createMonteCarloUserDefinedPredicate,
+  createMonteCarloUserDefinedPredicateConfigsFromSpecs,
 } from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
 export type {
@@ -20,6 +22,7 @@ export type {
 export type {
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExpressionMetricSpec,
+  MonteCarloNumericMetricSpec,
   MonteCarloFrameMetric,
   MonteCarloFrameMetricContext,
   MonteCarloMetricDistributionBinning,
@@ -28,10 +31,12 @@ export type {
   MonteCarloMetricNumericAccumulatorState,
   MonteCarloMetricSpec,
   MonteCarloMetricSpecBase,
+  MonteCarloMetricType,
   MonteCarloMetricRunOutput,
   MonteCarloMetricRunStatus,
   MonteCarloMetricValueAccumulator,
   MonteCarloPlaceTokenCountMeanMetricSpec,
+  MonteCarloPredicateSpec,
   MonteCarloRunFrameMetricView,
   MonteCarloRunFrameMetricVisitor,
   MonteCarloTransitionFiringCountMetricSpec,
@@ -45,12 +50,18 @@ export type {
   MonteCarloUserDefinedMetricSampleRuns,
   MonteCarloUserDefinedScalarMetricFrame,
   MonteCarloUserDefinedMetricTimeAggregation,
+  MonteCarloUserDefinedPredicate,
+  MonteCarloUserDefinedPredicateConfig,
+  MonteCarloUserDefinedPredicateMeasureInput,
+  MonteCarloUserDefinedPredicateRunResult,
+  MonteCarloUserDefinedPredicateSnapshot,
 } from "./metrics";
 export type {
   CreateMonteCarloExperimentConfig,
   MonteCarloExperiment,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
+  MonteCarloExperimentPredicates,
   MonteCarloExperimentState,
 } from "./runtime/experiment";
 export type { MonteCarloWorkerProgress } from "./worker/messages";

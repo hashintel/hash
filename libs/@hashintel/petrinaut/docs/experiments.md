@@ -26,6 +26,18 @@ The model used is a snapshot of the current net at the time you press **Run**. E
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
 
+### Metrics
+
+Each experiment must include at least one metric or predicate.
+
+Metrics return values from the current frame. Add a built-in metric such as a place token count or transition firing count, choose an existing model metric, or add custom metric code.
+
+Custom code metrics can also be marked as a **Predicate**. Turn on the **Predicate** toggle in a custom code metric when the code should return `true` or `false` instead of a number. Predicate code uses the same `state.places["Place Name"].count` and `state.places["Place Name"].tokens` object as numeric metric code, but it must return a boolean.
+
+Each run starts with the predicate set to false. Petrinaut checks it on every frame until it first returns true for that run, records the time it became true, and then stops checking that predicate for that run. Runs that end in an error are never marked true.
+
+In the experiment drawer, numeric metrics appear as timeline boxes that can be expanded. Predicates appear in the same Metrics section as compact boxes showing the percentage of runs that have reached the predicate, the run count behind it (for example "7 of 10 runs"), and — once at least one run is true — the median simulation time at which runs first satisfied it. The percentage is rounded down, so 100% always means every run reached the predicate.
+
 ## Lifecycle and statuses
 
 Experiments progress through five status labels:

@@ -126,6 +126,13 @@ export type HirMetricContext = {
   surface: "metric";
   /** Metrics have no parameters object — always empty. */
   parameters: HirParameterInfo[];
+  /**
+   * The scalar result expected from the metric-shaped frame reader surface.
+   *
+   * Experiment predicates reuse the same `state` object and buffer emission as
+   * metrics, but they return a boolean instead of a numeric sample.
+   */
+  returnType?: "number" | "boolean";
   /** ALL places of the root net, keyed by display name (last name wins for
    * duplicates, matching the runtime object-key overwrite). */
   places: HirMetricPlaceInfo[];

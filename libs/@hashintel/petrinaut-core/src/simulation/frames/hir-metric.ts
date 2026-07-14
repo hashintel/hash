@@ -8,24 +8,23 @@ import type { Place } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
 
 /**
- * Binds a compiled HIR metric artifact to frame readers.
+ * Binds a compiled HIR metric-shaped artifact to frame readers.
  *
  * The returned evaluator resolves the artifact's referenced place names to
  * frame place indices once (on the first frame — the layout is stable per
  * simulation/experiment), instantiates the program once, and then runs it
- * against each frame's raw buffer view. Throws (with the metric label) when
- * a referenced place does not exist, when the frame source exposes no raw
- * buffer access, or when the program returns a non-finite value — mirroring
- * the legacy sandboxed-metric error semantics.
+ * against each frame's raw buffer view. Throws when a referenced place does
+ * not exist or when the frame source exposes no raw buffer access.
  */
-export function createHirMetricEvaluator(args: {
+function createHirFrameEvaluator(args: {
   /** Display name used in error messages (metric label or name). */
-  metricName: string;
+  itemName: string;
+  itemKind: "Metric" | "Predicate";
   artifact: HirMetricArtifact;
   /** Root-net places, used to resolve place display names to ids. */
   places: readonly Pick<Place, "id" | "name">[];
-}): (frame: SimulationFrameReader) => number {
-  const { metricName, artifact, places } = args;
+}): (frame: SimulationFrameReader) => number | boolean {
+  const { itemName, itemKind, artifact, places } = args;
   // Last place wins for duplicate names, matching the HIR metric context.
   const placeIdByName = new Map(places.map((place) => [place.name, place.id]));
 
@@ -41,7 +40,7 @@ export function createHirMetricEvaluator(args: {
     const raw = frame.getRawView?.();
     if (!raw) {
       throw new Error(
-        `Metric "${metricName}" cannot run here — this frame source does not expose raw buffer access.`,
+        `${itemKind} "${itemName}" cannot run here — this frame source does not expose raw buffer access.`,
       );
     }
 
@@ -53,7 +52,7 @@ export function createHirMetricEvaluator(args: {
           placeId === undefined ? undefined : raw.placeIndexById.get(placeId);
         if (placeIndex === undefined) {
           throw new Error(
-            `Metric "${metricName}" reads place "${placeName}", which does not exist in this simulation.`,
+            `${itemKind} "${itemName}" reads place "${placeName}", which does not exist in this simulation.`,
           );
         }
         placeIndices[ordinal] = placeIndex;
@@ -74,9 +73,66 @@ export function createHirMetricEvaluator(args: {
       raw.placeOffsets,
     );
     currentPool = null;
+    return result;
+  };
+}
+
+/**
+ * Binds a compiled HIR metric artifact to frame readers.
+ *
+ * The returned evaluator validates that the program returns a finite number,
+ * mirroring the legacy sandboxed-metric error semantics.
+ */
+export function createHirMetricEvaluator(args: {
+  /** Display name used in error messages (metric label or name). */
+  metricName: string;
+  artifact: HirMetricArtifact;
+  /** Root-net places, used to resolve place display names to ids. */
+  places: readonly Pick<Place, "id" | "name">[];
+}): (frame: SimulationFrameReader) => number {
+  const evaluate = createHirFrameEvaluator({
+    itemName: args.metricName,
+    itemKind: "Metric",
+    artifact: args.artifact,
+    places: args.places,
+  });
+
+  return (frame) => {
+    const result = evaluate(frame);
     if (typeof result !== "number" || !Number.isFinite(result)) {
       throw new Error(
-        `Metric "${metricName}" returned ${String(result)}, expected a finite number.`,
+        `Metric "${args.metricName}" returned ${String(result)}, expected a finite number.`,
+      );
+    }
+    return result;
+  };
+}
+
+/**
+ * Binds a compiled HIR predicate artifact to frame readers.
+ *
+ * Predicates intentionally share the metric `state` surface and buffer ABI,
+ * but the compiled program must return a boolean.
+ */
+export function createHirPredicateEvaluator(args: {
+  /** Display name used in error messages (predicate label). */
+  predicateName: string;
+  artifact: HirMetricArtifact;
+  /** Root-net places, used to resolve place display names to ids. */
+  places: readonly Pick<Place, "id" | "name">[];
+}): (frame: SimulationFrameReader) => boolean {
+  const evaluate = createHirFrameEvaluator({
+    itemName: args.predicateName,
+    itemKind: "Predicate",
+    artifact: args.artifact,
+    places: args.places,
+  });
+
+  return (frame) => {
+    const result = evaluate(frame);
+    if (typeof result !== "boolean") {
+      throw new Error(
+        `Predicate "${args.predicateName}" returned ${String(result)}, expected a boolean.`,
       );
     }
     return result;

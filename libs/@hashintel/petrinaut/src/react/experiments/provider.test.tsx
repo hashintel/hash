@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   type MonteCarloUserDefinedMetricFrame,
+  type MonteCarloUserDefinedPredicateSnapshot,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type SDCPN,
   type WorkerLike,
@@ -76,6 +77,21 @@ function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
     timeValue: null,
     runSampleCount: 2,
     timeSampleCount: 1,
+  };
+}
+
+function makePredicateSnapshot(): MonteCarloUserDefinedPredicateSnapshot {
+  return {
+    predicateId: "done",
+    label: "Done",
+    frameNumber: 0,
+    time: 0,
+    runCount: 2,
+    trueRunCount: 1,
+    runResults: [
+      { runIndex: 0, value: true, trueAt: 0 },
+      { runIndex: 1, value: false, trueAt: null },
+    ],
   };
 }
 
@@ -155,8 +171,8 @@ const LanguageClientOverride = ({ children }: React.PropsWithChildren) => {
     <LanguageClientContext.Provider
       value={{
         ...value,
-        requestHirArtifacts: (sdcpn, extensions) =>
-          Promise.resolve(compileHirArtifacts(sdcpn, extensions)),
+        requestHirArtifacts: (sdcpn, extensions, options) =>
+          Promise.resolve(compileHirArtifacts(sdcpn, extensions, options)),
       }}
     >
       {children}
@@ -581,6 +597,73 @@ describe("ExperimentsProvider", () => {
           runSampleCount: 2,
         }),
       );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("runs experiment predicate metrics in the worker", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const metricSpecs = [
+      {
+        id: "done",
+        label: "Done",
+        type: "Predicate",
+        kind: "expression",
+        code: "return true;",
+      },
+    ] as const;
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Predicate experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 1,
+          metricSpecs,
+        });
+
+        await flushWorkerSetup();
+        const initMessage = worker.sent[0];
+        // The provider compiles the predicate and sends it in-band with a
+        // boolean artifact attached; the worker splits specs by `type`.
+        expect(worker.sent[0]).toMatchObject({
+          type: "init",
+          metricSpecs: [
+            {
+              id: "done",
+              label: "Done",
+              type: "Predicate",
+              kind: "expression",
+              code: "return true;",
+            },
+          ],
+        });
+        if (initMessage?.type !== "init") {
+          throw new Error("Expected init message");
+        }
+        const sentSpec = initMessage.metricSpecs?.[0];
+        if (sentSpec?.type !== "Predicate") {
+          throw new Error("Expected a predicate spec");
+        }
+        expect(typeof sentSpec.artifact.source).toBe("string");
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      const snapshot = makePredicateSnapshot();
+      await act(async () => {
+        worker.emit({ type: "predicateSnapshots", snapshots: [snapshot] });
+      });
+
+      expect(
+        getValue().selectedExperiment?.latestPredicateSnapshotsById.done,
+      ).toEqual(snapshot);
     } finally {
       renderResult.unmount();
     }
