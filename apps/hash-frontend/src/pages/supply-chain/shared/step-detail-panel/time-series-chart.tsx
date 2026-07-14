@@ -21,6 +21,7 @@ import { ClickableMonthTick, CustomDot, LegendLine } from "../chart-kit";
 import { chartTheme } from "../chart-theme";
 import { formatNumber } from "../cost";
 import { countNoun } from "../observation-labels";
+import { summarizeProcurementPlanning } from "../procurement-planning";
 
 import type { StepDetail, MonthlyBucket } from "../types";
 import type { Dimension } from "./distribution-chart";
@@ -92,7 +93,11 @@ export const TimeSeriesChart = ({
     }
     return {
       monthly: step.monthly,
-      refValue: step.plan,
+      refValue:
+        step.type === "procurement"
+          ? summarizeProcurementPlanning(step.observations, step.plan)
+              .applicablePlan
+          : step.plan,
       title: "Monthly trend",
       refLabel: "Planned",
     };

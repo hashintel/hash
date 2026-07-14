@@ -280,4 +280,59 @@ describe("deriveTimingFromRecords", () => {
     expect(out.stats.n).toBe(2);
     expect(out.complete_timing?.stats.n).toBe(2);
   });
+
+  it("preserves schema 1.1 planning metadata when deriving procurement timing", () => {
+    const planningNotice = {
+      level: "warning" as const,
+      text: "A fallback parameter is used.",
+    };
+    const step = recordsOnlyStep({
+      type: "procurement",
+      plan: 14,
+      detail_rows: {
+        columns: [],
+        rows: [
+          {
+            po_number: "PO-1",
+            po_date: "2026-01-01",
+            first_gr_date: "2026-01-11",
+            last_gr_date: "2026-01-13",
+            supplier_id: "123",
+            supplier_name: "Supplier",
+            receipt_basis: "consignment",
+            planning_profile_id: "material:site:123:consignment",
+            plan_days: 14,
+            plan_provenance: "fallback",
+            plan_match_status: "missing_profile",
+            planning_notice_level: planningNotice.level,
+            planning_notice_text: planningNotice.text,
+            dock_to_stock_days: 7,
+            candidate_ids_json: '["candidate-a"]',
+          },
+        ],
+      },
+      ref_date_col: "first_gr_date",
+      value_col: "lead_time_days",
+    });
+
+    const out = ensureStepStats(step);
+    expect(out.observations[0]).toMatchObject({
+      po_number: "PO-1",
+      supplier_id: "123",
+      supplier_name: "Supplier",
+      receipt_basis: "consignment",
+      planning_profile_id: "material:site:123:consignment",
+      plan_days: 14,
+      plan_provenance: "fallback",
+      plan_match_status: "missing_profile",
+      planning_notice: planningNotice,
+      dock_to_stock_days: 7,
+      candidate_ids: ["candidate-a"],
+      variance_days: -4,
+    });
+    expect(out.complete_timing?.observations[0]).toMatchObject({
+      variance_days: -2,
+      plan_provenance: "fallback",
+    });
+  });
 });

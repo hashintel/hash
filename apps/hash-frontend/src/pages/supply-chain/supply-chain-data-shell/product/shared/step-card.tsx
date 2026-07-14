@@ -28,6 +28,7 @@ import {
   planSourceLabel,
   pctChangeTooltip,
 } from "../../../shared/planning-param";
+import { summarizeProcurementPlanning } from "../../../shared/procurement-planning";
 // Local portal tooltip retained for the box-plot popover only: it renders rich
 // content `bare` (no dark-pill chrome), which the ds `Tooltip` can't express.
 import { Tooltip as RichTooltip } from "../../../shared/tooltip";
@@ -477,7 +478,10 @@ const WarningTriangleIcon = () => {
 };
 export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
   const stats = node.stats;
-  const plan = node.plan;
+  const plan =
+    node.type === "procurement"
+      ? summarizeProcurementPlanning(node.observations, node.plan).applicablePlan
+      : node.plan;
   const { measure } = useBaseMeasure();
   const measureValue = selectStat(stats, measure);
   const hasData = measureValue != null;
@@ -573,7 +577,10 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
             <div className={badgeRow}>
               {plan != null && plan > 0 && (
                 <Tooltip
-                  content={planSourceLabel(node.plan_note)}
+                  content={
+                    node.planning_notice?.text ??
+                    planSourceLabel(node.plan_note)
+                  }
                   openDelay="fast"
                 >
                   <span

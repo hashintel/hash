@@ -199,6 +199,26 @@ const metricsSection = css({
   flexDirection: "column",
   gap: "3",
 });
+const planningNotice = css({
+  mx: "6",
+  mt: "5",
+  p: "3",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderRadius: "md",
+  textStyle: "sm",
+  lineHeight: "relaxed",
+});
+const planningNoticeInfo = css({
+  color: "fg.muted",
+  bg: "bg.subtle",
+  borderColor: "bd.subtle",
+});
+const planningNoticeWarning = css({
+  color: "status.warning.fg.body",
+  bg: "status.warning.bg.subtle",
+  borderColor: "status.warning.bd.subtle",
+});
 const chartsRow = css({ display: "flex" });
 const chartCellLeft = css({
   flex: "1",
@@ -762,6 +782,42 @@ export const StepDetailPanel = ({
                   countOverride={selectedComponentReconciliationCount}
                   previousCount={periodComparison.previousStats?.n ?? 0}
                 />
+                {filteredStep.type === "procurement" && (
+                  <>
+                    <span className={metaItem}>
+                      <span className={metaDivider} />
+                      <span>
+                        <span className={strongText}>
+                          {filteredStep.supplier_name ??
+                            filteredStep.supplier_id ??
+                            "Unknown"}
+                        </span>{" "}
+                        <span className={css({ color: "fg.subtle" })}>
+                          Supplier
+                        </span>
+                      </span>
+                    </span>
+                    <span className={metaItem}>
+                      <span className={metaDivider} />
+                      <span>
+                        <span className={strongText}>
+                          {
+                            {
+                              ordinary: "Buy",
+                              consignment: "Consignment",
+                              subcontract: "Subcontract",
+                              mixed: "Mixed",
+                              unknown: "Unknown",
+                            }[filteredStep.receipt_basis ?? "unknown"]
+                          }
+                        </span>{" "}
+                        <span className={css({ color: "fg.subtle" })}>
+                          Basis
+                        </span>
+                      </span>
+                    </span>
+                  </>
+                )}
 
                 {excludeOutliers && (filteredStep.excluded_count ?? 0) > 0 && (
                   <span className={metaItem}>
@@ -880,6 +936,23 @@ export const StepDetailPanel = ({
             />
           ) : (
             <>
+              {filteredStep.planning_notice && (
+                <div
+                  role={
+                    filteredStep.planning_notice.level === "warning"
+                      ? "alert"
+                      : "status"
+                  }
+                  className={cx(
+                    planningNotice,
+                    filteredStep.planning_notice.level === "warning"
+                      ? planningNoticeWarning
+                      : planningNoticeInfo,
+                  )}
+                >
+                  {filteredStep.planning_notice.text}
+                </div>
+              )}
               {/* Key metrics + stats row */}
               <div className={metricsSection}>
                 {dimension === "timing" && (

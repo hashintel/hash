@@ -15,6 +15,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { chartTheme } from "../chart-theme";
 import { formatNumber } from "../cost";
 import { countNoun } from "../observation-labels";
+import { summarizeProcurementPlanning } from "../procurement-planning";
 
 import type { StepDetail } from "../types";
 
@@ -164,7 +165,11 @@ export const DistributionChart = ({
     return {
       bins: right,
       binCount: bc,
-      refValue: step.plan,
+      refValue:
+        step.type === "procurement"
+          ? summarizeProcurementPlanning(step.observations, step.plan)
+              .applicablePlan
+          : step.plan,
       title: "Duration distribution",
     };
   }, [step, dimension, selectedComponent]);

@@ -132,8 +132,12 @@ export function sortPlanningRows(
     let va = 0;
     let vb = 0;
     if (sort.key === "deviation") {
-      va = left.deviationPct;
-      vb = right.deviationPct;
+      const nullRank =
+        sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY;
+      va = left.deviationPct ?? nullRank;
+      vb = right.deviationPct ?? nullRank;
     } else if (sort.key === "exceeding") {
       va = left.pct_exceeding_plan ?? 0;
       vb = right.pct_exceeding_plan ?? 0;

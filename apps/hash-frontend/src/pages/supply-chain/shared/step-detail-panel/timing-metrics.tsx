@@ -12,6 +12,7 @@ import {
 import { useBaseMeasure, selectStat, MEASURE_LABELS } from "../measure-context";
 import { type PeriodComparison, computeCostComparison } from "../period-trends";
 import { planSourceLabel } from "../planning-param";
+import { summarizeProcurementPlanning } from "../procurement-planning";
 import { useProcurementBasis } from "../procurement-basis-context";
 import { previousPeriodLabel } from "./step-detail-format";
 import {
@@ -123,9 +124,17 @@ export const KeyMetricsRow = ({
   timeRange: TimeRange;
   measureOverride?: BaseMeasure;
 }) => {
-  const plan = step.plan;
+  const procurementPlanning =
+    step.type === "procurement"
+      ? summarizeProcurementPlanning(step.observations, step.plan)
+      : null;
+  const plan =
+    step.type === "procurement"
+      ? (procurementPlanning?.applicablePlan ?? null)
+      : step.plan;
   const hasPlan = plan != null;
-  const pep = step.pct_exceeding_plan;
+  const pep =
+    procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan;
   const { waccRate, storageCost } = useCostParams();
   const { measure } = useBaseMeasure();
   const effectiveMeasure = measureOverride ?? measure;

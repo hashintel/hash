@@ -115,6 +115,7 @@ function planningOpportunity(
   idContext: string,
 ): SiteOpportunity {
   const plan = row.plan ?? 0;
+  const notice = row.planning_notice?.text;
   return {
     id: opportunityId(siteId, kind, row, idContext),
     kind,
@@ -128,10 +129,13 @@ function planningOpportunity(
     impactLabel: "P95 vs plan",
     impactValue: `${p95DeviationPct > 0 ? "+" : ""}${formatNumber(p95DeviationPct, { maximumFractionDigits: 0 })}%`,
     impactTone: kind === "planning_over" ? "danger" : "success",
-    evidence: `Plan ${formatNumber(plan, { maximumFractionDigits: 0 })}d; median ${formatNumber(row.stats.median, { maximumFractionDigits: 1 })}d; P95 ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d`,
+    evidence: `Plan ${formatNumber(plan, { maximumFractionDigits: 0 })}d; median ${formatNumber(row.stats.median, { maximumFractionDigits: 1 })}d; P95 ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d${notice ? `. ${notice}` : ""}`,
     sampleLabel: sampleLabel(row.stats.n),
     currentSampleN: row.stats.n,
-    confidenceLabel: confidenceLabel(row.stats.n, null, true, false),
+    confidenceLabel:
+      row.type === "procurement" && row.plan_match_status !== "matched"
+        ? "Parameter fallback"
+        : confidenceLabel(row.stats.n, null, true, false),
     score: Math.abs(p95DeviationPct),
     briefHref: briefHref("planning", row, kind),
   };
@@ -193,6 +197,14 @@ export function buildSiteOpportunities({
     });
   }
   for (const row of planningRows) {
+    if (
+      row.type === "procurement" &&
+      (row.plan_match_status === "ambiguous" ||
+        row.plan_match_status === "mixed_basis" ||
+        row.plan_match_status === "missing_supplier")
+    ) {
+      continue;
+    }
     const p95 = row.stats.p95;
     const plan = row.plan;
     if (p95 == null || plan == null || plan <= 0) {

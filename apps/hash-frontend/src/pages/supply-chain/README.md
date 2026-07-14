@@ -26,6 +26,20 @@ panels, contextual docs, and analysis settings. The selected step and settings
 are URL-backed where appropriate so route transitions and reloads preserve the
 view state.
 
+### Procurement planning profiles
+
+Supplier-aware datasets represent procurement at
+`material + supplier + receipt basis` grain. Each observed profile is a
+separate product-graph node and a separate, sortable site-planning row; profiles
+are never blended into a material-level deviation or opportunity.
+
+The client accepts both legacy scalar planning parameters and schema 1.1
+per-observation parameters. It must not hardcode planning-system names:
+provenance explanations are rendered only from the optional producer-supplied
+`planning_notice`. Dock-to-Stock is retained in the contract for future use but
+is not shown or included in calculations until a comparable observed process is
+validated.
+
 ### Opportunity Brief
 
 The opportunity brief route is

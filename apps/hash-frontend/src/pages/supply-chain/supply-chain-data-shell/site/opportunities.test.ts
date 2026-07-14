@@ -158,6 +158,39 @@ describe("buildSiteOpportunities", () => {
     ).toBe(20);
   });
 
+  it("keeps profile opportunities distinct and suppresses ambiguous procurement parameters", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "mat-a-buy",
+          label: "Material — Supplier A — Buy",
+          type: "procurement",
+          material: "MAT",
+          supplier_id: "A",
+          receipt_basis: "ordinary",
+          plan_match_status: "matched",
+          plan: 10,
+          stats: stats({ n: 20, median: 12, p95: 16 }),
+        }),
+        planning({
+          id: "mat-b-consignment",
+          label: "Material — Supplier B — Consignment",
+          type: "procurement",
+          material: "MAT",
+          supplier_id: "B",
+          receipt_basis: "consignment",
+          plan_match_status: "ambiguous",
+          plan: 10,
+          stats: stats({ n: 20, median: 20, p95: 30 }),
+        }),
+      ],
+    });
+
+    expect(opportunities).toHaveLength(1);
+    expect(opportunities[0]?.stepId).toBe("mat-a-buy");
+    expect(opportunities[0]?.title).toContain("Supplier A");
+  });
+
   it("uses current sample size for planning confidence", () => {
     const opportunities = build({
       planningRows: [

@@ -33,6 +33,19 @@ import type { SiteNode, StepType } from "../../shared/types";
 
 const planNote = css({ textStyle: "xxs", color: "fg.subtle", ml: "4" });
 
+function basisLabel(row: PlanningRow): string {
+  if (row.type !== "procurement") {
+    return "–";
+  }
+  return {
+    ordinary: "Buy",
+    consignment: "Consignment",
+    subcontract: "Subcontract",
+    mixed: "Mixed",
+    unknown: "Unknown",
+  }[row.receipt_basis ?? "unknown"];
+}
+
 function isLowSample(row: PlanningRow): boolean {
   return (
     (row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N) ||
@@ -134,6 +147,12 @@ export const PlanningTable = ({
               />
             </th>
             <th className={threshold.th}>
+              <ColumnHeader label="Supplier" />
+            </th>
+            <th className={threshold.th}>
+              <ColumnHeader label="Basis" />
+            </th>
+            <th className={threshold.th}>
               <ColumnHeader label="Products" filter={productFilter} />
             </th>
             <th className={threshold.thRight}>
@@ -201,7 +220,9 @@ export const PlanningTable = ({
         </thead>
         <tbody className={threshold.tbodyDivide}>
           {displayedRows.map((row) => {
-            const isOver = row.deviationPct > 0;
+            const deviationPct = row.deviationPct;
+            const hasDeviation = deviationPct != null;
+            const isOver = deviationPct != null && deviationPct > 0;
             return (
               <tr
                 key={siteNodeKey(row)}
@@ -225,11 +246,21 @@ export const PlanningTable = ({
                       {siteNodeDisplayLabel(row)}
                     </span>
                   </div>
-                  {row.plan_note &&
-                    row.plan_note !== "No planning parameter set" && (
-                      <span className={planNote}>{row.plan_note}</span>
-                    )}
+                  {(row.planning_notice?.text ??
+                    (row.plan_note !== "No planning parameter set"
+                      ? row.plan_note
+                      : null)) && (
+                    <span className={planNote}>
+                      {row.planning_notice?.text ?? row.plan_note}
+                    </span>
+                  )}
                 </td>
+                <td className={threshold.td}>
+                  {row.type === "procurement"
+                    ? (row.supplier_name ?? row.supplier_id ?? "Unknown")
+                    : "–"}
+                </td>
+                <td className={threshold.td}>{basisLabel(row)}</td>
                 <td className={threshold.td}>
                   <ProductTags products={row.products} />
                 </td>
@@ -245,12 +276,24 @@ export const PlanningTable = ({
                 <td
                   className={cx(
                     threshold.tdRight,
-                    isOver ? threshold.trendDanger : threshold.trendSuccess,
+                    !hasDeviation
+                      ? threshold.valueMuted
+                      : isOver
+                        ? threshold.trendDanger
+                        : threshold.trendSuccess,
                   )}
                 >
-                  {isOver ? "+" : ""}
-                  {formatNumber(row.deviationPct, { maximumFractionDigits: 0 })}
-                  %
+                  {hasDeviation ? (
+                    <>
+                      {isOver ? "+" : ""}
+                      {formatNumber(deviationPct, {
+                        maximumFractionDigits: 0,
+                      })}
+                      %
+                    </>
+                  ) : (
+                    "–"
+                  )}
                 </td>
                 <td
                   className={threshold.tdRight}
@@ -307,7 +350,7 @@ export const PlanningTable = ({
           })}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={8} className={threshold.emptyCell}>
+              <td colSpan={10} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No planning parameter data for this site."
                   : "No planning parameter data matches the current filters."}
