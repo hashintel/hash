@@ -128,9 +128,11 @@ pub(crate) async fn wait_for_type_fetcher(
             return Err(report.change_context(HealthcheckError::Timeout));
         }
         tracing::warn!(
-            "Type fetcher at {}:{} is not reachable yet, retrying in {delay:?}",
-            address.type_fetcher_host,
-            address.type_fetcher_port,
+            error = ?report,
+            type_fetcher_host = address.type_fetcher_host,
+            type_fetcher_port = address.type_fetcher_port,
+            remaining = ?deadline.saturating_duration_since(Instant::now()),
+            "Type fetcher is not reachable yet, retrying in {delay:?}"
         );
         sleep(delay).await;
         delay = (delay * 2).min(Duration::from_secs(5));
