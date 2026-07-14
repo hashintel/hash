@@ -169,8 +169,7 @@ export function ensureNodeStats(node: GraphNode): GraphNode {
     ...base,
     pct_exceeding_plan:
       base.type === "procurement"
-        ? summarizeProcurementPlanning(base.observations, base.plan)
-            .pctExceedingPlan
+        ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
         : pctExceeding(base.observations, base.plan),
   };
 }
@@ -311,8 +310,7 @@ export function ensureStepStats(step: StepDetailWire): StepDetail {
         stats: base.stats,
         pct_exceeding_plan:
           base.type === "procurement"
-            ? summarizeProcurementPlanning(base.observations, base.plan)
-                .pctExceedingPlan
+            ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
             : pctExceeding(base.observations, base.plan),
       }
     : {
@@ -320,8 +318,7 @@ export function ensureStepStats(step: StepDetailWire): StepDetail {
         stats: statsFromObservations(base.observations),
         pct_exceeding_plan:
           base.type === "procurement"
-            ? summarizeProcurementPlanning(base.observations, base.plan)
-                .pctExceedingPlan
+            ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
             : pctExceeding(base.observations, base.plan),
       };
 

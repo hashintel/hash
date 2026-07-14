@@ -6,14 +6,14 @@ import { fetchSupplierPerformance } from "../../shared/data";
 import { selectStat, useBaseMeasure } from "../../shared/measure-context";
 import { applyOutlierSelectionToNode } from "../../shared/outlier-selection";
 import {
-  shouldShowProcurementPlanningRow,
-  summarizeProcurementPlanning,
-} from "../../shared/procurement-planning";
-import {
   computeTimingTrend,
   computeCostTrend,
 } from "../../shared/period-trends";
 import { useProcurementBasis } from "../../shared/procurement-basis-context";
+import {
+  shouldShowProcurementPlanningRow,
+  summarizeProcurementPlanning,
+} from "../../shared/procurement-planning";
 import {
   windowGraphNodeToRange,
   applyProcurementBasisToNode,
@@ -211,7 +211,7 @@ export function useSiteOverviewRows({
     return planningVisibleNodes.flatMap((count) => {
       const planningSummary =
         count.type === "procurement"
-          ? summarizeProcurementPlanning(count.observations, count.plan)
+          ? summarizeProcurementPlanning(count.observations)
           : null;
       const plan =
         count.type === "procurement"
@@ -224,19 +224,18 @@ export function useSiteOverviewRows({
       if (!shouldShow || plan == null) {
         return [];
       }
-      const historical =
-        historicalNodesByKey.get(siteNodeKey(count)) ?? count;
+      const historical = historicalNodesByKey.get(siteNodeKey(count)) ?? count;
       const trend = computeTimingTrend(historical, timeRange, measure);
       const deviationPct =
         plan <= 0
           ? null
           : count.type === "procurement"
-            ? (measure === "mean"
+            ? ((measure === "mean"
                 ? planningSummary?.meanVariancePct
                 : measure === "median"
                   ? planningSummary?.medianVariancePct
                   : null) ??
-              (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100
+              (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100)
             : (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100;
       return {
         ...count,

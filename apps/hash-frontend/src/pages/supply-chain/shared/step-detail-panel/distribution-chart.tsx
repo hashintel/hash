@@ -167,8 +167,7 @@ export const DistributionChart = ({
       binCount: bc,
       refValue:
         step.type === "procurement"
-          ? summarizeProcurementPlanning(step.observations, step.plan)
-              .applicablePlan
+          ? summarizeProcurementPlanning(step.observations).applicablePlan
           : step.plan,
       title: "Duration distribution",
     };

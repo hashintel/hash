@@ -61,10 +61,34 @@ export interface StepSource {
   filter?: string | null;
 }
 
-export interface PlanningNotice {
+export interface PlanningWarning {
+  code: string;
   level: "info" | "warning";
   text: string;
 }
+
+export interface ProcurementPlanningSource {
+  label: string;
+  system: string;
+  table: string;
+  source_id: string | null;
+  material: string;
+  site: string;
+  supplier_id: string | null;
+  basis: string | null;
+  plan_days: number | null;
+  dock_to_stock_days: number | null;
+  match_level: string;
+  priority?: number | null;
+  effective_in_date?: string | null;
+  effective_out_date?: string | null;
+  contract_valid_to?: string | null;
+}
+
+export type ProcurementPlanningAlternative = Record<string, unknown> & {
+  label: string;
+  plan_days: number | null;
+};
 
 export type ProcurementReceiptBasis =
   | "ordinary"
@@ -75,6 +99,7 @@ export type ProcurementReceiptBasis =
 
 export type ProcurementPlanMatchStatus =
   | "matched"
+  | "matched_wrong_basis"
   | "missing_profile"
   | "missing_supplier"
   | "mixed_basis"
@@ -103,7 +128,9 @@ export interface ProcurementPlanningProfile {
   dock_to_stock_days?: number | null;
   provenance: "profile" | "fallback";
   match_status: ProcurementPlanMatchStatus;
-  planning_notice?: PlanningNotice | null;
+  planning_warnings?: PlanningWarning[];
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
   candidate_ids?: string[];
 }
 
@@ -186,7 +213,12 @@ export interface GraphNode {
   receipt_basis?: ProcurementReceiptBasis | null;
   planning_profile_id?: string | null;
   plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_notice?: PlanningNotice | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
   planning_profile?: ProcurementPlanningProfile | null;
   planning_profiles?: ProcurementPlanningCandidate[];
   /** Retained for a future receiving-process comparison; not rendered directly. */
@@ -342,8 +374,8 @@ export interface BindingScore {
 }
 
 export interface GraphData {
-  /** Data contract version (legacy "1.0" or supplier-aware "1.1"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   analysis_settings?: AnalysisSettings | null;
   product_id: string;
   product_name: string;
@@ -396,7 +428,12 @@ export interface Observation {
   plan_days?: number | null;
   plan_provenance?: "profile" | "fallback" | null;
   plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_notice?: PlanningNotice | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
   /** Retained for future receiving-process analysis; not rendered as a timing metric. */
   dock_to_stock_days?: number | null;
   candidate_ids?: string[];
@@ -412,7 +449,12 @@ export interface ProcurementNodeObservation {
   plan_days?: number | null;
   plan_provenance?: "profile" | "fallback" | null;
   plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_notice?: PlanningNotice | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
   /** Retained for future receiving-process analysis; not rendered as a timing metric. */
   dock_to_stock_days?: number | null;
   candidate_ids?: string[];
@@ -568,8 +610,8 @@ export interface SiteData {
 }
 
 export interface StepDetail {
-  /** Data contract version (legacy "1.0" or supplier-aware "1.1"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   id: string;
   label: string;
   type: StepType;
@@ -622,7 +664,12 @@ export interface StepDetail {
   receipt_basis?: ProcurementReceiptBasis | null;
   planning_profile_id?: string | null;
   plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_notice?: PlanningNotice | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
   planning_profile?: ProcurementPlanningProfile | null;
   planning_profiles?: ProcurementPlanningCandidate[];
   /** Retained for a future receiving-process comparison; not rendered directly. */
@@ -742,8 +789,8 @@ export interface ProcurementSupplierBlock {
  * every plant. Drives the SiteOverview leaderboard and vendor slideover.
  */
 export interface SiteSupplierPerformance {
-  /** Data contract version (legacy "1.0" or supplier-aware "1.1"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   generated_at: string;
   overall: {
     n_lines: number;
@@ -797,7 +844,7 @@ export interface SiteSummaryRollups {
 
 /** `site/{siteId}/summary.json` — the precomputed site overview artifact. */
 export interface SiteSummary {
-  schema_version?: string;
+  schema_version?: "1.1";
   analysis_settings?: AnalysisSettings | null;
   site_id: string;
   generated_at: string;

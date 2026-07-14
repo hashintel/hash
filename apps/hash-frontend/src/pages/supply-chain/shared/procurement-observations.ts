@@ -1,9 +1,11 @@
 import type { ProcurementBasis } from "./procurement-basis-context";
 import type {
   Observation,
-  PlanningNotice,
+  PlanningWarning,
   ProcurementNodeObservation,
   ProcurementPlanMatchStatus,
+  ProcurementPlanningAlternative,
+  ProcurementPlanningSource,
 } from "./types";
 
 type DetailRow = Record<string, unknown>;
@@ -12,22 +14,12 @@ function isIsoDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function isPlanningNotice(value: unknown): value is PlanningNotice {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const notice = value as Record<string, unknown>;
-  return (
-    (notice.level === "info" || notice.level === "warning") &&
-    typeof notice.text === "string"
-  );
-}
-
 function isPlanMatchStatus(
   value: unknown,
 ): value is ProcurementPlanMatchStatus {
   return (
     value === "matched" ||
+    value === "matched_wrong_basis" ||
     value === "missing_profile" ||
     value === "missing_supplier" ||
     value === "mixed_basis" ||
@@ -52,16 +44,81 @@ function stringArray(value: unknown): string[] {
   return [];
 }
 
-function planningNoticeFromRow(row: DetailRow): PlanningNotice | null {
-  if (isPlanningNotice(row.planning_notice)) {
-    return row.planning_notice;
+function parsedJson(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
   }
-  const text = row.planning_notice_text;
-  const level = row.planning_notice_level;
-  return typeof text === "string" &&
-    (level === "info" || level === "warning")
-    ? { level, text }
-    : null;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || typeof value === "number";
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function planningSourceFromRow(
+  row: DetailRow,
+): ProcurementPlanningSource | null {
+  const value = parsedJson(row.planning_source ?? row.planning_source_json);
+  if (
+    !isRecord(value) ||
+    typeof value.label !== "string" ||
+    typeof value.system !== "string" ||
+    typeof value.table !== "string" ||
+    !isNullableString(value.source_id) ||
+    typeof value.material !== "string" ||
+    typeof value.site !== "string" ||
+    !isNullableString(value.supplier_id) ||
+    !isNullableString(value.basis) ||
+    !isNullableNumber(value.plan_days) ||
+    !isNullableNumber(value.dock_to_stock_days) ||
+    typeof value.match_level !== "string"
+  ) {
+    return null;
+  }
+  return value as unknown as ProcurementPlanningSource;
+}
+
+function planningAlternativesFromRow(
+  row: DetailRow,
+): ProcurementPlanningAlternative[] {
+  const value = parsedJson(
+    row.planning_alternatives ?? row.planning_alternatives_json,
+  );
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (entry): entry is ProcurementPlanningAlternative =>
+      isRecord(entry) &&
+      typeof entry.label === "string" &&
+      isNullableNumber(entry.plan_days),
+  );
+}
+
+function planningWarningsFromRow(row: DetailRow): PlanningWarning[] {
+  const value = parsedJson(row.planning_warnings ?? row.planning_warnings_json);
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (entry): entry is PlanningWarning =>
+      isRecord(entry) &&
+      typeof entry.code === "string" &&
+      (entry.level === "info" || entry.level === "warning") &&
+      typeof entry.text === "string",
+  );
 }
 
 function daysBetween(start: string, end: string): number | null {
@@ -110,16 +167,19 @@ export function procurementNodeObservationsForBasis(
       plan_days: observation.plan_days,
       plan_provenance: observation.plan_provenance,
       plan_match_status: observation.plan_match_status,
-      planning_notice: observation.planning_notice,
+      planning_source: observation.planning_source,
+      planning_alternatives: observation.planning_alternatives,
+      planning_warnings: observation.planning_warnings,
+      observation_grain: observation.observation_grain,
+      po_item_count: observation.po_item_count,
+      po_item_ids: observation.po_item_ids,
       dock_to_stock_days: observation.dock_to_stock_days,
       candidate_ids: observation.candidate_ids,
       variance_days:
         (isComplete
           ? observation.complete_variance_days
           : observation.first_variance_days) ??
-        (observation.plan_days != null
-          ? value - observation.plan_days
-          : null),
+        (observation.plan_days != null ? value - observation.plan_days : null),
     };
   });
 }
@@ -178,6 +238,25 @@ export function deriveProcurementTimingFromRows(rows: DetailRow[]): {
     }
 
     const profileRow = group[0] ?? {};
+    const planningSource = planningSourceFromRow(profileRow);
+    const planningAlternatives = planningAlternativesFromRow(profileRow);
+    const planningWarnings = planningWarningsFromRow(profileRow);
+    const derivedPoItemIds = Array.from(
+      new Set(
+        group
+          .map((row) => row.po_item ?? row.po_item_norm)
+          .filter(
+            (value): value is string | number =>
+              typeof value === "string" || typeof value === "number",
+          )
+          .map(String),
+      ),
+    ).sort();
+    const suppliedPoItemIds = stringArray(
+      profileRow.po_item_ids ?? profileRow.po_item_ids_json,
+    );
+    const poItemIds =
+      suppliedPoItemIds.length > 0 ? suppliedPoItemIds : derivedPoItemIds;
     const planDays =
       typeof profileRow.plan_days === "number" ? profileRow.plan_days : null;
     const hasProfileMetadata =
@@ -185,7 +264,14 @@ export function deriveProcurementTimingFromRows(rows: DetailRow[]): {
       profileRow.planning_profile_id != null ||
       profileRow.receipt_basis != null ||
       profileRow.vendor_id != null ||
-      profileRow.vendor_name != null;
+      profileRow.vendor_name != null ||
+      planningSource != null ||
+      planningAlternatives.length > 0 ||
+      planningWarnings.length > 0 ||
+      profileRow.observation_grain != null ||
+      profileRow.po_item_count != null ||
+      profileRow.po_item_ids != null ||
+      profileRow.po_item_ids_json != null;
     if (!hasProfileMetadata) {
       first.push({ date: firstDate, value: firstValue });
       complete.push({ date: lastDate, value: lastValue });
@@ -200,13 +286,13 @@ export function deriveProcurementTimingFromRows(rows: DetailRow[]): {
           : typeof profileRow.vendor_id === "string" ||
               typeof profileRow.vendor_id === "number"
             ? String(profileRow.vendor_id)
-          : null,
+            : null,
       supplier_name:
         typeof profileRow.supplier_name === "string"
           ? profileRow.supplier_name
           : typeof profileRow.vendor_name === "string"
-          ? profileRow.vendor_name
-          : null,
+            ? profileRow.vendor_name
+            : null,
       receipt_basis:
         profileRow.receipt_basis === "ordinary" ||
         profileRow.receipt_basis === "consignment" ||
@@ -228,7 +314,18 @@ export function deriveProcurementTimingFromRows(rows: DetailRow[]): {
       plan_match_status: isPlanMatchStatus(profileRow.plan_match_status)
         ? profileRow.plan_match_status
         : null,
-      planning_notice: planningNoticeFromRow(profileRow),
+      planning_source: planningSource,
+      planning_alternatives: planningAlternatives,
+      planning_warnings: planningWarnings,
+      observation_grain:
+        typeof profileRow.observation_grain === "string"
+          ? profileRow.observation_grain
+          : "purchase_order",
+      po_item_count:
+        typeof profileRow.po_item_count === "number"
+          ? profileRow.po_item_count
+          : poItemIds.length,
+      po_item_ids: poItemIds,
       dock_to_stock_days:
         typeof profileRow.dock_to_stock_days === "number"
           ? profileRow.dock_to_stock_days

@@ -8,6 +8,7 @@ import {
   selectStat,
   useBaseMeasure,
 } from "../../shared/measure-context";
+import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -245,14 +246,14 @@ export const PlanningTable = ({
                     <span className={threshold.stepLabel}>
                       {siteNodeDisplayLabel(row)}
                     </span>
+                    {row.type === "procurement" && (
+                      <PlanningWarningIndicator
+                        warnings={row.planning_warnings}
+                      />
+                    )}
                   </div>
-                  {(row.planning_notice?.text ??
-                    (row.plan_note !== "No planning parameter set"
-                      ? row.plan_note
-                      : null)) && (
-                    <span className={planNote}>
-                      {row.planning_notice?.text ?? row.plan_note}
-                    </span>
+                  {row.plan_note !== "No planning parameter set" && (
+                    <span className={planNote}>{row.plan_note}</span>
                   )}
                 </td>
                 <td className={threshold.td}>

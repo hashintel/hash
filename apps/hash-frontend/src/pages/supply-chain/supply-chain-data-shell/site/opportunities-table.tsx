@@ -4,6 +4,7 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
+import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
   deriveStatusActionState,
@@ -80,6 +81,7 @@ const pillGood = css({
   bg: "status.success.bg.subtle",
 });
 const titleCell = css({ display: "flex", flexDirection: "column", gap: "1" });
+const titleLine = css({ display: "flex", alignItems: "center", gap: "1.5" });
 const titleText = css({ fontWeight: "medium", color: "fg.heading" });
 const impactBase = css({
   display: "inline-flex",
@@ -614,7 +616,16 @@ export const OpportunitiesTable = ({
                       </td>
                       <td className={threshold.td}>
                         <div className={titleCell}>
-                          <span className={titleText}>{opportunity.title}</span>
+                          <div className={titleLine}>
+                            <span className={titleText}>
+                              {opportunity.title}
+                            </span>
+                            {opportunity.node.type === "procurement" && (
+                              <PlanningWarningIndicator
+                                warnings={opportunity.node.planning_warnings}
+                              />
+                            )}
+                          </div>
                           <ProductTags products={opportunity.products} />
                         </div>
                       </td>

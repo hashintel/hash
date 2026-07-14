@@ -40,7 +40,7 @@ function pctExceedingForStep(
   plan: number | null,
 ): number | null {
   return type === "procurement"
-    ? summarizeProcurementPlanning(observations, plan).pctExceedingPlan
+    ? summarizeProcurementPlanning(observations).pctExceedingPlan
     : pctExceeding(
         observations.map((observation) => observation.value),
         plan,
@@ -452,11 +452,7 @@ export function applyProcurementBasisToNode(
     observations,
     monthly: buildMonthlyFromObservations(observations),
     stats: computeStats(values),
-    pct_exceeding_plan: pctExceedingForStep(
-      node.type,
-      observations,
-      node.plan,
-    ),
+    pct_exceeding_plan: pctExceedingForStep(node.type, observations, node.plan),
   };
 }
 

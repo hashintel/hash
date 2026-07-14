@@ -480,7 +480,7 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
   const stats = node.stats;
   const plan =
     node.type === "procurement"
-      ? summarizeProcurementPlanning(node.observations, node.plan).applicablePlan
+      ? summarizeProcurementPlanning(node.observations).applicablePlan
       : node.plan;
   const { measure } = useBaseMeasure();
   const measureValue = selectStat(stats, measure);
@@ -577,10 +577,7 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
             <div className={badgeRow}>
               {plan != null && plan > 0 && (
                 <Tooltip
-                  content={
-                    node.planning_notice?.text ??
-                    planSourceLabel(node.plan_note)
-                  }
+                  content={planSourceLabel(node.plan_note)}
                   openDelay="fast"
                 >
                   <span

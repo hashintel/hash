@@ -158,7 +158,7 @@ describe("buildSiteOpportunities", () => {
     ).toBe(20);
   });
 
-  it("keeps profile opportunities distinct and suppresses ambiguous procurement parameters", () => {
+  it("treats ambiguous, wrong-basis, and fallback procurement parameters like exact matches", () => {
     const opportunities = build({
       planningRows: [
         planning({
@@ -183,12 +183,34 @@ describe("buildSiteOpportunities", () => {
           plan: 10,
           stats: stats({ n: 20, median: 20, p95: 30 }),
         }),
+        planning({
+          id: "mat-c-wrong-basis",
+          type: "procurement",
+          plan_match_status: "matched_wrong_basis",
+          plan: 10,
+          stats: stats({ n: 20, median: 15, p95: 20 }),
+        }),
+        planning({
+          id: "mat-d-fallback",
+          type: "procurement",
+          plan_match_status: "missing_profile",
+          plan: 10,
+          stats: stats({ n: 20, median: 14, p95: 18 }),
+        }),
       ],
     });
 
-    expect(opportunities).toHaveLength(1);
-    expect(opportunities[0]?.stepId).toBe("mat-a-buy");
-    expect(opportunities[0]?.title).toContain("Supplier A");
+    expect(opportunities.map(({ stepId }) => stepId).sort()).toEqual([
+      "mat-a-buy",
+      "mat-b-consignment",
+      "mat-c-wrong-basis",
+      "mat-d-fallback",
+    ]);
+    expect(
+      opportunities.every(
+        ({ confidenceLabel }) => confidenceLabel === "Good sample",
+      ),
+    ).toBe(true);
   });
 
   it("uses current sample size for planning confidence", () => {

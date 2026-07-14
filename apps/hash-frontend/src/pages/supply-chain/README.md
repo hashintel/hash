@@ -33,12 +33,19 @@ Supplier-aware datasets represent procurement at
 separate product-graph node and a separate, sortable site-planning row; profiles
 are never blended into a material-level deviation or opportunity.
 
-The client accepts both legacy scalar planning parameters and schema 1.1
-per-observation parameters. It must not hardcode planning-system names:
-provenance explanations are rendered only from the optional producer-supplied
-`planning_notice`. Dock-to-Stock is retained in the contract for future use but
-is not shown or included in calculations until a comparable observed process is
-validated.
+Schema 1.1 procurement profiles may also provide a selected planning source,
+generic planning alternatives, and producer-authored data-quality warnings.
+The planning and opportunity tables show warning indicators without changing
+opportunity eligibility. In step detail, warning-level messages appear below
+the key metrics and the planning-assumption tooltip lists the applicable source
+and distinct alternatives using producer-supplied labels.
+
+Schema 1.1 is the sole procurement planning contract: the client reads
+`planning_source`, `planning_alternatives`, and `planning_warnings` without
+legacy notice or source-specific equivalent fallbacks. It must not hardcode
+planning-system or client names. Dock-to-Stock is retained in the contract for
+future use but is not shown or included in calculations until a comparable
+observed process is validated.
 
 ### Opportunity Brief
 

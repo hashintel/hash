@@ -12,8 +12,9 @@ import {
 import { useBaseMeasure, selectStat, MEASURE_LABELS } from "../measure-context";
 import { type PeriodComparison, computeCostComparison } from "../period-trends";
 import { planSourceLabel } from "../planning-param";
-import { summarizeProcurementPlanning } from "../procurement-planning";
 import { useProcurementBasis } from "../procurement-basis-context";
+import { summarizeProcurementPlanning } from "../procurement-planning";
+import { procurementPlanningTooltipLines } from "../procurement-planning-ui";
 import { previousPeriodLabel } from "./step-detail-format";
 import {
   PlanningAssumptionCell,
@@ -126,15 +127,14 @@ export const KeyMetricsRow = ({
 }) => {
   const procurementPlanning =
     step.type === "procurement"
-      ? summarizeProcurementPlanning(step.observations, step.plan)
+      ? summarizeProcurementPlanning(step.observations)
       : null;
   const plan =
     step.type === "procurement"
       ? (procurementPlanning?.applicablePlan ?? null)
       : step.plan;
   const hasPlan = plan != null;
-  const pep =
-    procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan;
+  const pep = procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan;
   const { waccRate, storageCost } = useCostParams();
   const { measure } = useBaseMeasure();
   const effectiveMeasure = measureOverride ?? measure;
@@ -190,6 +190,13 @@ export const KeyMetricsRow = ({
 
   const planNote = step.plan_note;
   const planLabel = planNote ? planSourceLabel(planNote) : null;
+  const planningTooltipLines =
+    step.type === "procurement"
+      ? procurementPlanningTooltipLines(
+          step.planning_source,
+          step.planning_alternatives,
+        )
+      : [planLabel ?? planNote].filter((line): line is string => Boolean(line));
 
   return (
     <div className={card}>
@@ -200,8 +207,7 @@ export const KeyMetricsRow = ({
           measureMeetsPlan={
             headlineValue == null || plan == null || headlineValue <= plan
           }
-          planLabel={planLabel}
-          noteRaw={planNote}
+          tooltipLines={planningTooltipLines}
         />
 
         <div className={cellCenter}>

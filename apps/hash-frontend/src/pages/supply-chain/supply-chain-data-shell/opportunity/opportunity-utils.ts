@@ -667,11 +667,11 @@ function buildEvidenceFlags(
       detail: `Previous comparison period has ${formatNumber(options.trend.previousN)} observations.`,
     });
   }
-  if (step.planning_notice) {
+  for (const warning of step.planning_warnings ?? []) {
     flags.push({
-      severity: step.planning_notice.level,
+      severity: warning.level,
       label: "Planning parameter note",
-      detail: step.planning_notice.text,
+      detail: warning.text,
     });
   }
 
@@ -1444,7 +1444,7 @@ export function buildPlanningOpportunityBrief(
   const trend = computeTrend(historicalStep.observations, range);
   const procurementPlanning =
     step.type === "procurement"
-      ? summarizeProcurementPlanning(step.observations, step.plan)
+      ? summarizeProcurementPlanning(step.observations)
       : null;
   const currentPlanDays =
     step.type === "procurement"
@@ -1549,9 +1549,7 @@ export function buildPlanningOpportunityBrief(
     meanDeviationPct,
     p95DeviationPct,
     pctExceedingPlan:
-      procurementPlanning?.pctExceedingPlan ??
-      step.pct_exceeding_plan ??
-      null,
+      procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan ?? null,
     nExceedingPlan,
     calibrationDirection,
     calibrationImpact: buildCalibrationImpact(step, currentPlanDays),

@@ -40,23 +40,23 @@ function median(values: number[]): number | null {
   if (values.length === 0) {
     return null;
   }
-  return round(percentileOf([...values].sort((a, b) => a - b), 50));
+  return round(
+    percentileOf(
+      [...values].sort((a, b) => a - b),
+      50,
+    ),
+  );
 }
 
 /**
  * Compare each procurement observation with its own applicable parameter.
- *
- * Schema 1.1 observations carry `plan_days`; schema 1.0 callers pass the
- * node/step scalar as `legacyPlan`. This keeps every procurement consumer on
- * one calculation path while the two contract versions coexist.
  */
 export function summarizeProcurementPlanning(
   observations: Observation[] | null | undefined,
-  legacyPlan?: number | null,
 ): ProcurementPlanningSummary {
   const input = observations ?? [];
   const planned = input.flatMap((observation) => {
-    const plan = observation.plan_days ?? legacyPlan;
+    const plan = observation.plan_days;
     return plan == null ? [] : [{ observation, plan }];
   });
   const residuals = planned.map(
@@ -87,9 +87,8 @@ export function summarizeProcurementPlanning(
     pctExceedingPlan:
       planned.length > 0
         ? round(
-            (planned.filter(
-              ({ observation, plan }) => observation.value > plan,
-            ).length /
+            (planned.filter(({ observation, plan }) => observation.value > plan)
+              .length /
               planned.length) *
               100,
           )

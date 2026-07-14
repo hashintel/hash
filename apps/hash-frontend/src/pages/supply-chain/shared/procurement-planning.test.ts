@@ -46,15 +46,15 @@ describe("summarizeProcurementPlanning", () => {
     expect(summary.matchedCoveragePct).toBe(66.7);
   });
 
-  it("uses a legacy scalar only when observation plans are absent", () => {
-    const summary = summarizeProcurementPlanning(
-      [observation(8), observation(12)],
-      10,
-    );
-    expect(summary.coveragePct).toBe(100);
-    expect(summary.pctExceedingPlan).toBe(50);
-    expect(summary.medianVarianceDays).toBe(0);
-    expect(summary.applicablePlan).toBe(10);
+  it("requires schema 1.1 per-observation planning parameters", () => {
+    const summary = summarizeProcurementPlanning([
+      observation(8),
+      observation(12),
+    ]);
+    expect(summary.coveragePct).toBe(0);
+    expect(summary.pctExceedingPlan).toBeNull();
+    expect(summary.medianVarianceDays).toBeNull();
+    expect(summary.applicablePlan).toBeNull();
   });
 
   it("does not calculate percentage variance for zero-day plans", () => {

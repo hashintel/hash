@@ -435,6 +435,22 @@ describe("end-to-end leverage and planning calibration", () => {
       type: "procurement",
       plan: 20,
       durations: [5, 10, 15, 25],
+      observations: [
+        {
+          date: "2026-01-01",
+          value: 5,
+          plan_days: 20,
+          plan_provenance: "profile",
+          variance_days: -15,
+        },
+        {
+          date: "2026-02-01",
+          value: 25,
+          plan_days: 20,
+          plan_provenance: "profile",
+          variance_days: 5,
+        },
+      ],
       stats: { ...baseStats, median: 10, p75: 15, p85: 18, p95: 22 },
     });
     const brief = buildPlanningOpportunityBrief(step2, step2, "12m");

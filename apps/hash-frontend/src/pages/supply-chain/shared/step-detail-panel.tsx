@@ -28,6 +28,7 @@ import { MaterialTag } from "./material-tag";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
+import { planningWarningTexts } from "./procurement-planning-ui";
 import {
   dwellStepScopesOpenCarryOnProduct,
   scopeDwellStepToProduct,
@@ -199,26 +200,21 @@ const metricsSection = css({
   flexDirection: "column",
   gap: "3",
 });
-const planningNotice = css({
-  mx: "6",
-  mt: "5",
-  p: "3",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderRadius: "md",
-  textStyle: "sm",
+const planningWarnings = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+  mb: "2",
+});
+const planningWarning = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "2",
+  textStyle: "xs",
   lineHeight: "relaxed",
-});
-const planningNoticeInfo = css({
-  color: "fg.muted",
-  bg: "bg.subtle",
-  borderColor: "bd.subtle",
-});
-const planningNoticeWarning = css({
   color: "status.warning.fg.body",
-  bg: "status.warning.bg.subtle",
-  borderColor: "status.warning.bd.subtle",
 });
+const planningWarningIcon = css({ mt: "0.5", flexShrink: "0" });
 const chartsRow = css({ display: "flex" });
 const chartCellLeft = css({
   flex: "1",
@@ -936,23 +932,6 @@ export const StepDetailPanel = ({
             />
           ) : (
             <>
-              {filteredStep.planning_notice && (
-                <div
-                  role={
-                    filteredStep.planning_notice.level === "warning"
-                      ? "alert"
-                      : "status"
-                  }
-                  className={cx(
-                    planningNotice,
-                    filteredStep.planning_notice.level === "warning"
-                      ? planningNoticeWarning
-                      : planningNoticeInfo,
-                  )}
-                >
-                  {filteredStep.planning_notice.text}
-                </div>
-              )}
               {/* Key metrics + stats row */}
               <div className={metricsSection}>
                 {dimension === "timing" && (
@@ -964,6 +943,24 @@ export const StepDetailPanel = ({
                       timeRange={timeRange}
                       measureOverride={measureOverride}
                     />
+
+                    {planningWarningTexts(filteredStep.planning_warnings)
+                      .length > 0 && (
+                      <div className={planningWarnings}>
+                        {planningWarningTexts(
+                          filteredStep.planning_warnings,
+                        ).map((warning) => (
+                          <div key={warning} className={planningWarning}>
+                            <Icon
+                              name="warning"
+                              size="xs"
+                              className={planningWarningIcon}
+                            />
+                            <span>{warning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <StatsRow
                       step={filteredStep}

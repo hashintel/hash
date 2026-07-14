@@ -359,7 +359,7 @@ function planningDeviation(
   measure: BaseMeasure,
 ): number | null {
   if (node.type === "procurement") {
-    const summary = summarizeProcurementPlanning(node.observations, node.plan);
+    const summary = summarizeProcurementPlanning(node.observations);
     if (measure === "mean") {
       return summary.meanVariancePct;
     }
