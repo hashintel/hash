@@ -25,6 +25,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
     placement_posterior,
 )
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     NonEmptyStr,
     Probability,
     RelationFamilyId,
@@ -61,7 +62,7 @@ class SoftLabelDiskRow(_DiskModel):
     """Store only independent soft-label fields; posterior values are derived."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     producer: RelationNamespace
     family_id: RelationFamilyId | None
     prescreen_stratum: NonEmptyStr
@@ -117,7 +118,7 @@ class EmbeddingDiskRow(_DiskModel):
     """Store one packed little-endian float32 embedding."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     encoding: Literal["f32-le-v1"]
     dimension: PositiveInt
     vector_f32_le: bytes
@@ -148,7 +149,7 @@ class OutOfFoldDiskRow(_DiskModel):
     """Flatten one held-out prediction into fixed class-order columns."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     family_id: RelationFamilyId
     fold: NonNegativeInt
     applicability: Probability

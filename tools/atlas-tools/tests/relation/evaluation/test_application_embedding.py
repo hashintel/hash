@@ -19,8 +19,10 @@ from atlas_tools.relation.evaluation.application.embedding import (
 )
 from atlas_tools.relation.evaluation.domain.api import (
     AttemptFailure,
+    CardHash,
     EmbeddingConfig,
     EvaluationCard,
+    ProviderFailure,
 )
 from atlas_tools.relation.evaluation.storage.api import (
     LoadedConfig,
@@ -133,13 +135,17 @@ class _OwnedTransport(_RecordingTransport):
         self.server_url = server_url
         type(self).instance = self
 
+    async def aclose(self) -> None:
+        await trio.lowlevel.checkpoint()
+        self.closed = True
+
 
 def _card(relation_id: str, text: str) -> EvaluationCard:
     return EvaluationCard(
         relation_id=relation_id,
         producer="wikidata",
         card_text=text,
-        card_hash=sha256_bytes(text.encode("utf-8")),
+        card_hash=CardHash(sha256_bytes(text.encode("utf-8"))),
         token_count=len(text.split()),
     )
 
@@ -354,6 +360,45 @@ def test_owned_openrouter_uses_the_sdk_server_base_and_closes(
     trio.run(scenario)
 
 
+def test_owned_embedding_transport_closes_when_acquisition_is_cancelled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    loaded, deck = _inputs(batch_size=1)
+    _install_inputs(monkeypatch, loaded, deck)
+    _OwnedTransport.instance = None
+    monkeypatch.setattr(embedding_module, "OpenRouterSettings", _OwnedSettings)
+    monkeypatch.setattr(
+        embedding_module,
+        "OpenRouterEmbeddingTransport",
+        _OwnedTransport,
+    )
+
+    async def scenario() -> None:
+        async def acquire() -> None:
+            await embed_grid_async(
+                config_path=Path("grid.yaml"),
+                deck_directory=Path("deck"),
+                output_path=tmp_path / "embeddings.parquet",
+                cache_directory=tmp_path / "cache",
+            )
+
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(acquire)
+            while True:
+                owned = _OwnedTransport.instance
+                if owned is not None and owned.requests:
+                    break
+                await trio.lowlevel.checkpoint()
+            nursery.cancel_scope.cancel()
+
+        owned = _OwnedTransport.instance
+        assert owned is not None
+        assert owned.closed is True
+
+    trio.run(scenario)
+
+
 def test_dimension_drift_rejects_cache_before_credentials(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -416,8 +461,7 @@ def test_miss_budget_and_transport_failure_stop_before_artifact_publication(
 
         admitted, _ = _inputs(max_texts=3)
         _install_inputs(monkeypatch, admitted, deck)
-        failure = AttemptFailure(
-            category="provider",
+        failure = ProviderFailure(
             exception_type="ProviderUnavailable",
             message="embedding endpoint unavailable",
             http_status_code=503,

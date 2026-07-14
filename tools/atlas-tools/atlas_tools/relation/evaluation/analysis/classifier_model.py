@@ -13,6 +13,7 @@ from atlas_tools.relation.evaluation.analysis._model import AnalysisModel
 from atlas_tools.relation.evaluation.analysis.deliverables import PlacementPosterior
 from atlas_tools.relation.evaluation.domain.api import (
     PLACEMENT_CLASSES,
+    CardHash,
     ClassifierConfig,
     FiniteFloat,
     NonNegativeFiniteFloat,
@@ -21,7 +22,6 @@ from atlas_tools.relation.evaluation.domain.api import (
     Probability,
     RelationFamilyId,
     RelationId,
-    Sha256Hex,
 )
 
 type FloatMatrix = NDArray[np.float64]
@@ -41,7 +41,7 @@ class EmbeddingRow(AnalysisModel):
     """
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     encoding: Literal["f32-le-v1"] = "f32-le-v1"
     dimension: PositiveInt
     vector_f32_le: bytes = Field(repr=False)
@@ -51,7 +51,7 @@ class EmbeddingRow(AnalysisModel):
         cls,
         *,
         relation_id: RelationId,
-        card_hash: Sha256Hex,
+        card_hash: CardHash,
         values: Sequence[float],
     ) -> Self:
         """Pack one finite, non-empty vector into the immutable row format.
@@ -159,7 +159,7 @@ class PolicyPrediction(AnalysisModel):
     """Describe one calibrated prediction with its applicability evidence."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     applicability: Probability
     distance: NonNegativeFiniteFloat
     logits: tuple[FiniteFloat, FiniteFloat, FiniteFloat]

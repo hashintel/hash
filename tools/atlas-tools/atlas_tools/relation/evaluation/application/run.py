@@ -5,6 +5,7 @@ loaded only when validated journals prove that paid work remains. Completed
 runs therefore revalidate and return without constructing a network client.
 """
 
+from collections import deque
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager
 from functools import partial
@@ -16,6 +17,7 @@ import trio
 
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.evaluation.analysis.api import analyze_grid
+from atlas_tools.relation.evaluation.application._lifetime import close_owned_transport
 from atlas_tools.relation.evaluation.application.grid_plan import derive_grid_plan
 from atlas_tools.relation.evaluation.application.identity import request_contract_hash
 from atlas_tools.relation.evaluation.application.manifest import (
@@ -37,6 +39,7 @@ from atlas_tools.relation.evaluation.application.source import (
 )
 from atlas_tools.relation.evaluation.domain.api import (
     BaseRunConfig,
+    JudgeFamilyId,
     PhysicalAttempt,
     Sha256Hex,
     Vote,
@@ -46,6 +49,7 @@ from atlas_tools.relation.evaluation.domain.api import (
 from atlas_tools.relation.evaluation.execution.api import (
     GridGuardPolicy,
     LogicalVoteRunner,
+    build_resume_index,
     execute_votes,
     executor_policy_payload,
 )
@@ -56,7 +60,6 @@ from atlas_tools.relation.evaluation.storage.api import (
     PilotPaths,
     ResumeIndex,
     RunJournal,
-    build_resume_index,
     exclusive_run,
     prepare_grid_async,
     prepare_pilot_async,
@@ -104,7 +107,7 @@ async def _transport(
     try:
         yield owned
     finally:
-        await owned.aclose()
+        await close_owned_transport(owned)
 
 
 async def _is_file(path: Path) -> bool:
@@ -118,12 +121,17 @@ def _remaining(plan: VotePlan, start_index: int) -> Iterator[VoteTask]:
 async def _final_snapshot(
     journal: RunJournal,
     plan: VotePlan,
+    *,
+    prompt: RubricVotePrompt,
+    config: BaseRunConfig,
 ) -> tuple[JournalSnapshot, ResumeIndex]:
     snapshot = await journal.snapshot()
     resume = build_resume_index(
         plan,
         votes=snapshot.votes,
         attempts=snapshot.attempts,
+        prompt=prompt,
+        config=config,
     )
     if resume.next_plan_index != plan.expected_votes:
         raise ValueError(
@@ -157,19 +165,21 @@ async def _run_pilot(
         journal = RunJournal(paths=paths.journal)
         await journal.recover()
         snapshot = await journal.snapshot()
+        prompt = RubricVotePrompt(
+            pack=prepared.prompt_pack,
+            cards=prepared.deck.by_relation_id,
+        )
         resume = build_resume_index(
             prepared.plan,
             votes=snapshot.votes,
             attempts=snapshot.attempts,
+            prompt=prompt,
+            config=prepared.config,
         )
         manifest_exists = await _is_file(paths.manifest)
         if resume.next_plan_index < prepared.plan.expected_votes:
             if manifest_exists:
                 raise ValueError("completed pilot manifest has an incomplete vote journal")
-            prompt = RubricVotePrompt(
-                pack=prepared.prompt_pack,
-                cards=prepared.deck.by_relation_id,
-            )
             progress.phase(
                 "evaluating pilot",
                 total=prepared.plan.expected_votes - resume.next_plan_index,
@@ -180,7 +190,7 @@ async def _run_pilot(
                     prompt=prompt,
                     journal=journal,
                     transport=completion,
-                    attempts=snapshot.attempts,
+                    resume=resume,
                 )
                 await execute_votes(
                     _remaining(prepared.plan, resume.next_plan_index),
@@ -190,7 +200,12 @@ async def _run_pilot(
                     start_index=resume.next_plan_index,
                     after_commit=_advance_progress(progress),
                 )
-        snapshot, _ = await _final_snapshot(journal, prepared.plan)
+        snapshot, _ = await _final_snapshot(
+            journal,
+            prepared.plan,
+            prompt=prompt,
+            config=prepared.config,
+        )
         await verify_deck_sources(prepared)
         artifact_hashes = await hash_paths(
             {
@@ -215,20 +230,42 @@ def _grid_guard(
     prompt: RubricVotePrompt,
     attempts: tuple[PhysicalAttempt, ...],
 ) -> GridGuardPolicy:
-    established = frozenset(
-        attempt.family_id
+    established: frozenset[JudgeFamilyId] = frozenset(
+        JudgeFamilyId(attempt.family_id)
         for attempt in attempts
         if attempt.result is not None and attempt.failure is None
     )
+    pilot_costs: dict[JudgeFamilyId, int | float] = {
+        JudgeFamilyId(judge.model): judge.pilot_cost_per_vote_usd
+        for judge in prepared.config.judges
+    }
     return GridGuardPolicy(
         config=prepared.config.guards,
         retry_policy=prepared.config.transient_retries,
-        pilot_cost_per_vote_usd={
-            judge.family_id: judge.pilot_cost_per_vote_usd for judge in prepared.config.judges
-        },
+        pilot_cost_per_vote_usd=pilot_costs,
         parse_verdict=prompt.parse,
         established_families=established,
+        initial_billed_costs_usd=_resume_billed_costs(
+            attempts,
+            window=prepared.config.guards.cost_window,
+        ),
     )
+
+
+def _resume_billed_costs(
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    window: int,
+) -> dict[JudgeFamilyId, tuple[float, ...]]:
+    histories: dict[JudgeFamilyId, deque[float]] = {}
+    for attempt in attempts:
+        result = attempt.result
+        usage = None if result is None else result.usage
+        cost = None if usage is None else usage.cost_usd
+        if cost is not None:
+            family_id = JudgeFamilyId(attempt.family_id)
+            histories.setdefault(family_id, deque(maxlen=window)).append(cost)
+    return {family_id: tuple(costs) for family_id, costs in histories.items()}
 
 
 async def _execute_grid(
@@ -240,11 +277,17 @@ async def _execute_grid(
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
 ) -> tuple[JournalSnapshot, GridPlan]:
+    prompt = RubricVotePrompt(
+        pack=prepared.prompt_pack,
+        cards=prepared.deck.by_relation_id,
+    )
     current_plan = derive_grid_plan(prepared, snapshot.votes)
     current_resume = build_resume_index(
         current_plan,
         votes=snapshot.votes,
         attempts=snapshot.attempts,
+        prompt=prompt,
+        config=prepared.config,
     )
     phase_a_incomplete = len(snapshot.votes) < prepared.phase_a.expected_votes
     current_incomplete = current_resume.next_plan_index < current_plan.expected_votes
@@ -253,10 +296,6 @@ async def _execute_grid(
     if manifest_exists:
         raise ValueError("completed grid manifest has an incomplete vote journal")
 
-    prompt = RubricVotePrompt(
-        pack=prepared.prompt_pack,
-        cards=prepared.deck.by_relation_id,
-    )
     async with _transport(injected_transport) as completion:
         runner = LogicalVoteRunner(
             config=prepared.config,
@@ -264,7 +303,7 @@ async def _execute_grid(
             journal=journal,
             transport=completion,
             guard=_grid_guard(prepared, prompt=prompt, attempts=snapshot.attempts),
-            attempts=snapshot.attempts,
+            resume=current_resume,
         )
         if phase_a_incomplete:
             progress.phase(
@@ -286,6 +325,8 @@ async def _execute_grid(
             complete_plan,
             votes=snapshot.votes,
             attempts=snapshot.attempts,
+            prompt=prompt,
+            config=prepared.config,
         )
         if complete_resume.next_plan_index < complete_plan.expected_votes:
             progress.phase(
@@ -300,7 +341,12 @@ async def _execute_grid(
                 start_index=complete_resume.next_plan_index,
                 after_commit=_advance_progress(progress),
             )
-    final_snapshot, _ = await _final_snapshot(journal, complete_plan)
+    final_snapshot, _ = await _final_snapshot(
+        journal,
+        complete_plan,
+        prompt=prompt,
+        config=prepared.config,
+    )
     return final_snapshot, complete_plan
 
 
@@ -339,7 +385,16 @@ async def _run_grid(
             injected_transport=injected_transport,
             progress=progress,
         )
-        snapshot, _ = await _final_snapshot(journal, plan)
+        prompt = RubricVotePrompt(
+            pack=prepared.prompt_pack,
+            cards=prepared.deck.by_relation_id,
+        )
+        snapshot, _ = await _final_snapshot(
+            journal,
+            plan,
+            prompt=prompt,
+            config=prepared.config,
+        )
         analysis = analyze_grid(
             cards=prepared.pool,
             family_ids=tuple(judge.family_id for judge in prepared.config.judges),

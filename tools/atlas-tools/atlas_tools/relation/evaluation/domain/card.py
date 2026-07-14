@@ -10,9 +10,13 @@ from typing import Self
 
 from pydantic import NonNegativeInt, model_validator
 
-from atlas_tools.common import Sha256Hex, sha256_bytes
+from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.domain._model import FrozenModel
-from atlas_tools.relation.evaluation.domain.identity import NonEmptyStr, RelationFamilyId
+from atlas_tools.relation.evaluation.domain.identity import (
+    CardHash,
+    NonEmptyStr,
+    RelationFamilyId,
+)
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 
@@ -22,7 +26,7 @@ class EvaluationCard(FrozenModel):
     relation_id: RelationId
     producer: RelationNamespace
     card_text: str
-    card_hash: Sha256Hex
+    card_hash: CardHash
     token_count: NonNegativeInt
     prescreen_stratum: NonEmptyStr = "unstratified"
     pilot_strata: tuple[str, ...] = ()

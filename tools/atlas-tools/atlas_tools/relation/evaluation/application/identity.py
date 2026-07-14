@@ -8,11 +8,16 @@ used by existing pilot and grid artifacts.
 import hashlib
 import json
 from collections.abc import Mapping
+from typing import overload
 
 from atlas_tools.relation.evaluation.domain.api import (
     BaseRunConfig,
+    GridJudge,
+    GridJudgePin,
     JudgeConfig,
     JudgePin,
+    PilotJudgePin,
+    PlanHash,
     Sha256Hex,
     VotePlan,
 )
@@ -58,20 +63,33 @@ def _sha256_json(value: object) -> Sha256Hex:
     return hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
 
 
-def judge_pin(judge: JudgeConfig) -> JudgePin:
-    """Snapshot one judge with the same fields used by its request contract."""
-    payload = {"family_id": judge.family_id, **judge.model_dump(mode="json")}
-    return JudgePin.model_validate(payload, strict=True)
+@overload
+def judge_pin(judge: JudgeConfig) -> PilotJudgePin: ...
+
+
+@overload
+def judge_pin(judge: GridJudge) -> GridJudgePin: ...
+
+
+def judge_pin(judge: JudgeConfig | GridJudge) -> JudgePin:
+    """Snapshot a pilot or grid judge without duplicating derived identity."""
+    if isinstance(judge, JudgeConfig):
+        return PilotJudgePin(judge=judge)
+    return GridJudgePin(judge=judge)
 
 
 def judge_request_hash(pin: JudgePin) -> Sha256Hex:
     """Hash exactly the judge fields present when the pin was constructed.
 
-    [`JudgePin`] covers both pilot and grid judges. Excluding unset fields keeps
-    absent grid-only metadata out of a pilot judge's historical identity while
-    retaining explicit null request pins such as `temperature` and `seed`.
+    Measured pilot cost is excluded because it controls a local guard and does
+    not alter provider request bytes.
     """
-    return _sha256_json(pin.model_dump(mode="json", exclude_unset=True))
+    return _sha256_json(
+        pin.judge.model_dump(
+            mode="json",
+            exclude={"pilot_cost_per_vote_usd"},
+        )
+    )
 
 
 def panel_hash(config: BaseRunConfig) -> Sha256Hex:
@@ -115,7 +133,7 @@ def request_contract_hash(
     )
 
 
-def plan_hash(plan: VotePlan, *, request_contract: Sha256Hex) -> Sha256Hex:
+def plan_hash(plan: VotePlan, *, request_contract: Sha256Hex) -> PlanHash:
     """Hash a deterministic task stream incrementally in constant memory.
 
     The request-contract hash is followed by a newline and then each logical
@@ -133,4 +151,4 @@ def plan_hash(plan: VotePlan, *, request_contract: Sha256Hex) -> Sha256Hex:
         count += 1
     if count != plan.expected_votes:
         raise ValueError(f"plan declares {plan.expected_votes} votes but yields {count}")
-    return digest.hexdigest()
+    return PlanHash(digest.hexdigest())

@@ -14,30 +14,55 @@ from atlas_tools.relation.evaluation.analysis.api import (
 )
 from atlas_tools.relation.evaluation.domain.api import (
     BUNDLES,
+    AcceptedAttempt,
+    AttemptId,
+    AttemptRoute,
+    AttemptTiming,
     BundleId,
+    CardHash,
     EvaluationCard,
     ExpectedEffortArm,
     ExpectedGrid,
     ExpectedRepeatArm,
     HandoffManifest,
-    JudgePin,
+    JudgeConfig,
+    JudgeFamilyId,
     MaxCompletionTokensLimit,
+    ModelId,
+    PaidRequestIdentity,
     PhysicalAttempt,
+    PilotJudgePin,
+    PromptPackHash,
+    ProviderName,
     ProviderResult,
+    ProviderSlug,
     ReasoningEffort,
     RelationId,
+    RequestHash,
     RunDates,
     SliceDerivation,
     SliceRecord,
     Vote,
+    VoteAccounting,
+    VoteDecision,
+    VoteEvidence,
+    VoteId,
+    VoteIdentity,
+    VoteProvenance,
+    VoteRequest,
+    VoteTiming,
     VoteVerdict,
     bundle_parts,
 )
 from atlas_tools.relation.evaluation.storage.api import load_deck
 
 _NOW = datetime(2026, 7, 14, tzinfo=UTC)
-_PROMPT_HASH = sha256_bytes(b"pilot prompt")
-_FAMILIES = ("model/c", "model/a", "model/b")
+_PROMPT_HASH = PromptPackHash(sha256_bytes(b"pilot prompt"))
+_FAMILIES = (
+    JudgeFamilyId("model/c"),
+    JudgeFamilyId("model/a"),
+    JudgeFamilyId("model/b"),
+)
 _RELATIONS = (
     "test:N3",
     "test:H2",
@@ -84,16 +109,18 @@ def _card(relation_id: RelationId) -> EvaluationCard:
         relation_id=relation_id,
         producer="test",
         card_text=text,
-        card_hash=sha256_bytes(text.encode()),
+        card_hash=CardHash(sha256_bytes(text.encode())),
         token_count=5,
     )
 
 
 def _manifest(cards: tuple[EvaluationCard, ...]) -> HandoffManifest:
     relation_ids = tuple(card.relation_id for card in cards)
-    family_efforts: dict[str, ReasoningEffort] = {"model/a": "high"}
+    family_efforts: dict[JudgeFamilyId, ReasoningEffort] = {
+        JudgeFamilyId("model/a"): "high"
+    }
     return HandoffManifest(
-        schema_version=2,
+        schema_version=3,
         expected_grid=ExpectedGrid(
             families=_FAMILIES,
             bundles=BUNDLES,
@@ -122,13 +149,14 @@ def _manifest(cards: tuple[EvaluationCard, ...]) -> HandoffManifest:
         ),
         run_dates=RunDates(started_at=_NOW, completed_at=_NOW),
         judges=tuple(
-            JudgePin(
-                family_id=family_id,
-                provider_slug=f"provider-{family_id}",
-                provider_name=f"Provider {family_id}",
-                model=family_id,
-                higher_effort="high" if family_id == "model/a" else None,
-                output_token_limit=MaxCompletionTokensLimit(tokens=256),
+            PilotJudgePin(
+                judge=JudgeConfig(
+                    provider_slug=ProviderSlug(f"provider-{family_id}"),
+                    provider_name=ProviderName(f"Provider {family_id}"),
+                    model=ModelId(family_id),
+                    higher_effort="high" if family_id == "model/a" else None,
+                    output_token_limit=MaxCompletionTokensLimit(tokens=256),
+                ),
             )
             for family_id in _FAMILIES
         ),
@@ -169,7 +197,7 @@ def _slice(cards: tuple[EvaluationCard, ...]) -> tuple[SliceRecord, ...]:
 
 def _baseline_verdict(
     relation_id: RelationId,
-    family_id: str,
+    family_id: JudgeFamilyId,
     bundle: BundleId,
 ) -> VoteVerdict:
     if relation_id in _HOLDOUTS:
@@ -187,7 +215,7 @@ def _baseline_verdict(
     return "proximal" if flipped else "overlay"
 
 
-def _result(family_id: str, verdict: VoteVerdict, cost: float) -> ProviderResult:
+def _result(family_id: JudgeFamilyId, verdict: VoteVerdict, cost: float) -> ProviderResult:
     return ProviderResult.model_validate(
         {
             "id": f"result-{family_id}",
@@ -215,63 +243,78 @@ def _result(family_id: str, verdict: VoteVerdict, cost: float) -> ProviderResult
 
 def _vote(
     card: EvaluationCard,
-    family_id: str,
+    family_id: JudgeFamilyId,
     bundle: BundleId,
     effort: ReasoningEffort,
     repeat_index: int,
     verdict: VoteVerdict,
 ) -> tuple[Vote, PhysicalAttempt]:
-    shell, framing = bundle_parts(bundle)
     cost = 0.3 if family_id == "model/a" and effort == "high" else 0.1
     result = _result(family_id, verdict, cost)
     identity = f"{card.relation_id}|{family_id}|{bundle}|{effort}|{repeat_index}"
-    vote_id = sha256_bytes(identity.encode())
-    vote = Vote(
-        vote_id=vote_id,
-        relation_id=card.relation_id,
-        card_hash=card.card_hash,
-        family_id=family_id,
-        provider=f"Provider {family_id}",
-        model_returned=family_id,
-        shell_id=shell,
-        framing_id=framing,
-        bundle_id=bundle,
-        rubric_version="rubric-v1",
-        prompt_pack_hash=_PROMPT_HASH,
-        verdict=verdict,
-        reason="hand-computed evidence",
-        raw_completion=f'{{"verdict":"{verdict}"}}',
-        parse_retries=0,
-        abstained=verdict == "ABSTAIN",
-        attempt_results=(result,),
-        effort=effort,
-        temperature=0.0,
-        seed=7,
-        repeat_index=repeat_index,
-        tokens_in=60,
-        tokens_out=40,
-        tokens_cached=0,
-        known_cost_usd=cost,
-        cost_complete=True,
-        cost_usd=cost,
-        ts_request=_NOW,
-        ts_response=_NOW,
-        latency=timedelta(),
-    )
+    vote_id = VoteId(sha256_bytes(identity.encode()))
+    physical_id = AttemptId(sha256_bytes(f"attempt:{identity}".encode()))
     attempt = PhysicalAttempt(
-        attempt_id=sha256_bytes(f"attempt:{identity}".encode()),
-        vote_id=vote_id,
-        request_stage="initial",
-        stage_attempt=0,
-        request_hash=sha256_bytes(f"request:{identity}".encode()),
-        family_id=family_id,
-        provider_slug=f"provider-{family_id}",
-        model_requested=family_id,
-        result=result,
-        failure=None,
-        ts_request=_NOW,
-        ts_response=_NOW,
-        latency=timedelta(),
+        identity=PaidRequestIdentity(
+            attempt_id=physical_id,
+            vote_id=vote_id,
+            request_hash=RequestHash(sha256_bytes(f"request:{identity}".encode())),
+            stage="initial",
+            stage_attempt=0,
+        ),
+        route=AttemptRoute(
+            family_id=family_id,
+            provider_slug=ProviderSlug(f"provider-{family_id}"),
+            model_requested=ModelId(family_id),
+        ),
+        outcome=AcceptedAttempt(result=result),
+        timing=AttemptTiming(
+            request_at=_NOW,
+            response_at=_NOW,
+            latency=timedelta(),
+        ),
+    )
+    vote = Vote(
+        identity=VoteIdentity(vote_id=vote_id, relation_id=card.relation_id),
+        provenance=VoteProvenance(
+            card_hash=card.card_hash,
+            rubric_version="rubric-v1",
+            prompt_pack_hash=_PROMPT_HASH,
+        ),
+        request=VoteRequest(
+            judge=JudgeConfig(
+                provider_name=ProviderName(f"Provider {family_id}"),
+                provider_slug=ProviderSlug(f"provider-{family_id}"),
+                model=ModelId(family_id),
+                higher_effort="high" if family_id == "model/a" else None,
+            ),
+            bundle_id=bundle,
+            effort=effort,
+            temperature=0.0,
+            seed=7,
+            repeat_index=repeat_index,
+        ),
+        decision=VoteDecision(
+            verdict=verdict,
+            reason="hand-computed evidence",
+            raw_completion=f'{{"verdict":"{verdict}"}}',
+        ),
+        evidence=VoteEvidence(
+            accepted_attempt_ids=(physical_id,),
+            model_returned=ModelId(family_id),
+        ),
+        accounting=VoteAccounting(
+            tokens_in=60,
+            tokens_out=40,
+            tokens_cached=0,
+            known_cost_usd=cost,
+            cost_complete=True,
+        ),
+        timing=VoteTiming(
+            request_at=_NOW,
+            response_at=_NOW,
+            latency=timedelta(),
+        ),
     )
     return vote, attempt
 
@@ -300,17 +343,20 @@ def _cohort() -> tuple[
         for bundle in BUNDLES
     )
     repeat_card = next(card for card in cards if card.relation_id == "test:N1")
-    repeat_verdicts: dict[str, tuple[VoteVerdict, VoteVerdict]] = {
-        "model/a": ("proximal", "overlay"),
-        "model/b": ("overlay", "overlay"),
-        "model/c": ("unclear", "unclear"),
+    repeat_verdicts: dict[JudgeFamilyId, tuple[VoteVerdict, VoteVerdict]] = {
+        JudgeFamilyId("model/a"): ("proximal", "overlay"),
+        JudgeFamilyId("model/b"): ("overlay", "overlay"),
+        JudgeFamilyId("model/c"): ("unclear", "unclear"),
     }
     for family_id, verdicts in repeat_verdicts.items():
         for repeat_index, verdict in enumerate(verdicts, start=1):
             evidence.append(
                 _vote(repeat_card, family_id, "S1xF1", "minimal", repeat_index, verdict)
             )
-    evidence.extend(_vote(card, "model/a", "S1xF1", "high", 0, "proximal") for card in cards)
+    evidence.extend(
+        _vote(card, JudgeFamilyId("model/a"), "S1xF1", "high", 0, "proximal")
+        for card in cards
+    )
     votes, attempts = zip(*reversed(evidence), strict=True)
     return manifest, _slice(cards), cards, votes, attempts
 
@@ -393,7 +439,13 @@ def test_route_replay_fails_before_decisions_when_stream_threshold_is_exceeded()
         if attempt.family_id == "model/c"
         and next(vote for vote in votes if vote.vote_id == attempt.vote_id).bundle_id == "S3xF3"
     )
-    corrupted = target.model_copy(update={"model_requested": "wrong/model"})
+    corrupted = target.model_copy(
+        update={
+            "route": target.route.model_copy(
+                update={"model_requested": ModelId("wrong/model")}
+            ),
+        }
+    )
     replaced = tuple(
         corrupted if attempt.attempt_id == target.attempt_id else attempt for attempt in attempts
     )

@@ -44,6 +44,7 @@
     "generate-system-types": "yarn workspace @local/hash-isomorphic-utils generate-system-types",
     "graph:reset-database": "yarn workspace @rust/hash-graph-http-tests reset-database",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
+    "lint:atlas-tools-architecture": "uv --directory tools/atlas-tools run --frozen python -m scripts.check_evaluation_architecture",
     "lint:constraints": "yarn constraints",
     "lint:eslint": "CARGO_TERM_PROGRESS_WHEN=never turbo --continue=always lint:eslint --",
     "lint:format": "oxfmt --check",

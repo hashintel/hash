@@ -44,9 +44,9 @@ from atlas_tools.relation.evaluation.analysis.classifier_model import (
 )
 from atlas_tools.relation.evaluation.analysis.deliverables import SoftLabel
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     ClassifierConfig,
     RelationId,
-    Sha256Hex,
 )
 
 __all__ = [
@@ -69,7 +69,7 @@ __all__ = [
 def _prediction(
     *,
     relation_id: RelationId,
-    card_hash: Sha256Hex,
+    card_hash: CardHash,
     logits: FloatVector,
     raw: FloatVector,
     calibrated: FloatVector,

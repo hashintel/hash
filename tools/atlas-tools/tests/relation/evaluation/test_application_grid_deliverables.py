@@ -70,6 +70,7 @@ def _summary(analysis: GridAnalysis) -> GridRunSummary:
             refinement_votes=row.refinement_votes,
             abstentions=row.abstentions,
             known_cost_usd=row.known_cost_usd,
+            cost_complete=row.cost_complete,
         )
         for row in economics.by_family
     )

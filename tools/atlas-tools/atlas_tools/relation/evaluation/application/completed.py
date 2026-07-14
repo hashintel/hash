@@ -24,6 +24,7 @@ from atlas_tools.relation.evaluation.application.preparation import (
     _complete_grid,
     _prepare_grid_base,
 )
+from atlas_tools.relation.evaluation.application.prompt import RubricVotePrompt
 from atlas_tools.relation.evaluation.application.source import (
     hash_paths,
     verify_deck_sources,
@@ -35,6 +36,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     PhysicalAttempt,
     Vote,
 )
+from atlas_tools.relation.evaluation.execution.api import build_resume_index
 from atlas_tools.relation.evaluation.modes.api import GridPlan
 from atlas_tools.relation.evaluation.storage.api import (
     GridPaths,
@@ -43,7 +45,6 @@ from atlas_tools.relation.evaluation.storage.api import (
     PilotImport,
     RunJournal,
     VerifiedDeck,
-    build_resume_index,
     exclusive_run,
     load_config_async,
     load_deck_async,
@@ -153,8 +154,13 @@ async def _load_files(
     )
 
 
-def _route_violations(prepared: PreparedGrid, analysis: GridAnalysis) -> int:
+def _route_violations(
+    prepared: PreparedGrid,
+    analysis: GridAnalysis,
+    attempts: tuple[PhysicalAttempt, ...],
+) -> int:
     judges = {judge.family_id: judge for judge in prepared.config.judges}
+    attempts_by_id = {attempt.attempt_id: attempt for attempt in attempts}
     violations = 0
     for card in analysis.cards:
         for observed in card.votes():
@@ -163,10 +169,15 @@ def _route_violations(prepared: PreparedGrid, analysis: GridAnalysis) -> int:
             if judge is None:
                 violations += 1
                 continue
-            pinned = (
-                vote.provider == judge.provider_name
-                and vote.model_returned == judge.model
-                and all(matches_pinned_route(result, judge) for result in vote.attempt_results)
+            accepted = tuple(
+                attempts_by_id.get(attempt_id) for attempt_id in vote.accepted_attempt_ids
+            )
+            pinned = vote.provider == judge.provider_name and vote.model_returned == judge.model
+            pinned = pinned and all(
+                attempt is not None
+                and attempt.result is not None
+                and matches_pinned_route(attempt.result, judge)
+                for attempt in accepted
             )
             violations += not pinned
     return violations
@@ -204,8 +215,10 @@ async def load_completed_grid_async(
 
         base = _prepare_grid_base(loaded.config, loaded.deck)
         pilot_import = PilotImport(
-            directory=run_directory,
+            config=loaded.manifest.pilot_config,
+            manifest_hash=loaded.manifest.source_hashes["pilot-manifest.json"],
             votes_hash=loaded.manifest.source_hashes["pilot-votes.jsonl"],
+            attempts_hash=loaded.manifest.source_hashes["pilot-attempts.jsonl"],
             votes=loaded.imported_votes,
             attempts=loaded.imported_attempts,
         )
@@ -230,10 +243,16 @@ async def load_completed_grid_async(
             raise ValueError("grid run state is not reproducible from the requested inputs")
 
         plan = derive_grid_plan(prepared, loaded.journal.votes)
+        prompt = RubricVotePrompt(
+            pack=prepared.prompt_pack,
+            cards=prepared.deck.by_relation_id,
+        )
         resume = build_resume_index(
             plan,
             votes=loaded.journal.votes,
             attempts=loaded.journal.attempts,
+            prompt=prompt,
+            config=prepared.config,
         )
         if resume.next_plan_index != plan.expected_votes:
             raise ValueError(
@@ -273,7 +292,11 @@ async def load_completed_grid_async(
             journal=loaded.journal,
             plan=plan,
             analysis=analysis,
-            routing_violations=_route_violations(prepared, analysis),
+            routing_violations=_route_violations(
+                prepared,
+                analysis,
+                (*loaded.imported_attempts, *loaded.journal.attempts),
+            ),
         )
 
 

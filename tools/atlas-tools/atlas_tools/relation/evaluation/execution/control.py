@@ -2,10 +2,12 @@
 
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 import trio
+
+from atlas_tools.relation.evaluation.domain.api import JudgeFamilyId
 
 
 class ExecutionStoppedError(RuntimeError):
@@ -92,6 +94,10 @@ class _FamilyState:
     window: int = 1
     successes: int = 0
     generation: int = 0
+    next_admission: int = 0
+    next_resolution: int = 0
+    abandoned: set[int] = field(default_factory=set)
+    resolution_changed: trio.Condition = field(default_factory=trio.Condition)
 
 
 class FamilyPermit:
@@ -103,19 +109,67 @@ class FamilyPermit:
     observation is a conservative ordinary failure and cannot grow the lane.
     """
 
-    __slots__ = ("_closed", "_generation", "_maximum", "_observed", "_state")
+    __slots__ = (
+        "_closed",
+        "_generation",
+        "_maximum",
+        "_observed",
+        "_ordinal",
+        "_resolution_claimed",
+        "_resolved",
+        "_state",
+    )
 
     def __init__(
         self,
         *,
         maximum: int,
+        ordinal: int,
         state: _FamilyState,
     ) -> None:
         self._maximum = maximum
         self._state = state
         self._generation = state.generation
+        self._ordinal = ordinal
         self._observed = False
+        self._resolution_claimed = False
+        self._resolved = False
         self._closed = False
+
+    @asynccontextmanager
+    async def ordered(self) -> AsyncGenerator[None]:
+        """Resolve guard state and durability in family admission order.
+
+        Provider I/O happens before this boundary and may overlap. Once a
+        response arrives, callers enter this context before applying mutable
+        family policy or appending its durable attempt. An exchange abandoned
+        before this boundary is skipped without blocking later admissions.
+        """
+        if self._closed:
+            raise RuntimeError("family permit was resolved after release")
+        if self._resolution_claimed:
+            raise RuntimeError("family permit ordering was entered more than once")
+        self._resolution_claimed = True
+
+        condition = self._state.resolution_changed
+        try:
+            async with condition:
+                while self._ordinal != self._state.next_resolution:
+                    await condition.wait()
+        except BaseException:
+            await self._abandon()
+            raise
+
+        try:
+            yield
+        finally:
+            async with condition:
+                if self._ordinal != self._state.next_resolution:
+                    raise RuntimeError("family resolution order advanced unexpectedly")
+                self._state.next_resolution += 1
+                self._resolved = True
+                self._skip_abandoned()
+                condition.notify_all()
 
     def succeeded(self) -> None:
         """Count one successful exchange toward this family's next ramp."""
@@ -152,8 +206,24 @@ class FamilyPermit:
 
         self._observed = True
 
-    def close(self) -> None:
-        """Prevent outcome observations after the permit has been released."""
+    async def _abandon(self) -> None:
+        if self._resolved:
+            return
+        condition = self._state.resolution_changed
+        async with condition:
+            self._state.abandoned.add(self._ordinal)
+            self._resolved = True
+            self._skip_abandoned()
+            condition.notify_all()
+
+    def _skip_abandoned(self) -> None:
+        while self._state.next_resolution in self._state.abandoned:
+            self._state.abandoned.remove(self._state.next_resolution)
+            self._state.next_resolution += 1
+
+    async def close(self) -> None:
+        """Abandon unresolved ordering and prevent later observations."""
+        await self._abandon()
         self._closed = True
 
 
@@ -176,10 +246,10 @@ class FamilySerialiser:
             raise ValueError("family concurrency maximum must be a positive integer")
 
         self._maximum = maximum
-        self._states: dict[str, _FamilyState] = {}
+        self._states: dict[JudgeFamilyId, _FamilyState] = {}
 
     @asynccontextmanager
-    async def hold(self, family_id: str) -> AsyncGenerator[FamilyPermit]:
+    async def hold(self, family_id: JudgeFamilyId) -> AsyncGenerator[FamilyPermit]:
         """Acquire an adaptive request permit for one non-empty family ID."""
         if not family_id:
             raise ValueError("family_id must not be empty")
@@ -190,8 +260,14 @@ class FamilySerialiser:
             self._states[family_id] = state
 
         async with state.limiter:
-            permit = FamilyPermit(maximum=self._maximum, state=state)
+            ordinal = state.next_admission
+            state.next_admission += 1
+            permit = FamilyPermit(
+                maximum=self._maximum,
+                ordinal=ordinal,
+                state=state,
+            )
             try:
                 yield permit
             finally:
-                permit.close()
+                await permit.close()

@@ -14,7 +14,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     ClassifierConfig,
     GridJudge,
     GridRunConfig,
+    ModelId,
     PanelConfig,
+    ProviderName,
+    ProviderSlug,
 )
 from tests.relation.evaluation.test_analysis_classifier import _dataset
 
@@ -29,9 +32,10 @@ def _write_config(path: Path, classifier: ClassifierConfig) -> tuple[GridRunConf
         classifier=classifier,
         judges=(
             GridJudge(
-                provider_slug="fixture/provider",
-                provider_name="Fixture Provider",
-                model="fixture/model",
+                provider_slug=ProviderSlug("fixture/provider"),
+                provider_name=ProviderName("Fixture Provider"),
+                model=ModelId("fixture/model"),
+                effort="minimal",
                 pilot_cost_per_vote_usd=0.01,
             ),
         ),

@@ -1,0 +1,172 @@
+//! Validated canonical embeddings and projector-prefix normalization.
+
+use core::{
+    error::Error,
+    fmt,
+    simd::{f32x8, f64x8, num::SimdFloat as _},
+};
+
+/// The stored embedding width.
+pub(crate) const CANONICAL_DIMENSIONS: usize = 3_072;
+
+/// The normalized prefix width consumed by the projector.
+pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
+
+/// The lower bound used when normalizing a projector prefix.
+pub(crate) const NORMALIZATION_EPSILON: f64 = 1.0e-12;
+
+/// Fused multiply-add when the target provides native FMA instructions.
+#[inline(always)]
+#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
+fn simd_mul_add(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
+    use std::simd::StdFloat as _;
+
+    lhs.mul_add(rhs, accumulator)
+}
+
+/// Separate multiplication and addition when native FMA is unavailable.
+#[inline(always)]
+#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
+fn simd_mul_add(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
+    lhs * rhs + accumulator
+}
+
+/// A finite canonical embedding with the required width.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct CanonicalEmbedding<'embedding>(&'embedding [f32; CANONICAL_DIMENSIONS]);
+
+impl<'embedding> CanonicalEmbedding<'embedding> {
+    /// Validates and borrows one canonical embedding.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when `values` has the wrong width or contains a
+    /// non-finite component.
+    pub(crate) fn new(values: &'embedding [f32]) -> Result<Self, RepresentationError> {
+        let values: &[f32; CANONICAL_DIMENSIONS] =
+            values
+                .try_into()
+                .map_err(|_| RepresentationError::Dimensions {
+                    expected: CANONICAL_DIMENSIONS,
+                    actual: values.len(),
+                })?;
+
+        let (chunks, remainder) = values.as_chunks::<8>();
+        debug_assert!(remainder.is_empty());
+        for (chunk_index, chunk) in chunks.iter().enumerate() {
+            if !f32x8::from_array(*chunk).is_finite().all() {
+                let start = chunk_index * 8;
+                let lane = chunk
+                    .iter()
+                    .position(|value| !value.is_finite())
+                    .expect("should contain a non-finite lane after the SIMD check");
+                return Err(RepresentationError::NonFinite {
+                    index: start + lane,
+                });
+            }
+        }
+
+        Ok(Self(values))
+    }
+
+    /// Borrows all canonical components.
+    #[must_use]
+    pub(crate) const fn as_array(self) -> &'embedding [f32; CANONICAL_DIMENSIONS] {
+        self.0
+    }
+
+    /// Writes the normalized projector prefix into `output`.
+    ///
+    /// The norm is accumulated in `f64`. This method performs no allocation.
+    #[must_use]
+    pub(crate) fn normalize_prefix(
+        self,
+        output: &mut [f32; PROJECTOR_DIMENSIONS],
+    ) -> PrefixNormalization {
+        let (input, remainder) = self.0[..PROJECTOR_DIMENSIONS].as_chunks::<8>();
+        debug_assert!(remainder.is_empty());
+        let (output, remainder) = output.as_chunks_mut::<8>();
+        debug_assert!(remainder.is_empty());
+        debug_assert_eq!(input.len(), output.len());
+
+        let mut sum0 = f64x8::splat(0.0);
+        let mut sum1 = f64x8::splat(0.0);
+        let mut sum2 = f64x8::splat(0.0);
+        let mut sum3 = f64x8::splat(0.0);
+
+        let mut index = 0;
+        while index + 4 <= input.len() {
+            let [input0, input1, input2, input3] = [
+                f32x8::from_array(input[index]),
+                f32x8::from_array(input[index + 1]),
+                f32x8::from_array(input[index + 2]),
+                f32x8::from_array(input[index + 3]),
+            ];
+
+            output[index] = input0.to_array();
+            output[index + 1] = input1.to_array();
+            output[index + 2] = input2.to_array();
+            output[index + 3] = input3.to_array();
+
+            let [wide0, wide1, wide2, wide3]: [f64x8; 4] =
+                [input0.cast(), input1.cast(), input2.cast(), input3.cast()];
+            sum0 = simd_mul_add(wide0, wide0, sum0);
+            sum1 = simd_mul_add(wide1, wide1, sum1);
+            sum2 = simd_mul_add(wide2, wide2, sum2);
+            sum3 = simd_mul_add(wide3, wide3, sum3);
+            index += 4;
+        }
+        debug_assert_eq!(index, input.len());
+
+        let norm = (sum0 + sum1 + sum2 + sum3).reduce_sum().sqrt();
+        let denominator = norm.max(NORMALIZATION_EPSILON);
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the normalized projector representation is persisted as f32"
+        )]
+        let inverse = f32x8::splat((1.0 / denominator) as f32);
+        for chunk in output {
+            *chunk = (f32x8::from_array(*chunk) * inverse).to_array();
+        }
+
+        PrefixNormalization { norm, denominator }
+    }
+}
+
+/// Diagnostics from projector-prefix normalization.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct PrefixNormalization {
+    /// The unbounded `f64` norm of the canonical prefix.
+    pub norm: f64,
+    /// The denominator after applying [`NORMALIZATION_EPSILON`].
+    pub denominator: f64,
+}
+
+/// An invalid canonical embedding.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum RepresentationError {
+    /// The embedding width differs from [`CANONICAL_DIMENSIONS`].
+    Dimensions { expected: usize, actual: usize },
+    /// A component is NaN or infinite.
+    NonFinite { index: usize },
+}
+
+impl fmt::Display for RepresentationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Dimensions { expected, actual } => write!(
+                formatter,
+                "canonical embedding contains {actual} components; expected {expected}"
+            ),
+            Self::NonFinite { index } => write!(
+                formatter,
+                "canonical embedding component {index} is not finite"
+            ),
+        }
+    }
+}
+
+impl Error for RepresentationError {}
+
+#[cfg(test)]
+mod tests;

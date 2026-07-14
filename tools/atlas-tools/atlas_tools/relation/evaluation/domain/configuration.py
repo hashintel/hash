@@ -14,8 +14,16 @@ from pydantic import Field, PositiveInt, TypeAdapter, model_validator
 
 from atlas_tools.relation.evaluation.domain._model import FrozenModel
 from atlas_tools.relation.evaluation.domain.identity import (
+    FiniteFloat,
     JudgeFamilyId,
+    ModelId,
+    NonEmptyStr,
+    OpenProbability,
     OpenRouterRegion,
+    PositiveFiniteFloat,
+    Probability,
+    ProviderName,
+    ProviderSlug,
     ReasoningEffort,
 )
 
@@ -54,22 +62,41 @@ type OutputTokenLimit = Annotated[
 ]
 
 
-class JudgeConfig(FrozenModel):
-    """Pin one model to one provider endpoint and decoding policy."""
+class JudgeRequestSpec(FrozenModel):
+    """Pin one model route and its decoding policy."""
 
-    provider_slug: str = Field(min_length=1)
-    provider_name: str = Field(min_length=1)
+    provider_slug: ProviderSlug
+    provider_name: ProviderName
     openrouter_region: OpenRouterRegion = "global"
-    model: str = Field(min_length=1)
-    temperature: float | None = Field(default=0.0, allow_inf_nan=False)
+    model: ModelId
+    temperature: FiniteFloat | None = 0.0
     seed: int | None = 0
-    higher_effort: ReasoningEffort | None = None
     output_token_limit: OutputTokenLimit = MaxCompletionTokensLimit(tokens=256)
 
     @property
     def family_id(self) -> JudgeFamilyId:
         """Use the canonical model ID as the stable analysis family."""
-        return self.model
+        return JudgeFamilyId(self.model)
+
+    def as_request_spec(self) -> JudgeRequestSpec:
+        """Drop planning and guard metadata from a persisted request pin."""
+        if type(self) is JudgeRequestSpec:
+            return self
+        return JudgeRequestSpec(
+            provider_slug=self.provider_slug,
+            provider_name=self.provider_name,
+            openrouter_region=self.openrouter_region,
+            model=self.model,
+            temperature=self.temperature,
+            seed=self.seed,
+            output_token_limit=self.output_token_limit,
+        )
+
+
+class JudgeConfig(JudgeRequestSpec):
+    """Add the optional deliberation arm used only by pilot planning."""
+
+    higher_effort: ReasoningEffort | None = None
 
 
 class TransientRetryConfig(FrozenModel):
@@ -111,16 +138,19 @@ class TransientRetryConfig(FrozenModel):
 
 
 class ConcurrencyConfig(FrozenModel):
-    """Bound worker growth with a deterministic ramp."""
+    """Bound global workers and each independently adaptive model family."""
 
     initial: PositiveInt = 1
     maximum: PositiveInt = 1
+    family_maximum: PositiveInt = 1
     ramp: Literal["doubling-v1"] = "doubling-v1"
 
     @model_validator(mode="after")
     def check_bounds(self) -> Self:
         if self.maximum < self.initial:
             raise ValueError("maximum must be greater than or equal to initial")
+        if self.family_maximum > self.maximum:
+            raise ValueError("family_maximum must not exceed the global maximum")
         return self
 
 
@@ -137,7 +167,7 @@ class BaseRunConfig(FrozenModel):
     concurrency: ConcurrencyConfig = ConcurrencyConfig()
 
 
-def _check_unique_families(judges: Sequence[JudgeConfig]) -> None:
+def _check_unique_families(judges: Sequence[JudgeRequestSpec]) -> None:
     if not judges:
         raise ValueError("judges must not be empty")
     families = tuple(judge.family_id for judge in judges)
@@ -158,36 +188,32 @@ class PilotRunConfig(BaseRunConfig):
     def check_judges(self) -> Self:
         _check_unique_families(self.judges)
         duplicate_efforts = tuple(
-            judge.family_id
-            for judge in self.judges
-            if judge.higher_effort == self.baseline_effort
+            judge.family_id for judge in self.judges if judge.higher_effort == self.baseline_effort
         )
         if duplicate_efforts:
             raise ValueError(
-                "higher_effort must differ from baseline_effort for "
-                f"{', '.join(duplicate_efforts)}"
+                f"higher_effort must differ from baseline_effort for {', '.join(duplicate_efforts)}"
             )
         return self
 
 
-class GridJudge(JudgeConfig):
+class GridJudge(JudgeRequestSpec):
     """Add measured pilot cost and the one effort used by a grid seat."""
 
-    effort: ReasoningEffort | None = None
-    pilot_cost_per_vote_usd: float = Field(gt=0.0, allow_inf_nan=False)
-
-    @model_validator(mode="after")
-    def check_seat(self) -> Self:
-        if self.higher_effort is not None:
-            raise ValueError("grid judges pin effort directly; higher_effort must be null")
-        return self
+    effort: ReasoningEffort
+    pilot_cost_per_vote_usd: PositiveFiniteFloat
 
 
 class ManualPrune(FrozenModel):
     """Record an operator decision that removes a qualified family."""
 
-    model: str = Field(min_length=1)
-    reason: str = Field(min_length=1)
+    model: ModelId
+    reason: NonEmptyStr
+
+    @property
+    def family_id(self) -> JudgeFamilyId:
+        """Expose the pruned model through the shared family vocabulary."""
+        return JudgeFamilyId(self.model)
 
 
 class PanelConfig(FrozenModel):
@@ -203,6 +229,9 @@ class PanelConfig(FrozenModel):
     def check_freeze(self) -> Self:
         if self.frozen and not (self.pruning_floor or "").strip():
             raise ValueError("a frozen panel must document its pruning floor")
+        families = tuple(prune.family_id for prune in self.manual_prunes)
+        if len(families) != len(set(families)):
+            raise ValueError("manual_prunes contains duplicate family IDs")
         return self
 
 
@@ -221,8 +250,8 @@ class EmbeddingConfig(FrozenModel):
 class ClassifierConfig(FrozenModel):
     """Pin soft-label multinomial logistic-regression fitting."""
 
-    folds: PositiveInt = 5
-    regularization: float = Field(default=1.0, gt=0.0, allow_inf_nan=False)
+    folds: Annotated[int, Field(ge=2)] = 5
+    regularization: PositiveFiniteFloat = 1.0
     max_iterations: PositiveInt = 1000
     seed: int = 0
 
@@ -230,10 +259,11 @@ class ClassifierConfig(FrozenModel):
 class ReportConfig(FrozenModel):
     """Pin evaluation gates and calibrated decision thresholds."""
 
-    coincident_precision_target: float = Field(default=0.98, gt=0.0, lt=1.0)
-    confidence_level: float = Field(default=0.95, gt=0.0, lt=1.0)
-    calibrated_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    coincident_precision_target: OpenProbability = 0.98
+    confidence_level: OpenProbability = 0.95
+    calibrated_threshold: Probability = 0.5
     calibration_bins: PositiveInt = 10
+    acceptance_cost_ceiling_usd: PositiveFiniteFloat = 135.0
 
 
 class GuardConfig(FrozenModel):
@@ -266,19 +296,14 @@ class GridRunConfig(BaseRunConfig):
     @model_validator(mode="after")
     def check_roster(self) -> Self:
         _check_unique_families(self.judges)
-        pruned = {prune.model for prune in self.panel.manual_prunes}
+        pruned = {prune.family_id for prune in self.panel.manual_prunes}
         seated = {judge.family_id for judge in self.judges}
         overlap = sorted(pruned & seated)
         if overlap:
             raise ValueError(f"manually pruned families cannot hold seats: {overlap}")
         return self
 
-    def judge_effort(self, judge: GridJudge) -> ReasoningEffort:
-        """Resolve the seat effort once at the mode boundary."""
-        return judge.effort if judge.effort is not None else self.baseline_effort
-
 
 type RunConfig = Annotated[PilotRunConfig | GridRunConfig, Field(discriminator="mode")]
 
 RUN_CONFIG_ADAPTER: TypeAdapter[RunConfig] = TypeAdapter(RunConfig)
-

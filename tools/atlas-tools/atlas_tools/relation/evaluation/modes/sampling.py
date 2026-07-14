@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     RelationId,
     Sha256Hex,
     SliceSamplingConfig,
@@ -33,7 +34,7 @@ class SamplingCard:
 
     relation_id: RelationId
     producer: str
-    card_hash: Sha256Hex
+    card_hash: CardHash
     token_count: int
     prescreen_stratum: str
     pilot_strata: tuple[str, ...] = ()
@@ -50,12 +51,22 @@ class SamplingCard:
         object.__setattr__(self, "pilot_strata", tuple(sorted(set(self.pilot_strata))))
 
 
+@dataclass(frozen=True, order=True, slots=True)
+class _SamplingStratum:
+    """The structured quota key for one sampling stratum."""
+
+    producer: str
+    prescreen_stratum: str
+    length_quartile: LengthQuartile
+    pilot_strata: tuple[str, ...]
+
+
 @dataclass(frozen=True, slots=True)
 class PilotSliceRow:
     """One selected card with every fact needed to replay its selection."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     prescreen_stratum: str
     sampling_stratum: str
     length_quartile: LengthQuartile
@@ -119,9 +130,34 @@ def _length_quartiles(cards: Sequence[SamplingCard]) -> dict[RelationId, LengthQ
     return quartiles
 
 
-def _sampling_stratum(card: SamplingCard, quartile: LengthQuartile) -> str:
-    trouble = ",".join(card.pilot_strata) if card.pilot_strata else "ordinary"
-    return f"{card.producer}|{card.prescreen_stratum}|length-q{quartile}|{trouble}"
+def _sampling_stratum(card: SamplingCard, quartile: LengthQuartile) -> _SamplingStratum:
+    return _SamplingStratum(
+        producer=card.producer,
+        prescreen_stratum=card.prescreen_stratum,
+        length_quartile=quartile,
+        pilot_strata=card.pilot_strata,
+    )
+
+
+def _escape_stratum_component(value: str) -> str:
+    return value.replace("%", "%25").replace("|", "%7C").replace(",", "%2C")
+
+
+def _render_sampling_stratum(stratum: _SamplingStratum) -> str:
+    if stratum.pilot_strata:
+        trouble = ",".join(_escape_stratum_component(value) for value in stratum.pilot_strata)
+        if trouble == "ordinary":
+            trouble = "%6Frdinary"
+    else:
+        trouble = "ordinary"
+    return "|".join(
+        (
+            _escape_stratum_component(stratum.producer),
+            _escape_stratum_component(stratum.prescreen_stratum),
+            f"length-q{stratum.length_quartile}",
+            trouble,
+        )
+    )
 
 
 def _selection_key(
@@ -142,7 +178,7 @@ def _selection_key(
     )
 
 
-def _apportion(sizes: Mapping[str, int], target: int) -> dict[str, int]:
+def _apportion(sizes: Mapping[_SamplingStratum, int], target: int) -> dict[_SamplingStratum, int]:
     if target < 0 or target > sum(sizes.values()):
         raise ValueError("target must fit within the available strata")
     quotas = dict.fromkeys(sizes, 0)
@@ -257,7 +293,7 @@ def derive_pilot_slice(
     }
     ordinary = [card for card in candidates if card.relation_id not in _HOLDOUT_VERDICTS]
     target = min(config.non_holdout_count, len(ordinary))
-    by_stratum: dict[str, list[SamplingCard]] = defaultdict(list)
+    by_stratum: dict[_SamplingStratum, list[SamplingCard]] = defaultdict(list)
     for card in ordinary:
         by_stratum[_sampling_stratum(card, quartiles[card.relation_id])].append(card)
     quotas = _apportion(
@@ -279,7 +315,9 @@ def derive_pilot_slice(
             relation_id=card.relation_id,
             card_hash=card.card_hash,
             prescreen_stratum=card.prescreen_stratum,
-            sampling_stratum=_sampling_stratum(card, quartiles[card.relation_id]),
+            sampling_stratum=_render_sampling_stratum(
+                _sampling_stratum(card, quartiles[card.relation_id])
+            ),
             length_quartile=quartiles[card.relation_id],
             pilot_strata=card.pilot_strata,
             token_count=card.token_count,

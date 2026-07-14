@@ -166,6 +166,7 @@ class GridGates(AnalysisModel):
     routing_violations: NonNegativeInt
     abstention_ceiling: OpenProbability
     total_known_cost_usd: float = Field(ge=0.0, allow_inf_nan=False)
+    cost_complete: bool
     cost_ceiling_usd: float | None = Field(default=None, ge=0.0, allow_inf_nan=False)
 
     @model_validator(mode="after")
@@ -199,11 +200,12 @@ class GridGates(AnalysisModel):
             row.rate < self.abstention_ceiling for row in self.abstention
         ):
             raise ValueError("abstention gate must equal its family rates")
-        expected_cost = (
-            self.cost_ceiling_usd is None or self.total_known_cost_usd <= self.cost_ceiling_usd
+        expected_cost = self.cost_complete and (
+            self.cost_ceiling_usd is None
+            or self.total_known_cost_usd <= self.cost_ceiling_usd
         )
         if decisions["cost-envelope"] != expected_cost:
-            raise ValueError("cost gate must equal its known-cost envelope")
+            raise ValueError("cost gate must require complete billing within its envelope")
         return self
 
     @computed_field
@@ -314,10 +316,22 @@ def grid_acceptance_gates(
         ),
         GateResult(
             gate="cost-envelope",
-            passed=ceiling is None or resolved_economics.total_known_cost_usd <= ceiling,
+            passed=resolved_economics.cost_complete
+            and (
+                ceiling is None or resolved_economics.total_known_cost_usd <= ceiling
+            ),
             detail=(
-                f"known fresh cost ${resolved_economics.total_known_cost_usd:.2f}"
-                + (f" vs ceiling ${ceiling:.2f}" if ceiling is not None else " with no ceiling")
+                (
+                    "complete fresh billing"
+                    if resolved_economics.cost_complete
+                    else "incomplete fresh billing"
+                )
+                + f"; known cost ${resolved_economics.total_known_cost_usd:.2f}"
+                + (
+                    f" vs ceiling ${ceiling:.2f}"
+                    if ceiling is not None
+                    else " with no ceiling"
+                )
             ),
         ),
     )
@@ -328,5 +342,6 @@ def grid_acceptance_gates(
         routing_violations=resolved_evidence.routing_violations,
         abstention_ceiling=policy.abstention_ceiling,
         total_known_cost_usd=resolved_economics.total_known_cost_usd,
+        cost_complete=resolved_economics.cost_complete,
         cost_ceiling_usd=ceiling,
     )

@@ -91,6 +91,28 @@ class FakeOpenRouter:
         self.sync_closed = True
 
 
+class _AsyncCloseError(RuntimeError):
+    pass
+
+
+class _FailingCloseProbe:
+    instances: ClassVar[list[Self]] = []
+
+    def __init__(self, *, api_key: str, retry_config: RetryConfig) -> None:
+        del api_key, retry_config
+        self.async_exit_calls = 0
+        self.sync_exit_calls = 0
+        self.instances.append(self)
+
+    async def __aexit__(self, _kind: object, _error: object, _traceback: object) -> None:
+        self.async_exit_calls += 1
+        if self.async_exit_calls == 1:
+            raise _AsyncCloseError("asynchronous SDK close failed")
+
+    def __exit__(self, _kind: object, _error: object, _traceback: object) -> None:
+        self.sync_exit_calls += 1
+
+
 def test_native_async_embedding_orders_vectors_and_pins_request_policy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -135,6 +157,25 @@ def test_native_async_embedding_orders_vectors_and_pins_request_policy(
         assert client.sync_closed
         with pytest.raises(RuntimeError, match="closed"):
             await transport.embed(_request())
+
+    trio.run(scenario)
+
+
+def test_embedding_close_remains_retryable_after_async_sdk_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        _FailingCloseProbe.instances.clear()
+        monkeypatch.setattr(embedding_module, "OpenRouter", _FailingCloseProbe)
+        transport = OpenRouterEmbeddingTransport("secret", maximum_batch_size=8)
+        client = _FailingCloseProbe.instances[-1]
+
+        with pytest.raises(_AsyncCloseError, match="asynchronous SDK close failed"):
+            await transport.aclose()
+        await transport.aclose()
+
+        assert client.async_exit_calls == 2
+        assert client.sync_exit_calls == 1
 
     trio.run(scenario)
 

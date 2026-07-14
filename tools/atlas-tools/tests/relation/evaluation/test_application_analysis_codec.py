@@ -24,6 +24,7 @@ from atlas_tools.relation.evaluation.application.analysis_codec import (
     write_soft_labels,
 )
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     ClassifierConfig,
     PlacementClass,
     RelationFamilyId,
@@ -32,8 +33,8 @@ from atlas_tools.relation.evaluation.domain.api import (
 _SOURCE_HASHES = {"fixture-cards": "a" * 64}
 
 
-def _card_hash(relation_id: str) -> str:
-    return hashlib.sha256(relation_id.encode()).hexdigest()
+def _card_hash(relation_id: str) -> CardHash:
+    return CardHash(hashlib.sha256(relation_id.encode()).hexdigest())
 
 
 def _label(
@@ -67,18 +68,18 @@ def _label(
 
 def _dataset() -> tuple[tuple[SoftLabel, ...], tuple[EmbeddingRow, ...]]:
     specifications: tuple[tuple[RelationFamilyId, PlacementClass, tuple[float, float]], ...] = (
-        ("family-a", "coincident", (-2.0, 0.0)),
-        ("family-a", "coincident", (-2.0, 0.5)),
-        ("family-b", "proximal", (2.0, 0.0)),
-        ("family-b", "proximal", (2.0, 0.5)),
-        ("family-c", "overlay", (0.0, 2.0)),
-        ("family-c", "overlay", (0.5, 2.0)),
-        ("family-d", "coincident", (-2.0, -0.5)),
-        ("family-d", "coincident", (-1.5, 0.0)),
-        ("family-e", "proximal", (2.0, -0.5)),
-        ("family-e", "proximal", (1.5, 0.0)),
-        ("family-f", "overlay", (0.0, 1.5)),
-        ("family-f", "overlay", (-0.5, 2.0)),
+        (RelationFamilyId("family-a"), "coincident", (-2.0, 0.0)),
+        (RelationFamilyId("family-a"), "coincident", (-2.0, 0.5)),
+        (RelationFamilyId("family-b"), "proximal", (2.0, 0.0)),
+        (RelationFamilyId("family-b"), "proximal", (2.0, 0.5)),
+        (RelationFamilyId("family-c"), "overlay", (0.0, 2.0)),
+        (RelationFamilyId("family-c"), "overlay", (0.5, 2.0)),
+        (RelationFamilyId("family-d"), "coincident", (-2.0, -0.5)),
+        (RelationFamilyId("family-d"), "coincident", (-1.5, 0.0)),
+        (RelationFamilyId("family-e"), "proximal", (2.0, -0.5)),
+        (RelationFamilyId("family-e"), "proximal", (1.5, 0.0)),
+        (RelationFamilyId("family-f"), "overlay", (0.0, 1.5)),
+        (RelationFamilyId("family-f"), "overlay", (-0.5, 2.0)),
     )
     labels = tuple(
         _label(index, family_id=family_id, placement_class=placement_class)

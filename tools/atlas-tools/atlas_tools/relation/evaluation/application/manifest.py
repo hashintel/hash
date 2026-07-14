@@ -47,8 +47,8 @@ def _run_dates(votes: Sequence[Vote]) -> RunDates:
     if not votes:
         raise ValueError("cannot finalize a manifest without logical votes")
     return RunDates(
-        started_at=min(vote.ts_request for vote in votes),
-        completed_at=max(vote.ts_response for vote in votes),
+        started_at=min(vote.request_at for vote in votes),
+        completed_at=max(vote.response_at for vote in votes),
     )
 
 
@@ -68,6 +68,8 @@ def _grid_source_hashes(prepared: PreparedGrid) -> dict[str, Sha256Hex]:
     return {
         **prepared.deck.source_hashes,
         "judges-panel": prepared.panel_hash,
+        "pilot-attempts.jsonl": prepared.pilot_import.attempts_hash,
+        "pilot-manifest.json": prepared.pilot_import.manifest_hash,
         "pilot-votes.jsonl": prepared.pilot_import.votes_hash,
     }
 
@@ -144,7 +146,6 @@ def build_pilot_manifest(
     relation_ids = tuple(row.relation_id for row in prepared.slice_records)
     non_holdouts = tuple(row.relation_id for row in prepared.slice_records if not row.is_holdout)
     return HandoffManifest(
-        schema_version=2,
         expected_grid=ExpectedGrid(
             families=families,
             bundles=BUNDLES,
@@ -200,6 +201,7 @@ def _family_counts(
                 refinement_votes=family.refinement_votes,
                 abstentions=family.abstentions,
                 known_cost_usd=family.known_cost_usd,
+                cost_complete=family.cost_complete,
             )
         )
     return tuple(rows)
@@ -232,8 +234,9 @@ def build_grid_manifest(
         panel_version=prepared.config.panel.version,
         panel_frozen=prepared.config.panel.frozen,
         judges=tuple(judge_pin(judge) for judge in prepared.config.judges),
+        pilot_config=prepared.pilot_import.config,
         manual_prunes={
-            prune.model: prune.reason for prune in prepared.config.panel.manual_prunes
+            prune.family_id: prune.reason for prune in prepared.config.panel.manual_prunes
         },
         reserve_topology=prepared.config.panel.reserve_topology,
         run_dates=dates,

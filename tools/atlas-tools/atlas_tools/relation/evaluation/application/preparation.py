@@ -16,19 +16,23 @@ from typing import assert_never
 import trio
 
 from atlas_tools.relation.evaluation.application.identity import panel_hash
+from atlas_tools.relation.evaluation.application.prompt import RubricVotePrompt
 from atlas_tools.relation.evaluation.domain.api import (
     CorpusRecord,
     EvaluationCard,
     GridRunConfig,
     PhysicalAttempt,
     PilotRunConfig,
+    PromptPackHash,
     RelationId,
     Sha256Hex,
     SliceDerivation,
     SliceRecord,
     Vote,
+    VoteId,
     VoteTask,
 )
+from atlas_tools.relation.evaluation.execution.api import validate_attempt_sequence
 from atlas_tools.relation.evaluation.modes.api import (
     BASELINE_REPEAT_INDEX,
     FEW_SHOTS,
@@ -100,10 +104,10 @@ class PreparedGrid:
     pool: tuple[EvaluationCard, ...]
     pool_by_relation_id: MappingProxyType[RelationId, EvaluationCard]
     corpus: tuple[CorpusRecord, ...]
-    baseline_by_vote_id: MappingProxyType[Sha256Hex, VoteTask]
+    baseline_by_vote_id: MappingProxyType[VoteId, VoteTask]
     pilot_import: PilotImport
-    imported_by_vote_id: MappingProxyType[Sha256Hex, Vote]
-    attempts_by_vote_id: MappingProxyType[Sha256Hex, tuple[PhysicalAttempt, ...]]
+    imported_by_vote_id: MappingProxyType[VoteId, Vote]
+    attempts_by_vote_id: MappingProxyType[VoteId, tuple[PhysicalAttempt, ...]]
     phase_a: GridPhaseAPlan
 
     @property
@@ -123,7 +127,7 @@ class _GridBase:
     pool_by_relation_id: MappingProxyType[RelationId, EvaluationCard]
     grid_cards: tuple[GridCard, ...]
     corpus: tuple[CorpusRecord, ...]
-    baseline_by_vote_id: MappingProxyType[Sha256Hex, VoteTask]
+    baseline_by_vote_id: MappingProxyType[VoteId, VoteTask]
 
 
 def _pilot_config(loaded: LoadedConfig) -> PilotRunConfig:
@@ -262,9 +266,9 @@ def _baseline_index(
     *,
     config: GridRunConfig,
     cards: tuple[GridCard, ...],
-    prompt_pack_hash: Sha256Hex,
-) -> MappingProxyType[Sha256Hex, VoteTask]:
-    baseline: dict[Sha256Hex, VoteTask] = {}
+    prompt_pack_hash: PromptPackHash,
+) -> MappingProxyType[VoteId, VoteTask]:
+    baseline: dict[VoteId, VoteTask] = {}
     for judge in config.judges:
         for card in cards:
             task = grid_task(
@@ -329,15 +333,12 @@ def _validate_imported_vote(task: VoteTask, vote: Vote) -> None:
         raise ValueError(f"imported vote {vote.vote_id} differs in fields {differing}")
 
 
-def _import_indexes(
-    imported: PilotImport,
-    baseline: Mapping[Sha256Hex, VoteTask],
-) -> tuple[
-    MappingProxyType[Sha256Hex, Vote],
-    MappingProxyType[Sha256Hex, tuple[PhysicalAttempt, ...]],
-]:
-    votes: dict[Sha256Hex, Vote] = {}
-    for vote in imported.votes:
+def _index_imported_votes(
+    imported: tuple[Vote, ...],
+    baseline: Mapping[VoteId, VoteTask],
+) -> dict[VoteId, Vote]:
+    votes: dict[VoteId, Vote] = {}
+    for vote in imported:
         if vote.vote_id in votes:
             raise ValueError(f"pilot import repeats logical vote ID {vote.vote_id}")
         task = baseline.get(vote.vote_id)
@@ -345,37 +346,100 @@ def _import_indexes(
             raise ValueError(f"pilot import contains vote outside baseline {vote.vote_id}")
         _validate_imported_vote(task, vote)
         votes[vote.vote_id] = vote
+    return votes
 
-    grouped: dict[Sha256Hex, list[PhysicalAttempt]] = defaultdict(list)
-    for attempt in imported.attempts:
+
+def _index_imported_attempts(
+    imported: tuple[PhysicalAttempt, ...],
+    baseline: Mapping[VoteId, VoteTask],
+    votes: Mapping[VoteId, Vote],
+) -> dict[VoteId, tuple[PhysicalAttempt, ...]]:
+    grouped: dict[VoteId, list[PhysicalAttempt]] = defaultdict(list)
+    for attempt in imported:
         task = baseline.get(attempt.vote_id)
         if task is None or attempt.vote_id not in votes:
             raise ValueError(f"pilot import contains unbound attempt {attempt.attempt_id}")
-        if (
-            attempt.family_id != task.judge.family_id
-            or attempt.provider_slug != task.judge.provider_slug
-            or attempt.model_requested != task.judge.model
-        ):
+        expected_route = (
+            task.judge.family_id,
+            task.judge.provider_slug,
+            task.judge.model,
+        )
+        observed_route = (
+            attempt.family_id,
+            attempt.provider_slug,
+            attempt.model_requested,
+        )
+        if observed_route != expected_route:
             raise ValueError(f"pilot attempt {attempt.attempt_id} differs from its baseline task")
         grouped[attempt.vote_id].append(attempt)
+    return {vote_id: tuple(rows) for vote_id, rows in grouped.items()}
 
-    attempts = {vote_id: tuple(rows) for vote_id, rows in grouped.items()}
+
+def _validate_imported_evidence(
+    imported: PilotImport,
+    baseline: Mapping[VoteId, VoteTask],
+    votes: Mapping[VoteId, Vote],
+    attempts: Mapping[VoteId, tuple[PhysicalAttempt, ...]],
+    *,
+    prompt: RubricVotePrompt,
+) -> None:
+    pilot_judges = {judge.family_id: judge for judge in imported.config.judges}
     for vote_id, vote in votes.items():
         evidence = attempts.get(vote_id)
         if evidence is None:
             raise ValueError(f"imported vote {vote_id} lacks physical attempts")
         accepted = tuple(
-            attempt.result
+            attempt.attempt_id
             for attempt in evidence
             if attempt.result is not None and attempt.failure is None
         )
-        if accepted != vote.attempt_results:
+        if accepted != vote.accepted_attempt_ids:
             raise ValueError(f"imported vote {vote_id} differs from its physical evidence")
+        task = baseline[vote_id]
+        pilot_judge = pilot_judges.get(task.judge.family_id)
+        if pilot_judge is None:
+            raise ValueError(f"pilot config lacks judge family {task.judge.family_id}")
+        if pilot_judge.as_request_spec() != task.judge.as_request_spec():
+            raise ValueError(f"pilot request pins differ for family {task.judge.family_id}")
+        validate_attempt_sequence(
+            task.model_copy(update={"judge": pilot_judge}),
+            evidence,
+            vote,
+            prompt=prompt,
+            config=imported.config,
+        )
+
+
+def _import_indexes(
+    imported: PilotImport,
+    baseline: Mapping[VoteId, VoteTask],
+    *,
+    prompt: RubricVotePrompt,
+) -> tuple[
+    MappingProxyType[VoteId, Vote],
+    MappingProxyType[VoteId, tuple[PhysicalAttempt, ...]],
+]:
+    votes = _index_imported_votes(imported.votes, baseline)
+    attempts = _index_imported_attempts(imported.attempts, baseline, votes)
+    _validate_imported_evidence(
+        imported,
+        baseline,
+        votes,
+        attempts,
+        prompt=prompt,
+    )
     return MappingProxyType(votes), MappingProxyType(attempts)
 
 
 def _complete_grid(base: _GridBase, imported: PilotImport) -> PreparedGrid:
-    imported_by_id, attempts_by_id = _import_indexes(imported, base.baseline_by_vote_id)
+    imported_by_id, attempts_by_id = _import_indexes(
+        imported,
+        base.baseline_by_vote_id,
+        prompt=RubricVotePrompt(
+            pack=base.prompt_pack,
+            cards=base.deck.by_relation_id,
+        ),
+    )
     imported_ids = frozenset(imported_by_id)
     phase_a = GridPhaseAPlan(
         config=base.config,

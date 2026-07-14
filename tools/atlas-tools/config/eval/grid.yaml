@@ -51,10 +51,11 @@ transient_retries:
   retry_transport_errors: true
   status_codes: [408, 425, 429, 500, 502, 503, 504, 520, 522, 524]
 concurrency:
-  # Families run in parallel with each other; the transport layer serializes
-  # in-flight requests within each family, keeping its prefix cache hot.
+  # Families adapt independently: each begins at one, doubles after a full
+  # successful cohort, and returns to one on a direct or embedded 429.
   initial: 5
   maximum: 15
+  family_maximum: 3
   ramp: doubling-v1
 
 guards:
@@ -83,6 +84,7 @@ report:
   confidence_level: 0.95
   calibrated_threshold: 0.5
   calibration_bins: 10
+  acceptance_cost_ceiling_usd: 135.0
 
 judges:
   - provider_slug: amazon-bedrock

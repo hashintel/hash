@@ -5,21 +5,36 @@ exact source hashes and semantic request pins. These models preserve existing
 artifact schemas while replacing mutable arrays with tuples in memory.
 """
 
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import AwareDatetime, Field, JsonValue, NonNegativeInt, PositiveInt, model_validator
 
 from atlas_tools.common import Sha256Hex
 from atlas_tools.relation.evaluation.domain._collection import FrozenMapping
 from atlas_tools.relation.evaluation.domain._model import FrozenModel
-from atlas_tools.relation.evaluation.domain.configuration import OutputTokenLimit
+from atlas_tools.relation.evaluation.domain.configuration import (
+    GridJudge,
+    JudgeConfig,
+    JudgeRequestSpec,
+    OutputTokenLimit,
+    PilotRunConfig,
+)
 from atlas_tools.relation.evaluation.domain.identity import (
     BUNDLES,
     BundleId,
+    CardHash,
+    FiniteFloat,
     JudgeFamilyId,
+    ModelId,
     NonEmptyStr,
+    NonNegativeFiniteFloat,
     OpenRouterRegion,
+    PlanHash,
+    PositiveFiniteFloat,
     Probability,
+    PromptPackHash,
+    ProviderName,
+    ProviderSlug,
     ReasoningEffort,
     Verdict,
 )
@@ -29,8 +44,10 @@ from atlas_tools.relation_cards.common.cards import RelationId
 class SliceRecord(FrozenModel):
     """Persist why one card did or did not enter the fixed pilot slice."""
 
+    kind: Literal["pilot-slice"] = "pilot-slice"
+    schema_version: Literal[2] = 2
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     prescreen_stratum: NonEmptyStr
     sampling_stratum: NonEmptyStr
     length_quartile: Literal[1, 2, 3, 4]
@@ -64,7 +81,7 @@ class SliceDerivation(FrozenModel):
 class ExpectedGrid(FrozenModel):
     """Describe every repeat-zero cell required by the factorial pilot."""
 
-    families: tuple[NonEmptyStr, ...]
+    families: tuple[JudgeFamilyId, ...]
     bundles: tuple[BundleId, ...]
     relation_ids: tuple[RelationId, ...]
     effort: ReasoningEffort
@@ -89,7 +106,7 @@ class ExpectedGrid(FrozenModel):
 class ExpectedRepeatArm(FrozenModel):
     """Describe repeat work attached to the qualification bundle."""
 
-    families: tuple[NonEmptyStr, ...]
+    families: tuple[JudgeFamilyId, ...]
     bundle_id: Literal["S1xF1"] = "S1xF1"
     relation_ids: tuple[RelationId, ...]
     effort: ReasoningEffort
@@ -110,7 +127,7 @@ class ExpectedRepeatArm(FrozenModel):
 class ExpectedEffortArm(FrozenModel):
     """Describe alternative-effort work attached to the qualification bundle."""
 
-    family_efforts: FrozenMapping[NonEmptyStr, ReasoningEffort]
+    family_efforts: FrozenMapping[JudgeFamilyId, ReasoningEffort]
     bundle_id: Literal["S1xF1"] = "S1xF1"
     relation_ids: tuple[RelationId, ...]
     repeat_index: Literal[0] = 0
@@ -137,33 +154,77 @@ class RunDates(FrozenModel):
         return self
 
 
-class JudgePin(FrozenModel):
-    """Snapshot every request-relevant judge field used by rubric-v1."""
+class _JudgePin[Judge: JudgeRequestSpec](FrozenModel):
+    judge: Judge
 
-    family_id: NonEmptyStr
-    provider_slug: NonEmptyStr
-    provider_name: NonEmptyStr
-    openrouter_region: OpenRouterRegion = "global"
-    model: NonEmptyStr
-    temperature: float | None = 0.0
-    seed: int | None = 0
-    higher_effort: ReasoningEffort | None = None
-    effort: ReasoningEffort | None = Field(default=None, exclude_if=lambda value: value is None)
-    output_token_limit: OutputTokenLimit
-    pilot_cost_per_vote_usd: float | None = Field(
-        default=None,
-        exclude_if=lambda value: value is None,
-    )
+    @property
+    def family_id(self) -> JudgeFamilyId:
+        return self.judge.family_id
+
+    @property
+    def provider_slug(self) -> ProviderSlug:
+        return self.judge.provider_slug
+
+    @property
+    def provider_name(self) -> ProviderName:
+        return self.judge.provider_name
+
+    @property
+    def openrouter_region(self) -> OpenRouterRegion:
+        return self.judge.openrouter_region
+
+    @property
+    def model(self) -> ModelId:
+        return self.judge.model
+
+    @property
+    def temperature(self) -> FiniteFloat | None:
+        return self.judge.temperature
+
+    @property
+    def seed(self) -> int | None:
+        return self.judge.seed
+
+    @property
+    def output_token_limit(self) -> OutputTokenLimit:
+        return self.judge.output_token_limit
+
+
+class PilotJudgePin(_JudgePin[JudgeConfig]):
+    """Snapshot one complete pilot judge contract."""
+
+    kind: Literal["pilot-judge"] = "pilot-judge"
+
+    @property
+    def higher_effort(self) -> ReasoningEffort | None:
+        return self.judge.higher_effort
+
+
+class GridJudgePin(_JudgePin[GridJudge]):
+    """Snapshot one complete production-grid judge contract."""
+
+    kind: Literal["grid-judge"] = "grid-judge"
+
+    @property
+    def effort(self) -> ReasoningEffort:
+        return self.judge.effort
+
+    @property
+    def pilot_cost_per_vote_usd(self) -> PositiveFiniteFloat:
+        return self.judge.pilot_cost_per_vote_usd
+
+
+type JudgePin = Annotated[PilotJudgePin | GridJudgePin, Field(discriminator="kind")]
 
 
 class PilotRunState(FrozenModel):
     """Identify the exact pilot plan accepted by append-only journals."""
 
     schema_version: Literal[3] = 3
-    plan_hash: Sha256Hex
+    plan_hash: PlanHash
     request_contract_hash: Sha256Hex
     source_hashes: FrozenMapping[str, Sha256Hex]
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
     slice_hash: Sha256Hex
     expected_votes: PositiveInt
     openrouter_sdk_version: NonEmptyStr
@@ -173,10 +234,10 @@ class PilotRunState(FrozenModel):
 class GridRunState(FrozenModel):
     """Identify a dynamic two-phase grid without pretending it has a fixed plan hash."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     request_contract_hash: Sha256Hex
     source_hashes: FrozenMapping[str, Sha256Hex]
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
     rubric_version: Literal["rubric-v1"]
     panel_version: PositiveInt
     panel_frozen: bool
@@ -189,25 +250,32 @@ class GridRunState(FrozenModel):
 
     @model_validator(mode="after")
     def check_sources(self) -> Self:
-        required = {"cards.jsonl", "cards.manifest.json", "judges-panel", "pilot-votes.jsonl"}
+        required = {
+            "cards.jsonl",
+            "cards.manifest.json",
+            "judges-panel",
+            "pilot-attempts.jsonl",
+            "pilot-manifest.json",
+            "pilot-votes.jsonl",
+        }
         if set(self.source_hashes) != required:
-            raise ValueError("grid state must bind cards, manifest, panel, and pilot votes")
+            raise ValueError("grid state must bind deck, panel, and complete pilot provenance")
         if not self.panel_frozen:
             raise ValueError("a production grid requires a frozen panel")
         return self
 
 
 class HandoffManifest(FrozenModel):
-    """Describe one completed schema-v2 pilot handoff."""
+    """Describe one completed normalized pilot handoff."""
 
-    schema_version: Literal[2]
+    schema_version: Literal[3] = 3
     expected_grid: ExpectedGrid
     expected_repeat_arm: ExpectedRepeatArm
     expected_effort_arm: ExpectedEffortArm | None
     slice_derivation: SliceDerivation
     run_dates: RunDates
-    judges: tuple[JudgePin, ...]
-    prompt_pack_hash: Sha256Hex
+    judges: tuple[PilotJudgePin, ...]
+    prompt_pack_hash: PromptPackHash
     rubric_version: Literal["rubric-v1"]
     full_grid_card_count: PositiveInt
     source_hashes: FrozenMapping[str, Sha256Hex]
@@ -238,8 +306,10 @@ class HandoffManifest(FrozenModel):
 class CorpusRecord(FrozenModel):
     """Make every deck inclusion or fixed-shot exclusion explicit."""
 
+    kind: Literal["grid-corpus"] = "grid-corpus"
+    schema_version: Literal[2] = 2
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     prescreen_stratum: NonEmptyStr
     token_count: NonNegativeInt
     is_holdout: bool
@@ -256,28 +326,30 @@ class CorpusRecord(FrozenModel):
 
 
 class FamilyGridCounts(FrozenModel):
-    """Account for imported, fresh, refined, abstained, and known-cost votes."""
+    """Account for grid votes and whether their complete billed cost is known."""
 
     family_id: JudgeFamilyId
     imported_votes: NonNegativeInt
     fresh_baseline_votes: NonNegativeInt
     refinement_votes: NonNegativeInt
     abstentions: NonNegativeInt
-    known_cost_usd: float
+    known_cost_usd: NonNegativeFiniteFloat
+    cost_complete: bool
 
 
 class GridManifest(FrozenModel):
-    """Describe one finalized schema-v1 production grid."""
+    """Describe one finalized normalized production grid."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[3] = 3
     bundle_id: Literal["S1xF1"] = "S1xF1"
     panel_version: PositiveInt
     panel_frozen: bool
-    judges: tuple[JudgePin, ...]
-    manual_prunes: FrozenMapping[NonEmptyStr, NonEmptyStr]
+    judges: tuple[GridJudgePin, ...]
+    pilot_config: PilotRunConfig
+    manual_prunes: FrozenMapping[JudgeFamilyId, NonEmptyStr]
     reserve_topology: Literal["dormant"] = "dormant"
     run_dates: RunDates
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
     rubric_version: Literal["rubric-v1"]
     source_hashes: FrozenMapping[str, Sha256Hex]
     request_contract_hash: Sha256Hex
@@ -294,8 +366,7 @@ class GridManifest(FrozenModel):
     executor_policy: FrozenMapping[str, JsonValue]
     request_policy: FrozenMapping[str, JsonValue]
 
-    @model_validator(mode="after")
-    def check_contract(self) -> Self:
+    def _check_panel_contract(self) -> None:
         families = tuple(judge.family_id for judge in self.judges)
         if len(families) != len(set(families)):
             raise ValueError("judges contains duplicate family IDs")
@@ -304,6 +375,19 @@ class GridManifest(FrozenModel):
         overlap = sorted(set(self.manual_prunes) & set(families))
         if overlap:
             raise ValueError(f"manually pruned families cannot hold seats: {overlap}")
+
+    def _check_pilot_contract(self) -> None:
+        pilot_judges = {judge.family_id: judge for judge in self.pilot_config.judges}
+        for pin in self.judges:
+            pilot_judge = pilot_judges.get(pin.family_id)
+            if pilot_judge is None:
+                raise ValueError(f"pilot config lacks seated family {pin.family_id}")
+            if pilot_judge.as_request_spec() != pin.judge.as_request_spec():
+                raise ValueError(f"pilot request pins differ for seated family {pin.family_id}")
+        if self.pilot_config.rubric_version != self.rubric_version:
+            raise ValueError("pilot and grid rubric versions must match")
+
+    def _check_artifact_contract(self) -> None:
         required_hashes = {
             "attempts.jsonl",
             "cards.jsonl",
@@ -312,6 +396,8 @@ class GridManifest(FrozenModel):
             "imported-attempts.jsonl",
             "imported-votes.jsonl",
             "judges-panel",
+            "pilot-attempts.jsonl",
+            "pilot-manifest.json",
             "pilot-votes.jsonl",
             "votes.jsonl",
         }
@@ -325,4 +411,10 @@ class GridManifest(FrozenModel):
         )
         if self.total_votes != expected_votes:
             raise ValueError("total votes must equal the family-count sum")
+
+    @model_validator(mode="after")
+    def check_contract(self) -> Self:
+        self._check_panel_contract()
+        self._check_pilot_contract()
+        self._check_artifact_contract()
         return self

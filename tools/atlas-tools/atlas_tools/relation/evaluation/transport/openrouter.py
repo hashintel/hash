@@ -20,12 +20,17 @@ from openrouter.types import UNSET
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
 from atlas_tools.relation.evaluation.domain.api import (
+    AccountingFailure,
     AttemptFailure,
-    JudgeConfig,
+    JudgeRequestSpec,
     MaxCompletionTokensLimit,
     MaxTokensLimit,
+    ProviderName,
     ProviderResult,
+    ResponseFailure,
+    RoutingFailure,
 )
+from atlas_tools.relation.evaluation.transport._lifetime import SdkClientLifetime
 from atlas_tools.relation.evaluation.transport._sdk import (
     NO_RETRIES,
     timeout_milliseconds,
@@ -173,7 +178,7 @@ def _validate_usage(result: ChatResult) -> None:
             )
 
 
-def _provider(result: ChatResult, expected: str) -> str:
+def _provider(result: ChatResult, expected: ProviderName) -> ProviderName:
     metadata = result.openrouter_metadata
     if metadata is None:
         raise _RejectedError("routing", "completion omitted required OpenRouter routing metadata")
@@ -186,10 +191,10 @@ def _provider(result: ChatResult, expected: str) -> str:
             "routing",
             f"selected endpoint used provider {provider_name!r}, expected {expected!r}",
         )
-    return provider_name
+    return ProviderName(provider_name)
 
 
-def _validate_route(result: ChatResult, judge: JudgeConfig) -> str:
+def _validate_route(result: ChatResult, judge: JudgeRequestSpec) -> ProviderName:
     if result.model != judge.model:
         raise _RejectedError(
             "routing",
@@ -217,7 +222,7 @@ def _validate_route(result: ChatResult, judge: JudgeConfig) -> str:
 
 def _persisted_head_matches(
     result: ProviderResult,
-    judge: JudgeConfig,
+    judge: JudgeRequestSpec,
     metadata: dict[str, JsonValue],
 ) -> bool:
     attempt = metadata.get("attempt")
@@ -272,7 +277,7 @@ def _persisted_attempt_matches(
     )
 
 
-def matches_pinned_route(result: ProviderResult, judge: JudgeConfig) -> bool:
+def matches_pinned_route(result: ProviderResult, judge: JudgeRequestSpec) -> bool:
     """Return whether persisted native evidence satisfies every route pin.
 
     Only the stable routing projection is decoded. Historical evidence does
@@ -300,11 +305,15 @@ def _route_object(value: JsonValue | None) -> dict[str, JsonValue] | None:
 
 
 def _rejection_failure(error: _RejectedError) -> AttemptFailure:
-    return AttemptFailure(
-        category=error.category,
-        exception_type=f"{type(error).__module__}.{type(error).__qualname__}",
-        message=str(error),
-    )
+    exception_type = f"{type(error).__module__}.{type(error).__qualname__}"
+    message = str(error)
+    match error.category:
+        case "response":
+            return ResponseFailure(exception_type=exception_type, message=message)
+        case "routing":
+            return RoutingFailure(exception_type=exception_type, message=message)
+        case "accounting":
+            return AccountingFailure(exception_type=exception_type, message=message)
 
 
 async def _send(client: OpenRouter, request: CompletionRequest) -> ChatResult:
@@ -370,13 +379,14 @@ class OpenRouterTransport:
     connection pool until `aclose` completes.
     """
 
-    __slots__ = ("_client", "_closed")
+    __slots__ = ("_client", "_closed", "_lifetime")
 
     def __init__(self, api_key: str) -> None:
         if not api_key:
             raise ValueError("OpenRouter API key must not be empty")
         self._client = OpenRouter(api_key=api_key, retry_config=NO_RETRIES)
         self._closed = False
+        self._lifetime = SdkClientLifetime(self._client)
 
     async def complete(self, request: CompletionRequest) -> CompletionOutcome:
         """Send and validate one visible non-streaming request.
@@ -412,12 +422,11 @@ class OpenRouterTransport:
         )
 
     async def aclose(self) -> None:
-        """Close both clients allocated by the generated SDK exactly once."""
+        """Close both SDK clients, preserving unfinished work for a retry."""
         if self._closed:
             return
+        await self._lifetime.aclose()
         self._closed = True
-        await self._client.__aexit__(None, None, None)
-        self._client.__exit__(None, None, None)
 
     async def __aenter__(self) -> Self:
         """Return this transport for one explicitly owned async lifetime."""

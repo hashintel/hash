@@ -19,6 +19,7 @@ dependencies = [
     "tiktoken>=0.7",
     "orjson>=3.10",
     "pydantic>=2.13.4",
+    "pydantic-core>=2.41.5,<3",
     "pydantic-extra-types>=2.11.1",
     "pydantic-settings>=2.14.2",
     "semver>=3.0",

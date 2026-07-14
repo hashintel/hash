@@ -4,13 +4,18 @@ import json
 import math
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
-from typing import Literal
 
 from pydantic import JsonValue
 
-from atlas_tools.relation.evaluation.domain.api import AttemptFailure
+from atlas_tools.relation.evaluation.domain.api import (
+    AttemptFailure,
+    ProviderFailure,
+    TransportFailure,
+)
 
-_SESSION_STATUS_CODES = frozenset({401, 402})
+_RETRYABLE_CLIENT_STATUS_CODES = frozenset({408, 425, 429})
+_CLIENT_ERROR_MIN = 400
+_CLIENT_ERROR_MAX = 500
 
 
 def _status_code(error: Exception) -> int | None:
@@ -102,15 +107,28 @@ def request_failure(error: Exception) -> AttemptFailure:
     status = _status_code(error)
     body = _body(error)
     provider_status = _provider_status(body)
-    category: Literal["transport", "provider"] = "provider" if status is not None else "transport"
     statuses = (status, provider_status)
-    return AttemptFailure(
-        category=category,
-        exception_type=f"{type(error).__module__}.{type(error).__qualname__}",
-        message=str(error) or type(error).__qualname__,
+    exception_type = f"{type(error).__module__}.{type(error).__qualname__}"
+    message = str(error) or type(error).__qualname__
+    retry_after = _retry_after(error, body)
+    if status is None and provider_status is None:
+        return TransportFailure(
+            exception_type=exception_type,
+            message=message,
+            retry_after=retry_after,
+        )
+    permanent_client_error = any(
+        value is not None
+        and _CLIENT_ERROR_MIN <= value < _CLIENT_ERROR_MAX
+        and value not in _RETRYABLE_CLIENT_STATUS_CODES
+        for value in statuses
+    )
+    return ProviderFailure(
+        exception_type=exception_type,
+        message=message,
         http_status_code=status,
         provider_status_code=provider_status,
-        retry_after=_retry_after(error, body),
+        retry_after=retry_after,
         response_body=body,
-        scope=("session" if any(value in _SESSION_STATUS_CODES for value in statuses) else "vote"),
+        scope="session" if permanent_client_error else "vote",
     )

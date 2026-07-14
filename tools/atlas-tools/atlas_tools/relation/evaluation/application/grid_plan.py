@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 
 from atlas_tools.relation.evaluation.application.preparation import PreparedGrid
-from atlas_tools.relation.evaluation.domain.api import Sha256Hex, Vote, VoteVerdict
+from atlas_tools.relation.evaluation.domain.api import Vote, VoteId, VoteVerdict
 from atlas_tools.relation.evaluation.modes.api import GridPhaseBPlan, GridPlan
 
 
@@ -21,7 +21,7 @@ def derive_grid_plan(
     if len(fresh_votes) < phase_a.expected_votes:
         return GridPlan(phase_a=phase_a)
 
-    verdicts: dict[Sha256Hex, VoteVerdict] = {
+    verdicts: dict[VoteId, VoteVerdict] = {
         vote.vote_id: vote.verdict for vote in prepared.pilot_import.votes
     }
     for vote in fresh_votes[: phase_a.expected_votes]:

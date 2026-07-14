@@ -1,7 +1,7 @@
 """Validate durable request evidence before any result is reused."""
 
 from collections.abc import Sequence
-from datetime import timedelta
+from contextlib import suppress
 
 from atlas_tools.relation.evaluation.domain.api import (
     BaseRunConfig,
@@ -155,10 +155,8 @@ def _validate_completed_vote(
     if initial_raw is None:
         raise ValueError(f"completed vote {task.vote_id} lacks an accepted initial call")
     initial_parsed = None
-    try:
+    with suppress(ValueError):
         initial_parsed = prompt.parse(initial_raw)
-    except ValueError:
-        pass
     repaired = initial_parsed is None
     if repaired:
         if repair_raw is None:

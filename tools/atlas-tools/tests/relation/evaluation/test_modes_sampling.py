@@ -1,7 +1,7 @@
 import pytest
 
 from atlas_tools.common import sha256_bytes
-from atlas_tools.relation.evaluation.domain.api import SliceSamplingConfig
+from atlas_tools.relation.evaluation.domain.api import CardHash, SliceSamplingConfig
 from atlas_tools.relation.evaluation.modes.api import (
     HOLDOUTS,
     SamplingCard,
@@ -22,7 +22,7 @@ def _card(
     return SamplingCard(
         relation_id=relation_id,
         producer=producer,
-        card_hash=sha256_bytes(f"card:{relation_id}".encode()),
+        card_hash=CardHash(sha256_bytes(f"card:{relation_id}".encode())),
         token_count=token_count,
         prescreen_stratum=prescreen,
         pilot_strata=pilot_strata,
@@ -111,6 +111,49 @@ def test_stratified_sampling_matches_golden_selection_and_hashes() -> None:
     assert selected.derivation.selected_non_holdouts == 3
     assert all(row.relation_id != "wikidata:P22" for row in selected.rows)
     assert sum(row.is_holdout for row in selected.rows) == 6
+
+
+def test_sampling_components_with_delimiters_form_distinct_strata() -> None:
+    holdouts = tuple(
+        _card(
+            holdout.relation_id,
+            producer="holdout",
+            token_count=10 + index,
+            prescreen="anchor",
+        )
+        for index, holdout in enumerate(HOLDOUTS)
+    )
+    deck = (
+        *holdouts,
+        _card(
+            "collision:A",
+            producer="a|b",
+            token_count=1,
+            prescreen="c",
+            pilot_strata=("d,e",),
+        ),
+        _card(
+            "collision:B",
+            producer="a",
+            token_count=2,
+            prescreen="b|c",
+            pilot_strata=("d", "e"),
+        ),
+        _card("control:C", producer="z", token_count=3),
+    )
+
+    selected = derive_pilot_slice(
+        deck,
+        cards_hash=CARDS_HASH,
+        config=SliceSamplingConfig(seed=17, non_holdout_count=2),
+    )
+
+    ordinary = tuple(row for row in selected.rows if not row.is_holdout)
+    assert tuple(row.relation_id for row in ordinary) == ("collision:A", "collision:B")
+    assert {row.sampling_stratum for row in ordinary} == {
+        "a%7Cb|c|length-q1|d%2Ce",
+        "a|b%7Cc|length-q1|d,e",
+    }
 
 
 def test_sampling_fails_closed_on_duplicate_relations_and_missing_holdouts() -> None:

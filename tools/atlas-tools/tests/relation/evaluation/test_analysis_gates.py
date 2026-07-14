@@ -8,21 +8,33 @@ from atlas_tools.relation.evaluation.analysis.api import (
     analyze_grid,
     grid_acceptance_gates,
 )
-from tests.relation.evaluation.test_analysis_grid import _FAMILIES, _card, _vote
+from tests.relation.evaluation.test_analysis_grid import (
+    _FAMILIES,
+    _FAMILY_A,
+    _FAMILY_B,
+    _card,
+    _vote,
+)
 
 
-def _gate_analysis() -> GridAnalysis:
+def _gate_analysis(*, incomplete_fresh_cost: bool = False) -> GridAnalysis:
     stable = _card("test:A-holdout")
     probe = _card("test:B-probe")
     votes = (
-        _vote(stable, "judge/a", 0, "proximal"),
-        _vote(stable, "judge/b", 0, "proximal"),
-        _vote(probe, "judge/a", 0, "coincident"),
-        _vote(probe, "judge/b", 0, "proximal"),
-        _vote(probe, "judge/a", 1, "coincident"),
-        _vote(probe, "judge/a", 2, "coincident"),
-        _vote(probe, "judge/b", 1, "proximal"),
-        _vote(probe, "judge/b", 2, "ABSTAIN"),
+        _vote(stable, _FAMILY_A, 0, "proximal"),
+        _vote(stable, _FAMILY_B, 0, "proximal"),
+        _vote(probe, _FAMILY_A, 0, "coincident"),
+        _vote(probe, _FAMILY_B, 0, "proximal"),
+        _vote(probe, _FAMILY_A, 1, "coincident"),
+        _vote(probe, _FAMILY_A, 2, "coincident"),
+        _vote(probe, _FAMILY_B, 1, "proximal"),
+        _vote(
+            probe,
+            _FAMILY_B,
+            2,
+            "ABSTAIN",
+            cost_complete=not incomplete_fresh_cost,
+        ),
     )
     return analyze_grid(
         cards=(probe, stable),
@@ -109,3 +121,31 @@ def test_acceptance_thresholds_are_strict_for_abstention_and_inclusive_for_cost(
 
     assert tuple(gate.passed for gate in result.gates) == (True, True, True, True, True)
     assert result.all_passed
+
+
+def test_cost_gate_fails_closed_when_fresh_billing_is_incomplete() -> None:
+    policy = GridGatePolicy(
+        holdouts=(
+            HoldoutRule(
+                relation_id="test:A-holdout",
+                accepted_verdicts=frozenset({"proximal"}),
+            ),
+            HoldoutRule(
+                relation_id="test:B-probe",
+                accepted_verdicts=frozenset({"coincident", "proximal"}),
+                probe=True,
+            ),
+        ),
+        holdout_minimum_correct=2,
+        abstention_ceiling=0.251,
+        cost_ceiling_usd=1.0,
+    )
+
+    result = grid_acceptance_gates(_gate_analysis(incomplete_fresh_cost=True), policy=policy)
+
+    cost_gate = result.gates[-1]
+    assert not result.cost_complete
+    assert result.total_known_cost_usd == pytest.approx(0.8)
+    assert (cost_gate.gate, cost_gate.passed) == ("cost-envelope", False)
+    assert cost_gate.detail == "incomplete fresh billing; known cost $0.80 vs ceiling $1.00"
+    assert not result.all_passed

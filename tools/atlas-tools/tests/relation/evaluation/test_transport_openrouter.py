@@ -22,14 +22,20 @@ from openrouter.components import (
 )
 from openrouter.errors import NoResponseError
 from openrouter.utils.retries import RetryConfig
+from trio.testing import MockClock
 
 from atlas_tools.relation.evaluation.domain.api import (
     JudgeConfig,
     MaxCompletionTokensLimit,
     MaxTokensLimit,
+    ModelId,
+    ProviderName,
     ProviderResult,
+    ProviderSlug,
     RequestStage,
+    SessionId,
 )
+from atlas_tools.relation.evaluation.transport import _lifetime as lifetime_module
 from atlas_tools.relation.evaluation.transport import openrouter as openrouter_module
 from atlas_tools.relation.evaluation.transport.api import (
     CompletionAccepted,
@@ -43,9 +49,10 @@ from atlas_tools.relation.evaluation.transport.api import (
     transport_versions,
 )
 
-MODEL = "test/model"
-PROVIDER_SLUG = "test-provider/endpoint"
-PROVIDER_NAME = "Test Provider"
+MODEL = ModelId("test/model")
+PROVIDER_SLUG = ProviderSlug("test-provider/endpoint")
+PROVIDER_NAME = ProviderName("Test Provider")
+SESSION_ID = SessionId("f" * 64)
 
 type NativeMessage = (
     ChatAssistantMessage | ChatDeveloperMessage | ChatSystemMessage | ChatUserMessage
@@ -122,7 +129,7 @@ def _judge(
     return JudgeConfig(
         provider_slug=PROVIDER_SLUG,
         provider_name=PROVIDER_NAME,
-        model=model,
+        model=ModelId(model),
         temperature=0.0,
         seed=17,
         output_token_limit=output_token_limit or MaxCompletionTokensLimit(tokens=256),
@@ -145,7 +152,7 @@ def _request(
         ),
         judge=judge or _judge(),
         effort="minimal",
-        session_id="family-session",
+        session_id=SESSION_ID,
         timeout=timedelta(seconds=5),
         request_stage=request_stage,
     )
@@ -181,6 +188,37 @@ class FakeOpenRouter:
 
     def __exit__(self, _kind: object, _error: object, _traceback: object) -> None:
         self.sync_closed = True
+
+
+class _CloseError(RuntimeError):
+    pass
+
+
+class _CloseProbe:
+    instances: ClassVar[list[Self]] = []
+    fail_sync_once: ClassVar[bool] = False
+
+    def __init__(self, *, api_key: str, retry_config: RetryConfig) -> None:
+        del api_key, retry_config
+        self.async_exit_calls = 0
+        self.sync_exit_calls = 0
+        self.instances.append(self)
+
+    async def __aexit__(self, _kind: object, _error: object, _traceback: object) -> None:
+        self.async_exit_calls += 1
+        await trio.lowlevel.checkpoint()
+
+    def __exit__(self, _kind: object, _error: object, _traceback: object) -> None:
+        self.sync_exit_calls += 1
+        if self.fail_sync_once and self.sync_exit_calls == 1:
+            raise _CloseError("synchronous SDK close failed")
+
+
+class _TimeoutCloseProbe(_CloseProbe):
+    async def __aexit__(self, _kind: object, _error: object, _traceback: object) -> None:
+        self.async_exit_calls += 1
+        if self.async_exit_calls == 1:
+            await trio.sleep_forever()
 
 
 @pytest.mark.parametrize(
@@ -242,6 +280,76 @@ def test_native_async_request_pins_route_privacy_timeout_and_visible_retry_polic
         assert client.sync_closed
 
     trio.run(scenario)
+
+
+def test_close_survives_outer_cancellation_and_serializes_concurrent_callers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        _CloseProbe.instances.clear()
+        _CloseProbe.fail_sync_once = False
+        monkeypatch.setattr(openrouter_module, "OpenRouter", _CloseProbe)
+        cancelled_transport = OpenRouterTransport("secret")
+        cancelled_client = _CloseProbe.instances[-1]
+
+        with trio.CancelScope() as scope:
+            scope.cancel()
+            await cancelled_transport.aclose()
+
+        assert cancelled_client.async_exit_calls == 1
+        assert cancelled_client.sync_exit_calls == 1
+
+        concurrent_transport = OpenRouterTransport("secret")
+        concurrent_client = _CloseProbe.instances[-1]
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(concurrent_transport.aclose)
+            nursery.start_soon(concurrent_transport.aclose)
+
+        assert concurrent_client.async_exit_calls == 1
+        assert concurrent_client.sync_exit_calls == 1
+
+    trio.run(scenario)
+
+
+def test_failed_close_retries_only_the_unfinished_sdk_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        _CloseProbe.instances.clear()
+        _CloseProbe.fail_sync_once = True
+        monkeypatch.setattr(openrouter_module, "OpenRouter", _CloseProbe)
+        transport = OpenRouterTransport("secret")
+        client = _CloseProbe.instances[-1]
+
+        with pytest.raises(_CloseError, match="synchronous SDK close failed"):
+            await transport.aclose()
+        await transport.aclose()
+
+        assert client.async_exit_calls == 1
+        assert client.sync_exit_calls == 2
+
+    trio.run(scenario)
+
+
+def test_timed_out_close_can_be_retried_without_skipping_sdk_clients(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        _TimeoutCloseProbe.instances.clear()
+        _TimeoutCloseProbe.fail_sync_once = False
+        monkeypatch.setattr(openrouter_module, "OpenRouter", _TimeoutCloseProbe)
+        monkeypatch.setattr(lifetime_module, "_SDK_CLOSE_TIMEOUT_SECONDS", 1.0)
+        transport = OpenRouterTransport("secret")
+        client = _TimeoutCloseProbe.instances[-1]
+
+        with pytest.raises(trio.TooSlowError):
+            await transport.aclose()
+        await transport.aclose()
+
+        assert client.async_exit_calls == 2
+        assert client.sync_exit_calls == 1
+
+    trio.run(scenario, clock=MockClock(autojump_threshold=0))
 
 
 @pytest.mark.parametrize(

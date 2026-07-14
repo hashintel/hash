@@ -17,16 +17,34 @@ from atlas_tools.relation.evaluation.analysis.api import (
     vote_economics,
 )
 from atlas_tools.relation.evaluation.domain.api import (
+    AttemptId,
+    CardHash,
     EvaluationCard,
-    ProviderResult,
+    JudgeFamilyId,
+    JudgeRequestSpec,
+    ModelId,
+    PromptPackHash,
+    ProviderName,
+    ProviderSlug,
+    RelationFamilyId,
     RelationId,
     Vote,
+    VoteAccounting,
+    VoteDecision,
+    VoteEvidence,
+    VoteId,
+    VoteIdentity,
+    VoteProvenance,
+    VoteRequest,
+    VoteTiming,
     VoteVerdict,
 )
 
 _NOW = datetime(2026, 1, 2, tzinfo=UTC)
-_PROMPT_PACK_HASH = sha256_bytes(b"analysis prompt pack")
-_FAMILIES = ("judge/a", "judge/b")
+_PROMPT_PACK_HASH = PromptPackHash(sha256_bytes(b"analysis prompt pack"))
+_FAMILY_A = JudgeFamilyId("judge/a")
+_FAMILY_B = JudgeFamilyId("judge/b")
+_FAMILIES = (_FAMILY_A, _FAMILY_B)
 
 
 def _card(relation_id: RelationId) -> EvaluationCard:
@@ -35,86 +53,91 @@ def _card(relation_id: RelationId) -> EvaluationCard:
         relation_id=relation_id,
         producer="test",
         card_text=text,
-        card_hash=sha256_bytes(text.encode()),
+        card_hash=CardHash(sha256_bytes(text.encode())),
         token_count=4,
         prescreen_stratum="ordinary",
-        family_id="test-family",
+        family_id=RelationFamilyId("test-family"),
     )
 
 
 def _vote(
     card: EvaluationCard,
-    family_id: str,
+    family_id: JudgeFamilyId,
     repeat_index: int,
     verdict: VoteVerdict,
     *,
     cost: float = 0.1,
+    cost_complete: bool = True,
 ) -> Vote:
-    model = f"test/{family_id}"
-    result = ProviderResult.model_validate(
-        {
-            "id": f"result-{family_id}-{repeat_index}",
-            "model": model,
-            "choices": [{"message": {"content": f'{{"verdict":"{verdict}"}}'}}],
-            "usage": {
-                "prompt_tokens": 3,
-                "completion_tokens": 2,
-                "cost": cost,
-            },
-        },
-        strict=True,
-    )
-    vote_id = sha256_bytes(
-        f"{card.relation_id}|{family_id}|{repeat_index}".encode(),
+    model = ModelId(family_id)
+    vote_id = VoteId(
+        sha256_bytes(f"{card.relation_id}|{family_id}|{repeat_index}".encode()),
     )
     return Vote(
-        vote_id=vote_id,
-        relation_id=card.relation_id,
-        card_hash=card.card_hash,
-        family_id=family_id,
-        provider="test-provider",
-        model_returned=model,
-        shell_id="S1",
-        framing_id="F1",
-        bundle_id="S1xF1",
-        rubric_version="rubric-v1",
-        prompt_pack_hash=_PROMPT_PACK_HASH,
-        verdict=verdict,
-        reason="fixture evidence",
-        raw_completion=f'{{"verdict":"{verdict}"}}',
-        parse_retries=0,
-        abstained=verdict == "ABSTAIN",
-        attempt_results=(result,),
-        effort="minimal",
-        temperature=0.0,
-        seed=7,
-        repeat_index=repeat_index,
-        tokens_in=3,
-        tokens_out=2,
-        tokens_cached=0,
-        known_cost_usd=cost,
-        cost_complete=True,
-        cost_usd=cost,
-        ts_request=_NOW,
-        ts_response=_NOW,
-        latency=timedelta(),
+        identity=VoteIdentity(vote_id=vote_id, relation_id=card.relation_id),
+        provenance=VoteProvenance(
+            card_hash=card.card_hash,
+            rubric_version="rubric-v1",
+            prompt_pack_hash=_PROMPT_PACK_HASH,
+        ),
+        request=VoteRequest(
+            judge=JudgeRequestSpec(
+                provider_name=ProviderName("test-provider"),
+                provider_slug=ProviderSlug("test-provider"),
+                model=model,
+            ),
+            bundle_id="S1xF1",
+            effort="minimal",
+            temperature=0.0,
+            seed=7,
+            repeat_index=repeat_index,
+        ),
+        decision=VoteDecision(
+            verdict=verdict,
+            reason="fixture evidence",
+            raw_completion=f'{{"verdict":"{verdict}"}}',
+        ),
+        evidence=VoteEvidence(
+            accepted_attempt_ids=(
+                AttemptId(sha256_bytes(f"attempt:{vote_id}".encode())),
+            ),
+            model_returned=model,
+        ),
+        accounting=VoteAccounting(
+            tokens_in=3,
+            tokens_out=2,
+            tokens_cached=0,
+            known_cost_usd=cost,
+            cost_complete=cost_complete,
+        ),
+        timing=VoteTiming(
+            request_at=_NOW,
+            response_at=_NOW,
+            latency=timedelta(),
+        ),
     )
 
 
-def _analysis() -> GridAnalysis:
+def _analysis(*, incomplete_fresh_cost: bool = False) -> GridAnalysis:
     stable = _card("test:A-stable")
     refined = _card("test:B-refined")
     imported = (
-        _vote(refined, "judge/a", 0, "coincident", cost=9.0),
-        _vote(stable, "judge/a", 0, "proximal", cost=9.0),
+        _vote(refined, _FAMILY_A, 0, "coincident", cost=9.0),
+        _vote(stable, _FAMILY_A, 0, "proximal", cost=9.0),
     )
     fresh = (
-        _vote(refined, "judge/b", 2, "unclear"),
-        _vote(stable, "judge/b", 0, "proximal"),
-        _vote(refined, "judge/a", 2, "coincident"),
-        _vote(refined, "judge/b", 0, "proximal"),
-        _vote(refined, "judge/a", 1, "coincident"),
-        _vote(refined, "judge/b", 1, "proximal"),
+        _vote(
+            refined,
+            _FAMILY_B,
+            2,
+            "unclear",
+            cost_complete=not incomplete_fresh_cost,
+        ),
+        _vote(stable, _FAMILY_B, 0, "proximal"),
+        _vote(refined, _FAMILY_A, 2, "coincident"),
+        _vote(refined, _FAMILY_B, 0, "proximal"),
+        _vote(refined, _FAMILY_A, 1, "coincident"),
+        _vote(refined, _FAMILY_B, 1, "proximal"),
     )
     return analyze_grid(
         cards=(refined, stable),
@@ -217,9 +240,20 @@ def test_grid_reconciliation_drives_posteriors_queues_labels_and_economics() -> 
     ) == pytest.approx((0, 2, 2, 0.4))
     assert economics.total_votes == 8
     assert economics.total_known_cost_usd == pytest.approx(0.6)
+    assert economics.cost_complete
     assert economics.refined_cards == 1
     assert economics.realized_trigger_rate == pytest.approx(0.5)
     assert economics.review_queue_cards == 1
+
+
+def test_vote_economics_preserves_incomplete_fresh_billing_by_family() -> None:
+    economics = vote_economics(_analysis(incomplete_fresh_cost=True))
+
+    family_a, family_b = economics.by_family
+    assert family_a.cost_complete
+    assert not family_b.cost_complete
+    assert not economics.cost_complete
+    assert economics.total_known_cost_usd == pytest.approx(0.6)
 
 
 def test_placement_argmax_uses_documented_order_for_equal_probabilities() -> None:
@@ -231,13 +265,13 @@ def test_placement_argmax_uses_documented_order_for_equal_probabilities() -> Non
 def test_split_baseline_requires_every_refinement_cell() -> None:
     card = _card("test:missing-refinement")
     baseline = (
-        _vote(card, "judge/a", 0, "proximal"),
-        _vote(card, "judge/b", 0, "overlay"),
+        _vote(card, _FAMILY_A, 0, "proximal"),
+        _vote(card, _FAMILY_B, 0, "overlay"),
     )
     refinements = (
-        _vote(card, "judge/a", 1, "proximal"),
-        _vote(card, "judge/a", 2, "proximal"),
-        _vote(card, "judge/b", 1, "overlay"),
+        _vote(card, _FAMILY_A, 1, "proximal"),
+        _vote(card, _FAMILY_A, 2, "proximal"),
+        _vote(card, _FAMILY_B, 1, "overlay"),
     )
 
     with pytest.raises(GridAnalysisError, match=r"refined card .* lacks repeat 2 for judge/b"):
@@ -252,8 +286,8 @@ def test_split_baseline_requires_every_refinement_cell() -> None:
 def test_unanimous_baseline_rejects_unplanned_refinement_cells() -> None:
     card = _card("test:unexpected-refinement")
     baseline = (
-        _vote(card, "judge/a", 0, "proximal"),
-        _vote(card, "judge/b", 0, "proximal"),
+        _vote(card, _FAMILY_A, 0, "proximal"),
+        _vote(card, _FAMILY_B, 0, "proximal"),
     )
 
     with pytest.raises(GridAnalysisError, match=r"unrefined card .* contains repeat 1"):
@@ -261,7 +295,7 @@ def test_unanimous_baseline_rejects_unplanned_refinement_cells() -> None:
             cards=(card,),
             family_ids=_FAMILIES,
             imported_votes=(),
-            fresh_votes=(*baseline, _vote(card, "judge/a", 1, "proximal")),
+            fresh_votes=(*baseline, _vote(card, _FAMILY_A, 1, "proximal")),
         )
 
 
@@ -272,9 +306,9 @@ def test_import_and_fresh_streams_cannot_claim_the_same_logical_vote() -> None:
         analyze_grid(
             cards=(card,),
             family_ids=_FAMILIES,
-            imported_votes=(_vote(card, "judge/a", 0, "proximal"),),
+            imported_votes=(_vote(card, _FAMILY_A, 0, "proximal"),),
             fresh_votes=(
-                _vote(card, "judge/a", 0, "proximal"),
-                _vote(card, "judge/b", 0, "proximal"),
+                _vote(card, _FAMILY_A, 0, "proximal"),
+                _vote(card, _FAMILY_B, 0, "proximal"),
             ),
         )

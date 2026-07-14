@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import trio
 from trio.testing import wait_all_tasks_blocked
 
-from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig
+from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig, JudgeFamilyId
 from atlas_tools.relation.evaluation.execution.api import (
     ExecutionControl,
     FamilySerialiser,
@@ -13,19 +13,22 @@ from atlas_tools.relation.evaluation.execution.api import (
     execute_ordered,
 )
 
+_ALPHA = JudgeFamilyId("alpha")
+_BETA = JudgeFamilyId("beta")
+
 
 def test_same_family_overlaps_after_a_successful_ramp() -> None:
     async def scenario() -> None:
         families = FamilySerialiser(maximum=4)
 
-        async with families.hold("alpha") as permit:
+        async with families.hold(_ALPHA) as permit:
             permit.succeeded()
 
         entered = tuple(trio.Event() for _ in range(3))
         release = trio.Event()
 
         async def exchange(index: int) -> None:
-            async with families.hold("alpha") as permit:
+            async with families.hold(_ALPHA) as permit:
                 entered[index].set()
                 await release.wait()
                 permit.succeeded()
@@ -51,13 +54,13 @@ def test_family_windows_ramp_independently() -> None:
         beta_release = trio.Event()
 
         async def alpha_exchange(entered: trio.Event) -> None:
-            async with families.hold("alpha") as permit:
+            async with families.hold(_ALPHA) as permit:
                 entered.set()
                 await alpha_release.wait()
                 permit.succeeded()
 
         async def beta_exchange(index: int) -> None:
-            async with families.hold("beta") as permit:
+            async with families.hold(_BETA) as permit:
                 beta_entered[index].set()
                 await beta_release.wait()
                 permit.succeeded()
@@ -66,7 +69,7 @@ def test_family_windows_ramp_independently() -> None:
             nursery.start_soon(alpha_exchange, alpha_entered)
             await alpha_entered.wait()
 
-            async with families.hold("beta") as permit:
+            async with families.hold(_BETA) as permit:
                 permit.succeeded()
 
             nursery.start_soon(alpha_exchange, alpha_peer_entered)
@@ -82,13 +85,48 @@ def test_family_windows_ramp_independently() -> None:
     trio.run(scenario)
 
 
+def test_family_resolution_follows_admission_when_responses_reverse() -> None:
+    async def scenario() -> None:
+        families = FamilySerialiser(maximum=2)
+        async with families.hold(_ALPHA) as permit, permit.ordered():
+            permit.succeeded()
+
+        entered = (trio.Event(), trio.Event())
+        responded = (trio.Event(), trio.Event())
+        resolved: list[int] = []
+
+        async def exchange(index: int) -> None:
+            async with families.hold(_ALPHA) as permit:
+                entered[index].set()
+                await responded[index].wait()
+                async with permit.ordered():
+                    resolved.append(index)
+                    permit.succeeded()
+
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(exchange, 0)
+            await entered[0].wait()
+            nursery.start_soon(exchange, 1)
+            await entered[1].wait()
+
+            responded[1].set()
+            await wait_all_tasks_blocked()
+            assert resolved == []
+
+            responded[0].set()
+
+        assert resolved == [0, 1]
+
+    trio.run(scenario)
+
+
 def test_rate_limit_resets_only_its_family_and_stale_successes_cannot_reramp() -> None:
     async def scenario() -> None:
         families = FamilySerialiser(maximum=4)
 
         # One success opens width two; two more successful exchanges open four.
         for _ in range(3):
-            async with families.hold("alpha") as permit:
+            async with families.hold(_ALPHA) as permit:
                 permit.succeeded()
 
         entered = tuple(trio.Event() for _ in range(4))
@@ -96,7 +134,7 @@ def test_rate_limit_resets_only_its_family_and_stale_successes_cannot_reramp() -
         finished = tuple(trio.Event() for _ in range(4))
 
         async def old_exchange(index: int) -> None:
-            async with families.hold("alpha") as permit:
+            async with families.hold(_ALPHA) as permit:
                 entered[index].set()
                 await finish[index].wait()
                 if index == 0:
@@ -109,7 +147,7 @@ def test_rate_limit_resets_only_its_family_and_stale_successes_cannot_reramp() -
         newcomer_release = trio.Event()
 
         async def newcomer() -> None:
-            async with families.hold("alpha") as permit:
+            async with families.hold(_ALPHA) as permit:
                 newcomer_entered.set()
                 await newcomer_release.wait()
                 permit.succeeded()
@@ -154,7 +192,7 @@ class _ControlledRunner:
         item: WorkItem[int],
         _control: ExecutionControl,
     ) -> TaskOutcome[int]:
-        async with self.families.hold("alpha") as permit:
+        async with self.families.hold(_ALPHA) as permit:
             self.entered[item.plan_index].set()
             await self.release[item.plan_index].wait()
             permit.succeeded()

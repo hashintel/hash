@@ -13,11 +13,12 @@ from atlas_tools.relation.evaluation.domain.api import (
     BUNDLES,
     QUALIFICATION_BUNDLE,
     BundleId,
+    CardHash,
     JudgeConfig,
     PilotRunConfig,
+    PromptPackHash,
     ReasoningEffort,
     RelationId,
-    Sha256Hex,
     VoteTask,
 )
 from atlas_tools.relation.evaluation.modes._card import ordered_unique_cards
@@ -29,7 +30,7 @@ class PilotCard:
     """A sampled card and its fixed holdout membership."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     is_holdout: bool
 
 
@@ -45,7 +46,7 @@ class PilotPlan:
 
     config: PilotRunConfig
     cards: tuple[PilotCard, ...]
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "cards", ordered_unique_cards(self.cards))

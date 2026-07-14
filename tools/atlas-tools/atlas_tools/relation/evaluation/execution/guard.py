@@ -3,12 +3,20 @@
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
+from math import isfinite
 from typing import Literal, Protocol
 
 from atlas_tools.relation.evaluation.domain.api import (
+    AccountingFailure,
     AttemptFailure,
     GuardConfig,
+    JudgeFamilyId,
+    ProviderResult,
+    ResponseFailure,
+    RoutingFailure,
     TransientRetryConfig,
+    TransportFailure,
+    failure_statuses,
 )
 from atlas_tools.relation.evaluation.transport.api import (
     CompletionAccepted,
@@ -60,12 +68,25 @@ def _policy_failure(
     category: Literal["response", "routing", "accounting"],
     message: str,
 ) -> AttemptFailure:
-    return AttemptFailure(
-        category=category,
-        exception_type=_GRID_POLICY_TYPE,
-        message=message,
-        scope="session",
-    )
+    match category:
+        case "response":
+            return ResponseFailure(
+                exception_type=_GRID_POLICY_TYPE,
+                message=message,
+                scope="session",
+            )
+        case "routing":
+            return RoutingFailure(
+                exception_type=_GRID_POLICY_TYPE,
+                message=message,
+                scope="session",
+            )
+        case "accounting":
+            return AccountingFailure(
+                exception_type=_GRID_POLICY_TYPE,
+                message=message,
+                scope="session",
+            )
 
 
 def _opening_failure_pages(
@@ -74,11 +95,7 @@ def _opening_failure_pages(
 ) -> bool:
     if failure.scope == "session":
         return True
-    statuses = tuple(
-        status
-        for status in (failure.provider_status_code, failure.http_status_code)
-        if status is not None
-    )
+    statuses = failure_statuses(failure)
     retryable = set(retry_policy.status_codes)
     if any(
         _CLIENT_ERROR_MIN <= status < _CLIENT_ERROR_MAX and status not in retryable
@@ -88,7 +105,9 @@ def _opening_failure_pages(
     if any(status in retryable for status in statuses):
         return False
     return not (
-        failure.category == "transport" and not statuses and retry_policy.retry_transport_errors
+        isinstance(failure, TransportFailure)
+        and not statuses
+        and retry_policy.retry_transport_errors
     )
 
 
@@ -115,16 +134,33 @@ class GridGuardPolicy:
         *,
         config: GuardConfig,
         retry_policy: TransientRetryConfig,
-        pilot_cost_per_vote_usd: Mapping[str, float],
+        pilot_cost_per_vote_usd: Mapping[JudgeFamilyId, int | float],
         parse_verdict: Callable[[str], object],
-        established_families: Iterable[str] = (),
+        established_families: Iterable[JudgeFamilyId] = (),
+        initial_billed_costs_usd: Mapping[JudgeFamilyId, Iterable[float]] | None = None,
     ) -> None:
         self._config = config
         self._retry_policy = retry_policy
         self._pilot_costs = dict(pilot_cost_per_vote_usd)
         self._parse = parse_verdict
         self._established = set(established_families)
-        self._states: dict[str, _FamilyState] = {}
+        self._states = self._initial_states(initial_billed_costs_usd or {})
+
+    def _initial_states(
+        self,
+        histories: Mapping[JudgeFamilyId, Iterable[float]],
+    ) -> dict[JudgeFamilyId, _FamilyState]:
+        states: dict[JudgeFamilyId, _FamilyState] = {}
+        for family_id, costs in histories.items():
+            if not family_id:
+                raise ValueError("initial billed-cost history has an empty family ID")
+            history = tuple(costs)
+            if any(not isfinite(cost) or cost < 0.0 for cost in history):
+                raise ValueError(f"initial billed-cost history for {family_id} is invalid")
+            states[family_id] = _FamilyState(
+                recent_costs=deque(history[-self._config.cost_window :])
+            )
+        return states
 
     def evaluate(
         self,
@@ -136,7 +172,15 @@ class GridGuardPolicy:
         state = self._states.setdefault(family_id, _FamilyState())
         call_index = state.calls
         state.calls += 1
-        unproven_opening = call_index == 0 and family_id not in self._established
+        unproven_opening = family_id not in self._established
+
+        if isinstance(outcome, CompletionRejected):
+            cost_failure = self._record_billed_cost(family_id, outcome.billed_result, state)
+            if cost_failure is not None:
+                return CompletionRejected(
+                    failure=cost_failure,
+                    billed_result=outcome.billed_result,
+                )
 
         if isinstance(outcome, CompletionFailed | CompletionRejected):
             if not unproven_opening or not _opening_failure_pages(
@@ -171,7 +215,7 @@ class GridGuardPolicy:
         state: _FamilyState,
     ) -> CompletionOutcome:
         family_id = request.judge.family_id
-        if call_index == 0 and family_id not in self._established:
+        if family_id not in self._established:
             rejection = self._opening_rejection(request, outcome)
             if rejection is not None:
                 return rejection
@@ -233,26 +277,37 @@ class GridGuardPolicy:
                     f"across the first {call_index + 1} calls"
                 ),
             )
-        expected = self._pilot_costs.get(family_id)
-        if expected is None or usage.cost_usd is None:
+        failure = self._record_billed_cost(family_id, outcome.result, state)
+        if failure is None:
             return outcome
+        return CompletionRejected(failure=failure, billed_result=outcome.result)
+
+    def _record_billed_cost(
+        self,
+        family_id: JudgeFamilyId,
+        result: ProviderResult,
+        state: _FamilyState,
+    ) -> AttemptFailure | None:
+        expected = self._pilot_costs.get(family_id)
+        usage = result.usage
+        if expected is None or usage is None or usage.cost_usd is None:
+            return None
         state.recent_costs.append(usage.cost_usd)
         while len(state.recent_costs) > self._config.cost_window:
             state.recent_costs.popleft()
         if len(state.recent_costs) < self._config.cost_window:
-            return outcome
+            return None
         rolling_mean = sum(state.recent_costs) / len(state.recent_costs)
         ceiling = self._config.cost_multiplier * expected
         if rolling_mean > ceiling:
-            return self._reject(
-                outcome,
+            return _policy_failure(
                 category="accounting",
                 message=(
                     f"cost tripwire fired for {family_id}: rolling mean "
                     f"${rolling_mean:.6f} exceeds ${ceiling:.6f}"
                 ),
             )
-        return outcome
+        return None
 
     @staticmethod
     def _reject(

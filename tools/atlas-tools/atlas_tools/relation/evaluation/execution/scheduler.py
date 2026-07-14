@@ -238,6 +238,8 @@ async def _worker[TaskT, ValueT](
         async with receive, send:
             async for item in receive:
                 outcome = await runner(item, control)
+                if isinstance(outcome, TaskFailed):
+                    await control.stop(outcome.failure.message)
                 await send.send(_WorkerEvent(item=item, outcome=outcome))
     except BaseException as error:
         await control.stop(str(error) or type(error).__qualname__)

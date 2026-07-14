@@ -48,8 +48,9 @@
     default_field_values,
 
     // Library Features
+    future_join,
     pointer_is_aligned_to,
-    future_join
+    portable_simd
 )]
 #![expect(
     dead_code,
@@ -61,3 +62,4 @@
 pub mod float;
 pub(crate) mod macros;
 pub mod projection;
+pub(crate) mod salt;

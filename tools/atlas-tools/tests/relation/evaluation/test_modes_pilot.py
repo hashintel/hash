@@ -3,29 +3,34 @@ import pytest
 from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.domain.api import (
     BUNDLES,
+    CardHash,
     JudgeConfig,
+    ModelId,
     PilotRunConfig,
+    PromptPackHash,
+    ProviderName,
+    ProviderSlug,
     ReasoningEffort,
     SliceSamplingConfig,
 )
 from atlas_tools.relation.evaluation.modes.api import PilotCard, PilotPlan
 
-PROMPT_PACK_HASH = sha256_bytes(b"prompt pack")
+PROMPT_PACK_HASH = PromptPackHash(sha256_bytes(b"prompt pack"))
 
 
 def _card(relation_id: str, *, holdout: bool) -> PilotCard:
     return PilotCard(
         relation_id=relation_id,
-        card_hash=sha256_bytes(relation_id.encode()),
+        card_hash=CardHash(sha256_bytes(relation_id.encode())),
         is_holdout=holdout,
     )
 
 
 def _judge(model: str, *, higher_effort: ReasoningEffort | None) -> JudgeConfig:
     return JudgeConfig(
-        provider_slug=f"provider-{model}",
-        provider_name=f"Provider {model}",
-        model=model,
+        provider_slug=ProviderSlug(f"provider-{model}"),
+        provider_name=ProviderName(f"Provider {model}"),
+        model=ModelId(model),
         temperature=0.0,
         seed=7,
         higher_effort=higher_effort,

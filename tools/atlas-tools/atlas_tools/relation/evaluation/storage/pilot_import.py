@@ -13,11 +13,14 @@ from pathlib import Path
 import trio
 from pydantic import ValidationError
 
-from atlas_tools.common import Sha256Hex, sha256_file
+from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
 from atlas_tools.relation.evaluation.domain.api import (
     HandoffManifest,
     PhysicalAttempt,
+    PilotRunConfig,
+    PromptPackHash,
     Vote,
+    VoteId,
 )
 from atlas_tools.relation.evaluation.storage.codec import load_jsonl
 
@@ -26,8 +29,10 @@ from atlas_tools.relation.evaluation.storage.codec import load_jsonl
 class PilotImport:
     """Carry the exact pilot subset and its complete physical audit trail."""
 
-    directory: Path
+    config: PilotRunConfig
+    manifest_hash: Sha256Hex
     votes_hash: Sha256Hex
+    attempts_hash: Sha256Hex
     votes: tuple[Vote, ...]
     attempts: tuple[PhysicalAttempt, ...]
 
@@ -43,11 +48,20 @@ def _manifest(directory: Path) -> HandoffManifest:
 def load_pilot_import(
     directory: Path,
     *,
-    planned_vote_ids: frozenset[Sha256Hex],
-    prompt_pack_hash: Sha256Hex,
+    planned_vote_ids: frozenset[VoteId],
+    prompt_pack_hash: PromptPackHash,
 ) -> PilotImport:
     """Load the exact baseline intersection or fail on drift and missing audit."""
     manifest = _manifest(directory)
+    try:
+        config = PilotRunConfig.model_validate_json(
+            canonical_json_bytes(dict(manifest.executor_config)),
+            strict=True,
+        )
+    except ValidationError as error:
+        raise ValueError("pilot manifest contains an invalid executor config") from error
+    if tuple(pin.judge for pin in manifest.judges) != config.judges:
+        raise ValueError("pilot manifest judges differ from its executor config")
     if manifest.prompt_pack_hash != prompt_pack_hash:
         raise ValueError("prompt pack differs from the pilot and voids qualification")
     votes_path = directory / "votes.jsonl"
@@ -66,7 +80,7 @@ def load_pilot_import(
     selected_ids = {vote.vote_id for vote in selected}
     if len(selected_ids) != len(selected):
         raise ValueError("pilot contains duplicate importable vote IDs")
-    by_vote: dict[Sha256Hex, list[PhysicalAttempt]] = {vote_id: [] for vote_id in selected_ids}
+    by_vote: dict[VoteId, list[PhysicalAttempt]] = {vote_id: [] for vote_id in selected_ids}
     for attempt in load_jsonl(attempts_path, PhysicalAttempt):
         bucket = by_vote.get(attempt.vote_id)
         if bucket is not None:
@@ -76,8 +90,10 @@ def load_pilot_import(
         raise ValueError(f"pilot lacks physical attempts for imported votes: {missing[:5]}")
     attempts = tuple(attempt for vote in selected for attempt in by_vote[vote.vote_id])
     return PilotImport(
-        directory=directory,
+        config=config,
+        manifest_hash=sha256_file(directory / "manifest.json"),
         votes_hash=manifest.source_hashes["votes.jsonl"],
+        attempts_hash=manifest.source_hashes["attempts.jsonl"],
         votes=selected,
         attempts=attempts,
     )
@@ -86,8 +102,8 @@ def load_pilot_import(
 async def load_pilot_import_async(
     directory: Path,
     *,
-    planned_vote_ids: frozenset[Sha256Hex],
-    prompt_pack_hash: Sha256Hex,
+    planned_vote_ids: frozenset[VoteId],
+    prompt_pack_hash: PromptPackHash,
 ) -> PilotImport:
     """Validate a paid pilot import without blocking Trio's event loop."""
     load = partial(

@@ -7,7 +7,8 @@ from openrouter import OpenRouter
 from openrouter.errors import NoResponseError, OpenRouterError
 from openrouter.operations.createembeddings import CreateEmbeddingsResponseBody
 
-from atlas_tools.relation.evaluation.domain.api import AttemptFailure
+from atlas_tools.relation.evaluation.domain.api import ResponseFailure, RoutingFailure
+from atlas_tools.relation.evaluation.transport._lifetime import SdkClientLifetime
 from atlas_tools.relation.evaluation.transport._sdk import (
     NO_RETRIES,
     timeout_milliseconds,
@@ -36,9 +37,9 @@ class _RejectedError(ValueError):
 
 
 def _rejection(error: _RejectedError) -> EmbeddingRejected:
+    failure_type = ResponseFailure if error.category == "response" else RoutingFailure
     return EmbeddingRejected(
-        failure=AttemptFailure(
-            category=error.category,
+        failure=failure_type(
             exception_type=f"{type(error).__module__}.{type(error).__qualname__}",
             message=str(error),
         )
@@ -122,6 +123,7 @@ class OpenRouterEmbeddingTransport:
     __slots__ = (
         "_client",
         "_closed",
+        "_lifetime",
         "_maximum_batch_size",
         "_server_url",
     )
@@ -146,6 +148,7 @@ class OpenRouterEmbeddingTransport:
         self._maximum_batch_size = maximum_batch_size
         self._server_url = server_url
         self._closed = False
+        self._lifetime = SdkClientLifetime(self._client)
 
     async def embed(self, request: EmbeddingRequest) -> EmbeddingOutcome:
         """Send and validate one ordered batch.
@@ -191,13 +194,11 @@ class OpenRouterEmbeddingTransport:
             return _rejection(error)
 
     async def aclose(self) -> None:
-        """Close both clients allocated by the generated SDK exactly once."""
+        """Close both SDK clients, preserving unfinished work for a retry."""
         if self._closed:
             return
-
+        await self._lifetime.aclose()
         self._closed = True
-        await self._client.__aexit__(None, None, None)
-        self._client.__exit__(None, None, None)
 
     async def __aenter__(self) -> Self:
         """Return this adapter for one explicitly owned async lifetime."""

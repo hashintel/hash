@@ -33,6 +33,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     FRAMINGS,
     QUALIFICATION_BUNDLE,
     SHELLS,
+    AttemptId,
     BundleId,
     EvaluationCard,
     FramingId,
@@ -52,6 +53,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     SliceRecord,
     Verdict,
     Vote,
+    VoteId,
     VoteVerdict,
     bundle_id,
 )
@@ -234,7 +236,7 @@ class PilotDataHealth(AnalysisModel):
 
     votes_loaded: NonNegativeInt
     clean_votes: NonNegativeInt
-    routing_violation_vote_ids: tuple[Sha256Hex, ...]
+    routing_violation_vote_ids: tuple[VoteId, ...]
     reasons_over_word_limit: NonNegativeInt
     reason_word_limit: PositiveInt
     coverage: tuple[PilotCoverageStream, ...]
@@ -730,9 +732,9 @@ class _PilotIndex:
     manifest: HandoffManifest
     slices: dict[RelationId, SliceRecord]
     cards: dict[RelationId, EvaluationCard]
-    votes_by_id: dict[Sha256Hex, Vote]
+    votes_by_id: dict[VoteId, Vote]
     cells: dict[_Cell, Vote]
-    attempts_by_vote: dict[Sha256Hex, tuple[PhysicalAttempt, ...]]
+    attempts_by_vote: dict[VoteId, tuple[PhysicalAttempt, ...]]
     clean_cells: dict[_Cell, Vote]
     clean_votes: tuple[Vote, ...]
     routing_bad: tuple[Vote, ...]
@@ -873,10 +875,10 @@ def _index_votes(
     manifest: HandoffManifest,
     cards: Mapping[RelationId, EvaluationCard],
     votes: Iterable[Vote],
-) -> tuple[dict[Sha256Hex, Vote], dict[_Cell, Vote]]:
+) -> tuple[dict[VoteId, Vote], dict[_Cell, Vote]]:
     grid_cells, auxiliary_cells = _expected_cells(manifest)
     allowed = grid_cells | auxiliary_cells
-    by_id: dict[Sha256Hex, Vote] = {}
+    by_id: dict[VoteId, Vote] = {}
     cells: dict[_Cell, Vote] = {}
     for vote in votes:
         if vote.vote_id in by_id:
@@ -905,11 +907,11 @@ def _index_votes(
 
 def _index_attempts(
     *,
-    votes_by_id: Mapping[Sha256Hex, Vote],
+    votes_by_id: Mapping[VoteId, Vote],
     attempts: Iterable[PhysicalAttempt],
-) -> dict[Sha256Hex, tuple[PhysicalAttempt, ...]]:
-    attempt_ids: set[Sha256Hex] = set()
-    grouped: dict[Sha256Hex, list[PhysicalAttempt]] = {vote_id: [] for vote_id in votes_by_id}
+) -> dict[VoteId, tuple[PhysicalAttempt, ...]]:
+    attempt_ids: set[AttemptId] = set()
+    grouped: dict[VoteId, list[PhysicalAttempt]] = {vote_id: [] for vote_id in votes_by_id}
     for attempt in attempts:
         if attempt.attempt_id in attempt_ids:
             raise PilotAnalysisError(f"duplicate physical attempt ID {attempt.attempt_id}")
@@ -923,7 +925,7 @@ def _index_attempts(
             raise PilotAnalysisError(f"attempt {attempt.attempt_id} differs from its vote family")
         grouped[attempt.vote_id].append(attempt)
 
-    reconciled: dict[Sha256Hex, tuple[PhysicalAttempt, ...]] = {}
+    reconciled: dict[VoteId, tuple[PhysicalAttempt, ...]] = {}
     for vote_id, vote in votes_by_id.items():
         journal = grouped[vote_id]
         if not journal:
@@ -937,11 +939,12 @@ def _index_attempts(
                     f"attempt journal {vote_id}/{stage} is not contiguous and ordered"
                 )
         accepted = tuple(
-            attempt.result
+            attempt.attempt_id
             for attempt in journal
             if attempt.failure is None and attempt.result is not None
         )
-        if accepted != vote.attempt_results:
+
+        if accepted != vote.accepted_attempt_ids:
             raise PilotAnalysisError(f"pilot vote {vote_id} differs from its accepted attempts")
         reconciled[vote_id] = tuple(journal)
     return reconciled

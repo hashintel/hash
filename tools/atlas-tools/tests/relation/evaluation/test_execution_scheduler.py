@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import pytest
 import trio
 
-from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig
+from atlas_tools.relation.evaluation.domain.api import ConcurrencyConfig, JudgeFamilyId
+from atlas_tools.relation.evaluation.execution import scheduler as scheduler_module
 from atlas_tools.relation.evaluation.execution.api import (
     ExecutionControl,
     ExecutionFailedError,
@@ -150,6 +151,54 @@ def test_systemic_failure_drains_authorized_call_and_denies_peer_repair() -> Non
     trio.run(scenario)
 
 
+@dataclass(slots=True)
+class QueuedAfterFailureRunner:
+    starts: list[int] = field(default_factory=list)
+
+    async def __call__(
+        self,
+        item: WorkItem[int],
+        control: ExecutionControl,
+    ) -> TaskOutcome[int]:
+        if item.plan_index == 0:
+            return TaskFailed(
+                failure=ExecutionFailure(category="systemic", message="billing disabled")
+            )
+
+        async def begin() -> None:
+            self.starts.append(item.plan_index)
+
+        try:
+            async with control.paid_request(begin):
+                return TaskCompleted(value=item.task)
+        except ExecutionStoppedError:
+            return TaskStopped()
+
+
+def test_worker_stops_before_a_terminal_event_can_release_queued_paid_work() -> None:
+    async def scenario() -> None:
+        runner = QueuedAfterFailureRunner()
+        control = ExecutionControl()
+        command_send, command_receive = trio.open_memory_channel[WorkItem[int]](2)
+        event_send, event_receive = trio.open_memory_channel[
+            scheduler_module._WorkerEvent[int, int]
+        ](2)
+        command_send.send_nowait(WorkItem(plan_index=0, task=0))
+        command_send.send_nowait(WorkItem(plan_index=1, task=1))
+        command_send.close()
+
+        await scheduler_module._worker(runner, control, command_receive, event_send)
+
+        first = event_receive.receive_nowait()
+        second = event_receive.receive_nowait()
+        assert isinstance(first.outcome, TaskFailed)
+        assert isinstance(second.outcome, TaskStopped)
+        assert control.reason == "billing disabled"
+        assert runner.starts == []
+
+    trio.run(scenario)
+
+
 def test_family_lanes_serialize_one_family_without_serializing_the_run() -> None:
     async def scenario() -> None:
         serialiser = FamilySerialiser()
@@ -163,7 +212,7 @@ def test_family_lanes_serialize_one_family_without_serializing_the_run() -> None
             _control: ExecutionControl,
         ) -> TaskOutcome[int]:
             nonlocal active_total, maximum_total
-            async with serialiser.hold(item.task):
+            async with serialiser.hold(JudgeFamilyId(item.task)):
                 active_by_family[item.task] = active_by_family.get(item.task, 0) + 1
                 maximum_by_family[item.task] = max(
                     maximum_by_family.get(item.task, 0), active_by_family[item.task]

@@ -1,6 +1,6 @@
 """Authorize paid calls against durably known provider cost."""
 
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Self
 
@@ -102,19 +102,36 @@ class CostLedger:
         async with self._lock:
             self._finish_reservation()
 
-    async def settle(self, attempt: PhysicalAttempt) -> None:
-        """Apply a durable attempt before later cost admissions proceed."""
+    async def persist_and_settle[DurableT](
+        self,
+        attempt: PhysicalAttempt,
+        persist: Callable[[PhysicalAttempt], Awaitable[DurableT]],
+    ) -> DurableT:
+        """Make durable append and cost settlement one admission boundary.
+
+        The ledger lock remains held while `persist` fsyncs the attempt. Later
+        admissions therefore observe either the prior durable cost or an
+        incomplete-cost state when persistence fails; there is no interval in
+        which a billed response exists but admission still sees old state.
+
+        Raises:
+            BaseException: `persist` fails. The reservation is closed and
+                configured cost admission fails closed afterward.
+
+        """
         cost, complete = _attempt_cost(attempt)
         async with self._lock:
-            self._finish_reservation()
+            try:
+                durable = await persist(attempt)
+            except BaseException:
+                self._finish_reservation()
+                self._complete = False
+                raise
+
             self._known_cost_usd += cost
             self._complete = self._complete and complete
-
-    async def record_unknown(self) -> None:
-        """Close a paid reservation whose outcome could not become durable."""
-        async with self._lock:
             self._finish_reservation()
-            self._complete = False
+            return durable
 
     async def snapshot(self) -> CostSnapshot:
         """Read a consistent accounting snapshot."""

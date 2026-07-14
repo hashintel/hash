@@ -18,14 +18,15 @@ from atlas_tools.relation.evaluation.analysis.deliverables import (
     placement_posterior,
 )
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     ClassifierConfig,
     PlacementClass,
     RelationFamilyId,
 )
 
 
-def _card_hash(relation_id: str) -> str:
-    return hashlib.sha256(relation_id.encode()).hexdigest()
+def _card_hash(relation_id: str) -> CardHash:
+    return CardHash(hashlib.sha256(relation_id.encode()).hexdigest())
 
 
 def _label(
@@ -68,18 +69,18 @@ def _label_from_tally(
 
 def _dataset() -> tuple[tuple[SoftLabel, ...], tuple[EmbeddingRow, ...]]:
     specifications: tuple[tuple[RelationFamilyId, PlacementClass, tuple[float, float]], ...] = (
-        ("family-a", "coincident", (-2.0, 0.0)),
-        ("family-a", "coincident", (-2.0, 0.5)),
-        ("family-b", "proximal", (2.0, 0.0)),
-        ("family-b", "proximal", (2.0, 0.5)),
-        ("family-c", "overlay", (0.0, 2.0)),
-        ("family-c", "overlay", (0.5, 2.0)),
-        ("family-d", "coincident", (-2.0, -0.5)),
-        ("family-d", "coincident", (-1.5, 0.0)),
-        ("family-e", "proximal", (2.0, -0.5)),
-        ("family-e", "proximal", (1.5, 0.0)),
-        ("family-f", "overlay", (0.0, 1.5)),
-        ("family-f", "overlay", (-0.5, 2.0)),
+        (RelationFamilyId("family-a"), "coincident", (-2.0, 0.0)),
+        (RelationFamilyId("family-a"), "coincident", (-2.0, 0.5)),
+        (RelationFamilyId("family-b"), "proximal", (2.0, 0.0)),
+        (RelationFamilyId("family-b"), "proximal", (2.0, 0.5)),
+        (RelationFamilyId("family-c"), "overlay", (0.0, 2.0)),
+        (RelationFamilyId("family-c"), "overlay", (0.5, 2.0)),
+        (RelationFamilyId("family-d"), "coincident", (-2.0, -0.5)),
+        (RelationFamilyId("family-d"), "coincident", (-1.5, 0.0)),
+        (RelationFamilyId("family-e"), "proximal", (2.0, -0.5)),
+        (RelationFamilyId("family-e"), "proximal", (1.5, 0.0)),
+        (RelationFamilyId("family-f"), "overlay", (0.0, 1.5)),
+        (RelationFamilyId("family-f"), "overlay", (-0.5, 2.0)),
     )
     labels = tuple(
         _label(index, family_id=family_id, placement_class=placement_class)
@@ -124,7 +125,7 @@ def test_training_join_rejects_card_drift_and_missing_family() -> None:
 
     extra = EmbeddingRow.from_values(
         relation_id="test:extra",
-        card_hash="e" * 64,
+        card_hash=CardHash("e" * 64),
         values=(0.0, 0.0),
     )
     with pytest.raises(ValueError, match="relation coverage differs"):
@@ -199,12 +200,12 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         (
             EmbeddingRow.from_values(
                 relation_id="test:center",
-                card_hash="a" * 64,
+                card_hash=CardHash("a" * 64),
                 values=(0.0, 0.0),
             ),
             EmbeddingRow.from_values(
                 relation_id="test:far",
-                card_hash="b" * 64,
+                card_hash=CardHash("b" * 64),
                 values=(100.0, 100.0),
             ),
         ),
@@ -223,7 +224,11 @@ def test_optimizer_matches_weighted_soft_target_mean_for_constant_features() -> 
         PlacementTally(proximal=9),
     )
     labels = tuple(
-        _label_from_tally(index + 20, family_id=f"weighted-{index}", tally=tally)
+        _label_from_tally(
+            index + 20,
+            family_id=RelationFamilyId(f"weighted-{index}"),
+            tally=tally,
+        )
         for index, tally in enumerate(tallies)
     )
     embeddings = tuple(
@@ -244,7 +249,7 @@ def test_optimizer_matches_weighted_soft_target_mean_for_constant_features() -> 
         (
             EmbeddingRow.from_values(
                 relation_id="test:weighted-query",
-                card_hash="d" * 64,
+                card_hash=CardHash("d" * 64),
                 values=(0.0,),
             ),
         ),

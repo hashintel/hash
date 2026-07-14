@@ -1,11 +1,17 @@
 import pytest
 
-from atlas_tools.common import Sha256Hex, sha256_bytes
+from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     GridJudge,
     GridRunConfig,
+    ModelId,
     PanelConfig,
+    PromptPackHash,
+    ProviderName,
+    ProviderSlug,
     ReasoningEffort,
+    VoteId,
     VoteTask,
     VoteVerdict,
 )
@@ -17,18 +23,21 @@ from atlas_tools.relation.evaluation.modes.api import (
     IncompleteBaselineError,
 )
 
-PROMPT_PACK_HASH = sha256_bytes(b"prompt pack")
+PROMPT_PACK_HASH = PromptPackHash(sha256_bytes(b"prompt pack"))
 
 
 def _card(relation_id: str) -> GridCard:
-    return GridCard(relation_id=relation_id, card_hash=sha256_bytes(relation_id.encode()))
+    return GridCard(
+        relation_id=relation_id,
+        card_hash=CardHash(sha256_bytes(relation_id.encode())),
+    )
 
 
-def _judge(model: str, *, effort: ReasoningEffort | None = None) -> GridJudge:
+def _judge(model: str, *, effort: ReasoningEffort = "minimal") -> GridJudge:
     return GridJudge(
-        provider_slug=f"provider-{model}",
-        provider_name=f"Provider {model}",
-        model=model,
+        provider_slug=ProviderSlug(f"provider-{model}"),
+        provider_name=ProviderName(f"Provider {model}"),
+        model=ModelId(model),
         temperature=0.0,
         seed=7,
         effort=effort,
@@ -43,13 +52,13 @@ def _config() -> GridRunConfig:
     )
 
 
-def _baseline_id(config: GridRunConfig, judge: GridJudge, card: GridCard) -> Sha256Hex:
+def _baseline_id(judge: GridJudge, card: GridCard) -> VoteId:
     return VoteTask(
         judge=judge,
         bundle_id="S1xF1",
         relation_id=card.relation_id,
         card_hash=card.card_hash,
-        effort=config.judge_effort(judge),
+        effort=judge.effort,
         repeat_index=0,
         prompt_pack_hash=PROMPT_PACK_HASH,
         rubric_version="rubric-v1",
@@ -64,8 +73,8 @@ def test_grid_phase_a_skips_exact_imports_and_interleaves_remaining_cells() -> N
     judge_a, judge_b = config.judges
     imported = frozenset(
         {
-            _baseline_id(config, judge_a, card_a),
-            _baseline_id(config, judge_b, card_b),
+            _baseline_id(judge_a, card_a),
+            _baseline_id(judge_b, card_b),
         }
     )
     plan = GridPhaseAPlan(
@@ -94,7 +103,7 @@ def test_grid_phase_a_rejects_imports_from_another_baseline() -> None:
             config=_config(),
             cards=(_card("test:A"),),
             prompt_pack_hash=PROMPT_PACK_HASH,
-            imported_vote_ids=frozenset({sha256_bytes(b"unrelated vote")}),
+            imported_vote_ids=frozenset({VoteId(sha256_bytes(b"unrelated vote"))}),
         )
 
 
@@ -107,7 +116,7 @@ def test_grid_phase_b_selects_each_trigger_and_preserves_repeat_order() -> None:
         _card("test:abstain"),
     )
     judge_a, judge_b = config.judges
-    baseline: dict[Sha256Hex, VoteVerdict] = {}
+    baseline: dict[VoteId, VoteVerdict] = {}
     verdict_rows: dict[str, tuple[VoteVerdict, VoteVerdict]] = {
         "test:stable": ("proximal", "proximal"),
         "test:coincident": ("coincident", "coincident"),
@@ -117,9 +126,9 @@ def test_grid_phase_b_selects_each_trigger_and_preserves_repeat_order() -> None:
     by_relation = {card.relation_id: card for card in cards}
     for relation_id, verdicts in verdict_rows.items():
         card = by_relation[relation_id]
-        baseline[_baseline_id(config, judge_a, card)] = verdicts[0]
-        baseline[_baseline_id(config, judge_b, card)] = verdicts[1]
-    baseline[sha256_bytes(b"already committed refinement")] = "overlay"
+        baseline[_baseline_id(judge_a, card)] = verdicts[0]
+        baseline[_baseline_id(judge_b, card)] = verdicts[1]
+    baseline[VoteId(sha256_bytes(b"already committed refinement"))] = "overlay"
 
     phase_b = GridPhaseBPlan.from_baseline(
         config=config,
@@ -156,7 +165,7 @@ def test_grid_phase_b_fails_before_refining_an_incomplete_baseline() -> None:
     config = _config()
     card = _card("test:A")
     judge_a, _ = config.judges
-    partial: dict[Sha256Hex, VoteVerdict] = {_baseline_id(config, judge_a, card): "proximal"}
+    partial: dict[VoteId, VoteVerdict] = {_baseline_id(judge_a, card): "proximal"}
 
     with pytest.raises(IncompleteBaselineError, match=r"test:A.*model-b"):
         GridPhaseBPlan.from_baseline(
@@ -175,8 +184,8 @@ def test_grid_plan_is_the_replayable_phase_a_then_phase_b_stream() -> None:
         cards=(card,),
         prompt_pack_hash=PROMPT_PACK_HASH,
     )
-    baseline: dict[Sha256Hex, VoteVerdict] = {
-        _baseline_id(config, judge, card): "coincident" for judge in config.judges
+    baseline: dict[VoteId, VoteVerdict] = {
+        _baseline_id(judge, card): "coincident" for judge in config.judges
     }
     phase_b = GridPhaseBPlan.from_baseline(
         config=config,

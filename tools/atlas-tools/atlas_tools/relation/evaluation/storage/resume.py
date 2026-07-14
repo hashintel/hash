@@ -85,11 +85,12 @@ def _attempt_index(
 
 def _validate_vote_evidence(vote: Vote, attempts: tuple[PhysicalAttempt, ...]) -> None:
     accepted = tuple(
-        attempt.result
+        attempt.attempt_id
         for attempt in attempts
         if attempt.result is not None and attempt.failure is None
     )
-    if accepted != vote.attempt_results:
+
+    if accepted != vote.accepted_attempt_ids:
         raise ValueError(f"vote {vote.vote_id} does not match successful physical results")
 
 

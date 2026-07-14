@@ -18,9 +18,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     JudgeFamilyId,
     NonEmptyStr,
     Probability,
+    PromptPackHash,
     RelationId,
-    Sha256Hex,
     Vote,
+    VoteId,
     VoteVerdict,
 )
 
@@ -240,7 +241,7 @@ class GridAnalysis(AnalysisModel):
     """A complete grid cohort ordered by family and relation identity."""
 
     family_ids: tuple[JudgeFamilyId, ...]
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
     rubric_version: NonEmptyStr
     cards: tuple[CardAnalysis, ...]
 
@@ -277,7 +278,7 @@ def _index_vote(
     cards_by_id: dict[RelationId, EvaluationCard],
     family_ids: frozenset[JudgeFamilyId],
     cells: dict[_Cell, GridVote],
-    vote_ids: set[Sha256Hex],
+    vote_ids: set[VoteId],
 ) -> None:
     vote = observed.vote
     card = cards_by_id.get(vote.relation_id)
@@ -330,10 +331,10 @@ def _index_votes(
     family_ids: frozenset[JudgeFamilyId],
     imported_votes: Iterable[Vote],
     fresh_votes: Iterable[Vote],
-) -> tuple[dict[_Cell, GridVote], Sha256Hex, NonEmptyStr]:
+) -> tuple[dict[_Cell, GridVote], PromptPackHash, NonEmptyStr]:
     cells: dict[_Cell, GridVote] = {}
-    vote_ids: set[Sha256Hex] = set()
-    prompt_pack_hashes: set[Sha256Hex] = set()
+    vote_ids: set[VoteId] = set()
+    prompt_pack_hashes: set[PromptPackHash] = set()
     rubric_versions: set[NonEmptyStr] = set()
 
     def add(votes: Iterable[Vote], source: VoteSource) -> None:

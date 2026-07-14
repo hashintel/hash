@@ -1,35 +1,50 @@
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 import trio
 
 from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.evaluation.domain.api import (
-    AttemptFailure,
     BaseRunConfig,
+    CardHash,
     ConcurrencyConfig,
     GuardConfig,
     InFlightRequest,
     JudgeConfig,
+    JudgeFamilyId,
+    ModelId,
     PhysicalAttempt,
+    PromptPackHash,
+    ProviderFailure,
+    ProviderName,
     ProviderResult,
+    ProviderSlug,
     RequestStage,
+    ResponseFailure,
     TransientRetryConfig,
     Vote,
     VoteTask,
 )
 from atlas_tools.relation.evaluation.execution.api import (
+    ExecutionControl,
     ExecutionFailedError,
+    ExecutionStalledError,
     GridGuardPolicy,
     LogicalVoteRunner,
     ParsedVote,
+    TaskDeferred,
+    WorkItem,
+    build_resume_index,
     execute_votes,
 )
 from atlas_tools.relation.evaluation.storage.api import (
     DurableAttempt,
     JournalPaths,
+    ResumeIndex,
     RunJournal,
 )
 from atlas_tools.relation.evaluation.transport.api import (
@@ -44,18 +59,18 @@ from atlas_tools.relation.evaluation.transport.api import (
 def _task(relation_id: str) -> VoteTask:
     return VoteTask(
         judge=JudgeConfig(
-            provider_slug="provider/model",
-            provider_name="Provider",
-            model="test/model",
+            provider_slug=ProviderSlug("provider/model"),
+            provider_name=ProviderName("Provider"),
+            model=ModelId("test/model"),
             temperature=0.0,
             seed=7,
         ),
         bundle_id="S1xF1",
         relation_id=relation_id,
-        card_hash=sha256_bytes(relation_id.encode()),
+        card_hash=CardHash(sha256_bytes(relation_id.encode())),
         effort="minimal",
         repeat_index=0,
-        prompt_pack_hash=sha256_bytes(b"prompt pack"),
+        prompt_pack_hash=PromptPackHash(sha256_bytes(b"prompt pack")),
         rubric_version="rubric-v1",
     )
 
@@ -84,6 +99,22 @@ def _provider_result(
                 "cost": cost_usd,
                 "prompt_tokens_details": {"cached_tokens": cached_tokens},
             },
+            "openrouter_metadata": {
+                "attempt": 1,
+                "endpoints": {
+                    "available": [
+                        {
+                            "model": "test/model",
+                            "provider": "Provider",
+                            "selected": True,
+                        }
+                    ],
+                    "total": 1,
+                },
+                "requested": "test/model",
+                "strategy": "direct",
+                "attempts": [{"model": "test/model", "provider": "Provider", "status": 200}],
+            },
         },
         strict=True,
     )
@@ -102,7 +133,7 @@ def _response(
             cost_usd=cost_usd,
         ),
         content=content,
-        provider_name="Provider",
+        provider_name=ProviderName("Provider"),
     )
 
 
@@ -187,14 +218,42 @@ def _config(*, maximum_attempts: int = 1, concurrency: int = 1) -> BaseRunConfig
     )
 
 
+def _empty_resume() -> ResumeIndex:
+    return ResumeIndex(
+        next_plan_index=0,
+        completed=(),
+        attempts_by_vote=MappingProxyType({}),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _SingleTaskPlan:
+    task: VoteTask
+
+    @property
+    def expected_votes(self) -> int:
+        return 1
+
+    def tasks(self) -> Iterator[VoteTask]:
+        yield self.task
+
+
 def _transient_failure() -> CompletionFailed:
     return CompletionFailed(
-        failure=AttemptFailure(
-            category="provider",
+        failure=ProviderFailure(
             exception_type="openrouter.errors.ServerError",
             message="provider temporarily unavailable",
             http_status_code=503,
         ),
+    )
+
+
+def _permanent_failure() -> CompletionFailed:
+    return CompletionFailed(
+        failure=ResponseFailure(
+            exception_type="ResponseError",
+            message="completion envelope violated the response contract",
+        )
     )
 
 
@@ -218,10 +277,12 @@ def test_vote_runner_journals_visible_retry_and_single_repair_in_protocol_order(
             prompt=_Prompt(),
             journal=journal,
             transport=transport,
+            resume=_empty_resume(),
         )
 
+        task = _task("test:repaired")
         completed = await execute_votes(
-            (_task("test:repaired"),),
+            (task,),
             runner=runner,
             config=config,
             journal=journal,
@@ -256,6 +317,83 @@ def test_vote_runner_journals_visible_retry_and_single_repair_in_protocol_order(
         assert votes[0].cost_complete is False
         assert not tuple(journal.paths.inflight.glob("*.json"))
 
+        resume = build_resume_index(
+            _SingleTaskPlan(task),
+            votes=votes,
+            attempts=attempts,
+            prompt=_Prompt(),
+            config=config,
+        )
+        assert resume.next_plan_index == 1
+        assert resume.attempts_by_vote[task.vote_id] == attempts
+
+    trio.run(scenario)
+
+
+def test_permanent_failure_is_bought_once_per_explicit_runner_session(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        journal = _RecordingJournal(paths=JournalPaths.under(tmp_path))
+        await journal.create()
+        config = _config(maximum_attempts=3)
+        first = _task("test:permanent")
+        peer = _task("test:peer-success")
+        transport = _SequenceTransport(
+            outcomes=[_permanent_failure(), _response('{"verdict":"proximal"}')],
+            journal=journal,
+        )
+        runner = LogicalVoteRunner(
+            config=config,
+            prompt=_Prompt(),
+            journal=journal,
+            transport=transport,
+            resume=_empty_resume(),
+        )
+
+        with pytest.raises(ExecutionStalledError):
+            await execute_votes(
+                (first, peer),
+                runner=runner,
+                config=config,
+                journal=journal,
+            )
+
+        attempts = await journal.attempts()
+        assert transport.stages == ["initial", "initial"]
+        assert sum(attempt.vote_id == first.vote_id for attempt in attempts) == 1
+
+        resumed = ResumeIndex(
+            next_plan_index=0,
+            completed=(),
+            attempts_by_vote=MappingProxyType(
+                {
+                    first.vote_id: tuple(
+                        attempt for attempt in attempts if attempt.vote_id == first.vote_id
+                    ),
+                    peer.vote_id: tuple(
+                        attempt for attempt in attempts if attempt.vote_id == peer.vote_id
+                    ),
+                }
+            ),
+        )
+        next_transport = _SequenceTransport(
+            outcomes=[_permanent_failure()],
+            journal=journal,
+        )
+        next_runner = LogicalVoteRunner(
+            config=config,
+            prompt=_Prompt(),
+            journal=journal,
+            transport=next_transport,
+            resume=resumed,
+        )
+
+        outcome = await next_runner(WorkItem(plan_index=0, task=first), ExecutionControl())
+
+        assert isinstance(outcome, TaskDeferred)
+        assert next_transport.stages == ["initial"]
+
     trio.run(scenario)
 
 
@@ -283,7 +421,7 @@ def test_billed_grid_guard_result_is_durable_before_peer_work_stops(
         guard = GridGuardPolicy(
             config=GuardConfig(cache_check_vote=1, cost_window=10, cost_multiplier=1.5),
             retry_policy=config.transient_retries,
-            pilot_cost_per_vote_usd={"test/model": 0.01},
+            pilot_cost_per_vote_usd={JudgeFamilyId("test/model"): 0.01},
             parse_verdict=_parse_guard_response,
         )
         runner = LogicalVoteRunner(
@@ -292,6 +430,7 @@ def test_billed_grid_guard_result_is_durable_before_peer_work_stops(
             journal=journal,
             transport=inner,
             guard=guard,
+            resume=_empty_resume(),
         )
 
         with pytest.raises(ExecutionFailedError, match="cache assertion failed"):

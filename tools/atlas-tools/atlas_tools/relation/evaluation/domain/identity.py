@@ -5,16 +5,119 @@ and repeat index. These aliases and lookup tables keep that vocabulary finite
 and prevent string assembly from creating impossible bundles.
 """
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, StringConstraints
+from pydantic_core import CoreSchema, core_schema
 
 type Verdict = Literal["coincident", "proximal", "overlay", "unclear"]
 type VoteVerdict = Literal["coincident", "proximal", "overlay", "unclear", "ABSTAIN"]
 type PlacementClass = Literal["coincident", "proximal", "overlay"]
-type RelationFamilyId = Annotated[str, StringConstraints(min_length=1)]
-type JudgeFamilyId = Annotated[str, StringConstraints(min_length=1)]
 type NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
+
+_SHA256_HEX_LENGTH = 64
+_LOWER_HEXADECIMAL = frozenset("0123456789abcdef")
+
+
+class _NonEmptyStringId(str):
+    __slots__ = ()
+
+    def __new__(cls, value: str) -> Self:
+        if not isinstance(value, str):
+            raise TypeError(f"{cls.__name__} requires a string")
+        if not value:
+            raise ValueError(f"{cls.__name__} must not be empty")
+        return str.__new__(cls, value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        _source_type: object,
+        _handler: object,
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(strict=True, min_length=1),
+        )
+
+
+class _Sha256Id(str):
+    __slots__ = ()
+
+    def __new__(cls, value: str) -> Self:
+        if not isinstance(value, str):
+            raise TypeError(f"{cls.__name__} requires a string")
+        if len(value) != _SHA256_HEX_LENGTH or any(
+            character not in _LOWER_HEXADECIMAL for character in value
+        ):
+            raise ValueError(f"{cls.__name__} requires 64 lowercase hexadecimal characters")
+        return str.__new__(cls, value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        _source_type: object,
+        _handler: object,
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(
+                strict=True,
+                min_length=_SHA256_HEX_LENGTH,
+                max_length=_SHA256_HEX_LENGTH,
+                pattern="^[0-9a-f]{64}$",
+            ),
+        )
+
+
+class RelationFamilyId(_NonEmptyStringId):
+    """Identify a semantic relation family used for classifier grouping."""
+
+
+class JudgeFamilyId(_NonEmptyStringId):
+    """Identify a judge model family across attempts and analysis."""
+
+
+class ModelId(_NonEmptyStringId):
+    """Identify the model requested from or returned by a provider."""
+
+
+class ProviderName(_NonEmptyStringId):
+    """Identify the provider name returned by OpenRouter."""
+
+
+class ProviderSlug(_NonEmptyStringId):
+    """Identify the exact OpenRouter provider route."""
+
+
+class VoteId(_Sha256Id):
+    """Identify one logical vote independently of physical retries."""
+
+
+class AttemptId(_Sha256Id):
+    """Identify one physical paid request attempt."""
+
+
+class RequestHash(_Sha256Id):
+    """Identify the canonical provider request bytes and stage."""
+
+
+class CardHash(_Sha256Id):
+    """Identify the exact relation card content used by a vote."""
+
+
+class PromptPackHash(_Sha256Id):
+    """Identify the exact prompt pack used to render a request."""
+
+
+class PlanHash(_Sha256Id):
+    """Identify an ordered logical vote plan and request contract."""
+
+
+class SessionId(_Sha256Id):
+    """Identify provider requests that may share prompt-cache state."""
+
+
 type FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
 type NonNegativeFiniteFloat = Annotated[float, Field(ge=0.0, allow_inf_nan=False)]
 type PositiveFiniteFloat = Annotated[float, Field(gt=0.0, allow_inf_nan=False)]

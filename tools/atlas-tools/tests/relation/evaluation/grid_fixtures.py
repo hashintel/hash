@@ -13,7 +13,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     ConcurrencyConfig,
     GridJudge,
     GridRunConfig,
+    ModelId,
     PanelConfig,
+    ProviderName,
+    ProviderSlug,
     TransientRetryConfig,
     Verdict,
 )
@@ -133,11 +136,12 @@ def write_grid_concat(directory: Path) -> Path:
 def _grid_judge(model: str) -> GridJudge:
     slug = model.removeprefix("test/")
     return GridJudge(
-        provider_slug=f"test-provider/{slug}",
-        provider_name=f"Provider {slug}",
-        model=model,
+        provider_slug=ProviderSlug(f"test-provider/{slug}"),
+        provider_name=ProviderName(f"Provider {slug}"),
+        model=ModelId(model),
         temperature=0.0,
         seed=17,
+        effort="minimal",
         pilot_cost_per_vote_usd=0.01,
     )
 

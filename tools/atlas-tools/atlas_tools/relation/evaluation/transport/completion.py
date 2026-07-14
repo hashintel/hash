@@ -6,10 +6,12 @@ from typing import Literal, Protocol
 
 from atlas_tools.relation.evaluation.domain.api import (
     AttemptFailure,
-    JudgeConfig,
+    JudgeRequestSpec,
+    ProviderName,
     ProviderResult,
     ReasoningEffort,
     RequestStage,
+    SessionId,
 )
 
 
@@ -34,9 +36,9 @@ class CompletionRequest:
     """
 
     messages: tuple[CompletionMessage, ...]
-    judge: JudgeConfig
+    judge: JudgeRequestSpec
     effort: ReasoningEffort
-    session_id: str
+    session_id: SessionId
     timeout: timedelta
     request_stage: RequestStage
 
@@ -59,13 +61,15 @@ class CompletionAccepted:
 
     result: ProviderResult
     content: str
-    provider_name: str
+    provider_name: ProviderName
 
     def __post_init__(self) -> None:
         if not self.content.strip():
             raise ValueError("accepted completion content must not be empty")
         if self.result.content != self.content:
             raise ValueError("accepted completion content must match its native result")
+        if self.result.usage is None:
+            raise ValueError("accepted completion requires usage accounting")
         if not self.provider_name:
             raise ValueError("accepted completion provider_name must not be empty")
 

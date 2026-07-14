@@ -6,12 +6,17 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 
 from atlas_tools.common import canonical_json_bytes
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     ConcurrencyConfig,
     HandoffManifest,
     JudgeConfig,
     MaxTokensLimit,
+    ModelId,
     PhysicalAttempt,
     PilotRunState,
+    PromptPackHash,
+    ProviderName,
+    ProviderSlug,
     TransientRetryConfig,
     Vote,
     VoteTask,
@@ -23,9 +28,9 @@ _JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
 
 def test_paid_pilot_vote_identity_remains_stable() -> None:
     judge = JudgeConfig(
-        provider_slug="amazon-bedrock",
-        provider_name="Amazon Bedrock",
-        model="anthropic/claude-opus-4.8",
+        provider_slug=ProviderSlug("amazon-bedrock"),
+        provider_name=ProviderName("Amazon Bedrock"),
+        model=ModelId("anthropic/claude-opus-4.8"),
         temperature=None,
         seed=None,
         higher_effort="high",
@@ -35,10 +40,14 @@ def test_paid_pilot_vote_identity_remains_stable() -> None:
         judge=judge,
         bundle_id="S1xF1",
         relation_id="hash:https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
-        card_hash="b6651be3939273fa29d86bd0bf1c857fab794fca27632ccadf76488c7e2c2702",
+        card_hash=CardHash(
+            "b6651be3939273fa29d86bd0bf1c857fab794fca27632ccadf76488c7e2c2702"
+        ),
         effort="minimal",
         repeat_index=0,
-        prompt_pack_hash="c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2",
+        prompt_pack_hash=PromptPackHash(
+            "c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2"
+        ),
         rubric_version="rubric-v1",
     )
 

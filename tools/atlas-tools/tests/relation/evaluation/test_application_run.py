@@ -3,8 +3,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+import trio
 import yaml
+from pydantic import SecretStr
 
+import atlas_tools.relation.evaluation.application.run as run_module
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
 from atlas_tools.relation.evaluation.application.aggregate import aggregate_soft_labels
 from atlas_tools.relation.evaluation.application.completed import load_completed_grid
@@ -18,8 +21,11 @@ from atlas_tools.relation.evaluation.domain.api import (
     GridManifest,
     HandoffManifest,
     JudgeConfig,
+    ModelId,
     PilotRunConfig,
+    ProviderName,
     ProviderResult,
+    ProviderSlug,
     RunDates,
     SliceDerivation,
     SliceSamplingConfig,
@@ -64,19 +70,39 @@ def _write_empty_pilot(
     (directory / "votes.jsonl").write_bytes(b"")
     (directory / "attempts.jsonl").write_bytes(b"")
     config = load_config(config_path).grid()
+    pilot_judges = tuple(
+        JudgeConfig(
+            provider_slug=grid_judge.provider_slug,
+            provider_name=grid_judge.provider_name,
+            openrouter_region=grid_judge.openrouter_region,
+            model=grid_judge.model,
+            temperature=grid_judge.temperature,
+            seed=grid_judge.seed,
+            output_token_limit=grid_judge.output_token_limit,
+        )
+        for grid_judge in config.judges
+    )
+    pilot_config = PilotRunConfig(
+        sampling=SliceSamplingConfig(seed=1, non_holdout_count=1),
+        repeat_count=1,
+        baseline_effort=config.baseline_effort,
+        request_timeout=config.request_timeout,
+        transient_retries=config.transient_retries,
+        judges=pilot_judges,
+    )
     anchor = next(iter(sorted(POOL_CARDS)))
     relation_id = f"wikidata:{anchor}"
     instant = datetime(2026, 1, 1, tzinfo=UTC)
     manifest = HandoffManifest(
-        schema_version=2,
+        schema_version=3,
         expected_grid=ExpectedGrid(
-            families=(config.judges[0].family_id,),
+            families=tuple(judge.family_id for judge in pilot_judges),
             bundles=BUNDLES,
             relation_ids=(relation_id,),
             effort="minimal",
         ),
         expected_repeat_arm=ExpectedRepeatArm(
-            families=(config.judges[0].family_id,),
+            families=tuple(judge.family_id for judge in pilot_judges),
             relation_ids=(relation_id,),
             effort="minimal",
             repeat_indices=(1,),
@@ -93,7 +119,7 @@ def _write_empty_pilot(
             selection_hash="2" * 64,
         ),
         run_dates=RunDates(started_at=instant, completed_at=instant),
-        judges=(judge_pin(config.judges[0]),),
+        judges=tuple(judge_pin(judge) for judge in pilot_judges),
         prompt_pack_hash=_prompt_pack(cards_directory).content_hash,
         rubric_version="rubric-v1",
         full_grid_card_count=1,
@@ -103,7 +129,10 @@ def _write_empty_pilot(
         },
         openrouter_sdk_version="fixture",
         openrouter_openapi_version="fixture",
-        executor_config={},
+        executor_config=pilot_config.model_dump(
+            mode="json",
+            exclude=set(pilot_config.OPERATIONAL_FIELDS),
+        ),
     )
     (directory / "manifest.json").write_bytes(canonical_json_bytes(manifest) + b"\n")
     return directory
@@ -186,6 +215,30 @@ class AsyncMappingTransport:
         return None
 
 
+class _OwnedSettings:
+    __slots__ = ("api_key",)
+
+    def __init__(self) -> None:
+        self.api_key = SecretStr("owned-secret")
+
+
+class _OwnedCompletionTransport:
+    instance: _OwnedCompletionTransport | None = None
+
+    def __init__(self, api_key: str) -> None:
+        self.api_key = api_key
+        self.closed = False
+        type(self).instance = self
+
+    async def complete(self, request: CompletionRequest) -> CompletionAccepted:
+        del request
+        raise AssertionError("cleanup test must not issue a completion")
+
+    async def aclose(self) -> None:
+        await trio.lowlevel.checkpoint()
+        self.closed = True
+
+
 @dataclass(slots=True)
 class RecordingProgress:
     phases: list[tuple[str, int | None]] = field(default_factory=list)
@@ -199,6 +252,28 @@ class RecordingProgress:
 
     def note(self, message: str) -> None:
         _ = message
+
+
+def test_owned_completion_transport_closes_when_the_run_is_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _OwnedCompletionTransport.instance = None
+    monkeypatch.setattr(run_module, "OpenRouterSettings", _OwnedSettings)
+    monkeypatch.setattr(run_module, "OpenRouterTransport", _OwnedCompletionTransport)
+
+    async def scenario() -> None:
+        with trio.CancelScope() as scope:
+            async with run_module._transport(None) as transport:
+                assert isinstance(transport, _OwnedCompletionTransport)
+                assert transport.api_key == "owned-secret"
+                scope.cancel()
+                await trio.sleep_forever()
+
+        owned = _OwnedCompletionTransport.instance
+        assert owned is not None
+        assert owned.closed is True
+
+    trio.run(scenario)
 
 
 def test_grid_runner_executes_two_phases_and_revalidates_without_network(
@@ -298,9 +373,9 @@ def test_pilot_runner_derives_the_slice_and_publishes_only_after_full_coverage(
         concurrency=ConcurrencyConfig(initial=2, maximum=4),
         judges=(
             JudgeConfig(
-                provider_slug="test-provider/j1",
-                provider_name="Provider j1",
-                model="test/j1",
+                provider_slug=ProviderSlug("test-provider/j1"),
+                provider_name=ProviderName("Provider j1"),
+                model=ModelId("test/j1"),
                 temperature=0.0,
                 seed=17,
             ),

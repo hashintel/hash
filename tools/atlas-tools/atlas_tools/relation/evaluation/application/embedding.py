@@ -34,6 +34,7 @@ from pydantic import (
 
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
 from atlas_tools.relation.evaluation.analysis.api import EmbeddingRow
+from atlas_tools.relation.evaluation.application._lifetime import close_owned_transport
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     EmbeddingsArtifact,
 )
@@ -70,6 +71,7 @@ _CACHE_ENTRY_ALGORITHM = "relation-embedding-cache-f32-json-v1"
 _CACHE_KEY_ALGORITHM = "relation-embedding-cache-key-v1"
 _OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY"
 _FLOAT32_BYTES = 4
+
 
 class EmbeddingConfigurationError(ValueError):
     """Report an incomplete or contradictory embedding configuration."""
@@ -851,7 +853,7 @@ async def embed_grid_async(
                     progress=progress,
                 )
             finally:
-                await owned_transport.aclose()
+                await close_owned_transport(owned_transport)
         else:
             acquired = await _acquire_missing(
                 misses,

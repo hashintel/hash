@@ -2,8 +2,8 @@
 
 from pydantic import JsonValue
 
-from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.evaluation.domain.api import RequestStage
+from atlas_tools.common import canonical_json_bytes, sha256_bytes
+from atlas_tools.relation.evaluation.domain.api import RequestHash, RequestStage, VoteId
 from atlas_tools.relation.evaluation.transport.completion import CompletionRequest
 
 
@@ -25,16 +25,16 @@ def request_policy_payload() -> dict[str, JsonValue]:
 def request_hash(
     request: CompletionRequest,
     *,
-    vote_id: Sha256Hex,
+    vote_id: VoteId,
     stage: RequestStage,
-) -> Sha256Hex:
+) -> RequestHash:
     """Hash one completion together with its paid transport policy."""
     if request.request_stage != stage:
         raise ValueError("request stage must match the hashed stage")
 
     judge = request.judge
 
-    return sha256_bytes(
+    return RequestHash(sha256_bytes(
         canonical_json_bytes(
             {
                 "effort": request.effort,
@@ -56,4 +56,4 @@ def request_hash(
                 "vote_id": vote_id,
             }
         )
-    )
+    ))

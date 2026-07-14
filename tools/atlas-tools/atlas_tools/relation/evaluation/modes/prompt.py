@@ -15,8 +15,8 @@ from atlas_tools.relation.evaluation.domain.api import (
     BUNDLES,
     BundleId,
     FramingId,
+    PromptPackHash,
     RelationId,
-    Sha256Hex,
     Verdict,
     bundle_parts,
 )
@@ -177,7 +177,7 @@ class PromptPack:
     """Nine reusable prompt prefixes and their stable artifact identity."""
 
     prefixes: tuple[PromptPrefix, ...]
-    content_hash: Sha256Hex
+    content_hash: PromptPackHash
 
     def __post_init__(self) -> None:
         if len(self.prefixes) != len(BUNDLES):
@@ -255,7 +255,7 @@ def _update_message(digest: _Digest, message: PromptMessage) -> None:
     digest.update(b"}")
 
 
-def _prompt_pack_hash(prefixes: Sequence[PromptPrefix]) -> Sha256Hex:
+def _prompt_pack_hash(prefixes: Sequence[PromptPrefix]) -> PromptPackHash:
     digest = hashlib.sha256()
     digest.update(b'{"live_turn_templates":')
     _update_string_array(
@@ -277,7 +277,7 @@ def _prompt_pack_hash(prefixes: Sequence[PromptPrefix]) -> Sha256Hex:
     digest.update(b'],"retry_instruction":')
     digest.update(_encoded_string(RETRY_INSTRUCTION))
     digest.update(b"}")
-    return digest.hexdigest()
+    return PromptPackHash(digest.hexdigest())
 
 
 @dataclass(frozen=True, slots=True)

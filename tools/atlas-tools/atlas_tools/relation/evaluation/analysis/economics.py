@@ -18,6 +18,7 @@ class _FamilyAccumulator:
     refinement_votes: int = 0
     abstentions: int = 0
     fresh_costs: list[float] = field(default_factory=list)
+    cost_complete: bool = True
 
     def add(self, observed: GridVote) -> None:
         vote = observed.vote
@@ -26,6 +27,7 @@ class _FamilyAccumulator:
             self.imported_votes += 1
             return
         self.fresh_costs.append(vote.known_cost_usd)
+        self.cost_complete = self.cost_complete and vote.cost_complete
         if vote.repeat_index == 0:
             self.fresh_baseline_votes += 1
         else:
@@ -33,7 +35,7 @@ class _FamilyAccumulator:
 
 
 class FamilyEconomics(AnalysisModel):
-    """One family's vote sources, abstentions, and fresh known cost."""
+    """One family's vote sources, abstentions, and fresh billing evidence."""
 
     family_id: JudgeFamilyId
     imported_votes: NonNegativeInt
@@ -41,6 +43,7 @@ class FamilyEconomics(AnalysisModel):
     refinement_votes: NonNegativeInt
     abstentions: NonNegativeInt
     known_cost_usd: float = Field(ge=0.0, allow_inf_nan=False)
+    cost_complete: bool
 
     @model_validator(mode="after")
     def check_counts(self) -> Self:
@@ -82,6 +85,12 @@ class VoteEconomics(AnalysisModel):
     def total_known_cost_usd(self) -> float:
         """Sum the known cost of fresh votes across judge families."""
         return math.fsum(row.known_cost_usd for row in self.by_family)
+
+    @computed_field
+    @property
+    def cost_complete(self) -> bool:
+        """Return whether every fresh vote has complete billing evidence."""
+        return all(row.cost_complete for row in self.by_family)
 
     @computed_field
     @property
@@ -133,6 +142,7 @@ def vote_economics(analysis: GridAnalysis) -> VoteEconomics:
             refinement_votes=accumulator.refinement_votes,
             abstentions=accumulator.abstentions,
             known_cost_usd=math.fsum(accumulator.fresh_costs),
+            cost_complete=accumulator.cost_complete,
         )
         for family_id, accumulator in accumulators.items()
     )

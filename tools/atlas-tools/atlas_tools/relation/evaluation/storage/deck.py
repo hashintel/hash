@@ -18,6 +18,7 @@ from pydantic import JsonValue, TypeAdapter, ValidationError
 from atlas_tools.common import Sha256Hex, sha256_bytes
 from atlas_tools.relation.concat import CONCAT_SCHEMA_VERSION, ConcatCardRow, ConcatProvenance
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     EvaluationCard,
     RelationFamilyId,
     RelationId,
@@ -57,7 +58,7 @@ def _project_card(card: ConcatCardRow) -> EvaluationCard:
         relation_id=card.relation_id,
         producer=card.producer,
         card_text=card.card_text,
-        card_hash=card.card_hash,
+        card_hash=CardHash(card.card_hash),
         token_count=card.token_count,
         prescreen_stratum=prescreen,
         pilot_strata=tuple(sorted(set(raw_strata))),
@@ -101,7 +102,7 @@ def _read_cards(
                 continue
 
             try:
-                card = _project_card(ConcatCardRow.model_validate_json(line))
+                card = _project_card(ConcatCardRow.model_validate_json(line, strict=True))
             except (TypeError, ValueError, ValidationError) as error:
                 raise ValueError(f"invalid cards.jsonl line {line_number}: {error}") from error
 

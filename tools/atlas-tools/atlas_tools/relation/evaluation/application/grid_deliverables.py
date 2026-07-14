@@ -584,7 +584,7 @@ def _gate_policy(
         ),
         holdout_minimum_correct=decisions.policy.holdout_minimum_correct,
         abstention_ceiling=policy.abstention_ceiling,
-        cost_ceiling_usd=completed.prepared.config.max_cost_usd,
+        cost_ceiling_usd=completed.prepared.config.report.acceptance_cost_ceiling_usd,
     )
 
 

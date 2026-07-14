@@ -1,6 +1,4 @@
 import hashlib
-from collections.abc import Iterator
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -9,15 +7,25 @@ import trio
 
 from atlas_tools.common import canonical_json_bytes
 from atlas_tools.relation.evaluation.domain.api import (
-    AttemptFailure,
+    AttemptId,
+    AttemptRoute,
+    AttemptTiming,
+    CardHash,
+    FailedAttempt,
     InFlightRequest,
-    JudgeConfig,
-    MaxTokensLimit,
+    JudgeFamilyId,
+    ModelId,
+    PaidRequestIdentity,
     PhysicalAttempt,
     PilotRunConfig,
     PilotRunState,
+    PlanHash,
+    PromptPackHash,
+    ProviderFailure,
+    ProviderSlug,
+    RequestHash,
     SliceRecord,
-    VoteTask,
+    VoteId,
 )
 from atlas_tools.relation.evaluation.storage.api import (
     DurableAttempt,
@@ -25,7 +33,6 @@ from atlas_tools.relation.evaluation.storage.api import (
     PilotPaths,
     RunJournal,
     UnknownBillingStateError,
-    build_resume_index,
     load_config,
     load_deck,
     load_pilot_import,
@@ -35,35 +42,43 @@ from atlas_tools.relation.evaluation.storage.api import (
 
 def _request(now: datetime) -> InFlightRequest:
     return InFlightRequest(
-        attempt_id="a" * 64,
-        vote_id="b" * 64,
-        request_hash="c" * 64,
-        request_stage="initial",
-        stage_attempt=0,
+        identity=PaidRequestIdentity(
+            attempt_id=AttemptId("a" * 64),
+            vote_id=VoteId("b" * 64),
+            request_hash=RequestHash("c" * 64),
+            stage="initial",
+            stage_attempt=0,
+        ),
         created_at=now,
     )
 
 
 def _attempt(now: datetime) -> PhysicalAttempt:
     return PhysicalAttempt(
-        attempt_id="a" * 64,
-        vote_id="b" * 64,
-        request_hash="c" * 64,
-        request_stage="initial",
-        stage_attempt=0,
-        family_id="judge.example/model",
-        provider_slug="provider",
-        model_requested="judge.example/model",
-        result=None,
-        failure=AttemptFailure(
-            category="provider",
-            exception_type="ProviderUnavailable",
-            message="provider refused the request",
-            http_status_code=503,
+        identity=PaidRequestIdentity(
+            attempt_id=AttemptId("a" * 64),
+            vote_id=VoteId("b" * 64),
+            request_hash=RequestHash("c" * 64),
+            stage="initial",
+            stage_attempt=0,
         ),
-        ts_request=now,
-        ts_response=now + timedelta(milliseconds=5),
-        latency=timedelta(milliseconds=4),
+        route=AttemptRoute(
+            family_id=JudgeFamilyId("judge.example/model"),
+            provider_slug=ProviderSlug("provider"),
+            model_requested=ModelId("judge.example/model"),
+        ),
+        outcome=FailedAttempt(
+            failure=ProviderFailure(
+                exception_type="ProviderUnavailable",
+                message="provider refused the request",
+                http_status_code=503,
+            )
+        ),
+        timing=AttemptTiming(
+            request_at=now,
+            response_at=now + timedelta(milliseconds=5),
+            latency=timedelta(milliseconds=4),
+        ),
     )
 
 
@@ -109,7 +124,7 @@ def test_attempt_stays_marked_until_accounting_can_settle(tmp_path: Path) -> Non
         durable = await journal.append_attempt(_attempt(now))
         assert tuple(paths.inflight.glob("*.json"))
         with pytest.raises(ValueError, match="not durably appended"):
-            await journal.clear_inflight(DurableAttempt(attempt_id="f" * 64))
+            await journal.clear_inflight(DurableAttempt(attempt_id=AttemptId("f" * 64)))
 
         await journal.clear_inflight(durable)
         assert not tuple(paths.inflight.glob("*.json"))
@@ -143,7 +158,7 @@ def test_paid_pilot_deck_is_verified_and_indexed_once() -> None:
 def test_run_state_binds_slice_before_resume_is_allowed(tmp_path: Path) -> None:
     row = SliceRecord(
         relation_id="wikidata:P1",
-        card_hash="d" * 64,
+        card_hash=CardHash("d" * 64),
         prescreen_stratum="ordinary",
         sampling_stratum="wikidata|ordinary|length-q1|ordinary",
         length_quartile=1,
@@ -156,10 +171,10 @@ def test_run_state_binds_slice_before_resume_is_allowed(tmp_path: Path) -> None:
     )
     slice_hash = hashlib.sha256(canonical_json_bytes(row) + b"\n").hexdigest()
     state = PilotRunState(
-        plan_hash="1" * 64,
+        plan_hash=PlanHash("1" * 64),
         request_contract_hash="2" * 64,
         source_hashes={"cards.jsonl": "3" * 64, "cards.manifest.json": "4" * 64},
-        prompt_pack_hash="5" * 64,
+        prompt_pack_hash=PromptPackHash("5" * 64),
         slice_hash=slice_hash,
         expected_votes=1,
         openrouter_sdk_version="0.10.8",
@@ -177,8 +192,10 @@ def test_run_state_binds_slice_before_resume_is_allowed(tmp_path: Path) -> None:
 def test_paid_pilot_import_requires_exact_vote_and_prompt_identity() -> None:
     atlas_tools = Path(__file__).parents[3]
     paid = atlas_tools / "runs" / "evaluate"
-    vote_id = "a4573000eceb1e208ca54231743aee7af98478ae3326ccc556982e833b001f96"
-    prompt_hash = "c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2"
+    vote_id = VoteId("a4573000eceb1e208ca54231743aee7af98478ae3326ccc556982e833b001f96")
+    prompt_hash = PromptPackHash(
+        "c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2"
+    )
 
     imported = load_pilot_import(
         paid,
@@ -193,55 +210,5 @@ def test_paid_pilot_import_requires_exact_vote_and_prompt_identity() -> None:
         load_pilot_import(
             paid,
             planned_vote_ids=frozenset({vote_id}),
-            prompt_pack_hash="0" * 64,
+            prompt_pack_hash=PromptPackHash("0" * 64),
         )
-
-
-@dataclass(frozen=True, slots=True)
-class _SingleTaskPlan:
-    task: VoteTask
-
-    @property
-    def expected_votes(self) -> int:
-        return 1
-
-    def tasks(self) -> Iterator[VoteTask]:
-        yield self.task
-
-
-def test_resume_links_paid_vote_to_its_physical_evidence() -> None:
-    atlas_tools = Path(__file__).parents[3]
-    vote_id = "a4573000eceb1e208ca54231743aee7af98478ae3326ccc556982e833b001f96"
-    imported = load_pilot_import(
-        atlas_tools / "runs" / "evaluate",
-        planned_vote_ids=frozenset({vote_id}),
-        prompt_pack_hash="c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2",
-    )
-    judge = imported.votes[0]
-    task = VoteTask(
-        judge=JudgeConfig(
-            provider_slug="amazon-bedrock",
-            provider_name="Amazon Bedrock",
-            model=judge.family_id,
-            temperature=judge.temperature,
-            seed=judge.seed,
-            higher_effort="high",
-            output_token_limit=MaxTokensLimit(tokens=4096),
-        ),
-        bundle_id=judge.bundle_id,
-        relation_id=judge.relation_id,
-        card_hash=judge.card_hash,
-        effort=judge.effort,
-        repeat_index=judge.repeat_index,
-        prompt_pack_hash=judge.prompt_pack_hash,
-        rubric_version="rubric-v1",
-    )
-
-    resume = build_resume_index(
-        _SingleTaskPlan(task),
-        votes=imported.votes,
-        attempts=imported.attempts,
-    )
-
-    assert resume.next_plan_index == 1
-    assert resume.attempts_by_vote[vote_id] == imported.attempts

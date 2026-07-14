@@ -13,10 +13,12 @@ from typing import Self
 from atlas_tools.relation.evaluation.domain.api import (
     QUALIFICATION_BUNDLE,
     VERDICTS,
+    CardHash,
     GridJudge,
     GridRunConfig,
+    PromptPackHash,
     RelationId,
-    Sha256Hex,
+    VoteId,
     VoteTask,
     VoteVerdict,
 )
@@ -37,7 +39,7 @@ class GridCard:
     """A production card identified by the exact content presented to judges."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
 
 
 def grid_task(
@@ -46,7 +48,7 @@ def grid_task(
     judge: GridJudge,
     card: GridCard,
     repeat_index: int,
-    prompt_pack_hash: Sha256Hex,
+    prompt_pack_hash: PromptPackHash,
 ) -> VoteTask:
     """Build one grid task from the seat's resolved effort."""
     return VoteTask(
@@ -54,7 +56,7 @@ def grid_task(
         bundle_id=QUALIFICATION_BUNDLE,
         relation_id=card.relation_id,
         card_hash=card.card_hash,
-        effort=config.judge_effort(judge),
+        effort=judge.effort,
         repeat_index=repeat_index,
         prompt_pack_hash=prompt_pack_hash,
         rubric_version=config.rubric_version,
@@ -86,8 +88,8 @@ class GridPhaseAPlan:
 
     config: GridRunConfig
     cards: tuple[GridCard, ...]
-    prompt_pack_hash: Sha256Hex
-    imported_vote_ids: frozenset[Sha256Hex] = frozenset()
+    prompt_pack_hash: PromptPackHash
+    imported_vote_ids: frozenset[VoteId] = frozenset()
 
     def __post_init__(self) -> None:
         ordered = ordered_unique_cards(self.cards)
@@ -140,7 +142,7 @@ class GridPhaseBPlan:
 
     config: GridRunConfig
     cards: tuple[GridCard, ...]
-    prompt_pack_hash: Sha256Hex
+    prompt_pack_hash: PromptPackHash
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -155,8 +157,8 @@ class GridPhaseBPlan:
         *,
         config: GridRunConfig,
         cards: tuple[GridCard, ...],
-        prompt_pack_hash: Sha256Hex,
-        verdicts_by_vote_id: Mapping[Sha256Hex, VoteVerdict],
+        prompt_pack_hash: PromptPackHash,
+        verdicts_by_vote_id: Mapping[VoteId, VoteVerdict],
     ) -> Self:
         """Select refined cards from a complete imported-plus-fresh baseline.
 

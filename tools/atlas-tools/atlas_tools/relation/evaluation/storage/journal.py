@@ -161,12 +161,7 @@ def _validated_marker(paths: JournalPaths, attempt: PhysicalAttempt) -> InFlight
         request = InFlightRequest.model_validate_json(marker.read_bytes(), strict=True)
     except OSError as error:
         raise ValueError(f"attempt {attempt.attempt_id} has no durable in-flight marker") from error
-    if (
-        request.vote_id != attempt.vote_id
-        or request.request_hash != attempt.request_hash
-        or request.request_stage != attempt.request_stage
-        or request.stage_attempt != attempt.stage_attempt
-    ):
+    if request.identity != attempt.identity:
         raise ValueError(f"attempt {attempt.attempt_id} does not match its in-flight marker")
     return request
 
@@ -190,12 +185,7 @@ def _recover(paths: JournalPaths) -> int:
         if attempt is None:
             unresolved.append(request.attempt_id)
             continue
-        if (
-            attempt.vote_id != request.vote_id
-            or attempt.request_hash != request.request_hash
-            or attempt.request_stage != request.request_stage
-            or attempt.stage_attempt != request.stage_attempt
-        ):
+        if attempt.identity != request.identity:
             raise ValueError(f"in-flight marker {marker} disagrees with the attempt journal")
         marker.unlink()
         recovered += 1

@@ -14,6 +14,7 @@ from atlas_tools.relation.evaluation.analysis.grid import (
     four_class_posterior,
 )
 from atlas_tools.relation.evaluation.domain.api import (
+    CardHash,
     JudgeFamilyId,
     NonEmptyStr,
     PlacementClass,
@@ -21,7 +22,6 @@ from atlas_tools.relation.evaluation.domain.api import (
     RelationFamilyId,
     RelationId,
     RelationNamespace,
-    Sha256Hex,
     Vote,
 )
 
@@ -30,7 +30,7 @@ class CoincidentQueueEntry(AnalysisModel):
     """A card carrying coincident evidence and its complete vote record."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     coincident_families: tuple[JudgeFamilyId, ...]
     tally: VerdictTally
     votes: tuple[Vote, ...]
@@ -55,7 +55,7 @@ def _queue_evidence(
     votes: tuple[Vote, ...],
     *,
     relation_id: RelationId,
-    card_hash: Sha256Hex,
+    card_hash: CardHash,
 ) -> tuple[VerdictTally, tuple[JudgeFamilyId, ...]]:
     coincident = proximal = overlay = unclear = abstentions = 0
     coincident_families: set[JudgeFamilyId] = set()
@@ -90,7 +90,7 @@ class NominationSeed(AnalysisModel):
     """A card selected for review by four-class posterior entropy."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     tally: VerdictTally
     posterior: FourClassPosterior
 
@@ -166,7 +166,7 @@ class SoftLabel(AnalysisModel):
     """A classifier target preserving ambiguity outside placement evidence."""
 
     relation_id: RelationId
-    card_hash: Sha256Hex
+    card_hash: CardHash
     producer: RelationNamespace
     family_id: RelationFamilyId | None
     prescreen_stratum: NonEmptyStr
