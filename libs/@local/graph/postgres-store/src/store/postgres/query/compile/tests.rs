@@ -1978,7 +1978,7 @@ fn entity_cursor_pagination() {
 mod cursor_condition {
     use hash_graph_store::query::{NullOrdering, Ordering};
 
-    use super::*;
+    use super::{super::CursorKey, *};
     use crate::store::postgres::query::{Alias, Expression, PostgresQueryPath as _};
 
     fn key(number: usize) -> Expression {
@@ -1989,14 +1989,22 @@ mod cursor_condition {
         }))
     }
 
-    fn transpiled(
-        cursor: &[(
-            Expression,
-            Option<Expression>,
-            Ordering,
-            Option<NullOrdering>,
-        )],
-    ) -> Option<String> {
+    fn nullable_key(
+        number: usize,
+        value: Option<Expression>,
+        ordering: Ordering,
+        nulls: Option<NullOrdering>,
+    ) -> CursorKey {
+        CursorKey {
+            expression: key(number),
+            value,
+            ordering,
+            nulls,
+            non_null: false,
+        }
+    }
+
+    fn transpiled(cursor: &[CursorKey]) -> Option<String> {
         SelectCompiler::<Entity>::cursor_condition(cursor)
             .map(|condition| condition.transpile_to_string())
     }
@@ -2004,21 +2012,32 @@ mod cursor_condition {
     #[test]
     fn single_key_continues_past_value() {
         assert_eq!(
-            transpiled(&[(
-                key(0),
+            transpiled(&[nullable_key(
+                0,
+                Some(Expression::Parameter(1)),
+                Ordering::Ascending,
+                Some(NullOrdering::First)
+            )])
+            .expect("a cursor with a value should produce a condition"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
+        );
+        // Without a hint the ascending key inherits Postgres' nulls-last default.
+        assert_eq!(
+            transpiled(&[nullable_key(
+                0,
                 Some(Expression::Parameter(1)),
                 Ordering::Ascending,
                 None
             )])
             .expect("a cursor with a value should produce a condition"),
-            r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
+            r#"(("entity_temporal_metadata_0_0_0"."entity_uuid" > $1) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" IS NULL))"#
         );
         assert_eq!(
-            transpiled(&[(
-                key(0),
+            transpiled(&[nullable_key(
+                0,
                 Some(Expression::Parameter(1)),
                 Ordering::Descending,
-                Some(NullOrdering::First),
+                Some(NullOrdering::First)
             )])
             .expect("a cursor with a value should produce a condition"),
             r#""entity_temporal_metadata_0_0_0"."entity_uuid" < $1"#
@@ -2028,11 +2047,11 @@ mod cursor_condition {
     #[test]
     fn nulls_last_also_continues_into_nulls() {
         assert_eq!(
-            transpiled(&[(
-                key(0),
+            transpiled(&[nullable_key(
+                0,
                 Some(Expression::Parameter(1)),
                 Ordering::Ascending,
-                Some(NullOrdering::Last),
+                Some(NullOrdering::Last)
             )])
             .expect("a cursor with a value should produce a condition"),
             r#"(("entity_temporal_metadata_0_0_0"."entity_uuid" > $1) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" IS NULL))"#
@@ -2042,8 +2061,13 @@ mod cursor_condition {
     #[test]
     fn null_cursor_value_continues_into_non_null() {
         assert_eq!(
-            transpiled(&[(key(0), None, Ordering::Ascending, Some(NullOrdering::First))])
-                .expect("a `NULL` cursor with nulls first should produce a condition"),
+            transpiled(&[nullable_key(
+                0,
+                None,
+                Ordering::Ascending,
+                Some(NullOrdering::First)
+            )])
+            .expect("a `NULL` cursor with nulls first should produce a condition"),
             r#""entity_temporal_metadata_0_0_0"."entity_uuid" IS NOT NULL"#
         );
     }
@@ -2051,7 +2075,17 @@ mod cursor_condition {
     #[test]
     fn null_cursor_value_with_nulls_last_has_no_continuation() {
         assert_eq!(
-            transpiled(&[(key(0), None, Ordering::Ascending, Some(NullOrdering::Last))]),
+            transpiled(&[nullable_key(
+                0,
+                None,
+                Ordering::Ascending,
+                Some(NullOrdering::Last)
+            )]),
+            None
+        );
+        // The unhinted ascending key defaults to nulls-last and drops the same way.
+        assert_eq!(
+            transpiled(&[nullable_key(0, None, Ordering::Ascending, None)]),
             None
         );
     }
@@ -2060,12 +2094,12 @@ mod cursor_condition {
     fn null_prefix_key_requires_null_equality() {
         assert_eq!(
             transpiled(&[
-                (key(0), None, Ordering::Ascending, Some(NullOrdering::First)),
-                (
-                    key(1),
+                nullable_key(0, None, Ordering::Ascending, Some(NullOrdering::First)),
+                nullable_key(
+                    1,
                     Some(Expression::Parameter(1)),
                     Ordering::Ascending,
-                    None
+                    Some(NullOrdering::First)
                 ),
             ])
             .expect("a two-key cursor should produce a condition"),
@@ -2077,15 +2111,30 @@ mod cursor_condition {
     fn null_cursor_with_nulls_last_drops_only_its_alternative() {
         assert_eq!(
             transpiled(&[
-                (
-                    key(0),
+                nullable_key(
+                    0,
                     Some(Expression::Parameter(1)),
                     Ordering::Ascending,
-                    None
+                    Some(NullOrdering::First)
                 ),
-                (key(1), None, Ordering::Ascending, Some(NullOrdering::Last)),
+                nullable_key(1, None, Ordering::Ascending, Some(NullOrdering::Last)),
             ])
             .expect("the first key should still produce an alternative"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
+        );
+    }
+
+    #[test]
+    fn non_null_key_needs_no_null_handling() {
+        assert_eq!(
+            transpiled(&[CursorKey {
+                expression: key(0),
+                value: Some(Expression::Parameter(1)),
+                ordering: Ordering::Ascending,
+                nulls: None,
+                non_null: true,
+            }])
+            .expect("a cursor with a value should produce a condition"),
             r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
         );
     }
@@ -2094,14 +2143,14 @@ mod cursor_condition {
     fn later_keys_require_equality_on_earlier_keys() {
         assert_eq!(
             transpiled(&[
-                (
-                    key(0),
+                nullable_key(
+                    0,
                     Some(Expression::Parameter(1)),
                     Ordering::Ascending,
-                    None
+                    Some(NullOrdering::First)
                 ),
-                (
-                    key(1),
+                nullable_key(
+                    1,
                     Some(Expression::Parameter(2)),
                     Ordering::Descending,
                     None

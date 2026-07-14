@@ -88,14 +88,16 @@ struct CompiledJoin {
     conditions: Vec<Expression>,
 }
 
-/// One keyset-pagination sort key: its expression, the cursor value to continue after (`None`
-/// encodes a `NULL` cursor entry), and the ordering it was sorted by.
-type CursorKey = (
-    Expression,
-    Option<Expression>,
-    Ordering,
-    Option<NullOrdering>,
-);
+/// One keyset-pagination sort key.
+struct CursorKey {
+    expression: Expression,
+    /// The cursor value to continue after; `None` encodes a `NULL` cursor entry.
+    value: Option<Expression>,
+    ordering: Ordering,
+    nulls: Option<NullOrdering>,
+    /// Whether the key is provably `NOT NULL`, allowing the null-handling arms to be skipped.
+    non_null: bool,
+}
 
 impl From<Ordering> for SortDirection {
     fn from(ordering: Ordering) -> Self {
@@ -443,9 +445,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if let Some(reason) = self.artifacts.cursor_disallowed_reason {
             bail!(SelectCompilerError::CursorDisallowed { reason });
         }
+        // JSON-extracted keys are always nullable; plain columns consult the schema whitelist.
+        let (terminating_column, json_field) = path.terminating_column();
+        let non_null = json_field.is_none() && terminating_column.is_non_null();
         let column = self.compile_path_column(path);
-        self.cursor
-            .push((lhs(column), rhs, ordering, null_ordering));
+        self.cursor.push(CursorKey {
+            expression: lhs(column),
+            value: rhs,
+            ordering,
+            nulls: null_ordering,
+            non_null,
+        });
         Ok(self.add_distinct_selection_with_ordering(
             path,
             Distinctness::Distinct,
@@ -524,31 +534,48 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let mut alternatives = Vec::new();
         for current in (0..cursor.len()).rev() {
             let mut criteria = Vec::new();
-            for (idx, (lhs, rhs, ordering, null)) in cursor.iter().enumerate() {
+            for (idx, key) in cursor.iter().enumerate() {
                 if idx == current {
-                    if let Some(rhs) = rhs {
-                        let comparison = match ordering {
-                            Ordering::Ascending => Expression::greater(lhs.clone(), rhs.clone()),
-                            Ordering::Descending => Expression::less(lhs.clone(), rhs.clone()),
+                    // Without an explicit hint Postgres sorts nulls last for ascending and
+                    // first for descending keys; the continuation has to mirror that default.
+                    let nulls = key.nulls.unwrap_or(match key.ordering {
+                        Ordering::Ascending => NullOrdering::Last,
+                        Ordering::Descending => NullOrdering::First,
+                    });
+
+                    if let Some(value) = &key.value {
+                        let comparison = match key.ordering {
+                            Ordering::Ascending => {
+                                Expression::greater(key.expression.clone(), value.clone())
+                            }
+                            Ordering::Descending => {
+                                Expression::less(key.expression.clone(), value.clone())
+                            }
                         };
 
-                        match null {
-                            None | Some(NullOrdering::First) => criteria.push(comparison),
+                        match nulls {
+                            // A provably non-nullable key has no `NULL` rows to continue into.
+                            _ if key.non_null => criteria.push(comparison),
+                            NullOrdering::First => criteria.push(comparison),
                             // With nulls sorted last, rows where the key is `NULL` also come
                             // after the cursor value.
-                            Some(NullOrdering::Last) => criteria.push(Expression::any(vec![
+                            NullOrdering::Last => criteria.push(Expression::any(vec![
                                 comparison,
-                                Expression::is_null(lhs.clone()),
+                                Expression::is_null(key.expression.clone()),
                             ])),
                         }
                     } else {
-                        match null {
-                            None | Some(NullOrdering::First) => {
-                                criteria.push(Expression::is_not_null(lhs.clone()));
+                        assert!(
+                            !key.non_null,
+                            "a non-nullable sort key cannot produce a `NULL` cursor value"
+                        );
+                        match nulls {
+                            NullOrdering::First => {
+                                criteria.push(Expression::is_not_null(key.expression.clone()));
                             }
                             // A `NULL` cursor value with nulls sorted last has no rows after it
                             // on this key, so the alternative is dropped entirely.
-                            Some(NullOrdering::Last) => {
+                            NullOrdering::Last => {
                                 criteria.clear();
                                 break;
                             }
@@ -558,9 +585,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     break;
                 }
 
-                criteria.push(rhs.as_ref().map_or_else(
-                    || Expression::is_null(lhs.clone()),
-                    |rhs| Expression::equal(lhs.clone(), rhs.clone()),
+                criteria.push(key.value.as_ref().map_or_else(
+                    || Expression::is_null(key.expression.clone()),
+                    |value| Expression::equal(key.expression.clone(), value.clone()),
                 ));
             }
             if let Some(alternative) = Expression::conjunction(criteria) {

@@ -1640,12 +1640,40 @@ pub enum Column {
 }
 
 impl Column {
+    /// Columns that are provably `NOT NULL` in the database schema.
+    ///
+    /// Conservative whitelist: a missing entry only means "not proven" and costs a redundant
+    /// null check, never correctness. Every entry is verified against `information_schema` by
+    /// the schema integration test, so a wrong entry fails loudly. Extend it when further
+    /// columns are used as sort keys.
+    pub const NON_NULL_COLUMNS: &'static [Self] = &[
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime),
+        Self::EntityIds(EntityIds::WebId),
+        Self::EntityIds(EntityIds::EntityUuid),
+        Self::EntityIds(EntityIds::CreatedById),
+        Self::EntityIds(EntityIds::CreatedAtTransactionTime),
+        Self::EntityIds(EntityIds::CreatedAtDecisionTime),
+        Self::OntologyIds(OntologyIds::OntologyId),
+        Self::OntologyIds(OntologyIds::BaseUrl),
+        Self::OntologyIds(OntologyIds::Version),
+    ];
+
     #[must_use]
     pub fn aliased(self, alias: Alias) -> ColumnReference<'static> {
         ColumnReference {
             correlation: Some(self.table().aliased(alias)),
             name: ColumnName::from(self),
         }
+    }
+
+    /// Whether the column is provably `NOT NULL` in the database schema.
+    #[must_use]
+    pub fn is_non_null(self) -> bool {
+        Self::NON_NULL_COLUMNS.contains(&self)
     }
 }
 
