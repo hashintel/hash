@@ -93,9 +93,9 @@ class LadderRunState(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     def model_post_init(self, _context: object) -> None:
-        required = {"cards.jsonl", "cards.manifest.json", "config.yaml"}
+        required = {"cards.jsonl", "cards.manifest.json", "judges-panel"}
         if set(self.source_hashes) != required:
-            raise ValueError("ladder run state must bind concat cards, manifest, and config")
+            raise ValueError("ladder run state must bind concat cards, manifest, and panel")
 
 
 @dataclass(frozen=True)
@@ -423,7 +423,7 @@ def build_pilot_manifest(
 
 
 def ladder_input_hashes(prepared: LadderPreparedInputs) -> dict[str, Sha256Hex]:
-    return prepared.source_hashes | {"config.yaml": prepared.config_hash}
+    return prepared.source_hashes | {"judges-panel": prepared.panel_hash}
 
 
 def build_ladder_manifest(

@@ -336,51 +336,65 @@ class HandoffManifest(StrictModel):
         return self
 
 
-class ReviewQueueRow(StrictModel):
-    """A card whose leading class was coincident after some completed rung.
+class CorpusRow(StrictModel):
+    """One deck card's grid-eligibility record: the corpus.jsonl contract.
 
-    Review-queue membership is monotone: the row records the first rung at
-    which coincident led, the card then runs the full panel, and later rungs
-    never remove it from the queue.
+    The full deck is listed, including the fixed few-shot cards, which carry
+    ``is_shot_excluded`` instead of being silently dropped; the voting pool is
+    exactly the rows with ``is_shot_excluded`` false. Holdout anchors are
+    voted and keep their canonical verdicts here.
     """
 
     relation_id: RelationId
     card_hash: Sha256Hex
-    first_coincident_rung: PositiveInt
-    verdict_counts: dict[Verdict, NonNegativeInt]
+    prescreen_stratum: NonEmptyStr
+    token_count: NonNegativeInt
+    is_holdout: bool
+    holdout_verdict: Verdict | None
+    is_shot_excluded: bool
+
+    @model_validator(mode="after")
+    def check_flags(self) -> Self:
+        if self.is_holdout != (self.holdout_verdict is not None):
+            raise ValueError("holdout_verdict must be set iff is_holdout is true")
+        if self.is_holdout and self.is_shot_excluded:
+            raise ValueError("a holdout anchor cannot be shot-excluded")
+        return self
+
+
+class FamilyGridCounts(StrictModel):
+    """Per-seat vote accounting: imported vs fresh, phases, and known cost."""
+
+    family_id: JudgeFamilyId
+    imported_votes: NonNegativeInt
+    fresh_baseline_votes: NonNegativeInt
+    refinement_votes: NonNegativeInt
     abstentions: NonNegativeInt
-
-
-class RungEconomics(StrictModel):
-    """Per-rung vote and cost accounting for the finalized ladder manifest."""
-
-    rung: PositiveInt
-    cards: NonNegativeInt
-    votes: NonNegativeInt
-    abstentions: NonNegativeInt
-    early_exits: NonNegativeInt
     known_cost_usd: float
 
 
-class LadderManifest(StrictModel):
-    """Finalized vote-ladder artifact contract, separate from the pilot handoff."""
+class GridManifest(StrictModel):
+    """Finalized production-grid artifact contract, successor to the pilot handoff."""
 
     schema_version: Literal[1] = 1
-    shell: ShellId
+    bundle_id: Literal["S1xF1"] = QUALIFICATION_BUNDLE
     panel_version: PositiveInt
     panel_frozen: bool
     judges: list[JudgePin]
-    judge_rungs: dict[JudgeFamilyId, PositiveInt]
+    manual_prunes: dict[NonEmptyStr, NonEmptyStr]
+    reserve_topology: Literal["dormant"] = "dormant"
     run_dates: RunDates
     prompt_pack_hash: Sha256Hex
     rubric_version: Literal["rubric-v1"]
     source_hashes: dict[str, Sha256Hex]
     request_contract_hash: Sha256Hex
-    eligible_cards: PositiveInt
+    pool_cards: PositiveInt
+    shot_excluded_cards: NonNegativeInt
+    holdout_cards: NonNegativeInt
+    refined_cards: NonNegativeInt
+    realized_trigger_rate: Probability
+    family_counts: list[FamilyGridCounts]
     total_votes: NonNegativeInt
-    early_exit_cards: NonNegativeInt
-    review_queue_cards: NonNegativeInt
-    rung_economics: list[RungEconomics]
     openrouter_sdk_version: NonEmptyStr
     openrouter_openapi_version: NonEmptyStr
     executor_config: dict[str, JsonValue]
@@ -392,22 +406,76 @@ class LadderManifest(StrictModel):
         judge_families = [judge.family_id for judge in self.judges]
         if len(judge_families) != len(set(judge_families)):
             raise ValueError("judges contains duplicate family_id values")
-        if set(self.judge_rungs) != set(judge_families):
-            raise ValueError("judge_rungs must cover exactly the configured judges")
+        if set(row.family_id for row in self.family_counts) != set(judge_families):
+            raise ValueError("family_counts must cover exactly the seated judges")
+        overlap = sorted(set(self.manual_prunes) & set(judge_families))
+        if overlap:
+            raise ValueError(f"manually pruned families cannot hold seats: {overlap}")
         required_hashes = {
             "attempts.jsonl",
             "cards.jsonl",
             "cards.manifest.json",
-            "config.yaml",
-            "review-queue.jsonl",
+            "corpus.jsonl",
+            "imported-votes.jsonl",
+            "judges-panel",
+            "pilot-votes.jsonl",
             "votes.jsonl",
         }
         if set(self.source_hashes) != required_hashes:
-            raise ValueError("ladder source_hashes must contain exactly the bound artifacts")
-        if self.early_exit_cards > self.eligible_cards:
-            raise ValueError("early_exit_cards cannot exceed eligible_cards")
-        if self.review_queue_cards > self.eligible_cards:
-            raise ValueError("review_queue_cards cannot exceed eligible_cards")
+            raise ValueError("grid source_hashes must contain exactly the bound artifacts")
+        if self.refined_cards > self.pool_cards:
+            raise ValueError("refined_cards cannot exceed pool_cards")
+        expected_votes = sum(
+            row.imported_votes + row.fresh_baseline_votes + row.refinement_votes
+            for row in self.family_counts
+        )
+        if self.total_votes != expected_votes:
+            raise ValueError("total_votes must equal the family_counts sum")
+        return self
+
+
+class CoincidentQueueRow(StrictModel):
+    """One card carrying any coincident vote, with its complete vote record.
+
+    The queue is obligatory: under the kappa_C = 0 launch posture plus
+    allow-list, no relation acts coincident until a human admits it, so every
+    C claim ships to the adjudicator with maximal evidence attached.
+    """
+
+    relation_id: RelationId
+    card_hash: Sha256Hex
+    coincident_families: list[NonEmptyStr]
+    verdict_counts: dict[Verdict, NonNegativeInt]
+    abstentions: NonNegativeInt
+    votes: list[VoteRow]
+
+    @model_validator(mode="after")
+    def check_evidence(self) -> Self:
+        if not self.coincident_families:
+            raise ValueError("a coincident-queue card must have at least one C vote")
+        if not self.votes:
+            raise ValueError("a coincident-queue card must carry its full vote record")
+        return self
+
+
+class DissentLedgerRow(StrictModel):
+    """One family's systematic cross-bundle miss on a holdout or anchor card.
+
+    Carried forward from the pilot's qualification evidence as rubric-v2
+    material; the grid run itself never acts on it.
+    """
+
+    family_id: JudgeFamilyId
+    relation_id: RelationId
+    missed_bundles: list[BundleId]
+    bundle_count: PositiveInt
+
+    @model_validator(mode="after")
+    def check_misses(self) -> Self:
+        if not self.missed_bundles:
+            raise ValueError("a dissent-ledger row must record at least one missed bundle")
+        if len(self.missed_bundles) > self.bundle_count:
+            raise ValueError("missed_bundles cannot exceed bundle_count")
         return self
 
 

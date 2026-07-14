@@ -5,13 +5,12 @@ from types import SimpleNamespace
 
 import pytest
 
+from atlas_tools.common import sha256_file
 from atlas_tools.common.progress import NO_PROGRESS
 from atlas_tools.relation import cli
 from atlas_tools.relation.concat import ConcatPaths
 from atlas_tools.relation.eval.run import (
     ConcurrencyConfig,
-    FullGridPaths,
-    FullRunConfig,
     JudgeConfig,
     LoadedRunConfig,
     PilotPaths,
@@ -106,7 +105,7 @@ def test_cli_evaluate_dispatches_pilot_and_echoes_handoff_paths(
             concurrency=ConcurrencyConfig(initial=1, maximum=1),
             judges=[_judge()],
         ),
-        decisions_path=None,
+        content_hash=sha256_file(config_path),
     )
     captured: dict[str, object] = {}
 
@@ -152,75 +151,6 @@ def test_cli_evaluate_dispatches_pilot_and_echoes_handoff_paths(
     assert f"wrote {out / 'votes.jsonl'}" in stdout
     assert f"wrote {out / 'attempts.jsonl'}" in stdout
     assert f"wrote {out / 'slice.jsonl'}" in stdout
-    assert f"wrote {out / 'manifest.json'}" in stdout
-
-
-def test_cli_evaluate_dispatches_full_config_and_echoes_grid_paths(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    cards = tmp_path / "cards"
-    cards.mkdir()
-    decisions_path = tmp_path / "decisions.json"
-    decisions_path.touch()
-    config_path = tmp_path / "judges.yaml"
-    config_path.touch()
-    out = tmp_path / "full-grid"
-    loaded_config = LoadedRunConfig(
-        path=config_path,
-        config=FullRunConfig(
-            schema_version=3,
-            mode="full",
-            decisions=decisions_path,
-            concurrency=ConcurrencyConfig(initial=1, maximum=1),
-            judges=[_judge()],
-        ),
-        decisions_path=decisions_path,
-    )
-    captured: dict[str, object] = {}
-
-    def load(path: Path) -> LoadedRunConfig:
-        captured["config_path"] = path
-        return loaded_config
-
-    def evaluate(
-        *,
-        cards_dir: Path,
-        out_dir: Path,
-        loaded_config: LoadedRunConfig,
-        progress: object,
-    ) -> FullGridPaths:
-        captured.update(
-            cards=cards_dir,
-            out=out_dir,
-            loaded_config=loaded_config,
-            progress=progress,
-        )
-        return FullGridPaths(
-            votes_jsonl=out / "votes.jsonl",
-            attempts_jsonl=out / "attempts.jsonl",
-            manifest_json=out / "manifest.json",
-            run_state_json=out / "run-state.json",
-            inflight_dir=out / "inflight",
-            lock_file=out / ".run.lock",
-        )
-
-    monkeypatch.setattr("atlas_tools.relation.eval.run.load_run_config", load)
-    monkeypatch.setattr("atlas_tools.relation.eval.run.run_evaluation", evaluate)
-    cli.main(["evaluate", str(cards), str(config_path), "--out", str(out), "--quiet"])
-
-    assert captured == {
-        "config_path": config_path,
-        "cards": cards,
-        "out": out,
-        "loaded_config": loaded_config,
-        "progress": NO_PROGRESS,
-    }
-    stdout = capsys.readouterr().out
-    assert f"wrote {out / 'votes.jsonl'}" in stdout
-    assert f"wrote {out / 'attempts.jsonl'}" in stdout
-    assert f"wrote {out / 'slice.jsonl'}" not in stdout
     assert f"wrote {out / 'manifest.json'}" in stdout
 
 

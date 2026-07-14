@@ -20,21 +20,19 @@ from atlas_tools.relation.concat import ConcatCardRow
 from atlas_tools.relation.eval.prompt import PromptPrefix
 from atlas_tools.relation.eval.schema import (
     BUNDLES,
-    FRAMINGS,
     QUALIFICATION_BUNDLE,
     BundleId,
-    FramingId,
     JudgeFamilyId,
+    PhysicalAttemptRow,
     ReasoningEffort,
     RelationFamilyId,
-    ShellId,
     SliceDerivation,
     SliceRow,
+    VoteRow,
 )
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 RUBRIC_VERSION = "rubric-v1"
-MINIMUM_RUNG_SPAN = 2
 HTTP_CLIENT_ERROR_START = 400
 HTTP_SERVER_ERROR_START = 500
 RETRYABLE_CLIENT_ERROR_STATUS_CODES = frozenset({408, 425, 429})
@@ -207,39 +205,55 @@ class PilotRunConfig(BaseRunConfig):
         return self
 
 
-class LadderJudge(JudgeConfig):
-    """One panel judge with its rung assignment, cost tier, and voter framings.
+class GridJudge(JudgeConfig):
+    """One admitted grid seat: the pilot's request pins plus grid metadata.
 
-    A (judge, framing) pair is one voter. The judge's conditioning effort is
-    ``effort`` when set, otherwise the run's ``baseline_effort``; the factorial
-    pilot's ``higher_effort`` arm does not exist on the ladder, so that field
-    must stay unset here.
+    The judge's conditioning effort is ``effort`` when set, otherwise the
+    run's ``baseline_effort``; there is no effort arm on the grid, so the
+    pilot's ``higher_effort`` field must stay unset. ``pilot_cost_per_vote_usd``
+    is the pilot-measured (cache-corrected) per-vote cost that anchors the
+    rolling cost tripwire.
     """
 
-    rung: PositiveInt
-    cost_tier: str = Field(min_length=1)
     effort: ReasoningEffort | None = None
-    framings: tuple[FramingId, ...] = FRAMINGS
+    pilot_cost_per_vote_usd: float = Field(gt=0.0, allow_inf_nan=False)
 
     @model_validator(mode="after")
-    def check_voters(self) -> Self:
-        if not self.framings:
-            raise ValueError(f"judge {self.family_id} must vote through at least one framing")
-        if len(self.framings) != len(set(self.framings)):
-            raise ValueError(f"judge {self.family_id} repeats a framing")
+    def check_seat(self) -> Self:
         if self.higher_effort is not None:
             raise ValueError(
-                f"judge {self.family_id} sets higher_effort; ladder judges pin effort directly"
+                f"judge {self.family_id} sets higher_effort; grid judges pin effort directly"
             )
         return self
 
 
+class ManualPrune(BaseModel):
+    """A family removed from the roster by operator decision, on the record.
+
+    A manual prune deliberately disagrees with the qualification report: the
+    family passed the gate and was removed anyway, and the reason is part of
+    the frozen config so the roster and the report can disagree honestly.
+    """
+
+    model: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+
 class PanelConfig(BaseModel):
-    """Panel freeze state recorded alongside the roster it governs."""
+    """Roster freeze state, manual prunes, and dormant escalation topology.
+
+    ``reserve_topology`` documents Resolution B: it must remain ``"dormant"``
+    — the executor has no escalation feature and refuses a config that
+    pretends otherwise.
+    """
 
     version: PositiveInt
     frozen: bool
     pruning_floor: str | None = None
+    manual_prunes: tuple[ManualPrune, ...] = ()
+    reserve_topology: Literal["dormant"] = "dormant"
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -286,57 +300,67 @@ class ReportConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
-class LadderRunConfig(BaseRunConfig):
-    """Schema-v4 vote-ladder panel configuration (the versioned judges.yaml).
+class GuardConfig(BaseModel):
+    """Per-family stream guards over fresh (non-imported) physical requests.
 
-    Every rung must span at least two model families and at least two
-    framings; violations are hard errors at load time. Corpus execution
-    refuses an unfrozen panel; only pilot qualification may run one.
+    ``cache_check_vote`` is the fresh-call index (1-based) from which every
+    accepted completion must report cached prompt tokens; ``cost_window`` and
+    ``cost_multiplier`` define the rolling-mean tripwire against each seat's
+    pilot-measured per-vote cost.
+    """
+
+    cache_check_vote: PositiveInt = 5
+    cost_window: PositiveInt = 50
+    cost_multiplier: float = Field(default=1.5, gt=1.0, allow_inf_nan=False)
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+
+class GridRunConfig(BaseRunConfig):
+    """Schema-v4 production-grid configuration (judges.yaml at its frozen hash).
+
+    The admitted configuration is fixed: bundle S1xF1 only, minimal effort set
+    explicitly per seat, no shells, templates, effort variation, or dynamic
+    escalation. Changing any request pin voids the qualification and requires
+    a new pilot, which the pilot-vote import enforces mechanically: a drifted
+    pin simply matches no pilot vote.
     """
 
     OPERATIONAL_FIELDS: ClassVar[frozenset[str]] = BaseRunConfig.OPERATIONAL_FIELDS | {
-        "per_provider_concurrency",
+        "guards",
         "embedding",
         "classifier",
         "report",
     }
 
     schema_version: Literal[4] = 4
-    mode: Literal["ladder"] = "ladder"
-    shell: ShellId = "S1"
+    mode: Literal["grid"] = "grid"
     panel: PanelConfig
-    per_provider_concurrency: PositiveInt | None = None
+    guards: GuardConfig = Field(default_factory=GuardConfig)
     embedding: EmbeddingConfig | None = None
     classifier: ClassifierConfig = Field(default_factory=ClassifierConfig)
     report: ReportConfig = Field(default_factory=ReportConfig)
-    judges: list[LadderJudge]
+    judges: list[GridJudge]
 
     @model_validator(mode="after")
-    def check_rungs(self) -> Self:
+    def check_roster(self) -> Self:
         _check_unique_families(self.judges)
-        rung_indices = sorted({judge.rung for judge in self.judges})
-        if rung_indices != list(range(1, len(rung_indices) + 1)):
-            raise ValueError(f"judge rungs must be contiguous from 1, got {rung_indices}")
-        for rung in rung_indices:
-            rung_judges = [judge for judge in self.judges if judge.rung == rung]
-            families = {judge.family_id for judge in rung_judges}
-            framings = {framing for judge in rung_judges for framing in judge.framings}
-            if len(families) < MINIMUM_RUNG_SPAN:
-                raise ValueError(f"rung {rung} must span at least two model families")
-            if len(framings) < MINIMUM_RUNG_SPAN:
-                raise ValueError(f"rung {rung} must span at least two framings")
+        pruned = {prune.model for prune in self.panel.manual_prunes}
+        seated = {judge.family_id for judge in self.judges}
+        overlap = sorted(pruned & seated)
+        if overlap:
+            raise ValueError(f"manually pruned families cannot hold seats: {overlap}")
         return self
 
-    @property
-    def rung_count(self) -> int:
-        return max(judge.rung for judge in self.judges)
-
-    def judge_effort(self, judge: LadderJudge) -> ReasoningEffort:
+    def judge_effort(self, judge: GridJudge) -> ReasoningEffort:
         return judge.effort if judge.effort is not None else self.baseline_effort
 
 
+GRID_BUNDLE: BundleId = QUALIFICATION_BUNDLE
+
+
 type RunConfig = Annotated[
-    PilotRunConfig | LadderRunConfig,
+    PilotRunConfig | GridRunConfig,
     Field(discriminator="mode"),
 ]
 
@@ -364,9 +388,9 @@ class LoadedRunConfig:
     config: RunConfig
     content_hash: Sha256Hex
 
-    def ladder(self) -> LadderRunConfig:
-        if not isinstance(self.config, LadderRunConfig):
-            raise TypeError("loaded run config is not a ladder config")
+    def grid(self) -> GridRunConfig:
+        if not isinstance(self.config, GridRunConfig):
+            raise TypeError("loaded run config is not a grid config")
         return self.config
 
 
@@ -420,15 +444,36 @@ class PreparedInputs(PreparedCards):
 
 
 @dataclass(frozen=True)
-class LadderPreparedInputs(PreparedCards):
-    """Verified corpus plus the deterministic voting population for a ladder run.
+class ImportedVotes:
+    """Pilot votes admitted into this run by exact task identity.
 
-    ``eligible`` is every non-few-shot card in ascending ``relation_id`` order;
-    that order is the ladder's card order everywhere downstream.
+    A pilot vote is imported if and only if its ``vote_id`` equals a planned
+    cell's task hash, which covers the whole identity tuple: card, family
+    pins, bundle S1xF1, effort, decoding parameters, prompt pack, and
+    ``repeat_index`` 0. ``attempts_by_vote`` carries the imported votes'
+    physical audit trail for the merged handoff.
     """
 
-    config_hash: Sha256Hex
-    eligible: tuple[EvaluationCard, ...]
+    pilot_dir: Path
+    votes_hash: Sha256Hex
+    votes: tuple[VoteRow, ...]
+    attempts_by_vote: dict[Sha256Hex, tuple[PhysicalAttemptRow, ...]]
+
+
+@dataclass(frozen=True)
+class GridPreparedInputs(PreparedCards):
+    """Verified corpus plus the deterministic voting pool for a grid run.
+
+    ``pool`` is every eligible card — the deck minus the fixed few-shot PIDs,
+    holdout anchors included — in ascending ``relation_id`` order; that order
+    is each family stream's card order. ``panel_hash`` is the semantic
+    judges.yaml identity (operational knobs excluded), so retuning the cost
+    cap or concurrency between sessions never orphans a run.
+    """
+
+    panel_hash: Sha256Hex
+    pool: tuple[EvaluationCard, ...]
+    imported: ImportedVotes
 
 
 class FamilyDecision(Protocol):

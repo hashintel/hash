@@ -57,6 +57,18 @@ def request_contract_hash(config: BaseRunConfig) -> Sha256Hex:
     )
 
 
+def panel_hash(config: BaseRunConfig) -> Sha256Hex:
+    """Hash the config's request semantics, excluding retunable operational knobs.
+
+    This is the identity that binds ladder artifacts to their judges.yaml: raw
+    file bytes would change when an operator retunes the cost cap or
+    concurrency between resumed sessions, so those fields are excluded.
+    """
+    return sha256_bytes(
+        canonical_json_bytes(config.model_dump(mode="json", exclude=set(config.OPERATIONAL_FIELDS)))
+    )
+
+
 def plan_hash(config: BaseRunConfig, plan: VotePlan) -> Sha256Hex:
     """Hash the request contract followed by the deterministic task stream."""
     digest = hashlib.sha256()

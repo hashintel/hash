@@ -201,8 +201,8 @@ def aggregate_soft_labels(
     manifest = _validate_run(run_directory, sha256_file(paths.votes_jsonl))
     if manifest.source_hashes["cards.jsonl"] != prepared.source_hashes["cards.jsonl"]:
         raise ValueError("cards.jsonl differs from the corpus the ladder voted on")
-    if manifest.source_hashes["config.yaml"] != prepared.config_hash:
-        raise ValueError("config differs from the one the ladder ran with")
+    if manifest.source_hashes["judges-panel"] != prepared.panel_hash:
+        raise ValueError("judges panel differs from the one the ladder ran with")
 
     votes = load_jsonl(paths.votes_jsonl, VoteRow)
     outcomes = complete_card_outcomes(
@@ -225,7 +225,7 @@ def aggregate_soft_labels(
         producer="relation.ladder-aggregate",
         input_hashes={
             "cards.jsonl": prepared.source_hashes["cards.jsonl"],
-            "config.yaml": prepared.config_hash,
+            "judges-panel": prepared.panel_hash,
             "votes.jsonl": manifest.source_hashes["votes.jsonl"],
             "review-queue.jsonl": manifest.source_hashes["review-queue.jsonl"],
         },

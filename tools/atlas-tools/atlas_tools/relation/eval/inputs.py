@@ -39,6 +39,7 @@ from atlas_tools.relation.eval.prompt import (
     build_prompt_prefix,
     prompt_pack_hash,
 )
+from atlas_tools.relation.eval.provenance import panel_hash
 from atlas_tools.relation.eval.schema import (
     BUNDLES,
     BundleId,
@@ -417,7 +418,7 @@ def prepare_ladder_inputs(
         cards=cards,
         prefixes=prepare_prompt_prefixes(cards),
         pack_hash=pack_hash,
-        config_hash=loaded_config.content_hash,
+        panel_hash=panel_hash(loaded_config.ladder()),
         eligible=eligible,
     )
 

@@ -177,8 +177,9 @@ uv run battery generate --shape chains --n 800 --seed 0 --out dataset/
 ### `relation`
 
 `relation` verifies and combines card corpora, runs the factorial judge pilot,
-analyzes its handoff, and executes the admitted production grid. A complete run
-starts by emitting both leaf artifacts:
+analyzes its handoff, and executes the relation-policy pipeline: the vote
+ladder, soft-label aggregation, card embeddings, the policy classifier, and
+the evaluation report. A complete run starts by emitting both leaf artifacts:
 
 ```sh
 uv run wikidata taxonomy --config config.yaml --out taxonomy.parquet --checkpoint tax-ckpt/
@@ -222,11 +223,12 @@ that parameter is omitted from the request; it is not serialized as JSON null.
 The executor also requires every configured route to satisfy OpenRouter's ZDR
 and data-denial filters.
 
-One `evaluate` command runs either phase. The schema-v3 config's `mode` is the
-discriminator: `pilot` derives the sample and auxiliary arms; `full` requires a
-`decisions` path and executes the admitted complete grid.
+One `evaluate` command runs either voting phase. The config's `mode` is the
+discriminator: `pilot` (schema v3) derives the factorial-pilot sample and
+auxiliary arms; `ladder` (schema v4) executes the vote-ladder annotation
+pipeline that replaced the flat production grid.
 
-From `tools/atlas-tools`, run and inspect the pilot:
+From `tools/atlas-tools`, run and inspect the factorial pilot:
 
 ```sh
 uv run relation evaluate runs/cards config/eval/pilot.yaml --out runs/evaluate
@@ -235,25 +237,82 @@ cat runs/evaluate-analysis/report.md
 uv run python -m json.tool runs/evaluate-analysis/decisions.json
 ```
 
-To authorize the complete grid, copy `config/eval/pilot.yaml` to a new full-run
-config, change `mode` to `full`, remove `sampling` and `repeat_count`, and add a
-config-relative decisions artifact, for example:
-
-```yaml
-schema_version: 3
-mode: full
-decisions: ../../runs/evaluate-analysis/decisions.json
-# Keep rubric_version, baseline_effort, request_timeout, concurrency, and judges.
-```
-
-Then run the same command with the full config:
-
-```sh
-uv run relation evaluate runs/cards config/eval/full.yaml --out runs/full-evaluate
-```
-
 Progress, throughput, and ETA are written to stderr. Add `--quiet` when a caller
 needs silent operation.
+
+#### The vote ladder (`mode: ladder`, schema v4)
+
+The ladder is the production annotation runner. Its config is the versioned
+judges.yaml (see `config/eval/ladder.yaml` for a template): each judge carries
+the schema-v3 route pins plus a `rung` assignment, a `cost_tier`, an optional
+per-judge `effort`, and the `framings` it votes through — a (judge, framing)
+pair is one voter. Every rung must span at least two model families and at
+least two framings; violations are hard errors at load time. The `panel`
+section records the freeze state: pilot qualification may run an unfrozen
+panel, but the corpus run refuses to start until `panel.frozen: true` with a
+documented `pruning_floor`.
+
+Execution is rung by rung with the same durable executor as the pilot
+(append-only fsynced journals, in-flight markers, deterministic resume, the
+central cost gate). After each completed rung a card stops early when every
+vote so far is valid and unanimously proximal or overlay. A card whose leading
+class is coincident after any rung (ties included) never exits early: it runs
+the full panel and is appended to `review-queue.jsonl` with the rung where
+coincident first led. Malformed votes get one conversational repair, then
+abstain; an abstention blocks early exit, so doubt always buys more votes.
+Each logical vote is cached by its task identity — rerunning the identical
+command is free and idempotent, a SIGKILLed run resumes to the byte-identical
+journal, and `max_cost_usd` aborts cleanly with everything resumable
+(`per_provider_concurrency` bounds concurrent in-flight requests per provider).
+A completed run publishes `votes.jsonl`, `attempts.jsonl`,
+`review-queue.jsonl`, `run-state.json`, and a `manifest.json` binding the
+panel, corpus, prompt pack, rung economics, and artifact hashes.
+
+The pilot phase and downstream stages:
+
+```sh
+# Ladder pilot on a small deck plus swipe-tool gold: per-judge qualification
+# table (gold agreement, schema compliance, latency, cost). The only entry
+# point that accepts an unfrozen panel.
+uv run relation qualify runs/pilot-cards config/eval/ladder.yaml \
+    --gold gold-pilot.jsonl --out runs/ladder-pilot
+
+# Freeze judges.yaml (panel.frozen: true, documented pruning_floor), then:
+uv run relation evaluate runs/cards config/eval/ladder.yaml --out runs/ladder
+
+# Dirichlet(1,1,1) posterior means over {C, P, O} per relation, with unclear
+# votes in the ambiguity column, n_votes, entropy, rung reached, review flag.
+uv run relation aggregate runs/ladder runs/cards config/eval/ladder.yaml \
+    --out runs/soft-labels.parquet
+
+# One embedding per (model, card_hash), cached forever under --cache; the
+# embedding endpoint is configured in the ladder config's `embedding` section
+# and is the pipeline's only network surface besides OpenRouter.
+uv run relation embed runs/cards config/eval/ladder.yaml \
+    --out runs/embeddings.parquet --cache runs/embedding-cache
+
+# Multinomial logistic regression against the soft labels (soft-target
+# cross-entropy, weighted by n_votes, every card included), grouped CV by the
+# card's relation family_id, temperature scaling, and the embedding-space
+# applicability score — all in one versioned bundle.
+uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
+    config/eval/ladder.yaml --out runs/classifier
+
+# Gold agreement, per-class precision/recall, confusion matrices, the
+# Coincident Wilson-LCB gate with its feedability line, calibration and
+# applicability sections, per-judge health, and vote economics.
+uv run relation report runs/ladder runs/cards config/eval/ladder.yaml \
+    --gold gold.jsonl --classifier runs/classifier --out runs/report
+```
+
+`gold.jsonl` is the swipe-tool export: one row per relation with the majority
+`verdict`, `pass_count`, label `entropy`, and an optional `post_exposure` flag
+for rulings made after the adjudicator saw panel outputs. Classifier fitting
+requires a `family_id` on every card (a relation and its inverse/siblings
+share one), so sibling relations can never straddle a train/test split. If the
+C-predicted gold stratum is too small for the precision bound to ever clear
+its target, the report says `UNPASSABLE BY SAMPLE SIZE` rather than reporting
+a failure.
 
 The pilot slice is not a separately maintained or hand-authored file. `evaluate`
 verifies the concatenated cards, excludes the fixed `FEW_SHOT` prompt examples,
@@ -278,20 +337,14 @@ three system-prompt shells (`S1`-`S3`) crossed with the three user framings
 `analyze` cross-validates the manifest, slice, logical votes, and physical
 attempts before writing byte-deterministic `decisions.json` and `report.md`.
 Inspect data-health/routing warnings, pruned families, admitted shells and
-framings, selected per-family effort, and projected full-grid cost before
-continuing. A `mode: full` evaluation accepts only strict schema-v3 decisions
-consistent with the current rubric, prompt pack, exact pilot card corpus, complete
-judge request pins, effort policy, reviewed call projection, and admission results.
-Changing a provider, region, sampling corpus, output-token parameter, temperature,
-or seed requires a new pilot rather than silently reusing old decisions. Full mode
-executes every admitted family × every bundle in the admitted
-shell × framing product × the complete set of eligible cards. The fixed
-`FEW_SHOT` cards remain in the prompt pack but are
-excluded from pilot sampling, analysis, and production votes to prevent
-contamination. Other verified cards remain eligible, including severely
-truncated cards; truncation is recorded for analysis rather than silently
-changing the population. The production grid has no repeat arm (`repeat_index`
-is zero throughout).
+framings, selected per-family effort, and projected cost before authoring the
+ladder's judges.yaml from those decisions.
+
+The fixed `FEW_SHOT` cards remain in the prompt pack but are excluded from
+pilot sampling, analysis, and ladder votes to prevent contamination. Other
+verified cards remain eligible, including severely truncated cards; truncation
+is recorded for analysis rather than silently changing the population. Ladder
+votes have no repeat arm (`repeat_index` is zero throughout).
 
 Execution is deliberately fail-closed:
 
@@ -352,11 +405,15 @@ Execution is deliberately fail-closed:
 Artifacts are append-only journals plus hash-bound manifests. `pilot/` contains
 `slice.jsonl`, `votes.jsonl`, `attempts.jsonl`, `run-state.json`, and the finalized
 schema-v2 `manifest.json`; `pilot-analysis/` contains schema-v3 `decisions.json` and
-`report.md`. `full-grid/` contains `votes.jsonl`, `attempts.jsonl`,
-`run-state.json`, and a production `manifest.json` binding the decisions, card
-artifact, exact expected product, plan/request-policy hashes, judge pins, SDK
-versions, usage, costs, and run dates. `.run.lock` and the `inflight/` marker
-directory are operational state rather than handoff artifacts.
+`report.md`. A ladder run contains `votes.jsonl`, `attempts.jsonl`,
+`review-queue.jsonl`, `run-state.json`, and a production `manifest.json` binding
+the panel (judge pins with rung assignments), card artifact, prompt pack,
+request-policy hashes, rung economics, SDK versions, and run dates. Downstream
+stages add `soft-labels.parquet`, `embeddings.parquet`, the classifier bundle
+(`classifier.json`, `arrays.npz`, `predictions.parquet`), and
+`report.json`/`report.md`, each with a provenance sidecar. `.run.lock` and the
+`inflight/` marker directory are operational state rather than handoff
+artifacts.
 
 ### `hash-cards`
 

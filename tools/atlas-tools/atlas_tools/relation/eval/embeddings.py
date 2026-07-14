@@ -307,7 +307,7 @@ def embed_cards(
         producer="relation.ladder-embed",
         input_hashes={
             "cards.jsonl": prepared.source_hashes["cards.jsonl"],
-            "config.yaml": prepared.config_hash,
+            "judges-panel": prepared.panel_hash,
         },
         content_hashes={output.name: sha256_file(output)},
         details=EmbeddingsDetails(

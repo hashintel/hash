@@ -221,6 +221,7 @@ def _capture_vote(
         cost_gate=cost_gate,
         execution_control=request.execution_control,
     )
+
     if isinstance(completed, outcome.Error):
         error = _normal_exception(completed)
         if isinstance(error, ExecutionStoppedError):
@@ -229,6 +230,7 @@ def _capture_vote(
             return VoteDeferred(command.plan_index, command.task, error.attempts, error)
         request.execution_control.stop()
         return VoteFailed(command.plan_index, error)
+
     return VoteCompleted(command.plan_index, completed.value)
 
 
