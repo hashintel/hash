@@ -6,7 +6,7 @@ use crate::store::postgres::query::{ColumnName, NonEmptyVec, Statement, TableNam
 ///
 /// A materialized CTE is computed once and acts as an optimization fence: the planner cannot
 /// push conditions from the outer statement into it or inline it. Without a hint Postgres
-/// decides on its own, inlining CTEs that are referenced exactly once.
+/// decides on its own, inlining non-recursive CTEs that are referenced exactly once.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Materialization {
     Materialized,
@@ -17,16 +17,16 @@ pub enum Materialization {
 #[builder(derive(Debug, Clone, Into))]
 pub struct CommonTableExpression {
     #[builder(into)]
-    name: TableName<'static>,
+    pub name: TableName<'static>,
     /// Output column names, renaming the columns produced by the statement.
     ///
     /// Accepts a single [`ColumnName`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
     /// beforehand via `NonEmptyVec::try_from`.
     #[builder(into)]
-    columns: Option<NonEmptyVec<ColumnName<'static>>>,
+    pub columns: Option<NonEmptyVec<ColumnName<'static>>>,
     #[builder(into)]
-    statement: Statement,
-    materialization: Option<Materialization>,
+    pub statement: Statement,
+    pub materialization: Option<Materialization>,
 }
 
 impl<S> From<CommonTableExpressionBuilder<S>> for NonEmptyVec<CommonTableExpression>
@@ -68,13 +68,13 @@ impl Transpile for CommonTableExpression {
 pub struct WithClause {
     /// Marks the clause as `WITH RECURSIVE`, allowing a `with_query` to reference itself.
     #[builder(default)]
-    recursive: bool,
+    pub recursive: bool,
     /// The `with_query` list of the clause.
     ///
     /// Accepts a single [`CommonTableExpression`] (or its complete builder) as well as a
     /// ready-made [`NonEmptyVec`]; parse a [`Vec`] beforehand via `NonEmptyVec::try_from`.
     #[builder(into)]
-    common_table_expressions: NonEmptyVec<CommonTableExpression>,
+    pub common_table_expressions: NonEmptyVec<CommonTableExpression>,
 }
 
 impl WithClause {

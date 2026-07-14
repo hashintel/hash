@@ -375,10 +375,6 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
                 island: island_id,
             };
             let table_ref = cont_alias.table_ref();
-
-            // We explicitly set an OFFSET, as otherwise the postgres planner inlines the
-            // subquery and duplicates the CASE tree per field access, making it much more
-            // expensive to compute.
             let subquery = SimpleSelect::builder()
                 .selects(SelectExpression::Expression {
                     expression,
@@ -498,7 +494,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
                     .expect("a placeholder is added when nothing is selected"),
             )
             .from(from)
-            .maybe_where_clause(Expression::conjunction(db.conditions.into_iter().collect()))
+            .maybe_where_clause(Expression::conjunction(db.conditions))
             .build();
 
         PreparedQuery {

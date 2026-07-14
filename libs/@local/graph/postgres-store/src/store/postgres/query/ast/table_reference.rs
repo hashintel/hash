@@ -82,8 +82,10 @@ impl Transpile for TableName<'_> {
 /// - Schema-qualified: `"public"."users"`
 /// - Fully-qualified: `"mydb"."public"."users"`
 ///
-/// When an alias is present, the table name is transformed to include query-specific
-/// identifiers for disambiguation (e.g., `"users_0_1_2"` for condition 0, chain depth 1, number 2).
+/// Alias numbering is the compiler's concern: [`Table::aliased_name`] folds its structured
+/// alias into a plain [`TableName`] before it ever reaches this type.
+///
+/// [`Table::aliased_name`]: crate::store::postgres::query::Table::aliased_name
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TableReference<'name> {
     /// Optional schema reference that qualifies this table.

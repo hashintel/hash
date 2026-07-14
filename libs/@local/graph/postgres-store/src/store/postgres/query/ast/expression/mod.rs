@@ -532,6 +532,37 @@ mod tests {
     };
 
     #[test]
+    fn conjunction_folds_without_wrapping_lone_conditions() {
+        assert_eq!(Expression::conjunction(vec![]), None);
+        assert_eq!(Expression::disjunction(vec![]), None);
+
+        let condition = Expression::Parameter(1);
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone()]),
+            Some(condition.clone())
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition.clone()])
+                .expect("a lone condition should fold to itself")
+                .transpile_to_string(),
+            "$1"
+        );
+
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone(), Expression::Parameter(2)])
+                .expect("two conditions should fold to an `AND` expression")
+                .transpile_to_string(),
+            "($1) AND ($2)"
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition, Expression::Parameter(2)])
+                .expect("two conditions should fold to an `OR` expression")
+                .transpile_to_string(),
+            "(($1) OR ($2))"
+        );
+    }
+
+    #[test]
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),

@@ -1,6 +1,6 @@
 use core::fmt::{self, Write as _};
 
-use self::simple_select_builder::{IsComplete, IsUnset, SetQuantifier, State};
+use self::simple_select_builder::{IsComplete, IsUnset, SetQuantifier as QuantifierSet, State};
 use crate::store::postgres::query::{
     Expression, FromItem, GroupByClause, NonEmptyVec, SelectClause, SelectExpression,
     SelectQuantifier, SelectStatement, Statement, Transpile,
@@ -10,8 +10,8 @@ use crate::store::postgres::query::{
 ///
 /// Holds everything up to the `WINDOW` clause; `WITH`, `ORDER BY`, `LIMIT`, and `OFFSET` belong
 /// to the enclosing [`SelectStatement`] (`select_no_parens`), set operations to
-/// [`SelectClause`]. The `WINDOW` clause and the `VALUES`/`TABLE` forms are not representable
-/// yet.
+/// [`SelectClause`]. The `INTO` and `WINDOW` clauses and the `VALUES`/`TABLE` forms are not
+/// representable yet.
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SimpleSelect {
@@ -65,7 +65,7 @@ where
 
 impl<S: State> SimpleSelectBuilder<S> {
     /// Sets the quantifier to plain `DISTINCT`, removing duplicate rows.
-    pub fn distinct(self) -> SimpleSelectBuilder<SetQuantifier<S>>
+    pub fn distinct(self) -> SimpleSelectBuilder<QuantifierSet<S>>
     where
         S::Quantifier: IsUnset,
     {
@@ -79,7 +79,7 @@ impl<S: State> SimpleSelectBuilder<S> {
     pub fn distinct_on(
         self,
         expressions: impl Into<NonEmptyVec<Expression>>,
-    ) -> SimpleSelectBuilder<SetQuantifier<S>>
+    ) -> SimpleSelectBuilder<QuantifierSet<S>>
     where
         S::Quantifier: IsUnset,
     {

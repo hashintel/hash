@@ -1901,6 +1901,80 @@ mod property_masking {
     }
 }
 
+fn embedding_distance_filter() -> Filter<'static, Entity> {
+    Filter::CosineDistance(
+        FilterExpression::Path {
+            path: EntityQueryPath::Embedding,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Vector(Embedding::from(vec![0.0; 1536])),
+            convert: None,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Decimal(Real::from_natural(5, -1)),
+            convert: None,
+        },
+    )
+}
+
+#[test]
+fn cursor_after_embedding_filter_is_rejected() {
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+    let filter = embedding_distance_filter();
+    compiler
+        .add_filter(&filter)
+        .expect("the embedding filter should compile");
+
+    let error = compiler
+        .add_cursor_selection(
+            &EntityQueryPath::Uuid,
+            core::convert::identity,
+            None,
+            Ordering::Ascending,
+            None,
+        )
+        .expect_err("a cursor is not allowed after an embedding filter");
+    assert!(matches!(
+        error.current_context(),
+        SelectCompilerError::CursorDisallowed { .. }
+    ));
+}
+
+#[test]
+fn entity_cursor_pagination() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+    let uuid = Uuid::nil();
+    let parameter = compiler.add_parameter(&uuid);
+    compiler
+        .add_cursor_selection(
+            &EntityQueryPath::Uuid,
+            core::convert::identity,
+            Some(parameter),
+            Ordering::Ascending,
+            None,
+        )
+        .expect("the cursor selection should compile");
+    compiler.set_limit(10);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid") *, "entity_temporal_metadata_0_0_0"."entity_uuid"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $3)
+          AND ("entity_temporal_metadata_0_0_0"."entity_uuid" > $1)
+        ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[&uuid, &pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
 mod cursor_condition {
     use hash_graph_store::query::{NullOrdering, Ordering};
 
@@ -1979,6 +2053,40 @@ mod cursor_condition {
         assert_eq!(
             transpiled(&[(key(0), None, Ordering::Ascending, Some(NullOrdering::Last))]),
             None
+        );
+    }
+
+    #[test]
+    fn null_prefix_key_requires_null_equality() {
+        assert_eq!(
+            transpiled(&[
+                (key(0), None, Ordering::Ascending, Some(NullOrdering::First)),
+                (
+                    key(1),
+                    Some(Expression::Parameter(1)),
+                    Ordering::Ascending,
+                    None
+                ),
+            ])
+            .expect("a two-key cursor should produce a condition"),
+            r#"((("entity_temporal_metadata_0_0_0"."entity_uuid" IS NULL) AND ("entity_temporal_metadata_0_0_1"."entity_uuid" > $1)) OR ("entity_temporal_metadata_0_0_0"."entity_uuid" IS NOT NULL))"#
+        );
+    }
+
+    #[test]
+    fn null_cursor_with_nulls_last_drops_only_its_alternative() {
+        assert_eq!(
+            transpiled(&[
+                (
+                    key(0),
+                    Some(Expression::Parameter(1)),
+                    Ordering::Ascending,
+                    None
+                ),
+                (key(1), None, Ordering::Ascending, Some(NullOrdering::Last)),
+            ])
+            .expect("the first key should still produce an alternative"),
+            r#""entity_temporal_metadata_0_0_0"."entity_uuid" > $1"#
         );
     }
 

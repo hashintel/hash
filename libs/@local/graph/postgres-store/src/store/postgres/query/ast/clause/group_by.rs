@@ -6,13 +6,13 @@ use crate::store::postgres::query::{Expression, NonEmptyVec, SetQuantifier, Tran
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct GroupByClause {
-    quantifier: Option<SetQuantifier>,
+    pub quantifier: Option<SetQuantifier>,
     /// The `grouping_element` list of the clause.
     ///
     /// Accepts a single [`GroupingElement`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
     /// beforehand via `NonEmptyVec::try_from`.
     #[builder(into)]
-    grouping_elements: NonEmptyVec<GroupingElement>,
+    pub grouping_elements: NonEmptyVec<GroupingElement>,
 }
 
 /// A `grouping_element` of the `GROUP BY` clause.
@@ -21,15 +21,17 @@ pub struct GroupByClause {
 /// representable yet.
 #[derive(Debug, Clone, PartialEq)]
 pub enum GroupingElement {
-    /// `expression`, `( expression [, ...] )`, or — with an empty list — the grammar's `( )`,
-    /// which groups all rows into a single group.
-    Expressions(Vec<Expression>),
+    /// The grammar's `( )`, grouping all rows into a single group.
+    Empty,
+    /// `expression` or `( expression [, ...] )`.
+    Expressions(NonEmptyVec<Expression>),
 }
 
 impl Transpile for GroupingElement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Expressions(expressions) => match expressions.as_slice() {
+            Self::Empty => fmt.write_str("()"),
+            Self::Expressions(expressions) => match &**expressions {
                 [expression] => expression.transpile(fmt),
                 expressions => {
                     fmt.write_str("(")?;
@@ -97,8 +99,8 @@ mod tests {
         let clause = GroupByClause::builder()
             .grouping_elements(
                 NonEmptyVec::try_from(vec![
-                    GroupingElement::Expressions(vec![web_id()]),
-                    GroupingElement::Expressions(vec![entity_uuid()]),
+                    GroupingElement::Expressions(NonEmptyVec::from(web_id())),
+                    GroupingElement::Expressions(NonEmptyVec::from(entity_uuid())),
                 ])
                 .expect("two grouping elements should form a valid `GROUP BY`"),
             )
@@ -115,8 +117,11 @@ mod tests {
             .quantifier(SetQuantifier::Distinct)
             .grouping_elements(
                 NonEmptyVec::try_from(vec![
-                    GroupingElement::Expressions(vec![web_id(), entity_uuid()]),
-                    GroupingElement::Expressions(Vec::new()),
+                    GroupingElement::Expressions(
+                        NonEmptyVec::try_from(vec![web_id(), entity_uuid()])
+                            .expect("two expressions should form a valid grouping element"),
+                    ),
+                    GroupingElement::Empty,
                 ])
                 .expect("two grouping elements should form a valid `GROUP BY`"),
             )

@@ -97,7 +97,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Constant, Expression, Function, GroupByClause, GroupingElement,
+        Alias, Constant, Expression, Function, GroupByClause, GroupingElement, NonEmptyVec,
         PostgresQueryPath as _, SelectExpression, SortBy, SortDirection,
     };
 
@@ -117,10 +117,9 @@ mod tests {
             .select_clause(
                 SimpleSelect::builder()
                     .selects(SelectExpression::Asterisk(None))
-                    .group_by(
-                        GroupByClause::builder()
-                            .grouping_elements(GroupingElement::Expressions(vec![web_id()])),
-                    )
+                    .group_by(GroupByClause::builder().grouping_elements(
+                        GroupingElement::Expressions(NonEmptyVec::from(web_id())),
+                    ))
                     .having(Expression::greater(
                         Expression::Function(Function::Max(Box::new(web_id()))),
                         Expression::Constant(Constant::U32(1)),

@@ -40,9 +40,9 @@ impl Transpile for NullsOrder {
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SortBy {
-    expression: Expression,
-    direction: Option<SortDirection>,
-    nulls: Option<NullsOrder>,
+    pub expression: Expression,
+    pub direction: Option<SortDirection>,
+    pub nulls: Option<NullsOrder>,
 }
 
 impl<S> From<SortByBuilder<S>> for NonEmptyVec<SortBy>
@@ -79,7 +79,7 @@ pub struct OrderByClause {
     /// Accepts a single [`SortBy`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`] beforehand
     /// via `NonEmptyVec::try_from`.
     #[builder(into)]
-    sort_by: NonEmptyVec<SortBy>,
+    pub sort_by: NonEmptyVec<SortBy>,
 }
 
 impl Transpile for OrderByClause {

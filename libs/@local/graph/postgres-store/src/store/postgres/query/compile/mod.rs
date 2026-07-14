@@ -119,7 +119,7 @@ type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Exp
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
-    quantifier: Option<SelectQuantifier>,
+    distinct_on: Vec<Expression>,
     selects: Vec<SelectExpression>,
     from: Option<FromItem<'static>>,
     with: Option<WithClause>,
@@ -177,7 +177,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
-            quantifier: None,
+            distinct_on: Vec::new(),
             selects: Vec::new(),
             from: Some(
                 FromItem::table(R::base_table())
@@ -360,19 +360,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
     #[instrument(level = "debug", skip_all)]
-    /// Appends an expression to the statement's `DISTINCT ON` list, creating it when absent.
-    fn push_distinct_on(quantifier: &mut Option<SelectQuantifier>, expression: Expression) {
-        match quantifier {
-            Some(SelectQuantifier::DistinctOn(on)) => on.push(expression),
-            quantifier @ None => {
-                *quantifier = Some(SelectQuantifier::DistinctOn(NonEmptyVec::from(expression)));
-            }
-            Some(SelectQuantifier::All | SelectQuantifier::Distinct) => {
-                unreachable!("the compiler only ever emits `DISTINCT ON` quantifiers")
-            }
-        }
-    }
-
     pub fn add_distinct_selection_with_ordering(
         &mut self,
         path: &'p R::QueryPath<'q>,
@@ -386,7 +373,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct
                 && stored.distinctness == Distinctness::Indistinct
             {
-                Self::push_distinct_on(&mut self.quantifier, stored.column.clone());
+                self.distinct_on.push(stored.column.clone());
                 stored.distinctness = Distinctness::Distinct;
             }
             if stored.ordering.is_none()
@@ -410,7 +397,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             });
 
             if distinctness == Distinctness::Distinct {
-                Self::push_distinct_on(&mut self.quantifier, expression.clone());
+                self.distinct_on.push(expression.clone());
             }
             if let Some((ordering, nulls)) = ordering {
                 self.sort_by.push(
@@ -494,7 +481,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     #[instrument(level = "info", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         let simple = SimpleSelect::builder()
-            .maybe_quantifier(self.quantifier.clone())
+            .maybe_quantifier(
+                NonEmptyVec::try_from(self.distinct_on.clone())
+                    .ok()
+                    .map(SelectQuantifier::DistinctOn),
+            )
             .selects(
                 NonEmptyVec::try_from(self.selects.clone())
                     .expect("at least one selection is added before compiling"),
@@ -598,8 +589,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// # Panics
     ///
-    /// Panics when an embeddings table declares no grouping columns — the static table list
-    /// makes this unreachable.
+    /// Panics when a non-distance filter carries a parameter with a pending conversion
+    /// (`convert: Some(..)`) — only the cosine-distance arm handles conversions so far. Also
+    /// panics when an embeddings table declares no grouping columns, though the static table
+    /// list makes that unreachable.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter<'f: 'q>(
@@ -830,9 +823,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                             select_columns
                                                 .iter()
                                                 .map(|&column| {
-                                                    GroupingElement::Expressions(vec![
+                                                    GroupingElement::Expressions(NonEmptyVec::from(
                                                         Expression::ColumnReference(column.into()),
-                                                    ])
+                                                    ))
                                                 })
                                                 .collect::<Vec<_>>(),
                                         )
@@ -857,7 +850,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         expression: distance_expression.clone(),
                         output_name: None,
                     });
-                    Self::push_distinct_on(&mut self.quantifier, distance_expression.clone());
+                    self.distinct_on.push(distance_expression.clone());
                     Expression::less_or_equal(distance_expression, maximum_expression)
                 }
                 _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),

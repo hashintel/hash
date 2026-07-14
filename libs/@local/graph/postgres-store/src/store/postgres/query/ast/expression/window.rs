@@ -5,8 +5,8 @@ use crate::store::postgres::query::{Expression, NonEmptyVec, Transpile};
 /// A `window_definition` of an `OVER` clause.
 ///
 /// Covers `PARTITION BY expression [, ...]` only; `existing_window_name`, the window-level
-/// `ORDER BY` list, `frame_clause`, the statement-level `WINDOW` clause, and `OVER window_name`
-/// are not representable yet.
+/// `ORDER BY` list, `frame_clause`, the statement-level `WINDOW` clause, `OVER window_name`,
+/// and the empty definition (`OVER ()`) are not representable yet.
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct WindowDefinition {
@@ -15,7 +15,7 @@ pub struct WindowDefinition {
     /// Accepts a single [`Expression`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
     /// beforehand via `NonEmptyVec::try_from`.
     #[builder(into)]
-    partition_by: NonEmptyVec<Expression>,
+    pub partition_by: NonEmptyVec<Expression>,
 }
 
 impl Transpile for WindowDefinition {

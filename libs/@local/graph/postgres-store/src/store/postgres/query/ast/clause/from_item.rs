@@ -53,10 +53,8 @@ pub enum FromItem<'id> {
         /// When `Some`, the table is referenced using this alias elsewhere in the query.
         /// When `None`, the base table reference is used directly.
         ///
-        /// The grammar's `alias` production is a plain name; a [`TableName`]-only reference
-        /// expresses exactly that. The `SelectCompiler` currently also stores its structured
-        /// [`Alias`] numbering in here, which is why the type is not narrowed to
-        /// [`TableName`] yet.
+        /// The grammar's `alias` production is a plain name. The `SelectCompiler` stores its
+        /// structured [`Alias`] numbering here in mangled form via `Table::aliased_name`.
         ///
         /// [`Alias`]: crate::store::postgres::query::Alias
         alias: Option<TableName<'id>>,
@@ -218,7 +216,8 @@ pub enum FromItem<'id> {
         /// the USING clause. This does not hide the names of the joined tables from the rest
         /// of the query, and you cannot use this alias to reference other columns.
         ///
-        /// Transpiles to: `AS "join_alias"`.
+        /// Transpiles to: `AS "join_alias"`. Ignored when `columns` is empty, since the join
+        /// degrades to `ON TRUE`.
         alias: Option<TableName<'id>>,
     },
 

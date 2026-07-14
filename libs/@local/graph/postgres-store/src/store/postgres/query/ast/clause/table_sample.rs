@@ -16,7 +16,7 @@ pub enum SamplingMethod {
     ///
     /// Use when you need true random sampling for statistical analysis.
     Bernoulli {
-        /// Percentage of rows to sample, between 0 and 100.
+        /// Percentage of rows to sample; the valid range is checked by Postgres.
         percentage: SamplePercentage,
     },
 
@@ -28,7 +28,7 @@ pub enum SamplingMethod {
     /// Use when speed is more important than perfect randomness, or for quick exploration
     /// of large tables.
     System {
-        /// Percentage of blocks to sample, between 0 and 100.
+        /// Percentage of blocks to sample; the valid range is checked by Postgres.
         percentage: SamplePercentage,
     },
 }
@@ -126,6 +126,17 @@ impl Transpile for TableSample {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn percentage_rejects_non_finite_values() {
+        for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                SamplePercentage::try_from(value)
+                    .expect_err("non-finite percentages should be rejected"),
+                NonFinitePercentage
+            );
+        }
+    }
 
     #[test]
     fn transpile_bernoulli_sampling() {

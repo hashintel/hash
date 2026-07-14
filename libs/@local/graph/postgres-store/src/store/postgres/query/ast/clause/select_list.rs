@@ -8,9 +8,9 @@ use crate::store::postgres::query::{Expression, Identifier, TableReference, Tran
 /// or the special `*` wildcard to select all columns from a table or all tables.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectExpression {
-    /// A regular expression with an optional alias.
+    /// A regular expression with an optional output name.
     ///
-    /// Transpiles to: `expression` or `expression AS "alias"`.
+    /// Transpiles to: `expression` or `expression AS "output_name"`.
     Expression {
         expression: Expression,
         output_name: Option<Identifier<'static>>,
