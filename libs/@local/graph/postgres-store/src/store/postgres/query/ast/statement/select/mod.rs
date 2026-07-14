@@ -12,6 +12,7 @@ use crate::store::postgres::query::{
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
+    #[builder(into)]
     pub with: Option<WithClause>,
     pub quantifier: Option<SelectQuantifier>,
     pub selects: Vec<SelectExpression>,
@@ -19,8 +20,8 @@ pub struct SelectStatement {
     pub from: Option<FromItem<'static>>,
     #[builder(default)]
     pub where_clause: WhereClause,
-    #[builder(default)]
-    pub group_by: GroupByClause,
+    #[builder(into)]
+    pub group_by: Option<GroupByClause>,
     pub having: Option<Expression>,
     #[builder(default)]
     pub order_by: OrderByClause,
@@ -86,9 +87,9 @@ impl Transpile for SelectStatement {
             self.where_clause.transpile(fmt)?;
         }
 
-        if !self.group_by.elements.is_empty() {
+        if let Some(group_by) = &self.group_by {
             fmt.write_char('\n')?;
-            self.group_by.transpile(fmt)?;
+            group_by.transpile(fmt)?;
         }
 
         if let Some(having) = &self.having {
@@ -155,10 +156,10 @@ mod tests {
 
         let statement = SelectStatement::builder()
             .selects(vec![SelectExpression::Asterisk(None)])
-            .group_by(GroupByClause {
-                quantifier: None,
-                elements: vec![GroupingElement::Expressions(vec![web_id()])],
-            })
+            .group_by(
+                GroupByClause::builder()
+                    .grouping_element(GroupingElement::Expressions(vec![web_id()])),
+            )
             .having(Expression::greater(
                 Expression::Function(Function::Max(Box::new(web_id()))),
                 Expression::Constant(Constant::U32(1)),

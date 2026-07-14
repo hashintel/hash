@@ -466,6 +466,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// # Errors
     ///
     /// Returns an error if the filter compilation fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an embeddings table declares no grouping columns — the static table list
+    /// makes this unreachable.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter<'f: 'q>(
@@ -683,17 +688,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .collect(),
                                 )
                                 .from(FromItem::table(embeddings_table))
-                                .group_by(GroupByClause {
-                                    quantifier: None,
-                                    elements: select_columns
-                                        .iter()
-                                        .map(|&column| {
-                                            GroupingElement::Expressions(vec![
-                                                Expression::ColumnReference(column.into()),
-                                            ])
-                                        })
-                                        .collect(),
-                                }),
+                                .group_by(
+                                    GroupByClause::builder()
+                                        .grouping_elements(
+                                            select_columns
+                                                .iter()
+                                                .map(|&column| {
+                                                    GroupingElement::Expressions(vec![
+                                                        Expression::ColumnReference(column.into()),
+                                                    ])
+                                                })
+                                                .collect::<Vec<_>>(),
+                                        )
+                                        .expect(
+                                            "every embeddings table groups by at least one column",
+                                        ),
+                                ),
                         )
                         .alias(last_join.table.aliased_name(last_join.alias))
                         .build();

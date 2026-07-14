@@ -1,5 +1,6 @@
 use core::fmt::{self, Write as _};
 
+use self::with_clause_builder::IsComplete;
 use crate::store::postgres::query::{ColumnName, NonEmptyVec, Statement, TableName, Transpile};
 
 /// Controls whether Postgres materializes a common table expression.
@@ -55,6 +56,15 @@ impl Transpile for CommonTableExpression {
 pub struct WithClause {
     #[builder(setters(vis = "", name = "set_common_table_expressions"))]
     common_table_expressions: NonEmptyVec<CommonTableExpression>,
+}
+
+impl<S> From<WithClauseBuilder<S>> for WithClause
+where
+    S: IsComplete,
+{
+    fn from(builder: WithClauseBuilder<S>) -> Self {
+        builder.build()
+    }
 }
 
 impl WithClause {
