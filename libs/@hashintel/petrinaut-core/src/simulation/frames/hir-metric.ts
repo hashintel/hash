@@ -34,7 +34,14 @@ export function createHirMetricEvaluator(args: {
   // The per-run string pool can differ between frames (Monte-Carlo runs own
   // one each), so the program binds this stable adapter instead.
   const poolAdapter = {
-    get: (id: number): string => currentPool?.get(id) ?? "",
+    get: (id: number): string => {
+      if (!currentPool) {
+        throw new Error(
+          `Metric "${metricName}" cannot decode string token attributes because this frame has no string pool.`,
+        );
+      }
+      return currentPool.get(id);
+    },
   };
 
   return (frame) => {
@@ -66,14 +73,18 @@ export function createHirMetricEvaluator(args: {
     }
 
     currentPool = raw.stringPool ?? null;
-    const result = program(
-      raw.f64,
-      raw.u64,
-      raw.u8,
-      raw.placeCounts,
-      raw.placeOffsets,
-    );
-    currentPool = null;
+    let result: number;
+    try {
+      result = program(
+        raw.f64,
+        raw.u64,
+        raw.u8,
+        raw.placeCounts,
+        raw.placeOffsets,
+      );
+    } finally {
+      currentPool = null;
+    }
     if (typeof result !== "number" || !Number.isFinite(result)) {
       throw new Error(
         `Metric "${metricName}" returned ${String(result)}, expected a finite number.`,
