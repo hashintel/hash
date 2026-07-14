@@ -3,10 +3,10 @@ mod quantifier;
 use core::fmt::{self, Write as _};
 
 pub use self::quantifier::SelectQuantifier;
-use self::select_statement_builder::{IsUnset, SetQuantifier, State};
+use self::select_statement_builder::{IsComplete, IsUnset, SetQuantifier, State};
 use crate::store::postgres::query::{
-    Expression, FromItem, GroupByClause, NonEmptyVec, OrderByClause, SelectExpression, Transpile,
-    WhereClause, WithClause,
+    Expression, FromItem, GroupByClause, NonEmptyVec, OrderByClause, SelectExpression, Statement,
+    Transpile, WhereClause, WithClause,
 };
 
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
@@ -29,6 +29,15 @@ pub struct SelectStatement {
     pub offset: Option<usize>,
 }
 
+impl<S> From<SelectStatementBuilder<S>> for Statement
+where
+    S: IsComplete,
+{
+    fn from(builder: SelectStatementBuilder<S>) -> Self {
+        Self::from(builder.build())
+    }
+}
+
 impl<S: State> SelectStatementBuilder<S> {
     /// Sets the quantifier to plain `DISTINCT`, removing duplicate rows.
     pub fn distinct(self) -> SelectStatementBuilder<SetQuantifier<S>>
@@ -40,20 +49,16 @@ impl<S: State> SelectStatementBuilder<S> {
 
     /// Sets the quantifier to `DISTINCT ON ( expression [, ...] )`.
     ///
-    /// # Errors
-    ///
-    /// Returns `E::Error` when the conversion fails — for [`Vec`] input this is
-    /// [`EmptyVec`](crate::store::postgres::query::EmptyVec) on an empty list.
-    /// Single-[`Expression`] input is infallible.
-    pub fn distinct_on<E>(
+    /// Accepts a single [`Expression`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
+    /// beforehand via `NonEmptyVec::try_from`.
+    pub fn distinct_on(
         self,
-        expressions: E,
-    ) -> Result<SelectStatementBuilder<SetQuantifier<S>>, E::Error>
+        expressions: impl Into<NonEmptyVec<Expression>>,
+    ) -> SelectStatementBuilder<SetQuantifier<S>>
     where
-        E: TryInto<NonEmptyVec<Expression>>,
         S::Quantifier: IsUnset,
     {
-        Ok(self.quantifier(SelectQuantifier::DistinctOn(expressions.try_into()?)))
+        self.quantifier(SelectQuantifier::DistinctOn(expressions.into()))
     }
 }
 
@@ -158,7 +163,7 @@ mod tests {
             .selects(vec![SelectExpression::Asterisk(None)])
             .group_by(
                 GroupByClause::builder()
-                    .grouping_element(GroupingElement::Expressions(vec![web_id()])),
+                    .grouping_elements(GroupingElement::Expressions(vec![web_id()])),
             )
             .having(Expression::greater(
                 Expression::Function(Function::Max(Box::new(web_id()))),

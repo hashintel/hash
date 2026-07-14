@@ -76,20 +76,18 @@ mod tests {
 
         assert_eq!(
             SelectExpression::Expression {
-                expression: Expression::Window(
-                    Box::new(Expression::Function(Function::Max(Box::new(
-                        Expression::ColumnReference(
-                            DataTypeQueryPath::Version
-                                .terminating_column()
-                                .0
-                                .aliased(Alias {
-                                    condition_index: 1,
-                                    chain_depth: 2,
-                                    number: 3,
-                                })
-                        ),
+                expression: Expression::window(
+                    Expression::Function(Function::Max(Box::new(Expression::ColumnReference(
+                        DataTypeQueryPath::Version
+                            .terminating_column()
+                            .0
+                            .aliased(Alias {
+                                condition_index: 1,
+                                chain_depth: 2,
+                                number: 3,
+                            })
                     )))),
-                    WindowDefinition::partition_by(Expression::ColumnReference(
+                    WindowDefinition::builder().partition_by(Expression::ColumnReference(
                         DataTypeQueryPath::BaseUrl
                             .terminating_column()
                             .0

@@ -689,8 +689,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 )
                                 .from(FromItem::table(embeddings_table))
                                 .group_by(
-                                    GroupByClause::builder()
-                                        .grouping_elements(
+                                    GroupByClause::builder().grouping_elements(
+                                        NonEmptyVec::try_from(
                                             select_columns
                                                 .iter()
                                                 .map(|&column| {
@@ -703,6 +703,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .expect(
                                             "every embeddings table groups by at least one column",
                                         ),
+                                    ),
                                 ),
                         )
                         .alias(last_join.table.aliased_name(last_join.alias))
@@ -1018,13 +1019,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .selects(vec![
                         SelectExpression::Asterisk(None),
                         SelectExpression::Expression {
-                            expression: Expression::Window(
-                                Box::new(Expression::Function(Function::Max(Box::new(
+                            expression: Expression::window(
+                                Expression::Function(Function::Max(Box::new(
                                     Expression::ColumnReference(version_column.aliased(alias)),
-                                )))),
-                                WindowDefinition::partition_by(Expression::ColumnReference(
-                                    Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                                )),
+                                ))),
+                                WindowDefinition::builder().partition_by(
+                                    Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                    ),
+                                ),
                             ),
                             output_name: Some(Identifier::from("latest_version")),
                         },
@@ -1033,16 +1036,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         FromItem::table(version_column.table())
                             .alias(version_column.table().aliased_name(alias))
                             .build(),
-                    )
-                    .build(),
-            )
-            .build();
+                    ),
+            );
         match &mut self.statement.with {
             Some(with) => with.push(latest_version_cte),
             with @ None => {
                 *with = Some(
                     WithClause::builder()
-                        .common_table_expression(latest_version_cte)
+                        .common_table_expressions(latest_version_cte)
                         .build(),
                 );
             }

@@ -185,6 +185,12 @@ impl Expression {
         })
     }
 
+    /// Creates an `expression OVER ( window_definition )` window function call.
+    #[must_use]
+    pub fn window(expression: Self, definition: impl Into<WindowDefinition>) -> Self {
+        Self::Window(Box::new(expression), definition.into())
+    }
+
     #[must_use]
     pub fn greater_or_equal(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {

@@ -12,11 +12,10 @@ use core::{
 ///
 /// # Builder convention
 ///
-/// [`bon`] builder members of this type hide the generated setter (`setters(vis = "", name =
-/// "set_<member>")`) and expose hand-written extensions instead: a plural setter bounded on
-/// `TryInto<NonEmptyVec<T>>` returning `Result` (fallible for [`Vec`] input), plus optionally a
-/// singular sibling that takes one element and discharges the
-/// [`Infallible`](core::convert::Infallible) error internally via `let Ok(…)`.
+/// [`bon`] builder members of this type use the plain generated setter with `#[builder(into)]`:
+/// a single element and a ready-made `NonEmptyVec` convert infallibly, so setters never return
+/// [`Result`]. A [`Vec`] is parsed visibly at the call site via `NonEmptyVec::try_from` — the
+/// one place where emptiness can fail.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NonEmptyVec<T>(Vec<T>);
 

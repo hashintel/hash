@@ -209,20 +209,18 @@ pub(crate) mod test_helper {
     }
 
     pub fn max_version_expression() -> Expression {
-        Expression::Window(
-            Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::ColumnReference(
-                    DataTypeQueryPath::Version
-                        .terminating_column()
-                        .0
-                        .aliased(Alias {
-                            condition_index: 0,
-                            chain_depth: 0,
-                            number: 0,
-                        }),
-                ),
+        Expression::window(
+            Expression::Function(Function::Max(Box::new(Expression::ColumnReference(
+                DataTypeQueryPath::Version
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    }),
             )))),
-            WindowDefinition::partition_by(Expression::ColumnReference(
+            WindowDefinition::builder().partition_by(Expression::ColumnReference(
                 DataTypeQueryPath::BaseUrl
                     .terminating_column()
                     .0
