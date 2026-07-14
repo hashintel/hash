@@ -1,12 +1,16 @@
 use core::{net::SocketAddr, time::Duration};
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
 use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
 use reqwest::Client;
-use tokio::{net::TcpListener, signal, time::timeout};
+use tokio::{
+    net::TcpListener,
+    signal,
+    time::{sleep, timeout},
+};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -95,6 +99,44 @@ pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLi
     });
 }
 
+/// Total window to wait for an external type fetcher to become reachable at startup.
+///
+/// On a fresh ECS task the type fetcher is reached through its Service Connect (Envoy) sidecar,
+/// which takes a few seconds to accept connections. Failing immediately would crash-loop the
+/// task, so the probe retries with backoff until this window is exhausted.
+pub(crate) const REACHABILITY_WINDOW: Duration = Duration::from_secs(30);
+
+/// Waits for the type fetcher at `address` to respond to its `/health` endpoint.
+///
+/// Probes with exponential backoff until `window` has elapsed.
+///
+/// # Errors
+///
+/// Returns [`HealthcheckError::Timeout`] if the type fetcher did not respond within `window`.
+pub(crate) async fn wait_for_type_fetcher(
+    address: &TypeFetcherAddress,
+    window: Duration,
+) -> Result<(), Report<HealthcheckError>> {
+    let deadline = Instant::now() + window;
+    let mut delay = Duration::from_millis(500);
+
+    loop {
+        let Err(report) = healthcheck(address.clone()).await else {
+            return Ok(());
+        };
+        if Instant::now() + delay > deadline {
+            return Err(report.change_context(HealthcheckError::Timeout));
+        }
+        tracing::warn!(
+            "Type fetcher at {}:{} is not reachable yet, retrying in {delay:?}",
+            address.type_fetcher_host,
+            address.type_fetcher_port,
+        );
+        sleep(delay).await;
+        delay = (delay * 2).min(Duration::from_secs(5));
+    }
+}
+
 /// Standalone `type-fetcher` subcommand entrypoint.
 #[expect(
     clippy::integer_division_remainder_used,
@@ -172,4 +214,60 @@ async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<Healthche
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn reachability_gate_passes_for_running_type_fetcher() {
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        let app = router(FetchServer {
+            buffer_size: 10,
+            predefined_types: HashMap::new(),
+        });
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let address = TypeFetcherAddress {
+            type_fetcher_host: "127.0.0.1".to_owned(),
+            type_fetcher_port: port,
+        };
+        wait_for_type_fetcher(&address, Duration::from_secs(5))
+            .await
+            .expect("running type fetcher should be reachable");
+    }
+
+    #[tokio::test]
+    async fn reachability_gate_times_out_for_dead_port() {
+        // Bind to an ephemeral port and drop the listener so the port is closed.
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        drop(listener);
+
+        let address = TypeFetcherAddress {
+            type_fetcher_host: "127.0.0.1".to_owned(),
+            type_fetcher_port: port,
+        };
+        let report = wait_for_type_fetcher(&address, Duration::from_millis(100))
+            .await
+            .expect_err("dead port should not be reachable");
+        assert!(matches!(
+            report.current_context(),
+            HealthcheckError::Timeout
+        ));
+    }
 }

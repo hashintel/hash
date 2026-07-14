@@ -42,7 +42,9 @@ use crate::{
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
         admin_server::{AdminConfig, start_admin_server},
-        type_fetcher::{TypeFetcherConfig, start_type_fetcher},
+        type_fetcher::{
+            REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
+        },
         wait_healthcheck,
     },
 };
@@ -540,6 +542,20 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     if args.embed_type_fetcher {
         start_type_fetcher(args.type_fetcher.clone(), &lifecycle);
+    } else {
+        // An external type fetcher must be reachable before the server starts serving requests.
+        if let Err(report) =
+            wait_for_type_fetcher(&args.type_fetcher.address, REACHABILITY_WINDOW).await
+        {
+            tracing::error!(
+                error = ?report,
+                type_fetcher_host = args.type_fetcher.address.type_fetcher_host,
+                type_fetcher_port = args.type_fetcher.address.type_fetcher_port,
+                "Failed to reach the type fetcher"
+            );
+            lifecycle.shutdown_and_wait().await;
+            return Err(report.change_context(GraphError));
+        }
     }
 
     let pool = FetchingPool::new(
