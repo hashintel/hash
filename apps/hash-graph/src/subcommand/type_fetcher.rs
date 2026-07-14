@@ -1,20 +1,13 @@
-use core::time::Duration;
+use core::{net::SocketAddr, time::Duration};
 use std::collections::HashMap;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, future};
-use hash_graph_type_fetcher::{
-    fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
-    fetcher_server::FetchServer,
-};
-use tarpc::{
-    serde_transport::Transport,
-    server::{self, Channel as _},
-};
-use tokio::{signal, time::timeout};
+use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
+use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
+use reqwest::Client;
+use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_util::sync::CancellationToken;
-use tracing::Instrument as _;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -61,78 +54,35 @@ pub struct TypeFetcherArgs {
 }
 
 /// Runs the type fetcher server, shutting down when `shutdown` is cancelled.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
 pub(crate) async fn run_type_fetcher(
     config: TypeFetcherConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let mut listener = tarpc::serde_transport::tcp::listen(
-        (
-            config.address.type_fetcher_host,
-            config.address.type_fetcher_port,
-        ),
-        tarpc::tokio_serde::formats::Json::default,
-    )
+    let listener = TcpListener::bind((
+        &*config.address.type_fetcher_host,
+        config.address.type_fetcher_port,
+    ))
     .await
     .change_context(GraphError)?;
 
-    tracing::info!("Listening on port {}", listener.local_addr().port());
+    tracing::info!(
+        "Listening on port {}",
+        listener.local_addr().change_context(GraphError)?.port()
+    );
 
-    listener.config_mut().max_frame_length(usize::MAX);
+    let router = router(FetchServer {
+        buffer_size: 10,
+        predefined_types: HashMap::new(),
+    })
+    .layer(HttpTracingLayer);
 
-    let shutdown_ref = &shutdown;
-
-    // Allow listener to accept up to 255 connections at a time.
-    let server_task = async move {
-        listener
-            .filter_map(|result| {
-                future::ready(match result {
-                    Ok(conn) => Some(conn),
-                    Err(error) => {
-                        tracing::warn!("Failed to accept type fetcher connection: {error}");
-                        None
-                    }
-                })
-            })
-            .map(server::BaseChannel::with_defaults)
-            .map(|channel| {
-                channel
-                    .execute(
-                        FetchServer {
-                            buffer_size: 10,
-                            predefined_types: HashMap::new(),
-                        }
-                        .serve(),
-                    )
-                    .for_each(async move |response| {
-                        let shutdown = shutdown_ref.clone();
-                        tokio::spawn(
-                            async move {
-                                tokio::select! {
-                                    () = response => {}
-                                    () = shutdown.cancelled() => {
-                                        tracing::debug!("Type fetcher response task cancelled");
-                                    }
-                                }
-                            }
-                            .in_current_span(),
-                        );
-                    })
-            })
-            .buffer_unordered(255)
-            .for_each(|()| async {})
-            .await;
-    };
-
-    tokio::select! {
-        () = server_task => {
-            tracing::info!("Type fetcher server task completed");
-        }
-        () = shutdown.cancelled() => {}
-    }
+    axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown.cancelled_owned())
+    .await
+    .change_context(GraphError)?;
 
     Ok(())
 }
@@ -206,16 +156,20 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
 }
 
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {
-    let transport = tarpc::serde_transport::tcp::connect(
-        (address.type_fetcher_host, address.type_fetcher_port),
-        tarpc::tokio_serde::formats::Json::default,
+    let request_url = format!(
+        "http://{}:{}/health",
+        address.type_fetcher_host, address.type_fetcher_port
     );
 
-    let _: Transport<_, FetcherRequest, FetcherResponse, _> =
-        timeout(Duration::from_secs(10), transport)
-            .await
-            .change_context(HealthcheckError::Timeout)?
-            .change_context(HealthcheckError::NotHealthy)?;
+    timeout(
+        Duration::from_secs(10),
+        Client::new().head(&request_url).send(),
+    )
+    .await
+    .change_context(HealthcheckError::Timeout)?
+    .change_context(HealthcheckError::NotHealthy)?
+    .error_for_status()
+    .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
 }

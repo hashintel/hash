@@ -261,7 +261,6 @@ supports-color                     = { version = "3.0.2", default-features = fal
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
-tarpc                              = { version = "0.36.0", default-features = false, git = "https://github.com/google/tarpc", rev = "f55f36d2d876b1868cfcf52f41d0456a60cf726c" }
 temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
 temporalio-common                  = { version = "0.5.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }
