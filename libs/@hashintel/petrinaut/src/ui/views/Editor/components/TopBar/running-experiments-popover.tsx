@@ -25,6 +25,7 @@ const listStyle = css({
   flexDirection: "column",
   maxHeight: "[280px]",
   overflowY: "auto",
+  borderRadius: "[inherit]",
 });
 
 const rowStyle = css({
@@ -41,6 +42,7 @@ const rowStyle = css({
   borderTop: "[none]",
   borderLeft: "[none]",
   borderRight: "[none]",
+  borderRadius: "[inherit]",
   textAlign: "left",
   width: "full",
   _hover: {
