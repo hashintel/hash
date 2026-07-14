@@ -1,49 +1,28 @@
 import { OrthographicView } from "@deck.gl/core";
 import { DeckGL, type DeckGLRef } from "@deck.gl/react";
-import {
-  createElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { Icon } from "../../Icon/icon";
 import { CompactNodeLayer } from "./compact-node-layer";
 import { DetailedNodeLayer } from "./detailed-node-layer";
+import {
+  DETAIL_ICON_TEXTURE,
+  hexToRgb,
+  iconTextureUrl,
+} from "./network-graph-util";
 
-import type { IconName } from "../../Icon/icon";
+import type {
+  DetailIconAtlas,
+  HoverLine,
+  NetworkGraphPoint,
+  NetworkGraphEdge,
+} from "./network-graph-util";
 import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
-/** A single node in the graph. Positions live in an abstract 2D space. */
-export interface NetworkGraphPoint {
-  id: number;
-  x: number;
-  y: number;
-  /** CSS hex colour (e.g. `#FF8C26`) used for the node. */
-  color: string;
-  /**
-   * Optional label. Shown in a pill beneath the node in the zoomed-in detail
-   * variation; ignored at lower zoom levels.
-   */
-  label?: string;
-  /**
-   * Optional icon. Rendered inside the node in the zoomed-in detail variation;
-   * ignored at lower zoom levels.
-   */
-  icon?: IconName;
-}
-
-/** A connection between two {@link NetworkGraphPoint}s, referenced by `id`. */
-export interface NetworkGraphEdge {
-  id: number;
-  fromId: number;
-  toId: number;
-}
+// Re-export the data types (which live in `network-graph-util`) so consumers can
+// keep importing them from `network-graph`, the component's public entry point.
+export type { NetworkGraphEdge, NetworkGraphPoint } from "./network-graph-util";
 
 /** A pointer interaction (hover or click) with the network graph. */
 export interface NetworkGraphInteraction {
@@ -124,8 +103,6 @@ const OPACITY_FULL_FRACTION = 0.5;
  * final zoom-in reveals it.
  */
 const DETAIL_ZOOM_OFFSET = MAX_ZOOM_OFFSET - 0.5;
-/** Resolution (px) each icon is rasterised at in the mask atlas. */
-const DETAIL_ICON_TEXTURE = 64;
 /**
  * Cap on how many detail nodes are fed to the {@link DetailedNodeLayer} at once —
  * a safety net for dense clusters; at max zoom only a handful are ever in view.
@@ -136,65 +113,6 @@ const DETAIL_MAX_NODES = 400;
  * (or its label) straddling the edge isn't culled away.
  */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
-
-/** Parse a `#RRGGBB` string into a deck.gl `[r, g, b]` colour. */
-const hexToRgb = (hex: string): [number, number, number] => {
-  const value = hex.replace("#", "");
-  return [
-    Number.parseInt(value.slice(0, 2), 16),
-    Number.parseInt(value.slice(2, 4), 16),
-    Number.parseInt(value.slice(4, 6), 16),
-  ];
-};
-
-const iconTextureCache = new Map<IconName, string>();
-
-/**
- * A rasterisable SVG data URL for an icon, forced to a fixed size and a solid
- * fill so the {@link DetailedNodeLayer}'s icons can use it as a tintable mask. Reuses the
- * {@link Icon} registry (via static markup) so it stays in sync, and is cached
- * per icon name. Runs only in the browser (called from an effect).
- */
-const iconTextureUrl = (name: IconName): string => {
-  const cached = iconTextureCache.get(name);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const markup = renderToStaticMarkup(createElement(Icon, { name }));
-  const svg = markup
-    .replace(
-      /<svg([^>]*)>/,
-      (_match, attributes: string) =>
-        `<svg${attributes.replace(
-          /\s(?:width|height)="[^"]*"/g,
-          "",
-        )} width="${DETAIL_ICON_TEXTURE}" height="${DETAIL_ICON_TEXTURE}">`,
-    )
-    // `currentColor` has no CSS context here; pin it so the glyph rasterises as
-    // an opaque shape whose alpha is the mask (tinted later via `getColor`).
-    .replace(/currentColor/g, "#000000");
-  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  iconTextureCache.set(name, url);
-  return url;
-};
-
-/** A rasterised icon mask atlas, consumed by the {@link DetailedNodeLayer}. */
-export interface DetailIconAtlas {
-  /** Data-URL of the rasterised atlas, passed straight to `IconLayer.iconAtlas`. */
-  url: string;
-  mapping: Record<
-    string,
-    {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      mask: boolean;
-      anchorX: number;
-      anchorY: number;
-    }
-  >;
-}
 
 /**
  * Clamp an orthographic pan `target` so the viewport never shows more than
@@ -234,12 +152,6 @@ const clampPanTarget = (
     target[2] ?? 0,
   ];
 };
-
-/** A highlight edge, drawn by the {@link CompactNodeLayer}. */
-export interface HoverLine {
-  source: [number, number];
-  target: [number, number];
-}
 
 const containerStyles = css({
   position: "relative",

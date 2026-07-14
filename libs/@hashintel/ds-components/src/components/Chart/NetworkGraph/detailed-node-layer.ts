@@ -1,7 +1,7 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { IconLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 
-import type { DetailIconAtlas, NetworkGraphPoint } from "./network-graph";
+import type { DetailIconAtlas, NetworkGraphPoint } from "./network-graph-util";
 import type {
   Color,
   CompositeLayerProps,
@@ -25,24 +25,36 @@ const DETAIL_LABEL_FONT =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 /** Longest label (chars) before it is truncated with an ellipsis (~2.5× node width). */
 const DETAIL_LABEL_MAX_CHARS = 16;
-/**
- * Downward pixel offset of the label from the node centre. Equal to the node
- * radius, so the label's text starts just below the node's bottom edge (the
- * pill's padding tucks a couple of pixels behind the node, which is drawn on top).
- */
-const DETAIL_LABEL_OFFSET = DETAIL_NODE_DIAMETER / 2;
 /** Background padding `[x, y]` of the label pill. */
 const DETAIL_LABEL_PADDING: [number, number] = [6, 2];
-/** Background padding `[x, y]` of the label's outline halo — larger, so it rings the pill. */
-const DETAIL_LABEL_HALO_PADDING: [number, number] = [8, 4];
+/**
+ * How far (px) the label pill overlaps up into the node, so the two read as one
+ * chunky, connected shape. Kept at `radius − icon half-height` so the pill's top
+ * still clears the icon above it (the label is drawn in front of the node).
+ */
+const DETAIL_LABEL_OVERLAP = DETAIL_NODE_DIAMETER / 2 - DETAIL_ICON_SIZE / 2;
+/**
+ * Downward pixel offset of the label text from the node centre — set so the pill
+ * overlaps the node by {@link DETAIL_LABEL_OVERLAP} while sitting above it.
+ */
+const DETAIL_LABEL_OFFSET =
+  DETAIL_NODE_DIAMETER / 2 - DETAIL_LABEL_OVERLAP + DETAIL_LABEL_PADDING[1];
 /** Corner radius (px) of the label pill. */
-const DETAIL_LABEL_RADIUS = 9;
-/** Corner radius (px) of the label's outline halo (rounds the outline to match). */
-const DETAIL_LABEL_HALO_RADIUS = 11;
-/** Ring width (px) around an idle (not hovered/selected) node and its label. */
-const DETAIL_OUTLINE_WIDTH_IDLE = 1.5;
-/** Ring width (px) around an active (hovered/selected) node and its label. */
-const DETAIL_OUTLINE_WIDTH_ACTIVE = 3;
+const DETAIL_LABEL_RADIUS = 6;
+/**
+ * Width (px) of the single outline that traces the whole node+label silhouette.
+ * The outline is a white (colour-matched when active) backdrop of the circle and
+ * pill, enlarged by this much and drawn behind the fills, so only the outer ring
+ * shows and the two pieces merge into one continuous outline at their junction.
+ */
+const DETAIL_OUTLINE_WIDTH = 1.5;
+/** Background padding of the outline's pill backdrop — the label padding + the outline width. */
+const DETAIL_OUTLINE_PADDING: [number, number] = [
+  DETAIL_LABEL_PADDING[0] + DETAIL_OUTLINE_WIDTH,
+  DETAIL_LABEL_PADDING[1] + DETAIL_OUTLINE_WIDTH,
+];
+/** Corner radius of the outline's pill backdrop, so the ring is even at the corners. */
+const DETAIL_OUTLINE_RADIUS = DETAIL_LABEL_RADIUS + DETAIL_OUTLINE_WIDTH;
 /** How far (px) the active node's translucent glow extends beyond its radius. */
 const DETAIL_GLOW_EXTENT = 7;
 /** Alpha (0–255) of the active node's translucent glow. */
@@ -58,16 +70,18 @@ const DETAIL_INK: Color = [15, 18, 25, 255];
  * would let a back node's icon/label show over a front node. Instead each node's
  * parts share a per-node depth *band* via the z coordinate, with the depth buffer
  * resolving occlusion: every part of a nearer node beats every part of a node
- * behind it. Within a band the parts stack `glow < halo < label < circle < icon`
- * (back to front). `DETAIL_Z_STEP` is the world-z gap between adjacent levels —
- * tiny, but far above the orthographic depth buffer's resolution.
+ * behind it. Within a band the parts stack `glow < outline < circle < icon <
+ * label` (back to front) — the label sits above the node, and the outline is a
+ * single backdrop behind everything else. `DETAIL_Z_STEP` is the world-z gap
+ * between adjacent levels — tiny, but far above the orthographic depth buffer's
+ * resolution.
  */
 const DETAIL_Z_STEP = 0.001;
 const DETAIL_LEVEL_GLOW = 0;
-const DETAIL_LEVEL_HALO = 1;
-const DETAIL_LEVEL_LABEL = 2;
-const DETAIL_LEVEL_CIRCLE = 3;
-const DETAIL_LEVEL_ICON = 4;
+const DETAIL_LEVEL_OUTLINE = 1;
+const DETAIL_LEVEL_CIRCLE = 2;
+const DETAIL_LEVEL_ICON = 3;
+const DETAIL_LEVEL_LABEL = 4;
 const DETAIL_LEVEL_COUNT = 5;
 
 /**
@@ -171,6 +185,9 @@ export class DetailedNodeLayer extends CompositeLayer<
       detailZ(orderById.get(point.id) ?? 0, level, count);
     const rgbFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
+    // The outline colour: white when idle, the node's own colour when active.
+    const outlineColorFor = (point: NetworkGraphPoint): Color =>
+      point.id === activeId ? [...rgbFor(point), RGBA_OPAQUE] : DETAIL_WHITE;
 
     return [
       new ScatterplotLayer<NetworkGraphPoint>({
@@ -188,13 +205,32 @@ export class DetailedNodeLayer extends CompositeLayer<
         radiusUnits: "pixels",
         updateTriggers: { getPosition: activeId },
       }),
+      // The outline is a single ring around the whole node+label silhouette,
+      // built from two enlarged backdrops (circle + pill) drawn behind the fills.
+      // Where they overlap they merge, so the fills leave one continuous ring.
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-outline-circle`,
+        data,
+        getPosition: (point) => [
+          point.x,
+          point.y,
+          zFor(point, DETAIL_LEVEL_OUTLINE),
+        ],
+        getFillColor: outlineColorFor,
+        getRadius: DETAIL_NODE_DIAMETER / 2 + DETAIL_OUTLINE_WIDTH,
+        radiusUnits: "pixels",
+        updateTriggers: {
+          getPosition: activeId,
+          getFillColor: activeId,
+        },
+      }),
       new TextLayer<NetworkGraphPoint>({
-        id: `${id}-label-halo`,
+        id: `${id}-outline-pill`,
         data: labelPoints,
         getPosition: (point) => [
           point.x,
           point.y,
-          zFor(point, DETAIL_LEVEL_HALO),
+          zFor(point, DETAIL_LEVEL_OUTLINE),
         ],
         getText: (point) => truncateLabel(point.label ?? ""),
         getSize: DETAIL_LABEL_FONT_SIZE,
@@ -204,28 +240,55 @@ export class DetailedNodeLayer extends CompositeLayer<
         getTextAnchor: "middle",
         getAlignmentBaseline: "top",
         getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        // The halo contributes only an outline: its text is invisible and its
-        // (opaque white) background is hidden behind the pill, leaving just the
-        // ring — white when idle, colour-matched when active.
+        // Invisible text — this layer contributes only the pill-shaped backdrop.
         getColor: DETAIL_TRANSPARENT,
         background: true,
-        backgroundPadding: DETAIL_LABEL_HALO_PADDING,
-        backgroundBorderRadius: DETAIL_LABEL_HALO_RADIUS,
-        getBackgroundColor: DETAIL_WHITE,
-        getBorderColor: (point) =>
-          point.id === activeId
-            ? [...rgbFor(point), RGBA_OPAQUE]
-            : DETAIL_WHITE,
-        getBorderWidth: (point) =>
-          point.id === activeId
-            ? DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_OUTLINE_WIDTH_IDLE,
+        backgroundPadding: DETAIL_OUTLINE_PADDING,
+        backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
+        getBackgroundColor: outlineColorFor,
+        getBorderWidth: 0,
         updateTriggers: {
           getPosition: activeId,
-          getBorderColor: activeId,
-          getBorderWidth: activeId,
+          getBackgroundColor: activeId,
         },
       }),
+      // The node circle — no stroke; the outline backdrop provides its ring.
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-nodes`,
+        data,
+        getPosition: (point) => [
+          point.x,
+          point.y,
+          zFor(point, DETAIL_LEVEL_CIRCLE),
+        ],
+        getFillColor: rgbFor,
+        getRadius: DETAIL_NODE_DIAMETER / 2,
+        radiusUnits: "pixels",
+        updateTriggers: { getPosition: activeId },
+      }),
+      // Icons sit on top of the nodes. Absent until the atlas has rasterised.
+      ...(iconAtlas
+        ? [
+            new IconLayer<NetworkGraphPoint>({
+              id: `${id}-icons`,
+              data: iconPoints,
+              iconAtlas: iconAtlas.url,
+              iconMapping: iconAtlas.mapping,
+              getIcon: (point) => point.icon ?? "",
+              getPosition: (point) => [
+                point.x,
+                point.y,
+                zFor(point, DETAIL_LEVEL_ICON),
+              ],
+              getSize: DETAIL_ICON_SIZE,
+              sizeUnits: "pixels",
+              // Tint the icon mask to a legible ink for the node's colour.
+              getColor: (point) => contrastInkRgb(rgbFor(point)),
+              updateTriggers: { getPosition: activeId },
+            }),
+          ]
+        : []),
+      // The label pill sits above the node (in front of the circle and icon).
       new TextLayer<NetworkGraphPoint>({
         id: `${id}-labels`,
         data: labelPoints,
@@ -253,57 +316,6 @@ export class DetailedNodeLayer extends CompositeLayer<
         getBorderWidth: 1,
         updateTriggers: { getPosition: activeId },
       }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-nodes`,
-        data,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          zFor(point, DETAIL_LEVEL_CIRCLE),
-        ],
-        getFillColor: rgbFor,
-        getRadius: DETAIL_NODE_DIAMETER / 2,
-        radiusUnits: "pixels",
-        // Idle nodes get a thin white ring for separation; active nodes a
-        // thicker colour-matched ring instead of growing.
-        stroked: true,
-        getLineColor: (point) =>
-          point.id === activeId
-            ? [...rgbFor(point), RGBA_OPAQUE]
-            : DETAIL_WHITE,
-        getLineWidth: (point) =>
-          point.id === activeId
-            ? DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_OUTLINE_WIDTH_IDLE,
-        lineWidthUnits: "pixels",
-        updateTriggers: {
-          getPosition: activeId,
-          getLineColor: activeId,
-          getLineWidth: activeId,
-        },
-      }),
-      // Icons sit on top of the nodes. Absent until the atlas has rasterised.
-      ...(iconAtlas
-        ? [
-            new IconLayer<NetworkGraphPoint>({
-              id: `${id}-icons`,
-              data: iconPoints,
-              iconAtlas: iconAtlas.url,
-              iconMapping: iconAtlas.mapping,
-              getIcon: (point) => point.icon ?? "",
-              getPosition: (point) => [
-                point.x,
-                point.y,
-                zFor(point, DETAIL_LEVEL_ICON),
-              ],
-              getSize: DETAIL_ICON_SIZE,
-              sizeUnits: "pixels",
-              // Tint the icon mask to a legible ink for the node's colour.
-              getColor: (point) => contrastInkRgb(rgbFor(point)),
-              updateTriggers: { getPosition: activeId },
-            }),
-          ]
-        : []),
     ];
   }
 }

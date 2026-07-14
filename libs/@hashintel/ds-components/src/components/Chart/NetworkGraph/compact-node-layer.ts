@@ -1,7 +1,7 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { LineLayer, ScatterplotLayer } from "@deck.gl/layers";
 
-import type { HoverLine, NetworkGraphPoint } from "./network-graph";
+import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 
 type RgbColor = [number, number, number];
