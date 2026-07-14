@@ -107,7 +107,7 @@ const DETAIL_ZOOM_OFFSET = MAX_ZOOM_OFFSET - 0.5;
  * Cap on how many detail nodes are fed to the {@link DetailedNodeLayer} at once —
  * a safety net for dense clusters; at max zoom only a handful are ever in view.
  */
-const DETAIL_MAX_NODES = 400;
+const DETAIL_MAX_NODES = 1500;
 /**
  * Extra viewport margin (px) within which nodes are still included, so a node
  * (or its label) straddling the edge isn't culled away.

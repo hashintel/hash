@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LoadingSpinner } from "../../Loading/loading-spinner";
+import { Popover } from "../../Popover/popover";
 // Imported with `?url` so the ~23 MB of fixtures are served as static assets
 // and parsed at runtime, rather than inlined into the story bundle.
 import edgesUrl from "./fixtures/edges.json?url";
@@ -78,9 +79,8 @@ const centreStyles = css({
   fontSize: "sm",
 });
 
+// Visual chrome only — the `Popover` positioner handles placement and layering.
 const tooltipStyles = css({
-  position: "absolute",
-  zIndex: "[2]",
   paddingX: "3",
   paddingY: "2",
   borderRadius: "sm",
@@ -99,6 +99,9 @@ const tooltipStyles = css({
  */
 export const Default: Story<NetworkGraphProps> = () => {
   const data = useGraphData();
+  // The frame is the popover's trigger; `positionFromPoint` then anchors the
+  // tooltip at a point measured from the frame's top-left.
+  const frameRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<NetworkGraphPoint | null>(null);
   // The selected node's live on-screen position, updated by the chart as the
   // user zooms/pans so the tooltip tracks the node.
@@ -122,7 +125,7 @@ export const Default: Story<NetworkGraphProps> = () => {
   );
 
   return (
-    <div className={frameStyles}>
+    <div ref={frameRef} className={frameStyles}>
       {data ? (
         <>
           <NetworkGraph
@@ -134,15 +137,21 @@ export const Default: Story<NetworkGraphProps> = () => {
             onSelectedPositionChange={setTooltipPos}
           />
           {selected && tooltipPos ? (
-            <div
-              className={tooltipStyles}
-              style={{ left: tooltipPos.x + 12, top: tooltipPos.y + 12 }}
+            <Popover
+              triggerRef={frameRef}
+              position="bottom-start"
+              positionFromPoint={tooltipPos}
+              onClose={() => setSelected(null)}
+              gapX={10}
+              gapY={20}
             >
-              <div>Node {selected.id}</div>
-              <div>
-                ({selected.x.toFixed(1)}, {selected.y.toFixed(1)})
+              <div className={tooltipStyles}>
+                <div>Node {selected.id}</div>
+                <div>
+                  ({selected.x.toFixed(1)}, {selected.y.toFixed(1)})
+                </div>
               </div>
-            </div>
+            </Popover>
           ) : null}
         </>
       ) : (

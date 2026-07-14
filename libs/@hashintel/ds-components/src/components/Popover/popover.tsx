@@ -7,7 +7,7 @@ import {
   getTabbables,
   isActiveElement,
 } from "@zag-js/dom-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   OverlayBody,
@@ -112,7 +112,7 @@ export type PopoverProps = {
   triggerRef: React.Ref<Element>;
   /** The preferred position of the popover - depending on the viewport, trigger and content another position may be chosen for better fit */
   position?: Position;
-  /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element */
+  /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element. The popover repositions as this point changes. */
   positionFromPoint?: { x: number; y: number };
   /** The X distance the popover will be from the trigger in px */
   gapX?: number;
@@ -151,10 +151,18 @@ const PopoverRoot = ({
   const direction = position.split("-")[0];
   const isVertical = direction === "top" || direction === "bottom";
 
-  // Reading discrete values keeps the callback stable when `positionFromPoint`
-  // is passed as an inline object.
-  const pointX = positionFromPoint?.x;
-  const pointY = positionFromPoint?.y;
+  const hasPoint = positionFromPoint !== undefined;
+
+  // Ark reads `getAnchorRect` once - when the positioning loop starts as the
+  // popover opens - and never re-reads it as props change. So route the point
+  // through a ref we keep current, letting that loop (kept running per-frame by
+  // `animationFrame` below) observe a moved point on later renders - e.g. an
+  // overlay tracking a node as a chart is panned or zoomed. Synced in a layout
+  // effect (before paint) so the frame loop never reads a stale point.
+  const pointRef = useRef(positionFromPoint);
+  useLayoutEffect(() => {
+    pointRef.current = positionFromPoint;
+  }, [positionFromPoint]);
 
   // The consumer opens the popover by mounting it, but Ark only runs its open
   // transition - which focuses the first item inside the popover - when `open`
@@ -248,15 +256,23 @@ const PopoverRoot = ({
       positioning={{
         placement: position,
         offset: { mainAxis: isVertical ? gapY : gapX },
+        // When anchored to a point, the trigger element itself doesn't move as
+        // the point changes, so floating-ui's default scroll/resize listeners
+        // never fire and the popover would stay put. Poll on each animation
+        // frame instead so it tracks a moving point (e.g. an overlay following
+        // a node as a chart is panned/zoomed). The other auto-update listeners
+        // keep their defaults. Trigger-anchored popovers don't need this.
+        listeners: hasPoint ? { animationFrame: true } : true,
         // Anchor to the external trigger (or a point relative to its top-left).
         // Reads the ref lazily so positioning tracks the trigger as it moves.
         getAnchorRect: () => {
           const rect = resolveRef(triggerRef)?.getBoundingClientRect();
+          const point = pointRef.current;
 
-          if (pointX !== undefined && pointY !== undefined) {
+          if (point) {
             return {
-              x: (rect?.left ?? 0) + pointX,
-              y: (rect?.top ?? 0) + pointY,
+              x: (rect?.left ?? 0) + point.x,
+              y: (rect?.top ?? 0) + point.y,
               width: 0,
               height: 0,
             };
