@@ -1,10 +1,4 @@
 import { OrthographicView } from "@deck.gl/core";
-import {
-  IconLayer,
-  LineLayer,
-  ScatterplotLayer,
-  TextLayer,
-} from "@deck.gl/layers";
 import { DeckGL, type DeckGLRef } from "@deck.gl/react";
 import {
   createElement,
@@ -19,9 +13,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Icon } from "../../Icon/icon";
+import { CompactNodeLayer } from "./compact-node-layer";
+import { DetailedNodeLayer } from "./detailed-node-layer";
 
 import type { IconName } from "../../Icon/icon";
-import type { Color, OrthographicViewState, PickingInfo } from "@deck.gl/core";
+import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
 /** A single node in the graph. Positions live in an abstract 2D space. */
 export interface NetworkGraphPoint {
@@ -98,14 +94,6 @@ export interface NetworkGraphProps {
   onZoom?: (zoom: number) => void;
 }
 
-const RGBA_OPAQUE = 255;
-/** Colour used if a point's hex value cannot be resolved. */
-const FALLBACK_COLOR: [number, number, number] = [148, 148, 148];
-const POINT_RADIUS = 0.1;
-/** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
-const HOVERED_MIN_RADIUS = 8;
-/** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
-const NEIGHBOUR_MIN_RADIUS = 5;
 /**
  * How strongly the point radius grows with zoom. At `0` the radius is fixed in
  * screen pixels; at `1` it scales 1:1 with the zoom's linear scale factor. `0.8`
@@ -123,65 +111,24 @@ const PAN_PADDING_PX = 10;
 const CLICK_MOVE_THRESHOLD_PX = 4;
 /** Picking radius (px) used to resolve the node under a click. */
 const CLICK_PICK_RADIUS_PX = 4;
-const EDGE_COLOR = [80, 88, 110] as const;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
-/** Opacity of the points faded into the background while a node is hovered. */
-const POINT_DIMMED_OPACITY = 1;
 /** Point opacity when zoomed all the way out; fades in to {@link POINT_OPACITY} at mid-zoom. */
 const POINT_MIN_OPACITY = 0.5;
 /** Zoom-range fraction at/above which points are fully opaque (below, they fade out as you zoom out). */
 const OPACITY_FULL_FRACTION = 0.5;
 /**
  * Zoom offset (relative to the reference framing) at/above which the node layer
- * switches from plain points to the detailed variation — larger nodes showing
- * their icon and label pill. Sits just below the max so the final zoom-in reveals it.
+ * switches from the {@link CompactNodeLayer} to the {@link DetailedNodeLayer} —
+ * larger nodes showing their icon and label pill. Sits just below the max so the
+ * final zoom-in reveals it.
  */
 const DETAIL_ZOOM_OFFSET = MAX_ZOOM_OFFSET - 0.5;
-/** Diameter (px) of a node in the zoomed-in detail variation. */
-const DETAIL_NODE_DIAMETER = 40;
-/** On-screen size (px) of the icon drawn inside a detail node. */
-const DETAIL_ICON_SIZE = 24;
 /** Resolution (px) each icon is rasterised at in the mask atlas. */
 const DETAIL_ICON_TEXTURE = 64;
-/** Font size (px) of the detail label text. */
-const DETAIL_LABEL_FONT_SIZE = 12;
-/** Font stack the label text is rasterised with. */
-const DETAIL_LABEL_FONT =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-/** Longest label (chars) before it is truncated with an ellipsis (~2.5× node width). */
-const DETAIL_LABEL_MAX_CHARS = 16;
 /**
- * Downward pixel offset of the label from the node centre. Equal to the node
- * radius, so the label's text starts just below the node's bottom edge (the
- * pill's padding tucks a couple of pixels behind the node, which is drawn on top).
- */
-const DETAIL_LABEL_OFFSET = DETAIL_NODE_DIAMETER / 2;
-/** Background padding `[x, y]` of the label pill. */
-const DETAIL_LABEL_PADDING: [number, number] = [6, 2];
-/** Background padding `[x, y]` of the label's outline halo — larger, so it rings the pill. */
-const DETAIL_LABEL_HALO_PADDING: [number, number] = [8, 4];
-/** Corner radius (px) of the label pill. */
-const DETAIL_LABEL_RADIUS = 9;
-/** Corner radius (px) of the label's outline halo (rounds the outline to match). */
-const DETAIL_LABEL_HALO_RADIUS = 11;
-/** Ring width (px) around an idle (not hovered/selected) node and its label. */
-const DETAIL_OUTLINE_WIDTH_IDLE = 1.5;
-/** Ring width (px) around an active (hovered/selected) node and its label. */
-const DETAIL_OUTLINE_WIDTH_ACTIVE = 3;
-/** How far (px) the active node's translucent glow extends beyond its radius. */
-const DETAIL_GLOW_EXTENT = 7;
-/** Alpha (0–255) of the active node's translucent glow. */
-const DETAIL_GLOW_ALPHA = 80;
-/** Opaque white, used for node/label fills and the idle outline. */
-const DETAIL_WHITE: Color = [255, 255, 255, 255];
-/** Fully transparent, used to hide the halo's (invisible) text. */
-const DETAIL_TRANSPARENT: Color = [0, 0, 0, 0];
-/** Dark ink for the label text. */
-const DETAIL_INK: Color = [15, 18, 25, 255];
-/**
- * Cap on how many detail nodes are fed to the detail layers at once — a safety
- * net for dense clusters; at max zoom only a handful are ever in view.
+ * Cap on how many detail nodes are fed to the {@link DetailedNodeLayer} at once —
+ * a safety net for dense clusters; at max zoom only a handful are ever in view.
  */
 const DETAIL_MAX_NODES = 400;
 /**
@@ -189,28 +136,6 @@ const DETAIL_MAX_NODES = 400;
  * (or its label) straddling the edge isn't culled away.
  */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
-/**
- * The detail parts are drawn in separate deck.gl layers (one per part), so
- * across-layer draw order alone would let a back node's icon/label show over a
- * front node. Instead each node's parts share a per-node depth *band* via the z
- * coordinate, with the depth buffer resolving occlusion: every part of a nearer
- * node beats every part of a node behind it. Within a band the parts stack
- * `glow < halo < label < circle < icon` (back to front). `DETAIL_Z_STEP` is the
- * world-z gap between adjacent levels — tiny, but far above the orthographic
- * depth buffer's resolution.
- */
-const DETAIL_Z_STEP = 0.001;
-const DETAIL_LEVEL_GLOW = 0;
-const DETAIL_LEVEL_HALO = 1;
-const DETAIL_LEVEL_LABEL = 2;
-const DETAIL_LEVEL_CIRCLE = 3;
-const DETAIL_LEVEL_ICON = 4;
-const DETAIL_LEVEL_COUNT = 5;
-/**
- * The base layers all sit at z 0 and must never occlude the detail layers (which
- * use negative z, see {@link detailZ}), so they draw without writing depth.
- */
-const BASE_LAYER_PARAMETERS = { depthWriteEnabled: false } as const;
 
 /** Parse a `#RRGGBB` string into a deck.gl `[r, g, b]` colour. */
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -222,44 +147,11 @@ const hexToRgb = (hex: string): [number, number, number] => {
   ];
 };
 
-/**
- * Pick a legible ink colour (near-black or white) to sit on top of `rgb`, based
- * on its perceived luminance — so an icon stays visible inside a node of any
- * colour.
- */
-const contrastInkRgb = (
-  rgb: [number, number, number],
-): [number, number, number] => {
-  const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
-  return luminance > 0.6 ? [15, 18, 25] : [255, 255, 255];
-};
-
-/**
- * World-space z for a node part. `order` is the node's front-to-back rank (later
- * = nearer), `level` its part (see the `DETAIL_LEVEL_*` constants). Offset so all
- * values are ≤ 0 (the base layers, at z 0, disable depth writes so they never
- * occlude these). The `+ 1` reserves a band above every regular node for the
- * active node, which is ranked `DETAIL_MAX_NODES` so it jumps to the front.
- * Larger z = nearer; a whole node's band sits above the node behind it, so a
- * front node occludes every part of a back node it overlaps.
- */
-const detailZ = (order: number, level: number): number =>
-  (order * DETAIL_LEVEL_COUNT +
-    level -
-    (DETAIL_MAX_NODES + 1) * DETAIL_LEVEL_COUNT) *
-  DETAIL_Z_STEP;
-
-/** Truncate a label to {@link DETAIL_LABEL_MAX_CHARS} with an ellipsis. */
-const truncateLabel = (label: string): string =>
-  label.length > DETAIL_LABEL_MAX_CHARS
-    ? `${label.slice(0, DETAIL_LABEL_MAX_CHARS - 1)}…`
-    : label;
-
 const iconTextureCache = new Map<IconName, string>();
 
 /**
  * A rasterisable SVG data URL for an icon, forced to a fixed size and a solid
- * fill so deck.gl's {@link IconLayer} can use it as a tintable mask. Reuses the
+ * fill so the {@link DetailedNodeLayer}'s icons can use it as a tintable mask. Reuses the
  * {@link Icon} registry (via static markup) so it stays in sync, and is cached
  * per icon name. Runs only in the browser (called from an effect).
  */
@@ -286,7 +178,8 @@ const iconTextureUrl = (name: IconName): string => {
   return url;
 };
 
-interface DetailIconAtlas {
+/** A rasterised icon mask atlas, consumed by the {@link DetailedNodeLayer}. */
+export interface DetailIconAtlas {
   /** Data-URL of the rasterised atlas, passed straight to `IconLayer.iconAtlas`. */
   url: string;
   mapping: Record<
@@ -342,7 +235,8 @@ const clampPanTarget = (
   ];
 };
 
-interface HoverLine {
+/** A highlight edge, drawn by the {@link CompactNodeLayer}. */
+export interface HoverLine {
   source: [number, number];
   target: [number, number];
 }
@@ -674,11 +568,12 @@ export const NetworkGraph = ({
       }
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
+      // Only the compact layer's `points` sublayer is pickable, so no
+      // `layerIds` filter is needed to resolve the node under the pointer.
       const info = deck.pickObject({
         x,
         y,
         radius: CLICK_PICK_RADIUS_PX,
-        layerIds: ["points"],
       });
       const point = (info?.object as NetworkGraphPoint | undefined) ?? null;
       onNodeClick?.({ point, x, y });
@@ -777,238 +672,38 @@ export const NetworkGraph = ({
     return visible;
   }, [isDetailZoom, viewState, containerSize, view, points]);
 
-  const detailIconPoints = useMemo(
-    () => detailPoints.filter((point) => point.icon),
-    [detailPoints],
-  );
-  const detailLabelPoints = useMemo(
-    () => detailPoints.filter((point) => point.label),
-    [detailPoints],
-  );
-
   const layers = useMemo(() => {
-    const isHighlighting = highlight !== null;
-    const activeId = activeNode?.id ?? null;
-    const rgbFor = (point: NetworkGraphPoint) =>
-      colorByHex.get(point.color) ?? FALLBACK_COLOR;
-    const baseLayers = [
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: "points",
-        parameters: BASE_LAYER_PARAMETERS,
-        data: points,
-        pickable: true,
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
-        getRadius: POINT_RADIUS,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: POINT_RADIUS,
-        // Opacity scales with zoom; an active highlight dims the crowd no
-        // brighter than that.
-        opacity: isHighlighting
-          ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
-          : pointOpacity,
-      }),
-      new LineLayer<HoverLine>({
-        id: "edges",
-        parameters: BASE_LAYER_PARAMETERS,
-        data: highlight?.lines ?? [],
-        getSourcePosition: (line) => line.source,
-        getTargetPosition: (line) => line.target,
-        getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getWidth: 0.75,
-        widthUnits: "pixels",
-        widthMinPixels: 0.5,
-      }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: "highlight-neighbours",
-        parameters: BASE_LAYER_PARAMETERS,
-        // The detail variation highlights via a colour-matched outline instead
-        // of growing nodes, so the grow layers are suppressed there.
-        data: isDetailZoom ? [] : (highlight?.neighbours ?? []),
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
-        getRadius: POINT_RADIUS * 1.6,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
-        stroked: true,
-        getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: 1.5,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: 1,
-      }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: "highlight-hovered",
-        parameters: BASE_LAYER_PARAMETERS,
-        data: !isDetailZoom && activeNode ? [activeNode] : [],
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: (point) => colorByHex.get(point.color) ?? FALLBACK_COLOR,
-        getRadius: POINT_RADIUS * 2.2,
-        radiusScale,
-        radiusUnits: "pixels",
-        // Keep the hovered node prominent regardless of zoom level.
-        radiusMinPixels: HOVERED_MIN_RADIUS,
-        stroked: true,
-        getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: 1.5,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: 1,
-      }),
-    ];
+    const compact = new CompactNodeLayer({
+      id: "compact-nodes",
+      // Only this composite (its `points` sublayer) resolves picking.
+      pickable: true,
+      data: points,
+      edges: highlight?.lines ?? [],
+      neighbours: highlight?.neighbours ?? [],
+      activeNode,
+      colorByHex,
+      radiusScale,
+      pointOpacity,
+      dimmed: highlight !== null,
+      // In the detail variation the grow highlights give way to the detailed
+      // layer's colour-matched outline.
+      showGrowHighlights: !isDetailZoom,
+    });
 
     if (!isDetailZoom) {
-      return baseLayers;
+      return [compact];
     }
 
-    // The detail variation. Each node's parts live in separate layers but share
-    // a per-node depth band (see `detailZ`), so the depth buffer — not draw
-    // order — decides stacking: a front node occludes every part of a node
-    // behind it. `orderById` ranks each visible node front-to-back (later =
-    // front), with the active (hovered/selected) node bumped above all the rest
-    // so it jumps to the front.
-    const orderById = new Map(
-      detailPoints.map((point, index) => [point.id, index]),
-    );
-    if (activeId != null && orderById.has(activeId)) {
-      orderById.set(activeId, DETAIL_MAX_NODES);
-    }
-    const orderOf = (point: NetworkGraphPoint) => orderById.get(point.id) ?? 0;
-    const detailLayers = [
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: "detail-active-glow",
-        // A translucent, colour-matched disc slightly larger than the node; the
-        // opaque node drawn on top leaves it showing as a soft glow ring.
-        data: activeNode ? [activeNode] : [],
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          detailZ(orderOf(point), DETAIL_LEVEL_GLOW),
-        ],
-        getFillColor: (point) => [...rgbFor(point), DETAIL_GLOW_ALPHA],
-        getRadius: DETAIL_NODE_DIAMETER / 2 + DETAIL_GLOW_EXTENT,
-        radiusUnits: "pixels",
-        updateTriggers: { getPosition: activeId },
-      }),
-      new TextLayer<NetworkGraphPoint>({
-        id: "detail-label-halo",
-        data: detailLabelPoints,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          detailZ(orderOf(point), DETAIL_LEVEL_HALO),
-        ],
-        getText: (point) => truncateLabel(point.label ?? ""),
-        getSize: DETAIL_LABEL_FONT_SIZE,
-        sizeUnits: "pixels",
-        fontFamily: DETAIL_LABEL_FONT,
-        characterSet: "auto",
-        getTextAnchor: "middle",
-        getAlignmentBaseline: "top",
-        getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        // The halo contributes only an outline: its text is invisible and its
-        // (opaque white) background is hidden behind the pill, leaving just the
-        // ring — white when idle, colour-matched when active.
-        getColor: DETAIL_TRANSPARENT,
-        background: true,
-        backgroundPadding: DETAIL_LABEL_HALO_PADDING,
-        backgroundBorderRadius: DETAIL_LABEL_HALO_RADIUS,
-        getBackgroundColor: DETAIL_WHITE,
-        getBorderColor: (point) =>
-          point.id === activeId
-            ? [...rgbFor(point), RGBA_OPAQUE]
-            : DETAIL_WHITE,
-        getBorderWidth: (point) =>
-          point.id === activeId
-            ? DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_OUTLINE_WIDTH_IDLE,
-        updateTriggers: {
-          getPosition: activeId,
-          getBorderColor: activeId,
-          getBorderWidth: activeId,
-        },
-      }),
-      new TextLayer<NetworkGraphPoint>({
-        id: "detail-labels",
-        data: detailLabelPoints,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          detailZ(orderOf(point), DETAIL_LEVEL_LABEL),
-        ],
-        getText: (point) => truncateLabel(point.label ?? ""),
-        getSize: DETAIL_LABEL_FONT_SIZE,
-        sizeUnits: "pixels",
-        fontFamily: DETAIL_LABEL_FONT,
-        characterSet: "auto",
-        getTextAnchor: "middle",
-        getAlignmentBaseline: "top",
-        getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        getColor: DETAIL_INK,
-        background: true,
-        backgroundPadding: DETAIL_LABEL_PADDING,
-        backgroundBorderRadius: DETAIL_LABEL_RADIUS,
-        // Opaque white pill so it stays solid over nodes and open space alike.
-        getBackgroundColor: DETAIL_WHITE,
-        // Border matches the entity colour, tying the label to its node.
-        getBorderColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
-        getBorderWidth: 1,
-        updateTriggers: { getPosition: activeId },
-      }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: "detail-nodes",
+    return [
+      compact,
+      new DetailedNodeLayer({
+        id: "detailed-nodes",
         data: detailPoints,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          detailZ(orderOf(point), DETAIL_LEVEL_CIRCLE),
-        ],
-        getFillColor: (point) => rgbFor(point),
-        getRadius: DETAIL_NODE_DIAMETER / 2,
-        radiusUnits: "pixels",
-        // Idle nodes get a thin white ring for separation; active nodes a
-        // thicker colour-matched ring instead of growing.
-        stroked: true,
-        getLineColor: (point) =>
-          point.id === activeId
-            ? [...rgbFor(point), RGBA_OPAQUE]
-            : DETAIL_WHITE,
-        getLineWidth: (point) =>
-          point.id === activeId
-            ? DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_OUTLINE_WIDTH_IDLE,
-        lineWidthUnits: "pixels",
-        updateTriggers: {
-          getPosition: activeId,
-          getLineColor: activeId,
-          getLineWidth: activeId,
-        },
+        activeNode,
+        colorByHex,
+        iconAtlas,
       }),
-      // Icons sit on top of the nodes. Absent until the atlas has rasterised.
-      ...(iconAtlas
-        ? [
-            new IconLayer<NetworkGraphPoint>({
-              id: "detail-icons",
-              data: detailIconPoints,
-              iconAtlas: iconAtlas.url,
-              iconMapping: iconAtlas.mapping,
-              getIcon: (point) => point.icon ?? "",
-              getPosition: (point) => [
-                point.x,
-                point.y,
-                detailZ(orderOf(point), DETAIL_LEVEL_ICON),
-              ],
-              getSize: DETAIL_ICON_SIZE,
-              sizeUnits: "pixels",
-              // Tint the icon mask to a legible ink for the node's colour.
-              getColor: (point) => contrastInkRgb(rgbFor(point)),
-              updateTriggers: { getPosition: activeId },
-            }),
-          ]
-        : []),
     ];
-
-    return [...baseLayers, ...detailLayers];
   }, [
     points,
     highlight,
@@ -1018,8 +713,6 @@ export const NetworkGraph = ({
     pointOpacity,
     isDetailZoom,
     detailPoints,
-    detailIconPoints,
-    detailLabelPoints,
     iconAtlas,
   ]);
 
