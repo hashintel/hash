@@ -40,13 +40,14 @@ def request_contract_hash(config: BaseRunConfig) -> Sha256Hex:
     """Hash config, executor policy, transport policy, and OpenRouter versions.
 
     Operational scheduling knobs that cannot change any request's semantics —
-    the cost cap and the concurrency limits — are excluded so an operator can
-    retune them between resumed sessions of the same run.
+    the cost cap, the concurrency limits, and each mode's declared operational
+    fields — are excluded so an operator can retune them between resumed
+    sessions of the same run.
     """
     return sha256_bytes(
         canonical_json_bytes(
             {
-                "config": config.model_dump(mode="json", exclude={"max_cost_usd", "concurrency"}),
+                "config": config.model_dump(mode="json", exclude=set(config.OPERATIONAL_FIELDS)),
                 "executor_policy": executor_policy_payload(),
                 "openrouter_openapi_version": openrouter.OPENAPI_DOC_VERSION,
                 "openrouter_sdk_version": version("openrouter"),

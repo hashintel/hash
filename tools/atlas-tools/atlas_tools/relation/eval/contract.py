@@ -4,7 +4,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Annotated, Literal, Protocol, Self
+from typing import Annotated, ClassVar, Literal, Protocol, Self
 
 from pydantic import (
     BaseModel,
@@ -20,17 +20,19 @@ from atlas_tools.relation.concat import ConcatCardRow
 from atlas_tools.relation.eval.prompt import PromptPrefix
 from atlas_tools.relation.eval.schema import (
     BUNDLES,
+    FRAMINGS,
     QUALIFICATION_BUNDLE,
-    AnalysisDecisions,
     BundleId,
-    FullGridExpectation,
+    FramingId,
     ReasoningEffort,
+    ShellId,
     SliceDerivation,
     SliceRow,
 )
 from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 RUBRIC_VERSION = "rubric-v1"
+MINIMUM_RUNG_SPAN = 2
 HTTP_CLIENT_ERROR_START = 400
 HTTP_SERVER_ERROR_START = 500
 RETRYABLE_CLIENT_ERROR_STATUS_CODES = frozenset({408, 425, 429})
@@ -156,26 +158,46 @@ class ConcurrencyConfig(BaseModel):
 
 
 class BaseRunConfig(BaseModel):
-    """Fields shared by pilot and full schema-v3 runs."""
+    """Request-semantics fields shared by factorial-pilot and ladder runs.
 
-    schema_version: Literal[3] = 3
+    ``OPERATIONAL_FIELDS`` names config fields that cannot change any request's
+    semantics and may be retuned between resumed sessions; they are excluded
+    from the request contract hash. Subclasses pin their own ``schema_version``
+    and ``mode`` discriminator and type their own ``judges`` roster.
+    """
+
+    OPERATIONAL_FIELDS: ClassVar[frozenset[str]] = frozenset({"max_cost_usd", "concurrency"})
+
     rubric_version: Literal["rubric-v1"] = RUBRIC_VERSION
     baseline_effort: ReasoningEffort = "minimal"
     max_cost_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     request_timeout: timedelta = Field(default=timedelta(minutes=2), gt=timedelta(0))
     transient_retries: TransientRetryConfig = Field(default_factory=TransientRetryConfig)
     concurrency: ConcurrencyConfig = Field(default_factory=ConcurrencyConfig)
-    judges: list[JudgeConfig]
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
+
+def _check_unique_families(judges: Sequence[JudgeConfig]) -> None:
+    if not judges:
+        raise ValueError("judges must not be empty")
+    family_ids = [judge.family_id for judge in judges]
+    if len(family_ids) != len(set(family_ids)):
+        raise ValueError("judges contains duplicate family_id values")
+
+
+class PilotRunConfig(BaseRunConfig):
+    """Fully resolved request and sampling configuration for a pilot run."""
+
+    schema_version: Literal[3] = 3
+    mode: Literal["pilot"] = "pilot"
+    sampling: SliceSamplingConfig
+    repeat_count: PositiveInt = 1
+    judges: list[JudgeConfig]
+
     @model_validator(mode="after")
     def check_judges(self) -> Self:
-        if not self.judges:
-            raise ValueError("judges must not be empty")
-        family_ids = [judge.family_id for judge in self.judges]
-        if len(family_ids) != len(set(family_ids)):
-            raise ValueError("judges contains duplicate family_id values")
+        _check_unique_families(self.judges)
         for judge in self.judges:
             if judge.higher_effort == self.baseline_effort:
                 raise ValueError(
@@ -184,23 +206,136 @@ class BaseRunConfig(BaseModel):
         return self
 
 
-class PilotRunConfig(BaseRunConfig):
-    """Fully resolved request and sampling configuration for a pilot run."""
+class LadderJudge(JudgeConfig):
+    """One panel judge with its rung assignment, cost tier, and voter framings.
 
-    mode: Literal["pilot"] = "pilot"
-    sampling: SliceSamplingConfig
-    repeat_count: PositiveInt = 1
+    A (judge, framing) pair is one voter. The judge's conditioning effort is
+    ``effort`` when set, otherwise the run's ``baseline_effort``; the factorial
+    pilot's ``higher_effort`` arm does not exist on the ladder, so that field
+    must stay unset here.
+    """
+
+    rung: PositiveInt
+    cost_tier: str = Field(min_length=1)
+    effort: ReasoningEffort | None = None
+    framings: tuple[FramingId, ...] = FRAMINGS
+
+    @model_validator(mode="after")
+    def check_voters(self) -> Self:
+        if not self.framings:
+            raise ValueError(f"judge {self.family_id} must vote through at least one framing")
+        if len(self.framings) != len(set(self.framings)):
+            raise ValueError(f"judge {self.family_id} repeats a framing")
+        if self.higher_effort is not None:
+            raise ValueError(
+                f"judge {self.family_id} sets higher_effort; ladder judges pin effort directly"
+            )
+        return self
 
 
-class FullRunConfig(BaseRunConfig):
-    """Fully resolved request and decisions configuration for a full run."""
+class PanelConfig(BaseModel):
+    """Panel freeze state recorded alongside the roster it governs."""
 
-    mode: Literal["full"] = "full"
-    decisions: Path
+    version: PositiveInt
+    frozen: bool
+    pruning_floor: str | None = None
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    @model_validator(mode="after")
+    def check_freeze(self) -> Self:
+        if self.frozen and not (self.pruning_floor or "").strip():
+            raise ValueError("a frozen panel must document its pruning floor")
+        return self
+
+
+class EmbeddingConfig(BaseModel):
+    """The one permitted card-embedding endpoint and its budget cap."""
+
+    endpoint_url: str = Field(min_length=1)
+    model: str = Field(min_length=1)
+    api_key_env: str | None = "EMBEDDING_API_KEY"
+    dimension: PositiveInt | None = None
+    batch_size: PositiveInt = 64
+    max_texts: PositiveInt | None = None
+    request_timeout: timedelta = Field(default=timedelta(minutes=2), gt=timedelta(0))
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+
+class ClassifierConfig(BaseModel):
+    """Soft-label multinomial logistic-regression fitting policy."""
+
+    folds: PositiveInt = 5
+    regularization: float = Field(default=1.0, gt=0.0, allow_inf_nan=False)
+    max_iterations: PositiveInt = 1000
+    seed: int = 0
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+
+class ReportConfig(BaseModel):
+    """Evaluation-report gates and calibrated decision thresholds."""
+
+    coincident_precision_target: float = Field(default=0.98, gt=0.0, lt=1.0, allow_inf_nan=False)
+    confidence_level: float = Field(default=0.95, gt=0.0, lt=1.0, allow_inf_nan=False)
+    calibrated_threshold: float = Field(default=0.5, ge=0.0, le=1.0, allow_inf_nan=False)
+    calibration_bins: PositiveInt = 10
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+
+class LadderRunConfig(BaseRunConfig):
+    """Schema-v4 vote-ladder panel configuration (the versioned judges.yaml).
+
+    Every rung must span at least two model families and at least two
+    framings; violations are hard errors at load time. Corpus execution
+    refuses an unfrozen panel; only pilot qualification may run one.
+    """
+
+    OPERATIONAL_FIELDS: ClassVar[frozenset[str]] = BaseRunConfig.OPERATIONAL_FIELDS | {
+        "per_provider_concurrency",
+        "embedding",
+        "classifier",
+        "report",
+    }
+
+    schema_version: Literal[4] = 4
+    mode: Literal["ladder"] = "ladder"
+    shell: ShellId = "S1"
+    panel: PanelConfig
+    per_provider_concurrency: PositiveInt | None = None
+    embedding: EmbeddingConfig | None = None
+    classifier: ClassifierConfig = Field(default_factory=ClassifierConfig)
+    report: ReportConfig = Field(default_factory=ReportConfig)
+    judges: list[LadderJudge]
+
+    @model_validator(mode="after")
+    def check_rungs(self) -> Self:
+        _check_unique_families(self.judges)
+        rung_indices = sorted({judge.rung for judge in self.judges})
+        if rung_indices != list(range(1, len(rung_indices) + 1)):
+            raise ValueError(f"judge rungs must be contiguous from 1, got {rung_indices}")
+        for rung in rung_indices:
+            rung_judges = [judge for judge in self.judges if judge.rung == rung]
+            families = {judge.family_id for judge in rung_judges}
+            framings = {framing for judge in rung_judges for framing in judge.framings}
+            if len(families) < MINIMUM_RUNG_SPAN:
+                raise ValueError(f"rung {rung} must span at least two model families")
+            if len(framings) < MINIMUM_RUNG_SPAN:
+                raise ValueError(f"rung {rung} must span at least two framings")
+        return self
+
+    @property
+    def rung_count(self) -> int:
+        return max(judge.rung for judge in self.judges)
+
+    def judge_effort(self, judge: LadderJudge) -> ReasoningEffort:
+        return judge.effort if judge.effort is not None else self.baseline_effort
 
 
 type RunConfig = Annotated[
-    PilotRunConfig | FullRunConfig,
+    PilotRunConfig | LadderRunConfig,
     Field(discriminator="mode"),
 ]
 
@@ -208,24 +343,30 @@ RUN_CONFIG_ADAPTER: TypeAdapter[RunConfig] = TypeAdapter(RunConfig)
 
 
 class EvaluationCard(ConcatCardRow):
-    """Optional sampling annotations projected alongside a concatenated card."""
+    """Optional sampling and grouping annotations projected alongside a card.
+
+    ``family_id`` is the Track A relation-family grouping (a relation, its
+    inverse, and siblings share one family). It is optional at the card layer;
+    classifier fitting requires it and fails loudly when absent.
+    """
 
     prescreen_stratum: str = "unstratified"
     pilot_strata: list[str] = Field(default_factory=list)
+    family_id: str | None = None
 
 
 @dataclass(frozen=True)
 class LoadedRunConfig:
-    """A validated config plus filesystem paths resolved outside its payload."""
+    """A validated config plus its exact source location and content hash."""
 
     path: Path
     config: RunConfig
-    decisions_path: Path | None
+    content_hash: Sha256Hex
 
-    def full(self) -> tuple[FullRunConfig, Path]:
-        if not isinstance(self.config, FullRunConfig) or self.decisions_path is None:
-            raise TypeError("loaded run config is not a full-run config")
-        return self.config, self.decisions_path
+    def ladder(self) -> LadderRunConfig:
+        if not isinstance(self.config, LadderRunConfig):
+            raise TypeError("loaded run config is not a ladder config")
+        return self.config
 
 
 @dataclass(frozen=True)
@@ -278,31 +419,15 @@ class PreparedInputs(PreparedCards):
 
 
 @dataclass(frozen=True)
-class LoadedAnalysisDecisions:
-    path: Path
-    decisions: AnalysisDecisions
-    content_hash: Sha256Hex
+class LadderPreparedInputs(PreparedCards):
+    """Verified corpus plus the deterministic voting population for a ladder run.
 
+    ``eligible`` is every non-few-shot card in ascending ``relation_id`` order;
+    that order is the ladder's card order everywhere downstream.
+    """
 
-@dataclass(frozen=True)
-class AuthorizedJudges:
-    judges: tuple[JudgeConfig, ...]
-    family_efforts: dict[str, ReasoningEffort]
-
-
-@dataclass(frozen=True)
-class FullGridAuthorization:
-    expectation: FullGridExpectation
-    judges: tuple[JudgeConfig, ...]
-
-
-@dataclass(frozen=True)
-class FullGridPreparedInputs(PreparedCards):
-    decisions_path: Path
-    decisions_hash: Sha256Hex
-    decisions: AnalysisDecisions
-    expectation: FullGridExpectation
-    judges: tuple[JudgeConfig, ...]
+    config_hash: Sha256Hex
+    eligible: tuple[EvaluationCard, ...]
 
 
 class FamilyDecision(Protocol):
@@ -410,38 +535,6 @@ class PilotVotePlan:
             pack_hash=self.prepared.pack_hash,
             rubric_version=self.config.rubric_version,
         )
-
-
-@dataclass(frozen=True)
-class FullGridVotePlan:
-    config: FullRunConfig
-    prepared: FullGridPreparedInputs
-
-    @property
-    def expected_votes(self) -> int:
-        expectation = self.prepared.expectation
-        return len(expectation.families) * len(expectation.bundles) * len(expectation.relation_ids)
-
-    def tasks(self) -> Iterator[VoteTask]:
-        streams = tuple(self._judge_tasks(judge) for judge in self.prepared.judges)
-        yield from _interleave_task_streams(streams)
-
-    def _judge_tasks(self, judge: JudgeConfig) -> Iterator[VoteTask]:
-        expectation = self.prepared.expectation
-        effort = expectation.family_efforts[judge.family_id]
-        for bundle_id in expectation.bundles:
-            for relation_id in expectation.relation_ids:
-                card = self.prepared.cards[relation_id]
-                yield VoteTask(
-                    judge=judge,
-                    bundle_id=bundle_id,
-                    relation_id=relation_id,
-                    card_hash=card.card_hash,
-                    effort=effort,
-                    repeat_index=0,
-                    pack_hash=self.prepared.pack_hash,
-                    rubric_version=self.config.rubric_version,
-                )
 
 
 def task_hash(task: VoteTask) -> Sha256Hex:

@@ -209,42 +209,6 @@ class ExpectedGrid(StrictModel):
         return self
 
 
-class FullGridExpectation(StrictModel):
-    """The exact production Cartesian product authorized by pilot decisions."""
-
-    families: list[NonEmptyStr]
-    admitted_shells: list[ShellId]
-    admitted_templates: list[FramingId]
-    bundles: list[BundleId]
-    relation_ids: list[RelationId]
-    family_efforts: dict[NonEmptyStr, ReasoningEffort]
-    repeat_index: Literal[0] = 0
-
-    @model_validator(mode="after")
-    def check_product(self) -> Self:
-        for name, values in (
-            ("families", self.families),
-            ("admitted_shells", self.admitted_shells),
-            ("admitted_templates", self.admitted_templates),
-            ("bundles", self.bundles),
-            ("relation_ids", self.relation_ids),
-        ):
-            if not values:
-                raise ValueError(f"full_grid_expectation.{name} must not be empty")
-            if len(values) != len(set(values)):
-                raise ValueError(f"full_grid_expectation.{name} contains duplicates")
-        expected_bundles = {
-            f"{shell}x{template}"
-            for shell in self.admitted_shells
-            for template in self.admitted_templates
-        }
-        if set(self.bundles) != expected_bundles:
-            raise ValueError("full-grid bundles must equal the admitted shell/template product")
-        if set(self.family_efforts) != set(self.families):
-            raise ValueError("full-grid family efforts must match the expected families")
-        return self
-
-
 class ExpectedRepeatArm(StrictModel):
     families: list[NonEmptyStr]
     bundle_id: Literal["S1xF1"] = QUALIFICATION_BUNDLE
@@ -365,19 +329,51 @@ class HandoffManifest(StrictModel):
         return self
 
 
-class FullGridManifest(StrictModel):
-    """Finalized production-grid artifact contract, separate from the pilot handoff."""
+class ReviewQueueRow(StrictModel):
+    """A card whose leading class was coincident after some completed rung.
+
+    Review-queue membership is monotone: the row records the first rung at
+    which coincident led, the card then runs the full panel, and later rungs
+    never remove it from the queue.
+    """
+
+    relation_id: RelationId
+    card_hash: Sha256Hex
+    first_coincident_rung: PositiveInt
+    verdict_counts: dict[Verdict, NonNegativeInt]
+    abstentions: NonNegativeInt
+
+
+class RungEconomics(StrictModel):
+    """Per-rung vote and cost accounting for the finalized ladder manifest."""
+
+    rung: PositiveInt
+    cards: NonNegativeInt
+    votes: NonNegativeInt
+    abstentions: NonNegativeInt
+    early_exits: NonNegativeInt
+    known_cost_usd: float
+
+
+class LadderManifest(StrictModel):
+    """Finalized vote-ladder artifact contract, separate from the pilot handoff."""
 
     schema_version: Literal[1] = 1
-    expectation: FullGridExpectation
-    run_dates: RunDates
+    shell: ShellId
+    panel_version: PositiveInt
+    panel_frozen: bool
     judges: list[JudgePin]
-    decisions_hash: Sha256Hex
+    judge_rungs: dict[NonEmptyStr, PositiveInt]
+    run_dates: RunDates
     prompt_pack_hash: Sha256Hex
     rubric_version: Literal["rubric-v1"]
     source_hashes: dict[str, Sha256Hex]
-    plan_hash: Sha256Hex
     request_contract_hash: Sha256Hex
+    eligible_cards: PositiveInt
+    total_votes: NonNegativeInt
+    early_exit_cards: NonNegativeInt
+    review_queue_cards: NonNegativeInt
+    rung_economics: list[RungEconomics]
     openrouter_sdk_version: NonEmptyStr
     openrouter_openapi_version: NonEmptyStr
     executor_config: dict[str, JsonValue]
@@ -389,20 +385,39 @@ class FullGridManifest(StrictModel):
         judge_families = [judge.family_id for judge in self.judges]
         if len(judge_families) != len(set(judge_families)):
             raise ValueError("judges contains duplicate family_id values")
-        if set(judge_families) != set(self.expectation.families):
-            raise ValueError("judges and full-grid families must contain the same families")
+        if set(self.judge_rungs) != set(judge_families):
+            raise ValueError("judge_rungs must cover exactly the configured judges")
         required_hashes = {
             "attempts.jsonl",
             "cards.jsonl",
             "cards.manifest.json",
-            "decisions.json",
+            "config.yaml",
+            "review-queue.jsonl",
             "votes.jsonl",
         }
         if set(self.source_hashes) != required_hashes:
-            raise ValueError("full-grid source_hashes must contain exactly the bound artifacts")
-        if self.source_hashes["decisions.json"] != self.decisions_hash:
-            raise ValueError("decisions_hash must match source_hashes['decisions.json']")
+            raise ValueError("ladder source_hashes must contain exactly the bound artifacts")
+        if self.early_exit_cards > self.eligible_cards:
+            raise ValueError("early_exit_cards cannot exceed eligible_cards")
+        if self.review_queue_cards > self.eligible_cards:
+            raise ValueError("review_queue_cards cannot exceed eligible_cards")
         return self
+
+
+class GoldRow(StrictModel):
+    """One adjudicated gold label from the swipe-tool export.
+
+    The exported label is already the majority over passes; the per-relation
+    pass count and label entropy are carried through for reporting.
+    ``post_exposure`` flags rulings made after the adjudicator saw panel
+    outputs for that relation.
+    """
+
+    relation_id: RelationId
+    verdict: Verdict
+    pass_count: PositiveInt
+    entropy: Probability
+    post_exposure: bool = False
 
 
 class AnalysisPolicy(StrictModel):

@@ -16,8 +16,6 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, PositiveInt, Valid
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_bytes, sha256_file
 from atlas_tools.relation.eval.contract import (
     BaseRunConfig,
-    FullGridPreparedInputs,
-    FullRunConfig,
     PilotRunConfig,
     PreparedCards,
     PreparedInputs,
@@ -37,7 +35,6 @@ from atlas_tools.relation.eval.schema import (
     ExpectedEffortArm,
     ExpectedGrid,
     ExpectedRepeatArm,
-    FullGridManifest,
     HandoffManifest,
     ReasoningEffort,
     RunDates,
@@ -47,7 +44,7 @@ from atlas_tools.relation.eval.schema import (
 from atlas_tools.relation.eval.transport import request_policy_payload
 
 PILOT_RUN_STATE_SCHEMA_VERSION = 3
-FULL_GRID_RUN_STATE_SCHEMA_VERSION = 2
+LADDER_RUN_STATE_SCHEMA_VERSION = 1
 
 
 class PilotRunState(BaseModel):
@@ -66,28 +63,33 @@ class PilotRunState(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class FullGridRunState(BaseModel):
-    """Immutable full-grid checkpoint identity for the concurrent journal contract."""
+class LadderRunState(BaseModel):
+    """Immutable ladder checkpoint identity for the concurrent journal contract.
 
-    schema_version: Literal[2] = FULL_GRID_RUN_STATE_SCHEMA_VERSION
-    plan_hash: Sha256Hex
+    A ladder run has no precomputable plan hash: rounds are derived from the
+    committed journal. The request contract hash binds the panel (rungs,
+    framings, shell, pins) instead, and the journal prefix is revalidated
+    against the re-derived cumulative plan on every resume.
+    """
+
+    schema_version: Literal[1] = LADDER_RUN_STATE_SCHEMA_VERSION
     request_contract_hash: Sha256Hex
     source_hashes: dict[str, Sha256Hex]
     prompt_pack_hash: Sha256Hex
     rubric_version: Literal["rubric-v1"]
-    decisions_hash: Sha256Hex
-    expected_votes: PositiveInt
+    shell: str = Field(min_length=1)
+    panel_version: PositiveInt
+    panel_frozen: bool
+    eligible_cards: PositiveInt
     openrouter_sdk_version: str = Field(min_length=1)
     openrouter_openapi_version: str = Field(min_length=1)
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     def model_post_init(self, _context: object) -> None:
-        required = {"cards.jsonl", "cards.manifest.json", "decisions.json"}
+        required = {"cards.jsonl", "cards.manifest.json", "config.yaml"}
         if set(self.source_hashes) != required:
-            raise ValueError("full-grid run state must bind concat cards, manifest, and decisions")
-        if self.source_hashes["decisions.json"] != self.decisions_hash:
-            raise ValueError("full-grid run-state decisions hash is inconsistent")
+            raise ValueError("ladder run state must bind concat cards, manifest, and config")
 
 
 @dataclass(frozen=True)
@@ -102,9 +104,10 @@ class PilotPaths:
 
 
 @dataclass(frozen=True)
-class FullGridPaths:
+class LadderPaths:
     votes_jsonl: Path
     attempts_jsonl: Path
+    review_queue_jsonl: Path
     manifest_json: Path
     run_state_json: Path
     inflight_dir: Path
@@ -129,10 +132,11 @@ def pilot_paths(out_dir: Path) -> PilotPaths:
     )
 
 
-def full_grid_paths(out_dir: Path) -> FullGridPaths:
-    return FullGridPaths(
+def ladder_paths(out_dir: Path) -> LadderPaths:
+    return LadderPaths(
         votes_jsonl=out_dir / "votes.jsonl",
         attempts_jsonl=out_dir / "attempts.jsonl",
+        review_queue_jsonl=out_dir / "review-queue.jsonl",
         manifest_json=out_dir / "manifest.json",
         run_state_json=out_dir / "run-state.json",
         inflight_dir=out_dir / "inflight",
@@ -213,25 +217,25 @@ def prepare_pilot_run_state(
     return paths
 
 
-def prepare_full_grid_run_state(
+def prepare_ladder_run_state(
     out_dir: Path,
     *,
-    state: FullGridRunState,
-) -> FullGridPaths:
-    """Create or validate full-grid durable files, committing run state last."""
-    paths = full_grid_paths(out_dir)
+    state: LadderRunState,
+) -> LadderPaths:
+    """Create or validate ladder durable files, committing run state last."""
+    paths = ladder_paths(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if paths.manifest_json.exists():
-        existing = _load_state(paths.run_state_json, FullGridRunState)
+        existing = _load_state(paths.run_state_json, LadderRunState)
         if existing != state:
-            raise ValueError("completed output does not match the requested full-grid plan")
+            raise ValueError("completed output does not match the requested ladder run")
         return paths
 
     if paths.run_state_json.exists():
-        existing = _load_state(paths.run_state_json, FullGridRunState)
+        existing = _load_state(paths.run_state_json, LadderRunState)
         if existing != state:
-            raise ValueError("partial output does not match the requested full-grid plan")
+            raise ValueError("partial output does not match the requested ladder run")
         missing = [
             path.name for path in (paths.votes_jsonl, paths.attempts_jsonl) if not path.is_file()
         ]
@@ -242,7 +246,12 @@ def prepare_full_grid_run_state(
 
     unexpected = [
         path.name
-        for path in (paths.votes_jsonl, paths.attempts_jsonl, paths.inflight_dir)
+        for path in (
+            paths.votes_jsonl,
+            paths.attempts_jsonl,
+            paths.review_queue_jsonl,
+            paths.inflight_dir,
+        )
         if path.exists()
     ]
     if unexpected:
@@ -262,10 +271,66 @@ def verify_sources_unchanged(prepared: PreparedCards) -> None:
         raise ValueError("cards.manifest.json changed during execution")
 
 
-def verify_full_grid_sources_unchanged(prepared: FullGridPreparedInputs) -> None:
-    verify_sources_unchanged(prepared)
-    if sha256_file(prepared.decisions_path) != prepared.decisions_hash:
-        raise ValueError("analysis decisions changed during execution")
+def review_queue_rows(outcomes: Sequence[CardLadderOutcome]) -> list[ReviewQueueRow]:
+    """Project coincident-led cards into deterministic review-queue rows."""
+    rows: list[ReviewQueueRow] = []
+    for outcome in outcomes:
+        if outcome.first_coincident_rung is None:
+            continue
+        if outcome.coincident_rung_counts is None or outcome.coincident_rung_abstentions is None:
+            raise ValueError(f"card {outcome.card.relation_id} led coincident without rung counts")
+        rows.append(
+            ReviewQueueRow(
+                relation_id=outcome.card.relation_id,
+                card_hash=outcome.card.card_hash,
+                first_coincident_rung=outcome.first_coincident_rung,
+                verdict_counts=outcome.coincident_rung_counts,
+                abstentions=outcome.coincident_rung_abstentions,
+            )
+        )
+    return rows
+
+
+def write_review_queue(paths: LadderPaths, rows: Sequence[ReviewQueueRow]) -> None:
+    """Durably publish the derived review queue; identical reruns are no-ops."""
+    atomic_replace(paths.review_queue_jsonl, jsonl_bytes(rows))
+
+
+def _rung_economics(
+    config: LadderRunConfig,
+    outcomes: Sequence[CardLadderOutcome],
+) -> list[RungEconomics]:
+    family_rungs = {judge.family_id: judge.rung for judge in config.judges}
+    economics: list[RungEconomics] = []
+    for rung in range(1, config.rung_count + 1):
+        cards = 0
+        votes = 0
+        abstentions = 0
+        early_exits = 0
+        known_cost = 0.0
+        for outcome in outcomes:
+            if outcome.rung_reached < rung:
+                continue
+            cards += 1
+            if outcome.early_exit and outcome.rung_reached == rung:
+                early_exits += 1
+            for vote in outcome.votes:
+                if family_rungs[vote.family_id] != rung:
+                    continue
+                votes += 1
+                abstentions += vote.abstained
+                known_cost += vote.known_cost_usd
+        economics.append(
+            RungEconomics(
+                rung=rung,
+                cards=cards,
+                votes=votes,
+                abstentions=abstentions,
+                early_exits=early_exits,
+                known_cost_usd=known_cost,
+            )
+        )
+    return economics
 
 
 def _expected_arms(config: PilotRunConfig, prepared: PreparedInputs) -> ExpectedArms:
@@ -351,34 +416,40 @@ def build_pilot_manifest(
     )
 
 
-def full_grid_input_hashes(
-    prepared: FullGridPreparedInputs,
-) -> dict[str, Sha256Hex]:
-    return prepared.source_hashes | {"decisions.json": prepared.decisions_hash}
+def ladder_input_hashes(prepared: LadderPreparedInputs) -> dict[str, Sha256Hex]:
+    return prepared.source_hashes | {"config.yaml": prepared.config_hash}
 
 
-def build_full_grid_manifest(
+def build_ladder_manifest(
     *,
-    paths: FullGridPaths,
-    prepared: FullGridPreparedInputs,
-    config: FullRunConfig,
-    state: FullGridRunState,
-    votes: Sequence[VoteRow],
-) -> FullGridManifest:
-    return FullGridManifest(
-        expectation=prepared.expectation,
+    paths: LadderPaths,
+    prepared: LadderPreparedInputs,
+    config: LadderRunConfig,
+    state: LadderRunState,
+    outcomes: Sequence[CardLadderOutcome],
+) -> LadderManifest:
+    votes = [vote for outcome in outcomes for vote in outcome.votes]
+    return LadderManifest(
+        shell=config.shell,
+        panel_version=config.panel.version,
+        panel_frozen=config.panel.frozen,
+        judges=[judge_pin(judge) for judge in config.judges],
+        judge_rungs={judge.family_id: judge.rung for judge in config.judges},
         run_dates=_run_dates(votes),
-        judges=[judge_pin(judge) for judge in prepared.judges],
-        decisions_hash=prepared.decisions_hash,
         prompt_pack_hash=prepared.pack_hash,
         rubric_version=config.rubric_version,
-        source_hashes=full_grid_input_hashes(prepared)
+        source_hashes=ladder_input_hashes(prepared)
         | {
             "attempts.jsonl": sha256_file(paths.attempts_jsonl),
+            "review-queue.jsonl": sha256_file(paths.review_queue_jsonl),
             "votes.jsonl": sha256_file(paths.votes_jsonl),
         },
-        plan_hash=state.plan_hash,
         request_contract_hash=state.request_contract_hash,
+        eligible_cards=len(prepared.eligible),
+        total_votes=len(votes),
+        early_exit_cards=sum(outcome.early_exit for outcome in outcomes),
+        review_queue_cards=sum(outcome.first_coincident_rung is not None for outcome in outcomes),
+        rung_economics=_rung_economics(config, outcomes),
         openrouter_sdk_version=state.openrouter_sdk_version,
         openrouter_openapi_version=state.openrouter_openapi_version,
         executor_config=_executor_config(config),
@@ -421,28 +492,39 @@ def finalize_pilot_output(
     return manifest
 
 
-def finalize_full_grid_output(
+def finalize_ladder_output(
     *,
-    paths: FullGridPaths,
-    prepared: FullGridPreparedInputs,
-    config: FullRunConfig,
-    state: FullGridRunState,
+    paths: LadderPaths,
+    prepared: LadderPreparedInputs,
+    config: LadderRunConfig,
+    state: LadderRunState,
     plan: VotePlan,
-) -> FullGridManifest:
-    """Validate all durable data and atomically publish the full-grid manifest."""
+) -> LadderManifest:
+    """Validate all durable data and atomically publish the ladder manifest.
+
+    The review queue is derived from the validated vote journal and published
+    before the manifest binds its hash; re-deriving it from the same journal
+    is byte-identical, so an interrupted finalize simply repeats.
+    """
     journals = validate_completed_journals(
         paths=paths,
         prepared=prepared,
         plan=plan,
         timeout=config.request_timeout,
     )
-    verify_full_grid_sources_unchanged(prepared)
-    manifest = build_full_grid_manifest(
+    verify_sources_unchanged(prepared)
+    outcomes = complete_card_outcomes(
+        config,
+        prepared=prepared,
+        votes_by_id={vote.vote_id: vote for vote in journals.votes},
+    )
+    write_review_queue(paths, review_queue_rows(outcomes))
+    manifest = build_ladder_manifest(
         paths=paths,
         prepared=prepared,
         config=config,
         state=state,
-        votes=journals.votes,
+        outcomes=outcomes,
     )
     _write_manifest(paths.manifest_json, manifest)
     return manifest
@@ -495,31 +577,40 @@ def validate_completed_pilot_output(
     )
 
 
-def validate_completed_full_grid_output(
+def validate_completed_ladder_output(
     *,
-    paths: FullGridPaths,
-    prepared: FullGridPreparedInputs,
-    config: FullRunConfig,
-    state: FullGridRunState,
+    paths: LadderPaths,
+    prepared: LadderPreparedInputs,
+    config: LadderRunConfig,
+    state: LadderRunState,
     plan: VotePlan,
 ) -> CompletedJournals:
-    """Rebuild and compare an already-published full-grid manifest exactly."""
-    manifest = _load_manifest(paths.manifest_json, FullGridManifest, "full-grid ")
+    """Rebuild and compare an already-published ladder manifest exactly."""
+    manifest = _load_manifest(paths.manifest_json, LadderManifest, "ladder ")
     journals = validate_completed_journals(
         paths=paths,
         prepared=prepared,
         plan=plan,
         timeout=config.request_timeout,
     )
-    expected = build_full_grid_manifest(
+    outcomes = complete_card_outcomes(
+        config,
+        prepared=prepared,
+        votes_by_id={vote.vote_id: vote for vote in journals.votes},
+    )
+    if sha256_bytes(jsonl_bytes(review_queue_rows(outcomes))) != sha256_file(
+        paths.review_queue_jsonl
+    ):
+        raise ValueError("completed review-queue.jsonl does not match the vote journal")
+    expected = build_ladder_manifest(
         paths=paths,
         prepared=prepared,
         config=config,
         state=state,
-        votes=journals.votes,
+        outcomes=outcomes,
     )
     if manifest != expected:
-        raise ValueError("completed full-grid manifest does not match the requested plan")
+        raise ValueError("completed ladder manifest does not match the requested run")
     return journals
 
 

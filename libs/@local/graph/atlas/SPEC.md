@@ -4,9 +4,11 @@
 > ($\mathcal{L}_S$), **A**nchors, temporal and landmark ($\mathcal{L}_A$),
 > and **L**ink-**T**ype relation energies ($\mathcal{L}_R$).
 
-**Status:** revised reconciled baseline. This document supersedes
+**Status:** canonical working baseline. This document supersedes
 `semantic-atlas-implementation-spec.md` on atlas architecture and supersedes the
-serving/architecture portions of `canvas-implementation.md`.
+serving/architecture portions of `canvas-implementation.md`. It is the
+canonical architecture document for implementation outputs, but it is not yet a
+frozen release contract while the companion pin remains `TBD`.
 
 `canvas-implementation.md` remains the implementation-grade companion for
 client shaders, the frontier loop, rendering regimes, the exact binary layout,
@@ -31,6 +33,20 @@ behind an explicit trigger; `[open]` requires an experiment or sign-off.
 **Relation-policy revision:** v1 is open-world. A shared calibrated classifier
 assigns geometry-class probabilities to known and newly minted relation types;
 no exhaustive per-type strength table is assumed.
+
+**Relation-admission revision:** attraction, no-repel protection, generic negative
+admission, and any future typed Deconflict force are separate decisions. Failure
+to admit attraction MUST NOT be interpreted as evidence for repulsion.
+
+**Protection-applicability revision:** low policy applicability is not itself
+evidence that linked endpoints are safe negatives. Protection-only applicability
+floors are therefore an `[open]` ablation. They MAY preserve no-repel protection
+for unfamiliar or post-cutoff relation types without granting those types any
+attractive force.
+
+**Execution ledger:** the only remaining human-blocked inputs are the rubric
+v0-to-v1 freeze and the adjudicated anchor/qualification deck. All other
+work is delegated, experimentally gated, or specified in this document.
 
 ---
 
@@ -61,18 +77,20 @@ collapsed into a single field named `level`.
 
 ## 0. Decision log
 
-| decision                   | resolution                                                                                                                                                                                                                                                                                       | basis                                                                                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| projector prefix           | **512 components, L2-renormalized after truncation**                                                                                                                                                                                                                                             | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard        |
-| layout engine              | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                                                                                                                               | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger     |
-| relation influence         | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                                                                                                                                         | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                    |
-| relation-strength control  | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                                                                                                                                  | all choices use the same variant-aware storage and client interpolation contract                                                                                                    |
-| LOD / far field            | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                                                                                                                                          | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                                   |
-| versioning / storage       | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                                                                                                                                        | avoids in-place coordinate mutation and supports rollback                                                                                                                           |
-| permissions                | **delegated to the existing HASH authorization system**                                                                                                                                                                                                                                          | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                     |
-| relation-policy classifier | **open-world v1 default:** diversified synthetic soft labels train a calibrated full-embedding multinomial logistic-regression classifier; every relation type without a higher-precedence override is classified at generation time, and low-applicability predictions fall back toward Overlay | the relation-type universe is not known or enumerable at release time; one shared classifier and shared class coefficients generalize to newly minted types without per-type tuning |
-| landmark fit               | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                                                                                                                               | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                                |
-| release gates              | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                                                                                                                                | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                    |
+| decision                   | resolution                                                                                                                                                                                                                                                                                                                                                                     | basis                                                                                                                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| projector prefix           | **512 components, L2-renormalized after truncation**                                                                                                                                                                                                                                                                                                                           | earlier MRL recall measurements; 512-prefix recall is the principal representation baseline, not a mathematical ceiling. The 128/256/512/1024 audit remains an ongoing guard                                                                       |
+| layout engine              | **parametric projector + composite objective** replaces full-corpus non-parametric UMAP, graph fusion, and coordinate distillation                                                                                                                                                                                                                                             | the per-node relation budget is the correct control for attraction imbalance; normalized relation distance makes policies scale-independent; the stability contract is stronger                                                                    |
+| relation influence         | **bounded relation energies with per-node gradient clipping** replace graph fusion, walk powers, reset, and hub trimming                                                                                                                                                                                                                                                       | the previous hop-grid findings do not define the new architecture; the evaluation harness remains a release gate                                                                                                                                   |
+| relation admission         | **three independent channels:** attractive force, no-repel protection, and `[staged]` typed Deconflict; ordinary and hard-negative admission remain pair-derived rather than the complement of attraction                                                                                                                                                                      | a rejected or disabled attraction is not affirmative evidence that a linked pair should be pushed apart; separate gates prevent wrong-sign force and double counting                                                                               |
+| OOD no-repel protection    | **[open ablation]** protection MAY use channel-specific applicability floors $a_{\min,H}$ and $a_{\min,N}$ while attraction continues to use the calibrated applicability $a_r$ unchanged                                                                                                                                                                                      | an unfamiliar linked pair may be unsafe to mine as a targeted negative even when its relation type is too OOD to earn pull; over-protection can still suppress useful hard negatives, so the floor is selected empirically rather than by argument |
+| relation-strength control  | **[open]** one canonical variant, a small discrete variant ladder, or a relation-strength-conditioned projector                                                                                                                                                                                                                                                                | all choices use the same variant-aware storage and client interpolation contract                                                                                                                                                                   |
+| LOD / far field            | **importance buckets + client-splat field + binary wire** `[measured, tested]`; server density-grid mode is a thin-client fallback only                                                                                                                                                                                                                                        | 0.98 field correlation from 0.9% of points; no per-cohort raster cache; 12–17 B/point versus JSON                                                                                                                                                  |
+| versioning / storage       | **immutable generations, base + delta, compaction, revision-bound ETags**                                                                                                                                                                                                                                                                                                      | avoids in-place coordinate mutation and supports rollback                                                                                                                                                                                          |
+| permissions                | **delegated to the existing HASH authorization system**                                                                                                                                                                                                                                                                                                                        | the atlas consumes one atomic visibility-snapshot contract and does not implement scope algebra                                                                                                                                                    |
+| relation-policy classifier | **open-world v1 default:** diversified synthetic soft labels train a calibrated full-embedding multinomial logistic-regression classifier; every relation type without a higher-precedence override is classified at generation time, and low-applicability predictions fall back toward Overlay for attraction while no-repel protection MAY use the separately ablated floor | the relation-type universe is not known or enumerable at release time; one shared classifier and shared class coefficients generalize to newly minted types without per-type tuning                                                                |
+| landmark fit               | non-parametric optimization over a configured, bounded landmark budget; Python is acceptable for the reference fit                                                                                                                                                                                                                                                             | the nonlinear optimization problem size is bounded independently of corpus cardinality; corpus-wide selection and projection remain streaming stages                                                                                               |
+| release gates              | atlas fidelity and stability gates, merge-tree persistence `[tested]`, representation-baseline reporting, authorization noninterference, and snapshot consistency                                                                                                                                                                                                              | neighborhood metrics alone do not detect loss of visual peaks or security errors                                                                                                                                                                   |
 
 ---
 
@@ -123,25 +141,39 @@ collapsed into a single field named `level`.
    row IDs are generation-scoped. They MUST NOT be treated as durable public
    identifiers.
 
-8. **Negative exclusions.** Semantic neighbors and endpoints connected by a
-   security-permitted link instance whose effective active mass
-   $c_{ijr}s_r$ meets the global threshold $\eta_R$ MUST NOT be sampled as
-   hard negatives for one another. Tiny softmax tails and negligible-confidence
-   links below $\eta_R$ do not create exclusions.
+8. **Relation admission is signed and non-complementary.** A link instance
+   first passes the generation's relation-influence security predicate. After
+   that, the system treats the following as separate decisions:
+   - admission to Coincident or Proximal attraction;
+   - admission to no-repel protection for ordinary or hard-negative sampling;
+   - admission to a future typed Deconflict energy; and
+   - admission of the endpoint pair to generic sampled or mined repulsion.
 
-9. **Relation quantities remain separate.** The following MUST remain distinct
-   end to end:
+   Failure to admit attraction MUST NOT imply generic-negative or typed-
+   Deconflict admission. Overlay means "this link supplies no geometric
+   direction"; it does not mean "repel." Generic negative admission is derived
+   independently from semantic-neighbor absence and projected-collision
+   criteria. Version 1 has no active typed Deconflict force.
+
+9. **Relation quantities and admission channels remain separate.** The following
+   MUST remain distinct end to end:
    - raw classifier logits $\ell_r$;
    - calibrated policy distribution $p_r$ over geometry classes;
    - policy applicability $a_r$;
-   - applicability-adjusted distribution $\widetilde{p}_r$;
-   - effective distribution $p_r^{\star}$ after the global Coincident gate;
-   - globally shared geometry coefficients
+   - attraction-side applicability-adjusted distribution $\widetilde{p}_r$;
+   - channel-specific protection applicability values
+     $a_r^H=\max(a_r,a_{\min,H})$ and
+     $a_r^N=\max(a_r,a_{\min,N})$ when the floor ablation is enabled;
+   - protection-side distributions $\widetilde p_r^H$ and
+     $\widetilde p_r^N$;
+   - effective attraction distribution $p_r^{\star}$ after the global
+     Coincident attraction gate;
+   - globally shared attraction coefficients
      $\kappa=(\kappa_C,\kappa_P,\kappa_O)$ with $\kappa_O=0$;
-   - derived active strength
+   - derived active attraction strength
 
      $$
-     s_r
+     s_r^{+}
      =
      \kappa_C p^{\star}_{r,C}
      +
@@ -151,22 +183,40 @@ collapsed into a single field named `level`.
      which is diagnostic and MUST NOT be an independently fitted type
      parameter;
 
+   - globally shared no-repel coefficients
+     $\chi=(\chi_C,\chi_P,\chi_O)$, with v1 values
+     $\chi_C=\chi_P=1$ and $\chi_O=0$;
+   - channel-specific instance no-repel masses
+     $m^{0,H}_{ijr}$ and $m^{0,N}_{ijr}$ and their pair-level aggregates
+     $m^{0,H}_{ij}$ and $m^{0,N}_{ij}$;
+   - protection-only applicability floors $a_{\min,H}$ and $a_{\min,N}$;
+   - hard-negative and ordinary-negative protection thresholds
+     $\eta_H$ and $\eta_N$;
+   - optional attraction-force pruning threshold $\eta_F$;
    - link-instance confidence $c_{ijr}$;
    - degree normalization $\nu_{ijr}$;
-   - global relation coefficient $\lambda_R$;
-   - per-node relation-gradient cap $\beta$.
+   - global attraction coefficient $\lambda_R$;
+   - per-node attraction-gradient cap $\beta_{+}$; and
+   - if typed Deconflict is ever enabled, its class probability, admission
+     threshold, signed-margin threshold, energy coefficient, and gradient cap
+     $\beta_{-}$.
 
-   The system MUST NOT store or optimize an unconstrained free strength
-   parameter per relation type. A human override MAY replace a predicted
-   distribution, disable a class, or force Overlay, but ordinary operation
-   MUST NOT require an exhaustive relation-type table.
+   Protection coefficients, applicability floors, and thresholds MUST remain
+   independent of $\kappa$, $\lambda_R$, $\nu_{ijr}$, and the gradient caps.
+   Protection-only floors MUST NOT modify classifier calibration, attraction
+   probabilities, or typed-force admission. The system MUST
+   NOT store or optimize an unconstrained free strength parameter per relation
+   type. A human override MAY replace a predicted distribution, disable a
+   class, or force Overlay, but ordinary operation MUST NOT require an
+   exhaustive relation-type table.
 
-10. **Per-node gradient budget.** Relation gradients are capped relative to
-    semantic gradients after policy, applicability, globally shared class
-    coefficients, instance confidence, and degree normalization have been
-    applied. The initial experiment range is $\beta \in
-    \{0.05,0.10,0.20\}$; $0.10$ is the default candidate, not a permanent
-    constant.
+10. **Per-node signed gradient budgets.** Attractive and any staged
+    Deconflict relation gradients are capped relative to semantic gradients
+    after policy, applicability, globally shared class coefficients, instance
+    confidence, and degree normalization have been applied. They are clipped
+    separately before summation so opposite signs cannot cancel and evade the
+    budget. Version 1 uses $\beta_+=\beta_R\in\{0.05,0.10,0.20\}$ and
+    $\beta_-=0$; $0.10$ is the default candidate, not a permanent constant.
 
 11. **Variant-complete storage, variant-specific fetch.** One logical entity
     row contains coordinates or deltas for every published atlas variant.
@@ -261,8 +311,8 @@ A generation begins by freezing:
 - knowledge decision time or decision-time policy;
 - embedding model and serialization template;
 - relation-policy annotation corpus, classifier model and calibration,
-  applicability configuration, shared class coefficients, and optional
-  override records;
+  attraction applicability configuration, protection-applicability floor
+  configuration, shared class coefficients, and optional override records;
 - relation-influence security mode;
 - ANN configuration;
 - landmark-selection configuration;
@@ -313,9 +363,9 @@ theoretic ceiling once type or relation inputs are supplied.
 
 ### 3.3 Resolve relation geometry policies
 
-#### 3.3.1 Geometry classes
+#### 3.3.1 Geometry classes and admission semantics
 
-Version 1 has three active classes:
+Version 1 has three active policy classes:
 
 | class      | meaning                                                          | geometric behavior                                 |
 | ---------- | ---------------------------------------------------------------- | -------------------------------------------------- |
@@ -324,8 +374,139 @@ Version 1 has three active classes:
 | Overlay    | relation should be rendered but should not determine coordinates | zero layout energy                                 |
 
 General semantic opposition, contradiction, citation, or causation MUST NOT be
-interpreted as global repulsion. A future **Deconflict** class MAY impose a
-minimum local separation, but it is not active in v1.
+interpreted as typed repulsion in v1. A future **Deconflict** class MAY impose a
+bounded minimum local separation, but it requires a separately versioned
+four-class policy model and the release gates in §6.4. It MUST NOT be inferred
+from Overlay, from $1-p_C-p_P$, from a failed attraction gate, or from absence
+of an attractive policy.
+
+The relation pipeline has three signed admission channels:
+
+1. **Attraction admission** uses the post-gate distribution $p_r^{\star}$ and
+   shared attraction coefficients $\kappa_C,\kappa_P$.
+2. **No-repel protection** uses a pre-attraction-gate, protection-specific
+   distribution $\widetilde p_r^X$ and shared protection coefficients
+   $\chi_C,\chi_P$, where $X\in\{H,N\}$ distinguishes hard-negative and
+   ordinary-negative protection. The protection distribution MAY apply a
+   channel-specific applicability floor; attraction never does.
+3. **Typed Deconflict admission** is staged. If enabled, it uses an explicit
+   Deconflict probability and a stricter gate; it is never the complement of
+   attraction.
+
+Generic sampled and hard-negative repulsion is not a fourth policy class. It is
+pair-derived evidence that two projected points are false neighbors. A linked
+pair may be eligible for generic repulsion when the link is Overlay-dominant
+and supplies insufficient no-repel evidence, but the link itself does not
+positively admit that pair. In particular:
+
+> **No attractive force** does not imply **admit repulsion**.
+
+**Why v1 does not infer typed repulsion from ordinary links (rationale,
+recorded):**
+
+1. _Recorded evidence usually indicates co-relevance._ Even "different from"
+   or "opposite of" says that the endpoints are worth relating. Unrelatedness
+   remains the unrecorded default.
+2. _Unbounded repulsion misstates the relation._ Map distance already encodes
+   unrelatedness. Pushing semantic opposites far apart can display "opposite
+   of" as "nothing to do with each other."
+3. _It can fight the strongest semantic edges._ Opposites and contradictions
+   are often distributionally close, so a typed repulsive force can create the
+   shatter failure mode and double-count the generic negative objective.
+4. _Open-world safety is asymmetric._ A mistaken attraction can be bounded and
+   capped; a mistaken repulsion can destroy local structure. Therefore typed
+   Deconflict, if introduced, must require stronger evidence than no-repel
+   protection or attraction. Low classifier applicability is uncertainty about
+   the relation policy, not affirmative evidence that its endpoints are valid
+   negatives; the protection-floor ablation in §3.6.6a tests how much of that
+   uncertainty should conservatively veto targeted repulsion.
+
+Visibility of contradictions remains primarily a rendering concern: edge
+styling on the Overlay layer and, if warranted, a contradiction-density value
+plane can display the relation without moving a point. Placement encodes
+belonging; disputes are annotations on the terrain.
+
+#### 3.3.1a Staged typed Deconflict contract
+
+Typed Deconflict is disabled in v1:
+
+$$
+\kappa_D=0,
+\qquad
+G^D_{ij}=0.
+$$
+
+Activating it requires a new policy-class schema
+$\{C,P,O,D\}$, a new annotation corpus, classifier and calibration artifacts,
+and a new atlas generation. Let $\widetilde p_{r,D}$ be the calibrated,
+applicability-adjusted Deconflict probability. Define instance admission mass
+
+$$
+m^D_{ijr}=c_{ijr}\widetilde p_{r,D}.
+$$
+
+A link instance is eligible for typed Deconflict only when
+
+$$
+G^D_{ijr}
+=
+\mathbf 1\left[
+S_{ijr}=1
+\land
+m^D_{ijr}\ge\eta_D
+\land
+\widetilde p_{r,D}
+-
+\left(\widetilde p_{r,C}+\widetilde p_{r,P}\right)
+\ge\Delta_D
+\right],
+$$
+
+where $S_{ijr}$ is the generation security-admission predicate, $\eta_D$ is a
+high-confidence admission threshold, and $\Delta_D>0$ is a signed-class margin.
+The pair-level candidate uses maximum aggregation rather than a sum:
+
+$$
+m^D_{ij}
+=
+\max_{r\in\mathcal E_{ij}:S_{ijr}=1}m^D_{ijr},
+$$
+
+$$
+G^{D,\mathrm{raw}}_{ij}
+=
+\mathbf 1\left[\exists r\in\mathcal E_{ij}:G^D_{ijr}=1\right].
+$$
+
+Duplicate links therefore cannot accumulate enough mass to manufacture
+admission. Let $m^{0,H}_{ij}$ be the hard-negative no-repel mass from §3.6.4.
+If both typed Deconflict candidacy and no-repel protection fire for the same
+pair, including through different relation types, the pair enters
+**signed-policy conflict**:
+
+$$
+C^{\pm}_{ij}
+=
+\mathbf 1\left[G^{D,\mathrm{raw}}_{ij}=1\land m^{0,H}_{ij}\ge\eta_H\right].
+$$
+
+The final typed-Deconflict admission is
+
+$$
+G^D_{ij}
+=
+G^{D,\mathrm{raw}}_{ij}\left(1-C^{\pm}_{ij}\right).
+$$
+
+A signed-policy conflict MUST be quarantined: no relation-derived attraction or
+Deconflict force is applied, the pair remains protected from generic hard
+negatives, and an audit record is emitted. The implementation MUST NOT resolve
+such a conflict by subtracting opposing forces.
+
+An admitted, nonconflicting Deconflict pair is controlled by its typed energy
+and MUST be excluded from ordinary and hard-negative sampling to prevent double
+counting. It also suppresses Coincident and Proximal relation force for that
+pair.
 
 #### 3.3.2 Policy precedence
 
@@ -409,33 +590,7 @@ for provenance and joins. Rationale: identifiers are semantically
 redundant next to the mandatory titles and descriptions, but they are a
 systematic surface watermark distinguishing one ontology source from
 another, creating train/serve format skew that the applicability score
-would misread as semantic OOD. The requirement covers identifiers and
-URLs embedded _inside_ ontology prose, not only structural references:
-Wikidata descriptions routinely cross-reference other properties by PID
-("use P276 for ...") or link out to a source ontology by URL. A URL span
-is unambiguously a watermark and MUST be stripped from prose, before any
-identifier handling so an entity URL's embedded id is not misread as a
-reference. For identifiers, adapters MUST detect mentions by membership
-in the source's known-identifier universe (which the ingestion already
-enumerates), never by token shape alone, and MUST rewrite them
-meaning-preservingly rather than delete the token: an identifier
-directly preceded by its own title is redundant and is removed; any
-other resolvable identifier is replaced by its quoted title; a
-confirmed identifier with no title to substitute costs its whole
-sentence, since deleting only the token leaves meaningless prose. A
-token that merely looks like an identifier but is outside the known
-universe MUST be left untouched and reported, not destroyed on a guess.
-Entity names bound this rule: titles, labels, and example names render
-as-is, and an identifier-shaped fragment inside a name is part of the
-name, not a reference ("space group P4", "Audi Q5"), so it MUST be
-retained and reported rather than rewritten or treated as fatal.
-Enforcement failure is reserved for a record's own resolved
-identifiers appearing in its serialized text, which can only mean the
-rendering leaked them. Sanitization activity (rewrites, dropped
-sentences, emptied fields, retained/unknown token histograms) MUST be
-recorded in the generation artifacts, and a generation MUST fail when
-sanitization empties more than a configured fraction of prose fields,
-so over-removal is a measured and gated quantity. The card is a canonical rendering target;
+would misread as semantic OOD. The card is a canonical rendering target;
 each ontology source (Wikidata, native SemType, future imports) supplies
 an adapter into it, sharing the constraint vocabulary verbatim. Format
 parity is enforced by (a) a linter over embedded text forbidding
@@ -540,8 +695,8 @@ where $\pi$ is a versioned class prior. Such a prior changes the classifier;
 it is not a force coefficient and requires independent calibration.
 
 The policy system also returns an applicability score $a_r\in[0,1]$ derived
-from held-out calibration and out-of-distribution diagnostics. Unsupported or
-out-of-distribution predictions are mixed toward Overlay:
+from held-out calibration and out-of-distribution diagnostics. For attraction,
+unsupported or out-of-distribution predictions are mixed toward Overlay:
 
 $$
 \widetilde{p}_r
@@ -557,13 +712,82 @@ shared model; it is not an enumeration of the production type universe. At
 generation time every relation card without a higher-precedence policy record
 is classified. A candidate generation MUST fail if the required classifier or
 calibration artifact is unavailable. During ingestion, a card that cannot be
-constructed or whose applicability is effectively zero falls back to Overlay
-and emits a structured audit event.
+constructed falls back to Overlay for every relation channel and emits a
+structured audit event. A card that is successfully classified but whose
+applicability is effectively zero falls back to Overlay for attraction; its
+no-repel behavior remains governed by the protection-floor ablation in
+§3.6.4.
 
 The generation manifest records at least the annotation-corpus hash, prompt
 family and vote schedule, grouped split hashes, model hash, calibration
 temperature, applicability method and thresholds, human-reviewed holdout hash,
 and class-prior configuration when present.
+
+**Gold sizing (v1): 400 production cards + ~20 anchor cards.** Sizing
+is measurement-driven: 400 puts overall accuracy at ~+-2% SE and the
+smallest interesting class stratum near +-4% per-class recall, matches
+recruited capacity (6 annotators x 150-card slices = >=2 coverage), and
+600 buys ~1.2x tighter intervals for 1.5x cost. Composition: stratified
+by relation family and source (native SemType cards included), with the
+equivalence-flavored stratum EXHAUSTIVE rather than sampled, since the
+Coincident-gate arithmetic (LCB95 >= 0.98 needs ~150+ zero-error
+C-predicted cases) likely exceeds the population of equivalence types;
+the expected v1 verdict is UNPASSABLE BY SAMPLE SIZE with $\kappa_C=0$
+and global Coincident disablement, and the honest lever if $\kappa_C>0$ is wanted
+early is population expansion from additional real ontologies (SKOS
+exactMatch, OWL equivalence, schema.org sameAs) through adapters, never
+synthetic cards. Anchor cards are excluded from evaluation (their
+answers are revealed to annotators). Gold grows by nomination:
+classifier-vs-panel disagreements queue gold v2 candidates.
+
+**Gold multi-annotator protocol.** Gold labels are produced by several
+independent human annotators, one blind pass each over the full deck,
+plus two passes by the adjudicating ontologist (preserving the
+self-consistency signal). Production is preceded by an ASYNC calibration round: all annotators
+label a shared ~20-card qualification deck under rubric v0 and receive
+an in-tool answer reveal (adjudicated labels + rationales for their
+misses); qualification disagreements are resolved by AMENDING THE
+RUBRIC (v0 -> v1), and production labeling runs only under the frozen
+rubric. Production is dealt as balanced slices (>= 2 independent
+annotators per card, ~20-25 minutes per annotator all-in) rather than
+full passes; the adjudicating ontologist still completes two full
+passes. The rubric document leads with worked examples from the
+edge-case table, not definitions. Gold labeling is never outsourced to
+generalist annotation platforms: geometry classes are product policy,
+and gold's function is to be the expert anchor that grades the
+scalable (LLM) annotator pool; a non-expert human pool is a second,
+weaker such pool, not an anchor. Reliability is
+reported as Krippendorff's alpha overall and per class. Low-entropy
+consensus cards become gold directly; high-entropy cards escalate to
+the adjudicator, whose binding label and rationale feed the rubric
+edge-case table. Consensus never silently overrides adjudication:
+contested cards escalate rather than average. Geometry classes are
+policy, so agreement measures shared understanding of the rubric, not
+truth; the adjudicator's rulings define the policy.
+
+**Vote-ladder protocol (adaptive panel).** Votes are gathered in rungs
+with early exit. Constraints: (1) every rung spans the diversity axes,
+at least two model families and two genuinely distinct prompt framings
+(definition-first, geometric-consequence, adversarial); rungs escalate
+in model strength, so the most capable judges concentrate on cards that
+resisted cheap consensus. (2) Early exit on unanimity applies only to
+cards whose leading class is Proximal or Overlay; Coincident-leading
+cards after any rung always run the full panel and enter the human
+review queue. (3) Soft labels are Dirichlet-smoothed posterior means,
+never empirical proportions: a truncated unanimous panel must not emit
+a degenerate distribution; n_votes is recorded per card. (4) Downstream
+calibration and applicability fitting use all cards weighted by n_votes;
+fitting restricted to full-panel cards inherits the ambiguity selection
+bias and is forbidden. (5) Rung composition, stopping decisions,
+sampling parameters, and per-vote provenance are recorded per card.
+Provenance per vote MUST include the dated model identifier as pinned
+AND as returned by the gateway, the serving provider, and quantization
+where reported: gateway slugs float and open-weight models are served
+at differing precisions by different hosts, so an unpinned judge or a
+silent provider flip is a panel-composition change. Judges are
+qualified at pilot (per-judge gold agreement and output-schema
+compliance), pruned once against a documented floor, and frozen; the
+panel is never re-tuned against gold thereafter.
 
 #### 3.3.5 Relation-influence security mode
 
@@ -727,6 +951,8 @@ $$
 +
 \lambda_R\mathcal{L}_{R}
 +
+\lambda_D\mathcal{L}_{D}
++
 \lambda_A\mathcal{L}_{A}
 +
 \lambda_L\mathcal{L}_{L}
@@ -736,16 +962,18 @@ $$
 \lambda_J\mathcal{L}_{J}.
 $$
 
-The relation contribution is additionally modified by the per-node gradient
-budget in §3.6.6; therefore the actual optimizer update is not equivalent to
-merely choosing a smaller global $\lambda_R$.
+$\mathcal L_D=0$ and $\lambda_D=0$ in v1. Signed relation contributions are
+additionally modified by the per-node budgets in §3.6.6; therefore the actual
+optimizer update is not equivalent to merely choosing smaller global relation
+coefficients.
 
 Terms are:
 
 - $\mathcal{L}_S$: semantic-neighbor attraction;
 - $\mathcal{L}_N$: ordinary sampled-negative repulsion;
 - $\mathcal{L}_H$: 2D-mined hard-negative repulsion;
-- $\mathcal{L}_R$: typed relation energy;
+- $\mathcal{L}_R$: Coincident and Proximal typed attraction;
+- $\mathcal{L}_D$: staged, bounded typed Deconflict separation;
 - $\mathcal{L}_A$: temporal anchor loss;
 - $\mathcal{L}_L$: landmark-coordinate support;
 - $\mathcal{L}_G$: optional global or triplet support;
@@ -779,12 +1007,140 @@ $$
 Positive and negative weights are capped by configuration. Sampling rates,
 random seeds, and graph versions are persisted.
 
-#### 3.6.4 Hard negatives
-
-For point $i$, query the current 2D spatial index for close projected points.
-The eligible hard-negative set is
+Ordinary-negative admission is pair-derived. A relation's Overlay probability,
+a failed Coincident gate, or absence of attraction MUST NOT positively admit a
+pair to $E_N$. A sampled pair may enter $E_N$ only when it is absent from the
+semantic-positive set, is not protected under the ordinary-negative threshold
+$\eta_N$, is not controlled by an admitted typed Deconflict edge, and is not in
+signed-policy conflict. The ordinary-negative protection threshold SHOULD
+satisfy
 
 $$
+\eta_N\ge\eta_H,
+$$
+
+so aggressive mined hard negatives receive at least as broad a protection set
+as ordinary random negatives. The ordinary-negative sampler MUST respect $P^N_{ij}$. A generation MAY set
+$\eta_N$ strictly above $\eta_H$ to preserve more of the broad random-negative
+pool, but it MUST NOT bypass the configured predicate.
+
+#### 3.6.4 Hard-negative admission and no-repel protection
+
+Attraction and no-repel protection use different applicability semantics.
+Attraction continues to use the calibrated value $a_r$ through
+$\widetilde p_r$ in §3.3.4. For protection channel $X\in\{H,N\}$, define the
+protection-specific applicability
+
+$$
+a_r^X
+=
+\max\left(a_r,a_{\min,X}\right),
+$$
+
+where $H$ denotes mined hard negatives and $N$ denotes ordinary sampled
+negatives. The corresponding protection-only distribution is
+
+$$
+\widetilde p_r^X
+=
+a_r^X p_r
++
+\left(1-a_r^X\right)e_O,
+\qquad
+e_O=
+\begin{bmatrix}0\\0\\1\end{bmatrix}.
+$$
+
+For a security-permitted link instance $(i,r,j)$, define channel-specific
+pre-attraction-gate no-repel mass
+
+$$
+m^{0,X}_{ijr}
+=
+c_{ijr}
+\left(
+\chi_C\widetilde p^X_{r,C}
++
+\chi_P\widetilde p^X_{r,P}
+\right).
+$$
+
+Version 1 uses
+
+$$
+\chi_C=\chi_P=1,
+\qquad
+\chi_O=0,
+$$
+
+so equivalently
+
+$$
+m^{0,X}_{ijr}
+=
+c_{ijr}a_r^X
+\left(p_{r,C}+p_{r,P}\right).
+$$
+
+The baseline cell is
+
+$$
+a_{\min,H}=a_{\min,N}=0,
+$$
+
+which recovers the earlier applicability-discounted rule. Positive floors are
+an `[open]` protection-only ablation. They do not modify $\widetilde p_r$,
+$p_r^{\star}$, $\kappa$, classifier calibration, or any attractive force. Thus
+an unfamiliar relation type MAY retain enough evidence to veto targeted
+repulsion even when it remains too OOD to earn pull.
+
+Because mined hard negatives are more targeted than ordinary random negatives,
+the configured floors SHOULD satisfy
+
+$$
+0\le a_{\min,N}\le a_{\min,H}\le1.
+$$
+
+A floor on applicability still multiplies the classifier's raw
+$p_{r,C}+p_{r,P}$ mass; it does not guarantee protection for an OOD relation
+whose raw prediction is overwhelmingly Overlay. A stronger link-existence
+prior would be a separate policy and is outside the v1 amendment.
+
+For parallel links between one endpoint pair, use maximum aggregation
+independently per channel:
+
+$$
+m^{0,X}_{ij}
+=
+\max_{r\in\mathcal E_{ij}:S_{ijr}=1}m^{0,X}_{ijr}.
+$$
+
+The hard-negative and ordinary-negative protection predicates are
+
+$$
+P^H_{ij}
+=
+\mathbf 1\left[m^{0,H}_{ij}\ge\eta_H\right],
+$$
+
+$$
+P^N_{ij}
+=
+\mathbf 1\left[m^{0,N}_{ij}\ge\eta_N\right].
+$$
+
+Neither predicate includes $\kappa$, $\lambda_R$, degree normalization, force
+pruning, or a gradient budget. Those quantities answer how strongly an
+admitted force acts; they do not answer whether active repulsion is safe.
+
+For point $i$, query the current 2D spatial index for close projected points.
+Let $\mathcal R_i^{0,H}$ be endpoints with $P^H_{ij}=1$, let
+$\mathcal R_i^D$ be nonconflicting, typed-Deconflict-controlled endpoints, and
+let $\mathcal R_i^{\pm}$ be signed-policy conflicts. The eligible hard-negative
+set is
+
+$$
+\boxed{
 \mathcal{H}_i
 =
 \mathcal{N}^{2D}_{h}(i)
@@ -792,25 +1148,29 @@ $$
 \left(
 \mathcal{N}^{512}_{k}(i)
 \cup
-\mathcal{R}^{\mathrm{active}}_i
+\mathcal{R}^{0,H}_i
+\cup
+\mathcal{R}^{D}_i
+\cup
+\mathcal{R}^{\pm}_i
 \cup
 \{i\}
-\right),
+\right)
+}.
 $$
 
-where $\mathcal{R}^{\mathrm{active}}_i$ contains endpoints of
-security-permitted link instances satisfying $c_{ijr}s_r\ge\eta_R$. The
-threshold $\eta_R$ is global, versioned, and used only to define exclusions
-and optional sampling shortcuts; it does not replace the continuous
-probability-weighted relation loss. Hard-negative weights are rank-based and
-MUST satisfy
+Thus hard-negative admission is independent evidence that a projected pair is
+a false neighbor. A link can veto this admission through no-repel protection or
+can move the pair into a separately controlled Deconflict path, but Overlay or
+gate failure never serves as affirmative evidence for repulsion.
+
+Hard-negative weights are rank-based and MUST satisfy
 $0\le\omega^H_{ij}\le\omega^H_{\max}$. Their loss uses the same bounded
-negative energy as $\mathcal{L}_N$.
+negative energy as $\mathcal{L}_N$. The quadtree or a training-time spatial hash
+MAY serve as the miner. Mining is refreshed at a configured cadence rather than
+on every optimizer step.
 
-The quadtree or a training-time spatial hash MAY serve as the miner. Mining is
-refreshed at a configured cadence rather than on every optimizer step.
-
-#### 3.6.5 Relation energies
+#### 3.6.5 Relation attraction, force pruning, and staged Deconflict
 
 The relation objective uses normalized distance so one policy has comparable
 meaning in dense and sparse regions. Let the detached local scale be
@@ -831,7 +1191,7 @@ z_{ij}
 {\sqrt{(\rho_i+\varepsilon)(\rho_j+\varepsilon)}}.
 $$
 
-The class energies are
+The v1 class energies are
 
 $$
 E_C(z)
@@ -843,8 +1203,8 @@ $$
 $$
 E_P(z)
 =
-\tau\log\left(1+
-\exp\left(\frac{z-u_P}{\tau}\right)\right),
+\tau_P\log\left(1+
+\exp\left(\frac{z-u_P}{\tau_P}\right)\right),
 $$
 
 $$
@@ -877,9 +1237,8 @@ $$
 {\sqrt{(1+\deg_r(i))(1+\deg_r(j))}}.
 $$
 
-The classifier and geometry layers are deliberately separate. Let
-$p_r^{\star}$ be the effective distribution after applicability fallback and
-the global Coincident gate in §3.3.2. Let
+Let $p_r^{\star}$ be the effective attraction distribution after applicability
+fallback and the global Coincident gate in §3.3.2. Let
 
 $$
 \kappa
@@ -893,14 +1252,16 @@ $$
 \kappa_O=0,
 $$
 
-be globally shared, generation-level geometry coefficients. They are not
-relation-type parameters. The relation objective is
+be globally shared, generation-level attraction coefficients. They are not
+relation-type parameters. Let $E_R^{+}$ contain only security-permitted link
+instances whose endpoint pair is neither in signed-policy conflict nor admitted
+to typed Deconflict. The relation-attraction objective is
 
 $$
 \boxed{
 \mathcal{L}_{R}
 =
-\sum_{(i,r,j)\in E_R}
+\sum_{(i,r,j)\in E_R^{+}}
 c_{ijr}\nu_{ijr}
 \left[
 \kappa_C p^{\star}_{r,C}E_C(z_{ij})
@@ -911,76 +1272,97 @@ c_{ijr}\nu_{ijr}
 $$
 
 The class probability is applied exactly once to its corresponding class
-energy. There is no additional outer scalar such as
-$\left(\kappa\cdot p_r^{\star}\right)$ multiplying the same mixture,
-because that would introduce quadratic probabilities and cross-class terms.
+energy. There is no additional outer scalar multiplying the same mixture.
 
-For diagnostics, indexing, and reporting, the implementation MAY expose the
-derived active strength
+For diagnostics and optional attraction-edge pruning, define
 
 $$
-s_r
+s_r^{+}
 =
 \kappa_C p^{\star}_{r,C}
 +
-\kappa_P p^{\star}_{r,P}.
+\kappa_P p^{\star}_{r,P},
 $$
 
-Because softmax probabilities are strictly positive, the system defines a
-single generation-level effective-edge threshold $\eta_R\ge0$:
+$$
+m^F_{ijr}=c_{ijr}s_r^{+}.
+$$
+
+The optional attraction-force pruning predicate is
 
 $$
-A_{ijr}
+F_{ijr}
 =
-\mathbf{1}[c_{ijr}s_r\ge\eta_R].
+\mathbf 1\left[S_{ijr}=1\land m^F_{ijr}\ge\eta_F\right].
 $$
 
-$A_{ijr}$ controls hard-negative exclusions and MAY skip numerically negligible
-relation edges during sampling. It MUST NOT be multiplied into the continuous
-relation objective unless the generation explicitly declares a hard-pruning
-policy and validates the resulting discontinuity.
+$\eta_F$ controls only numerically negligible attractive-force edges or
+sampling shortcuts. It MUST NOT control no-repel protection or generic-negative
+admission. It MUST NOT be multiplied into the continuous objective unless the
+generation explicitly declares hard pruning and validates the discontinuity.
 
-When $s_r>0$, define the normalized active mixture
+When $s_r^{+}>0$, the normalized active attraction mixture is
 
 $$
 q_{r,C}
 =
-\frac{\kappa_Cp^{\star}_{r,C}}{s_r},
+\frac{\kappa_Cp^{\star}_{r,C}}{s_r^{+}},
 \qquad
 q_{r,P}
 =
-\frac{\kappa_Pp^{\star}_{r,P}}{s_r}.
+\frac{\kappa_Pp^{\star}_{r,P}}{s_r^{+}}.
 $$
 
-The same objective can then be written as
-
-$$
-\mathcal{L}_{R}
-=
-\sum_{(i,r,j)\in E_R}
-c_{ijr}\nu_{ijr}s_r
-\left[
-q_{r,C}E_C(z_{ij})
-+
-q_{r,P}E_P(z_{ij})
-\right].
-$$
-
-This factorization is descriptive only: $s_r$ and $q_r$ are deterministic
-functions of the classifier output and shared coefficients. They MUST NOT be
+This factorization is descriptive only. $s_r^{+}$ and $q_r$ MUST NOT be
 independently fitted, manually tuned, or persisted as authoritative per-type
-parameters. Radii $u_C,u_P$, Huber parameters, and temperatures are likewise
-shared class constants, never per-type settings.
+parameters.
+
+If typed Deconflict is activated under §3.3.1a, use a bounded minimum-separation
+energy
+
+$$
+E_D(z)
+=
+\operatorname{Huber}_{\delta_D}
+\left([u_D-z]_+\right).
+$$
+
+It stops contributing once $z\ge u_D$ and therefore does not create unbounded
+or map-wide repulsion. For each admitted, nonconflicting endpoint pair, choose
+one controlling relation instance
+
+$$
+r^-_{ij}
+=
+\arg\max_{r\in\mathcal E_{ij}:G^D_{ijr}=1}m^D_{ijr},
+$$
+
+using deterministic tie-breaking. The staged typed-Deconflict objective is
+
+$$
+\boxed{
+\mathcal L_D
+=
+\sum_{(i,j):G^D_{ij}=1}
+c_{ijr^-_{ij}}\nu_{ijr^-_{ij}}
+\kappa_D\widetilde p_{r^-_{ij},D}
+E_D(z_{ij})
+}.
+$$
+
+$\kappa_D=0$ and $\mathcal L_D=0$ in v1. An admitted Deconflict pair MUST NOT
+also receive Coincident or Proximal relation force and MUST NOT enter ordinary
+or hard-negative sampling. This avoids wrong-sign competition and duplicate
+repulsion.
 
 Edge minibatches MUST cap per-relation-type representation. Relation types are
 sampled approximately uniformly or proportional to the square root of edge
 count; raw edge frequency MUST NOT be allowed to make high-volume relations
 own the layout.
 
-#### 3.6.6 Per-node relation-gradient budget
+#### 3.6.6 Per-node signed relation-gradient budgets
 
-After all relation weights in §3.6.5 are applied, compute coordinate-space
-gradients
+Compute the semantic coordinate-space gradient
 
 $$
 g_i^S
@@ -992,101 +1374,211 @@ g_i^S
 \lambda_N\mathcal{L}_N
 +
 \lambda_H\mathcal{L}_H
-\right),
-$$
-
-$$
-g_i^R
-=
-\nabla_{y_i}
-\left(\lambda_R\mathcal{L}_R\right).
-$$
-
-Let $\gamma>0$ be a configured semantic-gradient floor. The clipped relation
-gradient is
-
-$$
-\widehat{g}_i^R
-=
-g_i^R
-\min\left(
-1,
-\frac{
-\beta\max(\lVert g_i^S\rVert_2,\gamma)
-}
-{
-\lVert g_i^R\rVert_2+\varepsilon
-}
 \right).
 $$
 
-This clipping occurs per node in coordinate space, before the relation
-contribution is propagated through the shared projector parameters. Normal
-optimizer-level global gradient clipping, if used, occurs only after all
+For v1 attraction, compute
+
+$$
+g_i^{R+}
+=
+\nabla_{y_i}\left(\lambda_R\mathcal L_R\right).
+$$
+
+Let $\gamma>0$ be a configured semantic-gradient floor and
+
+$$
+B_i=\max\left(\lVert g_i^S\rVert_2,\gamma\right).
+$$
+
+The clipped attractive relation gradient is
+
+$$
+\widehat g_i^{R+}
+=
+g_i^{R+}
+\min\left(
+1,
+\frac{\beta_+B_i}
+{\lVert g_i^{R+}\rVert_2+\varepsilon}
+\right).
+$$
+
+Version 1 uses $\beta_+=\beta$ and has no typed negative relation gradient.
+
+If typed Deconflict is enabled, compute it separately:
+
+$$
+g_i^{R-}
+=
+\nabla_{y_i}\left(\lambda_D\mathcal L_D\right),
+$$
+
+$$
+\widehat g_i^{R-}
+=
+g_i^{R-}
+\min\left(
+1,
+\frac{\beta_-B_i}
+{\lVert g_i^{R-}\rVert_2+\varepsilon}
+\right).
+$$
+
+Attractive and Deconflict gradients MUST be clipped before they are summed.
+Otherwise opposing vectors can cancel and evade the budget. A final total-
+variation cap uses
+
+$$
+\alpha_i
+=
+\min\left(
+1,
+\frac{\beta_RB_i}
+{\lVert\widehat g_i^{R+}\rVert_2
++\lVert\widehat g_i^{R-}\rVert_2
++\varepsilon}
+\right),
+$$
+
+and the signed relation contribution is
+
+$$
+\widehat g_i^R
+=
+\alpha_i
+\left(
+\widehat g_i^{R+}+\widehat g_i^{R-}
+\right).
+$$
+
+The manifest MUST satisfy $\beta_+\le\beta_R$ and
+$\beta_-\le\beta_R$. This clipping occurs per node in coordinate space before
+the relation contribution is propagated through shared projector parameters.
+Normal optimizer-level global gradient clipping, if used, occurs only after all
 objective terms are combined.
 
 Training metrics MUST report:
 
-- fraction of nodes whose relation gradient was clipped;
-- unclipped and clipped relation/semantic norm ratios;
-- the ratios by relation type, degree decile, and subgroup;
-- semantic fidelity at each tested $\beta$.
+- fraction of nodes whose attractive relation gradient was clipped;
+- if enabled, fraction whose Deconflict gradient was clipped;
+- unclipped and clipped signed relation/semantic norm ratios;
+- total-variation cap activation rate;
+- ratios by relation type, degree decile, and subgroup;
+- signed-policy conflict count and edge volume; and
+- semantic fidelity at each tested budget.
 
-#### 3.6.6a Shared class-coefficient calibration and tuning protocol
+#### 3.6.6a Shared coefficients, admission thresholds, and tuning protocol
 
-The relation energies use normalized distance, so fix $\kappa_P=1$ as the unit
-convention: a Proximal policy with probability one has the same order of
-unclipped force as one semantic edge. Set $\kappa_O=0$ by definition. The
-initial Coincident candidate is $\kappa_C\in[3,5]$ after Coincident is enabled;
-its hinge-like energy is sparse-active, so a larger coefficient does not act on
-already-satisfied pairs. Before that release gate is met, $\kappa_C=0$.
+The attraction energies use normalized distance, so fix $\kappa_P=1$ as the
+unit convention. Set $\kappa_O=0$ by definition. The initial Coincident
+candidate is $\kappa_C\in[3,5]$ after Coincident is enabled; before that release
+gate is met, $\kappa_C=0$.
 
-The effective-edge threshold $\eta_R$ is selected on a validation stream. The
-default rule chooses the largest threshold whose excluded edges account for no
-more than 1% of total unclipped relation-gradient mass, then verifies that
-hard-negative exclusions remain stable by relation family and degree decile.
-The chosen threshold is recorded in the generation manifest.
+The protection-applicability floors and admission thresholds answer different
+questions and MUST NOT be collapsed.
+
+**Protection-applicability floor ablation `[open]`.** The required Phase 2
+matrix is
+
+$$
+a_{\min,H}\in\{0,0.25,0.50,1.00\},
+$$
+
+$$
+a_{\min,N}\in\{0,0.25\},
+\qquad
+0\le a_{\min,N}\le a_{\min,H}.
+$$
+
+The $a_{\min,H}=a_{\min,N}=0$ cell is the current applicability-discounted
+baseline. Every floor cell MUST recalibrate $\eta_H$ and $\eta_N$ on its own
+validation stream; comparing floors while holding thresholds fixed is invalid
+because floors and thresholds jointly determine the protected set.
+
+Selection uses a Pareto analysis over:
+
+- protection recall for reviewed Coincident and Proximal pairs;
+- the same recall restricted to post-training-cutoff and low-applicability
+  relation types;
+- distance change for reviewed same-referent and near-duplicate pairs;
+- Overlay overprotection and protected edge volume;
+- the number and quality of mined hard negatives removed;
+- semantic kNN fidelity, false-neighbor correction, merge-tree persistence,
+  and subgroup behavior; and
+- training throughput and protection-index size.
+
+The floor MUST NOT be justified solely by the claim that over-protection is
+cheap. A high-volume OOD relation family can immunize a large subgraph and
+restore parametric blur. Conversely, under-protection can create wrong-sign
+separation exactly where classifier applicability is weakest. The selected
+cell is the measured Pareto knee under the §6.4 gates.
+
+| threshold | meaning                                                                       | selection signal                                                                  |
+| --------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| $\eta_H$  | enough C/P evidence to forbid mined hard repulsion                            | reviewed protection recall, Overlay overprotection, hard-negative pool reduction  |
+| $\eta_N$  | enough C/P evidence to forbid ordinary sampled repulsion                      | same metrics, with a stricter threshold and global-negative coverage              |
+| $\eta_F$  | attractive force is numerically material enough to sample or retain           | omitted unclipped attraction-gradient mass                                        |
+| $\eta_D$  | staged typed Deconflict evidence is strong enough to admit bounded separation | reviewed Deconflict precision, applicability, signed margin, and map damage gates |
+
+The default ordering is
+
+$$
+\eta_H\le\eta_N.
+$$
+
+$\eta_H$ is selected from a reviewed validation stream for each
+$a_{\min,H}$ cell and MUST report:
+
+- protection recall for reviewed Coincident and Proximal pairs;
+- false-protection rate for reviewed Overlay pairs;
+- fraction of hard-negative candidates removed solely by relation protection;
+- results by relation family, applicability decile, confidence decile, degree
+  decile, ontology source, and whether the relation type predates or postdates
+  the classifier training cutoff; and
+- downstream false-neighbor, blur, and merge-tree changes.
+
+The previous "no more than 1% omitted gradient mass" rule applies only to
+$\eta_F$. It is invalid for $\eta_H$ because a globally disabled Coincident
+class has zero attraction-gradient mass while still requiring no-repel
+protection.
 
 Radii are set from data before tuning $\kappa$. Run the semantic-only baseline,
 compute the $z$ distribution over reviewed-good Proximal pairs, and set $u_P$
 near its 75th percentile so the loss acts primarily on the outlying quarter.
-Set $u_C$ analogously from reviewed Coincident pairs. This is identifiability
-hygiene: $\kappa$, $u$, and $\tau$ trade off, and free-floating radii turn the
-search into a degenerate valley.
+Set $u_C$ analogously from reviewed Coincident pairs. If Deconflict is later
+enabled, choose $u_D$ from reviewed minimum-separation requirements before
+tuning $\kappa_D$.
 
-**Degeneracy rule (MUST):** the shared coefficients $\kappa$ MUST NOT be
-learned by minimizing the same geometry loss they weight. Relation energies are
-non-negative, so joint descent over geometry and $\kappa$ has the trivial
-minimizer $\kappa\to0$. Permitted procedures, in ascending machinery, are:
+**Degeneracy rule (MUST):** shared geometry coefficients MUST NOT be learned by
+minimizing the same non-negative geometry loss they weight. Joint descent has
+the trivial minimizer $\kappa\to0$. Permitted procedures are:
 
-1. **Outer-loop grid (default).** After the per-node cap absorbs most absolute
-   scale, the free interpretable parameters are $\beta$ and the ratio
-   $\kappa_C/\kappa_P$. Once Coincident is eligible, grid
+1. **Outer-loop grid (default).** Before Coincident is enabled, tune $\beta_+$
+   with $\kappa_C=0$ and $\kappa_P=1$. Once eligible, grid
 
    $$
-   \beta\in\{0.05,0.10,0.20\},
+   \beta_+\in\{0.05,0.10,0.20\},
    \qquad
    \frac{\kappa_C}{\kappa_P}\in\{2,4,8\},
    $$
 
    with at least two seeds per cell. Select the validation Pareto knee between
-   relation satisfaction and semantic-fidelity change, including neighbor
-   recall, merge-tree persistence, subgroup results, and the
-   no-structure-from-noise differential. Before Coincident is enabled, tune
-   only $\beta$ with $\kappa_C=0$ and $\kappa_P=1$.
+   relation satisfaction and semantic-fidelity change.
 
-2. **Constraint ascent (documented upgrade).** State requirements such as
-   $\operatorname{median}(z\mid P)\le u_P$ over reviewed families and treat
-   the shared class coefficients as global dual variables updated by ascent on
-   constraint violation while geometry descends. The per-node cap remains the
-   hard ceiling. This turns coefficient selection into a signed product
-   requirement rather than a per-type tuning exercise.
+2. **Constraint ascent (documented upgrade).** State reviewed relation-distance
+   requirements and treat shared coefficients as global dual variables updated
+   by ascent while geometry descends. The per-node budget remains the hard
+   ceiling.
+3. **True bilevel optimization with hypergradients is excluded in v1.**
 
-3. **True bilevel optimization with hypergradients is excluded in v1.** With
-   only three classes it adds machinery without resolving a demonstrated
-   product problem.
+If typed Deconflict is enabled, $\kappa_D$, $\beta_-$, $\beta_R$, $\eta_D$,
+and $\Delta_D$ are tuned in an outer loop against a semantic-only and
+attraction-only baseline. The release suite MUST reject settings that improve
+minimum-separation compliance by introducing unsupported fragmentation,
+neighbor loss, or merge-tree noise.
 
-A type-specific or embedding-conditioned strength head is outside v1 and
+A type-specific or embedding-conditioned strength head remains outside v1 and
 requires an explicit specification amendment, a separately identified training
 signal, and new calibration and release gates. Unconstrained per-type scalars
 remain prohibited.
@@ -1259,6 +1751,32 @@ manifest pointer; it does not rewrite artifacts.
 ## 4. Minor ingestion, delta state, and compaction
 
 ### 4.1 Minor ingestion
+
+**Mobility rule (link-responsive placement).** Every entity carries a
+mobility state. MOBILE: first placed since the last major generation,
+or below a configured degree floor at that generation (its constraints
+were unseen by the current model). FROZEN: all others. On ingestion of
+an entity or a link: mobile endpoints re-settle by a budgeted local
+refinement of their own coordinates only, minimizing a semantic anchor
+to their projected position plus relation energies toward the other
+endpoint at its current coordinates (policy, derived strength,
+confidence, degree normalization, and the per-node budget cap all
+apply); frozen endpoints never move; a link between two frozen
+entities defers to the next major generation, where the induced
+movement would in any case be budget-capped to near zero. Both-mobile
+links settle jointly. Order-dependence and drift within the mobile set
+are accepted as transient: every major generation re-derives all
+provisional placements under the full objective, bounding the lifetime
+of any path-dependence to one retrain cycle. Refined placements update
+their fetch-index rows (morton, bucket via occupancy upsert) and are
+recorded as delta revisions; movement telemetry is emitted per
+settle. Restated stability contract: frozen points never move between
+generations; mobile points settle until frozen. Rationale: link
+influence at ingestion should be proportional to how weakly anchored
+an endpoint is; moving established entities for a newcomer's sake
+trades placement quality users rely on for responsiveness they do not
+need, while newcomers and relation-poor entities are exactly where
+immediate link-following is both expected and cheap.
 
 For a new or changed entity:
 
@@ -1529,6 +2047,35 @@ learning corpus structure or using type/relation inputs; such a result MUST be
 validated on held-out temporal, community, source, and subgroup splits to rule
 out leakage.
 
+**Measured baseline (2026-07-12 audit; 985,932 x 3,072 corpus, 20k
+queries, seed 0):** $R_{512\rightarrow3072}$ = 0.838 at k=15, 30, and 50
+(k-stable); intrusion rate 7.2% at k=30; marginal return ~4-5 recall
+points per dimension doubling with NO elbow (128: 0.745, 256: 0.795,
+512: 0.838, 1024: 0.880). Consequences: (a) the 512-kNN training graph
+carries ~16% missing true edges and ~7% intruder edges, which is the
+measured magnitude the teacher-graph edge classes exist to absorb;
+(b) 512 is confirmed as a cost/quality operating point, not a natural
+optimum; 1024 is a parked A/B whose trigger is the parametric engine
+tying the baseline on recall while losing the persistence gate (the
+input-starvation signature); (c) stratified rerun complete: 21 groups, one flagged.
+material-location (n=1841/20k, ~9% of corpus) at recall 0.26-0.36 vs
+0.84 overall, but DIMENSION-FLAT (128 through 1024 within noise) and
+K-RISING, the fingerprint of near-tie reshuffling among near-duplicate
+clump siblings, not representation loss. Prediction (to verify once):
+clump-granularity recall (neighbor overlap on near-duplicate group ids,
+the measured 165k-group / 66%-of-corpus structure) restores this group
+to ~overall.
+
+**Flagged-group triage rule (normative):** a subgroup 2x flag is acted
+on only after checking dimension-sensitivity and k-trend. Dim-flat +
+k-rising means near-tie artifact: re-evaluate at clump granularity and,
+if restored, record the group as clump-resolved (its entities are
+placed by clump; within-clump order is not a representable quantity).
+Only dim-RESPONSIVE degradation justifies representation spend. Audit
+tooling MUST collapse strata keys that induce identical partitions
+(base_url/title aliasing) and SHOULD ship clump-granularity recall as a
+built-in metric, reusing the near-duplicate grouping.
+
 Also report trustworthiness, continuity, false-neighbor intrusions and
 extrusions, density distortion, landmark rank correlation, and sampled global
 triplets.
@@ -1584,7 +2131,7 @@ Report unchanged-neighborhood points separately from points whose canonical
 3,072-dimensional neighborhood materially changed. Also report neighbor churn,
 region-centroid drift, label movement, and tile churn.
 
-### 6.4 Relation-policy and relation-force gates
+### 6.4 Relation-policy, admission, and signed-force gates
 
 The relation classifier is evaluated on a human-reviewed grouped holdout using:
 
@@ -1592,11 +2139,12 @@ The relation classifier is evaluated on a human-reviewed grouped holdout using:
 - log loss and Brier score;
 - calibration curves;
 - abstention/applicability coverage;
-- performance by ontology, relation family, and domain shift;
+- performance by ontology, relation family, and domain shift; and
 - behavior on relation types created after the classifier training cutoff.
 
-False Coincident predictions are assigned the highest cost. Coincident geometry
-is globally disabled with $\kappa_C=0$ until the grouped holdout establishes
+False Coincident predictions are assigned the highest v1 cost. Coincident
+geometry is globally disabled with $\kappa_C=0$ until the grouped holdout
+establishes
 
 $$
 \operatorname{LCB}_{95\%}
@@ -1604,17 +2152,64 @@ $$
 \operatorname{Precision}_C
 \right)
 \ge
-\tau_{\mathrm{precision},C},
+\tau_{\mathrm{precision},C}.
 $$
 
-where the initial threshold candidate is
-$\tau_{\mathrm{precision},C}=0.98$ and the exact value requires product and
-security sign-off. An enabled generation MUST also declare global thresholds
-$\tau_C$ and $\tau_A$ for the gate in §3.3.2 and report the fraction of
-relation types and edge volume passing that gate. There is no per-type
-Coincident allow-list requirement.
+The initial threshold candidate is $\tau_{\mathrm{precision},C}=0.98$ and the
+exact value requires product and security sign-off. An enabled generation MUST
+also declare $\tau_C$ and $\tau_A$ and report the type and edge-volume fractions
+passing the gate.
 
-Map-level relation diagnostics include:
+No-repel protection is evaluated independently of active attraction. Every
+candidate floor cell is evaluated separately, including on relation types
+created after the classifier training cutoff. Required metrics include:
+
+$$
+\operatorname{Recall}^{H}_{C}
+=
+\Pr(P^H_{ij}=1\mid r\text{ is reviewed Coincident}),
+$$
+
+$$
+\operatorname{Recall}^{H}_{P}
+=
+\Pr(P^H_{ij}=1\mid r\text{ is reviewed Proximal}),
+$$
+
+$$
+\operatorname{Overprotect}^{H}_{O}
+=
+\Pr(P^H_{ij}=1\mid r\text{ is reviewed Overlay}).
+$$
+
+The release suite MUST demonstrate that:
+
+1. with $\kappa_C=0$, a high-Coincident edge above $\eta_H$ is excluded from
+   hard negatives;
+2. changing $\kappa_C$, $\kappa_P$, $\lambda_R$, degree normalization, or the
+   gradient budgets does not change the no-repel protected set;
+3. failing the Coincident attraction gate does not remove Coincident-derived
+   protection;
+4. $a_{\min,H}=a_{\min,N}=0$ reproduces the prior applicability-discounted
+   protected set exactly;
+5. increasing a protection floor does not change classifier probabilities,
+   attraction admission, typed-force admission, or attractive gradients;
+6. with a positive $a_{\min,H}$, a low-applicability but C/P-leaning,
+   security-permitted link can remain protected from hard-negative mining;
+7. low applicability alone cannot reduce $a_r^X$ below the configured channel
+   floor; low $p_{r,C}+p_{r,P}$ mass or low instance confidence can still remove
+   protection;
+8. Overlay-dominant relations do not create protection above the configured
+   false-protection tolerance;
+9. parallel duplicate links do not accumulate protection when maximum
+   aggregation is configured;
+10. security-forbidden links influence neither force nor protection;
+11. the hard-negative candidate pool contains no protected or typed-controlled
+    pair; and
+12. post-training-cutoff relation types satisfy the configured protection-
+    recall and overprotection gates by applicability decile.
+
+Map-level attractive relation diagnostics include
 
 $$
 \mathrm{Violation}_C
@@ -1629,15 +2224,28 @@ $$
 $$
 
 plus semantic-fidelity change, relation-gradient clipping rate, derived
-strength $s_r$ distributions, and results by degree decile and subgroup. The
-release suite MUST verify that classifier probabilities are applied exactly
-once in the objective and that no authoritative free per-type strength scalar
-is present in configuration, artifacts, or serving metadata.
+strength distributions, and results by degree decile and subgroup. The release
+suite MUST verify that classifier probabilities are applied exactly once and
+that no authoritative free per-type strength scalar exists.
 
-A classifier score alone is never sufficient to enable Coincident force: the
-holdout precision gate, applicability gate, class-probability gate, relation
-security mode, map-level fidelity gates, and per-node gradient budget all
-remain active.
+Typed Deconflict remains disabled unless all of the following are satisfied:
+
+- the policy schema is explicitly upgraded from $\{C,P,O\}$ to
+  $\{C,P,O,D\}$;
+- a grouped human-reviewed holdout establishes a configured lower confidence
+  bound for Deconflict precision;
+- $\eta_D$, $\Delta_D$, $\kappa_D$, $u_D$, $\beta_-$, and $\beta_R$ are frozen
+  generation-level values;
+- admitted Deconflict pairs are excluded from generic negative sampling and
+  from attractive relation force;
+- signed-policy conflicts quarantine to no force plus no-repel protection;
+- separate signed-gradient and total-variation caps are tested; and
+- semantic-neighbor recall, merge-tree persistence, subgroup quality,
+  fragmentation, and no-structure-from-noise gates all pass against the
+  semantic-only and attraction-only baselines.
+
+A classifier score alone is never sufficient to enable Coincident or typed
+Deconflict force.
 
 ### 6.5 Incremental-placement gates
 
@@ -1709,6 +2317,14 @@ mode require explicit security sign-off per generation family.
 9. **Coincident activation:** confirm the precision lower-bound threshold,
    class-probability threshold $\tau_C$, applicability threshold $\tau_A$, and
    initial $\kappa_C/\kappa_P$ ratio before enabling Coincident geometry.
+10. **Typed Deconflict activation `[staged]`:** decide whether a fourth policy
+    class is justified by real relation families. It remains disabled until the
+    admission, conflict-quarantine, signed-gradient, and release-gate contract in
+    §§3.3.1a, 3.6.5, 3.6.6, and 6.4 is satisfied.
+11. **Protection applicability floor `[open ablation]`:** select
+    $(a_{\min,H},a_{\min,N})$ from the Phase 2 matrix in §3.6.6a. This decision
+    is experimental, not human-blocked; the rubric and adjudicated anchor deck
+    remain the only inputs that require direct human authorship.
 
 ---
 
@@ -1787,7 +2403,9 @@ projector:
   relation_conditioning: true | false
   checkpoint_hash: ...
   loss_config_hash: ...
-  relation_gradient_beta: ...
+  relation_gradient_beta_positive: ...
+  relation_gradient_beta_negative: 0.0 | ...
+  relation_gradient_beta_total: ...
 
 relations:
   security_mode: public-links-only | atlas-safe-links | all-snapshot-links
@@ -1809,16 +2427,43 @@ relations:
   applicability_config_hash: ...
   classifier_ood_edge_volume_fraction: ...
   reviewed_edge_volume_fraction: ...
-  geometry_coefficients:
+  attraction_geometry_coefficients:
     coincident: ...
     proximal: 1.0
     overlay: 0.0
-  active_relation_edge_threshold: ...
+  attraction_force_pruning_threshold: ...
+  negative_admission:
+    policy_distribution_stage: protection_specific_pre_attraction_gate
+    protection_coefficients:
+      coincident: 1.0
+      proximal: 1.0
+      overlay: 0.0
+    protection_applicability:
+      mode: floor
+      hard_negative_floor: ...
+      ordinary_negative_floor: ...
+      ordering_validated: true
+      attraction_applicability_unchanged: true
+      selection_experiment_hash: ...
+    pair_aggregation: max
+    hard_negative_protection_threshold: ...
+    ordinary_negative_protection_threshold: ...
+    protect_ordinary_negatives: true | false
   coincident_gate:
     enabled: true | false
     class_probability_threshold: ...
     applicability_threshold: ...
     precision_lcb_threshold: ...
+  typed_deconflict:
+    enabled: false | true
+    classifier_class_schema: CPO | CPOD
+    geometry_coefficient: 0.0 | ...
+    admission_threshold: ...
+    signed_margin_threshold: ...
+    normalized_minimum_radius: ...
+    pair_aggregation: max
+    conflict_policy: quarantine_no_force_protect
+    exclude_from_generic_negatives: true
   derived_strength_persisted_as_authority: false
 
 variants:

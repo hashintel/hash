@@ -17,18 +17,14 @@ from atlas_tools.common import (
     sha256_file,
 )
 from atlas_tools.relation.concat import CONCAT_SCHEMA_VERSION, ConcatProvenance
-from atlas_tools.relation.eval.authorization import (
-    authorize_full_grid,
-    load_analysis_decisions_file,
-)
 from atlas_tools.relation.eval.contract import (
     RUN_CONFIG_ADAPTER,
     BundleParts,
     CardCandidate,
     DerivedSlice,
     EvaluationCard,
-    FullGridPreparedInputs,
-    FullRunConfig,
+    LadderPreparedInputs,
+    LadderRunConfig,
     LoadedRunConfig,
     PilotRunConfig,
     PreparedInputs,
@@ -57,28 +53,23 @@ _JSON_VALUE_ADAPTER: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 
 
 def load_run_config(path: str | PathLike[str]) -> LoadedRunConfig:
-    """Load schema-v3 YAML without writing resolved paths back into the config."""
+    """Load a pilot (schema-v3) or ladder (schema-v4) YAML config strictly."""
     config_path = Path(path).resolve()
     try:
-        payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        raw = config_path.read_bytes()
+        payload = yaml.safe_load(raw.decode("utf-8"))
         json_payload = _JSON_VALUE_ADAPTER.validate_python(payload, strict=True)
         config = RUN_CONFIG_ADAPTER.validate_json(
             canonical_json_bytes(json_payload),
             strict=True,
         )
-    except (OSError, TypeError, ValidationError, yaml.YAMLError) as error:
+    except (OSError, TypeError, UnicodeDecodeError, ValidationError, yaml.YAMLError) as error:
         raise ValueError(f"invalid run config {config_path}: {error}") from error
 
-    decisions_path: Path | None = None
-    if isinstance(config, FullRunConfig):
-        decisions_path = config.decisions
-        if not decisions_path.is_absolute():
-            decisions_path = config_path.parent / decisions_path
-        decisions_path = decisions_path.resolve()
     return LoadedRunConfig(
         path=config_path,
         config=config,
-        decisions_path=decisions_path,
+        content_hash=sha256_bytes(raw),
     )
 
 
@@ -388,35 +379,37 @@ def prepare_pilot_inputs(
     )
 
 
-def prepare_full_inputs(
+def prepare_ladder_inputs(
     cards_dir: str | PathLike[str],
     loaded_config: LoadedRunConfig,
-) -> FullGridPreparedInputs:
-    """Prepare the authorized full grid using the config-relative decisions path."""
-    config, decisions_path = loaded_config.full()
+) -> LadderPreparedInputs:
+    """Verify the corpus and derive the ladder's deterministic voting population.
+
+    Every verified non-few-shot card is eligible, in ascending ``relation_id``
+    order. The fixed few-shot cards remain in the prompt pack but never
+    receive votes.
+    """
     cards_directory = Path(cards_dir)
-    loaded = load_analysis_decisions_file(decisions_path)
     verified = verify_concat(cards_directory)
     candidates, _ = _card_candidates(
         verified.cards_path,
         verified.row_count,
         set(verified.source_namespaces),
     )
+    if not candidates:
+        raise ValueError("cards.jsonl contains no eligible (non-few-shot) cards")
     required = {candidate.relation_id for candidate in candidates} | {
         relation_id for relation_id, _ in FEW_SHOT
     }
     cards = _load_required_cards(verified.cards_path, required)
     pack_hash = prompt_pack_hash(cards)
-    if pack_hash != loaded.decisions.prompt_pack_hash:
-        raise ValueError(
-            "analysis decisions prompt_pack_hash does not match the current prompt pack"
-        )
-    authorization = authorize_full_grid(config, loaded.decisions, candidates, verified)
     if sha256_file(verified.cards_path) != verified.source_hashes["cards.jsonl"]:
-        raise ValueError("cards.jsonl changed while preparing the full grid")
-    if sha256_file(loaded.path) != loaded.content_hash:
-        raise ValueError("analysis decisions changed while preparing the full grid")
-    return FullGridPreparedInputs(
+        raise ValueError("cards.jsonl changed while preparing the ladder")
+    eligible = tuple(
+        cards[candidate.relation_id]
+        for candidate in sorted(candidates, key=lambda candidate: candidate.relation_id)
+    )
+    return LadderPreparedInputs(
         cards_dir=cards_directory,
         cards_path=verified.cards_path,
         manifest_path=verified.manifest_path,
@@ -424,24 +417,21 @@ def prepare_full_inputs(
         cards=cards,
         prefixes=prepare_prompt_prefixes(cards),
         pack_hash=pack_hash,
-        decisions_path=loaded.path,
-        decisions_hash=loaded.content_hash,
-        decisions=loaded.decisions,
-        expectation=authorization.expectation,
-        judges=authorization.judges,
+        config_hash=loaded_config.content_hash,
+        eligible=eligible,
     )
 
 
 def prepare_inputs(
     cards_dir: str | PathLike[str],
     loaded_config: LoadedRunConfig,
-) -> PreparedInputs | FullGridPreparedInputs:
-    """Prepare mode-specific inputs from one loaded schema-v3 config."""
+) -> PreparedInputs | LadderPreparedInputs:
+    """Prepare mode-specific inputs from one loaded run config."""
     config: RunConfig = loaded_config.config
     match config:
         case PilotRunConfig():
             return prepare_pilot_inputs(cards_dir, config)
-        case FullRunConfig():
-            return prepare_full_inputs(cards_dir, loaded_config)
+        case LadderRunConfig():
+            return prepare_ladder_inputs(cards_dir, loaded_config)
         case unexpected:
             assert_never(unexpected)
