@@ -21,9 +21,9 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, CommonTableExpression, DistinctOn, EqualityOperator, Expression, FromItem,
-    Function, GroupByClause, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
+    Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
+    GroupByClause, GroupingElement, Identifier, NonEmptyVec, PostgresQueryPath, PostgresRecord,
+    SelectExpression, SelectQuantifier, SelectStatement, Table, Transpile as _, WindowDefinition,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -328,7 +328,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match quantifier {
             Some(SelectQuantifier::DistinctOn(on)) => on.push(expression),
             quantifier @ None => {
-                *quantifier = Some(SelectQuantifier::DistinctOn(DistinctOn::from(expression)));
+                *quantifier = Some(SelectQuantifier::DistinctOn(NonEmptyVec::from(expression)));
             }
             Some(SelectQuantifier::All | SelectQuantifier::Distinct) => {
                 unreachable!("the compiler only ever emits `DISTINCT ON` quantifiers")
@@ -356,7 +356,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 && let Some((ordering, nulls)) = ordering
             {
                 self.statement
-                    .order_by_clause
+                    .order_by
                     .push(stored.column.clone(), ordering, nulls);
                 stored.ordering = Some((ordering, nulls));
             }
@@ -373,7 +373,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             if let Some((ordering, nulls)) = ordering {
                 self.statement
-                    .order_by_clause
+                    .order_by
                     .push(expression.clone(), ordering, nulls);
             }
 
@@ -682,10 +682,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .collect(),
                                 )
                                 .from(FromItem::table(embeddings_table))
-                                .group_by_clause(GroupByClause {
-                                    expressions: select_columns
+                                .group_by(GroupByClause {
+                                    quantifier: None,
+                                    elements: select_columns
                                         .iter()
-                                        .map(|&column| Expression::ColumnReference(column.into()))
+                                        .map(|&column| {
+                                            GroupingElement::Expressions(vec![
+                                                Expression::ColumnReference(column.into()),
+                                            ])
+                                        })
                                         .collect(),
                                 }),
                         )
@@ -693,7 +698,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .build();
                     }
 
-                    self.statement.order_by_clause.insert_front(
+                    self.statement.order_by.insert_front(
                         distance_expression.clone(),
                         Ordering::Ascending,
                         None,

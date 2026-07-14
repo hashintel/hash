@@ -4,14 +4,16 @@ mod clause;
 mod column_reference;
 mod expression;
 mod identifier;
+mod non_empty;
+mod set_quantifier;
 mod statement;
 mod table_reference;
 
 pub use self::{
     clause::{
         CommonTableExpression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
-        FromItemSubqueryBuilder, FromItemTableBuilder, GroupByClause, JoinType, Materialization,
-        OrderByClause, SelectExpression, WhereClause, WithClause,
+        FromItemSubqueryBuilder, FromItemTableBuilder, GroupByClause, GroupingElement, JoinType,
+        Materialization, OrderByClause, SelectExpression, WhereClause, WithClause,
     },
     column_reference::{ColumnName, ColumnReference},
     expression::{
@@ -19,9 +21,8 @@ pub use self::{
         UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowDefinition,
     },
     identifier::Identifier,
-    statement::{
-        DistinctOn, EmptyDistinctOn, OnConflict, SelectQuantifier, SelectStatement, Statement,
-        bulk_insert,
-    },
+    non_empty::{EmptyVec, NonEmptyVec},
+    set_quantifier::SetQuantifier,
+    statement::{OnConflict, SelectQuantifier, SelectStatement, Statement, bulk_insert},
     table_reference::{TableName, TableReference},
 };

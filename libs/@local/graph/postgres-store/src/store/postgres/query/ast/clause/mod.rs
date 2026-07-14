@@ -12,7 +12,7 @@ pub use self::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder,
     },
-    group_by::GroupByClause,
+    group_by::{GroupByClause, GroupingElement},
     join_type::JoinType,
     order_by::OrderByClause,
     select_list::SelectExpression,
