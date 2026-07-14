@@ -6,7 +6,6 @@ import {
   getTabbableEdges,
   getTabbables,
   isActiveElement,
-  raf,
 } from "@zag-js/dom-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -46,71 +45,60 @@ const proxyTabAroundTrigger = ({
   getTrigger: () => HTMLElement | null;
   onFocus: (element: HTMLElement) => void;
 }): (() => void) => {
-  // Defer a frame (as the library does) so Ark has mounted the content before
-  // we read its tabbables; collect both cleanups so neither leaks on unmount.
-  const cleanups: Array<(() => void) | undefined> = [];
-
-  cleanups.push(
-    raf(() => {
-      const content = getContent();
-      const trigger = getTrigger();
-      const doc = content?.ownerDocument ?? document;
-
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (event.key !== "Tab") {
-          return;
-        }
-
-        const [firstTabbable, lastTabbable] = getTabbableEdges(content, {
-          includeContainer: true,
-          getShadowRoot: true,
-        });
-
-        const outsideContent = getTabbables(doc.body, {
-          getShadowRoot: true,
-        }).filter((element) => !contains(content, element));
-        const triggerIndex = trigger ? outsideContent.indexOf(trigger) : -1;
-        const nextTabbableAfterTrigger =
-          triggerIndex === -1
-            ? null
-            : (outsideContent[triggerIndex + 1] ?? null);
-
-        const noTabbableElements = !firstTabbable && !lastTabbable;
-
-        let elementToFocus: HTMLElement | null = null;
-        if (event.shiftKey && isActiveElement(nextTabbableAfterTrigger)) {
-          elementToFocus = lastTabbable;
-        } else if (
-          event.shiftKey &&
-          (isActiveElement(firstTabbable) || noTabbableElements)
-        ) {
-          elementToFocus = trigger;
-        } else if (!event.shiftKey && isActiveElement(trigger)) {
-          elementToFocus = firstTabbable;
-        } else if (
-          !event.shiftKey &&
-          (isActiveElement(lastTabbable) || noTabbableElements)
-        ) {
-          elementToFocus = nextTabbableAfterTrigger;
-        }
-
-        if (!elementToFocus) {
-          return;
-        }
-
-        event.preventDefault();
-        onFocus(elementToFocus);
-      };
-
-      cleanups.push(addDomEvent(doc, "keydown", onKeyDown, true));
-    }),
-  );
-
-  return () => {
-    for (const cleanup of cleanups) {
-      cleanup?.();
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Tab") {
+      return;
     }
+
+    // Resolve the content and trigger on every keypress rather than capturing
+    // them once: either may still be unmounted on the frame the popover opens,
+    // and re-reading here keeps routing correct for as long as it stays open.
+    const content = getContent();
+    const trigger = getTrigger();
+    const doc = content?.ownerDocument ?? document;
+
+    const [firstTabbable, lastTabbable] = getTabbableEdges(content, {
+      includeContainer: true,
+      getShadowRoot: true,
+    });
+
+    const outsideContent = getTabbables(doc.body, {
+      getShadowRoot: true,
+    }).filter((element) => !contains(content, element));
+    const triggerIndex = trigger ? outsideContent.indexOf(trigger) : -1;
+    const nextTabbableAfterTrigger =
+      triggerIndex === -1 ? null : (outsideContent[triggerIndex + 1] ?? null);
+
+    const noTabbableElements = !firstTabbable && !lastTabbable;
+
+    let elementToFocus: HTMLElement | null = null;
+    if (event.shiftKey && isActiveElement(nextTabbableAfterTrigger)) {
+      elementToFocus = lastTabbable;
+    } else if (
+      event.shiftKey &&
+      (isActiveElement(firstTabbable) || noTabbableElements)
+    ) {
+      elementToFocus = trigger;
+    } else if (!event.shiftKey && isActiveElement(trigger)) {
+      elementToFocus = firstTabbable;
+    } else if (
+      !event.shiftKey &&
+      (isActiveElement(lastTabbable) || noTabbableElements)
+    ) {
+      elementToFocus = nextTabbableAfterTrigger;
+    }
+
+    if (!elementToFocus) {
+      return;
+    }
+
+    event.preventDefault();
+    onFocus(elementToFocus);
   };
+
+  // The listener resolves the DOM lazily on each keypress, so it can attach
+  // immediately - no need to defer a frame for mount.
+  return addDomEvent(document, "keydown", onKeyDown, true);
 };
 
 export type PopoverProps = {

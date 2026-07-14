@@ -192,7 +192,7 @@ export const PlaybackSettingsMenu = () => {
       >
         <Icon name="gear" />
       </ToolbarButton>
-      {open ? (
+      {open && (
         <Popover
           triggerRef={triggerRef}
           position="top"
@@ -395,7 +395,7 @@ export const PlaybackSettingsMenu = () => {
             </Popover.Body>
           </Popover.Container>
         </Popover>
-      ) : null}
+      )}
     </>
   );
 };

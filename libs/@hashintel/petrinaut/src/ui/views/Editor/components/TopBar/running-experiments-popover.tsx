@@ -158,7 +158,7 @@ export const RunningExperimentsPopover = ({
       >
         <span className={triggerCountStyle}>{countLabel}</span>
       </Button>
-      {open ? (
+      {open && (
         <Popover
           triggerRef={triggerRef}
           position="bottom-end"
@@ -218,7 +218,7 @@ export const RunningExperimentsPopover = ({
             </Popover.Body>
           </Popover.Container>
         </Popover>
-      ) : null}
+      )}
     </>
   );
 };
