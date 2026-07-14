@@ -59,7 +59,7 @@ Press **Play** in the bottom toolbar. The simulation:
 
 If you need multiple runs of the same configuration -- e.g. to compare a stochastic model under different conditions -- use a Monte Carlo [experiment](experiments.md).
 
-If there are unresolved [diagnostics](petri-net-extensions.md#diagnostics) (code errors), pressing Play opens the Diagnostics tab instead of starting the simulation. Fix all errors first.
+If there are unresolved error-severity [diagnostics](petri-net-extensions.md#diagnostics) (code errors), pressing Play opens the Diagnostics tab instead of starting the simulation. Fix all errors first -- warnings and hints don't block simulation.
 
 <img width="1018" height="354" alt="simulation-settings" src="https://github.com/user-attachments/assets/8736a52e-6455-40fd-bede-51e0439a3e5b" />
 

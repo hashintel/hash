@@ -72,8 +72,10 @@ describe("checkSDCPN", () => {
           {
             colorId: "color1",
             code: `export default Dynamics((tokens, parameters) => {
-              const value = tokens[0].x;
-              return tokens;
+              return tokens.map((token) => {
+                const value = token.x;
+                return { x: value };
+              });
             });`,
           },
         ],
@@ -106,7 +108,7 @@ describe("checkSDCPN", () => {
             code: `export default Dynamics((tokens, parameters) => {
               const a = parameters.alpha;
               const e = parameters.enabled;
-              return tokens;
+              return tokens.map(({ x }) => ({ x }));
             });`,
           },
         ],
@@ -115,9 +117,14 @@ describe("checkSDCPN", () => {
       // WHEN
       const result = check(sdcpn);
 
-      // THEN
+      // THEN — valid; only HIR unused-binding hints remain (`a`, `e`)
       expect(result.isValid).toBe(true);
-      expect(result.itemDiagnostics).toHaveLength(0);
+      const nonHintDiagnostics = result.itemDiagnostics.flatMap((item) =>
+        item.diagnostics.filter(
+          (diag) => diag.category !== ts.DiagnosticCategory.Suggestion,
+        ),
+      );
+      expect(nonHintDiagnostics).toHaveLength(0);
     });
 
     it("returns invalid when accessing undefined token property", () => {
@@ -1353,6 +1360,137 @@ describe("checkSDCPN", () => {
       // THEN - Should be valid because TransitionKernel is not checked when no coloured output places
       expect(result.isValid).toBe(true);
       expect(result.itemDiagnostics).toHaveLength(0);
+    });
+  });
+
+  describe("HIR semantic lints", () => {
+    it("surfaces Math.random as a warning with source 'hir' at the right span", () => {
+      // GIVEN — TS-valid code with a reproducibility problem
+      const lambdaCode = `export default Lambda((input, parameters) => {
+  return input.Source[0].value * Math.random();
+});`;
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "value", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "stochastic",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN — a warning (does not invalidate the net) at Math.random()
+      expect(result.isValid).toBe(true);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      );
+      expect(lambdaItem).toBeDefined();
+      const hirDiagnostic = lambdaItem!.diagnostics.find(
+        (diag) => diag.source === "hir",
+      );
+      expect(hirDiagnostic).toBeDefined();
+      expect(hirDiagnostic!.category).toBe(ts.DiagnosticCategory.Warning);
+      expect(
+        lambdaCode.slice(
+          hirDiagnostic!.start!,
+          hirDiagnostic!.start! + hirDiagnostic!.length!,
+        ),
+      ).toBe("Math.random()");
+    });
+
+    it("skips HIR lints when TypeScript already reports errors", () => {
+      // GIVEN — code with a TS error (unknown property)
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "value", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              return input.Source[0].missing > Math.random();
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN — only TS diagnostics; no doubled-up HIR results
+      expect(result.isValid).toBe(false);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      )!;
+      expect(
+        lambdaItem.diagnostics.every((diag) => diag.source !== "hir"),
+      ).toBe(true);
+    });
+
+    it("marks out-of-subset code as an error (it cannot be compiled)", () => {
+      // GIVEN — valid TS using a loop (outside the HIR subset)
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "value", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: `export default Lambda((input, parameters) => {
+              let total = 0;
+              for (const token of input.Source) {
+                total += token.value;
+              }
+              return total > 0;
+            });`,
+            transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+              return { Target: [input.Source[0]] };
+            });`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN — the HIR pipeline is the only compiler, so this blocks running
+      expect(result.isValid).toBe(false);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      )!;
+      const hirDiagnostic = lambdaItem.diagnostics.find(
+        (diag) => diag.source === "hir",
+      )!;
+      expect(hirDiagnostic.category).toBe(ts.DiagnosticCategory.Error);
+      expect(
+        ts.flattenDiagnosticMessageText(hirDiagnostic.messageText, "\n"),
+      ).toContain("restricted TypeScript subset");
     });
   });
 });

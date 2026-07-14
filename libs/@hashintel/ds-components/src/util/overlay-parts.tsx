@@ -38,16 +38,16 @@ type OverlayContextValue = {
   Title: OverlayPrimitive;
   Description: OverlayPrimitive;
   /** Sets the close-button label and squares off the Drawer's right edge. */
-  componentName: "Dialog" | "Drawer";
+  componentName: "Dialog" | "Drawer" | "Popover";
 };
 
-const OverlayContext = createContext<OverlayContextValue | null>(null);
+export const OverlayContext = createContext<OverlayContextValue | null>(null);
 
-const useOverlayContext = () => {
+export const useOverlayContext = () => {
   const ctx = useContext(OverlayContext);
   if (!ctx) {
     throw new Error(
-      "OverlayHeader, OverlayBody and OverlayFooter must be rendered inside a <Dialog> or <Drawer>",
+      "OverlayHeader, OverlayBody and OverlayFooter must be rendered inside a <Dialog>, <Drawer> or <Popover>",
     );
   }
   return ctx;
@@ -246,7 +246,7 @@ export const OverlaySections = ({
   loading?: boolean;
   Title: OverlayPrimitive;
   Description: OverlayPrimitive;
-  componentName: "Dialog" | "Drawer";
+  componentName: "Dialog" | "Drawer" | "Popover";
   children: React.ReactNode;
 }) => {
   const headerChild = Children.toArray(children).find(
@@ -263,7 +263,12 @@ export const OverlaySections = ({
       overlayPartsStyles({
         size,
         variant,
-        component: componentName === "Drawer" ? "drawer" : "dialog",
+        component:
+          componentName === "Drawer"
+            ? "drawer"
+            : componentName === "Popover"
+              ? "popover"
+              : "dialog",
         hasIcon: !!titleIconName,
         headerless: !hasHeader,
       }),

@@ -61,7 +61,7 @@ function validateMetricName(
 
 /**
  * Reject empty/whitespace-only metric code so the form can't save a metric
- * that `compileMetric` would reject at runtime.
+ * that could never compile to a runnable program.
  */
 function validateMetricCode(code: string): string | undefined {
   if (code.trim() === "") {
@@ -79,6 +79,8 @@ export interface UseMetricFormOptions {
    * excluded by the caller.
    */
   existingMetricNames?: ReadonlySet<string>;
+  /** Exact submit-time HIR validation, independent of async editor diagnostics. */
+  validateOnSubmit?: (value: MetricFormState) => Promise<string | undefined>;
 }
 
 export interface MetricFormSubmitContext {
@@ -88,14 +90,17 @@ export interface MetricFormSubmitContext {
 
 export function useMetricForm(
   defaultValues: MetricFormState,
-  onSubmit: (values: MetricFormState, ctx: MetricFormSubmitContext) => void,
+  onSubmit: (
+    values: MetricFormState,
+    ctx: MetricFormSubmitContext,
+  ) => void | Promise<void>,
   options: UseMetricFormOptions = {},
 ) {
   const existingNames = options.existingMetricNames ?? new Set<string>();
   return useForm({
     defaultValues,
-    onSubmit: ({ value, formApi }) =>
-      onSubmit(value, {
+    onSubmit: async ({ value, formApi }) =>
+      await onSubmit(value, {
         reset: () => formApi.reset(),
       }),
     validators: {
@@ -105,6 +110,9 @@ export function useMetricForm(
       onSubmit: ({ value }) =>
         validateMetricName(value.name, existingNames) ??
         validateMetricCode(value.code),
+      onSubmitAsync: options.validateOnSubmit
+        ? async ({ value }) => await options.validateOnSubmit!(value)
+        : undefined,
     },
   });
 }

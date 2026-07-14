@@ -324,6 +324,15 @@ async fn create_temporal_client(
         )
         .await
         .change_context(GraphError)
+        .map_err(|report| {
+            tracing::error!(
+                error = ?report,
+                temporal_host = host,
+                temporal_port = config.address.temporal_port,
+                "Failed to connect to the Temporal server"
+            );
+            report
+        })
         .map(Some)
     } else {
         Ok(None)

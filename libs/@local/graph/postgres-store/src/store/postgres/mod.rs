@@ -8,7 +8,7 @@ mod seed_policies;
 mod traversal_context;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{borrow::Borrow, fmt::Debug, hash::Hash};
+use core::{borrow::Borrow, fmt::Debug, hash::Hash, marker::PhantomData};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
@@ -35,6 +35,7 @@ use hash_graph_authorization::policies::{
         },
     },
 };
+pub use hash_graph_migrations::{Context, IsolationLevel, Transaction, TransactionBuilder};
 use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
@@ -76,7 +77,10 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::{
-    pool::{AsClient, PostgresStorePool},
+    pool::{
+        AsClient, InTransaction, NoTransaction, PostgresStorePool, TransactionOptions,
+        TransactionState,
+    },
     traversal_context::TraversalContext,
 };
 use crate::store::error::{
@@ -106,22 +110,30 @@ impl Default for PostgresStoreSettings {
 }
 
 /// A Postgres-backed store.
-pub struct PostgresStore<C> {
+///
+/// The `S` parameter tracks at the type level whether the store is currently inside a database
+/// transaction, see [`TransactionState`].
+pub struct PostgresStore<C, S: TransactionState = NoTransaction> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: Arc<PostgresStoreSettings>,
+    _transaction_state: PhantomData<S>,
 }
 
-impl<C> AsRef<Client> for PostgresStore<C>
+impl<C, S> AsRef<Client> for PostgresStore<C, S>
 where
     C: AsClient<Client = Client>,
+    S: TransactionState,
 {
     fn as_ref(&self) -> &Client {
         self.client.as_client()
     }
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Inserts multiple policies into the database.
     ///
     /// # Errors
@@ -581,9 +593,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 }
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn get_policy_from_database(
         &self,
@@ -796,16 +809,17 @@ where
     }
 }
 
-impl<C> PrincipalStore for PostgresStore<C>
+impl<C, S> PrincipalStore for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn get_or_create_system_machine(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(GetSystemAccountError::StoreError)?;
 
@@ -857,7 +871,7 @@ where
         }
 
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(WebCreationError::StoreError)?;
 
@@ -1049,7 +1063,7 @@ where
         }
 
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
@@ -1173,7 +1187,7 @@ where
         }
 
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
@@ -1424,9 +1438,10 @@ impl PolicyParts {
     }
 }
 
-impl<C> PolicyStore for PostgresStore<C>
+impl<C, S> PolicyStore for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn create_policy(
         &mut self,
@@ -1434,7 +1449,7 @@ where
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>> {
         let transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(CreatePolicyError::StoreError)?;
 
@@ -1745,7 +1760,7 @@ where
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>> {
         let transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(UpdatePolicyError::StoreError)?;
 
@@ -1917,7 +1932,7 @@ where
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(EnsureSystemPoliciesError::StoreError)?;
 
@@ -2459,9 +2474,10 @@ impl<T> From<ResponseCountMap<T>> for HashMap<T, usize> {
     }
 }
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     /// Creates a new `PostgresDatabase` object.
     #[must_use]
@@ -2474,7 +2490,37 @@ where
             client,
             temporal_client,
             settings,
+            _transaction_state: PhantomData,
         }
+    }
+
+    /// Begins an unconfigured database transaction.
+    ///
+    /// On a store which is not inside a transaction this issues a plain `BEGIN` using the
+    /// database's default transaction characteristics. On a store which is already inside a
+    /// transaction it creates a savepoint instead; a savepoint has no characteristics of its own
+    /// and runs within the enclosing transaction.
+    ///
+    /// Transaction characteristics such as the isolation level can only be configured when
+    /// beginning a top-level transaction via [`Context::transaction`], which is only available on
+    /// stores in the [`NoTransaction`] state.
+    ///
+    /// # Errors
+    ///
+    /// - if the underlying client cannot begin the transaction
+    pub async fn begin_transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, InTransaction>, Report<StoreError>>
+    {
+        Ok(PostgresStore::new(
+            self.client
+                .as_mut_client()
+                .transaction()
+                .await
+                .change_context(StoreError)?,
+            self.temporal_client.clone(),
+            Arc::clone(&self.settings),
+        ))
     }
 
     async fn create_base_url(
@@ -3157,26 +3203,175 @@ where
 
         Ok(())
     }
+}
 
-    /// # Errors
-    ///
-    /// - if the underlying client cannot start a transaction
-    pub async fn transaction(
-        &mut self,
-    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, Report<StoreError>> {
-        Ok(PostgresStore::new(
-            self.client
-                .as_mut_client()
-                .transaction()
-                .await
-                .change_context(StoreError)?,
-            self.temporal_client.clone(),
-            Arc::clone(&self.settings),
-        ))
+/// A [`TransactionBuilder`] for a [`PostgresStore`].
+///
+/// Created by [`Context::transaction`], this builder begins the transaction when awaited. The
+/// configured [`TransactionOptions`] are compiled into the single `BEGIN` statement issued to
+/// the database. Configurable transactions are only available on stores in the
+/// [`NoTransaction`] state, so the options always apply to a top-level transaction and are
+/// never silently discarded.
+pub struct PostgresStoreTransactionBuilder<'t, C> {
+    store: &'t mut PostgresStore<C, NoTransaction>,
+    options: TransactionOptions,
+}
+
+impl<'t, C> IntoFuture for PostgresStoreTransactionBuilder<'t, C>
+where
+    C: AsClient<Client = Client>,
+{
+    type Output =
+        Result<PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>, Report<StoreError>>;
+
+    type IntoFuture = impl Future<Output = Self::Output> + Send;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            let mut builder = self.store.client.as_mut_client().build_transaction();
+            if let Some(isolation_level) = self.options.isolation_level {
+                builder = builder.isolation_level(isolation_level.into());
+            }
+            if self.options.read_only {
+                builder = builder.read_only(true);
+            }
+            if self.options.deferrable {
+                builder = builder.deferrable(true);
+            }
+            Ok(PostgresStore::new(
+                builder.start().await.change_context(StoreError)?,
+                self.store.temporal_client.clone(),
+                Arc::clone(&self.store.settings),
+            ))
+        }
     }
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>
+where
+    C: AsClient<Client = Client>,
+{
+    type Error = StoreError;
+    type Transaction = PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>;
+
+    fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
+        self.options.isolation_level = Some(isolation_level);
+        self
+    }
+
+    fn read_only(mut self) -> Self {
+        self.options.read_only = true;
+        self
+    }
+
+    fn deferrable(mut self) -> Self {
+        self.options.deferrable = true;
+        self
+    }
+}
+
+impl<C> Context for PostgresStore<C, NoTransaction>
+where
+    C: AsClient<Client = Client>,
+{
+    type Error = StoreError;
+    type TransactionBuilder<'t>
+        = PostgresStoreTransactionBuilder<'t, C>
+    where
+        Self: 't;
+
+    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
+    ///
+    /// By default the transaction is begun with the database's default characteristics. Options
+    /// can be configured on the builder before awaiting it:
+    ///
+    /// ```ignore
+    /// let transaction = store
+    ///     .transaction()
+    ///     .isolation_level(IsolationLevel::RepeatableRead)
+    ///     .read_only()
+    ///     .await?;
+    /// ```
+    fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
+        PostgresStoreTransactionBuilder {
+            store: self,
+            options: TransactionOptions::default(),
+        }
+    }
+}
+
+impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>, InTransaction> {
+    type Error = StoreError;
+
+    async fn commit(self) -> Result<(), Report<StoreError>> {
+        self.client.commit().await.change_context(StoreError)
+    }
+
+    async fn rollback(self) -> Result<(), Report<StoreError>> {
+        self.client.rollback().await.change_context(StoreError)
+    }
+}
+
+/// Begins the transaction backing a snapshot-consistent, multi-statement read.
+///
+/// The behavior is fixed per [`TransactionState`], so nothing is ever silently discarded:
+///
+/// - In the [`NoTransaction`] state a `REPEATABLE READ, READ ONLY` transaction is begun, giving all
+///   statements of the read one shared snapshot.
+/// - In the [`InTransaction`] state — only available with the `test-utils` feature — a savepoint is
+///   created instead: the read runs within the enclosing transaction and observes that
+///   transaction's snapshot semantics.
+// TODO(BE-688): The `InTransaction` impl exists only for the rollback-isolation test harness,
+//   which bypasses the `REPEATABLE READ` snapshot — remove it once the harness uses per-test
+//   databases.
+pub trait BeginReadOnlyTransaction {
+    /// Begins the transaction serving a snapshot-consistent read.
+    ///
+    /// # Errors
+    ///
+    /// - if the underlying client cannot begin the transaction
+    fn begin_read_only_transaction(
+        &mut self,
+    ) -> impl Future<
+        Output = Result<
+            PostgresStore<tokio_postgres::Transaction<'_>, InTransaction>,
+            Report<StoreError>,
+        >,
+    > + Send;
+}
+
+impl<C> BeginReadOnlyTransaction for PostgresStore<C, NoTransaction>
+where
+    C: AsClient<Client = Client>,
+{
+    async fn begin_read_only_transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, InTransaction>, Report<StoreError>>
+    {
+        self.transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only()
+            .await
+    }
+}
+
+#[cfg(feature = "test-utils")]
+impl<C> BeginReadOnlyTransaction for PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
+    async fn begin_read_only_transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, InTransaction>, Report<StoreError>>
+    {
+        self.begin_transaction().await
+    }
+}
+
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
@@ -3338,30 +3533,16 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             OntologyTemporalMetadata { transaction_time },
         ))
     }
-
-    /// # Errors
-    ///
-    /// - if the underlying client cannot commit the transaction
-    pub async fn commit(self) -> Result<(), Report<StoreError>> {
-        self.client.commit().await.change_context(StoreError)
-    }
-
-    /// # Errors
-    ///
-    /// - if the underlying client cannot rollback the transaction
-    pub async fn rollback(self) -> Result<(), Report<StoreError>> {
-        self.client.rollback().await.change_context(StoreError)
-    }
 }
 
-impl<C: AsClient> AccountStore for PostgresStore<C> {
+impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
     async fn create_user_actor(
         &mut self,
         actor_id: ActorEntityUuid,
         params: CreateUserActorParams,
     ) -> Result<CreateUserActorResponse, Report<AccountInsertionError>> {
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(AccountInsertionError)?;
 
@@ -3828,7 +4009,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         actor_id: ActorEntityUuid,
         params: CreateOrgWebParams,
     ) -> Result<CreateWebResponse, Report<WebInsertionError>> {
-        let mut transaction = self.transaction().await.change_context(WebInsertionError)?;
+        let mut transaction = self
+            .begin_transaction()
+            .await
+            .change_context(WebInsertionError)?;
 
         let actor_id = transaction
             .determine_actor(actor_id)
@@ -3990,7 +4174,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         params: CreateTeamParams,
     ) -> Result<TeamId, Report<AccountGroupInsertionError>> {
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(AccountGroupInsertionError)?;
 
@@ -4133,9 +4317,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 }
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     /// Deletes all principals (policies and actions) from the database.
     ///

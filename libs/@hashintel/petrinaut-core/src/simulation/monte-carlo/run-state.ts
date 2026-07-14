@@ -95,6 +95,7 @@ export function createRunState(
     seed,
     dt: config.dt,
     maxTime: config.maxTime,
+    hirArtifacts: config.hirArtifacts,
   });
   const initialFrame = simulation.frames[0];
   if (!initialFrame) {

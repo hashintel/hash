@@ -17,6 +17,7 @@ import { LanguageClientContext } from "./context";
 const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
   byUri: new Map(),
   total: 0,
+  errorCount: 0,
 };
 
 const EMPTY_DIAGNOSTICS_STORE: ReadableStore<DiagnosticsSnapshot> = {
@@ -81,9 +82,11 @@ export const LanguageClientProvider: React.FC<{
 
   // Subscribe to diagnostics from the client. Use an empty fallback store
   // before the client is created so hook order stays stable.
-  const { byUri: diagnosticsByUri, total: totalDiagnosticsCount } = useStore(
-    client?.diagnostics ?? EMPTY_DIAGNOSTICS_STORE,
-  );
+  const {
+    byUri: diagnosticsByUri,
+    total: totalDiagnosticsCount,
+    errorCount: errorDiagnosticsCount,
+  } = useStore(client?.diagnostics ?? EMPTY_DIAGNOSTICS_STORE);
 
   // Before the client lands (StrictMode's first effect cycle gets cleaned
   // up before the worker is wired), fall through to LanguageClientContext's
@@ -96,10 +99,12 @@ export const LanguageClientProvider: React.FC<{
   const value = {
     diagnosticsByUri,
     totalDiagnosticsCount,
+    errorDiagnosticsCount,
     notifyDocumentChanged: client.notifyDocumentChanged,
     requestCompletion: client.requestCompletion,
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
+    requestHirArtifacts: client.requestHirArtifacts,
     initializeScenarioSession: client.initializeScenarioSession,
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,

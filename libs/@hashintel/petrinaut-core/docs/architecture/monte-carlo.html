@@ -235,11 +235,10 @@
       </div>
       <span class="arr">→</span>
       <div class="box b-authoring">
-        <strong>Compile (in worker)</strong>
+        <strong>Compile before worker start</strong>
         <small
-          ><code>metrics/specs.ts</code> → a <code>measure(run)</code> fn per
-          spec; expressions reuse <code>compileMetric</code> +
-          <code>buildMetricState</code>.</small
+          >Expression metrics carry HIR artifacts; built-in specs create a
+          <code>measure(run)</code> function directly.</small
         >
       </div>
       <span class="arr">→</span>

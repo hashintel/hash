@@ -171,7 +171,8 @@ export type Metric = {
   description?: string;
   /**
    * Function body invoked with `state` in scope. Must `return` a number.
-   * See `MetricState` (in `simulation/compile-metric.ts`) for the input shape.
+   * `state.places.<Name>` exposes `count` and a typed `tokens` array per
+   * place; the body is compiled through the HIR (`buildMetricContext`).
    */
   code: string;
 };

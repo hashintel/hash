@@ -1,12 +1,14 @@
 import {
-  type CompiledMetric,
   type Color,
   type Metric,
   type Place,
   type Transition,
 } from "@hashintel/petrinaut-core";
 
-import { buildMetricSeriesConfig } from "./metric";
+import {
+  buildMetricSeriesConfig,
+  type TimelineMetricEvaluator,
+} from "./metric";
 import { buildPerPlaceSeriesConfig } from "./per-place";
 import { buildPerTransitionSeriesConfig } from "./per-transition";
 import { buildPerTypeSeriesConfig } from "./per-type";
@@ -26,7 +28,7 @@ export function buildTimelineSeriesConfig(args: {
   types: Color[];
   transitions: Transition[];
   selectedMetric: Metric | null;
-  compiledMetric: CompiledMetric | null;
+  evaluateMetric: TimelineMetricEvaluator | null;
 }): TimelineSeriesConfig {
   const {
     timelineView,
@@ -34,15 +36,14 @@ export function buildTimelineSeriesConfig(args: {
     types,
     transitions,
     selectedMetric,
-    compiledMetric,
+    evaluateMetric,
   } = args;
 
   switch (timelineView.kind) {
     case "metric":
       return buildMetricSeriesConfig({
         metric: selectedMetric,
-        compiledMetric,
-        places,
+        evaluateMetric,
       });
     case "per-transition":
       return buildPerTransitionSeriesConfig({ transitions });

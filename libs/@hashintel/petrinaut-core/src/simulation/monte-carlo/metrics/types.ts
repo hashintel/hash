@@ -1,3 +1,4 @@
+import type { HirMetricArtifact } from "../../../hir-runtime";
 import type { SimulationFrameReader } from "../../api";
 
 export type MonteCarloMetricRunStatus =
@@ -148,10 +149,16 @@ export type MonteCarloTransitionFiringCountMetricSpec =
 export type MonteCarloExpressionMetricSpec = MonteCarloMetricSpecBase & {
   kind: "expression";
   /**
-   * Function body invoked with the same `state` object as persisted timeline
-   * metrics. It must `return` a finite number.
+   * Function body over the same `state` object as persisted timeline
+   * metrics. It must `return` a finite number. Kept for display/persistence;
+   * execution uses only `artifact`.
    */
   code: string;
+  /**
+   * HIR-compiled buffer program for `code` (from `compileHirArtifacts`).
+   * This is the only execution path — specs without an artifact cannot run.
+   */
+  artifact: HirMetricArtifact;
 };
 
 export type MonteCarloMetricSpec =

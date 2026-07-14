@@ -9,8 +9,18 @@ use tracing::Instrument as _;
 
 use crate::{
     Digest, MigrationInfo, MigrationState, StateStore,
-    context::{Context, Transaction},
+    context::{Context, IsolationLevel, Transaction, TransactionBuilder},
 };
+
+impl From<IsolationLevel> for tokio_postgres::IsolationLevel {
+    fn from(isolation_level: IsolationLevel) -> Self {
+        match isolation_level {
+            IsolationLevel::ReadCommitted => Self::ReadCommitted,
+            IsolationLevel::RepeatableRead => Self::RepeatableRead,
+            IsolationLevel::Serializable => Self::Serializable,
+        }
+    }
+}
 
 impl Transaction for tokio_postgres::Transaction<'_> {
     type Error = tokio_postgres::Error;
@@ -26,16 +36,58 @@ impl Transaction for tokio_postgres::Transaction<'_> {
     }
 }
 
+/// A [`TransactionBuilder`] which delegates to [`Client::build_transaction`].
+///
+/// All configured options are compiled into the single `BEGIN` statement issued when the builder
+/// is awaited, e.g. `START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
+pub struct PostgresTransactionBuilder<'c> {
+    builder: tokio_postgres::TransactionBuilder<'c>,
+}
+
+impl<'c> IntoFuture for PostgresTransactionBuilder<'c> {
+    type Output = Result<tokio_postgres::Transaction<'c>, Report<tokio_postgres::Error>>;
+
+    type IntoFuture = impl Future<Output = Self::Output>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            tracing::trace!("Starting transaction");
+            self.builder.start().await.map_err(Report::new)
+        }
+    }
+}
+
+impl<'c> TransactionBuilder for PostgresTransactionBuilder<'c> {
+    type Error = tokio_postgres::Error;
+    type Transaction = tokio_postgres::Transaction<'c>;
+
+    fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
+        self.builder = self.builder.isolation_level(isolation_level.into());
+        self
+    }
+
+    fn read_only(mut self) -> Self {
+        self.builder = self.builder.read_only(true);
+        self
+    }
+
+    fn deferrable(mut self) -> Self {
+        self.builder = self.builder.deferrable(true);
+        self
+    }
+}
+
 impl Context for Client {
     type Error = tokio_postgres::Error;
-    type Transaction<'c>
-        = tokio_postgres::Transaction<'c>
+    type TransactionBuilder<'c>
+        = PostgresTransactionBuilder<'c>
     where
         Self: 'c;
 
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, Report<Self::Error>> {
-        tracing::trace!("Starting transaction");
-        self.transaction().await.map_err(Report::new)
+    fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
+        PostgresTransactionBuilder {
+            builder: self.build_transaction(),
+        }
     }
 }
 

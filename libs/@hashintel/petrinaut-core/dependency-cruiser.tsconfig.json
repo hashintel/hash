@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "baseUrl": "../../../..",
+    "paths": {
+      "@hashintel/petrinaut-core": [
+        "libs/@hashintel/petrinaut-core/src/index.ts"
+      ],
+      "@hashintel/petrinaut-core/examples": [
+        "libs/@hashintel/petrinaut-core/src/examples/index.ts"
+      ],
+      "@hashintel/petrinaut-core/hir": [
+        "libs/@hashintel/petrinaut-core/src/hir.ts"
+      ],
+      "@hashintel/petrinaut-core/hir-runtime": [
+        "libs/@hashintel/petrinaut-core/src/hir-runtime.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/lsp": [
+        "libs/@hashintel/petrinaut-core/src/workers/lsp.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/monte-carlo": [
+        "libs/@hashintel/petrinaut-core/src/workers/monte-carlo.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/simulation": [
+        "libs/@hashintel/petrinaut-core/src/workers/simulation.ts"
+      ]
+    }
+  },
+  "include": ["src", "../petrinaut/src"]
+}

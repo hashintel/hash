@@ -374,11 +374,11 @@ impl DatabaseApi<'_> {
     }
 
     async fn query(
-        &self,
+        &mut self,
         filter: Filter<'_, Entity>,
         sorting: EntityQuerySorting<'static>,
     ) -> Vec<Entity> {
-        self.query_entities(
+        Box::pin(self.query_entities(
             self.account_id,
             hash_graph_store::entity::QueryEntitiesParams {
                 filter,
@@ -390,7 +390,7 @@ impl DatabaseApi<'_> {
                 include_drafts: false,
                 include_permissions: false,
             },
-        )
+        ))
         .await
         .expect("query failed")
         .entities

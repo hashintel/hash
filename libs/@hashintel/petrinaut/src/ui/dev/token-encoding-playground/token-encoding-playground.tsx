@@ -1,7 +1,6 @@
 import { Suspense, use, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { compileUserCode } from "@hashintel/petrinaut-core";
 
 import { SegmentGroup } from "../../components/segment-group";
 import { CodeEditor } from "../../monaco/code-editor";
@@ -49,8 +48,19 @@ function evaluate(
 ): EvaluationResult {
   try {
     const layout = computePlaygroundTokenLayout(dimensions);
-    // Same pipeline user code takes in the product (Babel TS-strip + eval).
-    const create = compileUserCode<[]>(code, "Token");
+    // Dev-only evaluation: the product pipeline compiles through the HIR;
+    // this playground accepts plain-JS `Token(() => ({ ... }))` snippets.
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+    const create = new Function(
+      `"use strict";
+      const Token = (fn) => fn;
+      let __default;
+      ${code.replace(/export\s+default\s+/, "__default = ")}
+      return __default;`,
+    )() as () => unknown;
+    if (typeof create !== "function") {
+      throw new Error("Expected `export default Token(() => ({ ... }))`");
+    }
     const raw: unknown = create();
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
       throw new Error("Token(() => …) must return an object");

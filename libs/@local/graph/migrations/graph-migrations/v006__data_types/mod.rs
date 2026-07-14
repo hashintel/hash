@@ -1,5 +1,5 @@
 use error_stack::Report;
-use hash_graph_migrations::{Context, Migration};
+use hash_graph_migrations::{ContextTransaction, Migration};
 use tokio_postgres::Client;
 use tracing::Instrument as _;
 
@@ -11,7 +11,7 @@ impl Migration for DataTypes {
 
     async fn up(
         self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
+        context: &mut ContextTransaction<'_, Self::Context>,
     ) -> Result<(), Report<Self::Error>> {
         context
             .simple_query(include_str!("up.sql"))
@@ -27,7 +27,7 @@ impl Migration for DataTypes {
 
     async fn down(
         self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
+        context: &mut ContextTransaction<'_, Self::Context>,
     ) -> Result<(), Report<Self::Error>> {
         context
             .simple_query(include_str!("down.sql"))

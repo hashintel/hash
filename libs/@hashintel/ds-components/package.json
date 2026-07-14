@@ -78,6 +78,7 @@
     "@hashintel/ds-helpers": "workspace:^",
     "@pandacss/dev": "1.11.1",
     "@pandacss/preset-panda": "1.11.1",
+    "@zag-js/dom-query": "1.41.2",
     "use-callback-ref": "1.3.3"
   },
   "devDependencies": {

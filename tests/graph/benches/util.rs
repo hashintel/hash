@@ -7,7 +7,7 @@ use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
         AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings,
+        PostgresStorePool, PostgresStoreSettings, TransactionState,
     },
 };
 use hash_graph_store::{
@@ -286,8 +286,8 @@ impl Drop for StoreWrapper {
     }
 }
 
-pub async fn seed<D, P, E, C>(
-    store: &mut PostgresStore<C>,
+pub async fn seed<D, P, E, C, S>(
+    store: &mut PostgresStore<C, S>,
     account_id: ActorEntityUuid,
     data_types: D,
     property_types: P,
@@ -297,6 +297,7 @@ pub async fn seed<D, P, E, C>(
     P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     C: AsClient,
+    S: TransactionState,
 {
     let domain_regex = Regex::new(
         &std::env::var("HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN")

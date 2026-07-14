@@ -21,6 +21,8 @@ import {
 
 import { createWorkerThreadRuntime } from "../../environment";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { buildMetricContext, compileHirArtifacts } from "../../hir";
+import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
@@ -122,6 +124,7 @@ function publishAllDiagnostics(
   }
 
   // Include diagnostics for all active metric sessions
+  const metricHirContext = buildMetricContext(sdcpn, extensions);
   for (const [, session] of metricSessions) {
     const metricFiles = server.getMetricFileNames(session.sessionId);
     for (const filePath of metricFiles) {
@@ -137,6 +140,16 @@ function publishAllDiagnostics(
       const semanticDiags = server.getSemanticDiagnostics(filePath);
       const syntacticDiags = server.getSyntacticDiagnostics(filePath);
       const allDiags = [...syntacticDiags, ...semanticDiags];
+      // When TypeScript is clean, run the HIR lint over the metric body —
+      // it reports domain rules and (metric-only) buffer-compilability.
+      const hasTsError = allDiags.some(
+        (diag) => diag.category === ts.DiagnosticCategory.Error,
+      );
+      if (!hasTsError) {
+        allDiags.push(
+          ...getHirDiagnosticsForItem(userContent, metricHirContext),
+        );
+      }
       params.push({
         uri,
         diagnostics: allDiags.map((diag) =>
@@ -366,6 +379,15 @@ workerRuntime.onMessage((data) => {
       }
 
       // --- Requests (send response) ---
+
+      case "sdcpn/compileHirArtifacts": {
+        const { id } = data;
+        respond(
+          id,
+          compileHirArtifacts(data.params.sdcpn, data.params.extensions),
+        );
+        break;
+      }
 
       case "textDocument/completion": {
         const { id } = data;

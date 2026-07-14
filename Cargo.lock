@@ -3783,6 +3783,7 @@ dependencies = [
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-migrations",
+ "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",

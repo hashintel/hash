@@ -3,11 +3,7 @@ import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  metricSchema,
-  compileMetric,
-  type Metric,
-} from "@hashintel/petrinaut-core";
+import { metricSchema, type Metric } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -20,7 +16,7 @@ import {
   useMetricForm,
   useMetricLspSession,
 } from "./metric-form";
-import { summarizeMetricLspErrors } from "./metric-lsp";
+import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 
 // -- Defaults -----------------------------------------------------------------
@@ -37,13 +33,11 @@ function buildDefaultsFromMetric(metric: Metric): MetricFormState {
 
 const ViewMetricFooter = ({
   form,
-  compileError,
   metricSessionId,
   onDelete,
   onClose,
 }: {
   form: MetricFormInstance;
-  compileError: string | null;
   metricSessionId: string;
   onDelete: () => void;
   onClose: () => void;
@@ -61,10 +55,9 @@ const ViewMetricFooter = ({
   const formError = formErrors.find((e) => typeof e === "string") as
     | string
     | undefined;
-  const hasErrors = !!formError || hasLspErrors || !!compileError;
-  const totalErrorCount =
-    (formError ? 1 : 0) + lspErrorCount + (compileError ? 1 : 0);
-  const firstError = formError ?? firstLspMessage ?? compileError ?? undefined;
+  const hasErrors = !!formError || hasLspErrors;
+  const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
+  const firstError = formError ?? firstLspMessage ?? undefined;
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
@@ -89,8 +82,9 @@ const ViewMetricFooter = ({
               formError ??
               (hasLspErrors
                 ? "Fix the errors in the metric code before saving."
-                : (compileError ??
-                  (isDefaultValue ? "No changes to save." : undefined)))
+                : isDefaultValue
+                  ? "No changes to save."
+                  : undefined)
             }
             onClick={() => {
               void form.handleSubmit();
@@ -113,7 +107,8 @@ const ViewMetricContent = ({
   metric: Metric;
   onClose: () => void;
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { updateMetric, removeMetric } = usePetrinautMutations();
 
   // Names of OTHER metrics — exclude the one being edited so it can keep
@@ -142,21 +137,21 @@ const ViewMetricContent = ({
       });
       onClose();
     },
-    { existingMetricNames },
+    {
+      existingMetricNames,
+      validateOnSubmit: async (value) =>
+        await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: petriNetDefinition,
+          extensions,
+          metric: buildMetricFromFormState(value, metric.id),
+        }),
+    },
   );
 
-  // Compile-check the live code.
+  // Live validation (TypeScript + HIR semantic/compilability checks) comes
+  // from the metric LSP session diagnostics.
   const values = useStore(form.store, (state) => state.values);
-  const compileOutcome =
-    values.code.trim() === ""
-      ? null
-      : compileMetric({
-          id: metric.id,
-          name: values.name || metric.name,
-          code: values.code,
-        });
-  const compileError =
-    compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
 
   // Owned here (not in MetricFormBody) so the footer can scope its LSP
   // diagnostics summary to the same session.
@@ -179,7 +174,6 @@ const ViewMetricContent = ({
       </Drawer.Body>
       <ViewMetricFooter
         form={form}
-        compileError={compileError}
         metricSessionId={metricSessionId}
         onDelete={handleDelete}
         onClose={onClose}

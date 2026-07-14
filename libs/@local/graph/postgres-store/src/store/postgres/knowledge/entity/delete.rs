@@ -15,7 +15,7 @@ use hash_graph_temporal_versioning::{
     DecisionTime, TemporalTagged as _, Timestamp, TransactionTime,
 };
 use postgres_types::ToSql;
-use tokio_postgres::Transaction;
+use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
@@ -29,7 +29,7 @@ use type_system::{
 };
 
 use crate::store::{
-    AsClient as _, PostgresStore,
+    AsClient, InTransaction, PostgresStore,
     postgres::query::{Distinctness, SelectCompiler},
 };
 
@@ -81,7 +81,10 @@ enum DeletionTarget<'a> {
 /// Without a transaction these locks would be released immediately, defeating the purpose.
 ///
 /// [`patch_entity`]: hash_graph_store::entity::EntityStore::patch_entity
-impl PostgresStore<Transaction<'_>> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Finds entities matching `filter` and partitions them into full vs draft-only deletions.
     ///
     /// A published match (or a match that subsumes all drafts of a draft-only entity) produces

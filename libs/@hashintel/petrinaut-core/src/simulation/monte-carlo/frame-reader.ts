@@ -1,6 +1,6 @@
 import { readTokenRecord } from "../engine/token-layout";
 
-import type { Place, TokenRecord } from "../../types/sdcpn";
+import type { TokenRecord } from "../../types/sdcpn";
 import type { SimulationFrameReader, SimulationFrameState } from "../api";
 import type { MonteCarloRunState } from "./internal-types";
 
@@ -21,7 +21,16 @@ export function createMonteCarloFrameReader(
     number: run.frameNumber,
     time: run.frameNumber * simulation.dt,
     getPlaceTokenCount,
-    getPlaceTokens(place: Place) {
+    getRawView() {
+      return {
+        ...currentFrame.tokenViews,
+        placeCounts: currentFrame.placeCounts,
+        placeOffsets: currentFrame.placeOffsets,
+        placeIndexById: frameLayout.placeIndexById,
+        stringPool: simulation.stringPool,
+      };
+    },
+    getPlaceTokens(place) {
       const placeIndex = frameLayout.placeIndexById.get(place.id);
       if (placeIndex === undefined) {
         return [];

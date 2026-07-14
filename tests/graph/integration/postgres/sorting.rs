@@ -30,17 +30,17 @@ use uuid::Uuid;
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
 async fn test_root_sorting_chunked<const N: usize, const M: usize>(
-    api: &DatabaseApi<'_>,
+    api: &mut DatabaseApi<'_>,
     sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
     expected_order: [PropertyObject; M],
 ) {
     for chunk_size in 0..expected_order.len() {
-        test_root_sorting(api, chunk_size + 1, sort.clone(), &expected_order).await;
+        test_root_sorting(&mut *api, chunk_size + 1, sort.clone(), &expected_order).await;
     }
 }
 
 async fn test_root_sorting(
-    api: &DatabaseApi<'_>,
+    api: &mut DatabaseApi<'_>,
     chunk_size: usize,
     sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
     expected_order: impl IntoIterator<Item = &PropertyObject> + Send,
@@ -53,6 +53,7 @@ async fn test_root_sorting(
             nulls: Some(nulls),
         })
         .collect::<Vec<_>>();
+    let actor_id = api.account_id;
     let mut cursor = None;
 
     let mut found_entities = HashSet::new();
@@ -66,7 +67,7 @@ async fn test_root_sorting(
             definitions: _,
             entity_permissions: _,
         } = Box::pin(api.query_entity_subgraph(
-            api.account_id,
+            actor_id,
             QueryEntitySubgraphParams::Paths {
                 traversal_paths: Vec::new(),
                 request: QueryEntitiesParams {
@@ -246,10 +247,10 @@ fn page_v2() -> PropertyObject {
 #[tokio::test]
 async fn uuid_ascending() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
 
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [(
             EntityQueryPath::Uuid,
             Ordering::Ascending,
@@ -263,10 +264,10 @@ async fn uuid_ascending() {
 #[tokio::test]
 async fn uuid_descending() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
 
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [(
             EntityQueryPath::Uuid,
             Ordering::Descending,
@@ -280,10 +281,10 @@ async fn uuid_descending() {
 #[tokio::test]
 async fn age_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
 
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (age_property_path(), Ordering::Ascending, NullOrdering::Last),
             (
@@ -300,10 +301,10 @@ async fn age_ascending_last() {
 #[tokio::test]
 async fn age_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
 
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -324,9 +325,9 @@ async fn age_ascending_first() {
 #[tokio::test]
 async fn age_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -347,9 +348,9 @@ async fn age_descending_last() {
 #[tokio::test]
 async fn age_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -370,9 +371,9 @@ async fn age_descending_first() {
 #[tokio::test]
 async fn age_ascending_last_name_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (age_property_path(), Ordering::Ascending, NullOrdering::Last),
             (
@@ -394,9 +395,9 @@ async fn age_ascending_last_name_ascending_last() {
 #[tokio::test]
 async fn age_ascending_last_name_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (age_property_path(), Ordering::Ascending, NullOrdering::Last),
             (
@@ -418,9 +419,9 @@ async fn age_ascending_last_name_ascending_first() {
 #[tokio::test]
 async fn age_ascending_first_name_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -446,9 +447,9 @@ async fn age_ascending_first_name_ascending_last() {
 #[tokio::test]
 async fn age_ascending_first_name_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -474,9 +475,9 @@ async fn age_ascending_first_name_ascending_first() {
 #[tokio::test]
 async fn age_ascending_last_name_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (age_property_path(), Ordering::Ascending, NullOrdering::Last),
             (
@@ -498,9 +499,9 @@ async fn age_ascending_last_name_descending_last() {
 #[tokio::test]
 async fn age_ascending_first_name_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -526,9 +527,9 @@ async fn age_ascending_first_name_descending_last() {
 #[tokio::test]
 async fn age_ascending_last_name_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (age_property_path(), Ordering::Ascending, NullOrdering::Last),
             (
@@ -550,9 +551,9 @@ async fn age_ascending_last_name_descending_first() {
 #[tokio::test]
 async fn age_ascending_first_name_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -578,9 +579,9 @@ async fn age_ascending_first_name_descending_first() {
 #[tokio::test]
 async fn age_descending_last_name_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -606,9 +607,9 @@ async fn age_descending_last_name_ascending_last() {
 #[tokio::test]
 async fn age_descending_first_name_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -634,9 +635,9 @@ async fn age_descending_first_name_ascending_last() {
 #[tokio::test]
 async fn age_descending_last_name_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -662,9 +663,9 @@ async fn age_descending_last_name_ascending_first() {
 #[tokio::test]
 async fn age_descending_first_name_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -690,9 +691,9 @@ async fn age_descending_first_name_ascending_first() {
 #[tokio::test]
 async fn age_descending_last_name_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -718,9 +719,9 @@ async fn age_descending_last_name_descending_last() {
 #[tokio::test]
 async fn age_descending_first_name_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -746,9 +747,9 @@ async fn age_descending_first_name_descending_last() {
 #[tokio::test]
 async fn age_descending_last_name_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),
@@ -774,9 +775,9 @@ async fn age_descending_last_name_descending_first() {
 #[tokio::test]
 async fn age_descending_first_name_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
-    let api = insert(&mut database).await;
+    let mut api = insert(&mut database).await;
     test_root_sorting_chunked(
-        &api,
+        &mut api,
         [
             (
                 age_property_path(),

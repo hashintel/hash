@@ -1,11 +1,40 @@
 import { describe, expect, it } from "vitest";
 
+import { compileHirArtifacts } from "../../hir";
 import { compileSimulationFrameReader } from "../frames/frame-reader";
 import { materializeEngineFrame } from "../frames/internal-frame";
-import { buildSimulation } from "./build-simulation";
+import { buildSimulation as buildSimulationRaw } from "./build-simulation";
 import { decodePlaceTokens } from "./token-layout.test-helpers";
 
+import type { HirCompiledBufferLambda } from "../../hir-runtime";
 import type { SimulationInput } from "./types";
+
+/** buildSimulation with HIR artifacts compiled from the input's SDCPN (the
+ * engine no longer compiles user code itself). */
+function buildSimulation(
+  input: SimulationInput,
+): ReturnType<typeof buildSimulationRaw> {
+  return buildSimulationRaw({
+    ...input,
+    hirArtifacts:
+      input.hirArtifacts ??
+      compileHirArtifacts(input.sdcpn, input.extensions).artifacts,
+  });
+}
+
+/** Calls a buffer-ABI lambda with empty views (for constant lambdas whose
+ * result does not depend on token attributes). */
+function callLambda(
+  lambdaFn: HirCompiledBufferLambda | undefined,
+): number | boolean | undefined {
+  return lambdaFn?.(
+    new Float64Array(0),
+    new BigUint64Array(0),
+    new Uint8Array(0),
+    new Int32Array(0),
+    new Int32Array(0),
+  );
+}
 
 describe("buildSimulation", () => {
   it("packs and decodes integer and boolean token attributes", () => {
@@ -126,7 +155,9 @@ describe("buildSimulation", () => {
       maxTime: null,
     });
 
-    expect(simulation.compiledTransitions.get("t1")?.lambdaFn({})).toBe(true);
+    expect(callLambda(simulation.compiledTransitions.get("t1")?.lambdaFn)).toBe(
+      true,
+    );
   });
 
   it("uses an always-firing stochastic Lambda when stochasticity is enabled and Lambda code is empty", () => {
@@ -167,7 +198,7 @@ describe("buildSimulation", () => {
       maxTime: null,
     });
 
-    expect(simulation.compiledTransitions.get("t1")?.lambdaFn({})).toBe(
+    expect(callLambda(simulation.compiledTransitions.get("t1")?.lambdaFn)).toBe(
       Infinity,
     );
   });
@@ -217,7 +248,9 @@ describe("buildSimulation", () => {
       maxTime: null,
     });
 
-    expect(simulation.compiledTransitions.get("t1")?.lambdaFn({})).toBe(false);
+    expect(callLambda(simulation.compiledTransitions.get("t1")?.lambdaFn)).toBe(
+      false,
+    );
   });
 
   it("still compiles predicate Lambda code when stochasticity is disabled but coloured inputs exist", () => {
@@ -273,11 +306,11 @@ describe("buildSimulation", () => {
         dt: 0.1,
         maxTime: null,
       }),
-    ).toThrow("Failed to compile Lambda function");
+    ).toThrow("The Lambda code for `Move` has not been compiled");
   });
 
   it("does not expose Distribution to transition kernels when stochasticity is disabled", () => {
-    const simulation = buildSimulation({
+    const input: SimulationInput = {
       sdcpn: {
         types: [
           {
@@ -329,11 +362,24 @@ describe("buildSimulation", () => {
       seed: 42,
       dt: 0.1,
       maxTime: null,
-    });
+    };
 
-    expect(() =>
-      simulation.compiledTransitions.get("t1")?.transitionKernelFn({}),
-    ).toThrow("Distribution");
+    // Distribution usage is rejected at compile time when stochasticity is
+    // disabled — the kernel gets no artifact...
+    const { artifacts, failures } = compileHirArtifacts(
+      input.sdcpn,
+      input.extensions,
+    );
+    expect(artifacts.kernels.t1).toBeUndefined();
+    expect(failures).toMatchObject([
+      { itemId: "t1", itemType: "transition-kernel" },
+    ]);
+    expect(failures[0]!.diagnostics[0]!.message).toMatch(
+      /Distribution|stochasticity/,
+    );
+
+    // ...so the simulation refuses to start.
+    expect(() => buildSimulation(input)).toThrow(/has not been compiled/);
   });
 
   it("ignores supplied parameter values when parameters are disabled", () => {
@@ -553,7 +599,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -650,13 +696,13 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
           {
             id: "diffeq2",
             name: "Differential Equation 2",
             colorId: "type2",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -698,7 +744,7 @@ describe("buildSimulation", () => {
             lambdaType: "stochastic",
             lambdaCode: "export default Lambda((tokens) => { return 1.0; });",
             transitionKernelCode:
-              "export default TransitionKernel((tokens) => { return [[[1.0, 2.0]]]; });",
+              'export default TransitionKernel((input) => ({ "Place 2": [{ x: 1.0, y: 2.0 }] }));',
             x: 50,
             y: 0,
           },
@@ -710,7 +756,7 @@ describe("buildSimulation", () => {
             lambdaType: "stochastic",
             lambdaCode: "export default Lambda((tokens) => { return 2.0; });",
             transitionKernelCode:
-              "export default TransitionKernel((tokens) => { return [[[5.0]]]; });",
+              'export default TransitionKernel((input) => ({ "Place 3": [{ x: 5.0 }] }));',
             x: 150,
             y: 0,
           },
@@ -797,7 +843,7 @@ describe("buildSimulation", () => {
 
     const kernelTransition = simulationInstance.compiledTransitions.get("t2");
     expect(kernelTransition).toBeDefined();
-    expect(typeof kernelTransition?.transitionKernelFn).toBe("function");
+    expect(typeof kernelTransition?.kernelFn).toBe("function");
   });
 
   it("throws error when initialMarking references non-existent place", () => {
@@ -817,7 +863,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],
@@ -868,7 +914,7 @@ describe("buildSimulation", () => {
             id: "diffeq1",
             name: "Differential Equation 1",
             colorId: "type1",
-            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            code: "export default Dynamics((tokens) => tokens.map(() => ({})));",
           },
         ],
         parameters: [],

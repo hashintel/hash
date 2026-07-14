@@ -7,6 +7,7 @@ import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
 import type { AbortSignalLike } from "../../../environment";
 import type { PetrinautExtensionSettings } from "../../../extensions";
+import type { HirArtifacts } from "../../../hir-runtime";
 import type { EventStream } from "../../../instance";
 import type { ReadableStore } from "../../../store";
 import type { SDCPN } from "../../../types/sdcpn";
@@ -53,6 +54,9 @@ type CreateMonteCarloExperimentBaseConfig = {
   seed: number;
   dt: number;
   maxTime: number;
+  /** Precompiled HIR artifacts (`compileHirArtifacts`) — required for any
+   * dynamics/lambda/kernel user code in the net. */
+  hirArtifacts?: HirArtifacts;
   runCount: number;
   batchSize?: number;
   signal?: AbortSignalLike;
@@ -307,6 +311,7 @@ function createLocalMonteCarloExperiment(
       seed: config.seed,
       dt: config.dt,
       maxTime: config.maxTime,
+      hirArtifacts: config.hirArtifacts,
       runCount: config.runCount,
       metrics: userMetrics,
     });
@@ -628,6 +633,7 @@ export function createMonteCarloExperiment(
         seed: config.seed,
         dt: config.dt,
         maxTime: config.maxTime,
+        hirArtifacts: config.hirArtifacts,
         runCount: config.runCount,
         batchSize: config.batchSize,
         metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,

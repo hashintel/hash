@@ -1127,7 +1127,7 @@ export default TransitionKernel(() => ({}));`,
           {
             elementId: "order_priority",
             name: "priority",
-            type: "integer",
+            type: "real",
           },
           {
             elementId: "order_promise",
@@ -1193,10 +1193,9 @@ export default TransitionKernel(() => ({}));`,
 // reaches 0 the derivative becomes 0 (it holds, ready for arrival predicates).
 // All other attributes are constant during transit (derivative 0).
 export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ eta, risk_score, source, cost }) => ({
+  return tokens.map(({ eta }) => ({
     eta: eta > 0 ? -1 : 0,
     risk_score: 0,
-    source: 0,
     cost: 0,
   }));
 });`,
@@ -1208,7 +1207,7 @@ export default Dynamics((tokens, parameters) => {
         code: `// Every waiting order ages at a constant rate (age derivative = 1), driving
 // the backorder-conversion and cancellation hazards that depend on age.
 export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ age, priority, promised_lead_time }) => ({
+  return tokens.map(() => ({
     age: 1,
     priority: 0,
     promised_lead_time: 0,

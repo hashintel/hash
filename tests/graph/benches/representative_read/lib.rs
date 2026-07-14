@@ -43,7 +43,7 @@ mod ontology;
 
 mod seed;
 
-use core::{iter, str::FromStr as _};
+use core::{cell::RefCell, iter, str::FromStr as _};
 
 use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
@@ -72,7 +72,9 @@ fn bench_representative_read_entity(crit: &mut Criterion) {
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
-    let store = &store_wrapper.store;
+    // `query_entities` takes `&mut self` to run the read in a single transaction; the `RefCell`
+    // provides the mutable borrow from within the benchmark closures.
+    let store = RefCell::new(&mut *store_wrapper.store);
 
     for (account_id, type_ids_and_entity_uuids) in samples.entities {
         for (entity_type_id, entity_uuids) in type_ids_and_entity_uuids {
@@ -86,7 +88,7 @@ fn bench_representative_read_entity(crit: &mut Criterion) {
                     knowledge::entity::bench_get_entity_by_id(
                         bencher,
                         &runtime,
-                        store,
+                        &store,
                         account_id,
                         entity_uuids,
                     );
@@ -109,6 +111,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
     let _samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
+    let account_id = store_wrapper.account_id;
+    // `query_entity_subgraph` takes `&mut self` to run the read in a single transaction; the
+    // `RefCell` provides the mutable borrow from within the benchmark closures.
+    let store = RefCell::new(&mut *store_wrapper.store);
 
     let traversal_params = [
         SubgraphTraversalParams::Paths {
@@ -248,8 +254,8 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                 knowledge::entity::bench_query_entities_by_property(
                     bencher,
                     &runtime,
-                    &store_wrapper.store,
-                    store_wrapper.account_id,
+                    &store,
+                    account_id,
                     traversal_params,
                 );
             },
@@ -267,8 +273,8 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                 knowledge::entity::bench_get_link_by_target_by_property(
                     bencher,
                     &runtime,
-                    &store_wrapper.store,
-                    store_wrapper.account_id,
+                    &store,
+                    account_id,
                     traversal_params,
                 );
             },

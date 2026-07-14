@@ -193,6 +193,7 @@ workerRuntime.onMessage((message) => {
           seed: message.seed,
           dt: message.dt,
           maxTime: message.maxTime,
+          hirArtifacts: message.hirArtifacts,
         });
 
         // Configure backpressure from init message or use defaults
