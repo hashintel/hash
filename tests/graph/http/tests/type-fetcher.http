@@ -1,7 +1,12 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+#
+# The type fetcher is addressed as `localhost` (not `127.0.0.1`) on purpose: the embedded type
+# fetcher binds the host configured via `HASH_GRAPH_TYPE_FETCHER_HOST`, which is `localhost` in CI
+# and in `.env`. On IPv6-capable hosts `localhost` resolves to `::1` first, so the listener may
+# only be reachable via `::1` and not via `127.0.0.1`.
 
 ### Health check (GET)
-GET http://127.0.0.1:4455/health
+GET http://localhost:4455/health
 
 > {%
     client.test("status", function() {
@@ -10,7 +15,7 @@ GET http://127.0.0.1:4455/health
 %}
 
 ### Health check (HEAD, used by the healthcheck probes)
-HEAD http://127.0.0.1:4455/health
+HEAD http://localhost:4455/health
 
 > {%
     client.test("status", function() {
@@ -19,7 +24,7 @@ HEAD http://127.0.0.1:4455/health
 %}
 
 ### Fetch a bundled built-in data type
-POST http://127.0.0.1:4455/fetch-ontology-types
+POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
 [
@@ -43,7 +48,7 @@ Content-Type: application/json
 %}
 
 ### Fetch multiple bundled built-in data types
-POST http://127.0.0.1:4455/fetch-ontology-types
+POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
 [
@@ -71,7 +76,7 @@ Content-Type: application/json
 %}
 
 ### Fetch an unresolvable URL
-POST http://127.0.0.1:4455/fetch-ontology-types
+POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
 [
@@ -88,7 +93,7 @@ Content-Type: application/json
 %}
 
 ### Well-formed JSON which is not a list of versioned URLs
-POST http://127.0.0.1:4455/fetch-ontology-types
+POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
 {
@@ -102,7 +107,7 @@ Content-Type: application/json
 %}
 
 ### Malformed JSON body
-POST http://127.0.0.1:4455/fetch-ontology-types
+POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
 not-json
