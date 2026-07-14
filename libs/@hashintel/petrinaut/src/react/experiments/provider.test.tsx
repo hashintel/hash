@@ -559,10 +559,25 @@ describe("ExperimentsProvider", () => {
         });
 
         await flushWorkerSetup();
-        expect(worker.sent[0]).toMatchObject({
+        const initMessage = worker.sent[0];
+        expect(initMessage).toMatchObject({
           type: "init",
           metricSpecs,
         });
+        if (initMessage?.type !== "init") {
+          throw new Error("Expected the experiment init message");
+        }
+        expect(initMessage.sdcpn.metrics).toEqual([
+          {
+            id: "constant",
+            name: "Constant",
+            code: "return 1;",
+          },
+        ]);
+        expect(initMessage.hirArtifacts?.fingerprint).toBe(
+          compileHirArtifacts(initMessage.sdcpn, initMessage.extensions)
+            .artifacts.fingerprint,
+        );
         worker.emit({ type: "ready" });
         await createPromise;
       });

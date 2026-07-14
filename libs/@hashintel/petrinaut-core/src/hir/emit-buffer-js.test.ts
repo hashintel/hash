@@ -639,6 +639,39 @@ return tokens.reduce((sum, t) => sum + t.x, 0) / tokens.length;`,
     expect(() => fractional(...args)).toThrow(/out of bounds/i);
   });
 
+  it("runs dynamic-index guards only in the selected conditional branch", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const fn = compileMetric(
+      `const tokens = state.places.Pool.tokens;
+if (tokens.length === 0) return 0;
+return tokens[0].x;`,
+      pool,
+      frame.placeIndexByName,
+    );
+
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(1.5);
+
+    const emptyCounts = new Uint32Array([0, 0, 0]);
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        emptyCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(0);
+  });
+
   it("registers referenced places in first-reference order", () => {
     const program = emitBufferMetricJs(
       lower(

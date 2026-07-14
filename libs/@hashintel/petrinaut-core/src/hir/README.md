@@ -57,9 +57,7 @@ transition outputs.
 | Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                     |
 
 There is no runtime fallback from an HIR surface to the non-HIR compilers. Code
-outside the supported HIR subset is a blocking diagnostic. The proposed
-Petrinaut DSL in [`dsl-sketch.md`](./dsl-sketch.md) is not implemented; it is a
-future frontend intended to lower to the same HIR.
+outside the supported HIR subset is a blocking diagnostic.
 
 ## Main modules
 
@@ -124,4 +122,3 @@ The HIR test suite covers:
 ## Related notes
 
 - [`BUFFER_ABI.md`](./BUFFER_ABI.md): packed-buffer runtime contract.
-- [`dsl-sketch.md`](./dsl-sketch.md): possible future Petrinaut DSL frontend.

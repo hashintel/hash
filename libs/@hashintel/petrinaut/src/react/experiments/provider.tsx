@@ -371,15 +371,16 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const expressionSpecs = input.metricSpecs.filter(
           (spec) => spec.kind === "expression",
         );
+        const compiledExperimentSdcpn = {
+          ...experimentSdcpn,
+          metrics: expressionSpecs.map((spec) => ({
+            id: spec.id,
+            name: spec.label,
+            code: spec.code,
+          })),
+        };
         const { artifacts, failures } = await requestHirArtifacts(
-          {
-            ...experimentSdcpn,
-            metrics: expressionSpecs.map((spec) => ({
-              id: spec.id,
-              name: spec.label,
-              code: spec.code,
-            })),
-          },
+          compiledExperimentSdcpn,
           experimentExtensions,
         );
 
@@ -407,7 +408,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         });
 
         const experimentConfigBase = {
-          sdcpn: experimentSdcpn,
+          // Artifact fingerprints cover the complete sanitized SDCPN, including
+          // its metric definitions. Run the worker against the exact snapshot
+          // used above rather than the pre-substitution model.
+          sdcpn: compiledExperimentSdcpn,
           extensions: experimentExtensions,
           initialMarking,
           parameterValues,

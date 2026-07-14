@@ -7,8 +7,8 @@
  * confident — TypeScript remains the authoritative type oracle for TS-authored
  * code, so these diagnostics focus on friendlier, domain-specific messages
  * (unknown attribute, derivative on a discrete attribute, Distribution into a
- * discrete attribute, ...) and on standalone use where no TS checker runs
- * (the future DSL, runtime compilation).
+ * discrete attribute, ...) and on runtime compilation paths where no
+ * TypeScript checker runs.
  */
 import {
   formatHirType,

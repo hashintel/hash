@@ -2,10 +2,9 @@
  * HIR — high-level intermediate representation for Petrinaut user code.
  *
  * The HIR is a source-spanned, JSON-serializable expression tree that sits
- * between the surface language (today TypeScript, later the Petrinaut DSL) and
- * the execution backends (JavaScript today, WASM/GPU later). Nodes carry ids
- * and spans, not inferred types; `typecheck.ts` computes a separate
- * `Map<HirNodeId, HirType>`.
+ * between the TypeScript authoring surface and the execution backends
+ * (JavaScript today, WASM/GPU later). Nodes carry ids and spans, not inferred
+ * types; `typecheck.ts` computes a separate `Map<HirNodeId, HirType>`.
  *
  * Design invariants:
  * - Every node carries a stable `id` (unique within one `HirFunction`) and a

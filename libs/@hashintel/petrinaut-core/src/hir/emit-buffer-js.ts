@@ -505,19 +505,38 @@ class BufferEmitter {
       }
       case "cond": {
         const condition = this.scalar(this.eval(expr.condition, env));
+        const thenMark = this.lines.length;
         const thenValue = this.eval(expr.thenBranch, env);
+        const thenLines = this.lines.splice(thenMark);
+        const elseMark = this.lines.length;
         const elseValue = this.eval(expr.elseBranch, env);
-        if (thenValue.kind === "scalar" && elseValue.kind === "scalar") {
-          return {
-            kind: "scalar",
-            code: `(${condition} ? ${thenValue.code} : ${elseValue.code})`,
-          };
-        }
-        if (thenValue.kind === "dist" && elseValue.kind === "dist") {
-          return {
-            kind: "dist",
-            code: `(${condition} ? ${thenValue.code} : ${elseValue.code})`,
-          };
+        const elseLines = this.lines.splice(elseMark);
+        if (
+          (thenValue.kind === "scalar" && elseValue.kind === "scalar") ||
+          (thenValue.kind === "dist" && elseValue.kind === "dist")
+        ) {
+          if (thenLines.length === 0 && elseLines.length === 0) {
+            return {
+              kind: thenValue.kind,
+              code: `(${condition} ? ${thenValue.code} : ${elseValue.code})`,
+            };
+          }
+
+          // Some expressions emit prerequisite statements (metric reduce loops,
+          // dynamic-index guards). Keep those statements inside the branch that
+          // owns them so an untaken branch cannot do work or throw.
+          const result = this.names.allocate("__conditional");
+          this.lines.push(
+            `let ${result};`,
+            `if (${condition}) {`,
+            ...thenLines.map((line) => `  ${line}`),
+            `  ${result} = ${thenValue.code};`,
+            `} else {`,
+            ...elseLines.map((line) => `  ${line}`),
+            `  ${result} = ${elseValue.code};`,
+            `}`,
+          );
+          return { kind: thenValue.kind, code: result };
         }
         // Structural conditionals (records/tuples) stay on the object path.
         throw new BailError();
@@ -629,10 +648,8 @@ class BufferEmitter {
    * when the index parameter is used, a global running index continues
    * across parts.
    *
-   * Note: a reduce nested inside a `cond` branch is evaluated eagerly (the
-   * loop is emitted unconditionally before the ternary that consumes the
-   * accumulator). That is semantically safe — the HIR is pure — and only
-   * costs redundant work on the untaken branch.
+   * A reduce nested inside a `cond` branch is captured by the conditional
+   * emitter and runs only when that branch is selected.
    */
   private evalReduce(
     expr: Extract<HirExpr, { kind: "arrayReduce" }>,
