@@ -1,6 +1,13 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
-import { proxyTabFocus } from "@zag-js/dom-query";
+import {
+  addDomEvent,
+  contains,
+  getTabbableEdges,
+  getTabbables,
+  isActiveElement,
+  raf,
+} from "@zag-js/dom-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -17,6 +24,94 @@ import { positionerStyles } from "./popover.recipe";
 /** Reads the current element out of a (possibly callback) ref, when available. */
 const resolveRef = (ref: React.Ref<Element>): Element | null =>
   ref && typeof ref === "object" && "current" in ref ? ref.current : null;
+
+/**
+ * Proxies Tab focus around an external trigger so the portalled content behaves
+ * as if it were inline right after the trigger: tabbing off the last item lands
+ * on the next tabbable after the trigger, and Shift+Tab from there returns into
+ * the content.
+ *
+ * This mirrors `proxyTabFocus` from `@zag-js/dom-query`, except the "next
+ * tabbable after the trigger" is resolved over the tabbables that live *outside*
+ * the content. The content is portalled to the end of the DOM, so when the
+ * trigger is the last tabbable on the page the library's own search returns the
+ * content's own first item - looping focus back in and trapping it.
+ */
+const proxyTabAroundTrigger = ({
+  getContent,
+  getTrigger,
+  onFocus,
+}: {
+  getContent: () => HTMLElement | null;
+  getTrigger: () => HTMLElement | null;
+  onFocus: (element: HTMLElement) => void;
+}): (() => void) => {
+  // Defer a frame (as the library does) so Ark has mounted the content before
+  // we read its tabbables; collect both cleanups so neither leaks on unmount.
+  const cleanups: Array<(() => void) | undefined> = [];
+
+  cleanups.push(
+    raf(() => {
+      const content = getContent();
+      const trigger = getTrigger();
+      const doc = content?.ownerDocument ?? document;
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== "Tab") {
+          return;
+        }
+
+        const [firstTabbable, lastTabbable] = getTabbableEdges(content, {
+          includeContainer: true,
+          getShadowRoot: true,
+        });
+
+        const outsideContent = getTabbables(doc.body, {
+          getShadowRoot: true,
+        }).filter((element) => !contains(content, element));
+        const triggerIndex = trigger ? outsideContent.indexOf(trigger) : -1;
+        const nextTabbableAfterTrigger =
+          triggerIndex === -1
+            ? null
+            : (outsideContent[triggerIndex + 1] ?? null);
+
+        const noTabbableElements = !firstTabbable && !lastTabbable;
+
+        let elementToFocus: HTMLElement | null = null;
+        if (event.shiftKey && isActiveElement(nextTabbableAfterTrigger)) {
+          elementToFocus = lastTabbable;
+        } else if (
+          event.shiftKey &&
+          (isActiveElement(firstTabbable) || noTabbableElements)
+        ) {
+          elementToFocus = trigger;
+        } else if (!event.shiftKey && isActiveElement(trigger)) {
+          elementToFocus = firstTabbable;
+        } else if (
+          !event.shiftKey &&
+          (isActiveElement(lastTabbable) || noTabbableElements)
+        ) {
+          elementToFocus = nextTabbableAfterTrigger;
+        }
+
+        if (!elementToFocus) {
+          return;
+        }
+
+        event.preventDefault();
+        onFocus(elementToFocus);
+      };
+
+      cleanups.push(addDomEvent(doc, "keydown", onKeyDown, true));
+    }),
+  );
+
+  return () => {
+    for (const cleanup of cleanups) {
+      cleanup?.();
+    }
+  };
+};
 
 export type PopoverProps = {
   className?: string;
@@ -99,13 +194,12 @@ const PopoverRoot = ({
       return undefined;
     }
 
-    return proxyTabFocus(() => contentRef.current, {
-      triggerElement: () => {
+    return proxyTabAroundTrigger({
+      getContent: () => contentRef.current,
+      getTrigger: () => {
         const el = resolveRef(triggerRef);
         return el instanceof HTMLElement ? el : null;
       },
-      defer: true,
-      getShadowRoot: true,
       onFocus: (el) => {
         el.focus({ preventScroll: true });
       },
