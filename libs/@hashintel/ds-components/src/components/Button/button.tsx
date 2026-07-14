@@ -150,8 +150,7 @@ export const Button = (props: ButtonProps) => {
     ((!!suffixContent && !prefixContent) ||
       (!!prefixContent && !suffixContent)) &&
     !children;
-  const isPressed =
-    !!pressed || !!rest["aria-pressed"] || !!rest["aria-expanded"];
+  const isPressed = !!pressed || !!rest["aria-pressed"];
 
   const classes = styles({
     size,
@@ -160,7 +159,7 @@ export const Button = (props: ButtonProps) => {
     tone,
     isLoading: loading,
     isDisabled: disabled || loading,
-    isPressed,
+    isPressed: isPressed || !!rest["aria-expanded"],
     hasIcon,
     hasIconLeft: !!prefixContent,
     hasIconRight: !!suffixContent,
