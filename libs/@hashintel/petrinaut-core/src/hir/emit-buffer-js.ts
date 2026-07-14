@@ -496,11 +496,33 @@ class BufferEmitter {
       case "binary": {
         const op =
           expr.op === "==" ? "===" : expr.op === "!=" ? "!==" : expr.op;
+        const left = this.scalar(this.eval(expr.left, env));
+        const rightMark = this.lines.length;
+        const right = this.scalar(this.eval(expr.right, env));
+        const rightLines = this.lines.splice(rightMark);
+
+        // The right operand can emit prerequisite statements (for example a
+        // dynamic metric-token index guard). Preserve short-circuiting by
+        // keeping those statements inside the branch that evaluates it.
+        if ((op === "&&" || op === "||") && rightLines.length > 0) {
+          const leftResult = this.names.allocate("__left");
+          const result = this.names.allocate("__shortCircuit");
+          const evaluatesRight = op === "&&" ? leftResult : `!(${leftResult})`;
+          this.lines.push(
+            `const ${leftResult} = ${left};`,
+            `let ${result};`,
+            `if (${evaluatesRight}) {`,
+            ...rightLines.map((line) => `  ${line}`),
+            `  ${result} = ${right};`,
+            `} else {`,
+            `  ${result} = ${leftResult};`,
+            `}`,
+          );
+          return { kind: "scalar", code: result };
+        }
         return {
           kind: "scalar",
-          code: `(${this.scalar(this.eval(expr.left, env))} ${op} ${this.scalar(
-            this.eval(expr.right, env),
-          )})`,
+          code: `(${left} ${op} ${right})`,
         };
       }
       case "cond": {

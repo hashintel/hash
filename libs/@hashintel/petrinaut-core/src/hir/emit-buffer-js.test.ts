@@ -672,6 +672,33 @@ return tokens[0].x;`,
     ).toBe(0);
   });
 
+  it("short-circuits dynamic-index guards in logical expressions", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const or = compileMetric(
+      `const tokens = state.places.Pool.tokens;
+return tokens.length === 0 || tokens[0].x > 0;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    const and = compileMetric(
+      `const tokens = state.places.Pool.tokens;
+return tokens.length > 0 && tokens[0].x > 0;`,
+      pool,
+      frame.placeIndexByName,
+    );
+    const args = [
+      frame.views.f64,
+      frame.views.u64,
+      frame.views.u8,
+      new Uint32Array([0, 0, 0]),
+      frame.placeOffsets,
+    ] as const;
+
+    expect(or(...args)).toBe(true);
+    expect(and(...args)).toBe(false);
+  });
+
   it("registers referenced places in first-reference order", () => {
     const program = emitBufferMetricJs(
       lower(
