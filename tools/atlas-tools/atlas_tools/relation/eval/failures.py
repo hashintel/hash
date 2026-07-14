@@ -19,6 +19,24 @@ from atlas_tools.relation.eval.schema import AttemptFailure, PhysicalAttemptRow
 
 type FailureCategory = Literal["transport", "provider", "response", "routing", "accounting"]
 
+SYSTEMIC_STATUS_CODES = frozenset({401, 402})
+"""Authentication and billing statuses that doom every subsequent request.
+
+A failure carrying one of these stops the whole session immediately: continuing
+would burn wall time on requests that cannot succeed until the operator fixes
+the account. All other failures are vote-local; the executor defers the vote
+and keeps working the rest of the plan.
+"""
+
+
+def is_systemic_failure(failure: AttemptFailure) -> bool:
+    """Return whether a durable failure indicates an account-wide condition."""
+    return any(
+        status in SYSTEMIC_STATUS_CODES
+        for status in (failure.http_status_code, failure.provider_status_code)
+        if status is not None
+    )
+
 
 @dataclass(frozen=True)
 class RetryDirective:

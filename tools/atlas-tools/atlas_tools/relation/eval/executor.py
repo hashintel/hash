@@ -21,7 +21,7 @@ from atlas_tools.relation.eval.transport import (
     CompletionTransportFactory,
     OpenRouterTransportFactory,
 )
-from atlas_tools.relation.eval.vote import execute_logical_vote
+from atlas_tools.relation.eval.vote import LogicalVoteFailedError, execute_logical_vote
 
 _EXECUTION_PHASE = "Executing relation-evaluation votes"
 
@@ -48,7 +48,19 @@ class VoteCompleted:
 
 
 @dataclass(frozen=True)
+class VoteDeferred:
+    """A vote-local failure; the vote re-enters the plan on the next pass."""
+
+    plan_index: int
+    task: VoteTask
+    attempts: tuple[PhysicalAttemptRow, ...]
+    error: Exception
+
+
+@dataclass(frozen=True)
 class VoteFailed:
+    """A systemic or infrastructure failure that must stop the session."""
+
     plan_index: int
     error: Exception
 
@@ -66,7 +78,7 @@ class WorkerStopped:
     close_error: Exception | None
 
 
-type VoteOutcome = VoteCompleted | VoteFailed | VoteStopped
+type VoteOutcome = VoteCompleted | VoteDeferred | VoteFailed | VoteStopped
 type WorkerEvent = VoteOutcome | WorkerStopped
 
 
@@ -126,6 +138,13 @@ class _WorkSource:
         self.staged = None
         return command
 
+    def requeue(self, commands: Iterator[ExecuteVoteCommand]) -> None:
+        """Start a new pass over deferred votes after the current stream drained."""
+        if self.has_more():
+            raise RuntimeError("cannot requeue deferred votes while work is still pending")
+        self.iterator = commands
+        self.exhausted = False
+
 
 @dataclass
 class _DispatchState:
@@ -155,13 +174,26 @@ class _CommitState:
     next_plan_index: int
     buffered: dict[int, VoteOutcome] = field(default_factory=dict)
     failures: dict[int, Exception] = field(default_factory=dict)
+    deferred: dict[int, VoteDeferred] = field(default_factory=dict)
 
     def remember(self, event: VoteOutcome) -> None:
+        if isinstance(event, VoteDeferred):
+            if event.plan_index in self.deferred:
+                raise RuntimeError(f"duplicate deferred outcome for plan index {event.plan_index}")
+            self.deferred[event.plan_index] = event
+            return
         if event.plan_index in self.buffered:
             raise RuntimeError(f"duplicate worker outcome for plan index {event.plan_index}")
         self.buffered[event.plan_index] = event
         if isinstance(event, VoteFailed):
             self.failures[event.plan_index] = event.error
+
+    def take_deferred_commands(self) -> Iterator[ExecuteVoteCommand]:
+        """Drain the deferral registry into a deterministic re-pass, oldest first."""
+        drained = [self.deferred[index] for index in sorted(self.deferred)]
+        self.deferred.clear()
+        for work in drained:
+            yield ExecuteVoteCommand(work.plan_index, work.task, work.attempts)
 
 
 def _normal_exception(captured: outcome.Error) -> Exception:
@@ -193,6 +225,8 @@ def _capture_vote(
         error = _normal_exception(completed)
         if isinstance(error, ExecutionStoppedError):
             return VoteStopped(command.plan_index)
+        if isinstance(error, LogicalVoteFailedError) and not error.systemic:
+            return VoteDeferred(command.plan_index, command.task, error.attempts, error)
         request.execution_control.stop()
         return VoteFailed(command.plan_index, error)
     return VoteCompleted(command.plan_index, completed.value)
@@ -401,8 +435,10 @@ def _record_worker_event(
         dispatch.stop_for(RuntimeError("worker outcomes exceeded dispatched logical votes"))
         return False
     commits.remember(event)
+    if isinstance(event, VoteDeferred):
+        return False
     if isinstance(event, VoteFailed):
-        dispatch.stop()
+        dispatch.stop_for(event.error)
         return False
     if isinstance(event, VoteStopped):
         dispatch.stop()
@@ -436,11 +472,27 @@ async def _retire_workers(
         state.stop_for(close_errors[min(close_errors)])
 
 
+def _deferred_summary(commits: _CommitState) -> str:
+    families: dict[str, int] = {}
+    for work in commits.deferred.values():
+        family = work.task.judge.family_id
+        families[family] = families.get(family, 0) + 1
+    counts = ", ".join(f"{family}: {count}" for family, count in sorted(families.items()))
+    first = commits.deferred[min(commits.deferred)]
+    return (
+        f"{len(commits.deferred)} logical votes remain failed after re-passes "
+        f"stopped making progress ({counts}); first: {first.error}"
+    )
+
+
 def _raise_execution_error(commits: _CommitState, dispatch: _DispatchState) -> None:
     if commits.failures:
         raise commits.failures[min(commits.failures)]
     if dispatch.infrastructure_error is not None:
         raise dispatch.infrastructure_error
+    if commits.deferred:
+        first = commits.deferred[min(commits.deferred)]
+        raise RuntimeError(_deferred_summary(commits)) from first.error
 
 
 async def _run_worker_pool(
@@ -459,6 +511,7 @@ async def _run_worker_pool(
         maximum,
         request.execution_control,
     )
+    pass_successes = 0
     async with (
         command_send,
         command_receive,
@@ -477,10 +530,18 @@ async def _run_worker_pool(
             cost_gate=cost_gate,
             call_limiter=call_limiter,
         )
-        await _dispatch_available(dispatch, work, command_send)
-        while dispatch.outstanding_votes:
+        while True:
+            await _dispatch_available(dispatch, work, command_send)
+            if not dispatch.outstanding_votes:
+                if dispatch.stopped or not commits.deferred or pass_successes == 0:
+                    break
+                work.requeue(commits.take_deferred_commands())
+                pass_successes = 0
+                continue
             event = await event_receive.receive()
             completed = _record_worker_event(event, dispatch, commits)
+            if completed:
+                pass_successes += 1
             if await _commit_ready(commits, request.paths, request.progress) is not None:
                 dispatch.stop()
             if completed and not dispatch.stopped:
@@ -495,7 +556,6 @@ async def _run_worker_pool(
                     cost_gate=cost_gate,
                     call_limiter=call_limiter,
                 )
-            await _dispatch_available(dispatch, work, command_send)
         await _retire_workers(dispatch, command_send, event_receive)
     _raise_execution_error(commits, dispatch)
 

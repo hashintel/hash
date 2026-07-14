@@ -316,6 +316,24 @@ HOLDOUT: tuple[Holdout, ...] = (
     (qualify_relation_id("wikidata", "P3403"), "coincident"),
 )
 
+HOLDOUT_ALTERNATES: Mapping[RelationId, frozenset[Judgement]] = {
+    # P3403 "coextensive with": two distinct entities (a city and a county with
+    # identical boundaries are different governments and legal persons) whose
+    # typical instances occupy exactly the same physical space. The distinct-
+    # entities reading yields proximal; the shared-footprint reading yields
+    # coincident. Both are defensible under rubric-v1, so scoring accepts
+    # either (operator decision, 2026-07-14). HOLDOUT keeps the canonical
+    # verdict used by slice artifacts; alternates only widen scoring.
+    qualify_relation_id("wikidata", "P3403"): frozenset({"proximal"}),
+}
+
+
+def accepted_holdout_verdicts(relation_id: RelationId) -> frozenset[Judgement]:
+    """Return every verdict that scores as correct for one holdout card."""
+    canonical = dict(HOLDOUT)[relation_id]
+    return frozenset({canonical}) | HOLDOUT_ALTERNATES.get(relation_id, frozenset())
+
+
 SYSTEM_PROMPTS = (SYSTEM_PROMPT_1, SYSTEM_PROMPT_2, SYSTEM_PROMPT_3)
 FRAMINGS = (framing1, framing2, framing3)
 

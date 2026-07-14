@@ -29,6 +29,13 @@ Commit `16b87bd4b1` defined the intended nine-model roster:
 
 Commit `fa36eaf311` removed that roster while refactoring the executor. The roster should have been migrated into a checked-in runtime configuration instead. It is now restored in `config/eval/pilot.yaml`, with the ninth operational slot changed to `inception/mercury-2`: Mistral failed the retention requirement and Grok 4.5 was unavailable in-region. OpenRouter's ZDR inventory lists Mercury 2's single `Inception` endpoint with `reasoning_effort`, `temperature`, and `max_tokens` support.
 
+Two further roster amendments are deliberate operator decisions (2026-07-14), not drift to be "restored":
+
+- Slot 3 runs `openai/gpt-5.6-sol` instead of the recovered `openai/gpt-5.6-sol-pro`. Sol-pro was too inconsistent at producing non-erroneous output; OpenRouter's own health data showed its Azure endpoint degraded (status -2, 93.5% daily uptime) on 2026-07-14.
+- Nemotron moved from DeepInfra to Together with `seed: null` and `temperature: null`. DeepInfra's fp4-quantized endpoint failed 55% of pilot requests (429 storms, 95.8% daily uptime) and produced nonsense at `temperature: 0.0`. Together's endpoint is in the ZDR inventory with 98.5% daily uptime and undeclared (likely less aggressive) quantization, but does not support `seed`. Temperature stays `null` until a preflight demonstrates sane output at `0.0` on Together.
+
+Provider, seed, and temperature are part of every vote's identity: changing any of them invalidates existing run journals. The interrupted 2026-07-14 DeepInfra-nemotron run under `runs/evaluate` is therefore historical evidence only and cannot be resumed under the amended roster.
+
 For the current schema, the persisted `family_id` is derived from the exact `model` ID. It is not authored separately and is not a dated nickname. Provider and OpenRouter region are pinned independently and contribute to vote and request identity.
 
 ## Prompt and execution invariants
@@ -42,7 +49,11 @@ For the current schema, the persisted `family_id` is derived from the exact `mod
 - Verdict parsing case-folds the verdict and validates the last JSON object.
 - One malformed completion gets one conversational repair turn. A second malformed completion becomes `ABSTAIN`.
 - A valid but semantically wrong answer is evidence and is never retried.
-- Retryable transport/provider failures receive the configured visible physical-attempt budget; routing, response-envelope, and accounting failures remain terminal. None are abstentions.
+- Holdout scoring accepts every defensible reading of a contested card, with full credit: fractional scoring would smuggle a preferred reading back in, and the mandatory probes carry the discriminative weight. `P3403` "coextensive with" accepts both `coincident` (two names, one shared physical footprint) and `proximal` (a city and a county with identical boundaries are distinct governments and legal persons). Operator decision (2026-07-14), pinned in `HOLDOUT_ALTERNATES`; the slice artifacts keep the canonical verdict, and the report and visualization render alternate-reading matches distinctly (amber / `(alt)`).
+- Retryable transport/provider failures receive the configured visible physical-attempt budget per pass; routing, response-envelope, and accounting failures do not retry within a vote. None are abstentions.
+- A vote-local failure (an exhausted budget, a non-retryable status, or a rejected completion envelope) defers the vote instead of stopping the session. Deferred votes are re-executed in passes at the end of the plan with fresh budgets; passes repeat while at least one vote succeeds. A pass with zero successes ends the session with a report of every remaining failed vote.
+- Only systemic conditions stop a session immediately: 401/402 authentication and billing statuses, the cost cap, and journal I/O failures. Nothing else can succeed until an operator intervenes, so continuing would only burn time.
+- No failure permanently poisons a vote. Field evidence (2026-07-14): Mercury 2 emitted a one-off `finish_reason: tool_calls` envelope — a stochastic model behavior, not a deterministic contract violation. The cost cap, not fail-fast, is the money backstop.
 
 ## Routing and privacy invariants
 
@@ -53,7 +64,8 @@ Every physical OpenRouter request must:
 - require every sent parameter to be supported;
 - require `data_collection: deny`;
 - require ZDR;
-- disable the OpenRouter response cache;
+- disable the OpenRouter response cache (deduplicated completions would corrupt the factorial design; this is unrelated to prompt caching);
+- attach OpenRouter's automatic ephemeral `cache_control` directive for `anthropic/*` models: Anthropic routes only cache prompts on explicit breakpoints, and the 2026-07-14 pilot paid full price for every ~13k-token prompt as a result (0% cache, $165 of $252 across the two Claude families). Prompt caching is a billing concern and stays outside vote and judge-pin identity;
 - disable SDK retries so every retry is controlled and durably visible to the executor;
 - request router metadata;
 - record the native result, route, usage, cost, and timestamps.
@@ -82,10 +94,13 @@ With nine judges, nine bundles, 144 sampled non-holdouts, six holdouts, one repe
 - worst case with one parser repair per vote: `29,592` physical requests.
 
 The first accepted Opus call used 12,956 prompt tokens and cost `$0.066505`, so
-the old 7,500-token planning estimate is not credible. The pilot config currently
-has no `max_cost_usd`; that is an explicit operational risk, not a default budget.
-Do not infer complete-pilot cost from one family, but do not launch blindly either:
-measure the remaining routes and set an intentional cap when one is available.
+the old 7,500-token planning estimate is not credible. The completed 2026-07-14
+pilot cost `$252.28` for 14,796 votes; `$165` of it was the two Anthropic
+families paying full prompt price on every call because no cache breakpoints
+were sent. The transport now attaches the automatic ephemeral directive for
+Anthropic models, which should cut Claude prompt costs by roughly 85% on the
+full grid. The cost gate counts already-settled attempt costs from the journal,
+so a `max_cost_usd` cap bounds the whole run, not the remainder.
 
 ## Before launching the pilot
 
@@ -113,22 +128,35 @@ A dedicated `relation preflight` command would make steps 2-4 explicit and cheap
 The executor starts at `concurrency.initial`, doubles its worker limit after a
 current-limit cohort of successful logical votes, and caps at
 `concurrency.maximum`. Workers steal from a shared bounded channel and each owns
-its OpenRouter client. A terminal failure atomically closes the physical-request
-boundary. Calls with an existing durable in-flight marker finish and journal;
-peer workers cannot start a repair or retry afterward. Attempts may be recorded
-in completion order; votes remain a deterministic plan prefix. Resume reuses
-successful attempts beyond that prefix.
+its OpenRouter client. A systemic failure (401/402, cost cap, journal I/O)
+atomically closes the physical-request boundary. Calls with an existing durable
+in-flight marker finish and journal; peer workers cannot start a repair or retry
+afterward. Vote-local failures defer instead: the vote re-enters the plan on the
+next pass carrying its durable attempts, and the ordered commit cursor stalls at
+the lowest unresolved index while later completions stay buffered (they remain
+durable in attempts.jsonl regardless). Attempts may be recorded in completion
+order; votes remain a deterministic plan prefix. Resume reuses successful
+attempts beyond that prefix.
 
 Transient retries are executor-owned because the SDK retries only a narrower
 class of failures and cannot journal each attempt. Initial and malformed-repair
-requests each receive `transient_retries.maximum_attempts` total physical
-attempts. Every failed attempt is durable before a retry. Backoff is deterministic
-and interruptible by a peer terminal failure; a provider `Retry-After` value may
-extend it. HTTP and embedded provider statuses are stored separately, which
-covers HTTP-200 envelopes carrying an upstream 502.
+requests each receive `transient_retries.maximum_attempts` physical attempts per
+execution session. Every failed attempt is durable before a retry. Backoff is
+deterministic and interruptible by a peer terminal failure; a provider
+`Retry-After` value may extend it. HTTP and embedded provider statuses are stored
+separately, which covers HTTP-200 envelopes carrying an upstream 502.
 Permanent 4xx, route validation, completion-envelope, and accounting failures do
-not retry. If a configured cost cap encounters an attempt with unknown billed
-cost, the next physical request is denied rather than weakening the cap.
+not retry within a session. On resume, votes whose last durable failure was a
+transport or provider outcome receive a fresh session budget (attempt numbering
+continues in the journal); routing, response-envelope, and accounting failures
+stay permanently terminal. If a configured cost cap encounters an attempt with
+unknown billed cost, the next physical request is denied rather than weakening
+the cap.
+
+The request contract hash binds the config minus its operational knobs:
+`max_cost_usd` and `concurrency` cannot change any request's semantics, so an
+operator may retune them between resumed sessions of the same run directory.
+`request_timeout` stays bound because it is part of every request hash.
 
 One `relation evaluate` command handles both phases. The config discriminates
 `mode: pilot` from `mode: full`; full mode binds the schema-v3 analysis
@@ -157,6 +185,7 @@ inherit an unrelated qualification result.
 - Keep abstentions separate from verdict classes in nominations and posteriors.
 - Run the full grid only from validated pilot decisions, admitted bundles, passed judges, and selected effort settings.
 - Re-check projected full-grid cost against current measured per-family cost before dispatch.
+- Escalation prices every arm the pilot paid for: `family`, `template`, `shell`, `repeat`, and (since `rubric-v1-analysis-5`) `effort`, which compares baseline-vs-high-effort verdicts at `S1xF1` on contested cards using the high-effort vote's reported cost. Before analysis-5 the effort arm fed only the effort policy (holdout rescues/regressions) and was never ranked as an escalation option.
 
 ## What must be done better
 

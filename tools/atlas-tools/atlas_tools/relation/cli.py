@@ -90,12 +90,35 @@ class AnalyzeCommand(BaseSettings):
         echo(f"wrote {result.report_md}")
 
 
+class VisualizeCommand(BaseSettings):
+    """Render graphs from a relation analysis's decisions.json output."""
+
+    analysis: CliPositionalArg[DirectoryPath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.eval.visualization import visualize_analysis
+
+        try:
+            result = visualize_analysis(self.analysis, self.out)
+        except (OSError, ValueError) as error:
+            fail(error)
+        for graph in result.graphs:
+            echo(f"wrote {graph}")
+        echo(f"wrote {result.explainer_md}")
+        echo(f"wrote {result.report_pdf}")
+        echo(f"wrote {result.report_html}")
+
+
 class RelationCli(BaseModel):
     """Operations over relation-card sets."""
 
     concat: CliSubCommand[ConcatCommand]
     evaluate: CliSubCommand[EvaluateCommand]
     analyze: CliSubCommand[AnalyzeCommand]
+    visualize: CliSubCommand[VisualizeCommand]
 
     def cli_cmd(self) -> None:
         CliApp.run_subcommand(self)

@@ -39,7 +39,7 @@ type MarginalAxis = Literal["shell", "template", "family"]
 type FlipAxis = Literal["shell", "template", "family", "repeat"]
 type ContestStratum = Literal["all", "contested", "non-contested"]
 type AdmissionAxis = Literal["shell", "template"]
-type EscalationAxisName = Literal["family", "template", "shell", "repeat"]
+type EscalationAxisName = Literal["family", "template", "shell", "repeat", "effort"]
 type ReasoningEffort = ChatRequestReasoningEffort
 type NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 type Probability = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
@@ -406,7 +406,25 @@ class FullGridManifest(StrictModel):
 
 
 class AnalysisPolicy(StrictModel):
-    version: Literal["rubric-v1-analysis-3"] = "rubric-v1-analysis-3"
+    version: Literal["rubric-v1-analysis-5"] = "rubric-v1-analysis-5"
+    """analysis-5: escalation gains an "effort" axis priced from the effort arm.
+
+    The minimal-vs-high effort arm previously fed only the effort *policy*
+    (holdout rescues/regressions); it was never ranked as an escalation option
+    on contested cards alongside family/template/shell/repeat.
+    """
+    escalation_cost_basis: Literal["reported-known-cost-lower-bound-v1"] = (
+        "reported-known-cost-lower-bound-v1"
+    )
+    """Marginal escalation cost uses each vote's reported (known) cost.
+
+    ``cost_usd`` is null for any vote whose journal contains a failed attempt
+    with unverifiable billing (rate limits report no usage), which made every
+    escalation axis unrankable after the 2026-07-14 429 storms. Failed provider
+    attempts bill nothing in practice, so the accepted completions' reported
+    costs are an exact-in-practice lower bound. Votes with no reported cost at
+    all remain unknown and fail closed.
+    """
     bootstrap_resamples: Literal[1000] = 1000
     bootstrap_seed: Literal[0] = 0
     ci_level: OpenProbability = 0.95
@@ -531,6 +549,14 @@ class QualificationResult(StrictModel):
     p2634_correct: bool
     passed: bool
     bundle_correctness: dict[BundleId, dict[RelationId, bool]]
+    holdout_expected: dict[RelationId, list[Verdict]]
+    """Accepted verdicts per holdout card (canonical first), kept in-artifact.
+
+    Contested holdouts may accept more than one defensible reading; scoring
+    treats any listed verdict as correct.
+    """
+    holdout_verdicts: dict[RelationId, VoteVerdict | None]
+    """The family's actual qualification-bundle answers (None: no clean vote)."""
 
 
 class MarginalResult(StrictModel):
@@ -554,7 +580,8 @@ class FlipResult(StrictModel):
 class AgreementResults(StrictModel):
     bundle_kappa_by_family: dict[str, dict[BundleId, dict[BundleId, Estimate]]]
     qualification_family_kappa: dict[str, dict[str, Estimate]]
-    krippendorff_alpha: Estimate
+    all_candidate_krippendorff_alpha: Estimate
+    qualified_panel_krippendorff_alpha: Estimate
 
 
 class OrderingCheck(StrictModel):

@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Self, TypedDict, cast
 
 import numpy as np
-from openrouter.components import ChatResult
 from pydantic import BaseModel, ValidationError
 
 from atlas_tools.common import (
@@ -21,7 +20,7 @@ from atlas_tools.common import (
     sha256_file,
     write_sidecar,
 )
-from atlas_tools.relation.eval.prompt import FEW_SHOT, HOLDOUT
+from atlas_tools.relation.eval.prompt import FEW_SHOT, HOLDOUT, accepted_holdout_verdicts
 from atlas_tools.relation.eval.provenance import judge_request_hash
 from atlas_tools.relation.eval.reporting import render_markdown
 from atlas_tools.relation.eval.schema import (
@@ -66,6 +65,7 @@ from atlas_tools.relation.eval.schema import (
     SliceRow,
     Verdict,
     VoteRow,
+    VoteVerdict,
 )
 from atlas_tools.relation.eval.statistics import (
     bootstrap_cohen_kappa,
@@ -76,9 +76,10 @@ from atlas_tools.relation.eval.statistics import (
     mean,
     normalized_entropy,
 )
+from atlas_tools.relation.eval.transport import matches_pinned_route
 
 MAX_REASON_WORDS = 60
-_HTTP_OK = 200
+
 HOLDOUT_PASS_COUNT = 5
 MIN_PANEL_FAMILIES = 2
 ESCALATION_AXES: tuple[EscalationAxisName, ...] = (
@@ -86,6 +87,7 @@ ESCALATION_AXES: tuple[EscalationAxisName, ...] = (
     "template",
     "shell",
     "repeat",
+    "effort",
 )
 
 
@@ -206,6 +208,18 @@ def _duplicates(values: Iterable[str]) -> list[str]:
 
 def _expected_holdouts() -> dict[str, Verdict]:
     return dict(HOLDOUT)
+
+
+def _accepted_holdouts() -> dict[str, frozenset[Verdict]]:
+    """Map each holdout to its accepted verdicts; contested cards score several."""
+    return {relation_id: accepted_holdout_verdicts(relation_id) for relation_id, _ in HOLDOUT}
+
+
+def _ordered_accepted(relation_id: str) -> list[Verdict]:
+    """Canonical verdict first, then alternates, for persistence and rendering."""
+    canonical = dict(HOLDOUT)[relation_id]
+    alternates = sorted(accepted_holdout_verdicts(relation_id) - {canonical})
+    return [canonical, *alternates]
 
 
 def _shot_relation_ids() -> set[str]:
@@ -502,17 +516,6 @@ def _nominal(vote: VoteRow) -> Verdict | None:
     return vote.verdict
 
 
-def _result_matches_route(result: ChatResult, *, model: str, provider_name: str) -> bool:
-    metadata = result.openrouter_metadata
-    attempts = metadata.attempts if metadata is not None else None
-    if result.model != model or attempts is None or len(attempts) != 1:
-        return False
-    attempt = attempts[0]
-    return (
-        attempt.model == model and attempt.provider == provider_name and attempt.status == _HTTP_OK
-    )
-
-
 def _matches_route_pin(
     vote: VoteRow,
     attempts: Sequence[PhysicalAttemptRow],
@@ -521,6 +524,13 @@ def _matches_route_pin(
     provider_slug: str,
     provider_name: str,
 ) -> bool:
+    """Re-check a persisted vote against the exact live routing contract.
+
+    Route acceptance is delegated to the transport's rule so the analysis
+    cannot drift from what the executor enforced. Only accepted completions
+    are judged: rejected results carried by recovered votes are evidence of a
+    provider failure, not of the accepted answer's route.
+    """
     if vote.model_returned != model or vote.provider != provider_name:
         return False
     if any(
@@ -528,10 +538,14 @@ def _matches_route_pin(
         for attempt in attempts
     ):
         return False
-    physical_results = [attempt.result for attempt in attempts if attempt.result is not None]
-    return bool(physical_results) and all(
-        _result_matches_route(result, model=model, provider_name=provider_name)
-        for result in physical_results
+    accepted_results = [
+        attempt.result
+        for attempt in attempts
+        if attempt.failure is None and attempt.result is not None
+    ]
+    return bool(accepted_results) and all(
+        matches_pinned_route(result, model=model, provider_name=provider_name)
+        for result in accepted_results
     )
 
 
@@ -754,7 +768,9 @@ def _one_family_cost_health(
 ) -> FamilyCostHealth:
     bootstrap = _bootstrap_kwargs(policy)
     costs = _card_values(
-        (vote.relation_id, vote.cost_usd) for vote in votes if vote.cost_usd is not None
+        (vote.relation_id, cost)
+        for vote, cost in ((vote, _vote_reported_cost(vote)) for vote in votes)
+        if cost is not None
     )
     tokens = _card_values(
         (vote.relation_id, float(vote.tokens_in + vote.tokens_out)) for vote in votes
@@ -770,7 +786,7 @@ def _one_family_cost_health(
     return FamilyCostHealth(
         family_id=family_id,
         n=len(votes),
-        cost_reported_n=sum(vote.cost_usd is not None for vote in votes),
+        cost_reported_n=sum(_vote_reported_cost(vote) is not None for vote in votes),
         mean_cost_usd=bootstrap_mean(costs, **bootstrap),
         tokens_per_vote=bootstrap_mean(tokens, **bootstrap),
         token_inflation_factor=bootstrap_mean(inflation, **bootstrap),
@@ -860,7 +876,7 @@ def _qualify(
     handoff: Handoff,
     clean_votes: Sequence[VoteRow],
 ) -> list[QualificationResult]:
-    expected = _expected_holdouts()
+    accepted = _accepted_holdouts()
     lookup = _vote_lookup(clean_votes)
     results: list[QualificationResult] = []
     baseline_effort = handoff.manifest.expected_grid.effort
@@ -870,24 +886,32 @@ def _qualify(
             if bundle_id not in handoff.manifest.expected_grid.bundles:
                 continue
             correctness: dict[str, bool] = {}
-            for relation_id, expected_verdict in sorted(expected.items()):
+            for relation_id, accepted_verdicts in sorted(accepted.items()):
                 vote = lookup.get((relation_id, family_id, bundle_id, baseline_effort, 0))
-                correctness[relation_id] = vote is not None and _nominal(vote) == expected_verdict
+                correctness[relation_id] = vote is not None and _nominal(vote) in accepted_verdicts
             bundle_correctness[bundle_id] = correctness
 
         qualification_bundle = bundle_correctness[QUALIFICATION_BUNDLE]
         correct_count = sum(qualification_bundle.values())
         p1382 = qualification_bundle["wikidata:P1382"]
         p2634 = qualification_bundle["wikidata:P2634"]
+        holdout_verdicts: dict[str, VoteVerdict | None] = {}
+        for relation_id in sorted(accepted):
+            vote = lookup.get((relation_id, family_id, QUALIFICATION_BUNDLE, baseline_effort, 0))
+            holdout_verdicts[relation_id] = vote.verdict if vote is not None else None
         results.append(
             QualificationResult(
                 family_id=family_id,
                 correct_count=correct_count,
-                total_count=len(expected),
+                total_count=len(accepted),
                 p1382_correct=p1382,
                 p2634_correct=p2634,
                 passed=correct_count >= HOLDOUT_PASS_COUNT and p1382 and p2634,
                 bundle_correctness=bundle_correctness,
+                holdout_expected={
+                    relation_id: _ordered_accepted(relation_id) for relation_id in sorted(accepted)
+                },
+                holdout_verdicts=holdout_verdicts,
             )
         )
     return results
@@ -1202,16 +1226,23 @@ def _family_kappas(
 
 def _agreement(
     handoff: Handoff,
-    votes: Sequence[VoteRow],
+    qualified_votes: Sequence[VoteRow],
+    all_candidate_votes: Sequence[VoteRow],
     passed_families: Sequence[str],
     policy: AnalysisPolicy,
 ) -> AgreementResults:
-    lookup = _vote_lookup(votes)
-    relation_ids = sorted({vote.relation_id for vote in votes})
+    lookup = _vote_lookup(qualified_votes)
+    relation_ids = sorted({vote.relation_id for vote in qualified_votes})
     effort = handoff.manifest.expected_grid.effort
-    ratings = _card_values(
-        (vote.relation_id, vote.verdict) for vote in votes if vote.verdict != "ABSTAIN"
+    qualified_ratings = _card_values(
+        (vote.relation_id, vote.verdict) for vote in qualified_votes if vote.verdict != "ABSTAIN"
     )
+    all_candidate_ratings = _card_values(
+        (vote.relation_id, vote.verdict)
+        for vote in all_candidate_votes
+        if vote.verdict != "ABSTAIN"
+    )
+    bootstrap = _bootstrap_kwargs(policy)
     return AgreementResults(
         bundle_kappa_by_family=_bundle_kappas(
             lookup, relation_ids, passed_families, effort, policy
@@ -1219,7 +1250,12 @@ def _agreement(
         qualification_family_kappa=_family_kappas(
             lookup, relation_ids, passed_families, effort, policy
         ),
-        krippendorff_alpha=bootstrap_krippendorff_alpha(ratings, **_bootstrap_kwargs(policy)),
+        all_candidate_krippendorff_alpha=bootstrap_krippendorff_alpha(
+            all_candidate_ratings, **bootstrap
+        ),
+        qualified_panel_krippendorff_alpha=bootstrap_krippendorff_alpha(
+            qualified_ratings, **bootstrap
+        ),
     )
 
 
@@ -1309,14 +1345,18 @@ def _cost_population(
     ]
 
 
-def _complete_cost_estimate(
+def _reported_cost_estimate(
     votes: Sequence[VoteRow],
     policy: AnalysisPolicy,
 ) -> Estimate:
-    if not votes or any(vote.cost_usd is None for vote in votes):
+    """Estimate per-vote cost under the policy's reported-known-cost basis."""
+    costs = [_vote_reported_cost(vote) for vote in votes]
+    if not costs or any(cost is None for cost in costs):
         return Estimate(est=None, lo=None, hi=None, n=len(votes))
     return bootstrap_mean(
-        _card_values((vote.relation_id, cast("float", vote.cost_usd)) for vote in votes),
+        _card_values(
+            (vote.relation_id, cast("float", cost)) for vote, cost in zip(votes, costs, strict=True)
+        ),
         **_bootstrap_kwargs(policy),
     )
 
@@ -1327,7 +1367,8 @@ def _total_projected_cost(
     policy: AnalysisPolicy,
 ) -> Estimate:
     if any(
-        not votes or any(vote.cost_usd is None for vote in votes) for votes in populations.values()
+        not votes or any(_vote_reported_cost(vote) is None for vote in votes)
+        for votes in populations.values()
     ):
         return Estimate(
             est=None,
@@ -1336,7 +1377,7 @@ def _total_projected_cost(
             n=sum(len(votes) for votes in populations.values()),
         )
     observations = _card_values(
-        (vote.relation_id, (family_id, cast("float", vote.cost_usd)))
+        (vote.relation_id, (family_id, cast("float", _vote_reported_cost(vote))))
         for family_id, votes in populations.items()
         for vote in votes
     )
@@ -1382,7 +1423,7 @@ def _cost_audit(
     audits: list[FamilyCostAudit] = []
     for decision in effort_policy:
         votes = populations[decision.family_id]
-        measured = _complete_cost_estimate(votes, policy)
+        measured = _reported_cost_estimate(votes, policy)
         tokens = _card_values(
             (vote.relation_id, float(vote.tokens_in + vote.tokens_out)) for vote in votes
         )
@@ -1400,7 +1441,7 @@ def _cost_audit(
                 selected_effort=decision.selected_effort,
                 cost_basis_bundles=basis_bundles,
                 n=len(votes),
-                cost_reported_n=sum(vote.cost_usd is not None for vote in votes),
+                cost_reported_n=sum(_vote_reported_cost(vote) is not None for vote in votes),
                 measured_cost_per_vote_usd=measured,
                 projected_calls=projected_calls,
                 projected_cost=_scale_estimate(measured, projected_calls),
@@ -1425,12 +1466,12 @@ def _holdout_effort_comparison(
     rescues = 0
     regressions = 0
     mandatory = {"wikidata:P1382": False, "wikidata:P2634": False}
-    for relation_id, expected_verdict in _expected_holdouts().items():
+    for relation_id, accepted_verdicts in _accepted_holdouts().items():
         base_vote = lookup.get((relation_id, family_id, QUALIFICATION_BUNDLE, baseline, 0))
         candidate_vote = lookup.get((relation_id, family_id, QUALIFICATION_BUNDLE, effort, 0))
-        base_correct = base_vote is not None and _nominal(base_vote) == expected_verdict
+        base_correct = base_vote is not None and _nominal(base_vote) in accepted_verdicts
         candidate_correct = (
-            candidate_vote is not None and _nominal(candidate_vote) == expected_verdict
+            candidate_vote is not None and _nominal(candidate_vote) in accepted_verdicts
         )
         correct += candidate_correct
         rescues += candidate_correct and not base_correct
@@ -1614,6 +1655,11 @@ def _axis_statistics_and_decisions(
     passed_families = sorted(result.family_id for result in qualification if result.passed)
     passed_set = set(passed_families)
     votes = _analysis_votes(handoff, clean_votes, passed_set)
+    all_candidate_votes = _analysis_votes(
+        handoff,
+        clean_votes,
+        {result.family_id for result in qualification},
+    )
     if len(passed_families) < MIN_PANEL_FAMILIES:
         raise ValueError("at least two families must pass qualification for panel analysis")
     entropy_strata = _entropy_strata(handoff, votes)
@@ -1781,7 +1827,7 @@ def _axis_statistics_and_decisions(
         marginals=marginals,
         noise_floor=noise_floor,
         flips=flips,
-        agreement=_agreement(handoff, votes, passed_families, policy),
+        agreement=_agreement(handoff, votes, all_candidate_votes, passed_families, policy),
         ordering=OrderingCheck(rates=ordering_rates, healthy_order_holds=healthy),
     )
     floor = bootstrap_rate(_subset_observations(shell_combined.values, non_contested), **bootstrap)
@@ -1891,8 +1937,21 @@ def _posteriors(
 type EscalationObservation = tuple[bool, float | None]
 
 
+def _vote_reported_cost(vote: VoteRow) -> float | None:
+    """Return the vote's reported cost under the known-cost lower-bound basis.
+
+    ``cost_usd`` is exact when billing is complete. When a failed attempt made
+    billing incomplete (rate limits report no usage but bill nothing),
+    ``known_cost_usd`` still carries the accepted completions' exact reported
+    cost. A vote that reported no cost anywhere stays unknown and fails closed.
+    """
+    if vote.cost_usd is not None:
+        return vote.cost_usd
+    return vote.known_cost_usd if vote.known_cost_usd > 0 else None
+
+
 def _comparison_cost(votes: Sequence[VoteRow]) -> float | None:
-    costs = [vote.cost_usd for vote in votes]
+    costs = [_vote_reported_cost(vote) for vote in votes]
     if any(cost is None for cost in costs):
         return None
     return math.fsum(cast("list[float]", costs)) / len(costs)
@@ -2016,6 +2075,39 @@ def _repeat_escalation_observations(
     return dict(observations)
 
 
+def _effort_escalation_observations(
+    handoff: Handoff,
+    lookup: Mapping[LogicalCell, VoteRow],
+    relations: Sequence[str],
+    families: Sequence[str],
+    effort: str,
+) -> dict[str, list[EscalationObservation]]:
+    observations: dict[str, list[EscalationObservation]] = defaultdict(list)
+    effort_arm = handoff.manifest.expected_effort_arm
+    if effort_arm is None:
+        return {}
+    arm_relations = set(effort_arm.relation_ids)
+    for relation_id in relations:
+        if relation_id not in arm_relations:
+            continue
+        for family_id in families:
+            candidate_effort = effort_arm.family_efforts.get(family_id)
+            if candidate_effort is None or candidate_effort == effort:
+                continue
+            baseline = lookup.get((relation_id, family_id, effort_arm.bundle_id, effort, 0))
+            candidate = lookup.get(
+                (relation_id, family_id, effort_arm.bundle_id, candidate_effort, 0)
+            )
+            _append_escalation_pair(
+                observations,
+                relation_id,
+                baseline,
+                candidate,
+                [candidate] if candidate is not None else [],
+            )
+    return dict(observations)
+
+
 def _escalation_estimates(
     observations: Mapping[str, Sequence[EscalationObservation]],
     policy: AnalysisPolicy,
@@ -2062,6 +2154,9 @@ def _escalation(
         "template": _template_escalation_observations(lookup, relations, passed_families, effort),
         "shell": _shell_escalation_observations(lookup, relations, passed_families, effort),
         "repeat": _repeat_escalation_observations(
+            handoff, lookup, relations, passed_families, effort
+        ),
+        "effort": _effort_escalation_observations(
             handoff, lookup, relations, passed_families, effort
         ),
     }

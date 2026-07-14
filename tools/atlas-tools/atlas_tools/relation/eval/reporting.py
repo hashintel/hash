@@ -197,6 +197,49 @@ def _qualification_summary(report: AnalysisDecisions) -> list[str]:
     return lines
 
 
+_MANDATORY_PROBES = frozenset({"wikidata:P1382", "wikidata:P2634"})
+
+
+def _qualification_answers(report: AnalysisDecisions) -> list[str]:
+    """Render every family's actual qualification-bundle answers against truth."""
+    first = report.qualification[0]
+    if not first.holdout_expected:
+        return []
+    holdout_ids = sorted(first.holdout_expected)
+    header_cells = [
+        f"{holdout_id}{'*' if holdout_id in _MANDATORY_PROBES else ''} "
+        f"({'/'.join(first.holdout_expected[holdout_id])})"
+        for holdout_id in holdout_ids
+    ]
+    lines = [
+        "",
+        "### Qualification-bundle answers",
+        "",
+        "Accepted verdicts in the header (contested holdouts accept more than "
+        "one reading); `\u2717` marks a miss, `(alt)` an accepted alternate "
+        "reading. `*`: mandatory probe.",
+        "",
+        "| family | " + " | ".join(header_cells) + " |",
+        "| --- | " + " | ".join(":---:" for _ in holdout_ids) + " |",
+    ]
+    for result in report.qualification:
+        cells: list[str] = []
+        for holdout_id in holdout_ids:
+            answer = result.holdout_verdicts.get(holdout_id)
+            if answer is None:
+                cells.append("\u2014")
+                continue
+            accepted = result.holdout_expected.get(holdout_id, [])
+            if answer not in accepted:
+                cells.append(f"\u2717 {answer}")
+            elif accepted and answer != accepted[0]:
+                cells.append(f"{answer} (alt)")
+            else:
+                cells.append(answer)
+        lines.append(f"| {result.family_id} | " + " | ".join(cells) + " |")
+    return lines
+
+
 def _holdout_tables(report: AnalysisDecisions) -> list[str]:
     holdout_ids = sorted(report.qualification[0].bundle_correctness["S1xF1"])
     lines: list[str] = []
@@ -221,6 +264,7 @@ def _phase_one(report: AnalysisDecisions) -> list[str]:
         "`wikidata:P1382` and `wikidata:P2634`.",
         "",
         *_qualification_summary(report),
+        *_qualification_answers(report),
         *_holdout_tables(report),
     ]
 
@@ -314,12 +358,16 @@ def _family_agreement(report: AnalysisDecisions) -> list[str]:
 
 
 def _agreement(report: AnalysisDecisions) -> list[str]:
-    alpha = report.axis_statistics.agreement.krippendorff_alpha
+    agreement = report.axis_statistics.agreement
     return [
         "### Agreement",
         "",
-        "Passed-family x baseline-grid, non-holdout nominal Krippendorff's alpha: "
-        f"{_estimate(alpha)}.",
+        "All-candidate x baseline-grid, non-holdout nominal Krippendorff's alpha: "
+        f"{_estimate(agreement.all_candidate_krippendorff_alpha)}.",
+        "Qualified-panel x baseline-grid, non-holdout nominal Krippendorff's alpha: "
+        f"{_estimate(agreement.qualified_panel_krippendorff_alpha)}.",
+        "Both measures pool the complete experimental bundle grid; the qualified-panel value "
+        "is not restricted to the admitted production configuration.",
         *_bundle_agreement(report),
         *_family_agreement(report),
     ]

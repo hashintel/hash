@@ -302,9 +302,15 @@ def _run_dates(votes: Sequence[VoteRow]) -> RunDates:
 
 
 def _executor_config(config: BaseRunConfig) -> dict[str, JsonValue]:
+    """Project the request-contract config into the manifest.
+
+    Operational knobs (cost cap, concurrency limits) are excluded: they cannot
+    change any request's semantics and may be retuned between resumed sessions,
+    so a completed manifest must not bind them.
+    """
     return cast(
         "dict[str, JsonValue]",
-        config.model_dump(mode="json", exclude={"max_cost_usd"}),
+        config.model_dump(mode="json", exclude={"max_cost_usd", "concurrency"}),
     )
 
 

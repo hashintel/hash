@@ -30,17 +30,23 @@ def executor_policy_payload() -> dict[str, JsonValue]:
         "malformed_output_repair_limit": 1,
         "sdk_retries": "disabled",
         "task_order": "judge-family-round-robin-v2",
-        "transient_failure_retries": "visible-durable-per-request-stage-v1",
+        "transient_failure_retries": "visible-durable-per-request-stage-per-session-v2",
         "transient_retry_delay": "interruptible-max(deterministic-backoff,retry-after)-v2",
+        "vote_failure_policy": "defer-and-repass-until-no-progress-v1",
     }
 
 
 def request_contract_hash(config: BaseRunConfig) -> Sha256Hex:
-    """Hash config, executor policy, transport policy, and OpenRouter versions."""
+    """Hash config, executor policy, transport policy, and OpenRouter versions.
+
+    Operational scheduling knobs that cannot change any request's semantics —
+    the cost cap and the concurrency limits — are excluded so an operator can
+    retune them between resumed sessions of the same run.
+    """
     return sha256_bytes(
         canonical_json_bytes(
             {
-                "config": config.model_dump(mode="json", exclude={"max_cost_usd"}),
+                "config": config.model_dump(mode="json", exclude={"max_cost_usd", "concurrency"}),
                 "executor_policy": executor_policy_payload(),
                 "openrouter_openapi_version": openrouter.OPENAPI_DOC_VERSION,
                 "openrouter_sdk_version": version("openrouter"),

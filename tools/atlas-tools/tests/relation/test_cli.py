@@ -283,3 +283,78 @@ def test_cli_analyze_fails_cleanly_on_validation_error(
 
     assert excinfo.value.code == 1
     assert "Error: missing votes.jsonl" in capsys.readouterr().err
+
+
+def test_cli_visualize_passes_analysis_and_echoes_graphs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    analysis = tmp_path / "analysis"
+    analysis.mkdir()
+    out = tmp_path / "graphs"
+    graphs = (out / "data-health.png", out / "qualification.png")
+    explainer = out / "results-overview.md"
+    pdf = out / "results-report.pdf"
+    html = out / "results-report.html"
+    captured: dict[str, Path] = {}
+
+    def visualize(analysis_dir: Path, out_dir: Path) -> SimpleNamespace:
+        captured.update(analysis=analysis_dir, out=out_dir)
+        return SimpleNamespace(
+            graphs=graphs,
+            explainer_md=explainer,
+            report_pdf=pdf,
+            report_html=html,
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.eval.visualization.visualize_analysis",
+        visualize,
+    )
+    cli.main(["visualize", str(analysis), "--out", str(out)])
+
+    assert captured == {"analysis": analysis, "out": out}
+    stdout = capsys.readouterr().out
+    assert all(f"wrote {graph}" in stdout for graph in graphs)
+    assert f"wrote {explainer}" in stdout
+    assert f"wrote {pdf}" in stdout
+    assert f"wrote {html}" in stdout
+
+
+def test_cli_visualize_rejects_missing_analysis_directory(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "visualize",
+                str(tmp_path / "missing"),
+                "--out",
+                str(tmp_path / "graphs"),
+            ]
+        )
+    assert excinfo.value.code == 2
+
+
+def test_cli_visualize_fails_cleanly_on_invalid_decisions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    analysis = tmp_path / "analysis"
+    analysis.mkdir()
+    out = tmp_path / "graphs"
+
+    def visualize(analysis_dir: Path, out_dir: Path) -> SimpleNamespace:
+        assert analysis_dir == analysis
+        assert out_dir == out
+        raise ValueError("invalid decisions.json")
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.eval.visualization.visualize_analysis",
+        visualize,
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["visualize", str(analysis), "--out", str(out)])
+
+    assert excinfo.value.code == 1
+    assert "Error: invalid decisions.json" in capsys.readouterr().err

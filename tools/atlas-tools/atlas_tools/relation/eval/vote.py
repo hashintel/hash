@@ -10,7 +10,7 @@ import outcome
 from openrouter.components import ChatMessages, ChatResult
 
 from atlas_tools.common import Sha256Hex
-from atlas_tools.relation.eval.accounting import CostGate
+from atlas_tools.relation.eval.accounting import CostGate, CostLimitReachedError
 from atlas_tools.relation.eval.contract import (
     PreparedCards,
     RequestStage,
@@ -21,11 +21,12 @@ from atlas_tools.relation.eval.contract import (
 from atlas_tools.relation.eval.contract import (
     attempt_id as make_attempt_id,
 )
-from atlas_tools.relation.eval.control import ExecutionControl
+from atlas_tools.relation.eval.control import ExecutionControl, ExecutionStoppedError
 from atlas_tools.relation.eval.failures import (
     FailureCategory,
     completion_failure_category,
     failure_from_exception,
+    is_systemic_failure,
     request_failure_category,
     retry_directive,
 )
@@ -66,6 +67,30 @@ class TransientRetryExhaustedError(PhysicalRequestFailedError):
 
 class ProviderResponseRejectedError(RuntimeError):
     """A returned completion violated the required response or routing contract."""
+
+    def __init__(self, message: str, attempt: PhysicalAttemptRow) -> None:
+        super().__init__(message)
+        self.attempt = attempt
+
+
+class LogicalVoteFailedError(RuntimeError):
+    """One logical vote failed; its durable attempts are carried for re-passes.
+
+    ``systemic`` marks account-wide conditions (401/402) that doom every
+    subsequent request; the executor stops the session for those and defers
+    the vote for all other failures.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        attempts: tuple[PhysicalAttemptRow, ...],
+        systemic: bool,
+    ) -> None:
+        super().__init__(message)
+        self.attempts = attempts
+        self.systemic = systemic
 
 
 @dataclass(frozen=True)
@@ -235,7 +260,8 @@ def _execute_physical_request(
     if physical.error is not None:
         if physical.result is not None:
             raise ProviderResponseRejectedError(
-                f"provider response rejected; outcome preserved at {attempt_id}"
+                f"provider response rejected; outcome preserved at {attempt_id}",
+                attempt,
             ) from physical.error
         raise PhysicalRequestFailedError(
             f"physical {stage} request failed; outcome preserved at {attempt_id}",
@@ -275,8 +301,8 @@ def _retry_delay_or_raise(
         )
     elif stage_attempt_count >= policy.maximum_attempts:
         error = TransientRetryExhaustedError(
-            f"physical {stage} request failed after {stage_attempt_count} visible attempts; "
-            f"last {directive.reason} preserved at {attempt.attempt_id}",
+            f"physical {stage} request failed after {stage_attempt_count} visible attempts "
+            f"in this session; last {directive.reason} preserved at {attempt.attempt_id}",
             attempt,
         )
     else:
@@ -286,6 +312,29 @@ def _retry_delay_or_raise(
     raise error
 
 
+def _resume_gate_delay(
+    last_prior: PhysicalAttemptRow,
+    *,
+    stage: RequestStage,
+    policy: TransientRetryConfig,
+) -> timedelta:
+    """Admit a previously failed stage to a fresh visible budget.
+
+    Prior failures depend on state that may have changed — provider health,
+    rate limits, billing, or a model's stochastic output — so a new pass or
+    session re-attempts them with a fresh budget rather than poisoning the
+    vote. Any backoff still owed by the last durable attempt is honored
+    before the first new request.
+    """
+    failure = last_prior.failure
+    if failure is None:
+        raise RuntimeError(
+            f"stage {stage} resumed behind an unhandled successful attempt {last_prior.attempt_id}"
+        )
+    directive = retry_directive(last_prior, policy)
+    return directive.delay if directive is not None else timedelta()
+
+
 def _execute_request_stage(
     *,
     paths: JournalPaths,
@@ -293,6 +342,7 @@ def _execute_request_stage(
     stage: RequestStage,
     messages: list[ChatMessages],
     completed_attempts: list[PhysicalAttemptRow],
+    prior_attempt_count: int,
     transport: CompletionTransport,
     timeout: timedelta,
     retry_policy: TransientRetryConfig,
@@ -302,16 +352,16 @@ def _execute_request_stage(
     successful = _successful_attempt(completed_attempts, stage)
     if successful is not None:
         return successful
-    stage_attempts = [attempt for attempt in completed_attempts if attempt.request_stage == stage]
-    if stage_attempts:
-        delay = _retry_delay_or_raise(
-            stage_attempts[-1],
-            stage=stage,
-            stage_attempt_count=len(stage_attempts),
-            policy=retry_policy,
-        )
+    prior_stage_attempts = [
+        attempt
+        for attempt in completed_attempts[:prior_attempt_count]
+        if attempt.request_stage == stage
+    ]
+    if prior_stage_attempts:
+        delay = _resume_gate_delay(prior_stage_attempts[-1], stage=stage, policy=retry_policy)
         execution_control.wait_for_retry(delay)
 
+    session_attempt_count = 0
     while True:
         try:
             attempt = _execute_physical_request(
@@ -325,13 +375,16 @@ def _execute_request_stage(
                 cost_gate=cost_gate,
                 execution_control=execution_control,
             )
+        except ProviderResponseRejectedError as error:
+            completed_attempts.append(error.attempt)
+            raise
         except PhysicalRequestFailedError as error:
             completed_attempts.append(error.attempt)
-            stage_attempts.append(error.attempt)
+            session_attempt_count += 1
             delay = _retry_delay_or_raise(
                 error.attempt,
                 stage=stage,
-                stage_attempt_count=len(stage_attempts),
+                stage_attempt_count=session_attempt_count,
                 policy=retry_policy,
                 cause=error.__cause__,
             )
@@ -436,6 +489,12 @@ def _build_vote(
     )
 
 
+def _systemic(error: Exception) -> bool:
+    return isinstance(error, PhysicalRequestFailedError) and (
+        error.attempt.failure is not None and is_systemic_failure(error.attempt.failure)
+    )
+
+
 def execute_logical_vote(
     task: VoteTask,
     attempts: Sequence[PhysicalAttemptRow],
@@ -448,15 +507,58 @@ def execute_logical_vote(
     cost_gate: CostGate,
     execution_control: ExecutionControl,
 ) -> VoteRow:
-    """Execute or resume one logical vote, durably recording every physical request."""
-    messages = _task_messages(task, prepared)
+    """Execute or resume one logical vote, durably recording every physical request.
+
+    ``attempts`` are the durable rows from prior passes or sessions. The
+    visible transient-retry budget applies to attempts made in this call;
+    prior failures only gate admission and any remaining backoff. Vote-local
+    failures raise :class:`LogicalVoteFailedError` carrying the accumulated
+    durable attempts so the executor can defer and re-pass the vote.
+    """
     completed_attempts = list(attempts)
+    try:
+        return _run_logical_vote(
+            task,
+            completed_attempts,
+            paths=paths,
+            prepared=prepared,
+            transport=transport,
+            timeout=timeout,
+            retry_policy=retry_policy,
+            cost_gate=cost_gate,
+            execution_control=execution_control,
+        )
+    except ExecutionStoppedError, CostLimitReachedError, OSError:
+        raise
+    except Exception as error:
+        raise LogicalVoteFailedError(
+            str(error) or type(error).__qualname__,
+            attempts=tuple(completed_attempts),
+            systemic=_systemic(error),
+        ) from error
+
+
+def _run_logical_vote(
+    task: VoteTask,
+    completed_attempts: list[PhysicalAttemptRow],
+    *,
+    paths: JournalPaths,
+    prepared: PreparedCards,
+    transport: CompletionTransport,
+    timeout: timedelta,
+    retry_policy: TransientRetryConfig,
+    cost_gate: CostGate,
+    execution_control: ExecutionControl,
+) -> VoteRow:
+    messages = _task_messages(task, prepared)
+    prior_attempt_count = len(completed_attempts)
     initial = _execute_request_stage(
         paths=paths,
         task=task,
         stage="initial",
         messages=messages,
         completed_attempts=completed_attempts,
+        prior_attempt_count=prior_attempt_count,
         transport=transport,
         timeout=timeout,
         retry_policy=retry_policy,
@@ -475,6 +577,7 @@ def execute_logical_vote(
             stage="repair",
             messages=build_retry_prompt(messages, initial_raw),
             completed_attempts=completed_attempts,
+            prior_attempt_count=prior_attempt_count,
             transport=transport,
             timeout=timeout,
             retry_policy=retry_policy,

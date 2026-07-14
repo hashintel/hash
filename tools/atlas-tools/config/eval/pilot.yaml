@@ -1,7 +1,17 @@
-# Rubric-v1 factorial pilot judge roster recovered from git commit 16b87bd4b1.
-# The ninth slot uses Mercury 2 after Mistral failed the retention requirement
-# and Grok 4.5 was unavailable in-region. Routes, names, parameters, and ZDR
-# eligibility were resolved from OpenRouter's JSON APIs on 2026-07-14.
+# Rubric-v1 factorial pilot judge roster recovered from git commit 16b87bd4b1,
+# with three deliberate operator amendments (2026-07-14, do not "restore"):
+#   - Slot 3 runs openai/gpt-5.6-sol instead of the recovered gpt-5.6-sol-pro:
+#     sol-pro was too inconsistent at producing non-erroneous output; OpenRouter
+#     showed its Azure endpoint at 93.5% daily uptime (status -2) on 2026-07-14.
+#   - Nemotron moved DeepInfra -> Together: DeepInfra's fp4 endpoint failed 55%
+#     of pilot requests (429 storms) and produced nonsense at temperature 0.0.
+#     Together's endpoint is ZDR-eligible with better uptime but does NOT
+#     support `seed`, so the slot pins seed: null. Temperature stays null until
+#     a preflight shows Together serves sanely at 0.0.
+#   - Mercury 2 fills the ninth slot after Mistral failed the retention
+#     requirement and Grok 4.5 was unavailable in-region.
+# Routes, names, parameters, and ZDR eligibility were resolved from
+# OpenRouter's JSON APIs on 2026-07-14.
 schema_version: 3
 mode: pilot
 rubric_version: rubric-v1
@@ -13,6 +23,11 @@ sampling:
 
 baseline_effort: minimal
 repeat_count: 1
+# max_cost_usd and concurrency are operational knobs: both are excluded from
+# the request contract and may be retuned freely between resumed sessions.
+# Cap basis: 2,026 attempted votes cost $26.32 -> full 14,796-vote pilot
+# extrapolates to ~$195; the gate counts already-settled attempt costs too.
+max_cost_usd: null
 request_timeout: PT10M
 transient_retries:
   maximum_attempts: 5
@@ -22,8 +37,8 @@ transient_retries:
   retry_transport_errors: true
   status_codes: [408, 425, 429, 500, 502, 503, 504, 520, 522, 524]
 concurrency:
-  initial: 1
-  maximum: 18
+  initial: 128
+  maximum: 512
   ramp: doubling-v1
 
 judges:
@@ -52,7 +67,7 @@ judges:
   - provider_slug: azure
     provider_name: Azure
     openrouter_region: global
-    model: openai/gpt-5.6-sol-pro
+    model: openai/gpt-5.6-sol
     temperature: null
     seed: 42
     higher_effort: high
@@ -93,12 +108,12 @@ judges:
       parameter: max_tokens
       tokens: 4096
 
-  - provider_slug: deepinfra
-    provider_name: DeepInfra
+  - provider_slug: together
+    provider_name: Together
     openrouter_region: global
     model: nvidia/nemotron-3-ultra-550b-a55b
-    temperature: 0.0
-    seed: 42
+    temperature: null
+    seed: null
     higher_effort: high
     output_token_limit:
       parameter: max_tokens

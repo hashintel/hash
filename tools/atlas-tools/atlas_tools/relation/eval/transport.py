@@ -9,6 +9,7 @@ from typing import Final, Protocol, Self, assert_never, cast
 
 from openrouter import OpenRouter
 from openrouter.components import (
+    AnthropicCacheControlDirective,
     ChatMessages,
     ChatRequestReasoning,
     ChatResult,
@@ -36,6 +37,8 @@ _NO_RETRIES: Final = RetryConfig(
     retry_connection_errors=False,
 )
 _RESPONSE_CACHE_HEADERS: Final = {"X-OpenRouter-Cache": "false"}
+_ANTHROPIC_MODEL_PREFIX: Final = "anthropic/"
+_ANTHROPIC_PROMPT_CACHING: Final = "automatic-ephemeral-for-anthropic-models-v1"
 _HTTP_OK: Final = 200
 _GLOBAL_OPENROUTER_SERVER_URL: Final = "https://openrouter.ai/api/v1"
 _EU_OPENROUTER_SERVER_URL: Final = "https://eu.openrouter.ai/api/v1"
@@ -114,6 +117,7 @@ def request_policy_payload() -> dict[str, JsonValue]:
     """Return fresh, JSON-native data binding hashes to the transport request policy."""
     return {
         "allow_fallbacks": False,
+        "anthropic_prompt_caching": _ANTHROPIC_PROMPT_CACHING,
         "cache_headers": dict(_RESPONSE_CACHE_HEADERS),
         "data_collection": "deny",
         "metadata": "enabled",
@@ -185,6 +189,20 @@ def _duration_milliseconds(duration: timedelta) -> int:
     return milliseconds
 
 
+def _prompt_cache_directive(judge: JudgeConfig) -> AnthropicCacheControlDirective | None:
+    """Return the top-level prompt-caching directive for Anthropic-vendor models.
+
+    Anthropic routes require explicit cache breakpoints; OpenRouter's automatic
+    mode places the breakpoint on the last cacheable block, so the shared shell
+    and few-shot prefix is served from cache on every subsequent call. Other
+    vendors either cache implicitly or do not consume the directive, and it is
+    a billing/infrastructure concern, so it stays outside vote identity.
+    """
+    if judge.model.startswith(_ANTHROPIC_MODEL_PREFIX):
+        return AnthropicCacheControlDirective(type="ephemeral")
+    return None
+
+
 class OpenRouterTransport:
     """Native OpenRouter adapter with exact routing and privacy constraints."""
 
@@ -216,6 +234,7 @@ class OpenRouterTransport:
         reasoning = ChatRequestReasoning(effort=effort)
         temperature = judge.temperature if judge.temperature is not None else UNSET
         seed = judge.seed if judge.seed is not None else UNSET
+        cache_control = _prompt_cache_directive(judge)
         match judge.output_token_limit:
             case MaxTokensLimit(tokens=tokens):
                 result = self._client.chat.send(
@@ -226,6 +245,7 @@ class OpenRouterTransport:
                     temperature=temperature,
                     seed=seed,
                     max_tokens=tokens,
+                    cache_control=cache_control,
                     x_open_router_metadata="enabled",
                     server_url=openrouter_server_url(judge.openrouter_region),
                     session_id=session_id,
@@ -243,6 +263,7 @@ class OpenRouterTransport:
                     temperature=temperature,
                     seed=seed,
                     max_completion_tokens=tokens,
+                    cache_control=cache_control,
                     x_open_router_metadata="enabled",
                     server_url=openrouter_server_url(judge.openrouter_region),
                     session_id=session_id,
@@ -310,7 +331,7 @@ def _validate_usage(result: ChatResult) -> None:
             raise ValueError(f"completion usage.{field_name} must be a non-negative integer")
 
 
-def _selected_provider(result: ChatResult, judge: JudgeConfig) -> str:
+def _selected_provider(result: ChatResult, expected_provider_name: str) -> str:
     metadata = result.openrouter_metadata
     if metadata is None:
         raise ValueError("completion omitted required OpenRouter routing metadata")
@@ -318,9 +339,10 @@ def _selected_provider(result: ChatResult, judge: JudgeConfig) -> str:
     if len(selected) != 1:
         raise ValueError("completion metadata must identify exactly one selected endpoint")
     provider_name = selected[0].provider
-    if provider_name != judge.provider_name:
+    if provider_name != expected_provider_name:
         raise ValueError(
-            f"selected endpoint used provider {provider_name!r}, expected {judge.provider_name!r}"
+            f"selected endpoint used provider {provider_name!r}, "
+            f"expected {expected_provider_name!r}"
         )
     return provider_name
 
@@ -338,22 +360,38 @@ def _validate_detailed_route_attempts(result: ChatResult, provider_name: str) ->
         raise ValueError("provider attempt disagrees with the selected endpoint")
 
 
-def _route_provider(result: ChatResult, judge: JudgeConfig) -> str:
-    if result.model != judge.model:
-        raise ValueError(f"completion returned model {result.model!r}, expected {judge.model!r}")
+def validate_pinned_route(result: ChatResult, *, model: str, provider_name: str) -> str:
+    """Enforce the exact live routing contract over a native completion.
+
+    This is the single source of truth for route acceptance: the transport
+    applies it before a completion is accepted, and the analysis re-evaluates
+    persisted results with the same rule. OpenRouter's detailed ``attempts``
+    array is optional; when present it must agree with the selected endpoint.
+    """
+    if result.model != model:
+        raise ValueError(f"completion returned model {result.model!r}, expected {model!r}")
     metadata = result.openrouter_metadata
     if metadata is None:
         raise ValueError("completion omitted required OpenRouter routing metadata")
-    if metadata.requested != judge.model:
+    if metadata.requested != model:
         raise ValueError(
-            f"router metadata requested model {metadata.requested!r}, expected {judge.model!r}"
+            f"router metadata requested model {metadata.requested!r}, expected {model!r}"
         )
     if metadata.strategy != "direct" or metadata.attempt != 1:
         raise ValueError("completion was not served by the first direct provider attempt")
 
-    provider_name = _selected_provider(result, judge)
-    _validate_detailed_route_attempts(result, provider_name)
-    return provider_name
+    selected_provider = _selected_provider(result, provider_name)
+    _validate_detailed_route_attempts(result, selected_provider)
+    return selected_provider
+
+
+def matches_pinned_route(result: ChatResult, *, model: str, provider_name: str) -> bool:
+    """Return whether a persisted result satisfies the live routing contract."""
+    try:
+        validate_pinned_route(result, model=model, provider_name=provider_name)
+    except ValueError:
+        return False
+    return True
 
 
 def accepted_completion(result: ChatResult, judge: JudgeConfig) -> AcceptedCompletion:
@@ -362,7 +400,11 @@ def accepted_completion(result: ChatResult, judge: JudgeConfig) -> AcceptedCompl
     _validate_usage(result)
     return AcceptedCompletion(
         content=content,
-        provider_name=_route_provider(result, judge),
+        provider_name=validate_pinned_route(
+            result,
+            model=judge.model,
+            provider_name=judge.provider_name,
+        ),
     )
 
 

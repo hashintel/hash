@@ -11,6 +11,7 @@ dependencies = [
     "umap-learn>=0.5.6",
     "faiss-cpu>=1.14.3,<2",
     "hnswlib>=0.8.0",
+    "matplotlib>=3.11,<4",
     "pyyaml>=6.0",
     "pyarrow>=16.0",
     "pandas>=2.2",

@@ -24,6 +24,7 @@ from atlas_tools.relation.eval.schema import (
     VERDICTS,
     AnalysisDecisions,
     AnalysisPolicy,
+    AttemptFailure,
     BundleId,
     ExpectedEffortArm,
     ExpectedGrid,
@@ -108,15 +109,7 @@ def _chat_result(
 ) -> ChatResult:
     route_model = route_mutation.physical_model if route_mutation else None
     route_provider = route_mutation.physical_provider_name if route_mutation else None
-    attempts = [
-        {
-            "model": route_model or model,
-            "provider": route_provider or provider_name,
-            "status": 200,
-        }
-    ]
-    if route_model is not None or route_provider is not None:
-        attempts.append({"model": model, "provider": provider_name, "status": 200})
+    served_provider = route_provider or provider_name
     return ChatResult.model_validate(
         {
             "choices": [
@@ -128,18 +121,21 @@ def _chat_result(
             ],
             "created": int(START.timestamp()),
             "id": f"result-{vote_id}",
-            "model": model,
+            "model": route_model or model,
             "object": "chat.completion",
             "system_fingerprint": None,
             "openrouter_metadata": {
-                "attempt": 0,
-                "endpoints": {"available": [], "total": 1},
+                "attempt": 1,
+                "endpoints": {
+                    "available": [{"model": model, "provider": served_provider, "selected": True}],
+                    "total": 1,
+                },
                 "is_byok": False,
                 "region": None,
                 "requested": model,
                 "strategy": "direct",
                 "summary": "deterministic test route",
-                "attempts": attempts,
+                "attempts": [{"model": model, "provider": served_provider, "status": 200}],
             },
             "usage": {
                 "completion_tokens": 50,
@@ -156,14 +152,15 @@ def _chat_result(
     )
 
 
-def _vote_and_attempt(
+def _vote_and_attempts(
     *,
     cell: LogicalCell,
     verdict: VoteVerdict,
     family_cost: float,
     route_mutation: RouteMutation | None,
     cost_missing: bool,
-) -> tuple[VoteRow, PhysicalAttemptRow]:
+    cost_partial: bool,
+) -> tuple[VoteRow, list[PhysicalAttemptRow]]:
     relation_id, family, bundle, effort, repeat_index = cell
     shell_text, framing_text = bundle.split("x")
     shell = cast("ShellId", shell_text)
@@ -186,7 +183,11 @@ def _vote_and_attempt(
         if abstained
         else json.dumps({"reason": reason, "verdict": verdict}, sort_keys=True)
     )
+    # cost_partial models a vote that survived a rate-limited attempt: the
+    # accepted completion reported an exact cost, but the failed attempt makes
+    # total billing unverifiable (cost_complete false, cost_usd null).
     cost_usd = None if cost_missing else family_cost
+    known_cost = family_cost if cost_partial else (cost_usd or 0.0)
     result = _chat_result(
         vote_id=vote_id,
         raw_completion=raw_completion,
@@ -195,13 +196,18 @@ def _vote_and_attempt(
         route_mutation=route_mutation,
         cost_usd=cost_usd,
     )
+    returned_model = (
+        route_mutation.physical_model
+        if route_mutation is not None and route_mutation.physical_model is not None
+        else _model(family)
+    )
     vote = VoteRow(
         vote_id=vote_id,
         relation_id=relation_id,
         card_hash=_card_hash(relation_id),
         family_id=family,
         provider=_provider_name(family),
-        model_returned=_model(family),
+        model_returned=returned_model,
         shell_id=shell,
         framing_id=framing,
         bundle_id=bundle,
@@ -222,29 +228,56 @@ def _vote_and_attempt(
         tokens_cached=7000,
         tokens_cache_write=0,
         tokens_reasoning=0,
-        known_cost_usd=cost_usd or 0.0,
-        cost_complete=cost_usd is not None,
-        cost_usd=cost_usd,
+        known_cost_usd=known_cost,
+        cost_complete=not cost_partial and cost_usd is not None,
+        cost_usd=None if cost_partial else cost_usd,
         ts_request=START,
         ts_response=START + timedelta(seconds=2),
         latency=timedelta(seconds=2),
     )
-    attempt = PhysicalAttemptRow(
-        attempt_id=sha256_bytes(f"{vote_id}:attempt".encode()),
-        vote_id=vote_id,
-        request_stage="initial",
-        stage_attempt=0,
-        request_hash=sha256_bytes(f"{vote_id}:request".encode()),
-        family_id=family,
-        provider_slug=_provider_slug(family),
-        model_requested=_model(family),
-        result=result,
-        failure=None,
-        ts_request=START,
-        ts_response=START + timedelta(seconds=2),
-        latency=timedelta(seconds=2),
+    attempts: list[PhysicalAttemptRow] = []
+    if cost_partial:
+        attempts.append(
+            PhysicalAttemptRow(
+                attempt_id=sha256_bytes(f"{vote_id}:rate-limited".encode()),
+                vote_id=vote_id,
+                request_stage="initial",
+                stage_attempt=0,
+                request_hash=sha256_bytes(f"{vote_id}:request".encode()),
+                family_id=family,
+                provider_slug=_provider_slug(family),
+                model_requested=_model(family),
+                result=None,
+                failure=AttemptFailure(
+                    category="provider",
+                    exception_type="test.RateLimited",
+                    message="rate limited",
+                    http_status_code=429,
+                    provider_status_code=429,
+                ),
+                ts_request=START - timedelta(seconds=3),
+                ts_response=START - timedelta(seconds=2),
+                latency=timedelta(seconds=1),
+            )
+        )
+    attempts.append(
+        PhysicalAttemptRow(
+            attempt_id=sha256_bytes(f"{vote_id}:attempt".encode()),
+            vote_id=vote_id,
+            request_stage="initial",
+            stage_attempt=len(attempts),
+            request_hash=sha256_bytes(f"{vote_id}:request".encode()),
+            family_id=family,
+            provider_slug=_provider_slug(family),
+            model_requested=_model(family),
+            result=result,
+            failure=None,
+            ts_request=START,
+            ts_response=START + timedelta(seconds=2),
+            latency=timedelta(seconds=2),
+        )
     )
-    return vote, attempt
+    return vote, attempts
 
 
 def _write_jsonl(path: Path, rows: Sequence[object]) -> None:
@@ -258,6 +291,7 @@ def _write_handoff(
     verdict_overrides: Mapping[LogicalCell, VoteVerdict] | None = None,
     route_mutations: Mapping[LogicalCell, RouteMutation] | None = None,
     missing_cost_families: frozenset[str] = frozenset(),
+    partial_cost_families: frozenset[str] = frozenset(),
 ) -> Path:
     directory.mkdir()
     overrides = verdict_overrides or {}
@@ -302,15 +336,16 @@ def _write_handoff(
     for cell in cells:
         relation_id, family, bundle, _, _ = cell
         verdict = overrides.get(cell, _base_verdict(family, bundle, relation_id))
-        vote, attempt = _vote_and_attempt(
+        vote, vote_attempts = _vote_and_attempts(
             cell=cell,
             verdict=verdict,
             family_cost=0.01 * (families.index(family) + 1),
             route_mutation=mutations.get(cell),
             cost_missing=family in missing_cost_families,
+            cost_partial=family in partial_cost_families,
         )
         votes.append(vote)
-        attempts.append(attempt)
+        attempts.extend(vote_attempts)
     votes_path = directory / "votes.jsonl"
     attempts_path = directory / "attempts.jsonl"
     _write_jsonl(votes_path, votes)
@@ -452,6 +487,11 @@ def test_analysis_runs_end_to_end_and_is_byte_deterministic(tmp_path: Path) -> N
     assert decisions.axis_statistics.noise_floor.est == 0.0
     assert decisions.axis_statistics.noise_floor.bootstrap_resamples == 1000
     assert decisions.axis_statistics.noise_floor.bootstrap_defined == 1000
+    agreement = decisions.axis_statistics.agreement
+    assert agreement.qualified_panel_krippendorff_alpha.est is not None
+    assert (
+        agreement.all_candidate_krippendorff_alpha == agreement.qualified_panel_krippendorff_alpha
+    )
     assert decisions.projected_grid_cost_usd is not None
     assert decisions.projected_grid_cost.est == decisions.projected_grid_cost_usd
     assert decisions.projected_grid_cost.n > 0
@@ -714,6 +754,78 @@ def test_missing_costs_make_escalation_unrankable_and_projection_incomplete(
     assert decisions.projected_grid_cost.n > 0
     assert all(audit.cost_reported_n == 0 for audit in decisions.cost_audit)
     assert all(audit.projected_cost.est is None for audit in decisions.cost_audit)
+
+
+def test_partial_costs_from_retried_votes_rank_escalation_and_project_cost(
+    tmp_path: Path,
+) -> None:
+    """Votes that survived rate-limited attempts keep their reported cost usable.
+
+    ``cost_usd`` is null for such votes (total billing is unverifiable), but the
+    accepted completion's reported cost is exact, so escalation economics and
+    the grid projection must match a fully-costed handoff instead of failing
+    closed — the 2026-07-14 pilot lost its entire escalation ranking to this.
+    """
+    complete = analyze_handoff(
+        _write_handoff(tmp_path / "complete"),
+        tmp_path / "complete-out",
+    ).decisions
+    partial = analyze_handoff(
+        _write_handoff(
+            tmp_path / "partial",
+            partial_cost_families=frozenset(FAMILIES),
+        ),
+        tmp_path / "partial-out",
+    ).decisions
+
+    assert complete.escalation_order != []
+    assert partial.escalation_order == complete.escalation_order
+    assert [row.rankable for row in partial.escalation] == [
+        row.rankable for row in complete.escalation
+    ]
+    assert all(row.cost_reported_n == row.cost_eligible_n for row in partial.escalation)
+    assert partial.projected_grid_cost_usd is not None
+    assert partial.projected_grid_cost_usd == complete.projected_grid_cost_usd
+    assert all(audit.cost_reported_n == audit.n for audit in partial.cost_audit)
+
+
+def test_effort_escalation_axis_prices_effort_arm_against_baseline(tmp_path: Path) -> None:
+    """The effort arm is ranked as an escalation option on contested cards.
+
+    Baseline vs high-effort verdicts at ``S1xF1`` form the observation pairs;
+    the candidate (high-effort) vote's reported cost is the marginal cost. The
+    default fixture repeats baseline verdicts at high effort, so the axis is
+    rankable with zero yield; flipping every contested high-effort cell must
+    drive the yield to 1.
+    """
+    quiet = analyze_handoff(
+        _write_handoff(tmp_path / "quiet"),
+        tmp_path / "quiet-out",
+    ).decisions
+    effort_row = next(row for row in quiet.escalation if row.axis == "effort")
+    # Contested relations (top entropy tercile): R3 and R4, x 2 families.
+    assert effort_row.cost_eligible_n == 4
+    assert effort_row.cost_reported_n == 4
+    assert effort_row.rankable
+    assert effort_row.disagreement_yield.est == 0.0
+    assert "effort" in quiet.escalation_order
+
+    flipped = analyze_handoff(
+        _write_handoff(
+            tmp_path / "flipped",
+            verdict_overrides={
+                ("test:R3", "family-a", "S1xF1", HIGH_EFFORT, 0): "unclear",
+                ("test:R3", "family-b", "S1xF1", HIGH_EFFORT, 0): "unclear",
+                ("test:R4", "family-a", "S1xF1", HIGH_EFFORT, 0): "coincident",
+                ("test:R4", "family-b", "S1xF1", HIGH_EFFORT, 0): "coincident",
+            },
+        ),
+        tmp_path / "flipped-out",
+    ).decisions
+    effort_row = next(row for row in flipped.escalation if row.axis == "effort")
+    assert effort_row.cost_eligible_n == 4
+    assert effort_row.disagreement_yield.est == 1.0
+    assert effort_row.rankable
 
 
 def test_card_axis_disagreement_uses_linear_pair_weighting() -> None:

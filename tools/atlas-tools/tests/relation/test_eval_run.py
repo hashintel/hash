@@ -13,6 +13,7 @@ import httpx
 import pytest
 import yaml
 from openrouter.components import (
+    AnthropicCacheControlDirective,
     ChatAssistantMessage,
     ChatChoice,
     ChatMessages,
@@ -49,7 +50,12 @@ from atlas_tools.relation.eval.prompt import (
     RETRY_INSTRUCTION,
     prompt_pack_hash,
 )
-from atlas_tools.relation.eval.provenance import judge_pin, judge_request_hash
+from atlas_tools.relation.eval.provenance import (
+    judge_pin,
+    judge_request_hash,
+    plan_hash,
+    request_contract_hash,
+)
 from atlas_tools.relation.eval.resume import validate_resume
 from atlas_tools.relation.eval.run import (
     ConcurrencyConfig,
@@ -539,6 +545,8 @@ def _analysis_decisions(cards_dir: Path, config: FullRunConfig) -> AnalysisDecis
                 p2634_correct=family_id != FAMILY_PRUNED,
                 passed=family_id != FAMILY_PRUNED,
                 bundle_correctness={},
+                holdout_expected={},
+                holdout_verdicts={},
             )
             for family_id in (FAMILY_BASELINE, FAMILY_HIGH, FAMILY_PRUNED)
         ],
@@ -550,7 +558,8 @@ def _analysis_decisions(cards_dir: Path, config: FullRunConfig) -> AnalysisDecis
             agreement=AgreementResults(
                 bundle_kappa_by_family={},
                 qualification_family_kappa={},
-                krippendorff_alpha=zero,
+                all_candidate_krippendorff_alpha=zero,
+                qualified_panel_krippendorff_alpha=zero,
             ),
             ordering=OrderingCheck(rates={}, healthy_order_holds=True),
         ),
@@ -1210,6 +1219,21 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
     assert unexpected_parameter not in client.chat.kwargs
     assert client.chat.kwargs["seed"] is UNSET
     assert client.chat.kwargs["temperature"] is UNSET
+    # Prompt caching is an Anthropic-vendor directive: absent for other models,
+    # attached as OpenRouter's automatic ephemeral breakpoint for anthropic/*.
+    assert client.chat.kwargs["cache_control"] is None
+    anthropic_judge = judge.model_copy(update={"model": "anthropic/claude-test"})
+    transport.complete(
+        messages=[],
+        judge=anthropic_judge,
+        effort="minimal",
+        session_id="session",
+        timeout=timedelta(seconds=5),
+    )
+    assert client.chat.kwargs is not None
+    directive = client.chat.kwargs["cache_control"]
+    assert isinstance(directive, AnthropicCacheControlDirective)
+    assert directive.type == "ephemeral"
     transport.close()
     assert client.closed
 
@@ -1245,22 +1269,20 @@ def test_rejects_missing_or_wrong_model_and_provider_metadata(
     message: str,
 ) -> None:
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="provider response rejected") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([result]),
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([result]),
+    )
 
-    assert raised.value.__cause__ is not None
-    assert message in str(raised.value.__cause__)
-    assert _read_votes(output / "votes.jsonl") == []
-    attempts = _read_attempts(output / "attempts.jsonl")
-    assert len(attempts) == 1
+    attempts = _read_attempts(paths.attempts_jsonl)
     assert attempts[0].result == result
     assert attempts[0].failure is not None
     assert attempts[0].failure.category == "routing"
+    assert message in attempts[0].failure.message
+    # The rejected vote recovered on the re-pass instead of ending the session.
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
 
 
 def test_accepts_selected_endpoint_metadata_without_optional_attempts(
@@ -1310,39 +1332,37 @@ def test_rejects_invalid_completion_envelopes(
     message: str,
 ) -> None:
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="provider response rejected") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([result]),
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([result]),
+    )
 
-    assert raised.value.__cause__ is not None
-    assert message in str(raised.value.__cause__)
-    attempts = _read_attempts(output / "attempts.jsonl")
-    assert len(attempts) == 1
+    attempts = _read_attempts(paths.attempts_jsonl)
     assert attempts[0].failure is not None
     assert attempts[0].failure.category == "response"
-    assert _read_votes(output / "votes.jsonl") == []
+    assert message in attempts[0].failure.message
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
 
 
 def test_rejects_missing_usage_without_abstaining(cards_dir: Path, tmp_path: Path) -> None:
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="provider response rejected") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([_result(include_usage=False)]),
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([_result(include_usage=False)]),
+    )
 
-    assert raised.value.__cause__ is not None
-    assert "usage" in str(raised.value.__cause__)
-    attempt = _read_attempts(output / "attempts.jsonl")[0]
+    attempt = _read_attempts(paths.attempts_jsonl)[0]
     assert attempt.failure is not None
     assert attempt.failure.category == "accounting"
-    assert _read_votes(output / "votes.jsonl") == []
+    assert "usage" in attempt.failure.message
+    recovered = next(
+        vote for vote in _read_votes(paths.votes_jsonl) if vote.vote_id == attempt.vote_id
+    )
+    assert not recovered.abstained
 
 
 def test_malformed_initial_is_repaired_conversationally_and_attempts_are_persisted(
@@ -1456,22 +1476,22 @@ def test_transport_or_provider_failure_is_not_converted_to_abstain(
     expected_category: Literal["transport", "response"],
 ) -> None:
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="physical initial request failed") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([error_type(message)]),
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([error_type(message)]),
+    )
 
-    assert isinstance(raised.value.__cause__, error_type)
-    assert str(raised.value.__cause__) == message
-    assert _read_votes(output / "votes.jsonl") == []
-    attempt = _read_attempts(output / "attempts.jsonl")[0]
+    attempt = _read_attempts(paths.attempts_jsonl)[0]
     assert attempt.result is None
     assert attempt.failure is not None
     assert attempt.failure.category == expected_category
     assert message in attempt.failure.message
+    recovered = next(
+        vote for vote in _read_votes(paths.votes_jsonl) if vote.vote_id == attempt.vote_id
+    )
+    assert not recovered.abstained
 
 
 def test_provider_error_status_and_body_are_persisted(cards_dir: Path, tmp_path: Path) -> None:
@@ -1480,20 +1500,18 @@ def test_provider_error_status_and_body_are_persisted(cards_dir: Path, tmp_path:
         body = '{"error":{"message":"upstream detail"}}'
 
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="physical initial request failed") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([ProviderResponseError("Provider returned error")]),
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([ProviderResponseError("Provider returned error")]),
+    )
 
-    assert isinstance(raised.value.__cause__, ProviderResponseError)
-    assert str(raised.value.__cause__) == "Provider returned error"
-    attempt = _read_attempts(output / "attempts.jsonl")[0]
+    attempt = _read_attempts(paths.attempts_jsonl)[0]
     assert attempt.failure is not None
     assert attempt.failure.http_status_code == 400
     assert attempt.failure.response_body == ProviderResponseError.body
+    assert "Provider returned error" in attempt.failure.message
 
 
 def test_retryable_429_honors_retry_after_and_persists_both_attempts(
@@ -1577,7 +1595,10 @@ def test_retry_policy_rejects_permanent_client_error_codes() -> None:
         TransientRetryConfig(status_codes=(403,))
 
 
-def test_permanent_403_is_not_retried(cards_dir: Path, tmp_path: Path) -> None:
+def test_permanent_403_defers_without_in_vote_retries_and_repasses(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
     error = ScriptedProviderError(
         "model unavailable in this region",
         status_code=403,
@@ -1586,19 +1607,29 @@ def test_permanent_403_is_not_retried(cards_dir: Path, tmp_path: Path) -> None:
     transport = ScriptedTransport([error])
     output = tmp_path / "out"
 
-    with pytest.raises(RuntimeError, match="terminal outcome"):
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(transient_retries=_transient_retries(5)),
-            transport=transport,
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(transient_retries=_transient_retries(5)),
+        transport=transport,
+    )
 
-    attempts = _read_attempts(output / "attempts.jsonl")
-    assert len(transport.calls) == 1
-    assert len(attempts) == 1
-    assert attempts[0].failure is not None
-    assert attempts[0].failure.http_status_code == 403
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    # The 403 vote consumed exactly one call in the first pass (no in-vote
+    # retry burned budget against a permanent status) and was re-attempted
+    # only after the rest of the plan drained.
+    assert len(transport.calls) == EXPECTED_VOTES + 1
+    assert transport.calls[-1].messages == transport.calls[0].messages
+    failed_vote_id = _read_attempts(paths.attempts_jsonl)[0].vote_id
+    recovered = [
+        attempt
+        for attempt in _read_attempts(paths.attempts_jsonl)
+        if attempt.vote_id == failed_vote_id
+    ]
+    assert [(attempt.stage_attempt, attempt.failure is None) for attempt in recovered] == [
+        (0, False),
+        (1, True),
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1621,35 +1652,260 @@ def test_permanent_status_vetoes_retryable_status_from_other_layer(
     )
     transport = ScriptedTransport([error])
 
-    with pytest.raises(RuntimeError, match="terminal outcome"):
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=tmp_path / "out",
-            config=_config(transient_retries=_transient_retries(2)),
-            transport=transport,
-        )
+    run_pilot(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "out",
+        config=_config(transient_retries=_transient_retries(2)),
+        transport=transport,
+    )
 
-    assert len(transport.calls) == 1
+    # The permanent status vetoed in-vote retries: one first-pass call, then
+    # a single re-pass call at the end of the plan.
+    assert len(transport.calls) == EXPECTED_VOTES + 1
+    assert transport.calls[-1].messages == transport.calls[0].messages
 
 
-def test_transient_retry_exhaustion_is_terminal(cards_dir: Path, tmp_path: Path) -> None:
+def test_transient_retry_exhaustion_defers_and_repass_recovers(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
     transport = ScriptedTransport(
         [ConnectionError("first interruption"), ConnectionError("second interruption")]
     )
     output = tmp_path / "out"
 
-    with pytest.raises(RuntimeError, match="after 2 visible attempts") as raised:
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(transient_retries=_transient_retries(2)),
+        transport=transport,
+    )
+
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    exhausted_vote_id = _read_attempts(paths.attempts_jsonl)[0].vote_id
+    recovered = [
+        attempt
+        for attempt in _read_attempts(paths.attempts_jsonl)
+        if attempt.vote_id == exhausted_vote_id
+    ]
+    assert [(attempt.stage_attempt, attempt.failure is None) for attempt in recovered] == [
+        (0, False),
+        (1, False),
+        (2, True),
+    ]
+
+
+def test_resume_grants_a_fresh_attempt_budget_after_a_billing_failure(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    error = ScriptedProviderError(
+        "Insufficient credits",
+        status_code=402,
+        body='{"error":{"code":402,"message":"Insufficient credits"}}',
+    )
+    output = tmp_path / "out"
+    config = _config(transient_retries=_transient_retries(5))
+
+    with pytest.raises(RuntimeError, match="terminal outcome"):
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
-            config=_config(transient_retries=_transient_retries(2)),
-            transport=transport,
+            config=config,
+            transport=ScriptedTransport([error]),
         )
 
-    assert isinstance(raised.value.__cause__, ConnectionError)
-    attempts = _read_attempts(output / "attempts.jsonl")
-    assert [attempt.stage_attempt for attempt in attempts] == [0, 1]
-    assert all(attempt.failure is not None for attempt in attempts)
+    wedged = _read_attempts(output / "attempts.jsonl")
+    assert len(wedged) == 1
+    assert wedged[0].failure is not None
+    assert wedged[0].failure.http_status_code == 402
+
+    resumed = ScriptedTransport()
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=config,
+        transport=resumed,
+    )
+
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    recovered = [
+        attempt
+        for attempt in _read_attempts(paths.attempts_jsonl)
+        if attempt.vote_id == wedged[0].vote_id
+    ]
+    assert [(attempt.stage_attempt, attempt.failure is None) for attempt in recovered] == [
+        (0, False),
+        (1, True),
+    ]
+    assert paths.manifest_json.is_file()
+
+
+def test_rejected_envelope_defers_and_repass_recovers(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    # A model that stochastically emits tool calls instead of a completion
+    # (observed in the field) must not poison the vote or end the session.
+    rejected = _result(finish_reason="tool_calls")
+    output = tmp_path / "out"
+
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(transient_retries=_transient_retries(5)),
+        transport=ScriptedTransport([rejected]),
+    )
+
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    attempts = _read_attempts(paths.attempts_jsonl)
+    failed_vote_id = attempts[0].vote_id
+    recovered = [attempt for attempt in attempts if attempt.vote_id == failed_vote_id]
+    assert [(attempt.stage_attempt, attempt.failure is None) for attempt in recovered] == [
+        (0, False),
+        (1, True),
+    ]
+    assert recovered[0].failure is not None
+    assert recovered[0].failure.category == "response"
+    assert recovered[0].result is not None
+
+
+class CardFailingTransport(ScriptedTransport):
+    """Fail every request for one relation card; default-succeed otherwise."""
+
+    def __init__(self, card_text: str) -> None:
+        super().__init__()
+        self.card_text = card_text
+
+    def complete(
+        self,
+        *,
+        messages: list[ChatMessages],
+        judge: JudgeConfig,
+        effort: ReasoningEffort,
+        session_id: str,
+        timeout: timedelta,
+    ) -> ChatResult:
+        if self.card_text in str(messages[-1].content):
+            raise ScriptedProviderError(
+                "model unavailable in this region",
+                status_code=403,
+                body='{"error":{"code":"permission-denied"}}',
+            )
+        return super().complete(
+            messages=messages,
+            judge=judge,
+            effort=effort,
+            session_id=session_id,
+            timeout=timeout,
+        )
+
+
+def test_no_progress_pass_reports_all_failed_votes_and_later_session_recovers(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "out"
+    config = _config(transient_retries=_transient_retries(2))
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    live_card_text = prepared.cards[LIVE_RELATION].card_text
+    live_vote_count = sum(
+        1 for task in PilotVotePlan(config, prepared).tasks() if task.relation_id == LIVE_RELATION
+    )
+
+    with pytest.raises(RuntimeError, match="remain failed after re-passes") as raised:
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=config,
+            transport=CardFailingTransport(live_card_text),
+        )
+
+    assert f"{live_vote_count} logical votes remain failed" in str(raised.value)
+    # The ordered commit stalls at the first failed vote, but every completed
+    # peer is durable in attempts.jsonl and reusable.
+    assert len(_read_votes(output / "votes.jsonl")) < EXPECTED_VOTES
+    successes = [
+        attempt for attempt in _read_attempts(output / "attempts.jsonl") if attempt.failure is None
+    ]
+    assert len(successes) == EXPECTED_VOTES - live_vote_count
+
+    recovered = ScriptedTransport()
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=config,
+        transport=recovered,
+    )
+
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    # Only the failed votes were re-bought in the recovery session.
+    assert len(recovered.calls) == live_vote_count
+    assert paths.manifest_json.is_file()
+
+
+def test_request_contract_ignores_operational_scheduling_knobs(cards_dir: Path) -> None:
+    base = _config()
+    retuned = base.model_copy(
+        update={
+            "concurrency": ConcurrencyConfig(initial=128, maximum=512),
+            "max_cost_usd": 300.0,
+        }
+    )
+
+    assert request_contract_hash(retuned) == request_contract_hash(base)
+    prepared = prepare_pilot_inputs(cards_dir, base)
+    assert plan_hash(retuned, PilotVotePlan(retuned, prepared)) == plan_hash(
+        base, PilotVotePlan(base, prepared)
+    )
+
+    slower = base.model_copy(update={"request_timeout": timedelta(seconds=6)})
+    assert request_contract_hash(slower) != request_contract_hash(base)
+
+
+class ClosableScriptedTransport(ScriptedTransport):
+    def close(self) -> None:
+        return None
+
+
+def test_resume_accepts_retuned_concurrency_between_sessions(
+    cards_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "out"
+    config = _config(transient_retries=_transient_retries(2))
+    interrupt_backoff = True
+
+    def interrupt_once(
+        _control: eval_control.ExecutionControl,
+        _delay: timedelta,
+    ) -> None:
+        nonlocal interrupt_backoff
+        if interrupt_backoff:
+            interrupt_backoff = False
+            raise InterruptedError("process stopped during retry backoff")
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", interrupt_once)
+    with pytest.raises(InterruptedError, match="process stopped during retry backoff"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=config,
+            transport=ScriptedTransport([_result(completion_id="first"), ConnectionError("boom")]),
+        )
+    assert len(_read_votes(output / "votes.jsonl")) == 1
+
+    retuned = config.model_copy(update={"concurrency": ConcurrencyConfig(initial=2, maximum=2)})
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=retuned,
+        transport_factory=ClosableScriptedTransport,
+    )
+
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
+    assert paths.manifest_json.is_file()
 
 
 def test_cost_cap_fails_closed_before_retrying_unknown_billed_cost(
@@ -1679,13 +1935,12 @@ def test_cost_settlement_blocks_new_authorization_until_unknown_cost_is_visible(
     tmp_path: Path,
 ) -> None:
     output = tmp_path / "failed-attempt"
-    with pytest.raises(RuntimeError):
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=ScriptedTransport([ConnectionError("unknown cost fixture")]),
-        )
+    run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=ScriptedTransport([ConnectionError("unknown cost fixture")]),
+    )
     failed_attempt = _read_attempts(output / "attempts.jsonl")[0]
 
     cost_gate = CostGate.from_attempts(maximum_usd=1.0, attempts=[])
@@ -1805,24 +2060,30 @@ def test_every_physical_attempt_must_match_the_pinned_route(
             _result(route_provider=OTHER_PROVIDER_NAME),
         ]
     )
-    with pytest.raises(RuntimeError, match="provider response rejected") as raised:
-        run_pilot(
-            cards_dir=cards_dir,
-            out_dir=output,
-            config=_config(),
-            transport=transport,
-        )
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=_config(),
+        transport=transport,
+    )
 
-    assert isinstance(raised.value.__cause__, ValueError)
-    assert "selected endpoint used provider" in str(raised.value.__cause__)
-    attempts = _read_attempts(output / "attempts.jsonl")
-    assert [(attempt.request_stage, attempt.failure is None) for attempt in attempts] == [
-        ("initial", True),
-        ("repair", False),
+    attempts = _read_attempts(paths.attempts_jsonl)
+    rejected_vote_id = attempts[1].vote_id
+    vote_attempts = [attempt for attempt in attempts if attempt.vote_id == rejected_vote_id]
+    # The mispinned repair response was rejected and journaled; the re-pass
+    # reused the malformed initial and re-bought only the repair call.
+    assert [
+        (attempt.request_stage, attempt.stage_attempt, attempt.failure is None)
+        for attempt in vote_attempts
+    ] == [
+        ("initial", 0, True),
+        ("repair", 0, False),
+        ("repair", 1, True),
     ]
     assert attempts[1].failure is not None
     assert attempts[1].failure.category == "routing"
-    assert _read_votes(output / "votes.jsonl") == []
+    assert "selected endpoint used provider" in attempts[1].failure.message
+    assert len(_read_votes(paths.votes_jsonl)) == EXPECTED_VOTES
 
 
 def test_interrupted_run_resumes_from_persisted_physical_attempts(
@@ -2126,9 +2387,9 @@ def test_terminal_failure_drain_does_not_start_peer_repair_calls(
                 if not peer_started.wait(timeout=5):
                     raise TimeoutError("peer request did not start")
                 raise ScriptedProviderError(
-                    "terminal route failure",
-                    status_code=403,
-                    body='{"error":{"code":"permission-denied"}}',
+                    "insufficient credits",
+                    status_code=402,
+                    body='{"error":{"code":402,"message":"insufficient credits"}}',
                 )
             raise AssertionError("drain test dispatched an unexpected logical vote")
 
@@ -2324,9 +2585,9 @@ def test_resume_accepts_unattempted_gaps_before_a_higher_pending_attempt(
         [
             _result(completion_id="lower-success"),
             ScriptedProviderError(
-                "higher terminal failure",
-                status_code=403,
-                body='{"error":{"code":"permission-denied"}}',
+                "insufficient credits",
+                status_code=402,
+                body='{"error":{"code":402,"message":"insufficient credits"}}',
             ),
         ]
     )
