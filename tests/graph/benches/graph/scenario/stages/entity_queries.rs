@@ -102,7 +102,7 @@ impl QueryEntitiesByUserStage {
             .await
             .change_context(QueryEntitiesError::Acquire)?;
 
-        let store = pool
+        let mut store = pool
             .acquire(None)
             .await
             .change_context(QueryEntitiesError::Acquire)?;

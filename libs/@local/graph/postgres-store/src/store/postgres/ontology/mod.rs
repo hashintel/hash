@@ -17,7 +17,7 @@ use hash_graph_store::{
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
-use tokio_postgres::{Row, Transaction};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::Instrument as _;
 use type_system::{
     ontology::{
@@ -31,13 +31,16 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient as _, PostgresStore,
+        AsClient, InTransaction, PostgresStore,
         crud::QueryRecordDecode,
         query::{Distinctness, PostgresSorting, SelectCompiler, SelectCompilerError},
     },
 };
 
-impl PostgresStore<Transaction<'_>> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     /// Deletes ontology metadata for the specified ontology type UUIDs.
     ///
     /// This function removes ontology ownership metadata, temporal metadata,

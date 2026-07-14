@@ -10,6 +10,7 @@ description       = "HASH Graph API"
 [dependencies]
 # Public workspace dependencies
 hash-graph-authorization = { workspace = true, public = true, features = ["postgres"] }
+hash-graph-migrations    = { workspace = true, public = true }
 hash-graph-store         = { workspace = true, public = true, features = ["postgres"] }
 hash-graph-validation    = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
@@ -53,16 +54,22 @@ utoipa         = { workspace = true, optional = true, features = ["uuid"] }
 uuid           = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
-hash-graph-migrations = { workspace = true }
-hash-graph-test-data  = { workspace = true }
-hash-telemetry        = { workspace = true }
-indoc                 = { workspace = true }
-pretty_assertions     = { workspace = true }
-tokio                 = { workspace = true, features = ["macros"] }
-tracing-subscriber    = { workspace = true, features = ["env-filter"] }
+# The crate's own test suites wrap each test in a rollback transaction, so they need the
+# `test-utils`-gated `BeginReadOnlyTransaction` impl for `InTransaction` stores. The
+# self-dependency enables the feature for test builds only via feature unification.
+hash-graph-postgres-store = { workspace = true, features = ["test-utils"] }
+hash-graph-test-data      = { workspace = true }
+hash-telemetry            = { workspace = true }
+indoc                     = { workspace = true }
+pretty_assertions         = { workspace = true }
+tokio                     = { workspace = true, features = ["macros"] }
+tracing-subscriber        = { workspace = true, features = ["env-filter"] }
 
 [features]
 clap = ["dep:clap"]
+# Exposes test-only impls, in particular `BeginReadOnlyTransaction` for stores already inside a
+# transaction. See the `TODO(BE-688)` on the trait definition.
+test-utils = []
 utoipa = [
     "dep:utoipa",
     "hash-graph-store/utoipa",
@@ -73,3 +80,11 @@ utoipa = [
 
 [lints]
 workspace = true
+
+
+[package.metadata.sync.turborepo]
+# The self-dependency above only exists to enable the `test-utils` feature for test builds; a
+# literal self-reference in `package.json` would make Turborepo reject the package graph.
+ignore-dev-dependencies = [
+    "hash-graph-postgres-store",
+]

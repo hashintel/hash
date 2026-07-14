@@ -6,7 +6,7 @@ use tracing::Instrument as _;
 use crate::{
     snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
     store::{
-        AsClient, PostgresStore,
+        AsClient, InTransaction, PostgresStore,
         postgres::query::{
             OnConflict,
             rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
@@ -24,7 +24,9 @@ impl<C> WriteBatch<C> for DataTypeRowBatch
 where
     C: AsClient,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, InTransaction>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -57,7 +59,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -108,7 +110,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client

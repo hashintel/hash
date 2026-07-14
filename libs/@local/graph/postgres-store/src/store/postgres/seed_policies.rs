@@ -19,7 +19,6 @@ use hash_graph_authorization::policies::{
         PolicyCreationParams, PolicyFilter, PolicyUpdateOperation, error::EnsureSystemPoliciesError,
     },
 };
-use tokio_postgres::Transaction;
 use type_system::{
     ontology::BaseUrl,
     principal::{
@@ -28,7 +27,7 @@ use type_system::{
     },
 };
 
-use super::PostgresStore;
+use super::{AsClient, InTransaction, PostgresStore};
 
 struct EntityTypeConfig {
     base_url: BaseUrl,
@@ -911,7 +910,10 @@ pub(crate) fn instance_admins_policies(role: &TeamRole) -> Vec<PolicyCreationPar
         .collect()
 }
 
-impl PostgresStore<Transaction<'_>> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn update_seeded_policies(
         &mut self,

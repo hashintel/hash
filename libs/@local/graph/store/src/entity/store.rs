@@ -809,33 +809,52 @@ pub trait EntityStore {
 
     /// Get a list of entities specified by the [`QueryEntitiesParams`].
     ///
+    /// The whole read is expected to be evaluated against a single consistent snapshot of the
+    /// store, so a concurrent write cannot cause the returned entities, their resolved entity
+    /// types, and the permission information to reflect different states of the store.
+    /// Implementations backed by a database should run all statements of the read inside a
+    /// single read-only transaction with an isolation level of at least repeatable read. This
+    /// requires mutable access to the store to begin the transaction.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn query_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitiesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
     /// Searches for entities by embedding similarity, ordered by ascending cosine distance.
     ///
+    /// The underlying entity read runs against a single consistent snapshot of the store; see
+    /// [`query_entities`] for details. This requires mutable access to the store.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
+    ///
+    /// [`query_entities`]: Self::query_entities
     fn search_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> impl Future<Output = Result<SearchEntitiesResponse, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///
+    /// The whole subgraph read is expected to be evaluated against a single consistent snapshot
+    /// of the store, so a concurrent write cannot cause the returned subgraph to contain a link
+    /// entity without the edge to its endpoint. Implementations backed by a database should run
+    /// all statements of the read inside a single read-only transaction with an isolation level
+    /// of at least repeatable read. This requires mutable access to the store to begin the
+    /// transaction.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;

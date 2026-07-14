@@ -21,7 +21,9 @@ use hash_graph_authorization::policies::{
     principal::PrincipalConstraint,
     store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
 };
-use hash_graph_postgres_store::store::{PostgresStore, error::StoreError};
+use hash_graph_postgres_store::store::{
+    Context as _, InTransaction, PostgresStore, error::StoreError,
+};
 use tokio_postgres::Transaction;
 use type_system::principal::actor::ActorId;
 
@@ -30,7 +32,7 @@ pub use crate::common::DatabaseTestWrapper;
 impl DatabaseTestWrapper {
     pub(crate) async fn seed(
         &mut self,
-    ) -> Result<(PostgresStore<Transaction<'_>>, ActorId), Report<StoreError>> {
+    ) -> Result<(PostgresStore<Transaction<'_>, InTransaction>, ActorId), Report<StoreError>> {
         let mut transaction = self.connection.transaction().await?;
 
         transaction

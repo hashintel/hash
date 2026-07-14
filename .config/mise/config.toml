@@ -1,4 +1,4 @@
-min_version = "2026.4.22"
+min_version = "2026.6.13"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -6,6 +6,7 @@ _.file                        = [".env", ".env.local"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
+lockfile                            = true
 minimum_release_age                 = "5d"
 
 [tools]

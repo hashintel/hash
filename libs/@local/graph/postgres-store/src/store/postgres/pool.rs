@@ -4,6 +4,7 @@ use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
 use error_stack::{Report, ResultExt as _};
+use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use tokio_postgres::{
@@ -108,6 +109,50 @@ impl StorePool for PostgresStorePool {
     }
 }
 
+/// Options used to begin a database transaction.
+///
+/// The options are collected by a [`PostgresStoreTransactionBuilder`] and compiled into the
+/// single `BEGIN` statement issued to the database when the transaction is begun, e.g. `START
+/// TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY`.
+///
+/// [`PostgresStoreTransactionBuilder`]: crate::store::PostgresStoreTransactionBuilder
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub struct TransactionOptions {
+    pub isolation_level: Option<IsolationLevel>,
+    pub read_only: bool,
+    pub deferrable: bool,
+}
+
+mod sealed {
+    pub trait Sealed {}
+}
+
+/// A type-level marker describing whether a [`PostgresStore`] is currently inside a database
+/// transaction.
+///
+/// The trait is sealed: the set of states is closed over [`NoTransaction`] and [`InTransaction`].
+/// The state determines which transaction APIs exist on the store: a *configurable* top-level
+/// transaction ([`Context::transaction`]) can only be begun in the [`NoTransaction`] state, while
+/// a store in the [`InTransaction`] state can only nest by creating savepoints, which have no
+/// configurable characteristics of their own.
+///
+/// [`Context::transaction`]: hash_graph_migrations::Context::transaction
+pub trait TransactionState: sealed::Sealed + Send + Sync + 'static {}
+
+/// Marker for a [`PostgresStore`] which is not inside a database transaction.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct NoTransaction;
+
+impl sealed::Sealed for NoTransaction {}
+impl TransactionState for NoTransaction {}
+
+/// Marker for a [`PostgresStore`] which is inside a database transaction.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct InTransaction;
+
+impl sealed::Sealed for InTransaction {}
+impl TransactionState for InTransaction {}
+
 pub trait AsClient: Send + Sync {
     type Client: GenericClient + Send + Sync;
 
@@ -151,9 +196,10 @@ impl AsClient for Transaction<'_> {
     }
 }
 
-impl<C> AsClient for PostgresStore<C>
+impl<C, S> AsClient for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     type Client = C::Client;
 

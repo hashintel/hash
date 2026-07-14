@@ -6688,6 +6688,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@vitejs/plugin-react": "npm:5.0.4"
     "@vitest/browser-playwright": "npm:4.1.8"
+    "@zag-js/dom-query": "npm:1.41.2"
     case-anything: "npm:3.1.0"
     colorjs.io: "npm:0.6.1"
     esbuild-plugin-svgr: "npm:3.1.1"

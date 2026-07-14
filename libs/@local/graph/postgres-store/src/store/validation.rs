@@ -30,7 +30,7 @@ use type_system::{
     },
 };
 
-use crate::store::postgres::{AsClient, PostgresStore};
+use crate::store::postgres::{AsClient, PostgresStore, TransactionState};
 
 #[derive(Debug, Clone)]
 enum Access<T> {
@@ -139,9 +139,10 @@ impl<'a, S> StoreProvider<'a, S> {
     }
 }
 
-impl<C> StoreProvider<'_, PostgresStore<C>>
+impl<C, S> StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
         if let Some(policy_components) = &self.policy_components {
@@ -172,9 +173,10 @@ where
     }
 }
 
-impl<C> DataTypeLookup for StoreProvider<'_, PostgresStore<C>>
+impl<C, S> DataTypeLookup for StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     type ClosedDataType = Arc<ClosedDataType>;
     type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
@@ -365,9 +367,10 @@ where
     }
 }
 
-impl<C> StoreProvider<'_, PostgresStore<C>>
+impl<C, S> StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn fetch_property_type(
         &self,
@@ -416,9 +419,10 @@ where
     }
 }
 
-impl<C> OntologyTypeProvider<PropertyType> for StoreProvider<'_, PostgresStore<C>>
+impl<C, S> OntologyTypeProvider<PropertyType> for StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     type Value = Arc<PropertyType>;
 
@@ -454,9 +458,10 @@ where
     }
 }
 
-impl<C> StoreProvider<'_, PostgresStore<C>>
+impl<C, S> StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn fetch_entity_type(
         &self,
@@ -503,9 +508,11 @@ where
     }
 }
 
-impl<C> OntologyTypeProvider<ClosedEntityTypeWithMetadata> for StoreProvider<'_, PostgresStore<C>>
+impl<C, S> OntologyTypeProvider<ClosedEntityTypeWithMetadata>
+    for StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     type Value = Arc<ClosedEntityTypeWithMetadata>;
 
@@ -548,9 +555,10 @@ where
     }
 }
 
-impl<C> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C>>
+impl<C, S> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     type Value = Arc<ClosedEntityType>;
 
@@ -581,9 +589,10 @@ where
     }
 }
 
-impl<C> EntityProvider for StoreProvider<'_, PostgresStore<C>>
+impl<C, S> EntityProvider for StoreProvider<'_, PostgresStore<C, S>>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[expect(refining_impl_trait)]
     async fn provide_entity(&self, entity_id: EntityId) -> Result<Arc<Entity>, Report<QueryError>> {

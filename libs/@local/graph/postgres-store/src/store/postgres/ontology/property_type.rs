@@ -7,6 +7,7 @@ use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
 };
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
@@ -51,7 +52,7 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient, PostgresStore, TraversalContext,
+        AsClient, PostgresStore, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
@@ -61,9 +62,10 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "trace", skip(property_types, provider))]
     pub(crate) async fn filter_property_types_by_permission<I, T>(
@@ -434,7 +436,10 @@ where
     /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_property_types(&mut self) -> Result<(), Report<DeletionError>> {
-        let transaction = self.transaction().await.change_context(DeletionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(DeletionError)?;
 
         transaction
             .as_client()
@@ -483,9 +488,10 @@ where
     }
 }
 
-impl<C> PropertyTypeStore for PostgresStore<C>
+impl<C, S> PropertyTypeStore for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
@@ -497,7 +503,10 @@ where
     where
         P: IntoIterator<Item = CreatePropertyTypeParams, IntoIter: Send> + Send,
     {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(InsertionError)?;
 
         let mut inserted_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();
@@ -835,7 +844,7 @@ where
     where
         P: IntoIterator<Item = UpdatePropertyTypesParams, IntoIter: Send> + Send,
     {
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         let mut updated_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();

@@ -33,7 +33,7 @@ use type_system::{
 
 use crate::store::{
     StoreProvider,
-    postgres::{AsClient, PostgresStore, query::SelectCompiler},
+    postgres::{AsClient, PostgresStore, TransactionState, query::SelectCompiler},
 };
 
 #[derive(Debug)]
@@ -113,9 +113,10 @@ pub struct EntityTraversalResult {
     pub edge_hops: Vec<EdgeHopMetadata>,
 }
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(

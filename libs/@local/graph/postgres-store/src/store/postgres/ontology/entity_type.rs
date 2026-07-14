@@ -9,8 +9,9 @@ use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
 };
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
-    entity::{ClosedMultiEntityTypeMap, EntityStore},
+    entity::ClosedMultiEntityTypeMap,
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
@@ -69,7 +70,7 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient, PostgresStore, ResponseCountMap, TraversalContext,
+        AsClient, PostgresStore, ResponseCountMap, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
@@ -79,9 +80,10 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "info", skip(entity_types, provider))]
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
@@ -823,7 +825,10 @@ where
     /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entity_types(&mut self) -> Result<(), Report<DeletionError>> {
-        let transaction = self.transaction().await.change_context(DeletionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(DeletionError)?;
 
         transaction
             .as_client()
@@ -874,9 +879,10 @@ where
     }
 }
 
-impl<C> EntityTypeStore for PostgresStore<C>
+impl<C, S> EntityTypeStore for PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
@@ -888,7 +894,10 @@ where
     where
         P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send,
     {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(InsertionError)?;
 
         let mut inserted_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
@@ -1530,7 +1539,7 @@ where
     where
         P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send,
     {
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         let mut updated_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
@@ -1924,7 +1933,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         tracing::info!("Reindexing entity type cache");
-        let mut transaction = self.transaction().await.change_context(UpdateError)?;
+        let mut transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         // We remove the data from the reference tables first
         transaction
@@ -2004,7 +2013,7 @@ where
         // The entity edition cache derives type titles, labels (via `closed_schema`), and
         // the inherited type entries from the data rebuilt above, so it has to be rebuilt
         // as well — otherwise it silently keeps serving the pre-reindex schemas.
-        EntityStore::reindex_entity_cache(&mut transaction).await?;
+        transaction.reindex_entity_cache_impl().await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

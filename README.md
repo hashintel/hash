@@ -69,7 +69,7 @@ Install these on the host first:
 - **[Docker](https://docs.docker.com/get-docker/)** (≥ 20.10), including:
   - **[Docker Compose](https://docs.docker.com/compose/)** (≥ 2.17) — orchestrates the stack
   - **[Docker Buildx](https://docs.docker.com/build/install-buildx/)** (≥ 0.10) — builds the images
-- **[mise](https://mise.jdx.dev/)** (≥ 2026.4.22) — installs and pins Node, Rust, protoc and the other required tool versions
+- **[mise](https://mise.jdx.dev/)** (≥ 2026.6.13) — installs and pins Node, Rust, protoc and the other required tool versions
 
 Give Docker at least **8 GB RAM** (Preferences → Resources) and keep ~15 GB of disk free for build artefacts, images and volumes.
 
@@ -80,7 +80,7 @@ git --version            # ≥ 2.17
 docker --version         # ≥ 20.10
 docker compose version   # ≥ 2.17
 docker buildx version    # ≥ 0.10
-mise --version           # ≥ 2026.4.22
+mise --version           # ≥ 2026.6.13
 ```
 
 #### Setup

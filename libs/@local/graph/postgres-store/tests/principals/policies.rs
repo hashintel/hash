@@ -12,7 +12,7 @@ use hash_graph_authorization::policies::{
         ResolvePoliciesParams,
     },
 };
-use hash_graph_postgres_store::store::{AsClient, PostgresStore};
+use hash_graph_postgres_store::store::{AsClient, PostgresStore, TransactionState};
 use pretty_assertions::assert_eq;
 use type_system::principal::{
     actor::{ActorId, ActorType, AiId, MachineId, UserId},
@@ -140,7 +140,7 @@ struct TestPolicyIds {
 /// ```
 #[expect(clippy::too_many_lines)]
 async fn setup_policy_test_environment(
-    client: &mut PostgresStore<impl AsClient>,
+    client: &mut PostgresStore<impl AsClient, impl TransactionState>,
     actor_id: ActorId,
 ) -> Result<TestPolicyEnvironment, Box<dyn Error>> {
     // Create web teams (top level)

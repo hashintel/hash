@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
-use hash_graph_postgres_store::store::AsClient as _;
+use hash_graph_postgres_store::store::{AsClient as _, Context as _, Transaction as _};
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tracing::Instrument as _;
