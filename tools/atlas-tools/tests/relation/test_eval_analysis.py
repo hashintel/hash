@@ -362,6 +362,8 @@ def _write_handoff(
         full_grid_card_count=100,
         source_hashes={
             "attempts.jsonl": sha256_file(attempts_path),
+            "cards.jsonl": sha256_bytes(b"fixture cards"),
+            "cards.manifest.json": sha256_bytes(b"fixture cards manifest"),
             "slice.jsonl": sha256_file(slice_path),
             "votes.jsonl": sha256_file(votes_path),
         },
@@ -432,7 +434,10 @@ def test_analysis_runs_end_to_end_and_is_byte_deterministic(tmp_path: Path) -> N
     assert first.decisions_json.read_bytes() == second.decisions_json.read_bytes()
     assert first.report_md.read_bytes() == second.report_md.read_bytes()
     decisions = AnalysisDecisions.model_validate_json(first.decisions_json.read_text())
-    assert decisions.schema_version == 2
+    assert decisions.schema_version == 3
+    assert decisions.pilot_run_contract.cards_hash == sha256_bytes(b"fixture cards")
+    assert decisions.pilot_run_contract.full_grid_card_count == 100
+    assert set(decisions.pilot_run_contract.judge_request_hashes) == set(FAMILIES)
     assert decisions.input_hashes == {
         "attempts.jsonl": sha256_file(handoff / "attempts.jsonl"),
         "manifest.json": sha256_file(handoff / "manifest.json"),

@@ -203,7 +203,9 @@ Set `OPENROUTER_API_KEY` and use the checked-in
 roster. The schema is strict and rejects unknown keys. `request_timeout` is an
 ISO-8601 duration; the optional cost cap is `max_cost_usd`.
 
-A judge route separates three concepts that OpenRouter exposes independently:
+A judge's analysis `family_id` is derived from its canonical `model` ID; it is
+not duplicated in YAML. A route then separates three concepts that OpenRouter
+exposes independently:
 
 - `provider_slug` is a value from `/api/v1/providers` accepted by
   `provider.only`, such as `google-vertex` or `azure`. Endpoint tags such as
@@ -220,15 +222,38 @@ that parameter is omitted from the request; it is not serialized as JSON null.
 The executor also requires every configured route to satisfy OpenRouter's ZDR
 and data-denial filters.
 
-Run, analyze, inspect, and then authorize the production grid:
+One `evaluate` command runs either phase. The schema-v3 config's `mode` is the
+discriminator: `pilot` derives the sample and auxiliary arms; `full` requires a
+`decisions` path and executes the admitted complete grid.
+
+From `tools/atlas-tools`, run and inspect the pilot:
 
 ```sh
-uv run relation evaluate cards/ pilot.yaml --out pilot/
-uv run relation analyze pilot/ --out pilot-analysis/
-cat pilot-analysis/report.md
-uv run python -m json.tool pilot-analysis/decisions.json
-uv run relation run-full-grid cards/ pilot-analysis/decisions.json pilot.yaml --out full-grid/
+uv run relation evaluate runs/cards config/eval/pilot.yaml --out runs/evaluate
+uv run relation analyze runs/evaluate --out runs/evaluate-analysis
+cat runs/evaluate-analysis/report.md
+uv run python -m json.tool runs/evaluate-analysis/decisions.json
 ```
+
+To authorize the complete grid, copy `config/eval/pilot.yaml` to a new full-run
+config, change `mode` to `full`, remove `sampling` and `repeat_count`, and add a
+config-relative decisions artifact, for example:
+
+```yaml
+schema_version: 3
+mode: full
+decisions: ../../runs/evaluate-analysis/decisions.json
+# Keep rubric_version, baseline_effort, request_timeout, concurrency, and judges.
+```
+
+Then run the same command with the full config:
+
+```sh
+uv run relation evaluate runs/cards config/eval/full.yaml --out runs/full-evaluate
+```
+
+Progress, throughput, and ETA are written to stderr. Add `--quiet` when a caller
+needs silent operation.
 
 The pilot slice is not a separately maintained or hand-authored file. `evaluate`
 verifies the concatenated cards, excludes the fixed `FEW_SHOT` prompt examples,
@@ -254,9 +279,12 @@ three system-prompt shells (`S1`-`S3`) crossed with the three user framings
 attempts before writing byte-deterministic `decisions.json` and `report.md`.
 Inspect data-health/routing warnings, pruned families, admitted shells and
 framings, selected per-family effort, and projected full-grid cost before
-continuing. `run-full-grid` accepts only strict schema-v2 decisions consistent
-with the current rubric, prompt pack, judge pins, effort policy, and admission
-results. It executes every admitted family × every bundle in the admitted
+continuing. A `mode: full` evaluation accepts only strict schema-v3 decisions
+consistent with the current rubric, prompt pack, exact pilot card corpus, complete
+judge request pins, effort policy, reviewed call projection, and admission results.
+Changing a provider, region, sampling corpus, output-token parameter, temperature,
+or seed requires a new pilot rather than silently reusing old decisions. Full mode
+executes every admitted family × every bundle in the admitted
 shell × framing product × the complete set of eligible cards. The fixed
 `FEW_SHOT` cards remain in the prompt pack but are
 excluded from pilot sampling, analysis, and production votes to prevent
@@ -269,39 +297,66 @@ Execution is deliberately fail-closed:
 
 - Requests require ZDR and `data_collection: deny`, pin exactly one
   `provider_slug`, require the configured parameters, disallow fallback, disable
-  the OpenRouter response cache, and disable SDK retries. Returned model and
-  `provider_name` metadata must match the pin and show exactly one HTTP-200
-  provider attempt.
+  the OpenRouter response cache, and disable SDK retries. Returned model,
+  requested model, direct-route metadata, selected endpoint, and `provider_name`
+  must match the pin. If OpenRouter includes detailed attempt metadata, it must
+  contain exactly one HTTP-200 provider attempt.
 - A syntactically malformed judge response receives one conversational parser
   repair. If that response is also malformed, the logical vote is `ABSTAIN`.
   A schema-valid but semantically wrong verdict is evidence and is never
-  retried. Transport, routing, response-envelope, and accounting failures stop
-  the run rather than becoming abstentions.
+  retried. Malformed-output repair is independent of physical failure retries:
+  `parse_retries` remains `0` or `1` regardless of transport attempts.
+- SDK retries stay disabled because they neither cover all observed failures nor
+  expose per-attempt durability hooks. The executor instead applies the explicit
+  `transient_retries` policy independently to the initial and repair stages.
+  `maximum_attempts` is the total physical-attempt budget per stage. Retryable
+  transport failures and configured HTTP or embedded provider status codes are
+  journaled before deterministic exponential backoff. A provider `Retry-After`
+  value can lengthen, but never shorten, that delay. Backoff is interrupted if a
+  peer terminal failure closes the run. Exhaustion and permanent routing,
+  response-envelope, or accounting failures stop the run; none become
+  abstentions.
 - Every physical request, including failed and repair calls, is appended and
   `fsync`ed to `attempts.jsonl`; every completed logical vote is durably appended
-  to `votes.jsonl`. An atomic `inflight-request.json` is written before a call
-  and cleared only after its outcome is journaled.
+  to `votes.jsonl`. Before each call, `inflight/<attempt-id>.json` is durably
+  written and is deleted only after that exact outcome is journaled.
+- Trio workers share a bounded work channel. Execution starts at
+  `concurrency.initial`, doubles after a full current-limit cohort of successful
+  logical votes, and stops at `concurrency.maximum`. Judge task streams are
+  round-robin interleaved, so a concurrency window spreads across pinned routes
+  instead of hammering one family. Physical attempts may be journaled in
+  completion order, but logical votes are committed strictly in deterministic
+  plan order.
+- A terminal worker failure stops new dispatch and atomically closes the
+  physical-request boundary. Calls whose durable in-flight marker already exists
+  are not cancelled: they finish and journal before workers retire. Peer workers
+  do not start a retry or malformed-output repair after the stop; any successful
+  partial stage is reused by a later explicit resume rather than paid for again.
 - Re-running the identical command against the same output directory resumes a
   journal prefix only when its source hashes, plan, request contract, and run
-  state still match. A failed attempt with a known outcome may be retried as the
+  state still match. Output created by an older run-state or plan schema must use
+  a fresh directory; it is intentionally not migrated across paid-call journal
+  contracts. A failed attempt with a known outcome may be retried as the
   next numbered physical attempt. An in-flight marker without a corresponding
   journaled outcome has unknown billing state and blocks automatic retry. A run
   lock also prevents concurrent evaluators from sharing an output directory.
-- `max_cost_usd` is checked against complete provider-reported costs before each
-  new logical vote and before a parser-repair call. Reaching the cap stops with
-  all prior work resumable; raising the operational cap and rerunning continues
-  the same plan. Because request cost is known only after the response, the last
-  completed call may carry the total past the cap. If any physical attempt lacks
-  usable cost data, a configured cap cannot be enforced and execution stops.
+- `max_cost_usd` is checked by a thread-safe central gate before every physical
+  request, including parser repair. Reaching the cap stops with all prior work
+  resumable; raising the operational cap and rerunning continues the same plan.
+  Because request cost is known only after the response, already-authorized
+  concurrent calls can carry the total past the cap. The overshoot is bounded by
+  the active concurrency window. If any physical attempt lacks usable cost data,
+  a configured cap cannot be enforced; the run stops before another request,
+  including a transient retry, rather than silently weakening the budget.
 
 Artifacts are append-only journals plus hash-bound manifests. `pilot/` contains
 `slice.jsonl`, `votes.jsonl`, `attempts.jsonl`, `run-state.json`, and the finalized
-schema-v2 `manifest.json`; `pilot-analysis/` contains `decisions.json` and
+schema-v2 `manifest.json`; `pilot-analysis/` contains schema-v3 `decisions.json` and
 `report.md`. `full-grid/` contains `votes.jsonl`, `attempts.jsonl`,
 `run-state.json`, and a production `manifest.json` binding the decisions, card
 artifact, exact expected product, plan/request-policy hashes, judge pins, SDK
-versions, usage, costs, and run dates. `.run.lock` and
-`inflight-request.json` are operational state rather than handoff artifacts.
+versions, usage, costs, and run dates. `.run.lock` and the `inflight/` marker
+directory are operational state rather than handoff artifacts.
 
 ### `hash-cards`
 

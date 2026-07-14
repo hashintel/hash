@@ -22,6 +22,7 @@ from atlas_tools.common import (
     write_sidecar,
 )
 from atlas_tools.relation.eval.prompt import FEW_SHOT, HOLDOUT
+from atlas_tools.relation.eval.provenance import judge_request_hash
 from atlas_tools.relation.eval.reporting import render_markdown
 from atlas_tools.relation.eval.schema import (
     BUNDLES,
@@ -58,6 +59,7 @@ from atlas_tools.relation.eval.schema import (
     NominationSeed,
     OrderingCheck,
     PhysicalAttemptRow,
+    PilotRunContract,
     QualificationResult,
     RoutingStream,
     ShellId,
@@ -2152,9 +2154,17 @@ def analyze_handoff(
     eligible_votes = _analysis_votes(handoff, clean_votes, set(passed))
     selected_efforts = {decision.family_id: decision.selected_effort for decision in effort}
     decisions = AnalysisDecisions(
-        schema_version=2,
+        schema_version=3,
         policy=resolved_policy,
         input_hashes=handoff.input_hashes,
+        pilot_run_contract=PilotRunContract(
+            cards_hash=handoff.manifest.source_hashes["cards.jsonl"],
+            cards_manifest_hash=handoff.manifest.source_hashes["cards.manifest.json"],
+            full_grid_card_count=handoff.manifest.full_grid_card_count,
+            judge_request_hashes={
+                judge.family_id: judge_request_hash(judge) for judge in handoff.manifest.judges
+            },
+        ),
         prompt_pack_hash=handoff.manifest.prompt_pack_hash,
         rubric_version=handoff.manifest.rubric_version,
         sampling_seeds=sorted({row.sampling_seed for row in handoff.slice_rows}),

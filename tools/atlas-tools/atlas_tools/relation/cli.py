@@ -38,59 +38,36 @@ class ConcatCommand(BaseSettings):
 
 
 class EvaluateCommand(BaseSettings):
-    """Run the factorial relation-judge pilot and emit an analysis handoff."""
+    """Run the pilot or full relation-judge evaluation selected by the config."""
 
     cards: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
     out: Path
+    quiet: bool = False
 
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
         from openrouter.errors import NoResponseError, OpenRouterError
 
-        from atlas_tools.relation.eval.run import load_run_config, run_pilot
+        from atlas_tools.common.progress import NO_PROGRESS, StderrProgress
+        from atlas_tools.relation.eval.artifacts import PilotPaths
+        from atlas_tools.relation.eval.run import load_run_config, run_evaluation
 
+        progress = NO_PROGRESS if self.quiet else StderrProgress()
         try:
-            paths = run_pilot(
+            paths = run_evaluation(
                 cards_dir=self.cards,
                 out_dir=self.out,
-                config=load_run_config(self.config),
+                loaded_config=load_run_config(self.config),
+                progress=progress,
             )
-        except (NoResponseError, OpenRouterError, OSError, ValueError) as error:
+        except (NoResponseError, OpenRouterError, OSError, RuntimeError, ValueError) as error:
             fail(error)
         echo(f"wrote {paths.votes_jsonl}")
         echo(f"wrote {paths.attempts_jsonl}")
-        echo(f"wrote {paths.slice_jsonl}")
-        echo(f"wrote {paths.manifest_json}")
-
-
-class RunFullGridCommand(BaseSettings):
-    """Run the post-pilot production grid authorized by strict analysis decisions."""
-
-    cards: CliPositionalArg[DirectoryPath]
-    decisions: CliPositionalArg[FilePath]
-    config: CliPositionalArg[FilePath]
-    out: Path
-
-    model_config = SettingsConfigDict(extra="forbid")
-
-    def cli_cmd(self) -> None:
-        from openrouter.errors import NoResponseError, OpenRouterError
-
-        from atlas_tools.relation.eval.run import load_run_config, run_full_grid
-
-        try:
-            paths = run_full_grid(
-                cards_dir=self.cards,
-                decisions_path=self.decisions,
-                out_dir=self.out,
-                config=load_run_config(self.config),
-            )
-        except (NoResponseError, OpenRouterError, OSError, ValueError) as error:
-            fail(error)
-        echo(f"wrote {paths.votes_jsonl}")
-        echo(f"wrote {paths.attempts_jsonl}")
+        if isinstance(paths, PilotPaths):
+            echo(f"wrote {paths.slice_jsonl}")
         echo(f"wrote {paths.manifest_json}")
 
 
@@ -118,7 +95,6 @@ class RelationCli(BaseModel):
 
     concat: CliSubCommand[ConcatCommand]
     evaluate: CliSubCommand[EvaluateCommand]
-    run_full_grid: CliSubCommand[RunFullGridCommand]
     analyze: CliSubCommand[AnalyzeCommand]
 
     def cli_cmd(self) -> None:

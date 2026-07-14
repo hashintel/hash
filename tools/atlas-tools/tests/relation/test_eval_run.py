@@ -1,12 +1,17 @@
-"""Schema-v2 relation evaluator execution and resume tests."""
+"""Schema-v3 relation evaluator execution and resume tests."""
 
-from dataclasses import dataclass
+import time
+from collections.abc import Iterator
+from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
 from shutil import copytree
-from typing import ClassVar
+from threading import Event, Lock, Thread
+from typing import ClassVar, Literal, Self
 
+import httpx
 import pytest
+import yaml
 from openrouter.components import (
     ChatAssistantMessage,
     ChatChoice,
@@ -24,29 +29,42 @@ from openrouter.components import (
     ProviderPreferences,
     RouterAttempt,
 )
+from openrouter.errors import ResponseValidationError
 from openrouter.types import UNSET
 from openrouter.utils.retries import RetryConfig
 from pydantic import JsonValue
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes, sha256_file
 from atlas_tools.relation.concat import concat_relations
-from atlas_tools.relation.eval import run as eval_run
+from atlas_tools.relation.eval import control as eval_control
+from atlas_tools.relation.eval import executor as eval_executor
+from atlas_tools.relation.eval import transport as eval_transport
+from atlas_tools.relation.eval.accounting import CostGate, CostLimitReachedError
 from atlas_tools.relation.eval.analysis import load_handoff
+from atlas_tools.relation.eval.contract import PilotVotePlan, VoteTask
+from atlas_tools.relation.eval.inputs import prepare_pilot_inputs
 from atlas_tools.relation.eval.prompt import (
     FEW_SHOT,
     HOLDOUT,
     RETRY_INSTRUCTION,
     prompt_pack_hash,
 )
+from atlas_tools.relation.eval.provenance import judge_pin, judge_request_hash
+from atlas_tools.relation.eval.resume import validate_resume
 from atlas_tools.relation.eval.run import (
+    ConcurrencyConfig,
     EvaluationCard,
     FullGridPaths,
+    FullRunConfig,
     JudgeConfig,
+    LoadedRunConfig,
     MaxCompletionTokensLimit,
     MaxTokensLimit,
+    OpenRouterRegion,
     OpenRouterTransport,
     PilotRunConfig,
     SliceSamplingConfig,
+    TransientRetryConfig,
     load_run_config,
     run_full_grid,
     run_pilot,
@@ -66,6 +84,7 @@ from atlas_tools.relation.eval.schema import (
     FullGridManifest,
     OrderingCheck,
     PhysicalAttemptRow,
+    PilotRunContract,
     QualificationResult,
     ReasoningEffort,
     SliceRow,
@@ -90,14 +109,27 @@ MALFORMED_COMPLETION = "not JSON"
 PILOT_REPEAT_COUNT = 1
 EXPECTED_VOTES = len(BUNDLES) * (len(HOLDOUT) + 1) + PILOT_REPEAT_COUNT
 
-FAMILY_BASELINE = "judge-baseline-2026-07-13"
-FAMILY_HIGH = "judge-high-2026-07-13"
-FAMILY_PRUNED = "judge-pruned-2026-07-13"
+FAMILY_BASELINE = MODEL
+FAMILY_HIGH = "test/judge-high-2026-07-13"
+FAMILY_PRUNED = "test/judge-pruned-2026-07-13"
 ADMITTED_BUNDLES: tuple[BundleId, ...] = ("S1xF1", "S1xF2", "S3xF1", "S3xF2")
 FAMILY_EFFORTS: dict[str, ReasoningEffort] = {
     FAMILY_BASELINE: "minimal",
     FAMILY_HIGH: "high",
 }
+
+
+@dataclass(frozen=True)
+class InvalidVotePlan:
+    declared_votes: int
+    stream: tuple[VoteTask, ...]
+
+    @property
+    def expected_votes(self) -> int:
+        return self.declared_votes
+
+    def tasks(self) -> Iterator[VoteTask]:
+        return iter(self.stream)
 
 
 @dataclass(frozen=True)
@@ -107,6 +139,26 @@ class TransportCall:
     effort: ReasoningEffort
     session_id: str
     timeout: timedelta
+
+
+class ScriptedProviderError(RuntimeError):
+    """Provider-shaped failure used to exercise native status/body/header handling."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int,
+        body: str,
+        retry_after: timedelta | None = None,
+    ) -> None:
+        super().__init__(message)
+        headers = (
+            {"Retry-After": str(retry_after.total_seconds())} if retry_after is not None else None
+        )
+        self.status_code = status_code
+        self.body = body
+        self.raw_response = httpx.Response(status_code, headers=headers, text=body)
 
 
 class ScriptedTransport:
@@ -143,6 +195,7 @@ class ScriptedTransport:
             model=judge.model,
             route_model=judge.model,
             route_provider=judge.provider_name,
+            requested_model=judge.model,
         )
 
 
@@ -250,14 +303,20 @@ def _result(
     )
 
 
-def _config() -> PilotRunConfig:
+def _config(
+    *,
+    transient_retries: TransientRetryConfig | None = None,
+) -> PilotRunConfig:
     return PilotRunConfig(
+        schema_version=3,
+        mode="pilot",
         sampling=SliceSamplingConfig(seed=42, non_holdout_count=1),
         repeat_count=PILOT_REPEAT_COUNT,
         request_timeout=timedelta(seconds=5),
+        transient_retries=transient_retries or TransientRetryConfig(),
+        concurrency=ConcurrencyConfig(initial=1, maximum=1),
         judges=[
             JudgeConfig(
-                family_id="judge-a-2026-07-13",
                 provider_slug=PROVIDER_SLUG,
                 provider_name=PROVIDER_NAME,
                 model=MODEL,
@@ -265,6 +324,19 @@ def _config() -> PilotRunConfig:
                 seed=17,
             )
         ],
+    )
+
+
+def _transient_retries(
+    maximum_attempts: int,
+    *,
+    initial_delay: timedelta = timedelta(),
+    maximum_delay: timedelta = timedelta(),
+) -> TransientRetryConfig:
+    return TransientRetryConfig(
+        maximum_attempts=maximum_attempts,
+        initial_delay=initial_delay,
+        maximum_delay=maximum_delay,
     )
 
 
@@ -343,13 +415,13 @@ class FullGridFixture:
     cards_dir: Path
     decisions_path: Path
     decisions: AnalysisDecisions
-    config: PilotRunConfig
+    config: FullRunConfig
     paths: FullGridPaths
     transport: ScriptedTransport
 
 
 def _family_model(family_id: str) -> str:
-    return MODEL if family_id == FAMILY_BASELINE else f"test/{family_id}"
+    return family_id
 
 
 def _family_provider_slug(family_id: str) -> str:
@@ -368,14 +440,15 @@ def _family_output_token_limit(
     return MaxTokensLimit(tokens=1024)
 
 
-def _full_grid_config() -> PilotRunConfig:
-    return PilotRunConfig(
-        sampling=SliceSamplingConfig(seed=42, non_holdout_count=1),
-        repeat_count=1,
+def _full_grid_config(decisions_path: Path) -> FullRunConfig:
+    return FullRunConfig(
+        schema_version=3,
+        mode="full",
+        decisions=decisions_path,
         request_timeout=timedelta(seconds=5),
+        concurrency=ConcurrencyConfig(initial=1, maximum=1),
         judges=[
             JudgeConfig(
-                family_id=family_id,
                 provider_slug=_family_provider_slug(family_id),
                 provider_name=_family_provider_name(family_id),
                 model=_family_model(family_id),
@@ -393,7 +466,7 @@ def _estimate(value: float = 0.0) -> Estimate:
     return Estimate(est=value, lo=value, hi=value, n=1)
 
 
-def _analysis_decisions(cards_dir: Path, config: PilotRunConfig) -> AnalysisDecisions:
+def _analysis_decisions(cards_dir: Path, config: FullRunConfig) -> AnalysisDecisions:
     cards = {
         card.relation_id: card
         for line in (cards_dir / "cards.jsonl").read_text(encoding="utf-8").splitlines()
@@ -401,13 +474,24 @@ def _analysis_decisions(cards_dir: Path, config: PilotRunConfig) -> AnalysisDeci
     }
     zero = _estimate()
     judges = {judge.family_id: judge for judge in config.judges}
+    eligible_card_count = len(_eligible_cards(cards_dir))
+    projected_calls = eligible_card_count * len(ADMITTED_BUNDLES)
     return AnalysisDecisions(
-        schema_version=2,
+        schema_version=3,
         policy=AnalysisPolicy(),
         input_hashes={},
+        pilot_run_contract=PilotRunContract(
+            cards_hash=sha256_file(cards_dir / "cards.jsonl"),
+            cards_manifest_hash=sha256_file(cards_dir / "cards.manifest.json"),
+            full_grid_card_count=eligible_card_count,
+            judge_request_hashes={
+                family_id: judge_request_hash(judge_pin(judge))
+                for family_id, judge in judges.items()
+            },
+        ),
         prompt_pack_hash=prompt_pack_hash(cards),
         rubric_version="rubric-v1",
-        sampling_seeds=[config.sampling.seed],
+        sampling_seeds=[42],
         pruned_families=[FAMILY_PRUNED],
         admitted_shells=["S1", "S3"],
         admitted_templates=["F1", "F2"],
@@ -513,7 +597,7 @@ def _analysis_decisions(cards_dir: Path, config: PilotRunConfig) -> AnalysisDeci
                 n=1,
                 cost_reported_n=1,
                 measured_cost_per_vote_usd=_estimate(0.01),
-                projected_calls=1,
+                projected_calls=projected_calls,
                 projected_cost=_estimate(0.01),
                 billed_tokens_per_vote=_estimate(105.0),
                 token_inflation_factor=_estimate(1.0),
@@ -526,6 +610,19 @@ def _analysis_decisions(cards_dir: Path, config: PilotRunConfig) -> AnalysisDeci
 def _write_decisions(path: Path, decisions: AnalysisDecisions) -> Path:
     path.write_bytes(canonical_json_bytes(decisions) + b"\n")
     return path
+
+
+def _loaded_full_config(
+    config: FullRunConfig,
+    decisions_path: Path | None = None,
+) -> LoadedRunConfig:
+    resolved_decisions = decisions_path or config.decisions
+    resolved_config = config.model_copy(update={"decisions": resolved_decisions})
+    return LoadedRunConfig(
+        path=resolved_decisions.with_name("run.yaml"),
+        config=resolved_config,
+        decisions_path=resolved_decisions,
+    )
 
 
 def _replace_decisions(
@@ -550,15 +647,15 @@ def _eligible_cards(cards_dir: Path) -> dict[str, EvaluationCard]:
 def completed_full_grid(tmp_path_factory: pytest.TempPathFactory) -> FullGridFixture:
     root = tmp_path_factory.mktemp("completed-full-grid")
     cards_dir = _write_concat(root / "cards", include_severe=True)
-    config = _full_grid_config()
+    decisions_path = root / "decisions.json"
+    config = _full_grid_config(decisions_path)
     decisions = _analysis_decisions(cards_dir, config)
-    decisions_path = _write_decisions(root / "decisions.json", decisions)
+    _write_decisions(decisions_path, decisions)
     transport = ScriptedTransport()
     paths = run_full_grid(
         cards_dir=cards_dir,
-        decisions_path=decisions_path,
         out_dir=root / "out",
-        config=config,
+        loaded_config=_loaded_full_config(config),
         transport=transport,
     )
     return FullGridFixture(
@@ -640,9 +737,8 @@ def test_full_grid_rejects_prompt_pack_hash_mismatch(
     with pytest.raises(ValueError, match="prompt_pack_hash does not match"):
         run_full_grid(
             cards_dir=fixture.cards_dir,
-            decisions_path=decisions_path,
             out_dir=tmp_path / "out",
-            config=fixture.config,
+            loaded_config=_loaded_full_config(fixture.config, decisions_path),
             transport=transport,
         )
 
@@ -661,9 +757,8 @@ def test_full_grid_rejects_rubric_mismatch(
     with pytest.raises(ValueError, match="rubric do not match"):
         run_full_grid(
             cards_dir=fixture.cards_dir,
-            decisions_path=decisions_path,
             out_dir=tmp_path / "out",
-            config=fixture.config,
+            loaded_config=_loaded_full_config(fixture.config, decisions_path),
             transport=transport,
         )
 
@@ -685,34 +780,137 @@ def test_full_grid_rejects_config_and_decisions_family_mismatch(
     with pytest.raises(ValueError, match="contain different families"):
         run_full_grid(
             cards_dir=fixture.cards_dir,
-            decisions_path=decisions_path,
             out_dir=tmp_path / "out",
-            config=fixture.config,
+            loaded_config=_loaded_full_config(fixture.config, decisions_path),
             transport=transport,
         )
 
     assert transport.calls == []
 
 
-def test_interrupted_full_grid_resumes_with_deterministic_request_and_attempt_ids(
+def test_full_grid_rejects_judge_request_drift(
     completed_full_grid: FullGridFixture,
     tmp_path: Path,
 ) -> None:
     fixture = completed_full_grid
+    judges = list(fixture.config.judges)
+    judges[0] = judges[0].model_copy(update={"provider_slug": "different-provider"})
+    changed_config = fixture.config.model_copy(update={"judges": judges})
+    transport = ScriptedTransport()
+
+    with pytest.raises(ValueError, match="request settings differ from the pilot"):
+        run_full_grid(
+            cards_dir=fixture.cards_dir,
+            out_dir=tmp_path / "out",
+            loaded_config=_loaded_full_config(changed_config),
+            transport=transport,
+        )
+
+    assert transport.calls == []
+
+
+def test_full_grid_rejects_a_different_verified_card_corpus(
+    completed_full_grid: FullGridFixture,
+    tmp_path: Path,
+) -> None:
+    fixture = completed_full_grid
+    different_cards = _write_concat(tmp_path / "cards", include_severe=False)
+    transport = ScriptedTransport()
+
+    with pytest.raises(ValueError, match="differs from the corpus sampled by the pilot"):
+        run_full_grid(
+            cards_dir=different_cards,
+            out_dir=tmp_path / "out",
+            loaded_config=_loaded_full_config(fixture.config),
+            transport=transport,
+        )
+
+    assert transport.calls == []
+
+
+def test_full_grid_rejects_a_stale_projected_call_count(
+    completed_full_grid: FullGridFixture,
+    tmp_path: Path,
+) -> None:
+    fixture = completed_full_grid
+    cost_audit = list(fixture.decisions.cost_audit)
+    first = cost_audit[0]
+    cost_audit[0] = first.model_copy(update={"projected_calls": first.projected_calls + 1})
+    decisions = _replace_decisions(fixture.decisions, cost_audit=cost_audit)
+    decisions_path = _write_decisions(tmp_path / "decisions.json", decisions)
+    transport = ScriptedTransport()
+
+    with pytest.raises(ValueError, match="projected call count mismatch"):
+        run_full_grid(
+            cards_dir=fixture.cards_dir,
+            out_dir=tmp_path / "out",
+            loaded_config=_loaded_full_config(fixture.config, decisions_path),
+            transport=transport,
+        )
+
+    assert transport.calls == []
+
+
+def test_load_full_run_config_resolves_decisions_relative_to_the_config(
+    completed_full_grid: FullGridFixture,
+    tmp_path: Path,
+) -> None:
+    fixture = completed_full_grid
+    config_dir = tmp_path / "config"
+    artifact_dir = tmp_path / "artifacts"
+    config_dir.mkdir()
+    artifact_dir.mkdir()
+    decisions_path = _write_decisions(artifact_dir / "decisions.json", fixture.decisions)
+    payload = fixture.config.model_dump(mode="json")
+    payload["decisions"] = "../artifacts/decisions.json"
+    config_path = config_dir / "full.yaml"
+    config_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    loaded = load_run_config(config_path)
+
+    assert loaded.decisions_path == decisions_path.resolve()
+    assert isinstance(loaded.config, FullRunConfig)
+    assert loaded.config.decisions == Path("../artifacts/decisions.json")
+
+
+def test_interrupted_full_grid_resumes_with_deterministic_request_and_attempt_ids(
+    completed_full_grid: FullGridFixture,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = completed_full_grid
+    config = fixture.config.model_copy(update={"transient_retries": _transient_retries(2)})
     output = tmp_path / "out"
+    interrupt_backoff = True
+
+    def interrupt_once(
+        _control: eval_control.ExecutionControl,
+        _delay: timedelta,
+    ) -> None:
+        nonlocal interrupt_backoff
+        if interrupt_backoff:
+            interrupt_backoff = False
+            raise InterruptedError("process stopped during full-grid retry backoff")
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", interrupt_once)
     interrupted = ScriptedTransport(
         [
             _result(completion_id="first"),
-            _result(completion_id="second"),
+            _result(
+                completion_id="second",
+                model=_family_model(FAMILY_HIGH),
+                route_model=_family_model(FAMILY_HIGH),
+                route_provider=_family_provider_name(FAMILY_HIGH),
+                requested_model=_family_model(FAMILY_HIGH),
+            ),
             ConnectionError("boom"),
         ]
     )
-    with pytest.raises(RuntimeError, match="physical request failed"):
+    with pytest.raises(InterruptedError, match="process stopped during full-grid retry backoff"):
         run_full_grid(
             cards_dir=fixture.cards_dir,
-            decisions_path=fixture.decisions_path,
             out_dir=output,
-            config=fixture.config,
+            loaded_config=_loaded_full_config(config),
             transport=interrupted,
         )
 
@@ -726,9 +924,8 @@ def test_interrupted_full_grid_resumes_with_deterministic_request_and_attempt_id
     resumed = ScriptedTransport()
     paths = run_full_grid(
         cards_dir=fixture.cards_dir,
-        decisions_path=fixture.decisions_path,
         out_dir=output,
-        config=fixture.config,
+        loaded_config=_loaded_full_config(config),
         transport=resumed,
     )
 
@@ -786,9 +983,8 @@ def test_completed_full_grid_rejects_artifact_tampering(
     with pytest.raises(ValueError, match="completed full-grid manifest does not match"):
         run_full_grid(
             cards_dir=fixture.cards_dir,
-            decisions_path=fixture.decisions_path,
             out_dir=output,
-            config=fixture.config,
+            loaded_config=_loaded_full_config(fixture.config),
             transport=transport,
         )
 
@@ -804,9 +1000,8 @@ def test_complete_validated_full_grid_requires_no_api_key(
 
     paths = run_full_grid(
         cards_dir=fixture.cards_dir,
-        decisions_path=fixture.decisions_path,
         out_dir=fixture.paths.manifest_json.parent,
-        config=fixture.config,
+        loaded_config=_loaded_full_config(fixture.config),
     )
 
     assert paths == fixture.paths
@@ -837,10 +1032,11 @@ def test_full_grid_uses_pilot_openrouter_privacy_and_provider_pins(
                 model=judge.model,
                 route_model=judge.model,
                 route_provider=judge.provider_name,
+                requested_model=judge.model,
             )
 
     class FakeOpenRouter:
-        instances: ClassVar[list[FakeOpenRouter]] = []
+        instances: ClassVar[list[Self]] = []
 
         def __init__(self, api_key: str, retry_config: RetryConfig) -> None:
             self.api_key = api_key
@@ -857,13 +1053,12 @@ def test_full_grid_uses_pilot_openrouter_privacy_and_provider_pins(
         ) -> None:
             self.closed = True
 
-    monkeypatch.setattr(eval_run, "OpenRouter", FakeOpenRouter)
+    monkeypatch.setattr(eval_transport, "OpenRouter", FakeOpenRouter)
     monkeypatch.setenv("OPENROUTER_API_KEY", "secret")
     paths = run_full_grid(
         cards_dir=fixture.cards_dir,
-        decisions_path=fixture.decisions_path,
         out_dir=tmp_path / "out",
-        config=fixture.config,
+        loaded_config=_loaded_full_config(fixture.config),
     )
 
     client = FakeOpenRouter.instances[0]
@@ -933,7 +1128,7 @@ def test_full_grid_uses_pilot_openrouter_privacy_and_provider_pins(
 def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
     monkeypatch: pytest.MonkeyPatch,
     output_token_limit: MaxTokensLimit | MaxCompletionTokensLimit,
-    openrouter_region: eval_run.OpenRouterRegion,
+    openrouter_region: OpenRouterRegion,
     expected_server_url: str,
     expected_parameter: str,
     unexpected_parameter: str,
@@ -947,7 +1142,7 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
             return _result()
 
     class FakeOpenRouter:
-        instances: ClassVar[list[FakeOpenRouter]] = []
+        instances: ClassVar[list[Self]] = []
 
         def __init__(self, api_key: str, retry_config: RetryConfig) -> None:
             self.api_key = api_key
@@ -964,7 +1159,7 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
         ) -> None:
             self.closed = True
 
-    monkeypatch.setattr(eval_run, "OpenRouter", FakeOpenRouter)
+    monkeypatch.setattr(eval_transport, "OpenRouter", FakeOpenRouter)
     judge = (
         _config()
         .judges[0]
@@ -1024,7 +1219,11 @@ def test_openrouter_transport_enforces_privacy_routing_and_disables_retries(
     [
         pytest.param(_result(model=OTHER_MODEL), "returned model", id="wrong-result-model"),
         pytest.param(_result(include_metadata=False), "omitted required", id="missing-metadata"),
-        pytest.param(_result(route_count=0), "omitted required", id="missing-attempts"),
+        pytest.param(
+            _result(route_count=0),
+            "exactly one selected endpoint",
+            id="missing-selected-endpoint",
+        ),
         pytest.param(_result(route_count=2), "multiple provider attempts", id="multiple-attempts"),
         pytest.param(
             _result(requested_model=OTHER_MODEL),
@@ -1243,10 +1442,10 @@ def test_wrong_but_valid_verdict_is_not_retried(cards_dir: Path, tmp_path: Path)
 
 
 @pytest.mark.parametrize(
-    ("error_type", "message"),
+    ("error_type", "message", "expected_category"),
     [
-        pytest.param(ConnectionError, "connection lost", id="transport"),
-        pytest.param(RuntimeError, "provider unavailable", id="provider"),
+        pytest.param(ConnectionError, "connection lost", "transport", id="transport"),
+        pytest.param(RuntimeError, "local failure", "response", id="local"),
     ],
 )
 def test_transport_or_provider_failure_is_not_converted_to_abstain(
@@ -1254,9 +1453,10 @@ def test_transport_or_provider_failure_is_not_converted_to_abstain(
     tmp_path: Path,
     error_type: type[Exception],
     message: str,
+    expected_category: Literal["transport", "response"],
 ) -> None:
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="physical request failed"):
+    with pytest.raises(RuntimeError, match="physical initial request failed") as raised:
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
@@ -1264,11 +1464,13 @@ def test_transport_or_provider_failure_is_not_converted_to_abstain(
             transport=ScriptedTransport([error_type(message)]),
         )
 
+    assert isinstance(raised.value.__cause__, error_type)
+    assert str(raised.value.__cause__) == message
     assert _read_votes(output / "votes.jsonl") == []
     attempt = _read_attempts(output / "attempts.jsonl")[0]
     assert attempt.result is None
     assert attempt.failure is not None
-    assert attempt.failure.category == "transport"
+    assert attempt.failure.category == expected_category
     assert message in attempt.failure.message
 
 
@@ -1278,7 +1480,7 @@ def test_provider_error_status_and_body_are_persisted(cards_dir: Path, tmp_path:
         body = '{"error":{"message":"upstream detail"}}'
 
     output = tmp_path / "out"
-    with pytest.raises(RuntimeError, match="physical request failed"):
+    with pytest.raises(RuntimeError, match="physical initial request failed") as raised:
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
@@ -1286,10 +1488,310 @@ def test_provider_error_status_and_body_are_persisted(cards_dir: Path, tmp_path:
             transport=ScriptedTransport([ProviderResponseError("Provider returned error")]),
         )
 
+    assert isinstance(raised.value.__cause__, ProviderResponseError)
+    assert str(raised.value.__cause__) == "Provider returned error"
     attempt = _read_attempts(output / "attempts.jsonl")[0]
     assert attempt.failure is not None
-    assert attempt.failure.status_code == 400
+    assert attempt.failure.http_status_code == 400
     assert attempt.failure.response_body == ProviderResponseError.body
+
+
+def test_retryable_429_honors_retry_after_and_persists_both_attempts(
+    cards_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    retry_after = timedelta(seconds=7)
+    error = ScriptedProviderError(
+        "rate limited",
+        status_code=429,
+        body=(
+            '{"error":{"code":429,"message":"rate limited","metadata":{"retry_after_seconds":2}}}'
+        ),
+        retry_after=retry_after,
+    )
+    observed_delays: list[timedelta] = []
+
+    def observe_delay(
+        _control: eval_control.ExecutionControl,
+        delay: timedelta,
+    ) -> None:
+        observed_delays.append(delay)
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", observe_delay)
+    transport = ScriptedTransport([error, _result(completion_id="after-429")])
+
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "out",
+        config=_config(transient_retries=_transient_retries(2)),
+        transport=transport,
+    )
+
+    attempts = _read_attempts(paths.attempts_jsonl)
+    failed, retried = attempts[:2]
+    assert (failed.stage_attempt, retried.stage_attempt) == (0, 1)
+    assert failed.request_hash == retried.request_hash
+    assert failed.failure is not None
+    assert failed.failure.http_status_code == 429
+    assert failed.failure.provider_status_code == 429
+    assert failed.failure.retry_after == retry_after
+    assert retried.failure is None
+    assert len(observed_delays) == 1
+    assert observed_delays[0] > retry_after - timedelta(seconds=1)
+    assert _read_votes(paths.votes_jsonl)[0].parse_retries == 0
+
+
+def test_http_200_with_embedded_provider_502_retries(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    body = '{"error":{"code":502,"message":"upstream processing error"}}'
+    response = httpx.Response(200, text=body)
+    error = ResponseValidationError(
+        "failed to validate response",
+        response,
+        ValueError("missing chat completion fields"),
+        body=body,
+    )
+    transport = ScriptedTransport([error, _result(completion_id="after-502")])
+
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "out",
+        config=_config(transient_retries=_transient_retries(2)),
+        transport=transport,
+    )
+
+    attempts = _read_attempts(paths.attempts_jsonl)
+    failed, retried = attempts[:2]
+    assert failed.failure is not None
+    assert failed.failure.http_status_code == 200
+    assert failed.failure.provider_status_code == 502
+    assert (failed.stage_attempt, retried.stage_attempt) == (0, 1)
+    assert retried.failure is None
+
+
+def test_retry_policy_rejects_permanent_client_error_codes() -> None:
+    with pytest.raises(ValueError, match="permanent client errors"):
+        TransientRetryConfig(status_codes=(403,))
+
+
+def test_permanent_403_is_not_retried(cards_dir: Path, tmp_path: Path) -> None:
+    error = ScriptedProviderError(
+        "model unavailable in this region",
+        status_code=403,
+        body='{"error":{"code":"permission-denied","message":"unavailable"}}',
+    )
+    transport = ScriptedTransport([error])
+    output = tmp_path / "out"
+
+    with pytest.raises(RuntimeError, match="terminal outcome"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=_config(transient_retries=_transient_retries(5)),
+            transport=transport,
+        )
+
+    attempts = _read_attempts(output / "attempts.jsonl")
+    assert len(transport.calls) == 1
+    assert len(attempts) == 1
+    assert attempts[0].failure is not None
+    assert attempts[0].failure.http_status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("http_status", "provider_status"),
+    [
+        pytest.param(403, 502, id="permanent-http"),
+        pytest.param(502, 403, id="permanent-provider"),
+    ],
+)
+def test_permanent_status_vetoes_retryable_status_from_other_layer(
+    cards_dir: Path,
+    tmp_path: Path,
+    http_status: int,
+    provider_status: int,
+) -> None:
+    error = ScriptedProviderError(
+        "mixed provider status",
+        status_code=http_status,
+        body=(f'{{"error":{{"code":{provider_status},"message":"mixed provider status"}}}}'),
+    )
+    transport = ScriptedTransport([error])
+
+    with pytest.raises(RuntimeError, match="terminal outcome"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=tmp_path / "out",
+            config=_config(transient_retries=_transient_retries(2)),
+            transport=transport,
+        )
+
+    assert len(transport.calls) == 1
+
+
+def test_transient_retry_exhaustion_is_terminal(cards_dir: Path, tmp_path: Path) -> None:
+    transport = ScriptedTransport(
+        [ConnectionError("first interruption"), ConnectionError("second interruption")]
+    )
+    output = tmp_path / "out"
+
+    with pytest.raises(RuntimeError, match="after 2 visible attempts") as raised:
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=_config(transient_retries=_transient_retries(2)),
+            transport=transport,
+        )
+
+    assert isinstance(raised.value.__cause__, ConnectionError)
+    attempts = _read_attempts(output / "attempts.jsonl")
+    assert [attempt.stage_attempt for attempt in attempts] == [0, 1]
+    assert all(attempt.failure is not None for attempt in attempts)
+
+
+def test_cost_cap_fails_closed_before_retrying_unknown_billed_cost(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    transport = ScriptedTransport([ConnectionError("billing outcome unknown")])
+    config = _config(transient_retries=_transient_retries(2)).model_copy(
+        update={"max_cost_usd": 1.0}
+    )
+    output = tmp_path / "out"
+
+    with pytest.raises(RuntimeError, match="incomplete provider costs"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=config,
+            transport=transport,
+        )
+
+    assert len(transport.calls) == 1
+    assert len(_read_attempts(output / "attempts.jsonl")) == 1
+
+
+def test_cost_settlement_blocks_new_authorization_until_unknown_cost_is_visible(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "failed-attempt"
+    with pytest.raises(RuntimeError):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=_config(),
+            transport=ScriptedTransport([ConnectionError("unknown cost fixture")]),
+        )
+    failed_attempt = _read_attempts(output / "attempts.jsonl")[0]
+
+    cost_gate = CostGate.from_attempts(maximum_usd=1.0, attempts=[])
+    cost_gate.authorize()
+    persistence_started = Event()
+    allow_persistence = Event()
+    authorization_finished = Event()
+    settlement_errors: list[Exception] = []
+    authorization_errors: list[CostLimitReachedError] = []
+
+    def persist() -> None:
+        persistence_started.set()
+        if not allow_persistence.wait(timeout=5):
+            raise TimeoutError("test did not release attempt persistence")
+
+    def settle() -> None:
+        try:
+            cost_gate.settle_attempt(failed_attempt, persist)
+        except (RuntimeError, TimeoutError) as error:
+            settlement_errors.append(error)
+
+    def authorize() -> None:
+        try:
+            cost_gate.authorize()
+        except CostLimitReachedError as error:
+            authorization_errors.append(error)
+        finally:
+            authorization_finished.set()
+
+    settlement_thread = Thread(target=settle)
+    authorization_thread = Thread(target=authorize)
+    settlement_thread.start()
+    assert persistence_started.wait(timeout=5)
+    authorization_thread.start()
+    assert not authorization_finished.wait(timeout=0.05)
+    allow_persistence.set()
+    settlement_thread.join(timeout=5)
+    authorization_thread.join(timeout=5)
+
+    assert not settlement_thread.is_alive()
+    assert not authorization_thread.is_alive()
+    assert settlement_errors == []
+    assert len(authorization_errors) == 1
+    assert isinstance(authorization_errors[0], CostLimitReachedError)
+
+
+def test_terminal_stop_interrupts_retry_backoff() -> None:
+    control = eval_control.ExecutionControl()
+    waiting = Event()
+    finished = Event()
+    errors: list[eval_control.ExecutionStoppedError] = []
+
+    def wait_for_retry() -> None:
+        waiting.set()
+        try:
+            control.wait_for_retry(timedelta(hours=1))
+        except eval_control.ExecutionStoppedError as error:
+            errors.append(error)
+        finally:
+            finished.set()
+
+    waiter = Thread(target=wait_for_retry, daemon=True)
+    waiter.start()
+    assert waiting.wait(timeout=5)
+    control.stop()
+    assert finished.wait(timeout=1)
+    waiter.join(timeout=1)
+    assert len(errors) == 1
+    assert "during transient retry backoff" in str(errors[0])
+
+
+def test_repair_stage_retries_transport_without_incrementing_parse_retries(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    transport = ScriptedTransport(
+        [
+            _result(MALFORMED_COMPLETION),
+            ScriptedProviderError(
+                "repair provider unavailable",
+                status_code=502,
+                body='{"error":{"code":502,"message":"unavailable"}}',
+            ),
+            _result(completion_id="repaired-after-502"),
+        ]
+    )
+
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "out",
+        config=_config(transient_retries=_transient_retries(2)),
+        transport=transport,
+    )
+
+    first_vote = _read_votes(paths.votes_jsonl)[0]
+    first_attempts = _read_attempts(paths.attempts_jsonl)[:3]
+    assert first_vote.parse_retries == 1
+    assert not first_vote.abstained
+    assert [
+        (attempt.request_stage, attempt.stage_attempt, attempt.failure is None)
+        for attempt in first_attempts
+    ] == [
+        ("initial", 0, True),
+        ("repair", 0, False),
+        ("repair", 1, True),
+    ]
 
 
 def test_every_physical_attempt_must_match_the_pinned_route(
@@ -1303,7 +1805,7 @@ def test_every_physical_attempt_must_match_the_pinned_route(
             _result(route_provider=OTHER_PROVIDER_NAME),
         ]
     )
-    with pytest.raises(RuntimeError, match="provider response rejected"):
+    with pytest.raises(RuntimeError, match="provider response rejected") as raised:
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
@@ -1311,6 +1813,8 @@ def test_every_physical_attempt_must_match_the_pinned_route(
             transport=transport,
         )
 
+    assert isinstance(raised.value.__cause__, ValueError)
+    assert "selected endpoint used provider" in str(raised.value.__cause__)
     attempts = _read_attempts(output / "attempts.jsonl")
     assert [(attempt.request_stage, attempt.failure is None) for attempt in attempts] == [
         ("initial", True),
@@ -1324,19 +1828,32 @@ def test_every_physical_attempt_must_match_the_pinned_route(
 def test_interrupted_run_resumes_from_persisted_physical_attempts(
     cards_dir: Path,
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     output = tmp_path / "out"
+    config = _config(transient_retries=_transient_retries(2))
+    interrupt_backoff = True
+
+    def interrupt_once(
+        _control: eval_control.ExecutionControl,
+        _delay: timedelta,
+    ) -> None:
+        nonlocal interrupt_backoff
+        if interrupt_backoff:
+            interrupt_backoff = False
+            raise InterruptedError("process stopped during retry backoff")
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", interrupt_once)
     interrupted = ScriptedTransport(
         [_result(completion_id="first"), _result(completion_id="second"), ConnectionError("boom")]
     )
-    with pytest.raises(RuntimeError, match="physical request failed"):
+    with pytest.raises(InterruptedError, match="process stopped during retry backoff"):
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
-            config=_config(),
+            config=config,
             transport=interrupted,
         )
-
     partial_votes = _read_votes(output / "votes.jsonl")
     partial_attempts = _read_attempts(output / "attempts.jsonl")
     assert len(partial_votes) == 2
@@ -1348,7 +1865,7 @@ def test_interrupted_run_resumes_from_persisted_physical_attempts(
     paths = run_pilot(
         cards_dir=cards_dir,
         out_dir=output,
-        config=_config(),
+        config=config,
         transport=resumed,
     )
 
@@ -1369,19 +1886,32 @@ def test_interrupted_run_resumes_from_persisted_physical_attempts(
 def test_resume_uses_pending_malformed_initial_before_repair(
     cards_dir: Path,
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     output = tmp_path / "out"
+    config = _config(transient_retries=_transient_retries(2))
+    interrupt_backoff = True
+
+    def interrupt_once(
+        _control: eval_control.ExecutionControl,
+        _delay: timedelta,
+    ) -> None:
+        nonlocal interrupt_backoff
+        if interrupt_backoff:
+            interrupt_backoff = False
+            raise InterruptedError("process stopped during repair backoff")
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", interrupt_once)
     interrupted = ScriptedTransport(
         [_result(MALFORMED_COMPLETION), ConnectionError("repair interrupted")]
     )
-    with pytest.raises(RuntimeError, match="physical request failed"):
+    with pytest.raises(InterruptedError, match="process stopped during repair backoff"):
         run_pilot(
             cards_dir=cards_dir,
             out_dir=output,
-            config=_config(),
+            config=config,
             transport=interrupted,
         )
-
     assert _read_votes(output / "votes.jsonl") == []
     pending = _read_attempts(output / "attempts.jsonl")
     assert [(attempt.request_stage, attempt.stage_attempt) for attempt in pending] == [
@@ -1395,7 +1925,7 @@ def test_resume_uses_pending_malformed_initial_before_repair(
     paths = run_pilot(
         cards_dir=cards_dir,
         out_dir=output,
-        config=_config(),
+        config=config,
         transport=resumed,
     )
 
@@ -1423,6 +1953,441 @@ def test_resume_uses_pending_malformed_initial_before_repair(
     ]
 
 
+@dataclass
+class ConcurrencyProbe:
+    call_latency: timedelta = timedelta(milliseconds=10)
+    reorder_second_and_third: bool = False
+    failed_card_text: str | None = None
+    lock: Lock = field(default_factory=Lock)
+    concurrent_peer_started: Event = field(default_factory=Event)
+    third_started: Event = field(default_factory=Event)
+    third_completed: Event = field(default_factory=Event)
+    next_call: int = 0
+    active_calls: int = 0
+    maximum_active_calls: int = 0
+    worker_count: int = 0
+    closed_workers: int = 0
+    completion_order: list[int] = field(default_factory=list)
+
+    def create_worker(self) -> None:
+        with self.lock:
+            self.worker_count += 1
+
+    def close_worker(self) -> None:
+        with self.lock:
+            self.closed_workers += 1
+
+    def begin_call(self) -> int:
+        with self.lock:
+            call_index = self.next_call
+            self.next_call += 1
+            self.active_calls += 1
+            self.maximum_active_calls = max(self.maximum_active_calls, self.active_calls)
+            if self.active_calls >= 2:
+                self.concurrent_peer_started.set()
+        if call_index == 2:
+            self.third_started.set()
+        return call_index
+
+    def before_completion(self, call_index: int, *, should_fail: bool) -> None:
+        if should_fail:
+            if not self.concurrent_peer_started.wait(timeout=5):
+                raise TimeoutError("the concurrent peer request did not start")
+            raise ConnectionError("deliberate concurrent failure")
+        if (
+            call_index == 1
+            and self.reorder_second_and_third
+            and not self.third_completed.wait(timeout=5)
+        ):
+            raise TimeoutError("the concurrent peer request did not complete")
+        time.sleep(self.call_latency.total_seconds())
+
+    def finish_call(self, call_index: int) -> None:
+        with self.lock:
+            self.active_calls -= 1
+            self.completion_order.append(call_index)
+        if call_index == 2:
+            self.third_completed.set()
+
+
+@dataclass
+class ConcurrentTransport:
+    probe: ConcurrencyProbe
+
+    def complete(
+        self,
+        *,
+        messages: list[ChatMessages],
+        judge: JudgeConfig,
+        effort: ReasoningEffort,
+        session_id: str,
+        timeout: timedelta,
+    ) -> ChatResult:
+        del effort, session_id, timeout
+        call_index = self.probe.begin_call()
+        live_prompt = str(messages[-1].content)
+        should_fail = (
+            self.probe.failed_card_text is not None and self.probe.failed_card_text in live_prompt
+        )
+        try:
+            self.probe.before_completion(call_index, should_fail=should_fail)
+            return _result(
+                completion_id=f"concurrent-{call_index}",
+                model=judge.model,
+                route_model=judge.model,
+                route_provider=judge.provider_name,
+                requested_model=judge.model,
+            )
+        finally:
+            self.probe.finish_call(call_index)
+
+    def close(self) -> None:
+        self.probe.close_worker()
+
+
+@dataclass(frozen=True)
+class ConcurrentTransportFactory:
+    probe: ConcurrencyProbe
+
+    def __call__(self) -> ConcurrentTransport:
+        self.probe.create_worker()
+        return ConcurrentTransport(self.probe)
+
+
+@dataclass
+class RecordingProgress:
+    phase_name: str | None = None
+    total: int | None = None
+    advances: list[int] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    def phase(self, name: str, *, total: int | None = None) -> None:
+        self.phase_name = name
+        self.total = total
+
+    def advance(self, count: int = 1) -> None:
+        self.advances.append(count)
+
+    def note(self, message: str) -> None:
+        self.notes.append(message)
+
+
+def test_terminal_failure_drain_does_not_start_peer_repair_calls(
+    cards_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config().model_copy(update={"concurrency": ConcurrencyConfig(initial=2, maximum=2)})
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    first_task, second_task = list(PilotVotePlan(config, prepared).tasks())[:2]
+    first_card_text = prepared.cards[first_task.relation_id].card_text
+    second_card_text = prepared.cards[second_task.relation_id].card_text
+    peer_started = Event()
+    stop_called = Event()
+    transport_lock = Lock()
+    transport_calls = 0
+
+    real_stop = eval_control.ExecutionControl.stop
+
+    def observed_stop(control: eval_control.ExecutionControl) -> None:
+        real_stop(control)
+        stop_called.set()
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "stop", observed_stop)
+
+    @dataclass
+    class DrainTransport:
+        def complete(
+            self,
+            *,
+            messages: list[ChatMessages],
+            judge: JudgeConfig,
+            effort: ReasoningEffort,
+            session_id: str,
+            timeout: timedelta,
+        ) -> ChatResult:
+            nonlocal transport_calls
+            del effort, session_id, timeout
+            with transport_lock:
+                transport_calls += 1
+            live_prompt = str(messages[-1].content)
+            if first_card_text in live_prompt:
+                peer_started.set()
+                if not stop_called.wait(timeout=5):
+                    raise TimeoutError("terminal stop was not published")
+                return _result(
+                    MALFORMED_COMPLETION,
+                    model=judge.model,
+                    route_model=judge.model,
+                    route_provider=judge.provider_name,
+                    requested_model=judge.model,
+                )
+            if second_card_text in live_prompt:
+                if not peer_started.wait(timeout=5):
+                    raise TimeoutError("peer request did not start")
+                raise ScriptedProviderError(
+                    "terminal route failure",
+                    status_code=403,
+                    body='{"error":{"code":"permission-denied"}}',
+                )
+            raise AssertionError("drain test dispatched an unexpected logical vote")
+
+        def close(self) -> None:
+            return None
+
+    with pytest.raises(RuntimeError, match="terminal outcome"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=tmp_path / "out",
+            config=config,
+            transport_factory=DrainTransport,
+        )
+
+    attempts = _read_attempts(tmp_path / "out" / "attempts.jsonl")
+    assert transport_calls == 2
+    assert len(attempts) == 2
+    assert all(attempt.request_stage == "initial" for attempt in attempts)
+    assert _read_votes(tmp_path / "out" / "votes.jsonl") == []
+
+
+def test_trio_executor_ramps_and_commits_out_of_order_results_in_plan_order(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    config = _config().model_copy(update={"concurrency": ConcurrencyConfig(initial=1, maximum=4)})
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    expected_vote_ids = [task.vote_id for task in PilotVotePlan(config, prepared).tasks()]
+    probe = ConcurrencyProbe(reorder_second_and_third=True)
+    progress = RecordingProgress()
+
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=tmp_path / "out",
+        config=config,
+        transport_factory=ConcurrentTransportFactory(probe),
+        progress=progress,
+    )
+
+    votes = _read_votes(paths.votes_jsonl)
+    assert [vote.vote_id for vote in votes] == expected_vote_ids
+    assert probe.completion_order.index(2) < probe.completion_order.index(1)
+    assert probe.maximum_active_calls == config.concurrency.maximum
+    assert probe.worker_count == config.concurrency.maximum
+    assert probe.closed_workers == probe.worker_count
+    assert progress.phase_name == "Executing relation-evaluation votes"
+    assert progress.total == len(expected_vote_ids)
+    assert sum(progress.advances) == len(expected_vote_ids)
+
+
+def test_concurrent_failure_drains_attempts_and_resume_reuses_successful_work(
+    cards_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(transient_retries=_transient_retries(2)).model_copy(
+        update={"concurrency": ConcurrencyConfig(initial=1, maximum=2)}
+    )
+    interrupt_backoff = True
+
+    def interrupt_once(
+        _control: eval_control.ExecutionControl,
+        _delay: timedelta,
+    ) -> None:
+        nonlocal interrupt_backoff
+        if interrupt_backoff:
+            interrupt_backoff = False
+            raise InterruptedError("process stopped during concurrent retry backoff")
+
+    monkeypatch.setattr(eval_control.ExecutionControl, "wait_for_retry", interrupt_once)
+    output = tmp_path / "out"
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    failed_task = list(PilotVotePlan(config, prepared).tasks())[1]
+    interrupted_probe = ConcurrencyProbe(
+        failed_card_text=prepared.cards[failed_task.relation_id].card_text
+    )
+
+    with pytest.raises(InterruptedError, match="process stopped during concurrent retry backoff"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=config,
+            transport_factory=ConcurrentTransportFactory(interrupted_probe),
+        )
+
+    partial_votes = _read_votes(output / "votes.jsonl")
+    partial_attempts = _read_attempts(output / "attempts.jsonl")
+    assert len(partial_votes) == 1
+    assert len(partial_attempts) == 3
+    assert interrupted_probe.closed_workers == interrupted_probe.worker_count == 2
+
+    resumed_probe = ConcurrencyProbe()
+    paths = run_pilot(
+        cards_dir=cards_dir,
+        out_dir=output,
+        config=config,
+        transport_factory=ConcurrentTransportFactory(resumed_probe),
+    )
+
+    votes = _read_votes(paths.votes_jsonl)
+    attempts = _read_attempts(paths.attempts_jsonl)
+    assert len(votes) == EXPECTED_VOTES
+    assert resumed_probe.next_call == EXPECTED_VOTES - 2
+    assert len(attempts) == EXPECTED_VOTES + 1
+    retried = [attempt for attempt in attempts if attempt.stage_attempt == 1]
+    assert len(retried) == 1
+    assert retried[0].vote_id == partial_attempts[1].vote_id
+    assert retried[0].failure is None
+
+
+def test_ambiguous_vote_append_is_not_retried_while_workers_drain(
+    cards_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config().model_copy(update={"concurrency": ConcurrencyConfig(initial=2, maximum=2)})
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    first_task = next(PilotVotePlan(config, prepared).tasks())
+    first_card_text = prepared.cards[first_task.relation_id].card_text
+    peer_started = Event()
+    append_failed = Event()
+    lock = Lock()
+    closed = 0
+
+    @dataclass
+    class AppendFailureTransport:
+        def complete(
+            self,
+            *,
+            messages: list[ChatMessages],
+            judge: JudgeConfig,
+            effort: ReasoningEffort,
+            session_id: str,
+            timeout: timedelta,
+        ) -> ChatResult:
+            del effort, session_id, timeout
+            is_first_vote = first_card_text in str(messages[-1].content)
+            if is_first_vote:
+                if not peer_started.wait(timeout=5):
+                    raise TimeoutError("the peer request did not start")
+            else:
+                peer_started.set()
+                if not append_failed.wait(timeout=5):
+                    raise TimeoutError("the first vote append did not fail")
+            return _result(
+                completion_id=f"append-failure-{is_first_vote}",
+                model=judge.model,
+                route_model=judge.model,
+                route_provider=judge.provider_name,
+                requested_model=judge.model,
+            )
+
+        def close(self) -> None:
+            nonlocal closed
+            with lock:
+                closed += 1
+
+    real_append = eval_executor.append_jsonl
+    vote_appends = 0
+
+    def ambiguous_append(path: Path, row: VoteRow) -> None:
+        nonlocal vote_appends
+        real_append(path, row)
+        if path.name == "votes.jsonl" and vote_appends == 0:
+            vote_appends += 1
+            append_failed.set()
+            raise OSError("durability acknowledgement was lost")
+
+    monkeypatch.setattr(eval_executor, "append_jsonl", ambiguous_append)
+
+    with pytest.raises(OSError, match="durability acknowledgement was lost"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=tmp_path / "out",
+            config=config,
+            transport_factory=AppendFailureTransport,
+        )
+
+    assert len(_read_votes(tmp_path / "out" / "votes.jsonl")) == 1
+    assert len(_read_attempts(tmp_path / "out" / "attempts.jsonl")) == 2
+    assert closed == 2
+
+
+def test_resume_accepts_unattempted_gaps_before_a_higher_pending_attempt(
+    cards_dir: Path,
+    tmp_path: Path,
+) -> None:
+    config = _config()
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    plan = PilotVotePlan(config, prepared)
+    output = tmp_path / "out"
+    transport = ScriptedTransport(
+        [
+            _result(completion_id="lower-success"),
+            ScriptedProviderError(
+                "higher terminal failure",
+                status_code=403,
+                body='{"error":{"code":"permission-denied"}}',
+            ),
+        ]
+    )
+    with pytest.raises(RuntimeError, match="terminal outcome"):
+        run_pilot(
+            cards_dir=cards_dir,
+            out_dir=output,
+            config=config,
+            transport=transport,
+        )
+    higher_attempt = _read_attempts(output / "attempts.jsonl")[1]
+
+    pending = validate_resume(
+        plan=plan,
+        votes=[],
+        attempts=[higher_attempt],
+        prepared=prepared,
+        timeout=config.request_timeout,
+    )
+
+    assert len(pending.attempted_votes) == 2
+    lower, higher = pending.attempted_votes
+    assert lower.plan_index == 0
+    assert lower.attempts == ()
+    assert higher.plan_index == 1
+    assert higher.attempts == (higher_attempt,)
+
+
+@pytest.mark.parametrize(
+    ("declared_votes", "invalidity", "message"),
+    [
+        pytest.param(1, "excess", "more votes than it declared", id="excess"),
+        pytest.param(2, "duplicate", "duplicate vote", id="duplicate"),
+    ],
+)
+def test_unstarted_plan_stream_rejects_invalid_tasks_before_yielding_them(
+    cards_dir: Path,
+    declared_votes: int,
+    invalidity: Literal["excess", "duplicate"],
+    message: str,
+) -> None:
+    config = _config()
+    prepared = prepare_pilot_inputs(cards_dir, config)
+    tasks = PilotVotePlan(config, prepared).tasks()
+    first = next(tasks)
+    second = first if invalidity == "duplicate" else next(tasks)
+    plan = InvalidVotePlan(declared_votes=declared_votes, stream=(first, second))
+    pending = validate_resume(
+        plan=plan,
+        votes=[],
+        attempts=[],
+        prepared=prepared,
+        timeout=config.request_timeout,
+    )
+    unstarted = pending.take_unstarted_tasks()
+
+    assert next(unstarted) == first
+    with pytest.raises(ValueError, match=message):
+        next(unstarted)
+
+
 def test_concat_artifact_is_verified_before_execution(cards_dir: Path, tmp_path: Path) -> None:
     with (cards_dir / "cards.jsonl").open("a", encoding="utf-8") as output:
         output.write("{}\n")
@@ -1439,10 +2404,11 @@ def test_concat_artifact_is_verified_before_execution(cards_dir: Path, tmp_path:
     assert transport.calls == []
 
 
-def test_load_run_config_rejects_unknown_schema_v2_fields(tmp_path: Path) -> None:
+def test_load_run_config_rejects_unknown_schema_v3_fields(tmp_path: Path) -> None:
     config_path = tmp_path / "judges.yaml"
     config_path.write_text(
-        """schema_version: 2
+        """schema_version: 3
+mode: pilot
 rubric_version: rubric-v1
 sampling:
   algorithm: stratified-hash-v1
@@ -1451,10 +2417,12 @@ sampling:
 baseline_effort: minimal
 repeat_count: 1
 request_timeout: PT5S
+concurrency:
+  initial: 1
+  maximum: 1
 unknown: true
 judges:
-  - family_id: judge-a-2026-07-13
-    provider_slug: test-provider/endpoint
+  - provider_slug: test-provider/endpoint
     provider_name: Test Provider
     model: test/model
 """,

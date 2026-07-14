@@ -132,7 +132,9 @@ class AttemptFailure(StrictModel):
     category: Literal["transport", "provider", "response", "routing", "accounting"]
     exception_type: NonEmptyStr
     message: NonEmptyStr
-    status_code: int | None = None
+    http_status_code: int | None = None
+    provider_status_code: int | None = None
+    retry_after: Annotated[timedelta, Field(gt=timedelta())] | None = None
     response_body: str | None = None
 
 
@@ -308,6 +310,21 @@ class JudgePin(BaseModel):
     # The complete judges.yaml entry is a snapshot and may carry pricing/tier metadata that
     # rubric-v1 analysis does not interpret.
     model_config = ConfigDict(extra="allow", frozen=True)
+
+
+class PilotRunContract(StrictModel):
+    """Pilot facts that must still hold when authorizing the complete grid."""
+
+    cards_hash: Sha256Hex
+    cards_manifest_hash: Sha256Hex
+    full_grid_card_count: PositiveInt
+    judge_request_hashes: dict[NonEmptyStr, Sha256Hex]
+
+    @model_validator(mode="after")
+    def check_judges(self) -> Self:
+        if not self.judge_request_hashes:
+            raise ValueError("pilot run contract must contain judge request hashes")
+        return self
 
 
 class HandoffManifest(StrictModel):
@@ -618,9 +635,10 @@ class EffortDecision(StrictModel):
 
 
 class AnalysisDecisions(StrictModel):
-    schema_version: Literal[2]
+    schema_version: Literal[3]
     policy: AnalysisPolicy
     input_hashes: dict[str, Sha256Hex]
+    pilot_run_contract: PilotRunContract
     prompt_pack_hash: Sha256Hex
     rubric_version: str
     sampling_seeds: list[int]

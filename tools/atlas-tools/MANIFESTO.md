@@ -27,9 +27,9 @@ Commit `16b87bd4b1` defined the intended nine-model roster:
 8. `deepseek/deepseek-v4-pro`
 9. `mistralai/mistral-small-2603`
 
-Commit `fa36eaf311` removed that roster while refactoring the executor. The roster should have been migrated into a checked-in runtime configuration instead. It is now restored in `config/eval/pilot.yaml`.
+Commit `fa36eaf311` removed that roster while refactoring the executor. The roster should have been migrated into a checked-in runtime configuration instead. It is now restored in `config/eval/pilot.yaml`, with the ninth operational slot changed to `inception/mercury-2`: Mistral failed the retention requirement and Grok 4.5 was unavailable in-region. OpenRouter's ZDR inventory lists Mercury 2's single `Inception` endpoint with `reasoning_effort`, `temperature`, and `max_tokens` support.
 
-For the current schema, `family_id` is the exact model ID. It is not a dated nickname. Provider and OpenRouter region are pinned separately and contribute to vote and request identity. A future schema should derive a branded family identity from the structured judge definition rather than duplicate the model ID manually.
+For the current schema, the persisted `family_id` is derived from the exact `model` ID. It is not authored separately and is not a dated nickname. Provider and OpenRouter region are pinned independently and contribute to vote and request identity.
 
 ## Prompt and execution invariants
 
@@ -42,7 +42,7 @@ For the current schema, `family_id` is the exact model ID. It is not a dated nic
 - Verdict parsing case-folds the verdict and validates the last JSON object.
 - One malformed completion gets one conversational repair turn. A second malformed completion becomes `ABSTAIN`.
 - A valid but semantically wrong answer is evidence and is never retried.
-- Provider, routing, response-envelope, and accounting failures stop the run; they are not abstentions.
+- Retryable transport/provider failures receive the configured visible physical-attempt budget; routing, response-envelope, and accounting failures remain terminal. None are abstentions.
 
 ## Routing and privacy invariants
 
@@ -54,9 +54,16 @@ Every physical OpenRouter request must:
 - require `data_collection: deny`;
 - require ZDR;
 - disable the OpenRouter response cache;
-- disable SDK retries;
+- disable SDK retries so every retry is controlled and durably visible to the executor;
 - request router metadata;
 - record the native result, route, usage, cost, and timestamps.
+
+OpenRouter's detailed `attempts` array is optional even when metadata is enabled.
+The executor therefore requires the public model ID, requested model, direct first
+attempt, exactly one selected endpoint, and pinned provider name. When the detailed
+array is present, it must agree and contain exactly one HTTP-200 attempt. A
+provider-internal deployment model name is evidence about the selected endpoint,
+not a replacement for the public model identity.
 
 `provider_slug` is a provider identifier from `/api/v1/providers` and is the value sent through `provider.only`. It is not an endpoint tag: suffixes such as `/europe`, `/eu`, and `/fp8` are endpoint metadata and are invalid in `provider.only`. `provider_name` is the exact name expected in returned router metadata. The executor fails closed if the actual response disagrees.
 
@@ -74,7 +81,11 @@ With nine judges, nine bundles, 144 sampled non-holdouts, six holdouts, one repe
 - total: `14,796` logical votes;
 - worst case with one parser repair per vote: `29,592` physical requests.
 
-At the estimated 7,500 input tokens per vote, the initial calls alone are roughly 111 million input tokens. Do not launch the complete pilot before obtaining current route prices and setting an intentional cost cap.
+The first accepted Opus call used 12,956 prompt tokens and cost `$0.066505`, so
+the old 7,500-token planning estimate is not credible. The pilot config currently
+has no `max_cost_usd`; that is an explicit operational risk, not a default budget.
+Do not infer complete-pilot cost from one family, but do not launch blindly either:
+measure the remaining routes and set an intentional cap when one is available.
 
 ## Before launching the pilot
 
@@ -90,9 +101,44 @@ At the estimated 7,500 input tokens per vote, the initial calls alone are roughl
 
 A dedicated `relation preflight` command would make steps 2-4 explicit and cheap. It should validate routes without creating a pilot handoff or pretending that a partial pilot is statistically meaningful.
 
+## Implemented execution architecture
+
+- `contract.py` owns schema-v3 pilot/full configs and deterministic round-robin vote plans.
+- `inputs.py` verifies cards and derives the pilot slice; `authorization.py` binds full mode to the analyzed corpus, exact judge request pins, admissions, efforts, and reviewed call counts.
+- `transport.py` owns native OpenRouter request and response contracts.
+- `journal.py` owns durable append and per-attempt in-flight markers; `resume.py` owns semantic journal validation.
+- `vote.py` executes one physical/logical vote; `executor.py` owns Trio workers, channels, ramping, draining, and ordered commits.
+- `artifacts.py` owns run state and manifests; `run.py` is a small composition facade.
+
+The executor starts at `concurrency.initial`, doubles its worker limit after a
+current-limit cohort of successful logical votes, and caps at
+`concurrency.maximum`. Workers steal from a shared bounded channel and each owns
+its OpenRouter client. A terminal failure atomically closes the physical-request
+boundary. Calls with an existing durable in-flight marker finish and journal;
+peer workers cannot start a repair or retry afterward. Attempts may be recorded
+in completion order; votes remain a deterministic plan prefix. Resume reuses
+successful attempts beyond that prefix.
+
+Transient retries are executor-owned because the SDK retries only a narrower
+class of failures and cannot journal each attempt. Initial and malformed-repair
+requests each receive `transient_retries.maximum_attempts` total physical
+attempts. Every failed attempt is durable before a retry. Backoff is deterministic
+and interruptible by a peer terminal failure; a provider `Retry-After` value may
+extend it. HTTP and embedded provider statuses are stored separately, which
+covers HTTP-200 envelopes carrying an upstream 502.
+Permanent 4xx, route validation, completion-envelope, and accounting failures do
+not retry. If a configured cost cap encounters an attempt with unknown billed
+cost, the next physical request is denied rather than weakening the cap.
+
+One `relation evaluate` command handles both phases. The config discriminates
+`mode: pilot` from `mode: full`; full mode binds the schema-v3 analysis
+`decisions` artifact. Those decisions hash every pilot judge request and record the
+exact concat card and manifest hashes, so a changed route or card population cannot
+inherit an unrelated qualification result.
+
 ## Next implementation work
 
-### Required before the paid pilot
+### Required around the paid pilot
 
 - Add a route preflight command that exercises one minimal judgement per configured judge and writes a small audit artifact.
 - Add a cost-estimation command using current OpenRouter pricing metadata and the exact task count.
@@ -100,7 +146,6 @@ A dedicated `relation preflight` command would make steps 2-4 explicit and cheap
 
 ### Schema cleanup after the pilot is unblocked
 
-- Remove manually authored `family_id` from input configuration. Derive a branded family identity from the canonical structured judge definition and persist it in artifacts.
 - Stop asking operators to duplicate `provider_name` if OpenRouter's provider API can supply and snapshot the slug-to-name mapping during preflight.
 - Separate reusable judge roster data from pilot sampling and operational cost-cap settings.
 - Keep API-specific distinctions at the transport boundary while preserving enough route capability data to make request hashes and manifests auditable.
@@ -139,7 +184,7 @@ Durability is essential for paid-request journals and unknown in-flight billing 
 
 ### Prefer decomposition over suppression
 
-No unexplained `noqa`, no complexity suppression, and no positional state tuples. If a function carries too much state, introduce a named domain type or split the responsibility.
+No unexplained `noqa`, no complexity suppression, and no positional state tuples. If a function carries too much state, introduce a named domain type or split the responsibility. The former 2,500-line executor facade was evidence of misplaced boundaries; execution is now separated into focused modules near the repository's roughly 500-line target.
 
 ### Make the operational path visible
 
