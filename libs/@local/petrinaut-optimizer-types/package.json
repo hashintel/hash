@@ -1,0 +1,30 @@
+{
+  "name": "@local/petrinaut-optimizer-types",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Generated TypeScript types for the Petrinaut optimizer API",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "codegen": "openapi-typescript ../../../apps/petrinaut-opt/openapi/openapi.json --default-non-nullable false --output src/openapi.gen.ts && oxfmt --write --ignore-path /dev/null src/openapi.gen.ts",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "yarn codegen && git diff --exit-code -- src/openapi.gen.ts"
+  },
+  "devDependencies": {
+    "@apps/petrinaut-opt": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "openapi-typescript": "7.13.0",
+    "oxfmt": "0.50.0",
+    "rimraf": "6.1.3",
+    "typescript": "5.9.3"
+  }
+}
