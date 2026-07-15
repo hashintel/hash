@@ -33,12 +33,26 @@ export interface HoverLine {
  * A hovered edge, normalised for the on-hover label regardless of how it was
  * drawn: its edge id and the world-space polyline as rendered — a bundled curve
  * in the detail view, or a straight two-point line for a selected node's
- * incident edge in the compact view.
+ * incident edge in the compact view — plus the edge's endpoint nodes (when
+ * resolvable), outlined while hovered in the edge's own colour and width.
  */
 export interface HoverableEdge {
   edgeId: number;
   path: [number, number][];
+  endpoints: NetworkGraphPoint[];
 }
+
+/** RGB stroke colour shared by every edge (0–255). */
+export const EDGE_COLOR: [number, number, number] = [80, 88, 110];
+/** On-screen width (px) of an edge, and its floor as it scales with zoom. */
+export const EDGE_WIDTH = 0.75;
+export const EDGE_MIN_WIDTH = 0.5;
+/**
+ * Width (px) of a hovered edge — and of the outline drawn on the two nodes it
+ * connects — a multiple of {@link EDGE_WIDTH} so it stands out from the crowd of
+ * edges around it. The faint background edges also jump to full opacity.
+ */
+export const EDGE_HOVER_WIDTH = EDGE_WIDTH * 3;
 
 /** Parse a `#RRGGBB` string into a deck.gl `[r, g, b]` colour. */
 export const hexToRgb = (hex: string): [number, number, number] => {

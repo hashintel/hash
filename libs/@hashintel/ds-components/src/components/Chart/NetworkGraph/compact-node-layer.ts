@@ -1,6 +1,13 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { LineLayer, PathLayer, ScatterplotLayer } from "@deck.gl/layers";
 
+import {
+  EDGE_COLOR,
+  EDGE_HOVER_WIDTH,
+  EDGE_MIN_WIDTH,
+  EDGE_WIDTH,
+} from "./network-graph-util";
+
 import type { BundledEdge } from "./edge-bundling";
 import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
@@ -17,18 +24,11 @@ const POINT_MAX_RADIUS = 10;
 const HOVERED_MIN_RADIUS = 8;
 /** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
 const NEIGHBOUR_MIN_RADIUS = 5;
-const EDGE_COLOR = [80, 88, 110] as const;
+/** Width (px) of the white ring around the active/neighbour nodes. */
+const GROW_RING_STROKE = 1.5;
 /** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */
 const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
-/** On-screen width (px) of an edge, and its floor as it scales with zoom. */
-const EDGE_WIDTH = 0.75;
-const EDGE_MIN_WIDTH = 0.5;
-/**
- * A hovered edge doubles its width and — for the faint background edges — jumps to
- * full opacity, so it stands out from the crowd of edges around it.
- */
-const EDGE_HOVER_WIDTH = EDGE_WIDTH * 2;
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
 /**
@@ -59,6 +59,12 @@ type _CompactNodeLayerProps = {
    * lines in the compact view, or `"none"`.
    */
   hoverableEdgeKind: "none" | "highlight" | "background";
+  /**
+   * The two endpoint nodes of the hovered edge, each drawn with a ring in the
+   * edge's colour and hover width so it's clear which nodes it connects. Empty
+   * when no edge is hovered.
+   */
+  edgeHoverNodes: NetworkGraphPoint[];
   /** Neighbours of the active node, drawn with a "grown" ring. */
   neighbours: NetworkGraphPoint[];
   /** The hovered/selected node, drawn with a prominent grown ring. */
@@ -92,6 +98,7 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   backgroundEdgePaths: [],
   hoveredEdgeId: null,
   hoverableEdgeKind: "none",
+  edgeHoverNodes: [],
   neighbours: [],
   activeNode: null,
   colorByHex: new Map<string, RgbColor>(),
@@ -127,6 +134,7 @@ export class CompactNodeLayer extends CompositeLayer<
       backgroundEdgePaths,
       hoveredEdgeId,
       hoverableEdgeKind,
+      edgeHoverNodes,
       neighbours,
       activeNode,
       colorByHex,
@@ -225,7 +233,7 @@ export class CompactNodeLayer extends CompositeLayer<
         radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
         stroked: true,
         getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: 1.5,
+        getLineWidth: GROW_RING_STROKE,
         lineWidthUnits: "pixels",
         lineWidthMinPixels: 1,
       }),
@@ -243,9 +251,54 @@ export class CompactNodeLayer extends CompositeLayer<
         radiusMaxPixels: POINT_MAX_RADIUS * 1.5,
         stroked: true,
         getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: 1.5,
+        getLineWidth: GROW_RING_STROKE,
         lineWidthUnits: "pixels",
         lineWidthMinPixels: 1,
+      }),
+      // Ring around each node the hovered edge connects, in the edge's colour and
+      // hover width, sitting just inside that node's white grow ring (its radius
+      // inset by the white stroke). Two layers because the hovered endpoint and
+      // its neighbour draw white rings of different sizes; each edge ring mirrors
+      // the matching grow ring so it hugs the inside of the right one. Compact
+      // view only — the detailed layer draws its own endpoint outlines.
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-edge-hover-outline-hovered`,
+        parameters: BASE_LAYER_PARAMETERS,
+        data:
+          showPoints && activeNode
+            ? edgeHoverNodes.filter((point) => point.id === activeNode.id)
+            : [],
+        getPosition: (point) => [point.x, point.y],
+        filled: false,
+        stroked: true,
+        getRadius: POINT_RADIUS * 2.2,
+        radiusScale,
+        radiusUnits: "pixels",
+        radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
+        radiusMaxPixels: POINT_MAX_RADIUS * 1.5 - GROW_RING_STROKE,
+        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+        getLineWidth: EDGE_HOVER_WIDTH,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: EDGE_MIN_WIDTH,
+      }),
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-edge-hover-outline-neighbour`,
+        parameters: BASE_LAYER_PARAMETERS,
+        data:
+          showPoints && activeNode
+            ? edgeHoverNodes.filter((point) => point.id !== activeNode.id)
+            : [],
+        getPosition: (point) => [point.x, point.y],
+        filled: false,
+        stroked: true,
+        getRadius: POINT_RADIUS * 1.6,
+        radiusScale,
+        radiusUnits: "pixels",
+        radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
+        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+        getLineWidth: EDGE_HOVER_WIDTH,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: EDGE_MIN_WIDTH,
       }),
     ];
   }

@@ -11,6 +11,7 @@ import pointsUrl from "./fixtures/points.json?url";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
@@ -108,10 +109,31 @@ export const Default: Story<NetworkGraphProps> = () => {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
     null,
   );
+  // The clicked edge and where it was clicked, for its own popover.
+  const [selectedEdge, setSelectedEdge] = useState<NetworkGraphEdge | null>(
+    null,
+  );
+  const [edgeTooltipPos, setEdgeTooltipPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
     setSelected(interaction.point);
+    // A node click closes any open edge popover.
+    setSelectedEdge(null);
   }, []);
+
+  const handleEdgeClick = useCallback(
+    (interaction: NetworkGraphEdgeInteraction) => {
+      // Anchor the edge popover at the click point. (Unlike the node tooltip it
+      // doesn't track pan/zoom — the node position is reported back by the chart,
+      // an edge's isn't — which is fine for this demo.)
+      setSelectedEdge(interaction.edge);
+      setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
+    },
+    [],
+  );
 
   const handleNodeHover = useCallback(
     (interaction: NetworkGraphInteraction) => {
@@ -134,6 +156,7 @@ export const Default: Story<NetworkGraphProps> = () => {
             selected={selected?.id ?? null}
             onNodeClick={handleClick}
             onNodeHover={handleNodeHover}
+            onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
           />
           {selected && tooltipPos ? (
@@ -149,6 +172,23 @@ export const Default: Story<NetworkGraphProps> = () => {
                 <div>Node {selected.id}</div>
                 <div>
                   ({selected.x.toFixed(1)}, {selected.y.toFixed(1)})
+                </div>
+              </div>
+            </Popover>
+          ) : null}
+          {selectedEdge && edgeTooltipPos ? (
+            <Popover
+              triggerRef={frameRef}
+              position="bottom-start"
+              positionFromPoint={edgeTooltipPos}
+              onClose={() => setSelectedEdge(null)}
+              gapX={10}
+              gapY={12}
+            >
+              <div className={tooltipStyles}>
+                <div>Edge {selectedEdge.id}</div>
+                <div>
+                  Node {selectedEdge.fromId} → Node {selectedEdge.toId}
                 </div>
               </div>
             </Popover>

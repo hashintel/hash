@@ -1,6 +1,8 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { IconLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 
+import { EDGE_COLOR, EDGE_HOVER_WIDTH } from "./network-graph-util";
+
 import type { DetailIconAtlas, NetworkGraphPoint } from "./network-graph-util";
 import type {
   Color,
@@ -95,15 +97,16 @@ const DETAIL_LEVEL_COUNT = 4;
 
 /**
  * World-space z for a node part. `order` is the node's front-to-back rank (later
- * = nearer), `level` its part (see the `DETAIL_LEVEL_*` constants), `count` the
- * number of nodes. Offset so all values are ≤ 0 (the compact layer, at z 0,
- * disables depth writes so it never occludes these); the `+ 1` reserves a band
- * above every regular node for the active node, ranked `count` so it jumps to the
- * front. Larger z = nearer; a whole node's band sits above the node behind it, so
- * a front node occludes every part of a back node it overlaps.
+ * = nearer), `level` its part (see the `DETAIL_LEVEL_*` constants), and `slots`
+ * the total number of rank slots — every regular node plus the promoted ones (the
+ * hovered edge's endpoints and the active node) that jump above them. Offset by
+ * `slots` so all values are ≤ 0 (the compact layer, at z 0, disables depth writes
+ * so it never occludes these). Larger z = nearer; a whole node's band sits above
+ * the node behind it, so a front node occludes every part of a back node it
+ * overlaps.
  */
-const detailZ = (order: number, level: number, count: number): number =>
-  (order * DETAIL_LEVEL_COUNT + level - (count + 1) * DETAIL_LEVEL_COUNT) *
+const detailZ = (order: number, level: number, slots: number): number =>
+  (order * DETAIL_LEVEL_COUNT + level - slots * DETAIL_LEVEL_COUNT) *
   DETAIL_Z_STEP;
 
 /** Truncate a label to {@link DETAIL_LABEL_MAX_CHARS} with an ellipsis. */
@@ -129,6 +132,12 @@ type _DetailedNodeLayerProps = {
   colorByHex: Map<string, RgbColor>;
   /** Mask atlas of the icons used by the data; `null` until it has rasterised. */
   iconAtlas: DetailIconAtlas | null;
+  /**
+   * The two endpoint nodes of the hovered edge, each ringed in the edge's colour
+   * and hover width so it's clear which nodes it connects. Empty when no edge is
+   * hovered.
+   */
+  edgeHoverNodes: NetworkGraphPoint[];
 };
 
 export type DetailedNodeLayerProps = _DetailedNodeLayerProps &
@@ -144,6 +153,7 @@ const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
   activeNode: null,
   colorByHex: new Map<string, RgbColor>(),
   iconAtlas: null,
+  edgeHoverNodes: [],
 };
 
 /**
@@ -180,21 +190,42 @@ export class DetailedNodeLayer extends CompositeLayer<
   }
 
   override renderLayers() {
-    const { id, activeNode, colorByHex, iconAtlas } = this.props;
+    const { id, activeNode, colorByHex, iconAtlas, edgeHoverNodes } =
+      this.props;
     const data = (this.props.data ?? []) as NetworkGraphPoint[];
     const { labelPoints, iconPoints } = this.state as DetailedNodeLayerState;
 
     const activeId = activeNode?.id ?? null;
     const count = data.length;
-    // Rank nodes front-to-back (later = front), bumping the active node above all
-    // the rest so it jumps to the front. Cheap to rebuild each render (≤ a few
-    // hundred nodes); the z it feeds only re-evaluates via `updateTriggers`.
+    // Rank nodes front-to-back (later = front). Promote the hovered edge's
+    // endpoints — and the active node, highest of all — above every regular node
+    // so their whole band (circle, icon, label, outlines) jumps to the front, the
+    // same way a hovered node does. Cheap to rebuild each render (≤ a few hundred
+    // nodes); the z it feeds only re-evaluates via `updateTriggers`.
     const orderById = new Map(data.map((point, index) => [point.id, index]));
-    if (activeId != null && orderById.has(activeId)) {
-      orderById.set(activeId, count);
+    const promotedIds: number[] = [];
+    for (const point of edgeHoverNodes) {
+      if (point.id !== activeId && !promotedIds.includes(point.id)) {
+        promotedIds.push(point.id);
+      }
     }
+    if (activeId != null) {
+      promotedIds.push(activeId);
+    }
+    for (const [rank, promotedId] of promotedIds.entries()) {
+      if (orderById.has(promotedId)) {
+        orderById.set(promotedId, count + rank);
+      }
+    }
+    const slots = count + promotedIds.length;
     const zFor = (point: NetworkGraphPoint, level: number): number =>
-      detailZ(orderById.get(point.id) ?? 0, level, count);
+      detailZ(orderById.get(point.id) ?? 0, level, slots);
+    // `getPosition` z depends on the active node *and* the promoted endpoints, so
+    // key its update trigger on both (the shared sublayers' `data` doesn't change
+    // when only the hover does).
+    const stackTrigger = `${activeId ?? ""}:${edgeHoverNodes
+      .map((point) => point.id)
+      .join(",")}`;
     const rgbFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
     const activePoint =
@@ -227,7 +258,7 @@ export class DetailedNodeLayer extends CompositeLayer<
           (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
-          getPosition: activeId,
+          getPosition: stackTrigger,
           getRadius: activeId,
         },
       }),
@@ -254,7 +285,7 @@ export class DetailedNodeLayer extends CompositeLayer<
         backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
         getBackgroundColor: DETAIL_WHITE,
         getBorderWidth: 0,
-        updateTriggers: { getPosition: activeId },
+        updateTriggers: { getPosition: stackTrigger },
       }),
       // The active label's outline backdrop — bold-sized so its white ring matches
       // the bold label text. Same width as idle (the outline only thickens around
@@ -284,7 +315,7 @@ export class DetailedNodeLayer extends CompositeLayer<
               backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
               getBackgroundColor: DETAIL_WHITE,
               getBorderWidth: 0,
-              updateTriggers: { getPosition: activeId },
+              updateTriggers: { getPosition: stackTrigger },
             }),
           ]
         : []),
@@ -308,7 +339,35 @@ export class DetailedNodeLayer extends CompositeLayer<
           (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
-          getPosition: activeId,
+          getPosition: stackTrigger,
+          getRadius: activeId,
+        },
+      }),
+      // A ring around each node the hovered edge connects, in the edge's colour
+      // and hover width, sitting just inside the white outline (over the fill's
+      // edge). Drawn at the icon depth so it reads in front of the circle fill.
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-edge-hover-outline`,
+        data: edgeHoverNodes,
+        getPosition: (point) => [
+          point.x,
+          point.y,
+          zFor(point, DETAIL_LEVEL_ICON),
+        ],
+        filled: false,
+        stroked: true,
+        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+        getLineWidth: EDGE_HOVER_WIDTH,
+        lineWidthUnits: "pixels",
+        // Stroke draws inward from the radius, so setting the radius to the circle
+        // edge (the white outline's inner edge) seats the ring just inside the
+        // white outline — tracking the grown circle when active.
+        getRadius: (point) =>
+          DETAIL_NODE_DIAMETER / 2 +
+          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
+        radiusUnits: "pixels",
+        updateTriggers: {
+          getPosition: stackTrigger,
           getRadius: activeId,
         },
       }),
@@ -330,7 +389,7 @@ export class DetailedNodeLayer extends CompositeLayer<
               sizeUnits: "pixels",
               // Tint the icon mask to a legible ink for the node's colour.
               getColor: (point) => contrastInkRgb(rgbFor(point)),
-              updateTriggers: { getPosition: activeId },
+              updateTriggers: { getPosition: stackTrigger },
             }),
           ]
         : []),
@@ -360,7 +419,7 @@ export class DetailedNodeLayer extends CompositeLayer<
         // Border matches the entity colour, tying the label to its node.
         getBorderColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
         getBorderWidth: 1,
-        updateTriggers: { getPosition: activeId },
+        updateTriggers: { getPosition: stackTrigger },
       }),
       // The active node's label, redrawn bold on top of its normal-weight copy.
       ...(activeNode?.label
@@ -389,7 +448,7 @@ export class DetailedNodeLayer extends CompositeLayer<
               getBackgroundColor: DETAIL_WHITE,
               getBorderColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
               getBorderWidth: 1,
-              updateTriggers: { getPosition: activeId },
+              updateTriggers: { getPosition: stackTrigger },
             }),
           ]
         : []),

@@ -27,10 +27,20 @@ import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
 // keep importing them from `network-graph`, the component's public entry point.
 export type { NetworkGraphEdge, NetworkGraphPoint } from "./network-graph-util";
 
-/** A pointer interaction (hover or click) with the network graph. */
+/** A pointer interaction (hover or click) with a node in the network graph. */
 export interface NetworkGraphInteraction {
   /** The node under the pointer, or `null` when over empty space. */
   point: NetworkGraphPoint | null;
+  /** Pointer x position in pixels, relative to the chart's top-left corner. */
+  x: number;
+  /** Pointer y position in pixels, relative to the chart's top-left corner. */
+  y: number;
+}
+
+/** A pointer interaction (hover or click) with an edge in the network graph. */
+export interface NetworkGraphEdgeInteraction {
+  /** The edge under the pointer, or `null` when the pointer left all edges. */
+  edge: NetworkGraphEdge | null;
   /** Pointer x position in pixels, relative to the chart's top-left corner. */
   x: number;
   /** Pointer y position in pixels, relative to the chart's top-left corner. */
@@ -69,6 +79,18 @@ export interface NetworkGraphProps {
    * empty space is clicked) and its pixel position.
    */
   onNodeClick?: (interaction: NetworkGraphInteraction) => void;
+  /**
+   * Called when the hovered edge changes, with the newly hovered edge (or `null`
+   * when the pointer leaves all edges) and its pixel position. Edges are hoverable
+   * in the detail view, and — while a node is selected — in the compact view. Not
+   * called while the pointer stays over the same edge.
+   */
+  onEdgeHover?: (interaction: NetworkGraphEdgeInteraction) => void;
+  /**
+   * Called when an edge is clicked, with the clicked edge and its pixel position.
+   * Clicking an edge does not change the node selection.
+   */
+  onEdgeClick?: (interaction: NetworkGraphEdgeInteraction) => void;
   /**
    * Called when the zoom level changes, with the new zoom as a single number
    * (orthographic zoom is log2 scale). Not called for pure panning.
@@ -397,6 +419,8 @@ export const NetworkGraph = ({
   onSelectedPositionChange,
   onNodeHover,
   onNodeClick,
+  onEdgeHover,
+  onEdgeClick,
   onZoom,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -489,6 +513,27 @@ export const NetworkGraph = ({
     }
     return map;
   }, [points]);
+
+  /** Look up an edge by id, for resolving a picked (hovered/clicked) edge. */
+  const edgeById = useMemo(() => {
+    const map = new Map<number, NetworkGraphEdge>();
+    for (const edge of edges) {
+      map.set(edge.id, edge);
+    }
+    return map;
+  }, [edges]);
+
+  /** The two endpoint nodes of an edge, for the hover label and node outlines. */
+  const endpointsOf = useCallback(
+    (edge: NetworkGraphEdge): NetworkGraphPoint[] => {
+      const from = pointById.get(edge.fromId);
+      const to = pointById.get(edge.toId);
+      return [from, to].filter(
+        (point): point is NetworkGraphPoint => point !== undefined,
+      );
+    },
+    [pointById],
+  );
 
   /** Adjacency list: node id → edges touching it. */
   const adjacency = useMemo(() => {
@@ -717,15 +762,21 @@ export const NetworkGraph = ({
           | HoverLine
           | BundledEdge
           | undefined) ?? null;
-      // Edges are pickable too; a click landing on one (it carries `path` or
-      // `source`, not node fields) is ignored so it leaves the selection intact.
-      if (object && ("path" in object || "source" in object)) {
+      // Edges are pickable too. A click landing on one (it carries `path` or
+      // `source`, not node fields) fires `onEdgeClick` instead of `onNodeClick`,
+      // so it leaves the node selection intact.
+      if (object && "path" in object) {
+        onEdgeClick?.({ edge: edgeById.get(object.edgeId) ?? null, x, y });
         return;
       }
-      // Narrowed to a node (or null) by the guard above.
+      if (object && "source" in object) {
+        onEdgeClick?.({ edge: edgeById.get(object.id) ?? null, x, y });
+        return;
+      }
+      // Narrowed to a node (or null) by the guards above.
       onNodeClick?.({ point: object, x, y });
     },
-    [onNodeClick],
+    [onNodeClick, onEdgeClick, edgeById],
   );
 
   /** Current zoom level as a single number (orthographic zoom may be a pair). */
@@ -960,6 +1011,11 @@ export const NetworkGraph = ({
   }, [isDetailZoom, detailPoints, adjacency, pointById, bundleHierarchy]);
 
   const layers = useMemo(() => {
+    // The nodes the hovered edge connects, outlined in the edge's colour — only
+    // while edges are actually hoverable in this view.
+    const edgeHoverNodes =
+      hoverableEdgeKind !== "none" && hoveredEdge ? hoveredEdge.endpoints : [];
+
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
       // Picking resolves off the compact `points` sublayer when it is shown, and
@@ -972,6 +1028,7 @@ export const NetworkGraph = ({
       hoveredEdgeId:
         hoverableEdgeKind === "none" ? null : (hoveredEdge?.edgeId ?? null),
       hoverableEdgeKind,
+      edgeHoverNodes,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
       colorByHex,
@@ -1001,6 +1058,7 @@ export const NetworkGraph = ({
         activeNode,
         colorByHex,
         iconAtlas,
+        edgeHoverNodes,
       }),
     ];
   }, [
@@ -1046,7 +1104,7 @@ export const NetworkGraph = ({
 
             // Resolve a hovered edge from either representation: a bundled detail
             // edge carries `path`; a compact highlight line carries `source`.
-            const edge: HoverableEdge | null =
+            const picked: { edgeId: number; path: [number, number][] } | null =
               object && "path" in object
                 ? { edgeId: object.edgeId, path: object.path }
                 : object && "source" in object
@@ -1056,10 +1114,16 @@ export const NetworkGraph = ({
                     }
                   : null;
 
-            if (edge) {
-              if (hoveredEdgeIdRef.current !== edge.edgeId) {
-                hoveredEdgeIdRef.current = edge.edgeId;
-                setHoveredEdge(edge);
+            if (picked) {
+              if (hoveredEdgeIdRef.current !== picked.edgeId) {
+                hoveredEdgeIdRef.current = picked.edgeId;
+                const resolved = edgeById.get(picked.edgeId) ?? null;
+                setHoveredEdge({
+                  edgeId: picked.edgeId,
+                  path: picked.path,
+                  endpoints: resolved ? endpointsOf(resolved) : [],
+                });
+                onEdgeHover?.({ edge: resolved, x: info.x, y: info.y });
               }
               // Hovering an edge drops the node hover but preserves the external
               // selection: `onNodeHover` is only told the pointer left the node
@@ -1072,10 +1136,12 @@ export const NetworkGraph = ({
               return;
             }
 
-            // Not over an edge — clear any edge hover, then handle node hover.
+            // Not over an edge — clear any edge hover (reporting the pointer left
+            // it), then handle node hover.
             if (hoveredEdgeIdRef.current !== null) {
               hoveredEdgeIdRef.current = null;
               setHoveredEdge(null);
+              onEdgeHover?.({ edge: null, x: info.x, y: info.y });
             }
             const node = object as NetworkGraphPoint | null;
             const id = node?.id ?? null;
