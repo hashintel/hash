@@ -1,7 +1,5 @@
 import { cva, sva } from "@hashintel/ds-helpers/css";
 
-import { formSizes } from "../../util/form-size.recipe";
-
 export const chipVariants = ["fill", "fillLight", "outline", "subtle"] as const;
 
 export const styles = sva({
@@ -28,88 +26,108 @@ export const styles = sva({
       textOverflow: "ellipsis",
       minWidth: "0",
     },
+    // The remove button is a trailing zone separated by a 1px divider, matching
+    // a `straight` suffix. The divider is a box-shadow so it survives the button
+    // reset and adapts to the chip's text colour.
     removeButton: {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: "0",
+      alignSelf: "stretch",
       cursor: "pointer",
       appearance: "none",
       border: "none",
       background: "[transparent]",
       color: "[inherit]",
-      padding: "0",
-      borderRadius: "full",
-      opacity: "0.7",
-      transition: "[opacity 0.15s ease, background 0.15s ease]",
+      paddingInline: "var(--chip-px)",
+      boxShadow:
+        "[inset 1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
+      transition: "[background 0.15s ease]",
       _hover: {
-        opacity: "1",
-        backgroundColor: "[color-mix(in srgb, currentColor 18%, transparent)]",
+        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
       },
       "&:focus-visible": {
         outline: "2px solid",
         outlineColor: "black.a60",
-        outlineOffset: "[-1px]",
-        opacity: "1",
+        outlineOffset: "[-2px]",
       },
     },
   },
   variants: {
+    // Chips are compact: a tight line-height and small vertical padding keep the
+    // md size ~20px tall. `--form-*` / `--chip-px` are consumed by the affix zone
+    // styles below (circle/angle bleed calculations).
     size: {
       xxs: {
         root: {
-          ...formSizes.variants.sizes.xxs,
+          fontSize: "xxs",
+          lineHeight: "[1.3]",
+          "--form-border-width": "1px",
+          "--form-padding-y": "[1px]",
           "--chip-px": "var(--spacing-1)",
-          paddingX: "var(--chip-px)",
-          paddingY: "var(--form-padding-y)",
-          gap: "1",
+          paddingBlock: "var(--form-padding-y)",
+          paddingInline: "var(--chip-px)",
+          gap: "0.5",
           borderRadius: "sm",
         },
       },
       xs: {
         root: {
-          ...formSizes.variants.sizes.xs,
+          fontSize: "xs",
+          lineHeight: "[1.3]",
+          "--form-border-width": "1px",
+          "--form-padding-y": "[1px]",
           "--chip-px": "var(--spacing-1\\.5)",
-          paddingX: "var(--chip-px)",
-          paddingY: "var(--form-padding-y)",
+          paddingBlock: "var(--form-padding-y)",
+          paddingInline: "var(--chip-px)",
           gap: "1",
           borderRadius: "sm",
         },
       },
       sm: {
         root: {
-          ...formSizes.variants.sizes.sm,
-          "--chip-px": "var(--spacing-2)",
-          paddingX: "var(--chip-px)",
-          paddingY: "var(--form-padding-y)",
-          gap: "1.5",
+          fontSize: "xs",
+          lineHeight: "[1.35]",
+          "--form-border-width": "1px",
+          "--form-padding-y": "[1px]",
+          "--chip-px": "var(--spacing-1\\.5)",
+          paddingBlock: "var(--form-padding-y)",
+          paddingInline: "var(--chip-px)",
+          gap: "1",
           borderRadius: "md",
         },
       },
       md: {
         root: {
-          ...formSizes.variants.sizes.md,
-          "--chip-px": "var(--spacing-2\\.5)",
-          paddingX: "var(--chip-px)",
-          paddingY: "var(--form-padding-y)",
-          gap: "1.5",
+          fontSize: "xs",
+          lineHeight: "[1.4]",
+          "--form-border-width": "1px",
+          "--form-padding-y": "[1px]",
+          "--chip-px": "var(--spacing-2)",
+          paddingBlock: "var(--form-padding-y)",
+          paddingInline: "var(--chip-px)",
+          gap: "1",
           borderRadius: "md",
         },
       },
       lg: {
         root: {
-          ...formSizes.variants.sizes.lg,
-          "--chip-px": "var(--spacing-3)",
-          paddingX: "var(--chip-px)",
-          paddingY: "var(--form-padding-y)",
-          gap: "2",
-          borderRadius: "lg",
+          fontSize: "sm",
+          lineHeight: "[1.4]",
+          "--form-border-width": "1px",
+          "--form-padding-y": "[2px]",
+          "--chip-px": "var(--spacing-2\\.5)",
+          paddingBlock: "var(--form-padding-y)",
+          paddingInline: "var(--chip-px)",
+          gap: "1.5",
+          borderRadius: "md",
         },
       },
     },
     // Each colour switches the active colour palette; the variant styles below
     // reference palette-relative tokens (`colorPalette.*`). `black` maps to the
-    // neutral palette and is overridden to true black in compound variants.
+    // neutral palette and is overridden to a solid treatment in compound variants.
     color: {
       grey: { root: { colorPalette: "neutral" } },
       red: { root: { colorPalette: "red" } },
@@ -121,28 +139,31 @@ export const styles = sva({
       pink: { root: { colorPalette: "pink" } },
       black: { root: { colorPalette: "neutral" } },
     },
+    // All variants share a tonal language: a palette-toned surface with the
+    // palette's `fg.link` (~s110) text. A 1px border keyed to `currentColor`
+    // gives a subtle same-hue edge (and adapts to solid `black`).
     variant: {
       fill: {
         root: {
-          background: "colorPalette.bg.solid",
-          borderColor: "colorPalette.bg.solid",
-          color: "colorPalette.fg.onSolid",
+          background: "colorPalette.bg.subtle",
+          borderColor: "[color-mix(in srgb, currentColor 15%, transparent)]",
+          color: "colorPalette.fg.link",
         },
       },
       fillLight: {
         root: {
-          background: "colorPalette.bg.subtle",
-          color: "colorPalette.fg.body",
+          background: "colorPalette.bg.surface",
+          color: "colorPalette.fg.link",
         },
       },
       outline: {
         root: {
           borderColor: "colorPalette.bd.solid",
-          color: "colorPalette.fg.body",
+          color: "colorPalette.fg.link",
         },
       },
       subtle: {
-        root: { color: "colorPalette.fg.body" },
+        root: { color: "colorPalette.fg.link" },
       },
     },
     // `round` is declared after `size` so it wins the border-radius cascade.
@@ -155,15 +176,15 @@ export const styles = sva({
     },
   },
   compoundVariants: [
-    // ── Clickable hover feedback, per variant ──
+    // ── Clickable hover feedback, per variant (tonal darken) ──
     {
       clickable: true,
       variant: "fill",
       css: {
         root: {
           _hover: {
-            background: "colorPalette.bg.solid.hover",
-            borderColor: "colorPalette.bg.solid.hover",
+            background: "colorPalette.bg.shaded",
+            borderColor: "[color-mix(in srgb, currentColor 25%, transparent)]",
           },
         },
       },
@@ -171,7 +192,7 @@ export const styles = sva({
     {
       clickable: true,
       variant: "fillLight",
-      css: { root: { _hover: { background: "colorPalette.bg.subtle.hover" } } },
+      css: { root: { _hover: { background: "colorPalette.bg.subtle" } } },
     },
     {
       clickable: true,
@@ -190,7 +211,7 @@ export const styles = sva({
       variant: "subtle",
       css: { root: { _hover: { background: "colorPalette.bg.surface" } } },
     },
-    // ── black: a static alpha colour with no semantic set ──
+    // ── black: a static alpha colour rendered as a solid chip ──
     {
       color: "black",
       variant: "fill",
@@ -213,20 +234,52 @@ export const styles = sva({
       variant: "subtle",
       css: { root: { color: "black.a90" } },
     },
+    // black hover overrides (declared after the generic hovers so they win, and
+    // so black never borrows the neutral palette's hover tint).
+    {
+      color: "black",
+      variant: "fill",
+      clickable: true,
+      css: {
+        root: {
+          _hover: { background: "neutral.s120", borderColor: "neutral.s120" },
+        },
+      },
+    },
+    {
+      color: "black",
+      variant: "fillLight",
+      clickable: true,
+      css: { root: { _hover: { background: "black.a15" } } },
+    },
+    {
+      color: "black",
+      variant: "outline",
+      clickable: true,
+      css: {
+        root: { _hover: { background: "black.a05", borderColor: "black.a70" } },
+      },
+    },
+    {
+      color: "black",
+      variant: "subtle",
+      clickable: true,
+      css: { root: { _hover: { background: "black.a05" } } },
+    },
   ],
   defaultVariants: {
-    size: "sm",
+    size: "md",
     color: "grey",
-    variant: "fillLight",
+    variant: "fill",
     shape: "default",
   },
 });
 
-// A prefix/suffix slot. `naked` adds no styling beyond the flex base.
-// `straight`/`angle` are full-height zones that bleed past the chip's padding +
-// border to sit flush with the (clipped) pill edge; both use a `currentColor`-
-// keyed tint for colour-agnostic contrast. `circle` is a badge sized to the
-// content height. `interactive` layers a button reset on top.
+// A prefix/suffix slot. `naked` adds no styling beyond the flex base. `straight`
+// separates the affix with a 1px divider (a box-shadow keyed to `currentColor`,
+// so it survives the button reset and matches the text colour). `circle` and
+// `angle` are full-height tinted zones that bleed past the chip's padding +
+// border. `interactive` layers a button reset on top.
 export const affixStyles = cva({
   base: {
     display: "inline-flex",
@@ -240,9 +293,6 @@ export const affixStyles = cva({
       straight: {
         alignSelf: "stretch",
         paddingInline: "var(--chip-px)",
-        marginBlock:
-          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
-        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
       },
       angle: {
         alignSelf: "stretch",
@@ -271,7 +321,7 @@ export const affixStyles = cva({
         border: "none",
         _hover: {
           backgroundColor:
-            "[color-mix(in srgb, currentColor 20%, transparent)]",
+            "[color-mix(in srgb, currentColor 12%, transparent)]",
         },
         "&:focus-visible": {
           outline: "2px solid",
@@ -282,20 +332,21 @@ export const affixStyles = cva({
     },
   },
   compoundVariants: [
+    // straight → a 1px divider on the inner edge (no bleed, no fill).
     {
       treatment: "straight",
       side: "prefix",
       css: {
-        marginInlineStart:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        boxShadow:
+          "[inset -1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
       },
     },
     {
       treatment: "straight",
       side: "suffix",
       css: {
-        marginInlineEnd:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        boxShadow:
+          "[inset 1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
       },
     },
     {

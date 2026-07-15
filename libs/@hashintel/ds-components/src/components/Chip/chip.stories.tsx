@@ -115,8 +115,8 @@ export default {
   args: {
     children: "Chip",
     color: "grey",
-    variant: "fillLight",
-    size: "sm",
+    variant: "fill",
+    size: "md",
     shape: "default",
   },
 } satisfies StoryDefault<ChipProps>;

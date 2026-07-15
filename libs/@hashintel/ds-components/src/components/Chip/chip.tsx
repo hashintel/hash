@@ -50,13 +50,13 @@ export type ChipProps = {
   | { suffix?: PrefixOrSuffix }
 >;
 
-// Icons and dots sit one step down from the chip's own size so they read as an
-// accent rather than dominating the label.
+// Icons render small so they read as an accent rather than dominating the
+// label (md chips use 12px icons, per the design spec).
 const iconSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xs",
+  xxs: "xxs",
   xs: "xs",
   sm: "xs",
-  md: "sm",
+  md: "xs",
   lg: "sm",
 };
 
