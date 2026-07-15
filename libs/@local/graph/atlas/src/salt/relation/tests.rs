@@ -1,3 +1,4 @@
+use tempfile::tempdir;
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     principal::actor_group::WebId,
@@ -5,14 +6,35 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::salt::{
+    hash::ContentHash,
     identity::{ArtifactOrdinal, GenerationRowId},
     policy::{PlacementPosterior, PolicySource, Probability, ResolvedPolicy},
     relation::{
-        AdmittedRelationInstance, AttractionCoefficients, ProtectionConfig, RelationConfidence,
-        RelationIndexError, RelationPair, RelationPolicy, build_relation_indexes,
+        AdmittedRelationInstance, AttractionCoefficients, AttractionConfig, ProtectionConfig,
+        RelationConfidence, RelationIndexError, RelationPair, RelationPolicy,
+        build_relation_indexes, publish_relation_indexes,
     },
     strength::RelationStrength,
 };
+
+#[test]
+fn empty_relation_indexes_preserve_the_complete_artifact_schema() {
+    let directory = tempdir().expect("temporary directory should create");
+    let root =
+        camino::Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
+    let published = publish_relation_indexes(
+        &root.join("relations.atlas"),
+        ContentHash::digest(b"empty-relation-config"),
+        ContentHash::digest(b"empty-edge-snapshot"),
+        &crate::salt::relation::RelationIndexes {
+            attraction: Vec::new(),
+            protection: Vec::new(),
+        },
+    )
+    .expect("empty relation indexes should publish");
+
+    assert_eq!(published.header.section_count, 21);
+}
 
 #[test]
 fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
@@ -61,12 +83,24 @@ fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
         3,
         &[policy],
         &instances,
-        AttractionCoefficients::default(),
+        AttractionConfig::default(),
         protection,
     )
     .expect("admitted relation fixtures should index");
+    let mut reversed = instances;
+    reversed.reverse();
+    let reordered = build_relation_indexes(
+        3,
+        &[policy],
+        &reversed,
+        AttractionConfig::default(),
+        protection,
+    )
+    .expect("input order should not affect relation indexes");
 
     assert_eq!(indexes.attraction.len(), instances.len());
+    assert_eq!(indexes.attraction, reordered.attraction);
+    assert_eq!(indexes.protection, reordered.protection);
     let first = indexes.attraction[0];
     assert!((first.confidence.value() - 0.4).abs() <= f64::EPSILON);
     assert!(first.confidence.link_was_scored());
@@ -86,10 +120,32 @@ fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
     assert!((pair.ordinary_mass - 0.4).abs() <= f64::EPSILON);
     assert!(pair.hard);
     assert!(!pair.ordinary);
+
+    let directory = tempdir().expect("temporary directory should create");
+    let root =
+        camino::Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
+    let path = root.join("relations.atlas");
+    let published = publish_relation_indexes(
+        &path,
+        ContentHash::digest(b"relation-config"),
+        ContentHash::digest(b"edge-snapshot"),
+        &indexes,
+    )
+    .expect("relation indexes should publish");
+    let repeated = publish_relation_indexes(
+        &path,
+        ContentHash::digest(b"relation-config"),
+        ContentHash::digest(b"edge-snapshot"),
+        &indexes,
+    )
+    .expect("identical relation indexes should be idempotent");
+    assert!(!published.reused_existing);
+    assert!(repeated.reused_existing);
+    assert_eq!(published.content_hash, repeated.content_hash);
 }
 
 #[test]
-fn protection_uses_raw_policy_before_the_coincident_gate() {
+fn force_pruning_does_not_remove_pre_gate_protection() {
     let relation = ordinal(0);
     let policy = RelationPolicy {
         relation,
@@ -115,13 +171,13 @@ fn protection_uses_raw_policy_before_the_coincident_gate() {
         2,
         &[policy],
         &[instance],
-        AttractionCoefficients::default(),
+        AttractionConfig::new(AttractionCoefficients::default(), 0.1)
+            .expect("pruning threshold should validate"),
         protection,
     )
     .expect("policy should index");
 
-    assert_eq!(indexes.attraction[0].coincident, 0.0);
-    assert_eq!(indexes.attraction[0].proximal, 0.0);
+    assert!(indexes.attraction.is_empty());
     assert!(indexes.protection[0].hard);
     assert!(indexes.protection[0].ordinary);
 }
@@ -141,13 +197,7 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
     )
     .unwrap();
     assert!(matches!(
-        build_relation_indexes(
-            2,
-            &[sparse],
-            &[],
-            AttractionCoefficients::default(),
-            protection,
-        ),
+        build_relation_indexes(2, &[sparse], &[], AttractionConfig::default(), protection,),
         Err(RelationIndexError::PolicyOrder { position: 0, .. })
     ));
 
@@ -167,11 +217,27 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
             2,
             &[policy],
             &[invalid],
-            AttractionCoefficients::default(),
+            AttractionConfig::default(),
             protection,
         ),
         Err(RelationIndexError::RowOutOfBounds { row: invalid_row, rows: 2 })
             if invalid_row == row(2)
+    ));
+
+    let duplicate = AdmittedRelationInstance {
+        right: row(1),
+        ..invalid
+    };
+    assert!(matches!(
+        build_relation_indexes(
+            2,
+            &[policy],
+            &[duplicate, duplicate],
+            AttractionConfig::default(),
+            protection,
+        ),
+        Err(RelationIndexError::DuplicateLinkEntity { link_entity })
+            if link_entity == duplicate.link_entity
     ));
 }
 

@@ -3,19 +3,24 @@ use std::{
     io::{self, BufReader},
 };
 
+use burn::tensor::backend::Backend;
 use camino::{Utf8Path, Utf8PathBuf};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tempfile::NamedTempFile;
 
-use super::error::ActivationError;
+use super::{error::ActivationError, load::projector_config};
 use crate::salt::{
     hash::ContentHash,
-    release::{GatedRelease, ReleaseHead},
+    manifest::{ArtifactRole, load_verified_manifest_with_artifacts},
+    projector::load_projector_checkpoint_bytes,
+    release::{GateReport, GateVerifier, GatedRelease, ReleaseHead, load_gate_evidence},
 };
 
 const ACTIVE_FILE: &str = "active.json";
 const CANDIDATE_FILE: &str = "candidate.json";
 const LOCK_FILE: &str = ".activation.lock";
+const MANIFEST_FILE: &str = "manifest.json";
+const RELEASE_REPORT_FILE: &str = "release-report.json";
 
 /// The exact immutable head and gate report visible to readers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,15 +66,25 @@ pub(crate) enum ActivationOutcome {
 
 /// Filesystem activation pointer guarded by a process-shared file lock.
 #[derive(Debug, Clone)]
-pub(crate) struct FileActivationStore {
-    root: Utf8PathBuf,
+pub(crate) struct FileActivationStore<B: Backend> {
+    pub(super) root: Utf8PathBuf,
+    verifier: GateVerifier,
+    pub(super) device: B::Device,
 }
 
-impl FileActivationStore {
+impl<B: Backend> FileActivationStore<B> {
     /// Binds activation state beneath `root`.
     #[must_use]
-    pub(crate) fn new(root: impl Into<Utf8PathBuf>) -> Self {
-        Self { root: root.into() }
+    pub(crate) fn new(
+        root: impl Into<Utf8PathBuf>,
+        verifier: GateVerifier,
+        device: B::Device,
+    ) -> Self {
+        Self {
+            root: root.into(),
+            verifier,
+            device,
+        }
     }
 
     /// Loads the current active pointer.
@@ -78,7 +93,11 @@ impl FileActivationStore {
     ///
     /// This returns an error when the pointer cannot be read or decoded.
     pub(crate) fn current(&self) -> Result<Option<ActiveRelease>, ActivationError> {
-        read_optional_json(&self.root.join(ACTIVE_FILE))
+        let active = read_optional_json(&self.root.join(ACTIVE_FILE))?;
+        if let Some(active) = active {
+            verify_candidate::<B>(&self.root, active, &self.verifier, &self.device)?;
+        }
+        Ok(active)
     }
 
     /// Activates a gated candidate if `expected` still names the active head.
@@ -90,15 +109,16 @@ impl FileActivationStore {
     ///
     /// # Errors
     ///
-    /// This returns an error when the exact candidate marker is absent or
-    /// different, lock or pointer I/O fails, or JSON cannot be encoded.
+    /// This returns an error when the exact candidate marker or release report
+    /// is absent or different, lock or pointer I/O fails, or JSON cannot be
+    /// encoded.
     pub(crate) fn compare_exchange(
         &self,
         expected: Option<ActiveRelease>,
         desired: GatedRelease,
     ) -> Result<ActivationOutcome, ActivationError> {
         let desired = ActiveRelease::from(desired);
-        verify_candidate(&self.root, desired)?;
+        verify_candidate::<B>(&self.root, desired, &self.verifier, &self.device)?;
         fs::create_dir_all(&self.root)?;
         let lock = OpenOptions::new()
             .create(true)
@@ -134,19 +154,94 @@ pub(crate) fn publish_candidate_marker(
     release: GatedRelease,
 ) -> Result<(), ActivationError> {
     let release = ActiveRelease::from(release);
-    publish_json(&candidate_path(root, release.head), &release)
+    let path = candidate_path(root, release.head);
+    let parent = path.parent().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("candidate path {path} has no parent directory"),
+        )
+    })?;
+    let temporary = NamedTempFile::new_in(parent)?;
+    serde_json::to_writer(temporary.as_file(), &release)?;
+    temporary.as_file().sync_all()?;
+    match temporary.persist_noclobber(&path) {
+        Ok(file) => {
+            file.sync_all()?;
+            File::open(parent)?.sync_all()?;
+            Ok(())
+        }
+        Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
+            let existing: ActiveRelease =
+                read_optional_json(&path)?.ok_or(ActivationError::MissingCandidate {
+                    generation: release.head.generation,
+                })?;
+            if existing == release {
+                Ok(())
+            } else {
+                Err(ActivationError::CandidateMismatch {
+                    generation: release.head.generation,
+                })
+            }
+        }
+        Err(error) => Err(ActivationError::Persist(error)),
+    }
 }
 
-fn verify_candidate(root: &Utf8Path, desired: ActiveRelease) -> Result<(), ActivationError> {
+fn verify_candidate<B: Backend>(
+    root: &Utf8Path,
+    desired: ActiveRelease,
+    verifier: &GateVerifier,
+    device: &B::Device,
+) -> Result<(), ActivationError> {
     let path = candidate_path(root, desired.head);
-    let candidate = read_optional_json(&path)?.ok_or(ActivationError::MissingCandidate {
-        generation: desired.head.generation,
-    })?;
+    let candidate: ActiveRelease =
+        read_optional_json(&path)?.ok_or(ActivationError::MissingCandidate {
+            generation: desired.head.generation,
+        })?;
     if candidate != desired {
         return Err(ActivationError::CandidateMismatch {
             generation: desired.head.generation,
         });
     }
+    let report_path = root
+        .join("generations")
+        .join(desired.head.generation.to_string())
+        .join(RELEASE_REPORT_FILE);
+    let report: GateReport =
+        read_optional_json(&report_path)?.ok_or(ActivationError::CandidateMismatch {
+            generation: desired.head.generation,
+        })?;
+    if report.validate().is_err()
+        || report.head() != desired.head
+        || report.content_hash() != desired.report
+    {
+        return Err(ActivationError::CandidateMismatch {
+            generation: desired.head.generation,
+        });
+    }
+    let manifest_path = root
+        .join("generations")
+        .join(desired.head.generation.to_string())
+        .join(MANIFEST_FILE);
+    let verified = load_verified_manifest_with_artifacts(&manifest_path, desired.head.manifest)?;
+    let (manifest, artifacts) = verified.into_parts();
+    if manifest.generation_id != desired.head.generation
+        || manifest.storage.base_revision != desired.head.data.base()
+        || manifest.storage.initial_delta_revision != desired.head.data.delta()
+    {
+        return Err(ActivationError::CandidateMismatch {
+            generation: desired.head.generation,
+        });
+    }
+    let generation_directory = manifest_path
+        .parent()
+        .expect("generation manifest should have a parent");
+    load_gate_evidence(generation_directory, &report, &manifest, verifier)?;
+    let checkpoint = artifacts
+        .iter()
+        .find(|artifact| artifact.role() == ArtifactRole::ProjectorCheckpoint)
+        .expect("validated manifest should contain a projector checkpoint");
+    load_projector_checkpoint_bytes::<B>(checkpoint.bytes(), projector_config(&manifest), device)?;
     Ok(())
 }
 
@@ -156,7 +251,7 @@ fn candidate_path(root: &Utf8Path, head: ReleaseHead) -> Utf8PathBuf {
         .join(CANDIDATE_FILE)
 }
 
-fn read_optional_json(path: &Utf8Path) -> Result<Option<ActiveRelease>, ActivationError> {
+fn read_optional_json<T: DeserializeOwned>(path: &Utf8Path) -> Result<Option<T>, ActivationError> {
     match File::open(path) {
         Ok(file) => Ok(Some(serde_json::from_reader(BufReader::new(file))?)),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),

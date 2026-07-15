@@ -28,7 +28,7 @@ use burn::{
     tensor::{Tensor, backend::Backend},
 };
 
-pub(crate) use self::data::{ProjectionBatch, ProjectionBatcher, ProjectionItem};
+pub(crate) use self::data::{ProjectionBatch, ProjectionBatcher};
 
 /// Width of the projected output: entities are placed on a 2D map.
 pub(crate) const OUTPUT_DIM: usize = 2;

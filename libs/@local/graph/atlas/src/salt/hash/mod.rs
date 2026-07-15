@@ -211,11 +211,12 @@ pub(crate) fn hash_reader(mut reader: impl Read) -> io::Result<ContentHash> {
     let mut buffer = [0_u8; READ_BUFFER_BYTES];
 
     loop {
-        let read = reader.read(&mut buffer)?;
-        if read == 0 {
-            break;
+        match reader.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(read) => hasher.update(&buffer[..read]),
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(error),
         }
-        hasher.update(&buffer[..read]);
     }
 
     Ok(ContentHash::from_bytes(hasher.finalize().into()))

@@ -80,6 +80,7 @@ def test_live_extraction_uses_one_timestamp_for_types_and_examples() -> None:
 
     assert extraction.snapshot_at == connection.snapshot
     assert extraction.entity_type_versions == len(_fixture_types())
+    assert extraction.entity_types == tuple(_fixture_types())
     assert extraction.example_candidates == 1
     relation = next(record for record in extraction.records if record.card_input.title == "Owns")
     assert relation.card_input.examples[0].subject_label == "Alice"

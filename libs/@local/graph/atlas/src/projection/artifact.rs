@@ -28,7 +28,7 @@ use burn::{
     record::{FullPrecisionSettings, NamedMpkFileRecorder, RecorderError},
     tensor::backend::Backend,
 };
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
 use type_system::knowledge::entity::id::EntityId;

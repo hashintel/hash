@@ -1,3 +1,7 @@
+use std::fs::File;
+
+use camino::Utf8PathBuf;
+use tempfile::tempdir;
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     principal::actor_group::WebId,
@@ -5,7 +9,19 @@ use type_system::{
 use uuid::Uuid;
 
 use super::*;
-use crate::salt::identity::GenerationRowId;
+use crate::salt::{
+    hash::ContentHash,
+    identity::{GenerationRowId, IdentityDirectory},
+    storage::mmap::MappedArtifact,
+};
+
+#[test]
+fn coordinate_bounds_reject_an_overflowing_finite_extent() {
+    assert_eq!(
+        CoordinateBounds::new([-f64::MAX, 0.0], [f64::MAX, 1.0]),
+        Err(ImportanceError::NonFiniteBounds { axis: 0 })
+    );
+}
 
 #[test]
 fn first_occupant_ranking_covers_every_cell_at_each_bucket_prefix() {
@@ -117,6 +133,103 @@ fn rejects_duplicate_rows_and_coordinates_outside_the_extent() {
             axis: 0,
             value: 1.1,
         })
+    );
+}
+
+#[test]
+fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
+    use super::base::{BUCKET_OFFSETS, COORDINATES, MORTON_KEYS, ROWS, WEB_IDS};
+
+    let entities = (0..3).map(entity_id).collect::<Vec<_>>();
+    let identities =
+        IdentityDirectory::new(entities.clone()).expect("identity directory should be valid");
+    let coordinates = [[0.0, 1.0], [10.0, 11.0], [20.0, 21.0]];
+    let mut ranked = [
+        RankedPoint {
+            row: row(2),
+            bucket: 0,
+            morton: MortonKey::new(2, 2),
+            priority_rank: 0,
+        },
+        RankedPoint {
+            row: row(0),
+            bucket: 1,
+            morton: MortonKey::new(1, 1),
+            priority_rank: 1,
+        },
+        RankedPoint {
+            row: row(1),
+            bucket: 1,
+            morton: MortonKey::new(0, 0),
+            priority_rank: 2,
+        },
+    ];
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("base.salt"))
+        .expect("temporary path should be UTF-8");
+
+    publish_base_artifact(
+        &path,
+        &identities,
+        &coordinates,
+        &mut ranked,
+        CanonicalProvenance {
+            field_hash: ContentHash::digest(b"field"),
+            condition: 1.0,
+            condition_domain_hash: ContentHash::digest(b"domain"),
+            selection_evidence_hash: ContentHash::digest(b"evidence"),
+            procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+        },
+    )
+    .expect("base artifact should publish");
+    assert_eq!(ranked.map(|point| point.row.as_u32()), [2, 1, 0]);
+    let artifact = MappedArtifact::map_immutable(
+        File::open(&path).expect("base artifact should open"),
+        BASE_ARTIFACT_FORMAT,
+    )
+    .expect("base artifact should map");
+    let view = artifact.view();
+
+    assert_eq!(
+        view.section(ROWS)
+            .expect("rows should exist")
+            .as_u32()
+            .expect("rows should be u32"),
+        &[2, 1, 0]
+    );
+    assert_eq!(
+        view.section(COORDINATES)
+            .expect("coordinates should exist")
+            .as_f32()
+            .expect("coordinates should be f32"),
+        &[20.0, 21.0, 10.0, 11.0, 0.0, 1.0]
+    );
+    assert_eq!(
+        view.section(MORTON_KEYS)
+            .expect("Morton keys should exist")
+            .as_u32()
+            .expect("Morton keys should be u32"),
+        &[
+            MortonKey::new(2, 2).get(),
+            MortonKey::new(0, 0).get(),
+            MortonKey::new(1, 1).get(),
+        ]
+    );
+    assert_eq!(
+        view.section(BUCKET_OFFSETS)
+            .expect("bucket offsets should exist")
+            .as_u64()
+            .expect("bucket offsets should be u64"),
+        &[0, 1, 3]
+    );
+    let first_web: Uuid = entities[0].web_id.into();
+    assert_eq!(
+        &view
+            .section(WEB_IDS)
+            .expect("web IDs should exist")
+            .as_u8()
+            .expect("web IDs should be bytes")[..16],
+        first_web.as_bytes()
     );
 }
 

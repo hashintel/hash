@@ -63,3 +63,6 @@ pub mod float;
 pub(crate) mod macros;
 pub mod projection;
 pub(crate) mod salt;
+#[cfg(feature = "salt-benchmarks")]
+#[doc(hidden)]
+pub use salt::benchmark as salt_benchmark;

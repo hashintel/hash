@@ -20,6 +20,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     ProviderName,
     ProviderSlug,
 )
+from tests.relation.evaluation.classifier_fixtures import write_verified_family_closure
 from tests.relation.evaluation.test_analysis_classifier import _dataset
 
 
@@ -50,6 +51,7 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
     tmp_path: Path,
 ) -> None:
     labels, embeddings = _dataset()
+    closure = write_verified_family_closure(tmp_path / "closure", labels)
     config_path = tmp_path / "grid.yaml"
     config, config_hash = _write_config(
         config_path,
@@ -85,12 +87,14 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
     first = fit_classifier(
         soft_labels_path=soft_labels.path,
         embeddings_path=embedded.path,
+        closure_directory=closure.directory,
         config_path=config_path,
         output_directory=output,
     )
     second = fit_classifier(
         soft_labels_path=soft_labels.path,
         embeddings_path=embedded.path,
+        closure_directory=closure.directory,
         config_path=config_path,
         output_directory=output,
     )
@@ -101,6 +105,8 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
     assert set(first.metadata.source_hashes) == {
         "embeddings.meta.json",
         "embeddings.parquet",
+        "family-closure/families.jsonl",
+        "family-closure/families.manifest.json",
         "grid/cards.jsonl",
         "grid/imported-votes.jsonl",
         "grid/judges-panel",
@@ -109,6 +115,24 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
         "soft-labels.meta.json",
         "soft-labels.parquet",
     }
+    assert first.metadata.closure.artifact_id == closure.manifest.details.artifact_id
+    assert tuple(row.family_id for row in first.fit.out_of_fold) == tuple(
+        row.family_id for row in closure.rows
+    )
+
+    mismatched_closure = write_verified_family_closure(
+        tmp_path / "mismatched-closure",
+        labels,
+        provenance_seed="mismatched",
+    )
+    with pytest.raises(ValueError, match="different family closure"):
+        fit_classifier(
+            soft_labels_path=soft_labels.path,
+            embeddings_path=embedded.path,
+            closure_directory=mismatched_closure.directory,
+            config_path=config_path,
+            output_directory=output,
+        )
 
     _write_config(
         config_path,
@@ -118,6 +142,7 @@ def test_classifier_application_binds_sources_and_reuses_a_valid_bundle(
         fit_classifier(
             soft_labels_path=soft_labels.path,
             embeddings_path=embedded.path,
+            closure_directory=closure.directory,
             config_path=config_path,
             output_directory=output,
         )

@@ -1,10 +1,14 @@
 use std::num::NonZeroUsize;
 
 use super::{
-    LandmarkCandidate, LandmarkConfig, LandmarkError, Stratum, StratumDimension, SubgroupMinimum,
-    select_landmarks,
+    LandmarkCandidate, LandmarkConfig, LandmarkError, LandmarkFitConfig, Stratum, StratumDimension,
+    SubgroupMinimum, assign_landmarks, fit_landmark_skeleton, select_landmarks,
 };
-use crate::salt::identity::GenerationRowId;
+use crate::salt::{
+    graph::{KnnTable, ProjectorEmbeddings, SemanticEdgeWeights, USearchConfig},
+    identity::GenerationRowId,
+    representation::PROJECTOR_DIMENSIONS,
+};
 
 #[test]
 fn subgroup_minimums_precede_retention_without_exceeding_capacity() {
@@ -78,6 +82,69 @@ fn weighted_priority_can_change_the_selected_row() {
 
     let weighted = select_landmarks(&candidates, config(1), &[]).expect("selection should succeed");
     assert_eq!(weighted.rows(), &[candidates[favored].row]);
+}
+
+#[test]
+fn quotient_skeleton_is_repeatable_and_keeps_selected_self_assignments() {
+    let candidates = (0..6).map(candidate).collect::<Vec<_>>();
+    let selection =
+        select_landmarks(&candidates, config(3), &[]).expect("selection should succeed");
+    let mut values = vec![0.0_f32; 6 * PROJECTOR_DIMENSIONS];
+    for row in 0..6 {
+        let angle = core::f32::consts::TAU * row as f32 / 6.0;
+        values[row * PROJECTOR_DIMENSIONS] = angle.cos();
+        values[row * PROJECTOR_DIMENSIONS + 1] = angle.sin();
+    }
+    let embeddings = ProjectorEmbeddings::new(&values).expect("embeddings should validate");
+    let mut indices = Vec::new();
+    for row in 0..6_u32 {
+        let mut neighbors = [(row + 5) % 6, (row + 1) % 6];
+        neighbors.sort_unstable();
+        indices.extend(neighbors);
+    }
+    let semantic =
+        KnnTable::new(6, 2, indices, vec![0.5; 12]).expect("semantic graph should validate");
+    let weights =
+        SemanticEdgeWeights::new(&semantic, vec![1.0; 12]).expect("weights should validate");
+    let assignment = assign_landmarks(embeddings, selection.rows(), USearchConfig::default())
+        .expect("landmarks should assign");
+    for (ordinal, selected) in selection.rows().iter().enumerate() {
+        assert_eq!(
+            assignment.get(*selected),
+            u32::try_from(ordinal).expect("ordinal should fit u32")
+        );
+    }
+    let fit_config = LandmarkFitConfig {
+        maximum_neighbors: NonZeroUsize::new(2).expect("neighbor count should be non-zero"),
+        epochs: NonZeroUsize::new(5).expect("epoch count should be non-zero"),
+        initial_learning_rate: 0.5,
+        repulsion_strength: 1.0,
+        negative_sample_rate: NonZeroUsize::new(2).expect("sample rate should be non-zero"),
+        spread: 1.0,
+        minimum_distance: 0.1,
+        seed: 93,
+    };
+    let first = fit_landmark_skeleton(&selection, assignment, &semantic, &weights, fit_config)
+        .expect("landmark skeleton should fit");
+    let second = fit_landmark_skeleton(
+        &selection,
+        assign_landmarks(embeddings, selection.rows(), USearchConfig::default())
+            .expect("landmarks should reassign"),
+        &semantic,
+        &weights,
+        fit_config,
+    )
+    .expect("landmark skeleton should refit");
+
+    assert_eq!(first.coordinates(), second.coordinates());
+    assert_eq!(first.content_hash(), second.content_hash());
+    assert!(
+        first
+            .coordinates()
+            .iter()
+            .flatten()
+            .all(|coordinate| coordinate.is_finite())
+    );
 }
 
 fn config(maximum_count: usize) -> LandmarkConfig {

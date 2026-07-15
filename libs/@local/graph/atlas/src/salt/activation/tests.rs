@@ -1,9 +1,14 @@
+use burn::backend::{Candle, candle::CandleDevice};
 use camino::Utf8Path;
 
 use super::*;
 use crate::salt::{
     hash::ContentHash,
-    release::{GateId, GateOutcome, GateReport, GatedRelease, ReleaseHead},
+    manifest::{ArtifactRole, fixture_manifest, publish_fixture_artifacts, publish_manifest},
+    release::{
+        GateId, GateOutcome, GateReport, GatedRelease, ReleaseHead, publish_gated_candidate,
+        test_support::{passing_evidence, signer},
+    },
     revision::{DataRevision, GenerationId},
 };
 
@@ -11,13 +16,9 @@ use crate::salt::{
 fn activation_is_idempotent_and_rejects_a_stale_expected_head() {
     let directory = tempfile::tempdir().expect("activation directory should open");
     let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
-    let first = gated_release("first");
-    let second = gated_release("second");
-    create_generation_directory(root, first);
-    create_generation_directory(root, second);
-    publish_candidate_marker(root, first).expect("first candidate should publish");
-    publish_candidate_marker(root, second).expect("second candidate should publish");
-    let store = FileActivationStore::new(root);
+    let first = publish_release(root, "first");
+    let second = publish_release(root, "second");
+    let store = activation_store(root);
 
     let first_active = ActiveRelease::from(first);
     assert_eq!(
@@ -52,6 +53,16 @@ fn activation_is_idempotent_and_rejects_a_stale_expected_head() {
         store.current().expect("active pointer should load"),
         Some(second_active)
     );
+    assert_eq!(
+        store
+            .compare_exchange(Some(second_active), first)
+            .expect("a verified prior candidate should remain rollback-capable"),
+        ActivationOutcome::Activated(first_active)
+    );
+    assert_eq!(
+        store.current().expect("rolled-back pointer should load"),
+        Some(first_active)
+    );
 }
 
 #[test]
@@ -59,7 +70,7 @@ fn activation_requires_the_exact_published_candidate_marker() {
     let directory = tempfile::tempdir().expect("activation directory should open");
     let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
     let release = gated_release("missing");
-    let store = FileActivationStore::new(root);
+    let store = activation_store(root);
 
     assert!(matches!(
         store.compare_exchange(None, release),
@@ -68,20 +79,133 @@ fn activation_requires_the_exact_published_candidate_marker() {
     ));
 }
 
-fn create_generation_directory(root: &Utf8Path, release: GatedRelease) {
-    std::fs::create_dir_all(
+#[test]
+fn activation_revalidates_the_durable_release_report() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let release = publish_release(root, "deleted-report");
+    std::fs::remove_file(
         root.join("generations")
-            .join(release.head().generation.to_string()),
+            .join(release.head().generation.to_string())
+            .join("release-report.json"),
     )
-    .expect("candidate directory should be created");
+    .expect("release report should be removable in the fixture");
+
+    assert!(matches!(
+        activation_store(root).compare_exchange(None, release),
+        Err(ActivationError::CandidateMismatch { generation })
+            if generation == release.head().generation
+    ));
+}
+
+#[test]
+fn activation_rejects_a_candidate_with_a_missing_artifact() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let release = publish_release(root, "missing-artifact");
+    std::fs::remove_file(
+        root.join("generations")
+            .join(release.head().generation.to_string())
+            .join("semantic.salt"),
+    )
+    .expect("semantic artifact should be removable in the fixture");
+
+    assert!(matches!(
+        activation_store(root).compare_exchange(None, release),
+        Err(ActivationError::Manifest(_))
+    ));
+}
+
+#[test]
+fn restart_loading_fails_closed_after_active_artifact_corruption() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let release = publish_release(root, "restart-corruption");
+    let store = activation_store(root);
+    store
+        .compare_exchange(None, release)
+        .expect("fixture release should activate");
+    std::fs::remove_file(
+        root.join("generations")
+            .join(release.head().generation.to_string())
+            .join("base.salt"),
+    )
+    .expect("base artifact should be removable in the fixture");
+
+    assert!(matches!(
+        activation_store(root).current(),
+        Err(ActivationError::Manifest(_))
+    ));
+}
+
+#[test]
+fn restart_loads_every_mapped_role_and_the_declared_projector() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let release = publish_release(root, "complete-restart");
+    activation_store(root)
+        .compare_exchange(None, release)
+        .expect("fixture release should activate");
+
+    let restarted = activation_store(root)
+        .load_active()
+        .expect("active generation should load")
+        .expect("active generation should exist");
+
+    assert_eq!(restarted.release(), ActiveRelease::from(release));
+    assert_eq!(
+        restarted.manifest().generation_id,
+        release.head().generation
+    );
+    for role in [
+        ArtifactRole::RelationClassifier,
+        ArtifactRole::SemanticGraph,
+        ArtifactRole::RelationIndexes,
+        ArtifactRole::LandmarkSkeleton,
+        ArtifactRole::CanonicalBase,
+        ArtifactRole::CanonicalAnalytics,
+    ] {
+        assert!(restarted.artifact(role).is_some(), "{role:?} should map");
+    }
+    let _projector = restarted.projector();
+}
+
+fn publish_release(root: &Utf8Path, name: &str) -> GatedRelease {
+    let generation = GenerationId::new(ContentHash::digest(name.as_bytes()));
+    let directory = root.join("generations").join(generation.to_string());
+    std::fs::create_dir_all(&directory).expect("generation directory should create");
+    let mut manifest = fixture_manifest();
+    manifest.generation_id = generation;
+    publish_fixture_artifacts(&directory, &mut manifest);
+    let published = publish_manifest(&directory.join("manifest.json"), &manifest)
+        .expect("fixture manifest should publish");
+    let evidence = passing_evidence(&manifest);
+    assert_eq!(evidence.head().manifest, published.content_hash);
+    publish_gated_candidate(root, &evidence).expect("gated candidate should publish")
+}
+
+fn activation_store(root: &Utf8Path) -> FileActivationStore<Candle> {
+    FileActivationStore::new(root, signer().verifier(), CandleDevice::Cpu)
 }
 
 fn gated_release(name: &str) -> GatedRelease {
-    let head = ReleaseHead {
-        generation: GenerationId::new(ContentHash::digest(name.as_bytes())),
-        data: DataRevision::ZERO,
-        manifest: ContentHash::digest(format!("{name}-manifest").as_bytes()),
-    };
+    gate_report(name)
+        .approve()
+        .expect("canonical gate report should approve")
+}
+
+fn gate_report(name: &str) -> GateReport {
+    gate_report_for_head(
+        name,
+        ReleaseHead {
+            generation: GenerationId::new(ContentHash::digest(name.as_bytes())),
+            data: DataRevision::ZERO,
+            manifest: ContentHash::digest(format!("{name}-manifest").as_bytes()),
+        },
+    )
+}
+
+fn gate_report_for_head(name: &str, head: ReleaseHead) -> GateReport {
     let outcomes = GateId::required()
         .iter()
         .copied()
@@ -92,7 +216,5 @@ fn gated_release(name: &str) -> GatedRelease {
             evidence: ContentHash::digest(format!("{name}-{index}-evidence").as_bytes()),
         })
         .collect();
-    GateReport::new(head, outcomes)
-        .expect("all fixture gates pass")
-        .approve()
+    GateReport::new(head, outcomes).expect("all fixture gates pass")
 }

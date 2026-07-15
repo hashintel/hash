@@ -12,8 +12,6 @@ hash-graph-embeddings = { workspace = true, public = true }
 type-system           = { workspace = true, public = true }
 
 # Public third-party dependencies
-# candle 0.10.x to match `burn-candle` 0.21 (`candle-core ^0.10.2`), so burn's candle
-# backend and our direct candle usage share a single candle build.
 burn = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"], public = true }
 # The burn facade re-exports these; the types appearing in our public API are
 # defined in the sub-crates, so the public-dependency contract names them too.
@@ -32,8 +30,7 @@ tokio-postgres = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-candle-core                              = { version = "0.10.2" }
-candle-nn                                = { version = "0.10.2" }
+ed25519-dalek                            = "3.0.0"
 error-stack.workspace                    = true
 faer                                     = "0.24.4"
 futures.workspace                        = true
@@ -42,6 +39,7 @@ hash-graph-postgres-store.workspace      = true
 hash-graph-store.workspace               = true
 hash-graph-temporal-versioning.workspace = true
 hash-graph-types.workspace               = true
+jiff                                     = { version = "0.2.32", features = ["serde"] }
 levenberg-marquardt                      = "0.15.0"
 memmap2                                  = "0.9.11"
 nalgebra                                 = "0.34.1"
@@ -56,7 +54,6 @@ sha2                                     = { workspace = true }
 simple-mermaid                           = { workspace = true }
 sprs                                     = { version = "0.11.4", default-features = false }
 tiktoken-rs                              = "0.12.0"
-time                                     = { workspace = true, features = ["serde"] }
 tokio-util.workspace                     = true
 tracing                                  = { workspace = true }
 usearch                                  = "2.25.3"
@@ -64,30 +61,43 @@ uuid.workspace                           = true
 zerocopy                                 = "0.8.54"
 
 [dev-dependencies]
-burn                  = { version = "0.21.0", features = ["candle"] }
-camino                = { workspace = true }
-futures               = { workspace = true }
-hash-graph-embeddings = { workspace = true }
-npyz                  = "0.9.1"
-tempfile              = "3.27.0"
-tokio                 = { workspace = true, features = ["macros", "rt-multi-thread"] }
-tokio-postgres        = { workspace = true }
-tracing-subscriber    = { workspace = true }
-uuid                  = { workspace = true, features = ["v4"] }
+burn                      = { version = "0.21.0", features = ["candle"] }
+camino                    = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+futures                   = { workspace = true }
+hash-graph-embeddings     = { workspace = true }
+npyz                      = "0.9.1"
+tempfile                  = "3.27.0"
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-postgres            = { workspace = true }
+tracing-subscriber        = { workspace = true }
+uuid                      = { workspace = true, features = ["v4"] }
+
+[features]
+salt-benchmarks = []
+
+[[bench]]
+name              = "salt"
+harness           = false
+required-features = ["salt-benchmarks"]
+
+[[bench]]
+name              = "salt_kernels"
+harness           = false
+required-features = ["salt-benchmarks"]
 
 # Opt-in only: these need the CUDA toolkit (nvcc) at build time, so they must not be
 # enabled by default or via `--all-features` runs on machines without it.
 # [features]
-# cuda  = ["burn/cuda", "burn/candle-cuda", "candle-nn/cuda"]
-# cudnn = ["cuda", "candle-nn/cudnn"]
-# mkl   = ["candle-nn/mkl"]
+# cuda  = ["burn/cuda", "burn/candle-cuda"]
+# cudnn = ["cuda"]
 
 # Apple-only backends: always available on macOS, never elsewhere.
 # `metal` implies `wgpu` and compiles kernels via MSL; `candle-metal` puts the
 # burn-candle backend on Metal; `accelerate` uses Apple's BLAS for CPU paths.
 [target.'cfg(target_os = "macos")'.dependencies]
-burn      = { version = "0.21.0", features = ["metal", "accelerate", "candle-metal"] }
-candle-nn = { version = "0.10.2", features = ["metal", "accelerate"] }
+burn = { version = "0.21.0", features = ["metal", "accelerate", "candle-metal"] }
 
 # Everywhere else the wgpu backend compiles kernels via SPIR-V/Vulkan.
 # No vendor toolchain needed at build time (unlike CUDA).

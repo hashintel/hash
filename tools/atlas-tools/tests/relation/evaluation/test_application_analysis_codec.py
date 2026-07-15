@@ -30,6 +30,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     PlacementClass,
     RelationFamilyId,
 )
+from tests.relation.evaluation.classifier_fixtures import write_verified_family_closure
 
 _SOURCE_HASHES = {"fixture-cards": "a" * 64}
 
@@ -223,20 +224,24 @@ def test_classifier_bundle_is_deterministic_cross_validated_and_immutable(
     tmp_path: Path,
 ) -> None:
     labels, embeddings = _dataset()
+    closure = write_verified_family_closure(tmp_path / "closure", labels)
     fit = fit_policy_classifier(
         labels,
         embeddings,
+        closure.rows,
         ClassifierConfig(folds=3, max_iterations=500, seed=17),
     )
     first = write_classifier_bundle(
         tmp_path / "first",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
     second = write_classifier_bundle(
         tmp_path / "second",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
 
     assert first.metadata_path.read_bytes() == second.metadata_path.read_bytes()
@@ -245,6 +250,7 @@ def test_classifier_bundle_is_deterministic_cross_validated_and_immutable(
 
     loaded = load_classifier_bundle(
         first.directory,
+        closure=closure,
         expected_source_hashes=_SOURCE_HASHES,
     )
     assert loaded.fit == first.fit
@@ -254,32 +260,48 @@ def test_classifier_bundle_is_deterministic_cross_validated_and_immutable(
     with pytest.raises(ValueError, match="source hashes"):
         load_classifier_bundle(
             first.directory,
+            closure=closure,
             expected_source_hashes={"fixture-cards": "b" * 64},
         )
+
+    assert first.metadata.closure.artifact_id == closure.manifest.details.artifact_id
+    assert first.metadata.closure.families_hash == closure.families_hash
+    assert first.metadata.closure.manifest_hash == closure.manifest_hash
+    mismatched_closure = write_verified_family_closure(
+        tmp_path / "mismatched-closure",
+        labels,
+        provenance_seed="mismatched",
+    )
+    with pytest.raises(ValueError, match="different family closure"):
+        load_classifier_bundle(first.directory, closure=mismatched_closure)
 
 
 def test_classifier_loader_rejects_hash_and_card_identity_corruption(tmp_path: Path) -> None:
     labels, embeddings = _dataset()
+    closure = write_verified_family_closure(tmp_path / "closure", labels)
     fit = fit_policy_classifier(
         labels,
         embeddings,
+        closure.rows,
         ClassifierConfig(folds=3, max_iterations=500, seed=17),
     )
     damaged = write_classifier_bundle(
         tmp_path / "damaged",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
     payload = bytearray(damaged.arrays_path.read_bytes())
     payload[len(payload) // 2] ^= 1
     damaged.arrays_path.write_bytes(payload)
     with pytest.raises(ValueError, match="content hashes"):
-        load_classifier_bundle(damaged.directory)
+        load_classifier_bundle(damaged.directory, closure=closure)
 
     drifted = write_classifier_bundle(
         tmp_path / "drifted",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
     table = pq.read_table(drifted.out_of_fold_path)
     card_hashes = table.column("card_hash").to_pylist()
@@ -297,12 +319,13 @@ def test_classifier_loader_rejects_hash_and_card_identity_corruption(tmp_path: P
         drifted.out_of_fold_path,
     )
     with pytest.raises(ValueError, match="relation/card order"):
-        load_classifier_bundle(drifted.directory)
+        load_classifier_bundle(drifted.directory, closure=closure)
 
     probability_drift = write_classifier_bundle(
         tmp_path / "probability-drift",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
     table = pq.read_table(probability_drift.out_of_fold_path)
     coincident = table.column("calibrated_coincident").to_pylist()
@@ -325,20 +348,23 @@ def test_classifier_loader_rejects_hash_and_card_identity_corruption(tmp_path: P
         probability_drift.out_of_fold_path,
     )
     with pytest.raises(ValueError, match="calibrated probabilities disagree"):
-        load_classifier_bundle(probability_drift.directory)
+        load_classifier_bundle(probability_drift.directory, closure=closure)
 
 
 def test_classifier_loader_never_enables_pickle_arrays(tmp_path: Path) -> None:
     labels, embeddings = _dataset()
+    closure = write_verified_family_closure(tmp_path / "closure", labels)
     fit = fit_policy_classifier(
         labels,
         embeddings,
+        closure.rows,
         ClassifierConfig(folds=3, max_iterations=500, seed=17),
     )
     bundle = write_classifier_bundle(
         tmp_path / "bundle",
         fit,
         source_hashes=_SOURCE_HASHES,
+        closure=closure,
     )
     with np.load(bundle.arrays_path, allow_pickle=False) as archive:
         arrays = {name: archive[name] for name in archive.files}
@@ -348,4 +374,4 @@ def test_classifier_loader_never_enables_pickle_arrays(tmp_path: Path) -> None:
     _rebind_content(bundle.metadata_path, bundle.metadata, bundle.arrays_path)
 
     with pytest.raises(ValueError, match="Object arrays cannot be loaded"):
-        load_classifier_bundle(bundle.directory)
+        load_classifier_bundle(bundle.directory, closure=closure)

@@ -1,12 +1,16 @@
 use core::num::NonZeroUsize;
 
+use camino::Utf8PathBuf;
+use tempfile::tempdir;
+
 use crate::salt::{
     graph::{
-        KnnTable, Neighbor, NeighborIndex, ProjectorEmbeddings, SemanticGraphConfig,
-        SemanticGraphError, USearchConfig, USearchIndex,
+        KnnTable, Neighbor, NeighborIndex, ProjectorEmbeddings, SemanticEdgeWeights,
+        SemanticGraphConfig, SemanticGraphError, USearchConfig, USearchIndex,
         audit::{MINIMUM_RECALL, audit_recall},
         build_semantic_graph,
         kernel::cosine_distance,
+        publish_semantic_graph,
     },
     hash::ContentHash,
     representation::PROJECTOR_DIMENSIONS,
@@ -44,6 +48,22 @@ impl NeighborIndex for ExactIndex<'_> {
     fn identity(&self) -> ContentHash {
         ContentHash::digest(if self.reverse { b"reverse" } else { b"exact" })
     }
+}
+
+#[test]
+fn projector_embeddings_enforce_the_normalized_prefix_bound() {
+    let zero = vec![0.0_f32; PROJECTOR_DIMENSIONS];
+    ProjectorEmbeddings::new(&zero).expect("zero-prefix rows should remain valid");
+
+    let mut unit = vec![0.0_f32; PROJECTOR_DIMENSIONS];
+    unit[0] = 1.0;
+    ProjectorEmbeddings::new(&unit).expect("unit rows should validate");
+
+    let oversized = vec![f32::MAX; PROJECTOR_DIMENSIONS];
+    assert!(matches!(
+        ProjectorEmbeddings::new(&oversized),
+        Err(SemanticGraphError::EmbeddingNorm { row: 0, .. })
+    ));
 }
 
 #[test]
@@ -111,20 +131,32 @@ fn exact_audit_accepts_exact_search_and_rejects_farthest_search() {
 }
 
 #[test]
-fn usearch_backend_passes_exact_recall_on_a_deterministic_fixture() {
+fn usearch_backend_passes_exact_recall_and_rebuilds_identically() {
     let values = fixture_embeddings(96);
     let embeddings = ProjectorEmbeddings::new(&values).expect("fixture matrix should validate");
-    let index =
+    let first_index =
         USearchIndex::build(embeddings, USearchConfig::default()).expect("USearch should build");
+    let second_index =
+        USearchIndex::build(embeddings, USearchConfig::default()).expect("USearch should rebuild");
     let sample: Vec<_> = (0_u32..16).collect();
+    let config = SemanticGraphConfig {
+        neighbors: NonZeroUsize::new(30).expect("neighbor count should be non-zero"),
+    };
 
-    let audit = audit_recall(embeddings, &index, &sample).expect("USearch should be auditable");
+    let audit =
+        audit_recall(embeddings, &first_index, &sample).expect("USearch should be auditable");
+    let first = build_semantic_graph(embeddings, &first_index, config)
+        .expect("first semantic graph should build");
+    let second = build_semantic_graph(embeddings, &second_index, config)
+        .expect("rebuilt semantic graph should build");
 
     assert!(
         audit.recall >= MINIMUM_RECALL,
         "fixture recall was {}",
         audit.recall
     );
+    assert_eq!(first.table.all_indices(), second.table.all_indices());
+    assert_eq!(first.table.all_distances(), second.table.all_distances());
 }
 
 #[test]
@@ -157,6 +189,45 @@ fn audit_rejects_repeated_sample_rows() {
         audit_recall(embeddings, &index, &[1, 1]),
         Err(SemanticGraphError::DuplicateAuditRow { row: 1 })
     ));
+}
+
+#[test]
+fn semantic_graph_artifact_binds_weights_and_backend_identity() {
+    let values = fixture_embeddings(8);
+    let embeddings = ProjectorEmbeddings::new(&values).expect("fixture matrix should validate");
+    let graph = build_semantic_graph(
+        embeddings,
+        &ExactIndex {
+            embeddings,
+            reverse: false,
+        },
+        SemanticGraphConfig {
+            neighbors: NonZeroUsize::new(3).expect("neighbor count should be non-zero"),
+        },
+    )
+    .expect("semantic graph should build");
+    let weights = SemanticEdgeWeights::new(
+        &graph.table,
+        graph
+            .table
+            .all_distances()
+            .iter()
+            .map(|distance| 1.0 - distance / 2.0)
+            .collect::<Vec<_>>(),
+    )
+    .expect("semantic weights should validate");
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("semantic.salt"))
+        .expect("temporary path should be UTF-8");
+
+    let first =
+        publish_semantic_graph(&path, &graph, &weights).expect("semantic graph should publish");
+    let second = publish_semantic_graph(&path, &graph, &weights)
+        .expect("semantic graph publication should be idempotent");
+
+    assert!(!first.reused_existing);
+    assert!(second.reused_existing);
+    assert_eq!(first.content_hash, second.content_hash);
 }
 
 fn fixture_embeddings(rows: usize) -> Vec<f32> {

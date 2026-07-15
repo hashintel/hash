@@ -28,8 +28,23 @@ impl CoordinateBounds {
             if minimum[axis] >= maximum[axis] {
                 return Err(ImportanceError::DegenerateBounds { axis });
             }
+            if !(maximum[axis] - minimum[axis]).is_finite() {
+                return Err(ImportanceError::NonFiniteBounds { axis });
+            }
         }
         Ok(Self { minimum, maximum })
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn minimum(self) -> [f64; 2] {
+        self.minimum
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn maximum(self) -> [f64; 2] {
+        self.maximum
     }
 
     #[inline]

@@ -19,7 +19,7 @@ from pydantic import (
 )
 
 from atlas_tools.common import canonical_json_bytes
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import FrozenModel, NonEmptyStr
 from atlas_tools.relation.evaluation.domain.identity import (
     AttemptId,
     JudgeFamilyId,
@@ -31,7 +31,6 @@ from atlas_tools.relation.evaluation.domain.identity import (
 )
 from atlas_tools.relation.evaluation.domain.scalar import (
     HttpStatusCode,
-    NonEmptyStr,
     NonNegativeDuration,
     NonNegativeFiniteFloat,
     PositiveDuration,

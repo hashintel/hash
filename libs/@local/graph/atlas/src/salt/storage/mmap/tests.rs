@@ -1,17 +1,19 @@
 use std::io::Write as _;
 
-use tempfile::NamedTempFile;
+use camino::Utf8PathBuf;
+use tempfile::{NamedTempFile, tempdir};
 
 use crate::salt::{
     hash::ContentHash,
     storage::mmap::{
-        ArtifactFormat, ArtifactFormatError, ArtifactKind, ArtifactMapError, FormatVersion,
-        HeaderError, MappedArtifact, ScalarType, SectionError, SectionId,
+        ArtifactFormat, ArtifactFormatError, ArtifactKind, ArtifactMapError, ArtifactSection,
+        ArtifactWriteError, FormatVersion, HeaderError, MappedArtifact, ScalarType, SectionError,
+        SectionId, publish_artifact,
     },
 };
 
 const FORMAT: ArtifactFormat = ArtifactFormat {
-    kind: ArtifactKind::new(7),
+    kind: ArtifactKind::new(65_000),
     version: FormatVersion::new(3),
 };
 const FIRST_OFFSET: usize = 192;
@@ -51,6 +53,101 @@ fn borrows_typed_sections_from_mapped_bytes() {
         indexes.as_u32().expect("indexes should contain u32 values"),
         &[3, 5, 8]
     );
+}
+
+#[test]
+fn streaming_publication_round_trips_and_is_idempotent() {
+    let directory = tempdir().expect("temporary directory should be created");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("artifact.salt"))
+        .expect("temporary path should be UTF-8");
+    let matrix = [1.25_f64, -2.5, 3.75, 4.0];
+    let indices = [3_u32, 5, 8];
+    let sections = [
+        ArtifactSection::new(SectionId::new(1), &[2, 2], &matrix)
+            .expect("matrix shape should match"),
+        ArtifactSection::new(SectionId::new(2), &[3], &indices).expect("index shape should match"),
+    ];
+
+    let first = publish_artifact(&path, FORMAT, &sections).expect("artifact should publish");
+    let second =
+        publish_artifact(&path, FORMAT, &sections).expect("publication should be idempotent");
+    let mapped = MappedArtifact::map_immutable(
+        std::fs::File::open(&path).expect("artifact should open"),
+        FORMAT,
+    )
+    .expect("artifact should map");
+
+    assert!(!first.reused_existing);
+    assert!(second.reused_existing);
+    assert_eq!(first.content_hash, second.content_hash);
+    assert_eq!(
+        mapped
+            .view()
+            .section(SectionId::new(1))
+            .expect("matrix should exist")
+            .as_f64()
+            .expect("matrix should be f64"),
+        matrix
+    );
+}
+
+#[test]
+fn canonical_empty_sections_round_trip_with_their_declared_shape() {
+    let directory = tempdir().expect("temporary directory should be created");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("empty.salt"))
+        .expect("temporary path should be UTF-8");
+    let empty: [u32; 0] = [];
+    let sections = [
+        ArtifactSection::new(SectionId::new(1), &[0], &empty)
+            .expect("empty vector section should validate"),
+        ArtifactSection::new(SectionId::new(2), &[0, 16], &empty)
+            .expect("empty matrix section should validate"),
+    ];
+
+    publish_artifact(&path, FORMAT, &sections).expect("empty sections should publish");
+    let mapped = MappedArtifact::map_immutable(
+        std::fs::File::open(&path).expect("artifact should open"),
+        FORMAT,
+    )
+    .expect("artifact should map");
+    let vector = mapped
+        .view()
+        .section(SectionId::new(1))
+        .expect("empty vector should exist");
+    let matrix = mapped
+        .view()
+        .section(SectionId::new(2))
+        .expect("empty matrix should exist");
+
+    assert_eq!(vector.descriptor.shape, [0, 0, 0]);
+    assert_eq!(matrix.descriptor.shape, [0, 16, 0]);
+    assert!(vector.as_u32().expect("vector should be typed").is_empty());
+    assert!(matrix.as_u32().expect("matrix should be typed").is_empty());
+}
+
+#[test]
+fn immutable_publication_rejects_different_existing_content() {
+    let directory = tempdir().expect("temporary directory should be created");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("artifact.salt"))
+        .expect("temporary path should be UTF-8");
+    let first = [1_u32, 2];
+    let second = [1_u32, 3];
+    publish_artifact(
+        &path,
+        FORMAT,
+        &[ArtifactSection::new(SectionId::new(1), &[2], &first).expect("section should be valid")],
+    )
+    .expect("first artifact should publish");
+
+    assert!(matches!(
+        publish_artifact(
+            &path,
+            FORMAT,
+            &[ArtifactSection::new(SectionId::new(1), &[2], &second)
+                .expect("section should be valid")],
+        ),
+        Err(ArtifactWriteError::ExistingArtifactMismatch { .. })
+    ));
 }
 
 #[test]
@@ -124,7 +221,7 @@ fn fixture() -> Vec<u8> {
     let mut bytes = vec![0_u8; TOTAL_BYTES];
     bytes[..8].copy_from_slice(b"SALTMMAP");
     put_u16(&mut bytes, 8, 3);
-    put_u16(&mut bytes, 10, 7);
+    put_u16(&mut bytes, 10, FORMAT.kind.as_u16());
     put_u32(&mut bytes, 12, 0x0102_0304);
     put_u32(&mut bytes, 16, 64);
     put_u32(&mut bytes, 20, 2);

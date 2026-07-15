@@ -15,24 +15,67 @@ pub(crate) struct EntityAtEdition {
 }
 
 /// Link topology and metadata required by downstream relation processing.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct LinkCandidate<'snapshot> {
-    pub link: EntityAtEdition,
-    pub left: EntityAtEdition,
-    pub right: EntityAtEdition,
-    pub required_entity_types: &'snapshot [VersionedUrl],
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct LinkCandidate {
+    pub(super) link: EntityAtEdition,
+    pub(super) left: EntityAtEdition,
+    pub(super) right: EntityAtEdition,
+    pub(super) relation_type: VersionedUrl,
+    pub(super) required_entity_types: Box<[VersionedUrl]>,
+}
+
+impl LinkCandidate {
+    /// Freezes one extracted link and its store-resolved type closure.
+    ///
+    /// `required_entity_types` must come from the same extraction snapshot as
+    /// the selected entity editions. Authorization verifies every member before
+    /// the link can enter an [`AuthorizedSnapshot`](super::AuthorizedSnapshot).
+    #[must_use]
+    pub(super) fn new(
+        link: EntityAtEdition,
+        left: EntityAtEdition,
+        right: EntityAtEdition,
+        relation_type: VersionedUrl,
+        required_entity_types: Box<[VersionedUrl]>,
+    ) -> Self {
+        Self {
+            link,
+            left,
+            right,
+            relation_type,
+            required_entity_types,
+        }
+    }
+
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) fn for_test(
+        link: EntityAtEdition,
+        left: EntityAtEdition,
+        right: EntityAtEdition,
+        relation_type: &VersionedUrl,
+        required_entity_types: &[VersionedUrl],
+    ) -> Self {
+        Self::new(
+            link,
+            left,
+            right,
+            relation_type.clone(),
+            required_entity_types.into(),
+        )
+    }
 }
 
 /// A link candidate proven visible under one permission result set.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct AuthorizedLink<'snapshot>(LinkCandidate<'snapshot>);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AuthorizedLink(LinkCandidate);
 
-impl<'snapshot> AuthorizedLink<'snapshot> {
+impl AuthorizedLink {
     /// Returns the admitted candidate.
     #[must_use]
     #[inline]
-    pub(crate) const fn candidate(self) -> LinkCandidate<'snapshot> {
-        self.0
+    pub(crate) const fn candidate(&self) -> &LinkCandidate {
+        &self.0
     }
 }
 
@@ -51,11 +94,11 @@ pub(crate) enum LinkRejection {
 /// `EntityStore::has_permission_for_entities`; selected editions must match,
 /// not merely entity identities. `permitted_entity_types` is the output shape
 /// of `EntityTypeStore::has_permission_for_entity_types`.
-pub(crate) fn authorize_link<'snapshot>(
-    candidate: LinkCandidate<'snapshot>,
+pub(crate) fn authorize_link(
+    candidate: LinkCandidate,
     permitted_entities: &HashMap<EntityId, Vec<EntityEditionId>>,
     permitted_entity_types: &HashSet<VersionedUrl>,
-) -> Result<AuthorizedLink<'snapshot>, LinkRejection> {
+) -> Result<AuthorizedLink, LinkRejection> {
     if !edition_is_visible(candidate.link, permitted_entities) {
         return Err(LinkRejection::LinkEntity);
     }

@@ -24,19 +24,27 @@
 //! Attraction coefficients, degree normalization and strength never enter
 //! protection.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use type_system::knowledge::entity::id::EntityId;
+use uuid::Uuid;
 
 use crate::salt::{
-    identity::{ArtifactOrdinal, GenerationRowId},
+    hash::{ContentHash, ContentHasher},
+    identity::{ArtifactOrdinal, GenerationRowId, IdentityDirectory},
     policy::{Probability, ResolvedPolicy},
+    snapshot::GeometryAuthorizedLink,
     strength::RelationStrength,
 };
 
+mod artifact;
 mod error;
 
-pub(crate) use self::error::RelationIndexError;
+#[allow(
+    unused_imports,
+    reason = "relation artifact publication is invoked by the generation adapter"
+)]
+pub(crate) use self::{artifact::publish_relation_indexes, error::RelationIndexError};
 
 const LINK_SCORED: u8 = 1 << 0;
 const LEFT_SCORED: u8 = 1 << 1;
@@ -105,16 +113,90 @@ impl EffectiveConfidence {
     pub(crate) const fn right_was_scored(self) -> bool {
         self.scored & RIGHT_SCORED != 0
     }
+
+    /// Returns the stable link/left/right score-presence bitset.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn provenance(self) -> u8 {
+        self.scored
+    }
 }
 
 /// A security-permitted, nonconflicting raw link instance.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct AdmittedRelationInstance {
-    pub link_entity: EntityId,
-    pub relation: ArtifactOrdinal,
-    pub left: GenerationRowId,
-    pub right: GenerationRowId,
-    pub confidence: RelationConfidence,
+    link_entity: EntityId,
+    relation: ArtifactOrdinal,
+    left: GenerationRowId,
+    right: GenerationRowId,
+    confidence: RelationConfidence,
+}
+
+impl AdmittedRelationInstance {
+    /// Resolves a security-admitted link into generation row identities.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when either endpoint is absent from the frozen
+    /// identity directory.
+    pub(crate) fn from_authorized(
+        link: &GeometryAuthorizedLink,
+        relation: ArtifactOrdinal,
+        identities: &IdentityDirectory,
+        confidence: RelationConfidence,
+    ) -> Result<Self, RelationIndexError> {
+        let left_entity = link.left_entity();
+        let right_entity = link.right_entity();
+        let left =
+            identities
+                .row(&left_entity)
+                .ok_or(RelationIndexError::MissingGeometryEndpoint {
+                    entity: left_entity,
+                })?;
+        let right =
+            identities
+                .row(&right_entity)
+                .ok_or(RelationIndexError::MissingGeometryEndpoint {
+                    entity: right_entity,
+                })?;
+        Ok(Self {
+            link_entity: link.link_entity(),
+            relation,
+            left,
+            right,
+            confidence,
+        })
+    }
+
+    /// Returns the canonical identity of the resolved edge and confidence.
+    #[must_use]
+    pub(crate) fn content_hash(self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.admitted-relation-instance.v1");
+        let (web_id, entity_uuid, draft_id) = entity_sort_key(self.link_entity);
+        hasher.update(web_id.as_bytes());
+        hasher.update(entity_uuid.as_bytes());
+        if let Some(draft_id) = draft_id {
+            hasher.update(&[1]);
+            hasher.update(draft_id.as_bytes());
+        } else {
+            hasher.update(&[0]);
+            hasher.update(&[0; 16]);
+        }
+        hasher.update(&self.relation.as_u32().to_le_bytes());
+        hasher.update(&self.left.as_u32().to_le_bytes());
+        hasher.update(&self.right.as_u32().to_le_bytes());
+        for value in [
+            self.confidence.link,
+            self.confidence.left,
+            self.confidence.right,
+        ] {
+            hasher.update(&[u8::from(value.is_some())]);
+            if let Some(value) = value {
+                hasher.update(&value.get().to_bits().to_le_bytes());
+            }
+        }
+        hasher.finish()
+    }
 }
 
 /// Frozen policy and strength for one dense relation-type ordinal.
@@ -140,7 +222,7 @@ impl AttractionCoefficients {
     /// Returns an error unless Coincident is finite and non-negative and
     /// Proximal is exactly the unit coefficient.
     pub(crate) fn new(coincident: f64, proximal: f64) -> Result<Self, RelationIndexError> {
-        if !coincident.is_finite() || coincident < 0.0 || proximal != 1.0 {
+        if !coincident.is_finite() || coincident.is_sign_negative() || proximal != 1.0 {
             return Err(RelationIndexError::InvalidAttractionCoefficient {
                 coincident,
                 proximal,
@@ -159,6 +241,46 @@ impl Default for AttractionCoefficients {
         Self {
             coincident: 0.0,
             proximal: 1.0,
+        }
+    }
+}
+
+/// Shared attraction coefficients and an optional hard force-pruning threshold.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct AttractionConfig {
+    pub coefficients: AttractionCoefficients,
+    pub force_pruning_threshold: f64,
+}
+
+impl AttractionConfig {
+    /// Validates a generation-level attraction configuration.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when the pruning threshold is negative or
+    /// non-finite.
+    pub(crate) fn new(
+        coefficients: AttractionCoefficients,
+        force_pruning_threshold: f64,
+    ) -> Result<Self, RelationIndexError> {
+        if !force_pruning_threshold.is_finite() || force_pruning_threshold.is_sign_negative() {
+            return Err(RelationIndexError::InvalidForcePruningThreshold {
+                value: force_pruning_threshold,
+            });
+        }
+        Ok(Self {
+            coefficients,
+            force_pruning_threshold,
+        })
+    }
+}
+
+impl Default for AttractionConfig {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            coefficients: AttractionCoefficients::default(),
+            force_pruning_threshold: 0.0,
         }
     }
 }
@@ -246,6 +368,40 @@ pub(crate) struct RelationIndexes {
     pub protection: Vec<PairProtection>,
 }
 
+impl RelationIndexes {
+    /// Returns the canonical identity of the persisted admitted edge table.
+    #[must_use]
+    pub(crate) fn edge_snapshot_hash(&self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v1");
+        for edge in &self.attraction {
+            let (web_id, entity_uuid, draft_id) = entity_sort_key(edge.link_entity);
+            hasher.update(web_id.as_bytes());
+            hasher.update(entity_uuid.as_bytes());
+            if let Some(draft_id) = draft_id {
+                hasher.update(&[1]);
+                hasher.update(draft_id.as_bytes());
+            } else {
+                hasher.update(&[0]);
+                hasher.update(&[0; 16]);
+            }
+            hasher.update(&edge.relation.as_u32().to_le_bytes());
+            hasher.update(&edge.left.as_u32().to_le_bytes());
+            hasher.update(&edge.right.as_u32().to_le_bytes());
+            hasher.update(&edge.confidence.value().to_bits().to_le_bytes());
+            hasher.update(&[edge.confidence.provenance()]);
+            for value in [
+                edge.degree_normalization,
+                edge.strength.get(),
+                edge.coincident,
+                edge.proximal,
+            ] {
+                hasher.update(&value.to_bits().to_le_bytes());
+            }
+        }
+        hasher.finish()
+    }
+}
+
 /// Builds complete attraction instances and pair-aggregated protection.
 ///
 /// # Errors
@@ -256,7 +412,7 @@ pub(crate) fn build_relation_indexes(
     generation_rows: usize,
     policies: &[RelationPolicy],
     instances: &[AdmittedRelationInstance],
-    attraction: AttractionCoefficients,
+    attraction: AttractionConfig,
     protection: ProtectionConfig,
 ) -> Result<RelationIndexes, RelationIndexError> {
     if generation_rows == 0 {
@@ -271,9 +427,15 @@ pub(crate) fn build_relation_indexes(
         }
     }
 
+    let mut link_entities = HashSet::with_capacity(instances.len());
     let mut degrees = HashMap::<(ArtifactOrdinal, GenerationRowId), u32>::new();
     for instance in instances {
         validate_instance(instance, generation_rows, policies)?;
+        if !link_entities.insert(instance.link_entity) {
+            return Err(RelationIndexError::DuplicateLinkEntity {
+                link_entity: instance.link_entity,
+            });
+        }
         increment_degree(&mut degrees, instance.relation, instance.left)?;
         increment_degree(&mut degrees, instance.relation, instance.right)?;
     }
@@ -287,7 +449,11 @@ pub(crate) fn build_relation_indexes(
         let right_degree = degrees[&(instance.relation, instance.right)];
         let degree_normalization =
             1.0 / ((1.0 + f64::from(left_degree)) * (1.0 + f64::from(right_degree))).sqrt();
-        attraction_edges.push(AttractionEdge {
+        let coincident = attraction.coefficients.coincident
+            * policy.policy.effective_attraction.coincident.get();
+        let proximal =
+            attraction.coefficients.proximal * policy.policy.effective_attraction.proximal.get();
+        let edge = AttractionEdge {
             link_entity: instance.link_entity,
             relation: instance.relation,
             left: instance.left,
@@ -295,9 +461,13 @@ pub(crate) fn build_relation_indexes(
             confidence,
             degree_normalization,
             strength: policy.strength,
-            coincident: attraction.coincident * policy.policy.effective_attraction.coincident.get(),
-            proximal: attraction.proximal * policy.policy.effective_attraction.proximal.get(),
-        });
+            coincident,
+            proximal,
+        };
+        let force_mass = confidence.value() * (coincident + proximal);
+        if force_mass >= attraction.force_pruning_threshold {
+            attraction_edges.push(edge);
+        }
 
         let raw_positive =
             policy.policy.selected.coincident.get() + policy.policy.selected.proximal.get();
@@ -318,6 +488,15 @@ pub(crate) fn build_relation_indexes(
         masses.0 = masses.0.max(hard_mass);
         masses.1 = masses.1.max(ordinary_mass);
     }
+    attraction_edges.sort_unstable_by(|left, right| {
+        left.relation
+            .cmp(&right.relation)
+            .then_with(|| left.left.cmp(&right.left))
+            .then_with(|| left.right.cmp(&right.right))
+            .then_with(|| {
+                entity_sort_key(left.link_entity).cmp(&entity_sort_key(right.link_entity))
+            })
+    });
 
     let mut pair_masses: Vec<_> = pair_masses
         .into_iter()
@@ -335,6 +514,15 @@ pub(crate) fn build_relation_indexes(
         attraction: attraction_edges,
         protection: pair_masses,
     })
+}
+
+#[inline]
+fn entity_sort_key(entity: EntityId) -> (Uuid, Uuid, Option<Uuid>) {
+    (
+        entity.web_id.into(),
+        entity.entity_uuid.into(),
+        entity.draft_id.map(Into::into),
+    )
 }
 
 fn validate_instance(

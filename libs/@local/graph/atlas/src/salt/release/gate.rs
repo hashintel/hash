@@ -19,6 +19,7 @@ pub(crate) enum GateId {
     RelationPolicy,
     RelationSatisfaction,
     MergeTreePersistence,
+    TemporalDrift,
     SubgroupBehavior,
     AuthorizationNoninterference,
     SnapshotConsistency,
@@ -28,13 +29,14 @@ pub(crate) enum GateId {
 }
 
 impl GateId {
-    const ALL: [Self; 12] = [
+    const ALL: [Self; 13] = [
         Self::Representation,
         Self::AnnRecall,
         Self::SemanticFidelity,
         Self::RelationPolicy,
         Self::RelationSatisfaction,
         Self::MergeTreePersistence,
+        Self::TemporalDrift,
         Self::SubgroupBehavior,
         Self::AuthorizationNoninterference,
         Self::SnapshotConsistency,
@@ -60,6 +62,7 @@ impl fmt::Display for GateId {
             Self::RelationPolicy => "relation policy",
             Self::RelationSatisfaction => "relation satisfaction",
             Self::MergeTreePersistence => "merge-tree persistence",
+            Self::TemporalDrift => "temporal drift",
             Self::SubgroupBehavior => "subgroup behavior",
             Self::AuthorizationNoninterference => "authorization noninterference",
             Self::SnapshotConsistency => "snapshot consistency",
@@ -85,12 +88,11 @@ pub(crate) struct ReleaseHead {
 #[serde(deny_unknown_fields)]
 pub(crate) struct GateOutcome {
     pub gate: GateId,
-    pub passed: bool,
     pub evidence: ContentHash,
 }
 
 /// Complete canonical-generation gate report in stable gate order.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct GateReport {
     version: u32,
@@ -118,9 +120,6 @@ impl GateReport {
             if !seen.insert(outcome.gate) {
                 return Err(ReleaseGateError::Duplicate { gate: outcome.gate });
             }
-            if !outcome.passed {
-                return Err(ReleaseGateError::Failed { gate: outcome.gate });
-            }
         }
         for gate in GateId::ALL {
             if !seen.contains(&gate) {
@@ -134,11 +133,37 @@ impl GateReport {
         })
     }
 
+    /// Revalidates a report loaded from storage.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when the format version is unsupported or gate
+    /// evidence is incomplete, repeated, or failed.
+    pub(crate) fn validate(&self) -> Result<(), ReleaseGateError> {
+        if self.version != 1 {
+            return Err(ReleaseGateError::Version {
+                actual: self.version,
+            });
+        }
+        let canonical = Self::new(self.head, self.outcomes.clone())?;
+        if canonical.outcomes != self.outcomes {
+            return Err(ReleaseGateError::NonCanonicalOrder);
+        }
+        Ok(())
+    }
+
     /// Borrows gate outcomes in canonical order.
     #[must_use]
     #[inline]
     pub(crate) fn outcomes(&self) -> &[GateOutcome] {
         &self.outcomes
+    }
+
+    /// Returns the exact immutable head evaluated by this report.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn head(&self) -> ReleaseHead {
+        self.head
     }
 
     /// Computes the canonical report identity.
@@ -151,20 +176,24 @@ impl GateReport {
         hasher.update(self.head.manifest.as_bytes());
         for outcome in &self.outcomes {
             hasher.update(&[gate_discriminant(outcome.gate)]);
-            hasher.update(&[u8::from(outcome.passed)]);
             hasher.update(outcome.evidence.as_bytes());
         }
         hasher.finish()
     }
 
     /// Converts a validated report into activation authority.
-    #[must_use]
-    pub(crate) fn approve(self) -> GatedRelease {
+    ///
+    /// # Errors
+    ///
+    /// This returns an error if a report deserialized from storage is
+    /// unsupported, incomplete, failing, repeated, or non-canonical.
+    pub(crate) fn approve(&self) -> Result<GatedRelease, ReleaseGateError> {
+        self.validate()?;
         let report = self.content_hash();
-        GatedRelease {
+        Ok(GatedRelease {
             head: self.head,
             report,
-        }
+        })
     }
 }
 
@@ -200,11 +229,12 @@ const fn gate_discriminant(gate: GateId) -> u8 {
         GateId::RelationPolicy => 3,
         GateId::RelationSatisfaction => 4,
         GateId::MergeTreePersistence => 5,
-        GateId::SubgroupBehavior => 6,
-        GateId::AuthorizationNoninterference => 7,
-        GateId::SnapshotConsistency => 8,
-        GateId::Reproducibility => 9,
-        GateId::SecurityApproval => 10,
-        GateId::CompanionPin => 11,
+        GateId::TemporalDrift => 6,
+        GateId::SubgroupBehavior => 7,
+        GateId::AuthorizationNoninterference => 8,
+        GateId::SnapshotConsistency => 9,
+        GateId::Reproducibility => 10,
+        GateId::SecurityApproval => 11,
+        GateId::CompanionPin => 12,
     }
 }

@@ -1,6 +1,8 @@
-use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use core::fmt;
+
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp as GraphTimestamp, TransactionTime};
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 
 use crate::salt::{
     hash::ContentHash,
@@ -11,8 +13,7 @@ use crate::salt::{
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct GenerationManifest {
     pub generation_id: GenerationId,
-    #[serde(with = "time::serde::rfc3339")]
-    pub created_at: OffsetDateTime,
+    pub created_at: Timestamp,
     pub input_snapshot: InputSnapshotManifest,
     pub embedding: EmbeddingManifest,
     pub semantic_graph: SemanticGraphManifest,
@@ -21,6 +22,7 @@ pub(crate) struct GenerationManifest {
     pub relations: RelationManifest,
     pub variants: VariantManifest,
     pub storage: StorageManifest,
+    pub artifacts: Vec<ArtifactManifest>,
     pub serving: ServingManifest,
     pub reproducibility: ReproducibilityManifest,
 }
@@ -28,18 +30,21 @@ pub(crate) struct GenerationManifest {
 /// Bitemporal bounds and source identities frozen before generation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct InputSnapshotManifest {
-    pub ontology_transaction_time: Timestamp<TransactionTime>,
-    pub knowledge_transaction_time: Timestamp<TransactionTime>,
+    pub ontology_transaction_time: GraphTimestamp<TransactionTime>,
+    pub knowledge_transaction_time: GraphTimestamp<TransactionTime>,
     pub knowledge_decision_time_policy: KnowledgeDecisionTimePolicy,
     pub ontology_hash: ContentHash,
     pub knowledge_hash: ContentHash,
+    pub frozen_input_hash: ContentHash,
 }
 
 /// How knowledge decision time is resolved within the pinned transaction view.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "mode", rename_all = "snake_case")]
 pub(crate) enum KnowledgeDecisionTimePolicy {
-    Pinned { timestamp: Timestamp<DecisionTime> },
+    Pinned {
+        timestamp: GraphTimestamp<DecisionTime>,
+    },
     LatestAtTransaction,
 }
 
@@ -62,6 +67,9 @@ pub(crate) struct SemanticGraphManifest {
     pub neighbors: usize,
     pub metric: SemanticMetric,
     pub backend: String,
+    pub backend_hash: ContentHash,
+    pub configuration_hash: ContentHash,
+    pub weight_hash: ContentHash,
     pub graph_hash: ContentHash,
     pub exact_audit_hash: ContentHash,
     pub recall_at_50: f64,
@@ -93,9 +101,13 @@ pub(crate) struct ProjectorManifest {
     pub width: usize,
     pub residual_blocks: usize,
     pub type_conditioning: bool,
+    pub type_context_dimensions: usize,
+    pub role_count: usize,
+    pub role_dimensions: usize,
     pub relation_conditioning: bool,
     pub checkpoint_hash: ContentHash,
     pub loss_config_hash: ContentHash,
+    pub training_config_hash: ContentHash,
     pub relation_gradient_beta_positive: f64,
     pub relation_gradient_beta_negative: f64,
     pub relation_gradient_beta_total: f64,
@@ -106,6 +118,7 @@ pub(crate) struct ProjectorManifest {
 pub(crate) struct RelationManifest {
     pub security_mode: RelationSecurityMode,
     pub security_allow_list_hash: ContentHash,
+    pub security_geometry_hash: ContentHash,
     pub edge_snapshot_hash: ContentHash,
     pub relation_card_format_version: u32,
     pub relation_card_corpus_hash: ContentHash,
@@ -278,12 +291,16 @@ pub(crate) struct VariantManifest {
 pub(crate) struct VariantEntryManifest {
     pub id: VariantId,
     pub global_relation_condition: f64,
+    pub condition_domain_hash: ContentHash,
+    pub selection_evidence_hash: ContentHash,
+    pub canonical_field_hash: ContentHash,
     pub procrustes_transform: [f64; 5],
     pub quantization_step: f64,
     pub clamp_count: u64,
     pub clamp_rate: f64,
     pub bucket_index_hash: ContentHash,
     pub morton_index_hash: ContentHash,
+    pub analytic_configuration_hash: ContentHash,
     pub merge_tree_hash: ContentHash,
 }
 
@@ -292,6 +309,7 @@ pub(crate) struct VariantEntryManifest {
 pub(crate) struct StorageManifest {
     pub row_count: u64,
     pub row_id_encoding: RowIdEncoding,
+    pub identity_directory_hash: ContentHash,
     pub base_revision: BaseRevision,
     pub initial_delta_revision: DeltaRevision,
 }
@@ -305,10 +323,65 @@ pub(crate) enum RowIdEncoding {
     ShardedU32,
 }
 
+/// Runtime role of one immutable generation artifact.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ArtifactRole {
+    RelationClassifier,
+    StrengthHead,
+    SemanticGraph,
+    RelationIndexes,
+    LandmarkSkeleton,
+    ProjectorCheckpoint,
+    CanonicalBase,
+    CanonicalAnalytics,
+    LegacyLayout,
+    LegacyIdentities,
+    LegacyExportManifest,
+}
+
+impl fmt::Display for ArtifactRole {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::RelationClassifier => "relation classifier",
+            Self::StrengthHead => "strength head",
+            Self::SemanticGraph => "semantic graph",
+            Self::RelationIndexes => "relation indexes",
+            Self::LandmarkSkeleton => "landmark skeleton",
+            Self::ProjectorCheckpoint => "projector checkpoint",
+            Self::CanonicalBase => "canonical base",
+            Self::CanonicalAnalytics => "canonical analytics",
+            Self::LegacyLayout => "legacy layout",
+            Self::LegacyIdentities => "legacy identities",
+            Self::LegacyExportManifest => "legacy export manifest",
+        };
+        formatter.write_str(name)
+    }
+}
+
+/// Binary schema identity for an mmap artifact.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ArtifactFormatManifest {
+    pub kind: u16,
+    pub version: u16,
+}
+
+/// Content identity and generation-relative location of one required artifact.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ArtifactManifest {
+    pub role: ArtifactRole,
+    pub relative_path: String,
+    pub content_hash: ContentHash,
+    pub byte_length: u64,
+    pub format: Option<ArtifactFormatManifest>,
+}
+
 /// Authorization, wire, style, and companion compatibility pins.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct ServingManifest {
     pub authorization_adapter_version: String,
+    pub gate_evidence_authority: String,
+    pub gate_evidence_public_key: ContentHash,
     pub wire_versions: Vec<u16>,
     pub style_version: String,
     pub canvas_companion_version: String,

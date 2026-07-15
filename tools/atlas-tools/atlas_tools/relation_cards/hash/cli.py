@@ -65,9 +65,12 @@ class ExtractCardsCommand(BaseSettings):
             paths = extract_and_emit_hash_cards(connection_info, config, self.out)
         except (HashPostgresError, OSError, ValueError) as error:
             fail(error)
+        echo(f"wrote {paths.entity_types_jsonl}")
         echo(f"wrote {paths.link_types_jsonl}")
         echo(f"wrote {paths.cards_jsonl}")
         echo(f"wrote {paths.manifest}")
+        echo(f"wrote {paths.lineage_jsonl}")
+        echo(f"wrote {paths.lineage_manifest}")
 
 
 class HashRelationCardsCli(BaseModel):

@@ -1,10 +1,11 @@
-//! SALT generation, incremental placement, and atlas publication.
+//! SALT canonical generation and atlas publication.
 //!
 //! SALT builds one immutable atlas generation from a permission-filtered graph
 //! snapshot. A generation binds its inputs, learned policy, semantic graph,
-//! projector, coordinates, indexes, and release evidence by content hash. New
-//! graph data is represented by revisioned delta state so base coordinates stay
-//! immutable between major generations.
+//! projector, coordinates, indexes, and release evidence by content hash.
+//! Revision identities distinguish immutable base and delta domains; the
+//! current reader admits only `BaseRevision(0)` with `DeltaRevision(0)` and
+//! rejects mutation rather than presenting incomplete incremental semantics.
 //!
 //! The implementation keeps three identity domains distinct:
 //!
@@ -21,10 +22,14 @@
 mod activation;
 mod alignment;
 mod analytic;
+#[cfg(feature = "salt-benchmarks")]
+pub mod benchmark;
 mod card;
 mod classifier;
 mod embedding;
 mod evaluation;
+mod format;
+mod generation;
 mod graph;
 mod hash;
 mod identity;

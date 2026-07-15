@@ -3245,6 +3245,38 @@ where
             ))
         }
     }
+
+    /// Starts a repeatable-read transaction for a multi-query frozen snapshot.
+    ///
+    /// Every query through the returned read-only store observes one PostgreSQL
+    /// MVCC snapshot. Callers must still pass one resolved bitemporal query
+    /// policy to all graph-store reads.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when PostgreSQL cannot start or configure the
+    /// transaction.
+    pub async fn repeatable_read_transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, Report<StoreError>> {
+        let transaction = self
+            .client
+            .as_mut_client()
+            .transaction()
+            .await
+            .change_context(StoreError)?;
+
+        transaction
+            .batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            .await
+            .change_context(StoreError)?;
+
+        Ok(PostgresStore::new(
+            transaction,
+            self.temporal_client.clone(),
+            Arc::clone(&self.settings),
+        ))
+    }
 }
 
 impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>

@@ -10,6 +10,8 @@ from urllib.parse import urlsplit, urlunsplit
 from pydantic import HttpUrl, PositiveInt
 from pydantic_extra_types.language_code import LanguageAlpha2
 
+from atlas_tools.relation.lineage.api import LineageNode
+from atlas_tools.relation_cards.common.cards import qualify_relation_id
 from atlas_tools.relation_cards.common.examples import (
     ExampleCandidate,
     ExampleStratum,
@@ -85,6 +87,68 @@ def _resolve(
         raise UnresolvedTypeReferenceError(
             f"resolved SemType closure refers to unavailable type {url}"
         ) from error
+
+
+def _rows_by_versioned_url(rows: Sequence[EntityTypeRow]) -> dict[str, EntityTypeRow]:
+    indexed: dict[str, EntityTypeRow] = {}
+    for row in rows:
+        versioned_url = str(row.source_schema.id)
+        if versioned_url in indexed:
+            raise ValueError(f"entity type selection repeats versioned URL {versioned_url}")
+        indexed[versioned_url] = row
+    return indexed
+
+
+def _direct_parent_base_urls(
+    row: EntityTypeRow,
+    rows_by_versioned_url: dict[str, EntityTypeRow],
+) -> tuple[str, ...]:
+    parents: set[str] = set()
+    for entry in row.closed_schema.all_of:
+        if entry.depth != 1:
+            continue
+        parent = _resolve(entry.id, rows_by_versioned_url)
+        parent_base_url = versioned_url_base_url(entry.id)
+        if parent_base_url != str(parent.base_url):
+            raise ValueError(
+                f"resolved SemType reference {entry.id} disagrees with base URL {parent.base_url}"
+            )
+        parents.add(parent_base_url)
+    return tuple(sorted(parents))
+
+
+def build_hash_lineage_nodes(entity_types: Sequence[EntityTypeRow]) -> tuple[LineageNode, ...]:
+    """Build the closed direct-parent graph before relation-card prose projection."""
+    latest = _latest_by_base_url(entity_types)
+    rows_by_versioned_url = _rows_by_versioned_url(entity_types)
+    selected = {str(row.base_url): row for row in latest.values() if _is_link_type(row)}
+
+    pending = list(selected.values())
+    expanded: set[str] = set()
+    while pending:
+        row = pending.pop()
+        row_base_url = str(row.base_url)
+        if row_base_url in expanded:
+            continue
+        expanded.add(row_base_url)
+        for parent_base_url in _direct_parent_base_urls(row, rows_by_versioned_url):
+            if parent_base_url not in selected:
+                dependency = latest[parent_base_url]
+                selected[parent_base_url] = dependency
+                pending.append(dependency)
+
+    nodes = (
+        LineageNode(
+            relation_id=qualify_relation_id("hash", row.base_url),
+            extends=tuple(
+                qualify_relation_id("hash", parent_base_url)
+                for parent_base_url in _direct_parent_base_urls(row, rows_by_versioned_url)
+            ),
+            inverse_edges=(),
+        )
+        for row in selected.values()
+    )
+    return tuple(sorted(nodes, key=lambda node: node.relation_id))
 
 
 def _deduplicate_rows(rows: Iterable[EntityTypeRow]) -> tuple[EntityTypeRow, ...]:
@@ -285,7 +349,7 @@ def build_relation_records(
 ) -> list[HashRelationRecord]:
     """Build one canonical card record per latest active logical link type."""
     latest = _latest_by_base_url(entity_types)
-    rows_by_versioned_url = {str(row.source_schema.id): row for row in entity_types}
+    rows_by_versioned_url = _rows_by_versioned_url(entity_types)
     link_types = [row for row in latest.values() if _is_link_type(row)]
 
     associations: dict[str, list[tuple[EntityTypeRow, LinkConstraint]]] = defaultdict(list)

@@ -11,13 +11,16 @@ from typing import Self
 from pydantic import NonNegativeInt, model_validator
 
 from atlas_tools.common import sha256_bytes
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import (
+    FrozenModel,
+    NonEmptyStr,
+    RelationId,
+    RelationNamespace,
+)
 from atlas_tools.relation.evaluation.domain.identity import (
     CardHash,
     RelationFamilyId,
 )
-from atlas_tools.relation.evaluation.domain.scalar import NonEmptyStr
-from atlas_tools.relation_cards.common.cards import RelationId, RelationNamespace
 
 
 class EvaluationCard(FrozenModel):

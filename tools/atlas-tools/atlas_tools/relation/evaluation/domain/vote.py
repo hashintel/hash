@@ -10,7 +10,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import AwareDatetime, Field, NonNegativeInt, model_validator
 
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import FrozenModel, NonEmptyStr, RelationId
 from atlas_tools.relation.evaluation.domain.configuration import JudgeRequestSpec
 from atlas_tools.relation.evaluation.domain.identity import (
     AttemptId,
@@ -27,11 +27,9 @@ from atlas_tools.relation.evaluation.domain.identity import (
 )
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
-    NonEmptyStr,
     NonNegativeDuration,
     NonNegativeFiniteFloat,
 )
-from atlas_tools.relation_cards.common.cards import RelationId
 
 
 class VoteIdentity(FrozenModel):

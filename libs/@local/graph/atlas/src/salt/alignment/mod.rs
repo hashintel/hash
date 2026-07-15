@@ -102,7 +102,7 @@ pub(crate) fn fit_similarity(
     let mut source_sum = [0.0; 2];
     let mut target_sum = [0.0; 2];
     for (row, ((source, target), &weight)) in source.iter().zip(target).zip(weights).enumerate() {
-        if !weight.is_finite() || weight < 0.0 {
+        if !weight.is_finite() || weight.is_sign_negative() {
             return Err(AlignmentError::InvalidWeight { row, weight });
         }
         for axis in 0..2 {

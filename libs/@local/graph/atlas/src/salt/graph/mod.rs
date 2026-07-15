@@ -15,6 +15,7 @@ use core::{
     num::NonZeroUsize,
     simd::{f32x8, num::SimdFloat as _},
 };
+use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -23,17 +24,26 @@ use crate::salt::{
     representation::PROJECTOR_DIMENSIONS,
 };
 
+mod artifact;
 pub(crate) mod audit;
 mod error;
 mod kernel;
 mod usearch;
+mod weight;
 
+#[allow(
+    unused_imports,
+    reason = "semantic graph backends and publication form the generation adapter surface"
+)]
 pub(crate) use self::{
+    artifact::{SemanticEdgeWeights, publish_semantic_graph},
     error::SemanticGraphError,
     usearch::{USearchConfig, USearchIndex},
+    weight::fuzzy_edge_weights,
 };
 
 const DEFAULT_NEIGHBORS: usize = 30;
+const MAXIMUM_SQUARED_EMBEDDING_NORM: f64 = 1.0 + 1.0e-4;
 
 /// Borrowed row-major projector representations.
 #[derive(Debug, Copy, Clone)]
@@ -47,7 +57,8 @@ impl<'embedding> ProjectorEmbeddings<'embedding> {
     /// # Errors
     ///
     /// Returns an error for an empty matrix, an incomplete row, more than
-    /// `u32::MAX` rows, or a non-finite component.
+    /// `u32::MAX` rows, a non-finite component, or a row whose squared norm
+    /// exceeds the normalized-prefix bound.
     pub(crate) fn new(values: &'embedding [f32]) -> Result<Self, SemanticGraphError> {
         let (rows, remainder) = values.as_chunks::<PROJECTOR_DIMENSIONS>();
         if !remainder.is_empty() {
@@ -66,8 +77,10 @@ impl<'embedding> ProjectorEmbeddings<'embedding> {
         for (row_index, row) in rows.iter().enumerate() {
             let (chunks, remainder) = row.as_chunks::<8>();
             debug_assert!(remainder.is_empty());
+            let mut squared_norm = 0.0;
             for (chunk_index, chunk) in chunks.iter().enumerate() {
-                if !f32x8::from_array(*chunk).is_finite().all() {
+                let vector = f32x8::from_array(*chunk);
+                if !vector.is_finite().all() {
                     let lane = chunk
                         .iter()
                         .position(|value| !value.is_finite())
@@ -77,6 +90,13 @@ impl<'embedding> ProjectorEmbeddings<'embedding> {
                         component: chunk_index * 8 + lane,
                     });
                 }
+                squared_norm += f64::from((vector * vector).reduce_sum());
+            }
+            if !squared_norm.is_finite() || squared_norm > MAXIMUM_SQUARED_EMBEDDING_NORM {
+                return Err(SemanticGraphError::EmbeddingNorm {
+                    row: row_index,
+                    squared_norm,
+                });
             }
         }
         Ok(Self { rows })
@@ -92,7 +112,7 @@ impl<'embedding> ProjectorEmbeddings<'embedding> {
     /// Borrows one validated row.
     #[must_use]
     #[inline]
-    pub(crate) fn row(self, index: usize) -> &'embedding [f32; PROJECTOR_DIMENSIONS] {
+    pub(crate) const fn row(self, index: usize) -> &'embedding [f32; PROJECTOR_DIMENSIONS] {
         &self.rows[index]
     }
 }
@@ -182,7 +202,7 @@ impl KnnTable {
                         distance,
                     });
                 }
-                if !(0.0..=2.0).contains(&distance) {
+                if distance.is_sign_negative() || distance > 2.0 {
                     return Err(SemanticGraphError::DistanceOutOfRange {
                         row,
                         neighbor,
@@ -235,6 +255,18 @@ impl KnnTable {
         let start = row * self.neighbors;
         &self.distances[start..start + self.neighbors]
     }
+
+    #[must_use]
+    #[inline]
+    pub(super) fn all_indices(&self) -> &[u32] {
+        &self.indices
+    }
+
+    #[must_use]
+    #[inline]
+    pub(super) fn all_distances(&self) -> &[f32] {
+        &self.distances
+    }
 }
 
 /// Semantic graph construction settings.
@@ -266,6 +298,7 @@ pub(crate) fn build_semantic_graph(
     index: &impl NeighborIndex,
     config: SemanticGraphConfig,
 ) -> Result<SemanticGraph, SemanticGraphError> {
+    let started = Instant::now();
     let rows = embeddings.len();
     let neighbors = config.neighbors.get();
     if rows <= 1 || neighbors >= rows {
@@ -299,11 +332,20 @@ pub(crate) fn build_semantic_graph(
             .expect("neighbor count should fit u64")
             .to_le_bytes(),
     );
-    Ok(SemanticGraph {
+    let graph = SemanticGraph {
         table,
         backend: index.identity(),
         configuration: hasher.finish(),
-    })
+    };
+    tracing::info!(
+        target: "hash_graph_atlas::salt",
+        rows,
+        neighbors,
+        entries,
+        duration_ms = started.elapsed().as_millis(),
+        "semantic graph built"
+    );
+    Ok(graph)
 }
 
 pub(super) fn normalize_neighbors(
@@ -331,7 +373,11 @@ pub(super) fn normalize_neighbors(
                 distance: neighbor.distance,
             });
         }
-        neighbor.distance = neighbor.distance.clamp(0.0, 2.0);
+        neighbor.distance = if neighbor.distance == 0.0 {
+            0.0
+        } else {
+            neighbor.distance.clamp(0.0, 2.0)
+        };
     }
     neighbors.sort_unstable_by(|left, right| {
         left.distance

@@ -10,9 +10,11 @@ production grid, soft-label aggregation, and embedding acquisition consume the
 verified card deck without this artifact. Classifier fitting must fail before
 optimization when the closure is absent, incomplete, stale, or invalid.
 
-This is a normative future-work contract. It does not authorize inferring
-families from rendered card prose or publishing a closure from the current
-artifacts.
+This is the normative contract implemented by `atlas_tools.relation.lineage`,
+`atlas_tools.relation.family_closure`, the HASH and Wikidata card producers, and
+the classifier pipeline. It does not authorize inferring families from rendered
+card prose or publishing a closure from artifacts that lack the required source
+lineage and provenance.
 
 ## Normative language
 

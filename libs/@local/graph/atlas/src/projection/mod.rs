@@ -52,3 +52,7 @@ pub use self::{
     sample::{QueryEdges, Relations, Sample, SampleError, SampleOptions},
     umap::UmapError,
 };
+pub(crate) use self::{
+    graph::{SparseGraph, sparse_graph},
+    umap::{SerialOptimizer, UmapOptions, fit_curve_parameters},
+};

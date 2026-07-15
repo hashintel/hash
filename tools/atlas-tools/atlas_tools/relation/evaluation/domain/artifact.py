@@ -16,9 +16,13 @@ from pydantic import (
     model_validator,
 )
 
-from atlas_tools.common import Sha256Hex
-from atlas_tools.relation.evaluation.domain._collection import FrozenMapping
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import (
+    FrozenMapping,
+    FrozenModel,
+    NonEmptyStr,
+    RelationId,
+    Sha256Hex,
+)
 from atlas_tools.relation.evaluation.domain.configuration import (
     GridJudge,
     JudgeConfig,
@@ -46,12 +50,10 @@ from atlas_tools.relation.evaluation.domain.request_policy import (
 )
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
-    NonEmptyStr,
     NonNegativeFiniteFloat,
     PositiveFiniteFloat,
     Probability,
 )
-from atlas_tools.relation_cards.common.cards import RelationId
 
 
 def _exclude_absent_historical_request_evidence(

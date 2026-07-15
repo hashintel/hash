@@ -21,6 +21,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     Verdict,
 )
 from atlas_tools.relation.evaluation.modes.api import FEW_SHOTS, HOLDOUTS
+from atlas_tools.relation.family_closure.api import family_id_for_relations
 from atlas_tools.relation_cards.common.cards import CardRow, RelationSourceSpec
 
 MALFORMED = "MALFORMED"
@@ -33,18 +34,19 @@ CARD_D = "P9000004"
 CARD_E = "P9000005"
 
 _LIVE_CARDS = {
-    CARD_A: "fam-a",
-    CARD_B: "fam-a",
-    CARD_C: "fam-b",
-    CARD_D: "fam-c",
-    CARD_E: "fam-c",
+    CARD_A: family_id_for_relations((f"wikidata:{CARD_A}", f"wikidata:{CARD_B}")),
+    CARD_B: family_id_for_relations((f"wikidata:{CARD_A}", f"wikidata:{CARD_B}")),
+    CARD_C: family_id_for_relations((f"wikidata:{CARD_C}",)),
+    CARD_D: family_id_for_relations((f"wikidata:{CARD_D}", f"wikidata:{CARD_E}")),
+    CARD_E: family_id_for_relations((f"wikidata:{CARD_D}", f"wikidata:{CARD_E}")),
 }
 _HOLDOUT_VERDICTS: dict[str, Verdict] = {
     holdout.relation_id.removeprefix("wikidata:"): holdout.verdict for holdout in HOLDOUTS
 }
 _HOLDOUT_VERDICTS["P3403"] = "proximal"
 _HOLDOUT_FAMILIES = {
-    local_id: f"fam-h{index}" for index, local_id in enumerate(sorted(_HOLDOUT_VERDICTS), start=1)
+    local_id: family_id_for_relations((f"wikidata:{local_id}",))
+    for local_id in sorted(_HOLDOUT_VERDICTS)
 }
 POOL_CARDS = _LIVE_CARDS | _HOLDOUT_FAMILIES
 

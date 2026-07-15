@@ -21,10 +21,13 @@ Files written by ``emit_records`` (all in the extraction output directory):
   endpoint-type QIDs). Kept as one shared file rather than embedded
   per-record because the same entity (Q5, say) is referenced by many
   properties; a shared map keeps records.jsonl small and duplication-free.
+- ``lineage-records.jsonl``: the closed property universe with exact direct
+  P1647 and explicit P1696 IDs, including dependency-only properties that
+  have no card. This is the zero-network source for lineage publication.
 - ``records.meta.json``: a typed :class:`Provenance` envelope (the only
   file with a wall-clock ``created_at``) whose ``details`` carry
   records_format_version, api_snapshot_date, counts, ladder flags,
-  exclusions, and content hashes of the two data files
+  exclusions, and content hashes of all three data files
   (:class:`RecordsDetails`). Its ``config``/``config_hash`` cover only the
   extraction sub-config (:class:`ExtractionConfig`), so re-rendering with a
   different card config never invalidates the records.
@@ -52,16 +55,17 @@ from atlas_tools.wikidata.model import (
     EntityId,
     EntityLabel,
     ExampleSource,
+    PropertyLineage,
     PropertyRecord,
     entity_number,
 )
 from atlas_tools.wikidata.properties import ExtractionResult
 
-# v3: Constraints carry the property-scope placements (P5314 values), and
-# extraction excludes qualifier-scoped properties. v2 records were mined
-# without that rule, so they may retain statement-metadata properties and
-# must be re-extracted rather than re-rendered.
-RECORDS_FORMAT_VERSION = 3
+# v4: records preserve direct P1647 and every explicit P1696 separately
+# from card presentation fields, and lineage-records.jsonl carries the
+# dependency-closed source universe. Earlier records cannot reconstruct
+# direct lineage without returning to the snapshot-pinned source documents.
+RECORDS_FORMAT_VERSION = 4
 
 _ENTITY_LABELS_ADAPTER = TypeAdapter(dict[EntityId, EntityLabel])
 
@@ -86,6 +90,7 @@ class ExtractionCounts(BaseModel):
     inventory_rows: NonNegativeInt
     excluded: NonNegativeInt
     records: NonNegativeInt
+    lineage_nodes: NonNegativeInt
     example_skips: NonNegativeInt
 
 
@@ -124,18 +129,21 @@ class RecordsPaths:
 
     records_jsonl: Path
     entity_labels: Path
+    lineage_records: Path
     records_meta: Path
     inventory: Path
 
 
 @dataclass
 class RecordSet:
-    """The loaded structured intermediate, ready for card rendering."""
+    """The loaded structured intermediate, ready for card and lineage rendering."""
 
     records: list[PropertyRecord]
     entity_labels: dict[EntityId, EntityLabel]
+    lineage: tuple[PropertyLineage, ...]
     meta: RecordsProvenance
     records_path: Path
+    lineage_path: Path
 
 
 def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) -> RecordsPaths:
@@ -159,6 +167,13 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) ->
         },
     )
 
+    lineage_path = out_dir / "lineage-records.jsonl"
+    ordered_lineage = sorted(result.lineage, key=lambda node: node.pid)
+    with lineage_path.open("w", encoding="utf-8") as lineage_file:
+        lineage_file.writelines(
+            canonical_json_bytes(node).decode("utf-8") + "\n" for node in ordered_lineage
+        )
+
     excluded_sorted = dict(sorted(result.excluded.items(), key=lambda item: entity_number(item[0])))
     meta_path = out_dir / "records.meta.json"
     RecordsProvenance.make(
@@ -172,6 +187,7 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) ->
                 inventory_rows=len(result.inventory_rows),
                 excluded=len(result.excluded),
                 records=len(ordered),
+                lineage_nodes=len(ordered_lineage),
                 example_skips=len(result.example_skips),
             ),
             flags=LadderFlags(
@@ -195,6 +211,7 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) ->
             content_hashes={
                 "records.jsonl": sha256_file(records_path),
                 "entity_labels.json": sha256_file(labels_path),
+                "lineage-records.jsonl": sha256_file(lineage_path),
             },
         ),
     ).write(meta_path)
@@ -217,23 +234,88 @@ def emit_records(result: ExtractionResult, config: Config, out_dir: PathLike) ->
     return RecordsPaths(
         records_jsonl=records_path,
         entity_labels=labels_path,
+        lineage_records=lineage_path,
         records_meta=meta_path,
         inventory=inventory_path,
     )
 
 
-def load_records(path: PathLike) -> RecordSet:
-    """Load the intermediate from a directory or a records.jsonl path.
+def _verify_data_hashes(
+    data_paths: dict[str, Path],
+    recorded_hashes: dict[str, Sha256Hex],
+) -> None:
+    if set(recorded_hashes) != set(data_paths):
+        raise ValueError(
+            "records content hashes must cover exactly: " + ", ".join(sorted(data_paths))
+        )
 
-    ``entity_labels.json`` and ``records.meta.json`` must sit next to
-    ``records.jsonl``. Purely local file I/O; no transport is involved.
-    """
+    for name, data_path in data_paths.items():
+        if sha256_file(data_path) != recorded_hashes[name]:
+            raise ValueError(f"records intermediate content hash mismatch: {name}")
+
+
+def _load_property_records(path: Path) -> list[PropertyRecord]:
+    with path.open(encoding="utf-8") as records_file:
+        records = [
+            PropertyRecord.model_validate_json(line) for line in records_file if line.strip()
+        ]
+
+    record_ids = tuple(record.pid for record in records)
+    expected_order = tuple(sorted(record_ids, key=entity_number))
+    if record_ids != expected_order:
+        raise ValueError("records must use ascending numeric PID order")
+
+    if len(record_ids) != len(set(record_ids)):
+        raise ValueError("records must not repeat a PID")
+
+    return records
+
+
+def _load_property_lineage(path: Path) -> list[PropertyLineage]:
+    with path.open(encoding="utf-8") as lineage_file:
+        lineage = [
+            PropertyLineage.model_validate_json(line) for line in lineage_file if line.strip()
+        ]
+
+    lineage_ids = tuple(node.pid for node in lineage)
+    if lineage_ids != tuple(sorted(lineage_ids)):
+        raise ValueError("lineage records must use ascending PID order")
+
+    if len(lineage_ids) != len(set(lineage_ids)):
+        raise ValueError("lineage records must not repeat a PID")
+
+    return lineage
+
+
+def _validate_lineage_universe(
+    records: list[PropertyRecord],
+    lineage: list[PropertyLineage],
+) -> None:
+    lineage_by_pid = {node.pid: node for node in lineage}
+    for node in lineage:
+        for target in (*node.direct_ancestors, *node.p1696_inverse_pids):
+            if target not in lineage_by_pid:
+                raise ValueError(f"lineage fact {node.pid} -> {target} has no target record")
+
+    for record in records:
+        source = lineage_by_pid.get(record.pid)
+        if source is None:
+            raise ValueError(f"record {record.pid} has no source lineage node")
+        if source.direct_ancestors != record.direct_ancestors:
+            raise ValueError(f"record {record.pid} direct P1647 facts disagree with source lineage")
+        if source.p1696_inverse_pids != record.p1696_inverse_pids:
+            raise ValueError(f"record {record.pid} P1696 facts disagree with source lineage")
+
+
+def load_records(path: PathLike) -> RecordSet:
+    """Load and hash-verify the zero-network card/lineage intermediate."""
     path = Path(path)
     records_path = path / "records.jsonl" if path.is_dir() else path
     base = records_path.parent
     labels_path = base / "entity_labels.json"
+    lineage_path = base / "lineage-records.jsonl"
     meta_path = base / "records.meta.json"
-    for required in (records_path, labels_path, meta_path):
+    for required in (records_path, labels_path, lineage_path, meta_path):
         if not required.exists():
             raise FileNotFoundError(f"records intermediate incomplete: {required}")
 
@@ -244,17 +326,29 @@ def load_records(path: PathLike) -> RecordSet:
             f"records format version {version!r} unsupported (expected {RECORDS_FORMAT_VERSION})"
         )
 
-    records: list[PropertyRecord] = []
-    with records_path.open(encoding="utf-8") as records_file:
-        records.extend(
-            PropertyRecord.model_validate_json(line) for line in records_file if line.strip()
-        )
+    _verify_data_hashes(
+        {
+            "entity_labels.json": labels_path,
+            "lineage-records.jsonl": lineage_path,
+            "records.jsonl": records_path,
+        },
+        meta.details.content_hashes,
+    )
+    records = _load_property_records(records_path)
+    lineage = _load_property_lineage(lineage_path)
+    if meta.details.counts.records != len(records):
+        raise ValueError("records count differs from records.meta.json")
 
-    entity_labels = _ENTITY_LABELS_ADAPTER.validate_json(labels_path.read_bytes())
+    if meta.details.counts.lineage_nodes != len(lineage):
+        raise ValueError("lineage node count differs from records.meta.json")
+
+    _validate_lineage_universe(records, lineage)
 
     return RecordSet(
         records=records,
-        entity_labels=entity_labels,
+        entity_labels=_ENTITY_LABELS_ADAPTER.validate_json(labels_path.read_bytes()),
+        lineage=tuple(lineage),
         meta=meta,
         records_path=records_path,
+        lineage_path=lineage_path,
     )

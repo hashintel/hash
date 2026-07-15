@@ -23,9 +23,12 @@ def test_cli_reads_database_environment_and_prefers_cli(
     ) -> HashCardsPaths:
         captured.update(connection=connection_info, config=config, out=out_dir)
         return HashCardsPaths(
+            entity_types_jsonl=out_dir / "entity-types.jsonl",
             link_types_jsonl=out_dir / "link-types.jsonl",
             cards_jsonl=out_dir / "cards.jsonl",
             manifest=out_dir / "cards.manifest.json",
+            lineage_jsonl=out_dir / "lineage.jsonl",
+            lineage_manifest=out_dir / "lineage.manifest.json",
         )
 
     monkeypatch.setattr(cli, "extract_and_emit_hash_cards", extract)

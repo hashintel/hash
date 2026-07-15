@@ -13,7 +13,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import Field, PositiveInt, TypeAdapter, field_validator, model_validator
 
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import FrozenModel, NonEmptyStr
 from atlas_tools.relation.evaluation.domain.identity import (
     JudgeFamilyId,
     ModelId,
@@ -25,7 +25,6 @@ from atlas_tools.relation.evaluation.domain.identity import (
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
     HttpErrorStatusCode,
-    NonEmptyStr,
     NonNegativeDuration,
     OpenProbability,
     PositiveDuration,

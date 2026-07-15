@@ -137,7 +137,8 @@ class VerifiedConcatArtifact:
         return _rows(self._input)
 
 
-def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
+def card_artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
+    """Derive the stable identity shared by card and lineage artifacts."""
     return sha256_bytes(
         canonical_json_bytes(
             {
@@ -220,7 +221,7 @@ def _verified_artifact(card_dir: Path) -> _InputArtifact:
         cards_path=cards_path,
         cards_hash=cards_hash,
         manifest_hash=manifest_hash,
-        artifact_id=_artifact_id(cards_hash, manifest_hash),
+        artifact_id=card_artifact_id(cards_hash, manifest_hash),
         sources=dict(sources),
         nested=is_nested,
         expected_rows=expected_rows,

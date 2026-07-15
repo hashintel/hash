@@ -1,6 +1,14 @@
-//! USearch cosine index behind the semantic-neighbor interface.
+//! `USearch` cosine index behind the semantic-neighbor interface.
+//!
+//! Construction uses one writer context so host parallelism cannot alter the
+//! random level stream. Query scratch space is expanded only after the graph is
+//! complete. The C++ default random engine remains implementation-defined, so
+//! byte-for-byte regeneration requires the same pinned binary toolchain; the
+//! persisted neighbor table and its exact-recall audit are the portable
+//! generation record.
 
 use core::{fmt, num::NonZeroUsize};
+use std::time::Instant;
 
 use usearch::{Index, IndexOptions, MetricKind, ScalarKind};
 
@@ -14,7 +22,7 @@ const DEFAULT_CONNECTIVITY: usize = 16;
 const DEFAULT_EXPANSION_ADD: usize = 200;
 const DEFAULT_EXPANSION_SEARCH: usize = 128;
 
-/// Reproducible USearch HNSW build and query settings.
+/// Pinned `USearch` HNSW build and query settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct USearchConfig {
     pub connectivity: NonZeroUsize,
@@ -35,22 +43,23 @@ impl Default for USearchConfig {
     }
 }
 
-/// Immutable USearch index built in generation-row order.
+/// Immutable `USearch` index built in generation-row order.
 pub(crate) struct USearchIndex {
     index: Index,
     identity: ContentHash,
 }
 
 impl USearchIndex {
-    /// Builds an index by inserting rows in deterministic order.
+    /// Builds an index through one writer context in generation-row order.
     ///
     /// # Errors
     ///
-    /// Returns an error when USearch cannot allocate, reserve, or add a row.
+    /// Returns an error when `USearch` cannot allocate, reserve, or add a row.
     pub(crate) fn build(
         embeddings: ProjectorEmbeddings<'_>,
         config: USearchConfig,
     ) -> Result<Self, SemanticGraphError> {
+        let started = Instant::now();
         let index = Index::new(&IndexOptions {
             dimensions: PROJECTOR_DIMENSIONS,
             metric: MetricKind::Cos,
@@ -60,16 +69,19 @@ impl USearchIndex {
             expansion_search: config.expansion_search.get(),
             multi: false,
         })?;
-        index.reserve(embeddings.len())?;
+        index.reserve_capacity_and_threads(embeddings.len(), 1)?;
         for row in 0..embeddings.len() {
             index.add(
                 u64::try_from(row).expect("validated row should fit u64"),
                 embeddings.row(row),
             )?;
         }
+        index
+            .reserve_capacity_and_threads(embeddings.len(), rayon::current_num_threads().max(1))?;
 
-        let mut hasher = ContentHasher::new(b"salt:ann-backend:usearch-hnsw:v1");
+        let mut hasher = ContentHasher::new(b"salt:ann-backend:usearch-hnsw:v2");
         hasher.update(b"usearch-2.25.3");
+        hasher.update(b"single-threaded-build");
         hasher.update(
             &u64::try_from(PROJECTOR_DIMENSIONS)
                 .expect("projector dimensions should fit u64")
@@ -87,10 +99,18 @@ impl USearchIndex {
             );
         }
 
-        Ok(Self {
+        let built = Self {
             index,
             identity: hasher.finish(),
-        })
+        };
+        tracing::info!(
+            target: "hash_graph_atlas::salt",
+            rows = embeddings.len(),
+            dimensions = PROJECTOR_DIMENSIONS,
+            duration_ms = started.elapsed().as_millis(),
+            "semantic ANN index built"
+        );
+        Ok(built)
     }
 }
 

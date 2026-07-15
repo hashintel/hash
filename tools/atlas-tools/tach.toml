@@ -59,6 +59,12 @@ layer               = "capability"
 path                = "atlas_tools.relation.evaluation.storage"
 
 [[modules]]
+depends_on          = []
+depends_on_external = ["rich", "textual"]
+layer               = "capability"
+path                = "atlas_tools.relation.evaluation.visualization"
+
+[[modules]]
 depends_on = [
     "atlas_tools.relation.evaluation.domain",
     "atlas_tools.relation.evaluation.storage",
@@ -87,6 +93,7 @@ depends_on = [
     "atlas_tools.relation.evaluation.modes",
     "atlas_tools.relation.evaluation.storage",
     "atlas_tools.relation.evaluation.transport",
+    "atlas_tools.relation.evaluation.visualization",
 ]
 depends_on_external = [
     "matplotlib",
@@ -115,6 +122,10 @@ from   = ["atlas_tools.relation.evaluation.transport"]
 [[interfaces]]
 expose = ["api.*"]
 from   = ["atlas_tools.relation.evaluation.storage"]
+
+[[interfaces]]
+expose = ["api.*", "model.*"]
+from   = ["atlas_tools.relation.evaluation.visualization"]
 
 [[interfaces]]
 expose = ["api.*"]

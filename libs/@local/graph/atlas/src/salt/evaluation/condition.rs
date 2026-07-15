@@ -12,18 +12,22 @@ pub(crate) struct ConditionDomain {
 }
 
 impl ConditionDomain {
-    /// Defines a finite non-degenerate condition interval.
+    /// Defines a finite non-degenerate condition interval rooted at zero.
     ///
     /// # Errors
     ///
-    /// This returns an error unless `minimum < maximum` and both endpoints are
-    /// finite.
+    /// This returns an error unless `minimum == 0 < maximum` and both endpoints
+    /// are finite.
     pub(crate) fn new(
         minimum: f64,
         maximum: f64,
         version: ContentHash,
     ) -> Result<Self, EvaluationError> {
-        if !minimum.is_finite() || !maximum.is_finite() || minimum >= maximum {
+        if !minimum.is_finite()
+            || !maximum.is_finite()
+            || minimum.to_bits() != 0.0_f64.to_bits()
+            || minimum >= maximum
+        {
             return Err(EvaluationError::InvalidDomain { minimum, maximum });
         }
         Ok(Self {
@@ -111,6 +115,11 @@ impl ConditionLadder {
             return Err(EvaluationError::TooManyCandidates {
                 count: candidates.len(),
                 maximum: MAX_EVALUATION_CONDITIONS,
+            });
+        }
+        if candidates[0].condition.get().to_bits() != 0.0_f64.to_bits() {
+            return Err(EvaluationError::MissingSemanticBaseline {
+                value: candidates[0].condition.get(),
             });
         }
         let mut previous = None;

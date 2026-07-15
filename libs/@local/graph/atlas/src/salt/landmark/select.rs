@@ -222,7 +222,10 @@ fn validate(
     if candidates.is_empty() {
         return Err(LandmarkError::EmptyCorpus);
     }
-    if !config.retained_fraction.is_finite() || !(0.0..=1.0).contains(&config.retained_fraction) {
+    if !config.retained_fraction.is_finite()
+        || config.retained_fraction.is_sign_negative()
+        || config.retained_fraction > 1.0
+    {
         return Err(LandmarkError::InvalidRetainedFraction {
             value: config.retained_fraction,
         });

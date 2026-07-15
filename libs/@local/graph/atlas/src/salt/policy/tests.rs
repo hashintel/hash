@@ -94,6 +94,16 @@ fn posterior_validation_rejects_invalid_probabilities_and_mass() {
         Probability::new(1.01),
         Err(ProbabilityError::OutsideUnitInterval)
     ));
+    assert!(matches!(
+        Probability::new(-0.0),
+        Err(ProbabilityError::OutsideUnitInterval)
+    ));
+    let normalized = PlacementPosterior::new(0.2, 0.3, 0.500_000_000_000_5)
+        .expect("mass within the declared tolerance should normalize");
+    assert_eq!(
+        normalized.coincident.get() + normalized.proximal.get() + normalized.overlay.get(),
+        1.0
+    );
 }
 
 #[test]

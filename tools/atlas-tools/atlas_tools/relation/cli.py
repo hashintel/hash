@@ -1,8 +1,9 @@
 """``relation`` console entry point (see pyproject [project.scripts])."""
 
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, DirectoryPath, FilePath
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath
 from pydantic_settings import (
     BaseSettings,
     CliApp,
@@ -34,6 +35,35 @@ class ConcatCommand(BaseSettings):
         except (OSError, ValueError) as error:
             fail(error)
         echo(f"wrote {paths.cards_jsonl}")
+        echo(f"wrote {paths.manifest}")
+
+
+class ClosureCommand(BaseSettings):
+    """Publish overlap-safe relation families from verified source lineage.
+
+    The card directory must be a verified ``relation.concat`` artifact. Every
+    source namespace in that deck requires exactly one schema-v1 lineage input.
+    The output directory is immutable and must not already exist.
+    """
+
+    cards: CliPositionalArg[DirectoryPath]
+    lineages: CliPositionalArg[list[DirectoryPath]]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.family_closure.api import publish_family_closure
+
+        try:
+            paths = publish_family_closure(
+                self.cards,
+                self.lineages,
+                output_directory=self.out,
+            )
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {paths.families_jsonl}")
         echo(f"wrote {paths.manifest}")
 
 
@@ -76,6 +106,35 @@ class EvaluateCommand(BaseSettings):
             echo(f"wrote {paths.corpus}")
             echo(f"wrote {paths.imported_votes}")
         echo(f"wrote {paths.manifest}")
+
+
+class StatusCommand(BaseSettings):
+    """Monitor a production grid through its durable append-only artifacts.
+
+    The full-screen dashboard refreshes until ``q`` is pressed. ``--once`` prints one
+    status sample for logs, scripts, or terminals without interactive capabilities.
+    """
+
+    run: CliPositionalArg[DirectoryPath]
+    refresh_seconds: Annotated[float, Field(ge=0.25)] = 2.0
+    trigger_rate: Annotated[float, Field(ge=0, le=1)] = 0.40
+    once: bool = False
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.grid_status import GridStatusReader
+        from atlas_tools.relation.evaluation.visualization.api import run_grid_status
+
+        reader = GridStatusReader(self.run, trigger_rate=self.trigger_rate)
+        try:
+            run_grid_status(
+                reader.snapshot,
+                refresh_seconds=self.refresh_seconds,
+                once=self.once,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            fail(error)
 
 
 class DeliverablesCommand(BaseSettings):
@@ -183,6 +242,7 @@ class FitCommand(BaseSettings):
 
     soft_labels: CliPositionalArg[FilePath]
     embeddings: CliPositionalArg[FilePath]
+    closure: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
     out: Path
 
@@ -195,6 +255,7 @@ class FitCommand(BaseSettings):
             result = fit_classifier(
                 soft_labels_path=self.soft_labels,
                 embeddings_path=self.embeddings,
+                closure_directory=self.closure,
                 config_path=self.config,
                 output_directory=self.out,
             )
@@ -213,6 +274,7 @@ class ReportCommand(BaseSettings):
     config: CliPositionalArg[FilePath]
     gold: FilePath
     classifier: DirectoryPath | None = None
+    closure: DirectoryPath | None = None
     out: Path
 
     model_config = SettingsConfigDict(extra="forbid")
@@ -227,6 +289,7 @@ class ReportCommand(BaseSettings):
                 config_path=self.config,
                 gold_path=self.gold,
                 classifier_directory=self.classifier,
+                closure_directory=self.closure,
                 output_directory=self.out,
             )
         except (OSError, ValueError) as error:
@@ -283,7 +346,9 @@ class RelationCli(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     concat: CliSubCommand[ConcatCommand]
+    closure: CliSubCommand[ClosureCommand]
     evaluate: CliSubCommand[EvaluateCommand]
+    status: CliSubCommand[StatusCommand]
     deliverables: CliSubCommand[DeliverablesCommand]
     aggregate: CliSubCommand[AggregateCommand]
     embed: CliSubCommand[EmbedCommand]

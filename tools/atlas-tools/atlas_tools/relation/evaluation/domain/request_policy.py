@@ -4,8 +4,7 @@ from typing import Literal, Self
 
 from pydantic import PositiveInt, field_validator, model_validator
 
-from atlas_tools.common import Sha256Hex
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import FrozenModel, Sha256Hex
 from atlas_tools.relation.evaluation.domain.identity import AttemptId
 
 type ActiveCompletionRequestPolicyId = Literal["explicit-prefix-breakpoint-ephemeral-v2"]

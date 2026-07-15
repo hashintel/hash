@@ -40,7 +40,7 @@ use crate::salt::classifier::ClassifierOutput;
 
 const POSTERIOR_SUM_TOLERANCE: f64 = 1.0e-12;
 
-/// A finite value in the closed unit interval.
+/// A finite value in the closed unit interval with canonical positive zero.
 ///
 /// Arithmetic that combines validated probabilities clamps only a
 /// one-ULP boundary overshoot caused by floating-point rounding.
@@ -56,12 +56,13 @@ impl Probability {
     ///
     /// # Errors
     ///
-    /// This returns an error when `value` is non-finite or outside `[0, 1]`.
+    /// This returns an error when `value` is non-finite, has a negative sign
+    /// bit, or exceeds one.
     pub(crate) fn new(value: f64) -> Result<Self, ProbabilityError> {
         if !value.is_finite() {
             return Err(ProbabilityError::NonFinite);
         }
-        if !(0.0..=1.0).contains(&value) {
+        if value.is_sign_negative() || value > 1.0 {
             return Err(ProbabilityError::OutsideUnitInterval);
         }
         Ok(Self(value))
@@ -140,27 +141,29 @@ impl PlacementPosterior {
         proximal: f64,
         overlay: f64,
     ) -> Result<Self, PosteriorError> {
-        let posterior = Self {
-            coincident: Probability::new(coincident).map_err(|error| {
-                PosteriorError::Probability {
-                    class: PlacementClass::Coincident,
-                    error,
-                }
-            })?,
-            proximal: Probability::new(proximal).map_err(|error| PosteriorError::Probability {
-                class: PlacementClass::Proximal,
-                error,
-            })?,
-            overlay: Probability::new(overlay).map_err(|error| PosteriorError::Probability {
-                class: PlacementClass::Overlay,
-                error,
-            })?,
-        };
+        Probability::new(coincident).map_err(|error| PosteriorError::Probability {
+            class: PlacementClass::Coincident,
+            error,
+        })?;
+        Probability::new(proximal).map_err(|error| PosteriorError::Probability {
+            class: PlacementClass::Proximal,
+            error,
+        })?;
+        Probability::new(overlay).map_err(|error| PosteriorError::Probability {
+            class: PlacementClass::Overlay,
+            error,
+        })?;
         let sum = coincident + proximal + overlay;
         if (sum - 1.0).abs() > POSTERIOR_SUM_TOLERANCE {
             return Err(PosteriorError::NotNormalized);
         }
-        Ok(posterior)
+        let coincident = coincident / sum;
+        let proximal = proximal / sum;
+        Ok(Self {
+            coincident: Probability::from_calculation(coincident),
+            proximal: Probability::from_calculation(proximal),
+            overlay: Probability::from_calculation(1.0 - coincident - proximal),
+        })
     }
 
     /// Returns the first maximum in coincident, proximal, overlay order.

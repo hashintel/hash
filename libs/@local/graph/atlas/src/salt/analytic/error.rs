@@ -16,10 +16,29 @@ pub(crate) enum AnalyticError {
         field: &'static str,
         value: f64,
     },
+    InvalidRegionLimit {
+        value: usize,
+    },
+    RegionLabelPoint {
+        point: usize,
+        count: usize,
+    },
+    InvalidLabelImportance {
+        point: usize,
+        value: f64,
+    },
+    EmptyRegionLabel {
+        point: usize,
+    },
     NonFiniteCoordinate {
         point: usize,
         axis: usize,
         value: f64,
+    },
+    NonFiniteExtent {
+        axis: usize,
+        minimum: f64,
+        maximum: f64,
     },
     InvalidMass {
         point: usize,
@@ -58,9 +77,37 @@ impl fmt::Display for AnalyticError {
                 formatter,
                 "analytic {field} must be finite and within (0, 1], got {value}"
             ),
+            Self::InvalidRegionLimit { value } => write!(
+                formatter,
+                "analytic maximum region count must be positive and fit u32, got {value}"
+            ),
+            Self::RegionLabelPoint { point, count } => write!(
+                formatter,
+                "analytic region-label point {point} is outside the {count}-point region map"
+            ),
+            Self::InvalidLabelImportance { point, value } => write!(
+                formatter,
+                "analytic region-label importance for point {point} must be finite and \
+                 non-negative, got {value}"
+            ),
+            Self::EmptyRegionLabel { point } => {
+                write!(
+                    formatter,
+                    "analytic region-label point {point} has an empty label"
+                )
+            }
             Self::NonFiniteCoordinate { point, axis, value } => write!(
                 formatter,
                 "analytic point {point}, axis {axis} is non-finite: {value}"
+            ),
+            Self::NonFiniteExtent {
+                axis,
+                minimum,
+                maximum,
+            } => write!(
+                formatter,
+                "analytic coordinate extent on axis {axis} is non-finite: minimum={minimum}, \
+                 maximum={maximum}"
             ),
             Self::InvalidMass { point, value } => write!(
                 formatter,

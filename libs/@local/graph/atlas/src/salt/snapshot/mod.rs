@@ -8,11 +8,22 @@
 mod admit;
 mod error;
 mod permission;
+mod security;
 
+#[allow(
+    unused_imports,
+    reason = "snapshot authorization is invoked by the store-backed generation adapter"
+)]
 pub(crate) use self::{
     admit::{AuthorizedLink, EntityAtEdition, LinkCandidate, LinkRejection, authorize_link},
     error::SnapshotError,
-    permission::{AuthorizedSnapshot, LinkRejectionCounts, authorize_snapshot},
+    permission::{
+        AuthorizedSnapshot, LinkRejectionCounts, SnapshotTemporalAxes, authorize_snapshot,
+    },
+    security::{
+        GeometryAuthorizedLink, GeometrySnapshot, RelationSecurityPolicy,
+        authorize_relation_geometry,
+    },
 };
 
 #[cfg(test)]

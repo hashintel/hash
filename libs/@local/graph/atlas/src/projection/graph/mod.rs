@@ -68,7 +68,7 @@ fn validate_graph(graph: &SparseGraph) -> Result<(), GraphError> {
 /// Returns [`GraphError::SparseStructure`] when the pointers, indices, and
 /// values do not describe a valid CSR matrix (for example unsorted column
 /// indices or pointer/value length mismatches).
-pub(super) fn sparse_graph(
+pub(crate) fn sparse_graph(
     rows: usize,
     indptr: Vec<u32>,
     indices: Vec<u32>,

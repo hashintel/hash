@@ -67,6 +67,13 @@ impl DensityRaster {
     pub(crate) const fn bounds(&self) -> ([f64; 2], [f64; 2]) {
         (self.minimum, self.maximum)
     }
+
+    #[inline]
+    pub(super) fn pixel(&self, coordinate: [f64; 2]) -> usize {
+        let x = bin(coordinate[0], self.minimum[0], self.maximum[0], self.size);
+        let y = bin(coordinate[1], self.minimum[1], self.maximum[1], self.size);
+        x * self.size + y
+    }
 }
 
 /// Rasterizes weighted points and applies a separable Gaussian kernel.
@@ -80,7 +87,8 @@ impl DensityRaster {
 /// # Errors
 ///
 /// This returns an error for a grid smaller than two, a non-positive
-/// bandwidth, a non-finite coordinate, or a negative or non-finite mass.
+/// bandwidth, a non-finite coordinate extent, or a negative or non-finite
+/// mass.
 pub(crate) fn density_raster(
     points: &[AnalyticPoint],
     config: RasterConfig,
@@ -98,7 +106,7 @@ pub(crate) fn density_raster(
     let mut minimum = [f64::INFINITY; 2];
     let mut maximum = [f64::NEG_INFINITY; 2];
     for (point_index, point) in points.iter().enumerate() {
-        if !point.mass.is_finite() || point.mass < 0.0 {
+        if !point.mass.is_finite() || point.mass.is_sign_negative() {
             return Err(AnalyticError::InvalidMass {
                 point: point_index,
                 value: point.mass,
@@ -119,8 +127,27 @@ pub(crate) fn density_raster(
     }
     for axis in 0..2 {
         if maximum[axis] <= minimum[axis] {
-            minimum[axis] -= 0.5;
-            maximum[axis] += 0.5;
+            let center = minimum[axis];
+            let radius = (center.abs() * f64::EPSILON * 2.0).max(0.5);
+            let lower = center - radius;
+            let upper = center + radius;
+            if lower.is_finite() && upper.is_finite() {
+                minimum[axis] = lower;
+                maximum[axis] = upper;
+            } else if center.is_sign_positive() {
+                minimum[axis] = lower;
+                maximum[axis] = center;
+            } else {
+                minimum[axis] = center;
+                maximum[axis] = upper;
+            }
+        }
+        if !(maximum[axis] - minimum[axis]).is_finite() {
+            return Err(AnalyticError::NonFiniteExtent {
+                axis,
+                minimum: minimum[axis],
+                maximum: maximum[axis],
+            });
         }
     }
 
@@ -138,12 +165,20 @@ pub(crate) fn density_raster(
             maximum[1],
             config.grid_size,
         );
-        histogram[x * config.grid_size + y] += point.mass;
+        let pixel = x * config.grid_size + y;
+        let density = histogram[pixel] + point.mass;
+        if !density.is_finite() {
+            return Err(AnalyticError::InvalidDensity {
+                pixel,
+                value: density,
+            });
+        }
+        histogram[pixel] = density;
     }
 
     let kernel = gaussian_kernel(config.bandwidth_pixels);
-    let first = convolve_axis(&histogram, config.grid_size, &kernel, 0);
-    let values = convolve_axis(&first, config.grid_size, &kernel, 1);
+    let first = convolve_axis(&histogram, config.grid_size, &kernel, 0)?;
+    let values = convolve_axis(&first, config.grid_size, &kernel, 1)?;
     Ok(DensityRaster {
         size: config.grid_size,
         values,
@@ -158,7 +193,14 @@ fn validate_config(config: RasterConfig) -> Result<usize, AnalyticError> {
             size: config.grid_size,
         });
     }
-    if !config.bandwidth_pixels.is_finite() || config.bandwidth_pixels <= 0.0 {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "a validated grid size is used only as a conservative kernel bound"
+    )]
+    if !config.bandwidth_pixels.is_finite()
+        || config.bandwidth_pixels <= 0.0
+        || config.bandwidth_pixels > config.grid_size as f64
+    {
         return Err(AnalyticError::InvalidBandwidth {
             value: config.bandwidth_pixels,
         });
@@ -206,13 +248,18 @@ fn gaussian_kernel(bandwidth: f64) -> Vec<f64> {
     kernel
 }
 
-fn convolve_axis(values: &[f64], size: usize, kernel: &[f64], axis: usize) -> Vec<f64> {
+fn convolve_axis(
+    values: &[f64],
+    size: usize,
+    kernel: &[f64],
+    axis: usize,
+) -> Result<Vec<f64>, AnalyticError> {
     let radius = kernel.len() / 2;
     let mut output = vec![0.0; values.len()];
     output
         .par_iter_mut()
         .enumerate()
-        .for_each(|(pixel, output)| {
+        .try_for_each(|(pixel, output)| {
             let row = pixel / size;
             let column = pixel % size;
             let mut sum = 0.0;
@@ -226,9 +273,13 @@ fn convolve_axis(values: &[f64], size: usize, kernel: &[f64], axis: usize) -> Ve
                 };
                 sum = weight.mul_add(values[sample_row * size + sample_column], sum);
             }
+            if !sum.is_finite() {
+                return Err(AnalyticError::InvalidDensity { pixel, value: sum });
+            }
             *output = sum;
-        });
-    output
+            Ok(())
+        })?;
+    Ok(output)
 }
 
 #[inline]

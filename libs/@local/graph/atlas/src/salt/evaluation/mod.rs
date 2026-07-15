@@ -6,15 +6,19 @@
 //! distinguishability, semantic-fidelity, persistence, and task evidence can
 //! become a [`CanonicalCondition`].
 
+mod canonical;
 mod condition;
 mod error;
+mod measure;
 
 pub(crate) use self::{
-    condition::{
-        CanonicalCondition, ConditionDomain, ConditionEvidence, ConditionLadder,
-        EvaluatedCondition, RelationCondition,
-    },
+    canonical::{CanonicalField, canonical_field},
+    condition::{CanonicalCondition, ConditionDomain, ConditionEvidence, ConditionLadder},
     error::EvaluationError,
+    measure::{
+        ConditionField, ConditionMeasurement, ConditionMeasurementConfig,
+        ConditionMeasurementError, measure_condition_ladder,
+    },
 };
 
 #[cfg(test)]

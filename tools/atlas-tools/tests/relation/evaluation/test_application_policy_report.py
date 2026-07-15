@@ -34,6 +34,7 @@ from atlas_tools.relation.evaluation.application.policy_report import (
 )
 from atlas_tools.relation.evaluation.application.run import run_evaluation
 from atlas_tools.relation.evaluation.domain.api import PlacementClass
+from tests.relation.evaluation.classifier_fixtures import write_verified_family_closure
 from tests.relation.evaluation.grid_fixtures import (
     grid_config,
     write_grid_concat,
@@ -183,7 +184,7 @@ def test_report_composition_loads_grid_once_and_publishes_reproducible_ascii(
         load_policy_report_artifact(first.directory)
 
 
-def test_classifier_from_different_soft_label_lineage_is_rejected(
+def test_report_classifier_closure_is_required_revalidated_and_transitive(
     completed_fixture: _CompletedFixture,
 ) -> None:
     fixture = completed_fixture
@@ -197,7 +198,6 @@ def test_classifier_from_different_soft_label_lineage_is_rejected(
             "votes.jsonl",
         )
     }
-    source_hashes["imported-votes.jsonl"] = "f" * 64
     training_labels = []
     coordinates = ((-2.0, 0.0), (2.0, 0.0), (0.0, 2.0))
     for index, label in enumerate(soft_labels(completed.analysis)):
@@ -218,10 +218,15 @@ def test_classifier_from_different_soft_label_lineage_is_rejected(
                 }
             )
         )
+    training_rows = tuple(training_labels)
     labels = write_soft_labels(
-        fixture.root / "drifted-soft-labels.parquet",
-        tuple(training_labels),
+        fixture.root / "classifier-soft-labels.parquet",
+        training_rows,
         source_hashes=source_hashes,
+    )
+    closure = write_verified_family_closure(
+        fixture.root / "classifier-closure",
+        training_rows,
     )
     embedding_rows = tuple(
         EmbeddingRow.from_values(
@@ -248,19 +253,67 @@ def test_classifier_from_different_soft_label_lineage_is_rejected(
             "grid-config": completed.prepared.loaded_config.content_hash,
         },
     )
-    classifier_directory = fixture.root / "drifted-classifier"
-    fit_classifier(
+    classifier_directory = fixture.root / "classifier"
+    classifier = fit_classifier(
         soft_labels_path=labels.path,
         embeddings_path=embeddings.path,
+        closure_directory=closure.directory,
         config_path=fixture.config_path,
         output_directory=classifier_directory,
+    )
+    assert classifier.metadata.closure.artifact_id == closure.manifest.details.artifact_id
+    assert (
+        classifier.metadata.source_hashes["family-closure/families.jsonl"] == closure.families_hash
+    )
+    assert (
+        classifier.metadata.source_hashes["family-closure/families.manifest.json"]
+        == closure.manifest_hash
     )
     gold_path = _write_gold(
         fixture.root / "lineage-gold.jsonl",
         (_gold(completed.analysis.cards[0]),),
     )
-    output_directory = fixture.root / "lineage-report"
+    missing_output = fixture.root / "missing-closure-report"
+    with pytest.raises(ValueError, match="classifier and family closure must be provided together"):
+        write_policy_report_from_grid(
+            completed=completed,
+            gold_path=gold_path,
+            classifier_directory=classifier_directory,
+            output_directory=missing_output,
+        )
+    assert not (missing_output / REPORT_METADATA_FILENAME).exists()
 
+    mismatched_closure = write_verified_family_closure(
+        fixture.root / "mismatched-classifier-closure",
+        training_rows,
+        provenance_seed="mismatched",
+    )
+    mismatched_output = fixture.root / "mismatched-closure-report"
+    with pytest.RaisesGroup(pytest.RaisesExc(ValueError, match="different family closure")):
+        write_policy_report_from_grid(
+            completed=completed,
+            gold_path=gold_path,
+            classifier_directory=classifier_directory,
+            closure_directory=mismatched_closure.directory,
+            output_directory=mismatched_output,
+        )
+    assert not (mismatched_output / REPORT_METADATA_FILENAME).exists()
+
+    report = write_policy_report_from_grid(
+        completed=completed,
+        gold_path=gold_path,
+        classifier_directory=classifier_directory,
+        closure_directory=closure.directory,
+        output_directory=fixture.root / "classifier-report",
+    )
+    assert report.metadata.source_hashes["classifier/metadata"] == classifier.metadata.metadata_hash
+    assert report.report.classifier_state == "evaluated"
+
+    drifted_sources = dict(classifier.metadata.source_hashes)
+    drifted_sources["grid/imported-votes.jsonl"] = "f" * 64
+    drifted_metadata = classifier.metadata.model_copy(update={"source_hashes": drifted_sources})
+    classifier.metadata_path.write_bytes(canonical_json_bytes(drifted_metadata) + b"\n")
+    output_directory = fixture.root / "lineage-report"
     with pytest.raises(
         ValueError,
         match=r"does not bind completed grid source imported-votes\.jsonl",
@@ -269,6 +322,7 @@ def test_classifier_from_different_soft_label_lineage_is_rejected(
             completed=completed,
             gold_path=gold_path,
             classifier_directory=classifier_directory,
+            closure_directory=closure.directory,
             output_directory=output_directory,
         )
     assert not (output_directory / REPORT_METADATA_FILENAME).exists()

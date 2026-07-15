@@ -8,9 +8,9 @@ contract.
 
 import re
 from enum import StrEnum
-from typing import Annotated, Literal, NewType
+from typing import Annotated, Literal, NewType, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 # Which SPARQL endpoint an example set was mined from. None on a record
@@ -115,8 +115,53 @@ class EntityLabel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+def _validate_direct_property_facts(
+    pid: Pid,
+    direct_ancestors: tuple[Pid, ...],
+    p1696_inverse_pids: tuple[Pid, ...],
+) -> None:
+    for field_name, facts in (
+        ("direct_ancestors", direct_ancestors),
+        ("p1696_inverse_pids", p1696_inverse_pids),
+    ):
+        if facts != tuple(sorted(facts)):
+            raise ValueError(f"{field_name} must use ascending PID order")
+        if len(facts) != len(set(facts)):
+            raise ValueError(f"{field_name} must not contain duplicates")
+        if pid in facts:
+            raise ValueError(f"{field_name} must not contain a self-reference")
+
+
+class WikidataSnapshotIdentity(BaseModel):
+    """Typed identity of the API/cache snapshot used for one extraction."""
+
+    kind: Literal["wikidata-api-snapshot-date"] = "wikidata-api-snapshot-date"
+    value: str
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class PropertyLineage(BaseModel):
+    """Direct identity-bearing facts for one property in the source universe."""
+
+    pid: PidField
+    direct_ancestors: tuple[PidField, ...] = ()
+    p1696_inverse_pids: tuple[PidField, ...] = ()
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def check_direct_property_facts(self) -> Self:
+        _validate_direct_property_facts(
+            self.pid,
+            self.direct_ancestors,
+            self.p1696_inverse_pids,
+        )
+        return self
+
+
 class PropertyRecord(BaseModel):
-    """One mined property; the records.jsonl v1 row (see module docstring).
+    """One mined property; the records.jsonl row schema (see module docstring).
 
     Mutable: extraction fills usage/examples/retrieval fields in stages.
     """
@@ -127,8 +172,16 @@ class PropertyRecord(BaseModel):
     descriptions: dict[LanguageAlpha2, str] = Field(default_factory=dict)
     aliases: dict[LanguageAlpha2, list[str]] = Field(default_factory=dict)
     p31: tuple[Qid, ...] = ()
-    ancestors: tuple[Pid, ...] = ()  # P1647 subproperty-of targets
-    inverse_pid: Pid | None = None  # P1696, else the inverse constraint
+    # Exact direct P1647 statements, kept separate from the transitive card
+    # projection below so source lineage never has to infer directness.
+    direct_ancestors: tuple[PidField, ...] = ()
+    # Direct parents followed by the remaining transitive P1647 closure,
+    # retained as presentation input for the card's Ancestors section.
+    ancestors: tuple[Pid, ...] = ()
+    # Every exact explicit P1696 statement, separate from the P2302/P2306
+    # fallback used only by the singular card display field below.
+    p1696_inverse_pids: tuple[PidField, ...] = ()
+    inverse_pid: Pid | None = None
     constraints: Constraints = Field(default_factory=Constraints)
     # Not a true usage count: sourced from ``wikibase:statements``, which
     # counts statements on the property's own page (P6 -> 34), not how
@@ -140,6 +193,15 @@ class PropertyRecord(BaseModel):
     example_source: ExampleSource | None = None  # None = ladder skipped
     example_skipped: bool = False
     retrieved_at: str | None = None
+
+    @model_validator(mode="after")
+    def check_direct_property_facts(self) -> Self:
+        _validate_direct_property_facts(
+            self.pid,
+            self.direct_ancestors,
+            self.p1696_inverse_pids,
+        )
+        return self
 
 
 _QID_SHAPE = re.compile(r"^Q\d+$")

@@ -34,7 +34,20 @@ class FamilyGroupedRow(Protocol):
     def relation_id(self) -> RelationId: ...
 
     @property
-    def family_id(self) -> RelationFamilyId | None: ...
+    def family_id(self) -> str | None: ...
+
+
+class FamilyBindingRow(FamilyGroupedRow, Protocol):
+    """A classifier cohort bound to the exact current card bytes."""
+
+    @property
+    def card_hash(self) -> str: ...
+
+
+@dataclass(frozen=True, slots=True)
+class _JoinedFamily:
+    relation_id: RelationId
+    family_id: RelationFamilyId
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,20 +65,12 @@ def _label_index(labels: Sequence[SoftLabel]) -> dict[RelationId, SoftLabel]:
     if not labels:
         raise ValueError("classifier training requires at least one soft label")
     labels_by_relation: dict[RelationId, SoftLabel] = {}
-    missing_families: list[RelationId] = []
     for label in labels:
         if label.relation_id in labels_by_relation:
             raise ValueError(f"soft labels repeat relation {label.relation_id}")
         labels_by_relation[label.relation_id] = label
-        if label.family_id is None:
-            missing_families.append(label.relation_id)
         if label.n_votes <= 0:
             raise ValueError(f"soft label {label.relation_id} has no placement-vote weight")
-    if missing_families:
-        raise ValueError(
-            "grouped cross-validation requires family_id for every relation: "
-            f"{tuple(sorted(missing_families))}"
-        )
     return labels_by_relation
 
 
@@ -80,31 +85,62 @@ def _embedding_index(
     return embeddings_by_relation
 
 
+def _family_index(
+    families: Sequence[FamilyBindingRow],
+) -> dict[RelationId, FamilyBindingRow]:
+    families_by_relation: dict[RelationId, FamilyBindingRow] = {}
+    for row in families:
+        if row.relation_id in families_by_relation:
+            raise ValueError(f"family closure repeats relation {row.relation_id}")
+        if row.family_id is None:
+            raise ValueError(f"family closure relation {row.relation_id} lacks family_id")
+        families_by_relation[row.relation_id] = row
+    return families_by_relation
+
+
 def _matching_relation_ids(
     labels: Mapping[RelationId, SoftLabel],
     embeddings: Mapping[RelationId, EmbeddingRow],
+    families: Mapping[RelationId, FamilyBindingRow],
 ) -> tuple[RelationId, ...]:
     label_ids = set(labels)
     embedding_ids = set(embeddings)
-    missing = tuple(sorted(label_ids - embedding_ids))
-    extra = tuple(sorted(embedding_ids - label_ids))
-    if missing or extra:
-        raise ValueError(f"embedding relation coverage differs: missing={missing}, extra={extra}")
+    family_ids = set(families)
+    missing_embeddings = tuple(sorted(label_ids - embedding_ids))
+    extra_embeddings = tuple(sorted(embedding_ids - label_ids))
+    if missing_embeddings or extra_embeddings:
+        raise ValueError(
+            "embedding relation coverage differs: "
+            f"missing={missing_embeddings}, extra={extra_embeddings}"
+        )
+    missing_families = tuple(sorted(label_ids - family_ids))
+    extra_families = tuple(sorted(family_ids - label_ids))
+    if missing_families or extra_families:
+        raise ValueError(
+            "family closure relation coverage differs: "
+            f"missing={missing_families}, extra={extra_families}"
+        )
     return tuple(sorted(label_ids))
 
 
 def join_training_data(
     labels: Sequence[SoftLabel],
     embeddings: Sequence[EmbeddingRow],
+    families: Sequence[FamilyBindingRow],
 ) -> TrainingData:
-    """Join an exact one-to-one label and embedding relation set.
+    """Join exact one-to-one label, embedding, and closure relation sets.
 
     Raises [`ValueError`] for missing families, zero weights, duplicate or
     unequal relation sets, mismatched card hashes, or mixed dimensions.
     """
     labels_by_relation = _label_index(labels)
     embeddings_by_relation = _embedding_index(embeddings)
-    ordered_ids = _matching_relation_ids(labels_by_relation, embeddings_by_relation)
+    families_by_relation = _family_index(families)
+    ordered_ids = _matching_relation_ids(
+        labels_by_relation,
+        embeddings_by_relation,
+        families_by_relation,
+    )
     ordered_labels = tuple(labels_by_relation[relation_id] for relation_id in ordered_ids)
     ordered_embeddings = tuple(embeddings_by_relation[relation_id] for relation_id in ordered_ids)
     dimensions = {row.dimension for row in ordered_embeddings}
@@ -112,17 +148,23 @@ def join_training_data(
         raise ValueError(f"embedding dimensions differ: {tuple(sorted(dimensions))}")
     [dimension] = dimensions
 
-    families: list[RelationFamilyId] = []
+    joined_families: list[RelationFamilyId] = []
     matrix = np.empty((len(ordered_embeddings), dimension), dtype=np.float64)
     for index, (label, row) in enumerate(zip(ordered_labels, ordered_embeddings, strict=True)):
+        family = families_by_relation[label.relation_id]
         if label.card_hash != row.card_hash:
             raise ValueError(
                 f"embedding card hash differs for relation {label.relation_id}: "
                 f"label {label.card_hash}, embedding {row.card_hash}"
             )
-        if label.family_id is None:
-            raise AssertionError("family validation did not narrow a soft label")
-        families.append(label.family_id)
+        if label.card_hash != family.card_hash:
+            raise ValueError(
+                f"family closure card hash differs for relation {label.relation_id}: "
+                f"label {label.card_hash}, closure {family.card_hash}"
+            )
+        if family.family_id is None:
+            raise AssertionError("family validation did not narrow a closure row")
+        joined_families.append(RelationFamilyId(family.family_id))
         matrix[index] = embedding_view(row)
 
     targets = np.asarray(
@@ -132,7 +174,7 @@ def join_training_data(
     weights = np.asarray([label.n_votes for label in ordered_labels], dtype=np.float64)
     return TrainingData(
         labels=ordered_labels,
-        families=tuple(families),
+        families=tuple(joined_families),
         embeddings=matrix,
         targets=targets,
         vote_weights=weights,
@@ -140,7 +182,7 @@ def join_training_data(
 
 
 def validate_grouped_folds(
-    labels: Sequence[SoftLabel],
+    rows: Sequence[FamilyGroupedRow],
     fold_by_relation_id: Mapping[RelationId, int],
     *,
     folds: int,
@@ -155,7 +197,7 @@ def validate_grouped_folds(
     """
     if folds < _MIN_FOLDS:
         raise ValueError("grouped cross-validation requires at least two folds")
-    relation_ids = tuple(label.relation_id for label in labels)
+    relation_ids = tuple(row.relation_id for row in rows)
     if len(relation_ids) != len(set(relation_ids)):
         raise ValueError("fold validation received duplicate label relations")
     expected = set(relation_ids)
@@ -167,15 +209,16 @@ def validate_grouped_folds(
 
     family_folds: dict[RelationFamilyId, int] = {}
     used: set[int] = set()
-    for label in labels:
-        if label.family_id is None:
-            raise ValueError(f"relation {label.relation_id} lacks a required family_id")
-        fold = fold_by_relation_id[label.relation_id]
+    for row in rows:
+        if row.family_id is None:
+            raise ValueError(f"relation {row.relation_id} lacks a required family_id")
+        fold = fold_by_relation_id[row.relation_id]
         if isinstance(fold, bool) or not 0 <= fold < folds:
-            raise ValueError(f"relation {label.relation_id} has invalid fold {fold}")
-        previous = family_folds.setdefault(label.family_id, fold)
+            raise ValueError(f"relation {row.relation_id} has invalid fold {fold}")
+        family_id = RelationFamilyId(row.family_id)
+        previous = family_folds.setdefault(family_id, fold)
         if previous != fold:
-            raise ValueError(f"fold assignment leaks relation family {label.family_id}")
+            raise ValueError(f"fold assignment leaks relation family {family_id}")
         used.add(fold)
     if used != set(range(folds)):
         empty = tuple(sorted(set(range(folds)) - used))
@@ -198,7 +241,7 @@ def _relations_by_family(
         if row.family_id is None:
             missing.append(row.relation_id)
         else:
-            by_family[row.family_id].append(row.relation_id)
+            by_family[RelationFamilyId(row.family_id)].append(row.relation_id)
     if missing:
         examples = tuple(sorted(missing)[:5])
         raise ValueError(
@@ -270,7 +313,11 @@ def grouped_fold_assignment(
     """Assign whole families to deterministic size-balanced folds."""
     if config.folds < _MIN_FOLDS:
         raise ValueError("classifier config requires at least two grouped folds")
-    relation_ids_by_family = _relations_by_family(data.labels)
+    grouped_rows = tuple(
+        _JoinedFamily(relation_id=label.relation_id, family_id=family_id)
+        for label, family_id in zip(data.labels, data.families, strict=True)
+    )
+    relation_ids_by_family = _relations_by_family(grouped_rows)
     fold_by_family = _fold_by_family(relation_ids_by_family, config)
 
     assignment = MappingProxyType(
@@ -279,7 +326,7 @@ def grouped_fold_assignment(
             for label, family_id in zip(data.labels, data.families, strict=True)
         }
     )
-    validate_grouped_folds(data.labels, assignment, folds=config.folds)
+    validate_grouped_folds(grouped_rows, assignment, folds=config.folds)
     return assignment
 
 

@@ -11,14 +11,24 @@
 //! across fields. These metrics depend only on the coordinate multiset, so
 //! release decisions pair them with identity-aware neighborhood metrics.
 
+mod artifact;
 mod error;
+mod label;
 mod merge_tree;
 mod raster;
+mod region;
 
+#[allow(
+    unused_imports,
+    reason = "analytic views and diagnostics form the generation adapter surface"
+)]
 pub(crate) use self::{
+    artifact::publish_analytic_artifact,
     error::AnalyticError,
-    merge_tree::{MergeTree, MergeTreeConfig, PersistenceLeaf, merge_tree},
+    label::{RegionLabelCandidate, select_region_labels},
+    merge_tree::{MergeTreeConfig, PersistenceLeaf, merge_tree},
     raster::{AnalyticPoint, DensityRaster, RasterConfig, density_raster},
+    region::{RegionConfig, density_regions},
 };
 
 #[cfg(test)]

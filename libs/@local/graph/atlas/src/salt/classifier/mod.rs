@@ -49,22 +49,28 @@
 use core::simd::{f32x8, f64x8, num::SimdFloat as _};
 
 use crate::salt::{
+    format::CLASSIFIER_FORMAT,
     policy::{PlacementClass, PlacementPosterior, Probability},
     representation::{CANONICAL_DIMENSIONS, CanonicalEmbedding},
     simd::mul_add_f64x8,
-    storage::mmap::{
-        ArtifactFormat, ArtifactKind, ArtifactView, FormatVersion, SectionId, SectionView,
-    },
+    storage::mmap::{ArtifactFormat, ArtifactView, SectionId, SectionView},
 };
 
+mod artifact;
 mod error;
+mod fit;
 
-pub(crate) use self::error::ClassifierError;
-
-/// The binary schema for a diagonal-shrinkage policy classifier.
-pub(crate) const CLASSIFIER_FORMAT: ArtifactFormat = ArtifactFormat {
-    kind: ArtifactKind::new(1),
-    version: FormatVersion::new(1),
+#[allow(
+    unused_imports,
+    reason = "classifier fitting and publication form the generation adapter surface"
+)]
+pub(crate) use self::{
+    artifact::{publish_fitted_classifier, publish_fitted_classifier_with_format},
+    error::{ClassifierError, ClassifierFitError},
+    fit::{
+        ClassifierFitConfig, ClassifierTrainingRow, ClassifierTrainingSet, FittedClassifier,
+        FittedClassifierScore, fit_classifier,
+    },
 };
 
 const CLASS_COUNT: usize = 3;
@@ -117,10 +123,23 @@ impl<'artifact> ClassifierView<'artifact> {
     /// This returns an error for an incompatible schema, missing or malformed
     /// sections, non-finite parameters, invalid scales, or unsorted distances.
     pub(crate) fn new(artifact: ArtifactView<'artifact>) -> Result<Self, ClassifierError> {
+        Self::new_with_format(artifact, CLASSIFIER_FORMAT)
+    }
+
+    /// Validates classifier sections under a caller-selected model schema.
+    ///
+    /// # Errors
+    ///
+    /// This returns the same structural and numerical errors as [`Self::new`],
+    /// additionally requiring `expected_format`.
+    pub(crate) fn new_with_format(
+        artifact: ArtifactView<'artifact>,
+        expected_format: ArtifactFormat,
+    ) -> Result<Self, ClassifierError> {
         let header = artifact.header();
-        if header.format != CLASSIFIER_FORMAT {
+        if header.format != expected_format {
             return Err(ClassifierError::Format {
-                expected: CLASSIFIER_FORMAT,
+                expected: expected_format,
                 actual: header.format,
             });
         }
@@ -210,6 +229,13 @@ impl<'artifact> ClassifierView<'artifact> {
             applicability_inverse_scales,
             applicability_training_distances,
         })
+    }
+
+    /// Returns the fitted calibration temperature.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn temperature(self) -> f64 {
+        self.temperature
     }
 
     /// Evaluates calibrated placement probabilities and applicability.
@@ -347,7 +373,7 @@ fn require_positive(section: SectionId, values: &[f64]) -> Result<(), Classifier
 
 fn require_nonnegative_sorted(section: SectionId, values: &[f64]) -> Result<(), ClassifierError> {
     require_finite(section, values)?;
-    if let Some(index) = values.iter().position(|value| *value < 0.0) {
+    if let Some(index) = values.iter().position(|value| value.is_sign_negative()) {
         return Err(ClassifierError::Negative { section, index });
     }
     if let Some(index) = values.windows(2).position(|pair| pair[0] > pair[1]) {

@@ -1,9 +1,25 @@
 use core::str::FromStr as _;
-use std::io::Cursor;
+use std::io::{self, Cursor};
 
 use crate::salt::hash::{ContentHash, ContentHashParseError, ContentHasher, hash_reader};
 
 const ABC_SHA256: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+
+struct InterruptedOnce<R> {
+    inner: R,
+    interrupted: bool,
+}
+
+impl<R: io::Read> io::Read for InterruptedOnce<R> {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        if self.interrupted {
+            self.interrupted = false;
+            Err(io::Error::from(io::ErrorKind::Interrupted))
+        } else {
+            self.inner.read(buffer)
+        }
+    }
+}
 
 #[test]
 fn matches_the_sha256_known_vector() {
@@ -11,6 +27,19 @@ fn matches_the_sha256_known_vector() {
 
     assert_eq!(digest.to_string(), ABC_SHA256);
     assert_eq!(hash_reader(Cursor::new(b"abc")).ok(), Some(digest));
+}
+
+#[test]
+fn streaming_hash_retries_an_interrupted_read() {
+    let reader = InterruptedOnce {
+        inner: Cursor::new(b"abc"),
+        interrupted: true,
+    };
+
+    assert_eq!(
+        hash_reader(reader).expect("interrupted reads should be retried"),
+        ContentHash::digest(b"abc")
+    );
 }
 
 #[test]

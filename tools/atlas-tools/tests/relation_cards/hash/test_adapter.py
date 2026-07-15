@@ -3,9 +3,11 @@
 import pytest
 from pydantic import HttpUrl
 
+from atlas_tools.relation_cards.common.cards import qualify_relation_id
 from atlas_tools.relation_cards.hash.adapter import (
     LINK_ENTITY_TYPE_BASE_URL,
     UnresolvedTypeReferenceError,
+    build_hash_lineage_nodes,
     build_relation_records,
     versioned_url_base_url,
 )
@@ -408,6 +410,41 @@ def test_single_value_is_false_if_any_source_allows_multiple_targets() -> None:
 
     assert relation.card_input.constraints.single_value is False
     assert generic_link.card_input.constraints.single_value is None
+
+
+def test_lineage_uses_depth_one_ids_and_closes_over_dependency_nodes() -> None:
+    parent_base = "https://example.com/@acme/types/entity-type/parent/"
+    dependency_base = "https://example.com/@acme/types/entity-type/dependency/"
+    child_base = "https://example.com/@acme/types/entity-type/child/"
+    link_url = _url(LINK_ENTITY_TYPE_BASE_URL, 1)
+    parent_url = _url(parent_base, 3)
+    dependency_url = _url(dependency_base, 2)
+    types = [
+        _row(LINK_ENTITY_TYPE_BASE_URL, 1, "Link"),
+        _row(dependency_base, 2, "Dependency"),
+        _row(parent_base, 3, "Parent", ancestors=((link_url, 1),)),
+        _row(
+            child_base,
+            4,
+            "Child",
+            ancestors=((parent_url, 1), (dependency_url, 1), (link_url, 2)),
+        ),
+    ]
+
+    records = build_relation_records(types, [], example_count=2)
+    nodes = {node.relation_id: node for node in build_hash_lineage_nodes(types)}
+    link_id = qualify_relation_id("hash", LINK_ENTITY_TYPE_BASE_URL)
+    parent_id = qualify_relation_id("hash", parent_base)
+    dependency_id = qualify_relation_id("hash", dependency_base)
+    child_id = qualify_relation_id("hash", child_base)
+
+    assert dependency_base not in {str(record.base_url) for record in records}
+    assert nodes[child_id].extends == tuple(sorted((dependency_id, parent_id)))
+    assert link_id not in nodes[child_id].extends
+    assert nodes[parent_id].extends == (link_id,)
+    assert nodes[dependency_id].extends == ()
+    assert nodes[link_id].extends == ()
+    assert all(node.inverse_edges == () for node in nodes.values())
 
 
 def test_unresolved_closed_reference_fails() -> None:

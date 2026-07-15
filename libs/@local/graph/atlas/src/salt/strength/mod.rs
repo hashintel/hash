@@ -16,11 +16,24 @@
 
 use core::{convert::Infallible, error::Error, fmt};
 
-use crate::salt::{policy::Probability, representation::CanonicalEmbedding};
+use camino::Utf8Path;
+
+use crate::salt::{
+    classifier::{
+        ClassifierError, ClassifierFitConfig, ClassifierFitError, ClassifierOutput,
+        ClassifierTrainingSet, ClassifierView, FittedClassifier, FittedClassifierScore,
+        fit_classifier, publish_fitted_classifier_with_format,
+    },
+    format::STRENGTH_CLASSIFIER_FORMAT,
+    policy::Probability,
+    representation::CanonicalEmbedding,
+    storage::mmap::{ArtifactView, ArtifactWriteError, PublishedArtifact},
+};
 
 const MINIMUM_STRENGTH: f64 = 0.5;
 const MAXIMUM_STRENGTH: f64 = 2.0;
 const POSTERIOR_SUM_TOLERANCE: f64 = 1.0e-12;
+pub(crate) const STRENGTH_ELIGIBILITY_PROXIMAL: f64 = 0.2;
 
 /// A finite relation-strength multiplier in `[0.5, 2]`.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -104,6 +117,95 @@ pub(crate) trait StrengthHead {
     fn predict(&self, embedding: CanonicalEmbedding<'_>) -> Result<RelationStrength, Self::Error>;
 }
 
+/// A calibrated shared linear strength model fitted from band votes.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct FittedStrengthHead {
+    classifier: FittedClassifier,
+}
+
+impl FittedStrengthHead {
+    /// Borrows the fitting and grouped-validation artifact.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn classifier(&self) -> &FittedClassifier {
+        &self.classifier
+    }
+}
+
+impl StrengthHead for FittedStrengthHead {
+    type Error = StrengthError;
+
+    fn predict(&self, embedding: CanonicalEmbedding<'_>) -> Result<RelationStrength, Self::Error> {
+        self.classifier
+            .score(embedding)
+            .map_err(StrengthError::Classifier)
+            .and_then(strength_from_score)
+    }
+}
+
+/// Validated mmap-backed strength head.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct StrengthHeadView<'artifact>(ClassifierView<'artifact>);
+
+impl<'artifact> StrengthHeadView<'artifact> {
+    /// Validates and borrows a strength-head artifact.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error for an incompatible schema or malformed
+    /// classifier parameters.
+    pub(crate) fn new(artifact: ArtifactView<'artifact>) -> Result<Self, ClassifierError> {
+        ClassifierView::new_with_format(artifact, STRENGTH_CLASSIFIER_FORMAT).map(Self)
+    }
+}
+
+impl StrengthHead for StrengthHeadView<'_> {
+    type Error = StrengthError;
+
+    fn predict(&self, embedding: CanonicalEmbedding<'_>) -> Result<RelationStrength, Self::Error> {
+        self.0
+            .predict(embedding)
+            .map_err(StrengthError::Classifier)
+            .and_then(strength_from_output)
+    }
+}
+
+/// Fits a shared calibrated head over weak, standard, and strong soft labels.
+///
+/// Rows must already satisfy the Proximal eligibility threshold. Keeping that
+/// admission outside the model prevents the head from learning strength for
+/// relation types that are not eligible for Proximal attraction.
+///
+/// # Errors
+///
+/// This returns classifier fitting errors unchanged.
+pub(crate) fn fit_strength_head(
+    training: ClassifierTrainingSet<'_>,
+    config: ClassifierFitConfig,
+) -> Result<FittedStrengthHead, ClassifierFitError> {
+    fit_classifier(training, config).map(|classifier| FittedStrengthHead { classifier })
+}
+
+/// Atomically publishes a fitted strength head in its purpose-specific schema.
+///
+/// # Errors
+///
+/// This returns an error when fitted parameters cannot be encoded or immutable
+/// publication fails.
+pub(crate) fn publish_fitted_strength_head(
+    path: &Utf8Path,
+    head: &FittedStrengthHead,
+) -> Result<PublishedArtifact, ArtifactWriteError> {
+    publish_fitted_classifier_with_format(path, &head.classifier, STRENGTH_CLASSIFIER_FORMAT)
+}
+
+/// Tests the fixed Proximal eligibility threshold for strength fitting.
+#[must_use]
+#[inline]
+pub(crate) fn strength_eligible(proximal: Probability) -> bool {
+    proximal.get() >= STRENGTH_ELIGIBILITY_PROXIMAL
+}
+
 /// Selects neutral strength or a frozen shared head.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum StrengthMode<Head = NoStrengthHead> {
@@ -154,6 +256,7 @@ pub(crate) enum StrengthError {
     NonFinite { value: f64 },
     OutOfRange { value: f64 },
     PosteriorSum { actual: f64 },
+    Classifier(ClassifierError),
 }
 
 impl fmt::Display for StrengthError {
@@ -168,11 +271,51 @@ impl fmt::Display for StrengthError {
             Self::PosteriorSum { actual } => {
                 write!(formatter, "strength posterior sums to {actual}, not one")
             }
+            Self::Classifier(error) => write!(formatter, "strength classifier failed: {error}"),
         }
     }
 }
 
-impl Error for StrengthError {}
+impl Error for StrengthError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Classifier(error) => Some(error),
+            Self::NonFinite { .. } | Self::OutOfRange { .. } | Self::PosteriorSum { .. } => None,
+        }
+    }
+}
+
+fn strength_from_score(score: FittedClassifierScore) -> Result<RelationStrength, StrengthError> {
+    strength_from_probabilities(score.calibrated, score.applicability)
+}
+
+fn strength_from_output(output: ClassifierOutput) -> Result<RelationStrength, StrengthError> {
+    strength_from_probabilities(
+        [
+            output.calibrated.coincident.get(),
+            output.calibrated.proximal.get(),
+            output.calibrated.overlay.get(),
+        ],
+        output.applicability.get(),
+    )
+}
+
+fn strength_from_probabilities(
+    calibrated: [f64; 3],
+    applicability: f64,
+) -> Result<RelationStrength, StrengthError> {
+    let posterior = StrengthPosterior {
+        weak: Probability::new(calibrated[0])
+            .map_err(|_| StrengthError::Classifier(ClassifierError::NonFiniteOutput))?,
+        standard: Probability::new(calibrated[1])
+            .map_err(|_| StrengthError::Classifier(ClassifierError::NonFiniteOutput))?,
+        strong: Probability::new(calibrated[2])
+            .map_err(|_| StrengthError::Classifier(ClassifierError::NonFiniteOutput))?,
+    };
+    let applicability = Probability::new(applicability)
+        .map_err(|_| StrengthError::Classifier(ClassifierError::NonFiniteOutput))?;
+    RelationStrength::from_posterior(posterior, applicability)
+}
 
 #[cfg(test)]
 mod tests;

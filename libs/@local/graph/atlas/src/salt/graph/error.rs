@@ -17,6 +17,10 @@ pub(crate) enum SemanticGraphError {
         row: usize,
         component: usize,
     },
+    EmbeddingNorm {
+        row: usize,
+        squared_norm: f64,
+    },
     InvalidNeighborCount {
         rows: usize,
         neighbors: usize,
@@ -98,6 +102,11 @@ impl fmt::Display for SemanticGraphError {
             Self::NonFiniteEmbedding { row, component } => write!(
                 formatter,
                 "projector embedding row {row} component {component} is not finite"
+            ),
+            Self::EmbeddingNorm { row, squared_norm } => write!(
+                formatter,
+                "projector embedding row {row} has squared norm {squared_norm}, exceeding the \
+                 normalized-prefix bound"
             ),
             Self::InvalidNeighborCount { rows, neighbors } => write!(
                 formatter,
@@ -203,6 +212,7 @@ impl Error for SemanticGraphError {
             | Self::EmbeddingLength { .. }
             | Self::TooManyRows { .. }
             | Self::NonFiniteEmbedding { .. }
+            | Self::EmbeddingNorm { .. }
             | Self::InvalidNeighborCount { .. }
             | Self::TooManyNeighborEntries { .. }
             | Self::NeighborStorageLength { .. }

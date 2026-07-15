@@ -5,8 +5,9 @@ formatting:
 
 1. raw response cache (``--cache-dir``): provenance of every API byte;
 2. ``records.jsonl``: structured, card-format-independent property records
-   (plus ``entity_labels.json`` and provenance sidecars);
-3. ``cards.jsonl``: the versioned text projection of the records.
+   (plus entity labels, direct lineage facts, and provenance sidecars);
+3. ``cards.jsonl``: the versioned text projection of the records;
+4. ``lineage.jsonl``: source lineage bound to the finalized leaf cards.
 
 Commands:
 
@@ -101,7 +102,11 @@ class ExtractPropertiesCommand(BaseModel):
         paths = emit_cards(result, config, self.out)
 
         echo(f"wrote {paths.records.records_jsonl} ({len(result.records)} records)")
-        echo(f"wrote {paths.cards.cards_jsonl} ({len(result.records)} cards)")
+        echo(f"wrote {paths.records.lineage_records} ({len(result.lineage)} direct-fact records)")
+        echo(f"wrote {paths.cards.cards_jsonl} ({len(result.records)} records considered)")
+        echo(f"wrote {paths.cards.manifest}")
+        echo(f"wrote {paths.cards.lineage_jsonl} ({len(result.lineage)} lineage nodes)")
+        echo(f"wrote {paths.cards.lineage_manifest}")
 
 
 class RenderCardsCommand(BaseModel):
@@ -120,7 +125,10 @@ class RenderCardsCommand(BaseModel):
         config = Config.load(self.config)
         record_set = load_records(self.records)
         paths = render_cards(record_set, config, self.out)
-        echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} cards)")
+        echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} records considered)")
+        echo(f"wrote {paths.manifest}")
+        echo(f"wrote {paths.lineage_jsonl} ({len(record_set.lineage)} lineage nodes)")
+        echo(f"wrote {paths.lineage_manifest}")
 
 
 class TaxonomyCommand(BaseModel):

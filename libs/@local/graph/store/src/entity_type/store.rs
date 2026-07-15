@@ -404,6 +404,8 @@ pub struct HasPermissionForEntityTypesParams<'a> {
     #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     pub action: ActionName,
     pub entity_type_ids: Cow<'a, [VersionedUrl]>,
+    #[serde(default = "QueryTemporalAxesUnresolved::live_only")]
+    pub temporal_axes: QueryTemporalAxesUnresolved,
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.

@@ -12,7 +12,7 @@ from typing import Literal, Protocol
 from pydantic import NonNegativeInt, computed_field
 
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.evaluation.domain._model import FrozenModel
+from atlas_tools.relation.domain.api import FrozenModel, RelationId
 from atlas_tools.relation.evaluation.domain.configuration import JudgeRequestSpec
 from atlas_tools.relation.evaluation.domain.identity import (
     AttemptId,
@@ -24,7 +24,6 @@ from atlas_tools.relation.evaluation.domain.identity import (
     SessionId,
     VoteId,
 )
-from atlas_tools.relation_cards.common.cards import RelationId
 
 
 class VoteTask(FrozenModel):

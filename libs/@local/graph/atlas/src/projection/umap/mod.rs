@@ -27,6 +27,7 @@ use core::{error::Error, fmt};
 pub(crate) use self::{
     curve::{CurveParameters, fit_curve_parameters},
     parallel::ParallelOptimizer,
+    serial::SerialOptimizer,
 };
 use super::graph::{GraphError, SparseGraph};
 

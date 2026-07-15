@@ -1,4 +1,5 @@
 use super::{error::AnalyticError, raster::DensityRaster};
+use crate::salt::hash::{ContentHash, ContentHasher};
 
 const INACTIVE: usize = usize::MAX;
 
@@ -70,6 +71,18 @@ impl MergeTree {
     #[inline]
     pub(crate) const fn density_maximum(&self) -> f64 {
         self.density_maximum
+    }
+
+    /// Returns the identity of the maximum density and persistent leaves.
+    #[must_use]
+    pub(crate) fn content_hash(&self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v1");
+        hasher.update(&self.density_maximum.to_bits().to_le_bytes());
+        for leaf in &self.leaves {
+            hasher.update(&leaf.birth.to_bits().to_le_bytes());
+            hasher.update(&leaf.death.to_bits().to_le_bytes());
+        }
+        hasher.finish()
     }
 }
 
@@ -145,7 +158,7 @@ pub(crate) fn merge_tree(
 
     let mut density_maximum = 0.0_f64;
     for (pixel, &value) in values.iter().enumerate() {
-        if !value.is_finite() || value < 0.0 {
+        if !value.is_finite() || value.is_sign_negative() {
             return Err(AnalyticError::InvalidDensity { pixel, value });
         }
         density_maximum = density_maximum.max(value);

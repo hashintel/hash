@@ -1,11 +1,13 @@
-use std::io::Write as _;
+use std::{io::Write as _, num::NonZeroUsize};
 
-use tempfile::NamedTempFile;
+use camino::Utf8PathBuf;
+use tempfile::{NamedTempFile, tempdir};
 
 use crate::salt::{
     classifier::{
         APPLICABILITY_INVERSE_SCALES, CLASSIFIER_FORMAT, COEFFICIENTS, ClassifierError,
-        ClassifierView,
+        ClassifierFitConfig, ClassifierFitError, ClassifierTrainingRow, ClassifierTrainingSet,
+        ClassifierView, fit_classifier, publish_fitted_classifier,
     },
     hash::ContentHash,
     policy::PlacementClass,
@@ -142,6 +144,127 @@ fn fails_closed_when_finite_values_overflow_inference() {
         classifier.predict(embedding),
         Err(ClassifierError::NonFiniteOutput)
     ));
+}
+
+#[test]
+fn rust_fit_separates_soft_targets_without_splitting_families() {
+    let (embeddings, rows) = fitting_fixture();
+    let training =
+        ClassifierTrainingSet::new(&embeddings, &rows).expect("training data should be valid");
+    let fitted = fit_classifier(training, fitting_config(2)).expect("classifier should converge");
+
+    for family in 0..4 {
+        let fold = fitted.validation.folds[family * 3];
+        assert_eq!(
+            &fitted.validation.folds[family * 3..family * 3 + 3],
+            &[fold; 3]
+        );
+    }
+    assert!(
+        fitted.validation.calibrated_cross_entropy <= fitted.validation.raw_cross_entropy + 1.0e-12
+    );
+    for class in 0..3 {
+        let logits = fitted_logits(&fitted, &embeddings[class * CANONICAL_DIMENSIONS..]);
+        let predicted = (0..3)
+            .max_by(|left, right| logits[*left].total_cmp(&logits[*right]))
+            .expect("class set should be non-empty");
+        assert_eq!(predicted, class);
+    }
+    assert!(
+        fitted
+            .applicability_training_distances
+            .windows(2)
+            .all(|pair| pair[0] <= pair[1])
+    );
+
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("classifier.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_fitted_classifier(&path, &fitted).expect("fitted classifier should publish");
+    let artifact = MappedArtifact::map_immutable(
+        std::fs::File::open(&path).expect("classifier should open"),
+        CLASSIFIER_FORMAT,
+    )
+    .expect("classifier should map");
+    let classifier =
+        ClassifierView::new(artifact.view()).expect("published classifier should validate");
+    let first: &[f32; CANONICAL_DIMENSIONS] = embeddings[..CANONICAL_DIMENSIONS]
+        .try_into()
+        .expect("fixture row should be complete");
+    let output = classifier
+        .predict(CanonicalEmbedding::new(first).expect("fixture should be finite"))
+        .expect("published classifier should score");
+    assert_eq!(output.calibrated.top_class(), PlacementClass::Coincident);
+}
+
+#[test]
+fn grouped_fit_rejects_too_few_independent_families() {
+    let (embeddings, rows) = fitting_fixture();
+    let training =
+        ClassifierTrainingSet::new(&embeddings, &rows).expect("training data should be valid");
+
+    assert_eq!(
+        fit_classifier(training, fitting_config(5)),
+        Err(ClassifierFitError::InsufficientFamilies {
+            families: 4,
+            folds: 5,
+        })
+    );
+}
+
+fn fitting_fixture() -> (Vec<f32>, Vec<ClassifierTrainingRow>) {
+    let mut embeddings = vec![0.0_f32; 12 * CANONICAL_DIMENSIONS];
+    let mut rows = Vec::with_capacity(12);
+    let targets = [[0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]];
+    for family in 0..4 {
+        let family_hash = ContentHash::digest(format!("family-{family}").as_bytes());
+        for class in 0..3 {
+            let row = family * 3 + class;
+            let embedding =
+                &mut embeddings[row * CANONICAL_DIMENSIONS..(row + 1) * CANONICAL_DIMENSIONS];
+            match class {
+                0 => embedding[0] = 1.0,
+                1 => embedding[0] = -1.0,
+                2 => embedding[1] = 1.0,
+                _ => unreachable!("fixture has exactly three classes"),
+            }
+            embedding[2] = f32::from(u16::try_from(family).expect("family should fit")) * 0.01;
+            rows.push(ClassifierTrainingRow {
+                target: targets[class],
+                vote_weight: 3.0,
+                family: family_hash,
+            });
+        }
+    }
+    (embeddings, rows)
+}
+
+fn fitting_config(folds: usize) -> ClassifierFitConfig {
+    ClassifierFitConfig {
+        regularization: 1.0,
+        maximum_iterations: NonZeroUsize::new(200).expect("iterations should be non-zero"),
+        gradient_tolerance: 1.0e-7,
+        history_size: NonZeroUsize::new(8).expect("history should be non-zero"),
+        folds: NonZeroUsize::new(folds).expect("folds should be non-zero"),
+        seed: 17,
+    }
+}
+
+fn fitted_logits(
+    fitted: &crate::salt::classifier::FittedClassifier,
+    embedding: &[f32],
+) -> [f64; 3] {
+    core::array::from_fn(|class| {
+        fitted.intercepts[class]
+            + embedding[..CANONICAL_DIMENSIONS]
+                .iter()
+                .zip(
+                    &fitted.coefficients
+                        [class * CANONICAL_DIMENSIONS..(class + 1) * CANONICAL_DIMENSIONS],
+                )
+                .map(|(value, coefficient)| f64::from(*value) * coefficient)
+                .sum::<f64>()
+    })
 }
 
 fn fixture() -> Vec<u8> {

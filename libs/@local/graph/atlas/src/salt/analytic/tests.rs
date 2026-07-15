@@ -1,6 +1,62 @@
 use super::*;
 
 #[test]
+fn empty_analytics_preserve_the_complete_artifact_schema() {
+    let raster = density_raster(
+        &[],
+        RasterConfig {
+            grid_size: 8,
+            bandwidth_pixels: 1.0,
+        },
+    )
+    .expect("empty density raster should build");
+    let tree =
+        merge_tree(&raster, MergeTreeConfig::default()).expect("empty merge tree should build");
+    let regions = density_regions(
+        &raster,
+        &[],
+        RegionConfig {
+            density_floor_fraction: 0.1,
+            minimum_peak_fraction: 0.2,
+            maximum_regions: 4,
+        },
+    )
+    .expect("empty region map should build");
+    let directory = tempfile::tempdir().expect("temporary directory should create");
+    let path = camino::Utf8Path::from_path(directory.path())
+        .expect("temporary directory should be UTF-8")
+        .join("analytic.atlas");
+    let published = publish_analytic_artifact(
+        &path,
+        crate::salt::hash::ContentHash::digest(b"empty-analytic-config"),
+        &raster,
+        &tree,
+        &regions,
+        &[],
+    )
+    .expect("empty analytic artifact should publish");
+
+    assert_eq!(published.header.section_count, 13);
+}
+
+#[test]
+fn raster_rejects_an_overflowing_finite_extent() {
+    let error = density_raster(
+        &[point([-f64::MAX, 0.0], 1.0), point([f64::MAX, 1.0], 1.0)],
+        RasterConfig {
+            grid_size: 8,
+            bandwidth_pixels: 1.0,
+        },
+    )
+    .expect_err("an unrepresentable normalization extent must be rejected");
+
+    assert!(matches!(
+        error,
+        AnalyticError::NonFiniteExtent { axis: 0, .. }
+    ));
+}
+
+#[test]
 fn exact_isolated_peaks_have_floor_deaths() {
     let mut density = vec![0.0; 16 * 16];
     density[4 * 16 + 4] = 1.0;
@@ -110,6 +166,66 @@ fn all_zero_mass_has_no_persistent_components() {
     assert!(tree.leaves().is_empty());
     assert_eq!(tree.density_maximum(), 0.0);
     assert_eq!(tree.normalized_persistence(), 0.0);
+}
+
+#[test]
+fn watershed_assigns_separated_points_to_density_ordered_peaks() {
+    let mut density = vec![0.0; 7 * 7];
+    density[1 * 7 + 3] = 1.0;
+    density[2 * 7 + 3] = 0.6;
+    density[4 * 7 + 3] = 0.5;
+    density[5 * 7 + 3] = 0.8;
+    let raster = DensityRaster::from_values(7, density);
+
+    let regions = density_regions(
+        &raster,
+        &[[0.2, 0.5], [0.8, 0.5]],
+        RegionConfig {
+            density_floor_fraction: 0.1,
+            minimum_peak_fraction: 0.2,
+            maximum_regions: 2,
+        },
+    )
+    .expect("separated finite basins should partition");
+
+    assert_eq!(regions.peaks()[0].pixel, 1 * 7 + 3);
+    assert_eq!(regions.peaks()[1].pixel, 5 * 7 + 3);
+    assert_eq!(regions.point_regions(), &[0, 1]);
+    assert_eq!(regions.pixel_regions()[3 * 7 + 3], u32::MAX);
+
+    let labels = select_region_labels(
+        &regions,
+        [
+            label_candidate(0, 2, 0.4, "Secondary"),
+            label_candidate(0, 1, 0.4, "Primary"),
+            label_candidate(1, 3, 0.9, "Independent"),
+        ],
+    )
+    .expect("valid candidates should label occupied regions");
+    assert_eq!(labels[0].row, row(1));
+    assert_eq!(labels[0].text, "Primary");
+    assert_eq!(labels[1].region, 1);
+    assert_eq!(labels[1].text, "Independent");
+}
+
+#[inline]
+fn label_candidate(
+    point: usize,
+    row: u32,
+    importance: f64,
+    text: &str,
+) -> RegionLabelCandidate<'_> {
+    RegionLabelCandidate {
+        point,
+        row: self::row(row),
+        importance,
+        text,
+    }
+}
+
+#[inline]
+fn row(value: u32) -> crate::salt::identity::GenerationRowId {
+    crate::salt::identity::GenerationRowId::try_from(value).expect("row should fit")
 }
 
 #[inline]

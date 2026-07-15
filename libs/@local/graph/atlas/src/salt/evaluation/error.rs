@@ -1,5 +1,7 @@
 use core::{error::Error, fmt};
 
+use crate::salt::hash::ContentHash;
+
 /// An invalid relation-condition ladder or canonical selection.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum EvaluationError {
@@ -13,6 +15,9 @@ pub(crate) enum EvaluationError {
     TooManyCandidates {
         count: usize,
         maximum: usize,
+    },
+    MissingSemanticBaseline {
+        value: f64,
     },
     NonFiniteCondition {
         index: usize,
@@ -34,6 +39,16 @@ pub(crate) enum EvaluationError {
         value: f64,
         criterion: &'static str,
     },
+    MissingCanonicalField {
+        value: f64,
+    },
+    MissingCanonicalMeasurement {
+        value: f64,
+    },
+    CanonicalReportMismatch {
+        expected: ContentHash,
+        actual: ContentHash,
+    },
 }
 
 impl fmt::Display for EvaluationError {
@@ -41,7 +56,7 @@ impl fmt::Display for EvaluationError {
         match self {
             Self::InvalidDomain { minimum, maximum } => write!(
                 formatter,
-                "relation-condition domain must have finite minimum below maximum, got \
+                "relation-condition domain must have zero minimum below a finite maximum, got \
                  [{minimum}, {maximum}]"
             ),
             Self::TooFewCandidates { count } => write!(
@@ -51,6 +66,11 @@ impl fmt::Display for EvaluationError {
             Self::TooManyCandidates { count, maximum } => write!(
                 formatter,
                 "relation-condition ladder has {count} candidates; capacity is {maximum}"
+            ),
+            Self::MissingSemanticBaseline { value } => write!(
+                formatter,
+                "relation-condition ladder must begin at the semantic-only zero condition, got \
+                 {value}"
             ),
             Self::NonFiniteCondition { index, value } => {
                 write!(
@@ -78,6 +98,18 @@ impl fmt::Display for EvaluationError {
             Self::FailedCanonicalEvidence { value, criterion } => write!(
                 formatter,
                 "relation condition {value} failed canonical-selection criterion {criterion}"
+            ),
+            Self::MissingCanonicalField { value } => write!(
+                formatter,
+                "canonical relation condition {value} has no supplied coordinate field"
+            ),
+            Self::MissingCanonicalMeasurement { value } => write!(
+                formatter,
+                "canonical relation condition {value} has no supplied measurement"
+            ),
+            Self::CanonicalReportMismatch { expected, actual } => write!(
+                formatter,
+                "canonical measurement report {actual} differs from selected evidence {expected}"
             ),
         }
     }

@@ -7,11 +7,18 @@
 //! idempotent; a stale expected head cannot overwrite a newer active release.
 
 mod error;
+mod load;
 mod store;
 
+pub(super) use self::store::publish_candidate_marker;
+#[allow(
+    unused_imports,
+    reason = "the verified active loader forms the external serving adapter surface"
+)]
 pub(crate) use self::{
     error::ActivationError,
-    store::{ActivationOutcome, ActiveRelease, FileActivationStore, publish_candidate_marker},
+    load::LoadedGeneration,
+    store::{ActivationOutcome, ActiveRelease, FileActivationStore},
 };
 
 #[cfg(test)]

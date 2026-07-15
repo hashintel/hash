@@ -24,6 +24,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     PlacementClass,
     RelationFamilyId,
 )
+from tests.relation.evaluation.classifier_fixtures import family_assignment_rows
 
 
 def _card_hash(relation_id: str) -> CardHash:
@@ -116,13 +117,14 @@ def test_soft_metrics_match_hand_calculation() -> None:
     assert soft_brier_score(probabilities, targets, (2.0, 1.0)) == pytest.approx(0.125)
 
 
-def test_training_join_rejects_card_drift_and_missing_family() -> None:
+def test_training_join_rejects_card_drift_and_invalid_closure_rows() -> None:
     labels, embeddings = _dataset()
+    families = family_assignment_rows(labels)
     drifted = embeddings[0].model_copy(update={"card_hash": "f" * 64})
     config = ClassifierConfig(folds=3, max_iterations=500)
 
     with pytest.raises(ValueError, match="card hash differs"):
-        fit_policy_classifier(labels, (drifted, *embeddings[1:]), config)
+        fit_policy_classifier(labels, (drifted, *embeddings[1:]), families, config)
 
     extra = EmbeddingRow.from_values(
         relation_id="test:extra",
@@ -130,33 +132,38 @@ def test_training_join_rejects_card_drift_and_missing_family() -> None:
         values=(0.0, 0.0),
     )
     with pytest.raises(ValueError, match="relation coverage differs"):
-        fit_policy_classifier(labels, (*embeddings, extra), config)
+        fit_policy_classifier(labels, (*embeddings, extra), families, config)
 
-    missing_family = labels[0].model_copy(update={"family_id": None})
-    with pytest.raises(ValueError, match="requires family_id"):
-        fit_policy_classifier((missing_family, *labels[1:]), embeddings, config)
+    with pytest.raises(ValueError, match="family closure relation coverage differs"):
+        fit_policy_classifier(labels, embeddings, families[1:], config)
+
+    drifted_family = families[0].model_copy(update={"card_hash": "f" * 64})
+    with pytest.raises(ValueError, match="family closure card hash differs"):
+        fit_policy_classifier(labels, embeddings, (drifted_family, *families[1:]), config)
 
 
 def test_grouped_fold_validation_refuses_family_leakage() -> None:
     labels, _ = _dataset()
-    leaking = {label.relation_id: index % 3 for index, label in enumerate(labels)}
+    families = family_assignment_rows(labels)
+    leaking = {row.relation_id: index % 3 for index, row in enumerate(families)}
 
-    with pytest.raises(ValueError, match="leaks relation family family-a"):
-        validate_grouped_folds(labels, leaking, folds=3)
+    with pytest.raises(ValueError, match="leaks relation family"):
+        validate_grouped_folds(families, leaking, folds=3)
 
 
 def test_cross_fit_preflight_rejects_missing_and_impossible_cohorts() -> None:
     labels, _ = _dataset()
-    missing = labels[0].model_copy(update={"family_id": None})
+    families = family_assignment_rows(labels)
+    missing = families[0].model_copy(update={"family_id": None})
     config = ClassifierConfig(folds=3)
 
     with pytest.raises(
         ValueError,
         match="1 cards lack family_id, for example \\('test:relation-00',\\)",
     ):
-        validate_classifier_cohorts((missing, *labels[1:]), config)
+        validate_classifier_cohorts((missing, *families[1:]), config)
 
-    one_per_family = (labels[0], labels[2], labels[4])
+    one_per_family = (families[0], families[2], families[4])
     with pytest.raises(
         ValueError,
         match="outer fold 0 leaves 2 relation families for 3-fold calibration",
@@ -172,23 +179,42 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         max_iterations=500,
         seed=17,
     )
-    first = fit_policy_classifier(labels, embeddings, config)
-    second = fit_policy_classifier(tuple(reversed(labels)), tuple(reversed(embeddings)), config)
+    families = family_assignment_rows(labels)
+    first = fit_policy_classifier(labels, embeddings, families, config)
+    second = fit_policy_classifier(
+        tuple(reversed(labels)),
+        tuple(reversed(embeddings)),
+        tuple(reversed(families)),
+        config,
+    )
+    conflicting_labels = (
+        labels[0].model_copy(update={"family_id": RelationFamilyId("soft-label-conflict")}),
+        *labels[1:],
+    )
+    from_conflicting_labels = fit_policy_classifier(
+        conflicting_labels,
+        embeddings,
+        families,
+        config,
+    )
 
-    assert first == second
+    assert first == second == from_conflicting_labels
+    assert tuple(row.family_id for row in first.out_of_fold) == tuple(
+        row.family_id for row in families
+    )
     assert dict(first.fold_by_relation_id) == {
-        "test:relation-00": 1,
-        "test:relation-01": 1,
-        "test:relation-02": 2,
-        "test:relation-03": 2,
-        "test:relation-04": 1,
-        "test:relation-05": 1,
-        "test:relation-06": 0,
-        "test:relation-07": 0,
-        "test:relation-08": 0,
-        "test:relation-09": 0,
-        "test:relation-10": 2,
-        "test:relation-11": 2,
+        "test:relation-00": 0,
+        "test:relation-01": 0,
+        "test:relation-02": 1,
+        "test:relation-03": 1,
+        "test:relation-04": 0,
+        "test:relation-05": 0,
+        "test:relation-06": 2,
+        "test:relation-07": 2,
+        "test:relation-08": 2,
+        "test:relation-09": 2,
+        "test:relation-10": 1,
+        "test:relation-11": 1,
     }
     assert first.classifier.temperature == pytest.approx(
         0.9297613992641235,
@@ -201,7 +227,7 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         abs=1e-12,
     )
     assert first.metrics.calibrated_cross_entropy == pytest.approx(
-        0.9006101202960468,
+        0.957760435897205,
         rel=1e-12,
         abs=1e-12,
     )
@@ -211,10 +237,9 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
         abs=1e-12,
     )
     by_family: dict[RelationFamilyId, set[int]] = {}
-    for label in labels:
-        assert label.family_id is not None
-        by_family.setdefault(label.family_id, set()).add(
-            first.fold_by_relation_id[label.relation_id]
+    for family in families:
+        by_family.setdefault(RelationFamilyId(family.family_id), set()).add(
+            first.fold_by_relation_id[family.relation_id]
         )
     assert all(len(folds) == 1 for folds in by_family.values())
     assert set(first.fold_by_relation_id.values()) == {0, 1, 2}
@@ -246,7 +271,8 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
 def test_held_out_family_cannot_change_its_fold_calibration_or_applicability() -> None:
     labels, embeddings = _dataset()
     config = ClassifierConfig(folds=3, max_iterations=500, seed=17)
-    original = fit_policy_classifier(labels, embeddings, config)
+    families = family_assignment_rows(labels)
+    original = fit_policy_classifier(labels, embeddings, families, config)
     changed_label = _label(
         0,
         family_id=RelationFamilyId("family-a"),
@@ -260,6 +286,7 @@ def test_held_out_family_cannot_change_its_fold_calibration_or_applicability() -
     changed = fit_policy_classifier(
         (changed_label, *labels[1:]),
         (changed_embedding, *embeddings[1:]),
+        families,
         config,
     )
 
@@ -304,6 +331,7 @@ def test_optimizer_matches_weighted_soft_target_mean_for_constant_features() -> 
     fitted = fit_policy_classifier(
         labels,
         embeddings,
+        family_assignment_rows(labels),
         ClassifierConfig(folds=2, max_iterations=500),
     )
     [prediction] = predict_policy(
@@ -329,5 +357,6 @@ def test_non_converged_optimizer_is_rejected() -> None:
         fit_policy_classifier(
             labels,
             embeddings,
+            family_assignment_rows(labels),
             ClassifierConfig(folds=3, max_iterations=1),
         )

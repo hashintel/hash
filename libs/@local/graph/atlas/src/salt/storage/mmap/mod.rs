@@ -44,7 +44,7 @@ use std::fs::File;
 
 use memmap2::{Mmap, MmapOptions};
 use zerocopy::{
-    FromBytes, Immutable, KnownLayout,
+    FromBytes, Immutable, IntoBytes, KnownLayout,
     byteorder::little_endian::{U16, U32, U64},
 };
 
@@ -52,13 +52,18 @@ use crate::salt::hash::ContentHash;
 
 mod error;
 mod format;
+mod write;
 
 pub(crate) use self::{
-    error::{ArtifactFormatError, ArtifactMapError, HeaderError, SectionError, SectionTypeError},
+    error::{
+        ArtifactFormatError, ArtifactMapError, ArtifactWriteError, HeaderError, SectionError,
+        SectionTypeError,
+    },
     format::{
         ArtifactFormat, ArtifactHeader, ArtifactKind, FormatVersion, ScalarType, SectionDescriptor,
         SectionId,
     },
+    write::{ArtifactScalar, ArtifactSection, PublishedArtifact, publish_artifact},
 };
 
 const MAGIC: &[u8; 8] = b"SALTMMAP";
@@ -69,7 +74,7 @@ const MIN_SECTION_ALIGNMENT: u32 = 64;
 const BYTE_ORDER_MARKER: u32 = 0x0102_0304;
 const MAX_SECTIONS: u32 = 256;
 
-#[derive(Debug, Copy, Clone, FromBytes, Immutable, KnownLayout)]
+#[derive(Debug, Copy, Clone, FromBytes, Immutable, IntoBytes, KnownLayout)]
 #[repr(C)]
 struct WireHeader {
     magic: [u8; 8],
@@ -82,7 +87,7 @@ struct WireHeader {
     payload_hash: [u8; 32],
 }
 
-#[derive(Debug, Copy, Clone, FromBytes, Immutable, KnownLayout)]
+#[derive(Debug, Copy, Clone, FromBytes, Immutable, IntoBytes, KnownLayout)]
 #[repr(C)]
 struct WireDescriptor {
     id: U16,
@@ -417,9 +422,38 @@ impl<'artifact> SectionView<'artifact> {
 /// The mapping and its shared file lock have the same lifetime. Call
 /// [`Self::view`] to borrow validated sections.
 #[derive(Debug)]
-pub(crate) struct MappedArtifact {
+pub(crate) struct MappedFile {
     map: Mmap,
     _file: File,
+}
+
+impl MappedFile {
+    /// Maps an immutable file while retaining its shared lock and exact handle.
+    ///
+    /// # Errors
+    ///
+    /// This returns an error when locking or mapping fails.
+    pub(crate) fn map_immutable(file: File) -> Result<Self, ArtifactMapError> {
+        file.try_lock_shared()
+            .map_err(|error| ArtifactMapError::Io(error.into()))?;
+        // SAFETY: the shared lock and exact file handle remain owned by this
+        // value for at least as long as the read-only mapping.
+        let map = unsafe { MmapOptions::new().map(&file) }.map_err(ArtifactMapError::Io)?;
+        Ok(Self { map, _file: file })
+    }
+
+    /// Borrows the exact bytes retained by this mapping.
+    #[must_use]
+    #[inline]
+    pub(crate) fn bytes(&self) -> &[u8] {
+        &self.map
+    }
+}
+
+/// An immutable file-backed artifact with a validated SALT schema.
+#[derive(Debug)]
+pub(crate) struct MappedArtifact {
+    file: MappedFile,
     header: ArtifactHeader,
 }
 
@@ -434,19 +468,11 @@ impl MappedArtifact {
         file: File,
         expected: ArtifactFormat,
     ) -> Result<Self, ArtifactMapError> {
-        file.try_lock_shared()
-            .map_err(|error| ArtifactMapError::Io(error.into()))?;
-        // SAFETY: the shared lock is retained with the mapping so cooperating
-        // writers cannot modify or truncate the file.
-        let map = unsafe { MmapOptions::new().map(&file) }.map_err(ArtifactMapError::Io)?;
-        let header = ArtifactView::new(&map, expected)
+        let file = MappedFile::map_immutable(file)?;
+        let header = ArtifactView::new(file.bytes(), expected)
             .map_err(ArtifactMapError::Format)?
             .header();
-        Ok(Self {
-            map,
-            _file: file,
-            header,
-        })
+        Ok(Self { file, header })
     }
 
     /// Borrows the validated artifact.
@@ -454,9 +480,16 @@ impl MappedArtifact {
     #[inline]
     pub(crate) fn view(&self) -> ArtifactView<'_> {
         ArtifactView {
-            bytes: &self.map,
+            bytes: self.file.bytes(),
             header: self.header,
         }
+    }
+
+    /// Borrows the exact immutable bytes retained by this mapping.
+    #[must_use]
+    #[inline]
+    pub(crate) fn bytes(&self) -> &[u8] {
+        self.file.bytes()
     }
 }
 
@@ -513,7 +546,7 @@ fn validate_descriptor(
     }
     for (axis, &value) in descriptor.shape.iter().enumerate() {
         let used = axis < usize::from(descriptor.rank);
-        if used == (value == 0) {
+        if !used && value != 0 {
             return Err(SectionError::Shape {
                 axis: u8::try_from(axis).expect("shape axis should fit into u8"),
                 value,

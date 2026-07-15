@@ -13,6 +13,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from atlas_tools.relation.evaluation.analysis._classifier_data import (
+    FamilyBindingRow,
     grouped_fold_assignment,
     join_training_data,
     validate_classifier_cohorts,
@@ -156,13 +157,14 @@ def predict_policy(
 def fit_policy_classifier(
     labels: Sequence[SoftLabel],
     embeddings: Sequence[EmbeddingRow],
+    families: Sequence[FamilyBindingRow],
     config: ClassifierConfig,
 ) -> ClassifierFit:
     """Fit final and grouped out-of-fold soft-target classifiers.
 
-    Every label must have exactly one embedding with the same relation ID and
-    card hash, positive placement-vote weight, and a relation family. Families
-    are assigned atomically to balanced deterministic folds. Each held-out
+    Every label must have exactly one embedding and one verified closure row
+    with the same relation ID and card hash. Closure families are assigned
+    atomically to balanced deterministic folds. Each held-out
     fold uses inner grouped predictions for temperature fitting and only its
     outer-training embeddings for applicability. Every optimizer invocation
     must report convergence or the fit fails.
@@ -172,8 +174,8 @@ def fit_policy_classifier(
             optimizer results violate the classifier contract.
 
     """
-    data = join_training_data(labels, embeddings)
-    validate_classifier_cohorts(data.labels, config)
+    data = join_training_data(labels, embeddings, families)
+    validate_classifier_cohorts(families, config)
     assignment = grouped_fold_assignment(data, config)
     cross_fit = cross_fit_predictions(
         data,

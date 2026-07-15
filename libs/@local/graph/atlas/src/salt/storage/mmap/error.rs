@@ -3,6 +3,8 @@
 use core::{error::Error, fmt};
 use std::io;
 
+use camino::Utf8PathBuf;
+
 use super::{ArtifactFormat, ScalarType, SectionId};
 use crate::salt::hash::ContentHash;
 
@@ -50,6 +52,66 @@ impl Error for ArtifactMapError {
             Self::Io(error) => Some(error),
             Self::Format(error) => Some(error),
         }
+    }
+}
+
+/// A failure to encode or atomically publish an immutable artifact.
+#[derive(Debug)]
+pub(crate) enum ArtifactWriteError {
+    Io(io::Error),
+    Persist(tempfile::PersistError),
+    EmptySections,
+    TooManySections { count: usize, maximum: u32 },
+    InvalidSection { index: usize, error: SectionError },
+    ExistingArtifactMismatch { path: Utf8PathBuf },
+    Map(ArtifactMapError),
+}
+
+impl fmt::Display for ArtifactWriteError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(error) => write!(formatter, "could not write artifact: {error}"),
+            Self::Persist(error) => write!(formatter, "could not publish artifact: {error}"),
+            Self::EmptySections => formatter.write_str("artifact requires at least one section"),
+            Self::TooManySections { count, maximum } => {
+                write!(
+                    formatter,
+                    "artifact has {count} sections; maximum is {maximum}"
+                )
+            }
+            Self::InvalidSection { index, error } => {
+                write!(
+                    formatter,
+                    "artifact output section {index} is invalid: {error}"
+                )
+            }
+            Self::ExistingArtifactMismatch { path } => write!(
+                formatter,
+                "immutable artifact at {path} differs from the attempted publication"
+            ),
+            Self::Map(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl Error for ArtifactWriteError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::Persist(error) => Some(error),
+            Self::Map(error) => Some(error),
+            Self::EmptySections
+            | Self::TooManySections { .. }
+            | Self::InvalidSection { .. }
+            | Self::ExistingArtifactMismatch { .. } => None,
+        }
+    }
+}
+
+impl From<io::Error> for ArtifactWriteError {
+    #[inline]
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
     }
 }
 

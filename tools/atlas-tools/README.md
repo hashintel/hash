@@ -191,10 +191,14 @@ uv run wikidata render-cards --records extract/ --config config.yaml \
 uv run hash-cards extract-cards --out hash-cards/ \
     --tokenizer heuristic --sentence-splitter naive
 uv run relation concat wikidata-cards/ hash-cards/ --out cards/
+uv run relation closure cards/ wikidata-cards/ hash-cards/ --out family-closure/
 ```
 
-Each leaf directory must contain `cards.jsonl` and `cards.manifest.json`.
-`concat` verifies each manifest-recorded content hash and source declaration,
+Each leaf directory contains `cards.jsonl`, `cards.manifest.json`,
+`lineage.jsonl`, and `lineage.manifest.json`. The lineage artifact preserves
+source identities and direct edges, including dependency-only nodes without a
+selected card, and is hash-bound to the same typed snapshot and finalized leaf
+card artifact. `concat` verifies each manifest-recorded content hash and source declaration,
 rejects duplicate namespaces or relation IDs, and writes the combined
 `cards/cards.jsonl` and `cards/cards.manifest.json`. Combined IDs stay qualified by
 their leaf source, for example `wikidata:P47` and `hash:<stable-local-id>`.
@@ -202,12 +206,12 @@ Evaluation accepts only this verified schema-v2 `relation.concat` artifact.
 
 Paid evaluation, soft-label aggregation, and embedding acquisition consume this
 verified concat artifact directly. They do not require a relation-family
-overlay. Grouped classifier fitting has a separate, fail-closed lineage
-requirement: it must join a source-derived relation family closure by exact
-`(relation_id, card_hash)` before assigning folds. The normative future
-contract is [Relation family closure](docs/relation-family-closure.md). Until
-that artifact producer and classifier binding exist, classifier fitting cannot
-claim grouped cross-validation evidence.
+closure. `relation closure` verifies every source lineage and the concat deck,
+then atomically publishes deterministic connected-component assignments in
+`families.jsonl` plus their complete provenance in `families.manifest.json`.
+Grouped classifier fitting has a separate, fail-closed lineage requirement: it
+joins that verified closure by exact `(relation_id, card_hash)` before assigning
+folds. The complete contract is [Relation family closure](docs/relation-family-closure.md).
 
 Set `OPENROUTER_API_KEY` and use the checked-in
 `config/eval/pilot.yaml`, which is the source of truth for the recovered nine-judge
@@ -249,6 +253,55 @@ uv run python -m json.tool runs/evaluate-analysis/decisions.json
 
 Progress, throughput, and ETA are written to stderr. Add `--quiet` when a caller
 needs silent operation.
+
+Monitor a production grid from another terminal with the read-only status dashboard:
+
+```sh
+# Full-screen dashboard, refreshed every two seconds.
+uv run relation status runs/grid
+
+# Use a slower refresh interval (minimum 0.25 seconds).
+uv run relation status runs/grid --refresh-seconds 5
+
+# Print one snapshot for logs, scripts, or a non-interactive terminal.
+uv run relation status runs/grid --once
+
+# Change only the pre-baseline refinement projection from its 40% default.
+uv run relation status runs/grid --trigger-rate 0.35
+```
+
+`status` never mutates the run. After its initial load, it incrementally tails complete
+rows appended to `attempts.jsonl` and `votes.jsonl`; a trailing partial row remains
+invisible until its terminating newline arrives. The dashboard distinguishes three
+levels of progress that must not be compared as though they were the same unit:
+
+- **Votes complete** counts logical votes whose result is known. That includes the
+  ordered votes already in `votes.jsonl`, parse-valid accepted initial responses, and
+  malformed initial responses followed by an accepted repair. An accepted malformed
+  repair is complete because execution deterministically records it as `ABSTAIN`.
+- **Durably committed** counts the deterministic contiguous plan prefix written to
+  `votes.jsonl`. Concurrent work may finish out of order, so this number can remain
+  low while many completed votes wait behind an earlier deferred plan item. The
+  dashboard reports that difference as **completed awaiting ordered commit**.
+- **Physical requests** counts rows in `attempts.jsonl`, including initial calls,
+  transport retries, and parser-repair calls. Request health separately reports repair
+  requests, failed or locally rejected requests, open logical votes that still need a
+  successful stage, and requests with durable in-flight markers.
+
+There is intentionally no "extra requests" metric: subtracting ordered durable commits
+from physical requests mixes logical votes with network calls and wrongly classifies
+valid out-of-order completions as overhead. Per-family rows instead show both complete
+and durable vote counts, recent logical-vote throughput, ETA, spend, failed requests,
+and open votes.
+
+The phase line makes the plan arithmetic explicit. For example, 476 refined cards
+across five families and two refinement repeats produce
+`476 × 5 × 2 = 4,760` refinement votes. Before the baseline completes, this card count
+is explicitly marked as a projection using the configured trigger rate; once every
+baseline cell is durable, the target and ETA switch to the exact refinement set. Known
+spend is suffixed when any physical request lacks complete cost evidence.
+
+Press `space` to pause automatic refresh, `r` to refresh immediately, and `q` to quit.
 
 #### The production grid (`mode: grid`, schema v4)
 
@@ -323,13 +376,17 @@ uv run relation aggregate runs/grid runs/cards config/eval/grid.yaml \
     --out runs/soft-labels.parquet
 uv run relation embed runs/cards config/eval/grid.yaml \
     --out runs/embeddings.parquet --cache runs/embedding-cache
+uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
+    family-closure config/eval/grid.yaml --out runs/classifier
 uv run relation report runs/grid runs/cards config/eval/grid.yaml \
-    --gold gold.jsonl --out runs/report
+    --gold gold.jsonl --classifier runs/classifier \
+    --closure family-closure --out runs/report
 ```
 
-Classifier fitting is omitted from the runnable sequence until the independent
-relation family closure producer and its `fit` binding are implemented. The
-pilot, grid, aggregate, embed, and panel-only report remain valid without it.
+The pilot, grid, aggregate, embed, and panel-only report remain valid without a
+family closure. `fit` always requires one, and a report that loads a classifier
+must receive the exact closure with `--closure`; providing only one of
+`--classifier` and `--closure` fails closed.
 
 `aggregate` emits soft labels (Dirichlet(1,1,1) posterior means over
 {C, P, O}, unclear votes in the ambiguity column, n_votes, entropy, the

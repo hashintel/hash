@@ -38,6 +38,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     NonEmptyStr,
     PlacementClass,
     PositiveFiniteFloat,
+    RelationId,
     Sha256Hex,
 )
 
@@ -229,10 +230,42 @@ class EmbeddingsMetadata(ArtifactMetadata):
         return self.producer.vector_encoding
 
 
+class ClassifierClosureBinding(BaseModel):
+    """Record the exact verified family closure used for fold assignment."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    schema_version: Literal[1] = 1
+    artifact_id: Sha256Hex
+    families_hash: Sha256Hex
+    manifest_hash: Sha256Hex
+    algorithm: Literal["relation-lineage-components-v1"]
+    edge_policy_id: Literal["relation-lineage-edge-policy-v1"]
+    root_exclusions: tuple[RelationId, ...]
+    admitted_inverse_edge_kinds: tuple[Literal["wikidata-p1696"], ...]
+
+    @field_validator("root_exclusions", mode="before")
+    @classmethod
+    def normalize_json_roots(cls, value: object) -> object:
+        """Normalize the JSON array after base metadata hash verification."""
+        return tuple(value) if isinstance(value, list) else value
+
+    @field_validator("admitted_inverse_edge_kinds", mode="before")
+    @classmethod
+    def normalize_json_edge_kinds(cls, value: object) -> object:
+        """Normalize the JSON array after base metadata hash verification."""
+        return tuple(value) if isinstance(value, list) else value
+
+
 class ClassifierBundleMetadata(ArtifactMetadata):
     """Describe all files and scalar contracts in a classifier bundle."""
 
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
     artifact: Literal["relation-policy-classifier"] = "relation-policy-classifier"
     rows: PositiveInt
     relation_order_hash: Sha256Hex
@@ -246,6 +279,7 @@ class ClassifierBundleMetadata(ArtifactMetadata):
     model_iterations: PositiveInt
     temperature: PositiveFiniteFloat
     cross_fit_temperatures: tuple[PositiveFiniteFloat, ...]
+    closure: ClassifierClosureBinding
     config: ClassifierConfig
     metrics: ClassifierMetrics
 

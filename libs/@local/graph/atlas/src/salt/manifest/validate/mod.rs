@@ -2,14 +2,16 @@ use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
 
-use super::{GenerationManifest, ManifestError};
+use super::{GenerationManifest, ManifestError, artifact::validate_artifacts};
 use crate::salt::{
-    card::CARD_FORMAT_VERSION,
+    graph::audit::MINIMUM_RECALL,
     hash::ContentHash,
     projector::PROJECTOR_ARCHITECTURE_VERSION,
     representation::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
     revision::{BaseRevision, DeltaRevision, MAX_PUBLISHED_VARIANTS, VariantId},
 };
+
+mod relation;
 
 const SEMANTIC_NEIGHBORS: usize = 30;
 
@@ -18,7 +20,7 @@ impl GenerationManifest {
     ///
     /// Structural validation is deliberately stricter than Serde shape
     /// validation. It fixes the v1 representation sizes, graph neighborhood,
-    /// FiLM conditioning, relation factorization, single canonical variant,
+    /// `FiLM` conditioning, relation factorization, single canonical variant,
     /// initial base/delta revisions, and serving companion pins.
     ///
     /// # Errors
@@ -33,6 +35,7 @@ impl GenerationManifest {
         self.validate_relations()?;
         self.validate_variants()?;
         self.validate_storage()?;
+        validate_artifacts(self)?;
         self.validate_serving()?;
         self.validate_reproducibility()?;
         Ok(())
@@ -96,6 +99,11 @@ impl GenerationManifest {
         fraction(
             "semantic_graph.recall_at_50",
             self.semantic_graph.recall_at_50,
+        )?;
+        exact(
+            "semantic_graph.recall_at_50",
+            self.semantic_graph.recall_at_50 >= MINIMUM_RECALL,
+            "at least the production ANN recall threshold",
         )
     }
 
@@ -135,6 +143,29 @@ impl GenerationManifest {
             "strictly positive",
         )?;
         exact(
+            "projector.type_context_dimensions",
+            self.projector.type_conditioning == (self.projector.type_context_dimensions != 0),
+            "non-zero exactly when type conditioning is enabled",
+        )?;
+        exact(
+            "projector.role_count",
+            self.projector.role_count == 3,
+            "the three supported entity roles",
+        )?;
+        exact(
+            "projector.role_dimensions",
+            self.projector.role_dimensions > 0,
+            "strictly positive",
+        )?;
+        exact(
+            "projector.input_dimensions",
+            PROJECTOR_DIMENSIONS
+                .checked_add(self.projector.type_context_dimensions)
+                .and_then(|dimensions| dimensions.checked_add(self.projector.role_dimensions))
+                .is_some(),
+            "representable as usize",
+        )?;
+        exact(
             "projector.relation_conditioning",
             self.projector.relation_conditioning,
             "enabled",
@@ -161,214 +192,6 @@ impl GenerationManifest {
             self.projector.relation_gradient_beta_positive
                 <= self.projector.relation_gradient_beta_total,
             "no greater than the total relation-gradient budget",
-        )
-    }
-
-    fn validate_relations(&self) -> Result<(), ManifestError> {
-        let relations = &self.relations;
-        for (field, value) in [
-            (
-                "relations.annotation_prompt_family_version",
-                relations.annotation_prompt_family_version.as_str(),
-            ),
-            (
-                "relations.annotation_vote_schedule",
-                relations.annotation_vote_schedule.as_str(),
-            ),
-            (
-                "relations.policy_precedence_version",
-                relations.policy_precedence_version.as_str(),
-            ),
-            (
-                "relations.classifier_version",
-                relations.classifier_version.as_str(),
-            ),
-            (
-                "relations.applicability_method_version",
-                relations.applicability_method_version.as_str(),
-            ),
-        ] {
-            required_text(field, value)?;
-        }
-        exact(
-            "relations.relation_card_format_version",
-            relations.relation_card_format_version == CARD_FORMAT_VERSION,
-            "the current corpus format",
-        )?;
-        positive_finite(
-            "relations.classifier_temperature",
-            relations.classifier_temperature,
-        )?;
-        fraction(
-            "relations.classifier_ood_edge_volume_fraction",
-            relations.classifier_ood_edge_volume_fraction,
-        )?;
-        fraction(
-            "relations.reviewed_edge_volume_fraction",
-            relations.reviewed_edge_volume_fraction,
-        )?;
-        if let Some(prior) = relations.class_prior {
-            probability_vector("relations.class_prior", prior)?;
-        }
-        self.validate_strength_head()?;
-        self.validate_attraction_geometry()?;
-        nonnegative_finite(
-            "relations.attraction_force_pruning_threshold",
-            relations.attraction_force_pruning_threshold,
-        )?;
-        self.validate_negative_admission()?;
-        self.validate_coincident_gate()?;
-        self.validate_typed_deconflict()?;
-        exact(
-            "relations.derived_strength_persisted_as_authority",
-            !relations.derived_strength_persisted_as_authority,
-            "false",
-        )
-    }
-
-    fn validate_strength_head(&self) -> Result<(), ManifestError> {
-        let strength = &self.relations.strength_head;
-        exact(
-            "relations.strength_head.eligibility_threshold_proximal",
-            strength.eligibility_threshold_proximal == 0.2,
-            "0.2",
-        )?;
-        exact(
-            "relations.strength_head.zeta",
-            strength.zeta == [0.5, 1.0, 2.0],
-            "[0.5, 1.0, 2.0]",
-        )
-    }
-
-    fn validate_attraction_geometry(&self) -> Result<(), ManifestError> {
-        let coefficients = self.relations.attraction_geometry_coefficients;
-        nonnegative_finite(
-            "relations.attraction_geometry_coefficients.coincident",
-            coefficients.coincident,
-        )?;
-        exact(
-            "relations.attraction_geometry_coefficients.proximal",
-            coefficients.proximal == 1.0,
-            "1.0",
-        )?;
-        exact(
-            "relations.attraction_geometry_coefficients.overlay",
-            coefficients.overlay == 0.0,
-            "0.0",
-        )
-    }
-
-    fn validate_negative_admission(&self) -> Result<(), ManifestError> {
-        let admission = &self.relations.negative_admission;
-        let coefficients = admission.protection_coefficients;
-        exact(
-            "relations.negative_admission.protection_coefficients",
-            coefficients.coincident == 1.0
-                && coefficients.proximal == 1.0
-                && coefficients.overlay == 0.0,
-            "[1.0, 1.0, 0.0]",
-        )?;
-        let applicability = admission.protection_applicability;
-        fraction(
-            "relations.negative_admission.hard_negative_floor",
-            applicability.hard_negative_floor,
-        )?;
-        fraction(
-            "relations.negative_admission.ordinary_negative_floor",
-            applicability.ordinary_negative_floor,
-        )?;
-        exact(
-            "relations.negative_admission.protection_applicability.ordering_validated",
-            applicability.ordering_validated
-                && applicability.ordinary_negative_floor <= applicability.hard_negative_floor,
-            "true with ordinary floor no greater than hard floor",
-        )?;
-        exact(
-            "relations.negative_admission.protection_applicability.\
-             attraction_applicability_unchanged",
-            applicability.attraction_applicability_unchanged,
-            "true",
-        )?;
-        fraction(
-            "relations.negative_admission.hard_negative_protection_threshold",
-            admission.hard_negative_protection_threshold,
-        )?;
-        fraction(
-            "relations.negative_admission.ordinary_negative_protection_threshold",
-            admission.ordinary_negative_protection_threshold,
-        )?;
-        exact(
-            "relations.negative_admission.protection_thresholds",
-            admission.hard_negative_protection_threshold
-                <= admission.ordinary_negative_protection_threshold,
-            "hard threshold no greater than ordinary threshold",
-        )
-    }
-
-    fn validate_coincident_gate(&self) -> Result<(), ManifestError> {
-        let gate = self.relations.coincident_gate;
-        fraction(
-            "relations.coincident_gate.class_probability_threshold",
-            gate.class_probability_threshold,
-        )?;
-        fraction(
-            "relations.coincident_gate.applicability_threshold",
-            gate.applicability_threshold,
-        )?;
-        fraction(
-            "relations.coincident_gate.precision_lcb_threshold",
-            gate.precision_lcb_threshold,
-        )?;
-        if !gate.enabled {
-            exact(
-                "relations.attraction_geometry_coefficients.coincident",
-                self.relations.attraction_geometry_coefficients.coincident == 0.0,
-                "zero while the Coincident gate is disabled",
-            )?;
-        }
-        Ok(())
-    }
-
-    fn validate_typed_deconflict(&self) -> Result<(), ManifestError> {
-        let deconflict = self.relations.typed_deconflict;
-        exact(
-            "relations.typed_deconflict.enabled",
-            !deconflict.enabled,
-            "false for v1",
-        )?;
-        exact(
-            "relations.typed_deconflict.classifier_class_schema",
-            matches!(
-                deconflict.classifier_class_schema,
-                super::ClassifierClassSchema::Cpo
-            ),
-            "CPO while typed Deconflict is disabled",
-        )?;
-        exact(
-            "relations.typed_deconflict.geometry_coefficient",
-            deconflict.geometry_coefficient == 0.0,
-            "0.0 while disabled",
-        )?;
-        for (field, value) in [
-            (
-                "relations.typed_deconflict.admission_threshold",
-                deconflict.admission_threshold,
-            ),
-            (
-                "relations.typed_deconflict.signed_margin_threshold",
-                deconflict.signed_margin_threshold,
-            ),
-            (
-                "relations.typed_deconflict.normalized_minimum_radius",
-                deconflict.normalized_minimum_radius,
-            ),
-        ] {
-            nonnegative_finite(field, value)?;
-        }
-        exact(
-            "relations.typed_deconflict.exclude_from_generic_negatives",
-            deconflict.exclude_from_generic_negatives,
-            "true",
         )
     }
 
@@ -434,7 +257,7 @@ impl GenerationManifest {
     fn validate_storage(&self) -> Result<(), ManifestError> {
         exact(
             "storage.row_count",
-            self.storage.row_count > 0 && self.storage.row_count <= u64::from(u32::MAX),
+            self.storage.row_count > 0 && u32::try_from(self.storage.row_count).is_ok(),
             "representable by the selected u32 encoding",
         )?;
         exact(
@@ -458,6 +281,10 @@ impl GenerationManifest {
         required_text(
             "serving.authorization_adapter_version",
             &self.serving.authorization_adapter_version,
+        )?;
+        required_text(
+            "serving.gate_evidence_authority",
+            &self.serving.gate_evidence_authority,
         )?;
         required_text("serving.style_version", &self.serving.style_version)?;
         required_text(
@@ -504,7 +331,8 @@ impl GenerationManifest {
 
 #[inline]
 fn required_text(field: &'static str, value: &str) -> Result<(), ManifestError> {
-    if value.trim().is_empty() || value.eq_ignore_ascii_case("TBD") {
+    let value = value.trim();
+    if value.is_empty() || value.eq_ignore_ascii_case("TBD") {
         Err(ManifestError::MissingText { field })
     } else {
         Ok(())
@@ -542,12 +370,12 @@ fn positive_finite(field: &'static str, value: f64) -> Result<(), ManifestError>
 #[inline]
 fn nonnegative_finite(field: &'static str, value: f64) -> Result<(), ManifestError> {
     finite(field, value)?;
-    exact(field, value >= 0.0, "non-negative")
+    exact(field, !value.is_sign_negative(), "non-negative")
 }
 
 #[inline]
 fn fraction(field: &'static str, value: f64) -> Result<(), ManifestError> {
-    if value.is_finite() && (0.0..=1.0).contains(&value) {
+    if value.is_finite() && !value.is_sign_negative() && value <= 1.0 {
         Ok(())
     } else {
         Err(ManifestError::InvalidFraction { field, value })

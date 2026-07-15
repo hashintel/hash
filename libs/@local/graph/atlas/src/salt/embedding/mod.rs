@@ -13,6 +13,7 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
     num::NonZeroUsize,
+    sync::Arc,
 };
 
 use error_stack::{Report, ResultExt as _};
@@ -81,7 +82,7 @@ pub(crate) trait CardEmbeddingCache {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct CardEmbedding {
     key: CardEmbeddingKey,
-    embedding: OwnedCanonicalEmbedding,
+    embedding: Arc<OwnedCanonicalEmbedding>,
 }
 
 impl CardEmbedding {
@@ -208,13 +209,14 @@ fn distribute(
     key: CardEmbeddingKey,
     embedding: OwnedCanonicalEmbedding,
 ) {
+    let embedding = Arc::new(embedding);
     let (&last, rest) = positions
         .split_last()
         .expect("a unique card should have at least one input position");
     for &position in rest {
         output[position] = Some(CardEmbedding {
             key,
-            embedding: embedding.clone(),
+            embedding: Arc::clone(&embedding),
         });
     }
     output[last] = Some(CardEmbedding { key, embedding });

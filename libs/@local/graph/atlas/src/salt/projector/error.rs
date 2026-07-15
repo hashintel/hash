@@ -5,7 +5,7 @@ use core::{error::Error, fmt};
 pub(crate) enum ProjectorError {
     ZeroWidth,
     ZeroResidualBlocks,
-    TooFewRoles {
+    RoleCount {
         count: usize,
     },
     ZeroRoleDimensions,
@@ -43,10 +43,10 @@ impl fmt::Display for ProjectorError {
             Self::ZeroResidualBlocks => {
                 formatter.write_str("projector requires at least one residual block")
             }
-            Self::TooFewRoles { count } => {
+            Self::RoleCount { count } => {
                 write!(
                     formatter,
-                    "projector role vocabulary requires at least three entries, got {count}"
+                    "projector role vocabulary requires exactly three entries, got {count}"
                 )
             }
             Self::ZeroRoleDimensions => {
@@ -126,6 +126,11 @@ pub(crate) enum ObjectiveError {
     InvalidLocalScale {
         value: f64,
     },
+    NonFiniteLoss,
+    LocalScaleRowCount {
+        expected: usize,
+        actual: usize,
+    },
     CoordinateRowCount {
         expected: usize,
         actual: usize,
@@ -187,6 +192,11 @@ impl fmt::Display for ObjectiveError {
             Self::InvalidLocalScale { value } => write!(
                 formatter,
                 "relation local scale must be finite and non-negative, got {value}"
+            ),
+            Self::NonFiniteLoss => formatter.write_str("projector objective loss is non-finite"),
+            Self::LocalScaleRowCount { expected, actual } => write!(
+                formatter,
+                "local-scale field has {actual} rows; expected {expected}"
             ),
             Self::CoordinateRowCount { expected, actual } => write!(
                 formatter,

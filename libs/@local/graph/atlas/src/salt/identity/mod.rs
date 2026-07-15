@@ -9,6 +9,9 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use type_system::knowledge::entity::id::EntityId;
+use uuid::Uuid;
+
+use crate::salt::hash::{ContentHash, ContentHasher};
 
 /// The reserved `u32` value that never identifies a row or ordinal.
 const RESERVED_PACKED_ID: u32 = u32::MAX;
@@ -311,6 +314,28 @@ impl IdentityDirectory {
                 .expect("should fit because construction validated every row index");
             (row, entity)
         })
+    }
+
+    /// Returns the canonical identity of every row assignment.
+    #[must_use]
+    pub(crate) fn content_hash(&self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.identity-directory.v1");
+        for (row, entity) in self.iter() {
+            hasher.update(&row.as_u32().to_le_bytes());
+            let web_id: Uuid = entity.web_id.into();
+            let entity_uuid: Uuid = entity.entity_uuid.into();
+            hasher.update(web_id.as_bytes());
+            hasher.update(entity_uuid.as_bytes());
+            if let Some(draft_id) = entity.draft_id {
+                let draft_id: Uuid = draft_id.into();
+                hasher.update(&[1]);
+                hasher.update(draft_id.as_bytes());
+            } else {
+                hasher.update(&[0]);
+                hasher.update(&[0; 16]);
+            }
+        }
+        hasher.finish()
     }
 }
 

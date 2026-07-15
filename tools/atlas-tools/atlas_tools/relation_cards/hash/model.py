@@ -2,7 +2,15 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, NonNegativeInt, PositiveInt
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    NonNegativeInt,
+    PositiveInt,
+)
 
 from atlas_tools.relation_cards.common.model import RelationCardInput
 
@@ -13,6 +21,13 @@ class FrozenModel(BaseModel):
     """Closed, immutable base for HASH extraction records."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+
+class HashSnapshotIdentity(FrozenModel):
+    """Typed identity of the PostgreSQL snapshot used for HASH extraction."""
+
+    kind: Literal["hash-postgres-transaction-time"] = "hash-postgres-transaction-time"
+    value: AwareDatetime
 
 
 class InverseMetadata(FrozenModel):

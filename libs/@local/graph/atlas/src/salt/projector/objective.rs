@@ -1,5 +1,8 @@
 use super::error::ObjectiveError;
-use crate::salt::relation::AttractionEdge;
+use crate::salt::{
+    hash::{ContentHash, ContentHasher},
+    relation::AttractionEdge,
+};
 
 /// Bounded semantic affinity and sampled-negative coefficients.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -9,6 +12,15 @@ pub(crate) struct SemanticAffinity {
     epsilon: f64,
     maximum_positive_weight: f64,
     maximum_negative_weight: f64,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(super) struct SemanticAffinityParameters {
+    pub a: f64,
+    pub b: f64,
+    pub epsilon: f64,
+    pub maximum_positive_weight: f64,
+    pub maximum_negative_weight: f64,
 }
 
 impl SemanticAffinity {
@@ -59,8 +71,10 @@ impl SemanticAffinity {
     /// This returns an error when distance or weight is negative or non-finite.
     pub(crate) fn positive_loss(self, distance: f64, weight: f64) -> Result<f64, ObjectiveError> {
         let affinity = self.affinity(distance)?;
-        Ok(-validate_weight(weight)?.min(self.maximum_positive_weight)
-            * (affinity + self.epsilon).ln())
+        validate_loss(
+            -validate_weight(weight)?.min(self.maximum_positive_weight)
+                * (affinity + self.epsilon).ln(),
+        )
     }
 
     /// Computes capped sampled-negative cross-entropy.
@@ -70,13 +84,26 @@ impl SemanticAffinity {
     /// This returns an error when distance or weight is negative or non-finite.
     pub(crate) fn negative_loss(self, distance: f64, weight: f64) -> Result<f64, ObjectiveError> {
         let affinity = self.affinity(distance)?;
-        Ok(-validate_weight(weight)?.min(self.maximum_negative_weight)
-            * ((1.0 - affinity) + self.epsilon).ln())
+        validate_loss(
+            -validate_weight(weight)?.min(self.maximum_negative_weight)
+                * ((1.0 - affinity) + self.epsilon).ln(),
+        )
     }
 
     fn affinity(self, distance: f64) -> Result<f64, ObjectiveError> {
         let distance = validate_distance(distance)?;
         Ok(1.0 / self.a.mul_add(distance.powf(2.0 * self.b), 1.0))
+    }
+
+    #[inline]
+    pub(super) const fn parameters(self) -> SemanticAffinityParameters {
+        SemanticAffinityParameters {
+            a: self.a,
+            b: self.b,
+            epsilon: self.epsilon,
+            maximum_positive_weight: self.maximum_positive_weight,
+            maximum_negative_weight: self.maximum_negative_weight,
+        }
     }
 }
 
@@ -88,6 +115,15 @@ pub(crate) struct RelationEnergy {
     coincident_huber_delta: f64,
     proximal_temperature: f64,
     epsilon: f64,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(super) struct RelationEnergyParameters {
+    pub coincident_radius: f64,
+    pub proximal_radius: f64,
+    pub coincident_huber_delta: f64,
+    pub proximal_temperature: f64,
+    pub epsilon: f64,
 }
 
 impl RelationEnergy {
@@ -107,7 +143,7 @@ impl RelationEnergy {
     ) -> Result<Self, ObjectiveError> {
         if !coincident_radius.is_finite()
             || !proximal_radius.is_finite()
-            || coincident_radius < 0.0
+            || coincident_radius.is_sign_negative()
             || coincident_radius >= proximal_radius
             || !coincident_huber_delta.is_finite()
             || coincident_huber_delta <= 0.0
@@ -147,11 +183,17 @@ impl RelationEnergy {
     ) -> Result<f64, ObjectiveError> {
         let distance = validate_distance(distance)?;
         for value in [left_scale, right_scale] {
-            if !value.is_finite() || value < 0.0 {
+            if !value.is_finite() || value.is_sign_negative() {
                 return Err(ObjectiveError::InvalidLocalScale { value });
             }
         }
-        Ok(distance / ((left_scale + self.epsilon) * (right_scale + self.epsilon)).sqrt())
+        let left = left_scale + self.epsilon;
+        let right = right_scale + self.epsilon;
+        let denominator = left.sqrt() * right.sqrt();
+        if !denominator.is_finite() || denominator == 0.0 {
+            return Err(ObjectiveError::InvalidLocalScale { value: denominator });
+        }
+        validate_distance(distance / denominator)
     }
 
     /// Computes one factorized attraction-edge contribution.
@@ -177,7 +219,36 @@ impl RelationEnergy {
         let mixture = edge
             .coincident
             .mul_add(coincident, edge.proximal * proximal);
-        Ok(edge.confidence.value() * edge.degree_normalization * edge.strength.get() * mixture)
+        validate_loss(
+            edge.confidence.value() * edge.degree_normalization * edge.strength.get() * mixture,
+        )
+    }
+
+    /// Returns the versioned identity of the normalized-distance energy.
+    #[must_use]
+    pub(crate) fn content_hash(self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.relation-energy.v1");
+        for value in [
+            self.coincident_radius,
+            self.proximal_radius,
+            self.coincident_huber_delta,
+            self.proximal_temperature,
+            self.epsilon,
+        ] {
+            hasher.update(&value.to_bits().to_le_bytes());
+        }
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(super) const fn parameters(self) -> RelationEnergyParameters {
+        RelationEnergyParameters {
+            coincident_radius: self.coincident_radius,
+            proximal_radius: self.proximal_radius,
+            coincident_huber_delta: self.coincident_huber_delta,
+            proximal_temperature: self.proximal_temperature,
+            epsilon: self.epsilon,
+        }
     }
 }
 
@@ -188,6 +259,14 @@ pub(crate) struct GradientBudget {
     total: f64,
     semantic_floor: f64,
     epsilon: f64,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(super) struct GradientBudgetParameters {
+    pub positive: f64,
+    pub total: f64,
+    pub semantic_floor: f64,
+    pub epsilon: f64,
 }
 
 impl GradientBudget {
@@ -205,7 +284,8 @@ impl GradientBudget {
     ) -> Result<Self, ObjectiveError> {
         if !positive.is_finite()
             || !total.is_finite()
-            || positive < 0.0
+            || positive.is_sign_negative()
+            || total.is_sign_negative()
             || positive > total
             || !semantic_floor.is_finite()
             || semantic_floor <= 0.0
@@ -253,6 +333,30 @@ impl GradientBudget {
             total_clipped: total_factor < 1.0,
         })
     }
+
+    /// Returns the positive relation-gradient budget.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn positive(self) -> f64 {
+        self.positive
+    }
+
+    /// Returns the total relation-gradient budget.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn total(self) -> f64 {
+        self.total
+    }
+
+    #[inline]
+    pub(super) const fn parameters(self) -> GradientBudgetParameters {
+        GradientBudgetParameters {
+            positive: self.positive,
+            total: self.total,
+            semantic_floor: self.semantic_floor,
+            epsilon: self.epsilon,
+        }
+    }
 }
 
 /// A budgeted relation gradient and clipping diagnostics.
@@ -265,7 +369,7 @@ pub(crate) struct ClippedGradient {
 
 #[inline]
 fn validate_distance(value: f64) -> Result<f64, ObjectiveError> {
-    if !value.is_finite() || value < 0.0 {
+    if !value.is_finite() || value.is_sign_negative() {
         Err(ObjectiveError::InvalidDistance { value })
     } else {
         Ok(value)
@@ -274,10 +378,19 @@ fn validate_distance(value: f64) -> Result<f64, ObjectiveError> {
 
 #[inline]
 fn validate_weight(value: f64) -> Result<f64, ObjectiveError> {
-    if !value.is_finite() || value < 0.0 {
+    if !value.is_finite() || value.is_sign_negative() {
         Err(ObjectiveError::InvalidWeight { value })
     } else {
         Ok(value)
+    }
+}
+
+#[inline]
+fn validate_loss(value: f64) -> Result<f64, ObjectiveError> {
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(ObjectiveError::NonFiniteLoss)
     }
 }
 

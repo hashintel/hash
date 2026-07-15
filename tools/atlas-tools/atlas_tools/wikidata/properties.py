@@ -68,16 +68,19 @@ form (see sparql.py) times out structurally on WDQS/Blazegraph while
 QLever answers it in sub-second time, and each WDQS timeout costs the full
 client timeout per offset before the ladder can fall through.
 
-Inverse resolution: an explicit P1696 (inverse property) statement wins;
-otherwise the inverse constraint (Q21510855, qualifier P2306) is used.
+Inverse resolution: every exact explicit P1696 (inverse property) ID is
+preserved for source lineage. The first explicit ID wins for the singular
+card display; only when P1696 is absent does that display fall back to the
+inverse constraint (Q21510855, qualifier P2306). The fallback is never
+promoted to a P1696 lineage fact.
 
-Closed ancestors: cards carry the full P1647 subproperty closure rather
-than only direct parents, so a card states every generalization of the
-relation. Property documents list direct parents only; the closure for
-every item-property is fetched in one QLever query (0.3 s, 833 pairs
-measured live) and merged per record as direct parents (document order)
-first, then the remaining closure members in numeric-PID order. The merge
-is cycle-safe: the record's own PID and duplicates are dropped.
+Closed ancestors: exact direct P1647 IDs from property documents are
+preserved separately for source lineage. Cards carry the full P1647
+subproperty closure so a card states every generalization of the relation.
+The closure for every item-property is fetched in one QLever query (0.3 s,
+833 pairs measured live) and merged per record as direct parents (document
+order) first, then the remaining closure members in numeric-PID order. The
+merge is cycle-safe: the record's own PID and duplicates are dropped.
 
 Example selection lives in ``examples.py`` (stratified by subject-type
 constraint class, sitelink-weighted, endpoint-deduplicated). Under
@@ -94,7 +97,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import cast
+from typing import Self, cast
 
 from pydantic import BaseModel, Field, JsonValue, ValidationError
 from pydantic_extra_types.language_code import LanguageAlpha2
@@ -112,6 +115,7 @@ from atlas_tools.wikidata.model import (
     EntityLabel,
     ExampleSource,
     Pid,
+    PropertyLineage,
     PropertyRecord,
     Qid,
     entity_number,
@@ -313,8 +317,13 @@ def parse_property_document(
     extraction phases.
     """
     constraints = parse_constraints(document.claims.get("P2302", []))
-    p1696 = cast("tuple[Pid, ...]", _statement_entity_ids(document.claims, "P1696"))
-    inverse_pid = p1696[0] if p1696 else constraints.inverse_pid
+    direct_ancestor_statements = cast(
+        "tuple[Pid, ...]", _statement_entity_ids(document.claims, "P1647")
+    )
+    p1696_statements = cast("tuple[Pid, ...]", _statement_entity_ids(document.claims, "P1696"))
+    direct_ancestors = tuple(sorted(direct_ancestor_statements))
+    p1696 = tuple(sorted(p1696_statements))
+    inverse_pid = p1696_statements[0] if p1696_statements else constraints.inverse_pid
 
     return PropertyRecord(
         pid=Pid(document.id),
@@ -335,7 +344,9 @@ def parse_property_document(
             if document.aliases.get(language)
         },
         p31=_statement_entity_ids(document.claims, "P31"),
-        ancestors=_statement_entity_ids(document.claims, "P1647"),
+        direct_ancestors=direct_ancestors,
+        ancestors=direct_ancestor_statements,
+        p1696_inverse_pids=p1696,
         inverse_pid=inverse_pid,
         constraints=constraints,
     )
@@ -450,6 +461,7 @@ def fetch_example_rows(
 
 class ExtractionResult(BaseModel):
     records: list[PropertyRecord]  # retained, numeric-PID order
+    lineage: list[PropertyLineage]  # closed direct-fact source universe
     inventory_rows: list[InventoryRow]
     excluded: dict[str, str]  # pid -> exclusion reason
     entity_labels: dict[EntityId, EntityLabel]
@@ -595,18 +607,27 @@ def _fetch_ancestor_closure(
     return {pid: tuple(ancestors) for pid, ancestors in closure.items()}
 
 
+@dataclass
+class _PropertyDocuments:
+    """Retained card records plus every property document already fetched."""
+
+    records: list[PropertyRecord]
+    by_pid: dict[Pid, PropertyRecord]
+
+
 def _fetch_property_records(
     inventory: _Inventory,
     ancestor_closure: Mapping[Pid, tuple[Pid, ...]],
     extraction: ExtractionConfig,
     transport: Transport,
     progress: ProgressReporter,
-) -> list[PropertyRecord]:
-    """Fetch full property documents in batches and parse the retained ones.
+) -> _PropertyDocuments:
+    """Fetch property documents and retain direct facts even for excluded rows.
 
     Exclusions found at the document level (missing document, datatype,
-    maintenance, deprecated) are recorded in ``inventory.excluded``. The
-    returned records are sorted by numeric PID.
+    maintenance, deprecated) are recorded in ``inventory.excluded``. Card
+    records are sorted by numeric PID; ``by_pid`` also keeps excluded source
+    documents available when a retained relation references them.
     """
     progress.note(
         f"{len(inventory.rows)} properties in inventory,"
@@ -615,6 +636,7 @@ def _fetch_property_records(
     property_batches = chunk_ids(inventory.retained_pids)
     progress.phase("property documents (wbgetentities)", total=len(property_batches))
     records: list[PropertyRecord] = []
+    by_pid: dict[Pid, PropertyRecord] = {}
 
     for batch in property_batches:
         response = transport.get(
@@ -637,6 +659,7 @@ def _fetch_property_records(
             record.usage_count = inventory.usage_by_pid.get(pid)
             record.retrieved_at = retrieved_at
             record.ancestors = merge_closed_ancestors(record, ancestor_closure)
+            by_pid[record.pid] = record
             reason = exclusion_reason(record, extraction)
             if reason is not None:
                 inventory.excluded[pid] = reason
@@ -646,68 +669,194 @@ def _fetch_property_records(
         progress.advance()
 
     records.sort(key=lambda record: entity_number(record.pid))
-    return records
+    return _PropertyDocuments(records=records, by_pid=by_pid)
 
 
-def _collect_entity_labels(
-    records: Sequence[PropertyRecord],
+@dataclass(frozen=True)
+class _EntityMetadata:
+    """Card labels plus the complete direct-fact property universe."""
+
+    labels: dict[EntityId, EntityLabel]
+    lineage: list[PropertyLineage]
+
+
+@dataclass
+class _LineageClosure:
+    """Expand exact direct property facts from selected cards to a closed universe."""
+
+    documents: dict[Pid, PropertyRecord]
+    frontier: set[Pid]
+    included: set[Pid] = field(default_factory=set)
+
+    @classmethod
+    def for_records(
+        cls,
+        records: Sequence[PropertyRecord],
+        documents: dict[Pid, PropertyRecord],
+    ) -> Self:
+        return cls(documents=documents, frontier={record.pid for record in records})
+
+    def expand_known(self) -> set[Pid]:
+        """Consume known documents and return property identities still unresolved."""
+        unresolved: set[Pid] = set()
+        while self.frontier:
+            pid = min(self.frontier)
+            self.frontier.remove(pid)
+            if pid in self.included:
+                continue
+            record = self.documents.get(pid)
+            if record is None:
+                unresolved.add(pid)
+                continue
+            self.included.add(pid)
+            self.frontier.update(record.direct_ancestors)
+            self.frontier.update(record.p1696_inverse_pids)
+        return unresolved
+
+    def rows(self) -> list[PropertyLineage]:
+        return [
+            PropertyLineage(
+                pid=pid,
+                direct_ancestors=self.documents[pid].direct_ancestors,
+                p1696_inverse_pids=self.documents[pid].p1696_inverse_pids,
+            )
+            for pid in sorted(self.included)
+        ]
+
+
+def _record_label(record: PropertyRecord, primary: LanguageAlpha2) -> EntityLabel:
+    return EntityLabel(
+        label=record.labels.get(primary, ""),
+        description=record.descriptions.get(primary, ""),
+    )
+
+
+def _document_label(document: EntityDocument, primary: LanguageAlpha2) -> EntityLabel:
+    label = document.labels.get(primary)
+    description = document.descriptions.get(primary)
+    return EntityLabel(
+        label=label.value if label else "",
+        description=description.value if description else "",
+    )
+
+
+def _display_references(records: Sequence[PropertyRecord]) -> set[EntityId]:
+    return (
+        {
+            qid
+            for record in records
+            for qid in record.constraints.subject_types + record.constraints.value_types
+        }
+        | {ancestor for record in records for ancestor in record.ancestors}
+        | {inverse_pid for record in records if (inverse_pid := record.inverse_pid) is not None}
+    )
+
+
+def _known_entity_labels(
+    properties: _PropertyDocuments,
+    display_references: set[EntityId],
+    primary: LanguageAlpha2,
+) -> dict[EntityId, EntityLabel]:
+    labels: dict[EntityId, EntityLabel] = {
+        record.pid: _record_label(record, primary) for record in properties.records
+    }
+    for entity_id in sorted(
+        display_references,
+        key=lambda value: (entity_number(value), value),
+    ):
+        record = properties.by_pid.get(cast("Pid", entity_id))
+        if record is not None:
+            labels[entity_id] = _record_label(record, primary)
+    return labels
+
+
+def _fetch_metadata_batch(
+    batch: list[EntityId],
+    *,
+    unresolved: set[Pid],
+    properties: _PropertyDocuments,
+    entity_labels: dict[EntityId, EntityLabel],
+    extraction: ExtractionConfig,
+    transport: Transport,
+) -> None:
+    response = transport.get(
+        extraction.endpoints.wikibase_api,
+        wbgetentities_params(batch, extraction.languages),
+    )
+    if not response.ok:
+        raise RuntimeError(f"wbgetentities entity batch failed with status {response.status}")
+
+    documents = WbGetEntitiesResponse.model_validate_json(response.body)
+    for entity_id in batch:
+        document = documents.entities.get(entity_id)
+        if document is None:
+            if entity_id in unresolved:
+                raise RuntimeError(f"lineage dependency {entity_id} has no property document")
+            entity_labels[entity_id] = EntityLabel()
+            continue
+
+        entity_labels[entity_id] = _document_label(document, extraction.primary_language)
+        if not entity_id.startswith("P") or not entity_id[1:].isdigit():
+            continue
+        try:
+            property_document = parse_property_document(document, extraction.languages)
+        except ValidationError:
+            if entity_id in unresolved:
+                raise
+            continue
+        if property_document.pid != entity_id:
+            raise RuntimeError(
+                f"property request {entity_id} returned property document {property_document.pid}"
+            )
+        properties.by_pid[property_document.pid] = property_document
+
+
+def _collect_entity_metadata(
+    properties: _PropertyDocuments,
     extraction: ExtractionConfig,
     transport: Transport,
     progress: ProgressReporter,
-) -> dict[EntityId, EntityLabel]:
-    """Resolve labels and descriptions for every entity a card references.
+) -> _EntityMetadata:
+    """Resolve card labels and close direct P1647/P1696 property dependencies.
 
-    Retained properties are covered by their own documents; the remaining
-    references (endpoint-type QIDs, plus closed-ancestor PIDs that are not
-    retained properties) are fetched in wbgetentities batches so cards can
-    render titles and descriptions for them.
+    P2302/P2306 fallback IDs are fetched only when a card needs their display
+    label. They never enter the lineage frontier. Every P1647 or P1696 target,
+    including one absent from the retained inventory, is fetched and expanded
+    until every direct edge resolves to a node.
     """
-    entity_labels: dict[EntityId, EntityLabel] = {}
-    primary = extraction.primary_language
-    for record in records:
-        entity_labels[record.pid] = EntityLabel(
-            label=record.labels.get(primary, ""),
-            description=record.descriptions.get(primary, ""),
-        )
+    display_references = _display_references(properties.records)
+    entity_labels = _known_entity_labels(
+        properties,
+        display_references,
+        extraction.primary_language,
+    )
+    closure = _LineageClosure.for_records(properties.records, properties.by_pid)
+    unresolved = closure.expand_known()
+    pending: set[EntityId] = unresolved | (display_references - entity_labels.keys())
+    attempted: set[EntityId] = set()
+    progress.phase("entity labels (wbgetentities)", total=len(chunk_ids(list(pending))))
 
-    referenced_ids: set[EntityId] = {
-        qid
-        for record in records
-        for qid in record.constraints.subject_types + record.constraints.value_types
-    } | {
-        ancestor
-        for record in records
-        for ancestor in record.ancestors
-        if ancestor not in entity_labels
-    }
-
-    label_batches = chunk_ids(list(referenced_ids))
-    progress.phase("entity labels (wbgetentities)", total=len(label_batches))
-
-    for batch in label_batches:
-        response = transport.get(
-            extraction.endpoints.wikibase_api,
-            wbgetentities_params(batch, extraction.languages),
-        )
-
-        if not response.ok:
-            raise RuntimeError(f"wbgetentities item batch failed with status {response.status}")
-
-        documents = WbGetEntitiesResponse.model_validate_json(response.body)
-        for qid in batch:
-            document = documents.entities.get(qid)
-            if document is None:
-                entity_labels[qid] = EntityLabel()
-                continue
-            label = document.labels.get(primary)
-            description = document.descriptions.get(primary)
-            entity_labels[qid] = EntityLabel(
-                label=label.value if label else "",
-                description=description.value if description else "",
+    while pending:
+        attempted.update(pending)
+        for batch in chunk_ids(list(pending)):
+            _fetch_metadata_batch(
+                batch,
+                unresolved=unresolved,
+                properties=properties,
+                entity_labels=entity_labels,
+                extraction=extraction,
+                transport=transport,
             )
-        progress.advance()
+            progress.advance()
 
-    return entity_labels
+        closure.frontier.update(unresolved)
+        unresolved = closure.expand_known()
+        pending = unresolved | ((display_references - entity_labels.keys()) - attempted)
+        if unresolved and not pending:
+            missing = ", ".join(sorted(unresolved))
+            raise RuntimeError(f"lineage dependencies could not be resolved: {missing}")
+
+    return _EntityMetadata(labels=entity_labels, lineage=closure.rows())
 
 
 @dataclass
@@ -948,8 +1097,11 @@ def extract_properties(
 
     inventory = _fetch_inventory(extraction, transport, progress)
     ancestor_closure = _fetch_ancestor_closure(extraction, transport)
-    records = _fetch_property_records(inventory, ancestor_closure, extraction, transport, progress)
-    entity_labels = _collect_entity_labels(records, extraction, transport, progress)
+    properties = _fetch_property_records(
+        inventory, ancestor_closure, extraction, transport, progress
+    )
+    metadata = _collect_entity_metadata(properties, extraction, transport, progress)
+    records = properties.records
     diagnostics = _mine_examples(
         records,
         extraction,
@@ -961,9 +1113,10 @@ def extract_properties(
 
     return ExtractionResult(
         records=records,
+        lineage=metadata.lineage,
         inventory_rows=inventory.rows,
         excluded=inventory.excluded,
-        entity_labels=entity_labels,
+        entity_labels=metadata.labels,
         example_fallbacks=diagnostics.fallbacks,
         example_skips=diagnostics.skips,
         example_filtered=diagnostics.filtered,

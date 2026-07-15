@@ -9,9 +9,13 @@ Layering (mining is decoupled from card formatting):
    truncation passes; ``relation_cards.wikidata.card`` adapts one property;
 4. ``cards.jsonl`` (this module): corpus emission: iterate the record set,
    build each card, and write the JSONL corpus plus its provenance
-   manifest. ``render_cards`` is a pure records -> cards step with zero
-   transport/network involvement, so the card format can change and be
-   re-rendered without re-running extraction.
+   manifest;
+5. ``lineage.jsonl``: direct source lineage published only after the leaf
+   cards and manifest are finalized, from the hash-verified records
+   intermediate and with zero transport/network involvement.
+
+``render_cards`` is a pure records -> cards + lineage step, so the card
+format can change and be re-rendered without re-running extraction.
 
 Records without a primary-language title produce no card (nothing
 embeddable); they are counted and listed in the manifest instead of being
@@ -35,6 +39,13 @@ from atlas_tools.common.provenance import (
     canonical_json_bytes,
     sha256_file,
 )
+from atlas_tools.relation.lineage.api import (
+    WIKIDATA_INVERSE_EDGE_KIND,
+    LineageInverseEdge,
+    LineageNode,
+    SourceSnapshotIdentity,
+    publish_source_lineage,
+)
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import IdentifierLeakError
 from atlas_tools.relation_cards.common.cards import (
@@ -52,7 +63,12 @@ from atlas_tools.relation_cards.wikidata.card import (
     build_card,
 )
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.model import Pid, entity_number
+from atlas_tools.wikidata.model import (
+    Pid,
+    PropertyLineage,
+    WikidataSnapshotIdentity,
+    entity_number,
+)
 from atlas_tools.wikidata.properties import ExtractionResult
 from atlas_tools.wikidata.records import (
     LadderFlags,
@@ -124,6 +140,7 @@ class CardsManifestDetails(BaseModel):
     # The API miner reads no dump, so the API-snapshot date stands in for
     # a dump SHA here.
     api_snapshot_date: str
+    snapshot: WikidataSnapshotIdentity
     cards: dict[str, CardEntry]
     counts: CardsCounts
     flags: LadderFlags
@@ -143,10 +160,12 @@ CardsManifestProvenance = Provenance[CardsManifestDetails, Config]
 
 @dataclass(frozen=True)
 class CardsPaths:
-    """Locations of the files written by :func:`render_cards`."""
+    """Locations of the card and source-lineage files written by rendering."""
 
     cards_jsonl: Path
     manifest: Path
+    lineage_jsonl: Path
+    lineage_manifest: Path
 
 
 @dataclass(frozen=True)
@@ -157,22 +176,50 @@ class ExtractPaths:
     cards: CardsPaths
 
 
+def _lineage_nodes(lineage: tuple[PropertyLineage, ...]) -> tuple[LineageNode, ...]:
+    nodes = [
+        LineageNode(
+            relation_id=qualify_relation_id("wikidata", source.pid),
+            extends=tuple(
+                sorted(
+                    qualify_relation_id("wikidata", ancestor)
+                    for ancestor in source.direct_ancestors
+                )
+            ),
+            inverse_edges=tuple(
+                sorted(
+                    (
+                        LineageInverseEdge(
+                            relation_id=qualify_relation_id("wikidata", inverse_pid),
+                            kind=WIKIDATA_INVERSE_EDGE_KIND,
+                        )
+                        for inverse_pid in source.p1696_inverse_pids
+                    ),
+                    key=lambda edge: (edge.kind, edge.relation_id),
+                )
+            ),
+        )
+        for source in lineage
+    ]
+    return tuple(sorted(nodes, key=lambda node: node.relation_id))
+
+
 def render_cards(
     record_set: RecordSet,
     config: Config,
     out_dir: PathLike,
 ) -> CardsPaths:
-    """Render cards.jsonl + cards.manifest.json from a loaded record set.
+    """Render finalized cards and publish their source-bound lineage.
 
-    Pure projection: records + config in, cards out. No transport or network
-    involvement of any kind. The manifest records the records.jsonl content
-    hash as an input hash.
+    Pure projection: hash-verified records + config in, cards and lineage
+    out. No transport or network involvement of any kind.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     counter = make_token_counter(config.cards.tokenizer)
     splitter = make_sentence_splitter(config.cards.sentence_splitter)
     meta = record_set.meta
+    snapshot = WikidataSnapshotIdentity(value=meta.details.api_snapshot_date)
     # PIDs the extraction saw but did not retain (external-ID,
     # maintenance, deprecated): known identifiers without labels, so
     # prose mentioning them is confirmed cross-reference, not guesswork.
@@ -201,6 +248,13 @@ def render_cards(
 
     cards.sort(key=lambda card: entity_number(card.pid))
     untitled.sort(key=entity_number)
+    lineage_pids = {source.pid for source in record_set.lineage}
+    missing_lineage = sorted(
+        (card.pid for card in cards if card.pid not in lineage_pids),
+        key=entity_number,
+    )
+    if missing_lineage:
+        raise ValueError(f"Wikidata cards are absent from the source lineage: {missing_lineage}")
 
     sanitization = ProseSanitizationSummary.merge(card.sanitization for card in cards)
     if sanitization.empty_fraction > config.cards.max_prose_field_empty_fraction:
@@ -251,6 +305,7 @@ def render_cards(
             token_budget=config.cards.token_budget,
             hard_token_budget=config.cards.hard_token_budget,
             api_snapshot_date=meta.details.api_snapshot_date,
+            snapshot=snapshot,
             cards={
                 card.pid: CardEntry(
                     card_hash=card.card_hash,
@@ -274,7 +329,28 @@ def render_cards(
         ),
     ).write(manifest_path)
 
-    return CardsPaths(cards_jsonl=cards_path, manifest=manifest_path)
+    lineage_paths = publish_source_lineage(
+        _lineage_nodes(record_set.lineage),
+        cards_directory=out_dir,
+        output_directory=out_dir,
+        producer="wikidata.render-cards",
+        snapshot=SourceSnapshotIdentity.model_validate(
+            snapshot.model_dump(mode="json"),
+            strict=True,
+        ),
+        raw_inputs={
+            "lineage-records.jsonl": record_set.lineage_path,
+            "records.jsonl": record_set.records_path,
+        },
+        inverse_edge_kinds=(WIKIDATA_INVERSE_EDGE_KIND,),
+    )
+
+    return CardsPaths(
+        cards_jsonl=cards_path,
+        manifest=manifest_path,
+        lineage_jsonl=lineage_paths.lineage_jsonl,
+        lineage_manifest=lineage_paths.manifest,
+    )
 
 
 def emit_cards(
@@ -285,7 +361,7 @@ def emit_cards(
     """Persist the structured intermediate, then render cards from it.
 
     The intermediate is records.jsonl + entity_labels.json +
-    records.meta.json + inventory.json. Rendering goes through the same
+    lineage-records.jsonl + records.meta.json + inventory.json. Rendering goes through the same
     load-and-render path that the ``render-cards`` CLI command uses, so
     there is a single code path for card emission.
     """

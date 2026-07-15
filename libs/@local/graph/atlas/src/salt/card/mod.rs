@@ -32,6 +32,10 @@ mod format;
 mod token;
 
 use self::format::{CardContents, TruncationPass};
+#[allow(
+    unused_imports,
+    reason = "tokenizer implementations form the relation-card adapter surface"
+)]
 pub(crate) use self::{
     error::{CardError, TokenCountError},
     token::{
@@ -310,11 +314,11 @@ fn measure(
 
 fn lint_card_text(text: &str, forbidden_identifiers: &[&str]) -> Result<(), CardError> {
     static URL: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"(?i:[a-z][a-z0-9+.-]*):/{2}")
+        Regex::new("(?i:[a-z][a-z0-9+.-]*):/{2}")
             .expect("the canonical URL detector should compile")
     });
     static UUID: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"(?i:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
+        Regex::new("(?i:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
             .expect("the canonical UUID detector should compile")
     });
 

@@ -7,11 +7,21 @@
 //! stratum identities, so neither thread scheduling nor input order changes the
 //! selected set.
 
+mod artifact;
+mod assignment;
 mod error;
+mod fit;
 mod select;
 
+#[allow(
+    unused_imports,
+    reason = "landmark publication and diagnostics form the generation adapter surface"
+)]
 pub(crate) use self::{
+    artifact::publish_landmark_skeleton,
+    assignment::{LandmarkAssignment, LandmarkAssignmentError, assign_landmarks},
     error::LandmarkError,
+    fit::{LandmarkFitConfig, LandmarkFitError, LandmarkSkeleton, fit_landmark_skeleton},
     select::{
         LandmarkCandidate, LandmarkConfig, LandmarkSelection, Stratum, StratumDimension,
         SubgroupMinimum, select_landmarks,

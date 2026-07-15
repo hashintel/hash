@@ -5,7 +5,10 @@ use burn::{
 };
 
 use super::error::ProjectorError;
-use crate::salt::representation::PROJECTOR_DIMENSIONS;
+use crate::salt::{
+    hash::{ContentHash, ContentHasher},
+    representation::PROJECTOR_DIMENSIONS,
+};
 
 /// Version of the residual FiLM architecture and feature order.
 pub(crate) const PROJECTOR_ARCHITECTURE_VERSION: u32 = 1;
@@ -61,8 +64,8 @@ impl ProjectorConfig {
         if self.residual_blocks == 0 {
             return Err(ProjectorError::ZeroResidualBlocks);
         }
-        if self.role_count < 3 {
-            return Err(ProjectorError::TooFewRoles {
+        if self.role_count != 3 {
+            return Err(ProjectorError::RoleCount {
                 count: self.role_count,
             });
         }
@@ -87,6 +90,27 @@ impl ProjectorConfig {
         self.type_context_dimensions
             .checked_add(1)
             .ok_or(ProjectorError::DimensionOverflow)
+    }
+
+    /// Returns the stable identity of the architecture and feature widths.
+    #[must_use]
+    pub(crate) fn content_hash(self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.projector-architecture.v1");
+        hasher.update(&PROJECTOR_ARCHITECTURE_VERSION.to_le_bytes());
+        for value in [
+            self.width,
+            self.residual_blocks,
+            self.type_context_dimensions,
+            self.role_count,
+            self.role_dimensions,
+        ] {
+            hasher.update(
+                &u64::try_from(value)
+                    .expect("projector architecture dimension should fit u64")
+                    .to_le_bytes(),
+            );
+        }
+        hasher.finish()
     }
 }
 
@@ -169,7 +193,8 @@ impl<B: Backend> ConditionedProjector<B> {
     /// # Errors
     ///
     /// This returns an error when an architecture dimension is zero, the role
-    /// vocabulary has fewer than three entries, or dimensions overflow.
+    /// vocabulary differs from the three supported roles, or dimensions
+    /// overflow.
     pub(crate) fn new(config: ProjectorConfig, device: &B::Device) -> Result<Self, ProjectorError> {
         let config = config.validate()?;
         let input_dimensions = config.input_dimensions()?;

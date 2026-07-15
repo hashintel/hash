@@ -19,6 +19,7 @@ from pydantic import (
 from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.common.provenance import Provenance, canonical_json_bytes, sha256_file
+from atlas_tools.relation.lineage.api import SourceSnapshotIdentity, publish_source_lineage
 from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import build_card
 from atlas_tools.relation_cards.common.cards import (
@@ -34,7 +35,13 @@ from atlas_tools.relation_cards.common.config import (
 )
 from atlas_tools.relation_cards.common.sentence import make_sentence_splitter
 from atlas_tools.relation_cards.common.tokens import make_token_counter
-from atlas_tools.relation_cards.hash.model import ExampleSecurityMode, HashRelationRecord
+from atlas_tools.relation_cards.hash.adapter import build_hash_lineage_nodes
+from atlas_tools.relation_cards.hash.model import (
+    EntityTypeRow,
+    ExampleSecurityMode,
+    HashRelationRecord,
+    HashSnapshotIdentity,
+)
 from atlas_tools.relation_cards.hash.postgres import (
     LiveHashExtraction,
     extract_live_hash_relations,
@@ -91,6 +98,7 @@ class HashCardsManifestDetails(BaseModel):
     token_budget: PositiveInt
     hard_token_budget: PositiveInt
     snapshot_at: AwareDatetime
+    snapshot: HashSnapshotIdentity
     database_host: str
     database_port: PositiveInt
     database_name: str
@@ -112,9 +120,25 @@ HashCardsProvenance = Provenance[HashCardsManifestDetails, HashCardsConfig]
 class HashCardsPaths:
     """Files written by one live HASH relation-card extraction."""
 
+    entity_types_jsonl: Path
     link_types_jsonl: Path
     cards_jsonl: Path
     manifest: Path
+    lineage_jsonl: Path
+    lineage_manifest: Path
+
+
+def _write_entity_types(path: Path, entity_types: tuple[EntityTypeRow, ...]) -> None:
+    ordered = sorted(
+        entity_types,
+        key=lambda row: (str(row.base_url), row.version, str(row.source_schema.id)),
+    )
+    with path.open("w", encoding="utf-8") as output:
+        for row in ordered:
+            output.write(
+                canonical_json_bytes(row.model_dump(mode="json", by_alias=True)).decode("utf-8")
+                + "\n"
+            )
 
 
 def _write_link_types(path: Path, records: list[HashRelationRecord]) -> None:
@@ -133,6 +157,18 @@ def emit_hash_cards(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     records = sorted(extraction.records, key=lambda record: str(record.base_url))
+    snapshot = HashSnapshotIdentity(value=extraction.snapshot_at)
+
+    entity_types_path = out_dir / "entity-types.jsonl"
+    _write_entity_types(entity_types_path, extraction.entity_types)
+    lineage_nodes = build_hash_lineage_nodes(extraction.entity_types)
+    lineage_relation_ids = {node.relation_id for node in lineage_nodes}
+    card_relation_ids = {qualify_relation_id("hash", record.base_url) for record in records}
+    missing_lineage = card_relation_ids - lineage_relation_ids
+    if missing_lineage:
+        raise ValueError(
+            f"HASH card relations are absent from the source lineage: {sorted(missing_lineage)}"
+        )
 
     link_types_path = out_dir / "link-types.jsonl"
     _write_link_types(link_types_path, records)
@@ -175,12 +211,16 @@ def emit_hash_cards(
     manifest_path = out_dir / "cards.manifest.json"
     content_hashes = {
         "cards.jsonl": sha256_file(cards_path),
+        "entity-types.jsonl": sha256_file(entity_types_path),
         "link-types.jsonl": sha256_file(link_types_path),
     }
 
     HashCardsProvenance.make(
         producer="hash.extract-relation-cards",
-        input_hashes={"link-types.jsonl": content_hashes["link-types.jsonl"]},
+        input_hashes={
+            "entity-types.jsonl": content_hashes["entity-types.jsonl"],
+            "link-types.jsonl": content_hashes["link-types.jsonl"],
+        },
         content_hashes=content_hashes,
         config=config,
         details=HashCardsManifestDetails(
@@ -196,6 +236,7 @@ def emit_hash_cards(
             token_budget=config.cards.token_budget,
             hard_token_budget=config.cards.hard_token_budget,
             snapshot_at=extraction.snapshot_at,
+            snapshot=snapshot,
             database_host=connection_info.host,
             database_port=connection_info.port,
             database_name=connection_info.database,
@@ -225,10 +266,25 @@ def emit_hash_cards(
         ),
     ).write(manifest_path)
 
+    lineage_paths = publish_source_lineage(
+        lineage_nodes,
+        cards_directory=out_dir,
+        output_directory=out_dir,
+        producer="hash.extract-relation-lineage",
+        snapshot=SourceSnapshotIdentity.model_validate(
+            snapshot.model_dump(mode="json"),
+            strict=True,
+        ),
+        raw_inputs={"entity-types.jsonl": entity_types_path},
+    )
+
     return HashCardsPaths(
+        entity_types_jsonl=entity_types_path,
         link_types_jsonl=link_types_path,
         cards_jsonl=cards_path,
         manifest=manifest_path,
+        lineage_jsonl=lineage_paths.lineage_jsonl,
+        lineage_manifest=lineage_paths.manifest,
     )
 
 

@@ -29,6 +29,8 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
     "openrouter>=0.10.8",
     "trio>=0.31,<1",
+    "textual>=8.2.8",
+    "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]

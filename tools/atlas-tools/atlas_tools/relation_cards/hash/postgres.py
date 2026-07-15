@@ -230,6 +230,7 @@ class LiveHashExtraction:
 
     snapshot_at: AwareDatetime
     entity_type_versions: int
+    entity_types: tuple[EntityTypeRow, ...]
     example_candidates: int
     records: list[HashRelationRecord]
 
@@ -340,6 +341,7 @@ def _extract_from_connection(
     return LiveHashExtraction(
         snapshot_at=snapshot_at,
         entity_type_versions=len(entity_types),
+        entity_types=tuple(entity_types),
         example_candidates=len(examples),
         records=records,
     )

@@ -3,7 +3,10 @@ use core::convert::Infallible;
 use crate::salt::{
     policy::Probability,
     representation::{CANONICAL_DIMENSIONS, CanonicalEmbedding},
-    strength::{RelationStrength, StrengthError, StrengthHead, StrengthMode, StrengthPosterior},
+    strength::{
+        RelationStrength, StrengthError, StrengthHead, StrengthMode, StrengthPosterior,
+        strength_eligible,
+    },
 };
 
 #[test]
@@ -76,6 +79,12 @@ fn unit_mode_bypasses_the_head_while_head_mode_dispatches() {
 
     assert_eq!(unit, RelationStrength::UNIT);
     assert_eq!(fitted.get(), 1.75);
+}
+
+#[test]
+fn strength_fitting_eligibility_includes_the_declared_boundary() {
+    assert!(!strength_eligible(probability(0.2_f64.next_down())));
+    assert!(strength_eligible(probability(0.2)));
 }
 
 fn probability(value: f64) -> Probability {

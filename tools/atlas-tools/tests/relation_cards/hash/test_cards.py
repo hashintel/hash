@@ -6,6 +6,8 @@ from pathlib import Path
 
 from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.common.provenance import sha256_file
+from atlas_tools.relation.lineage.api import verify_source_lineage
+from atlas_tools.relation_cards.common.cards import qualify_relation_id
 from atlas_tools.relation_cards.common.config import CardsConfig
 from atlas_tools.relation_cards.hash.adapter import build_relation_records
 from atlas_tools.relation_cards.hash.cards import HashCardsConfig, emit_hash_cards
@@ -15,9 +17,11 @@ from tests.relation_cards.hash.test_adapter import _fixture_types
 
 def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> None:
     records = build_relation_records(_fixture_types(), [], example_count=2)
+    entity_types = tuple(_fixture_types())
     extraction = LiveHashExtraction(
         snapshot_at=datetime(2026, 7, 12, 12, tzinfo=UTC),
-        entity_type_versions=len(_fixture_types()),
+        entity_type_versions=len(entity_types),
+        entity_types=entity_types,
         example_candidates=0,
         records=records,
     )
@@ -60,6 +64,10 @@ def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> Non
     assert details["link_types"] == len(card_rows)
     assert details["database_name"] == "graph"
     assert details["snapshot_at"] == "2026-07-12T12:00:00Z"
+    assert details["snapshot"] == {
+        "kind": "hash-postgres-transaction-time",
+        "value": "2026-07-12T12:00:00Z",
+    }
     assert details["example_security_mode"] == "none"
     assert details["example_candidate_pairs"] == 0
     assert details["example_unmatched_candidates"] == 0
@@ -67,10 +75,29 @@ def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> Non
     assert "password" not in json.dumps(manifest)
     # Content hashes live in the provenance envelope, not the details.
     assert manifest["content_hashes"]["cards.jsonl"] == sha256_file(paths.cards_jsonl)
+    assert manifest["content_hashes"]["entity-types.jsonl"] == sha256_file(paths.entity_types_jsonl)
+
+    lineage = verify_source_lineage(tmp_path)
+    lineage_nodes = {node.relation_id: node for node in lineage.nodes}
+    relation_id = qualify_relation_id("hash", "https://example.com/@acme/types/entity-type/owns/")
+    link_id = qualify_relation_id(
+        "hash", "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+    )
+    assert lineage_nodes[relation_id].extends == (link_id,)
+    assert lineage_nodes[link_id].extends == ()
+    assert all(node.inverse_edges == () for node in lineage.nodes)
+    assert lineage.manifest.details.snapshot.kind == "hash-postgres-transaction-time"
+    assert lineage.manifest.details.snapshot.value == "2026-07-12T12:00:00Z"
+    assert lineage.manifest.input_hashes is not None
+    assert lineage.manifest.input_hashes["entity-types.jsonl"] == sha256_file(
+        paths.entity_types_jsonl
+    )
+    assert lineage.manifest.details.leaf_card_artifact.cards_hash == sha256_file(paths.cards_jsonl)
 
 
 def test_card_corpus_is_stable_across_unchanged_live_snapshot_times(tmp_path: Path) -> None:
-    records = build_relation_records(_fixture_types(), [], example_count=2)
+    entity_types = tuple(_fixture_types())
+    records = build_relation_records(entity_types, [], example_count=2)
     config = HashCardsConfig(
         example_count=2,
         cards=CardsConfig(tokenizer="heuristic", sentence_splitter="naive"),
@@ -88,7 +115,8 @@ def test_card_corpus_is_stable_across_unchanged_live_snapshot_times(tmp_path: Pa
     for hour in (12, 13):
         extraction = LiveHashExtraction(
             snapshot_at=datetime(2026, 7, 12, hour, tzinfo=UTC),
-            entity_type_versions=len(_fixture_types()),
+            entity_type_versions=len(entity_types),
+            entity_types=entity_types,
             example_candidates=0,
             records=records,
         )
@@ -102,4 +130,6 @@ def test_card_corpus_is_stable_across_unchanged_live_snapshot_times(tmp_path: Pa
         )
 
     assert paths[0].cards_jsonl.read_bytes() == paths[1].cards_jsonl.read_bytes()
+    assert paths[0].entity_types_jsonl.read_bytes() == paths[1].entity_types_jsonl.read_bytes()
     assert paths[0].link_types_jsonl.read_bytes() == paths[1].link_types_jsonl.read_bytes()
+    assert paths[0].lineage_jsonl.read_bytes() == paths[1].lineage_jsonl.read_bytes()
