@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**"]
+    },
+    "codegen": {
+      "dependsOn": ["@apps/petrinaut-opt#codegen"],
+      "inputs": ["../../../apps/petrinaut-opt/openapi/openapi.json"],
+      "outputs": ["src/openapi.gen.ts"]
+    }
+  }
+}
