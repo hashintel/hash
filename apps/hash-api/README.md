@@ -30,6 +30,11 @@ The HASH Backend API service is configured using the following environment varia
 - Redis
   - `HASH_REDIS_HOST`: the hostname for the Redis server.
   - `HASH_REDIS_PORT`: the port number of the Redis server.
+- Petrinaut optimizer
+  - `HASH_PETRINAUT_OPT_HOST`: the hostname of the Petrinaut optimizer service.
+  - `HASH_PETRINAUT_OPT_PORT`: the port of the Petrinaut optimizer service.
+  - Both variables are optional for local NodeAPI development, but must be set
+    together to enable the Petrinaut optimizer endpoints.
 - `FRONTEND_URL`: The URL the frontend is hosted on.
 - Vault
   - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
