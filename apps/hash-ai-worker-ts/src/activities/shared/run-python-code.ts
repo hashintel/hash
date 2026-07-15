@@ -1,4 +1,4 @@
-import { CodeInterpreter } from "e2b";
+import { Sandbox } from "@e2b/code-interpreter";
 
 /**
  * Execute a Python script in an E2B sandbox against a JSON dataset.
@@ -16,11 +16,11 @@ export const runPythonCode = async (params: {
 }): Promise<{ stdout: string; stderr: string }> => {
   const { code, dataJson, requestId } = params;
 
-  const sandbox = await CodeInterpreter.create();
+  const sandbox = await Sandbox.create({ allowInternetAccess: false });
 
   try {
     const dataFilePath = `/home/user/${requestId}_data.json`;
-    await sandbox.filesystem.write(dataFilePath, dataJson);
+    await sandbox.files.write(dataFilePath, dataJson);
 
     /**
      * Prefer the injected Python global, which is the documented contract.
@@ -33,13 +33,16 @@ DATA_FILE_PATH = ${JSON.stringify(dataFilePath)}
 __hash_runtime_os.environ["DATA_FILE_PATH"] = DATA_FILE_PATH
 __hash_runtime_os.chdir(__hash_runtime_os.path.dirname(DATA_FILE_PATH))
 ${code}`;
-    const response = await sandbox.runPython(codeWithDataPath);
+    const execution = await sandbox.runCode(codeWithDataPath);
 
     return {
-      stdout: response.stdout,
-      stderr: response.stderr,
+      stdout: execution.logs.stdout.join(""),
+      stderr: [
+        ...execution.logs.stderr,
+        ...(execution.error ? [execution.error.traceback] : []),
+      ].join(""),
     };
   } finally {
-    await sandbox.close();
+    await sandbox.kill();
   }
 };

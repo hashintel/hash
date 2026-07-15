@@ -94,6 +94,21 @@ describe("computeDashboardItemDataActivity", () => {
       storageKey: baseParams.storageKey,
     });
 
+    expect(mockedQueryEntitySubgraph).toHaveBeenCalledWith(
+      { graphApi: graphApiClient },
+      baseParams.authentication,
+      expect.objectContaining({
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["webId"] }, { parameter: WEB_ID }],
+            },
+            { all: [] },
+          ],
+        },
+      }),
+    );
+
     // The script receives the simplified entity data as its dataset.
     const pythonCall = mockedRunPythonCode.mock.calls[0]![0];
     expect(pythonCall.code).toBe(baseParams.pythonScript);
