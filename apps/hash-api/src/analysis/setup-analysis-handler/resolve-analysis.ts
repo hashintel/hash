@@ -4,6 +4,7 @@ import { logger } from "../../logger";
 import { getAnalysisMetadata } from "../shared/analysis-registry";
 import {
   AnalysisArgError,
+  AnalysisExecutionError,
   AnalysisNotFoundError,
   DatasetUnavailableError,
 } from "../shared/errors";
@@ -222,6 +223,7 @@ export const resolveInvocation = async ({
   } catch (error) {
     if (
       error instanceof WebAuthorisationError ||
+      error instanceof AnalysisExecutionError ||
       error instanceof AnalysisArgError ||
       error instanceof AnalysisNotFoundError ||
       error instanceof DatasetUnavailableError

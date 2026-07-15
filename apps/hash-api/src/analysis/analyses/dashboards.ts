@@ -1,4 +1,7 @@
-import { WorkflowExecutionAlreadyStartedError } from "@temporalio/client";
+import {
+  WorkflowExecutionAlreadyStartedError,
+  WorkflowIdReusePolicy,
+} from "@temporalio/client";
 
 import {
   COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW,
@@ -15,7 +18,11 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { logger } from "../../logger";
-import { AnalysisArgError, AnalysisNotFoundError } from "../shared/errors";
+import {
+  AnalysisArgError,
+  AnalysisExecutionError,
+  AnalysisNotFoundError,
+} from "../shared/errors";
 
 import type {
   AnalysisResolutionContext,
@@ -36,19 +43,39 @@ const COMPUTING_RETRY_AFTER_MS = 3_000;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const getRootErrorMessage = (error: unknown): string => {
+  let rootCause = error;
+
+  while (rootCause instanceof Error && rootCause.cause instanceof Error) {
+    rootCause = rootCause.cause;
+  }
+
+  return rootCause instanceof Error ? rootCause.message : String(rootCause);
+};
+
 /**
  * Start the (idempotent) compute workflow for a dashboard item configuration.
- * The workflow id is derived from the config hash, so concurrent requests for
- * the same configuration deduplicate to a single running computation.
+ * The workflow id is derived from the config hash and source artifact version,
+ * so concurrent requests for the same computation deduplicate. A terminal
+ * execution is never silently replaced: its result is inspected and failures
+ * are surfaced to the caller.
  */
 const startComputeWorkflow = async (params: {
   ctx: AnalysisResolutionContext;
   configHash: string;
+  sourceArtifactLastModified: Date | null;
   structuralQuery: unknown;
   pythonScript: string;
   storageKey: string;
 }): Promise<void> => {
-  const { ctx, configHash, structuralQuery, pythonScript, storageKey } = params;
+  const {
+    ctx,
+    configHash,
+    sourceArtifactLastModified,
+    structuralQuery,
+    pythonScript,
+    storageKey,
+  } = params;
 
   const webMachineId = await getWebMachineId(
     { graphApi: ctx.graphApi },
@@ -58,6 +85,10 @@ const startComputeWorkflow = async (params: {
   if (!webMachineId) {
     throw new Error(`Could not find the web machine for web "${ctx.webId}"`);
   }
+
+  const workflowId = `compute-dashboard-item-${ctx.webId}-${configHash}${
+    sourceArtifactLastModified ? `-${sourceArtifactLastModified.getTime()}` : ""
+  }`;
 
   try {
     await ctx.temporalClient.workflow.start(
@@ -73,13 +104,35 @@ const startComputeWorkflow = async (params: {
             storageKey,
           } satisfies ComputeDashboardItemDataWorkflowParams,
         ],
-        workflowId: `compute-dashboard-item-${ctx.webId}-${configHash}`,
+        workflowId,
+        workflowIdReusePolicy: WorkflowIdReusePolicy.REJECT_DUPLICATE,
+        // A failed script must not repeatedly create paid sandboxes. Retrying
+        // requires a changed configuration or source artifact version.
         retry: { maximumAttempts: 1 },
       },
     );
   } catch (error) {
     if (error instanceof WorkflowExecutionAlreadyStartedError) {
-      // A computation for this exact configuration is already running.
+      const handle = ctx.temporalClient.workflow.getHandle(workflowId);
+      const description = await handle.describe();
+
+      if (
+        description.status.name === "RUNNING" ||
+        description.status.name === "PAUSED"
+      ) {
+        return;
+      }
+
+      try {
+        await handle.result();
+      } catch (resultError) {
+        throw new AnalysisExecutionError(
+          `Dashboard item computation failed: ${getRootErrorMessage(
+            resultError,
+          )}`,
+        );
+      }
+
       return;
     }
     throw error;
@@ -185,6 +238,7 @@ const dashboardItemData: NamedAnalysis = {
       await startComputeWorkflow({
         ctx,
         configHash,
+        sourceArtifactLastModified: lastModified,
         structuralQuery,
         pythonScript,
         storageKey,
@@ -197,6 +251,7 @@ const dashboardItemData: NamedAnalysis = {
       startComputeWorkflow({
         ctx,
         configHash,
+        sourceArtifactLastModified: lastModified,
         structuralQuery,
         pythonScript,
         storageKey,

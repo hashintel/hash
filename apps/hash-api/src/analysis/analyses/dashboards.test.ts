@@ -85,9 +85,15 @@ const itemEntity = {
 };
 
 const workflowStart = vi.fn();
+const workflowDescribe = vi.fn();
+const workflowResult = vi.fn();
+const workflowGetHandle = vi.fn(() => ({
+  describe: workflowDescribe,
+  result: workflowResult,
+}));
 
 const temporalClient = {
-  workflow: { start: workflowStart },
+  workflow: { start: workflowStart, getHandle: workflowGetHandle },
 } as unknown as TemporalClient;
 
 /** Per-test control over the artifact's last-modified timestamp. */
@@ -176,6 +182,11 @@ describe("dashboardItemData analysis", () => {
 
     workflowStart.mockReset();
     workflowStart.mockResolvedValue({});
+    workflowGetHandle.mockClear();
+    workflowDescribe.mockReset();
+    workflowDescribe.mockResolvedValue({ status: { name: "RUNNING" } });
+    workflowResult.mockReset();
+    workflowResult.mockResolvedValue({});
 
     artifactLastModified = null;
   });
@@ -239,6 +250,7 @@ describe("dashboardItemData analysis", () => {
     expect(options.workflowId).toBe(
       `compute-dashboard-item-${WEB_ID}-${configHash}`,
     );
+    expect(options.workflowIdReusePolicy).toBe("REJECT_DUPLICATE");
     expect(options.args[0]).toMatchObject({
       authentication: { actorId: WEB_MACHINE_ID },
       webId: WEB_ID,
@@ -269,11 +281,15 @@ describe("dashboardItemData analysis", () => {
 
   it("serves a stale artifact but kicks off a background recompute", async () => {
     artifactLastModified = new Date(Date.now() - 60 * 60 * 1000); // 1h old
+    const staleArtifactLastModified = artifactLastModified;
 
     const result = await resolve({ itemUuid: ITEM_UUID });
 
     expect(result.status).toBe("ready");
     expect(workflowStart).toHaveBeenCalledTimes(1);
+    expect(workflowStart.mock.calls[0]![1].workflowId).toBe(
+      `compute-dashboard-item-${WEB_ID}-${configHash}-${staleArtifactLastModified.getTime()}`,
+    );
   });
 
   it("recomputes even a fresh artifact when force is set", async () => {
@@ -297,6 +313,29 @@ describe("dashboardItemData analysis", () => {
     const result = await resolve({ itemUuid: ITEM_UUID });
 
     expect(result.status).toBe("computing");
+    expect(workflowDescribe).toHaveBeenCalledTimes(1);
+    expect(workflowResult).not.toHaveBeenCalled();
+  });
+
+  it("surfaces the result of a failed workflow without starting another run", async () => {
+    workflowStart.mockRejectedValue(
+      new WorkflowExecutionAlreadyStartedError(
+        "already started",
+        `compute-dashboard-item-${WEB_ID}-${configHash}`,
+        "computeDashboardItemData",
+      ),
+    );
+    workflowDescribe.mockResolvedValue({ status: { name: "FAILED" } });
+    workflowResult.mockRejectedValue(
+      new Error("Python script did not print valid JSON"),
+    );
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/did not print valid JSON/);
+    expect(workflowStart).toHaveBeenCalledTimes(1);
+    expect(workflowResult).toHaveBeenCalledTimes(1);
   });
 
   it("denies access when the actor has no role in the web", async () => {
