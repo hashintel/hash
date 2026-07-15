@@ -30,6 +30,27 @@ class TestCheck:
         after = {path: path.read_text() for path in fixture_repo.rglob("*") if path.is_file()}
         assert before == after, "check mode must not write"
 
+    def test_single_segment_globs_do_not_cover_nested_members(self, fixture_repo: Path) -> None:
+        # fnmatch's `*` crosses path separators and would falsely treat the
+        # nested member as covered; yarn's `*` stays within one segment.
+        package_json_path = fixture_repo / "package.json"
+        data = json.loads(package_json_path.read_text())
+        data["workspaces"]["packages"] = ["!**/node_modules", "outside/*", "packages/*"]
+        package_json_path.write_text(json.dumps(data, indent=2) + "\n")
+
+        nested = fixture_repo / "packages" / "group" / "deep"
+        nested.mkdir(parents=True)
+        (nested / "pyproject.toml").write_text(
+            '[project]\nname = "deep"\nversion = "0.1.0"\nrequires-python = ">=3.14,<3.15"\n'
+        )
+
+        findings = synchronize(fixture_repo, apply=False)
+
+        messages = [finding.message for finding in findings]
+        assert any("packages/group/deep is not covered" in message for message in messages)
+        assert not any("packages/alpha is not covered" in message for message in messages)
+        assert not any("outside/lib is not covered" in message for message in messages)
+
     def test_unnamed_manifest_is_unfixable(self, fixture_repo: Path) -> None:
         findings = synchronize(fixture_repo, apply=False)
         unfixable = [finding for finding in findings if not finding.fixable]

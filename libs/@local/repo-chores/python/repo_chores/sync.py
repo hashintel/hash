@@ -20,9 +20,8 @@ import shutil
 import subprocess
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from fnmatch import fnmatch
 from functools import cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import tomlkit
 from packaging.requirements import InvalidRequirement, Requirement
@@ -230,8 +229,10 @@ def _sync_root_package_json(workspace: Workspace, /, *, apply: bool) -> list[Fin
     """Ensure every member is reachable through the yarn workspace globs.
 
     turbo discovers packages through the root package.json workspaces list;
-    a member outside every glob is invisible to it. Missing members are added
-    as explicit entries and the list is kept sorted.
+    a member outside every glob is invisible to it. Coverage is judged with
+    path-aware glob semantics (`*` stays within one segment, `**` recurses),
+    matching how yarn reads the patterns. Missing members are added as
+    explicit entries and the list is kept sorted.
     """
     package_json_path = workspace.root / "package.json"
     data = json.loads(package_json_path.read_text(encoding="utf-8"))
@@ -244,7 +245,8 @@ def _sync_root_package_json(workspace: Workspace, /, *, apply: bool) -> list[Fin
 
     findings: list[Finding] = []
     for member in _named_members(workspace):
-        if any(fnmatch(member.directory, pattern) for pattern in patterns):
+        directory = PurePosixPath(member.directory)
+        if any(directory.full_match(pattern) for pattern in patterns):
             continue
 
         findings.append(
