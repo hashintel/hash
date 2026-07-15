@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   ChartConfigurationPropertyValue,
   ChartConfigurationPropertyValueWithMetadata,
@@ -43,6 +41,7 @@ import type {
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   ChartConfigurationPropertyValue,

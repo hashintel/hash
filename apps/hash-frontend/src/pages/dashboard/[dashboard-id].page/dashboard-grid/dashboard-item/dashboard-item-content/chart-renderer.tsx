@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
+import { isEntityId } from "@blockprotocol/type-system";
 import { EChart } from "@hashintel/design-system";
 
 import type { EntityId } from "@blockprotocol/type-system";
@@ -28,6 +29,8 @@ type ChartRendererProps = {
   onEntityClick?: (entityId: EntityId) => void;
 };
 
+type ChartDataRow = Record<string, unknown>;
+
 const AXIS_LABEL_FONT_SIZE = 10;
 
 /** Cap rotated category labels so very long values truncate with an ellipsis */
@@ -36,6 +39,29 @@ const MAX_ROTATED_LABEL_WIDTH = 100;
 /** Rough pixel width of a label (average glyph ≈ 0.6em at this size) */
 const estimateTextWidth = (text: string): number =>
   Math.ceil(text.length * AXIS_LABEL_FONT_SIZE * 0.6);
+
+const isChartDataRow = (value: unknown): value is ChartDataRow =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Chart labels may be strings or finite numbers. Other values indicate
+ * malformed chart data and are rendered as an empty label rather than using
+ * JavaScript's unhelpful default object stringification.
+ */
+const toChartLabel = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value.toString();
+  }
+
+  return "";
+};
+
+const toFiniteNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
 
 /**
  * Compact tick labels for value axes ("1.5M" rather than "1500000"), keeping
@@ -66,18 +92,28 @@ const buildEChartsOption = (
     colors = DEFAULT_COLORS,
   } = chartConfig;
 
-  const data = chartData as Record<string, unknown>[];
+  /**
+   * Preserve row indices so ECharts data indices still correspond to the
+   * original data when handling clicks. Invalid rows render as empty values.
+   */
+  const data = chartData.map(
+    (chartDataItem): ChartDataRow =>
+      isChartDataRow(chartDataItem) ? chartDataItem : {},
+  );
 
   // Extract category values for x-axis
-  const categories = data.map((item) => String(item[categoryKey] ?? ""));
+  const categories = data.map((dataRow) => toChartLabel(dataRow[categoryKey]));
 
   // Check chart type categories
   const isPieChart =
-    chartType === "pie" || seriesConfig.some((s) => s.type === "pie");
+    chartType === "pie" ||
+    seriesConfig.some((seriesItem) => seriesItem.type === "pie");
   const isHeatmap =
-    chartType === "heatmap" || seriesConfig.some((s) => s.type === "heatmap");
+    chartType === "heatmap" ||
+    seriesConfig.some((seriesItem) => seriesItem.type === "heatmap");
   const isMap =
-    chartType === "map" || seriesConfig.some((s) => s.type === "map");
+    chartType === "map" ||
+    seriesConfig.some((seriesItem) => seriesItem.type === "map");
   const isGeoScatter =
     chartConfig.xAxisLabel === "Longitude" &&
     chartConfig.yAxisLabel === "Latitude";
@@ -93,9 +129,9 @@ const buildEChartsOption = (
         name: seriesItem.name ?? seriesItem.dataKey,
         radius: seriesItem.radius ?? "50%",
         center: seriesItem.center ?? ["50%", "50%"],
-        data: data.map((item, dataIndex) => ({
-          name: String(item[categoryKey] ?? ""),
-          value: item[seriesItem.dataKey] as number,
+        data: data.map((dataRow, dataIndex) => ({
+          name: toChartLabel(dataRow[categoryKey]),
+          value: toFiniteNumber(dataRow[seriesItem.dataKey]),
           itemStyle: {
             color: colors[dataIndex % colors.length],
           },
@@ -119,10 +155,10 @@ const buildEChartsOption = (
       return {
         type: "heatmap" as const,
         name: seriesItem.name ?? seriesItem.dataKey,
-        data: data.map((item) => [
-          item[categoryKey],
-          item.y ?? item.yKey,
-          item[seriesItem.dataKey],
+        data: data.map((dataRow) => [
+          toChartLabel(dataRow[categoryKey]),
+          toChartLabel(dataRow.y ?? dataRow.yKey),
+          toFiniteNumber(dataRow[seriesItem.dataKey]),
         ]),
         label: {
           show: true,
@@ -136,9 +172,9 @@ const buildEChartsOption = (
         type: "map" as const,
         name: seriesItem.name ?? seriesItem.dataKey,
         map: "world", // Default map, can be customized
-        data: data.map((item) => ({
-          name: String(item[categoryKey] ?? ""),
-          value: item[seriesItem.dataKey] as number,
+        data: data.map((dataRow) => ({
+          name: toChartLabel(dataRow[categoryKey]),
+          value: toFiniteNumber(dataRow[seriesItem.dataKey]),
         })),
       };
     }
@@ -149,12 +185,12 @@ const buildEChartsOption = (
         type: "scatter" as const,
         name: seriesItem.name ?? seriesItem.dataKey,
         coordinateSystem: "cartesian2d",
-        data: data.map((item) => ({
+        data: data.map((dataRow) => ({
           value: [
-            item[categoryKey] as number,
-            item[seriesItem.dataKey] as number,
+            toFiniteNumber(dataRow[categoryKey]),
+            toFiniteNumber(dataRow[seriesItem.dataKey]),
           ],
-          name: String(item.flight ?? ""),
+          name: toChartLabel(dataRow.flight),
           itemStyle: {
             color: seriesColor,
           },
@@ -174,9 +210,9 @@ const buildEChartsOption = (
       return {
         type: "scatter" as const,
         name: seriesItem.name ?? seriesItem.dataKey,
-        data: data.map((item) => [
-          item[categoryKey] as number,
-          item[seriesItem.dataKey] as number,
+        data: data.map((dataRow) => [
+          toFiniteNumber(dataRow[categoryKey]),
+          toFiniteNumber(dataRow[seriesItem.dataKey]),
         ]),
         symbolSize: 10,
         itemStyle: {
@@ -189,7 +225,7 @@ const buildEChartsOption = (
     return {
       type: seriesItem.type,
       name: seriesItem.name ?? seriesItem.dataKey,
-      data: data.map((item) => item[seriesItem.dataKey] as number),
+      data: data.map((dataRow) => toFiniteNumber(dataRow[seriesItem.dataKey])),
       itemStyle: {
         color: seriesColor,
       },
@@ -235,7 +271,7 @@ const buildEChartsOption = (
   const numericSeriesValues = needsCartesianAxes
     ? seriesConfig.flatMap((seriesItem) =>
         data
-          .map((item) => item[seriesItem.dataKey])
+          .map((dataRow) => dataRow[seriesItem.dataKey])
           .filter(
             (value): value is number =>
               typeof value === "number" && Number.isFinite(value),
@@ -259,12 +295,24 @@ const buildEChartsOption = (
           ...(isGeoScatter && {
             trigger: "item",
             formatter: (params: unknown) => {
-              const p = params as { name?: string; value?: [number, number] };
-              if (p.value) {
-                return `${p.name ?? "Flight"}<br/>Lng: ${p.value[0]?.toFixed(
-                  4,
-                )}<br/>Lat: ${p.value[1]?.toFixed(4)}`;
+              const tooltipParams = params as {
+                name?: unknown;
+                value?: unknown;
+              };
+
+              if (Array.isArray(tooltipParams.value)) {
+                const longitude = toFiniteNumber(tooltipParams.value[0]);
+                const latitude = toFiniteNumber(tooltipParams.value[1]);
+
+                if (longitude !== null && latitude !== null) {
+                  const name = toChartLabel(tooltipParams.name) || "Flight";
+
+                  return `${name}<br/>Lng: ${longitude.toFixed(
+                    4,
+                  )}<br/>Lat: ${latitude.toFixed(4)}`;
+                }
               }
+
               return "";
             },
           }),
@@ -272,33 +320,42 @@ const buildEChartsOption = (
             !isGeoScatter &&
             tooltipLabelKey && {
               formatter: (params: unknown) => {
-                const p = params as
+                const tooltipParams = params as
                   | { dataIndex?: number }
                   | { dataIndex?: number }[];
-                const items = Array.isArray(p) ? p : [p];
-                if (items.length === 0) return "";
-                const dataIndex = items[0]?.dataIndex;
+                const tooltipItems = Array.isArray(tooltipParams)
+                  ? tooltipParams
+                  : [tooltipParams];
+                if (tooltipItems.length === 0) {
+                  return "";
+                }
+                const dataIndex = tooltipItems[0]?.dataIndex;
                 if (
                   dataIndex == null ||
                   dataIndex < 0 ||
                   dataIndex >= data.length
-                )
+                ) {
                   return "";
-                const row = data[dataIndex] as Record<string, unknown>;
-                const label = String(
-                  row[tooltipLabelKey] ?? row[categoryKey] ?? "",
+                }
+                const dataRow = data[dataIndex];
+                const label = toChartLabel(
+                  dataRow?.[tooltipLabelKey] ?? dataRow?.[categoryKey],
                 );
                 const lines = [label];
-                for (const item of items) {
-                  const seriesItem = item as {
+                for (const tooltipItem of tooltipItems) {
+                  const tooltipSeriesItem = tooltipItem as {
                     seriesName?: string;
                     value?: unknown;
                   };
                   if (
-                    seriesItem.seriesName != null &&
-                    seriesItem.value != null
+                    tooltipSeriesItem.seriesName != null &&
+                    tooltipSeriesItem.value != null
                   ) {
-                    lines.push(`${seriesItem.seriesName}: ${seriesItem.value}`);
+                    lines.push(
+                      `${tooltipSeriesItem.seriesName}: ${toChartLabel(
+                        tooltipSeriesItem.value,
+                      )}`,
+                    );
                   }
                 }
                 return lines.join("<br/>");
@@ -394,10 +451,11 @@ const buildEChartsOption = (
       visualMap: {
         min: 0,
         max: Math.max(
-          ...data.map((item) =>
-            Math.max(
-              ...seriesConfig.map((s) => (item[s.dataKey] as number) ?? 0),
-            ),
+          0,
+          ...data.flatMap((dataRow) =>
+            seriesConfig
+              .map((seriesItem) => toFiniteNumber(dataRow[seriesItem.dataKey]))
+              .filter((value): value is number => value !== null),
           ),
         ),
         calculable: true,
@@ -426,7 +484,7 @@ export const ChartRenderer = ({
   onEntityClick,
 }: ChartRendererProps) => {
   const echartsOption = useMemo(() => {
-    if (!chartData.length || !chartConfig.series?.length) {
+    if (!chartData.length || !chartConfig.series.length) {
       return null;
     }
     return buildEChartsOption(chartType, chartData, chartConfig);
@@ -444,10 +502,12 @@ export const ChartRenderer = ({
         const { dataIndex } = params as { dataIndex?: number };
         if (dataIndex !== undefined && dataIndex >= 0) {
           // Access the original data to get entity ID
-          const dataItem = chartData[dataIndex] as
-            | { entityId?: EntityId }
-            | undefined;
-          if (dataItem?.entityId) {
+          const dataItem = chartData[dataIndex];
+          if (
+            isChartDataRow(dataItem) &&
+            typeof dataItem.entityId === "string" &&
+            isEntityId(dataItem.entityId)
+          ) {
             onEntityClick(dataItem.entityId);
           }
         }

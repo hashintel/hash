@@ -281,7 +281,9 @@ export const WorldMapRenderer = ({
     // Pan only when the hover came from another component AND the point
     // isn't already visible in the current viewport.
     if (!isLocalHover.current && hoveredEntityId != null) {
-      const flight = flights.find((f) => f.entityId === hoveredEntityId);
+      const flight = flights.find(
+        (flightItem) => flightItem.entityId === hoveredEntityId,
+      );
       if (flight) {
         const [svgX, svgY] = geoToSvgCoords(flight.latitude, flight.longitude);
         const isInView = chart.containPixel("geo", [svgX, svgY]);

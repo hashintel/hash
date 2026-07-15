@@ -1,11 +1,12 @@
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashLinkEntityTypeId,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 const migrate: MigrationFunction = async ({
   context,

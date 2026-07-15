@@ -32,6 +32,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
+import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-entity";
 import {
   createEntityMutation,
   queryEntitySubgraphQuery,
@@ -59,11 +60,13 @@ type DashboardListItem = {
   title: string;
   description?: string;
   itemCount: number;
+  webShortname?: string;
 };
 
 const DashboardsPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { activeWorkspaceWebId } = useActiveWorkspace();
+  const getOwnerForEntity = useGetOwnerForEntity();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newDashboardTitle, setNewDashboardTitle] = useState("");
@@ -138,9 +141,13 @@ const DashboardsPage: NextPageWithLayout = () => {
         title: name,
         description,
         itemCount,
+        webShortname:
+          getOwnerForEntity({
+            entityId: entity.metadata.recordId.entityId,
+          }).shortname || undefined,
       };
     });
-  }, [dashboardsData]);
+  }, [dashboardsData, getOwnerForEntity]);
 
   const [createEntity, { loading: creating }] = useMutation<
     CreateEntityMutation,
@@ -255,6 +262,9 @@ const DashboardsPage: NextPageWithLayout = () => {
                         color: ({ palette }) => palette.gray[70],
                       }}
                     >
+                      {dashboard.webShortname
+                        ? `@${dashboard.webShortname} · `
+                        : ""}
                       {dashboard.itemCount} item
                       {dashboard.itemCount !== 1 ? "s" : ""}
                     </Typography>

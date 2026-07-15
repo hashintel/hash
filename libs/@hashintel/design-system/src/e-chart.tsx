@@ -1,5 +1,23 @@
 import { Box } from "@mui/material";
- 
+import {
+  BarChart,
+  GraphChart,
+  HeatmapChart,
+  LineChart,
+  MapChart,
+  PieChart,
+  ScatterChart,
+} from "echarts/charts";
+// eslint-disable-next-line no-restricted-imports
+import {
+  GeoComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from "echarts/components";
+import * as echarts from "echarts/core";
+import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef, useState } from "react";
 
 import type { BoxProps } from "@mui/material";
@@ -12,15 +30,6 @@ import type {
   PieSeriesOption,
   ScatterSeriesOption,
 } from "echarts/charts";
-import {
-  BarChart,
-  GraphChart,
-  HeatmapChart,
-  LineChart,
-  MapChart,
-  PieChart,
-  ScatterChart,
-} from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
 import type {
   GeoComponentOption,
@@ -28,17 +37,6 @@ import type {
   TooltipComponentOption,
   VisualMapComponentOption,
 } from "echarts/components";
-// eslint-disable-next-line no-restricted-imports
-import {
-  GeoComponent,
-  GridComponent,
-  LegendComponent,
-  TooltipComponent,
-  VisualMapComponent,
-} from "echarts/components";
-import * as echarts from "echarts/core";
-import { SVGRenderer } from "echarts/renderers";
- 
 import type {
   GraphEdgeItemOption,
   GraphNodeItemOption,

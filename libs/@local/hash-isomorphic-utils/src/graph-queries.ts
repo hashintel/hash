@@ -252,6 +252,7 @@ export const noisySystemBaseUrls = [
   ...pageTypesToIgnore,
   systemEntityTypes.user.entityTypeBaseUrl,
   systemEntityTypes.dashboard.entityTypeBaseUrl,
+  systemEntityTypes.dashboardItem.entityTypeBaseUrl,
   systemEntityTypes.machine.entityTypeBaseUrl,
   systemEntityTypes.organization.entityTypeBaseUrl,
   systemLinkEntityTypes.isMemberOf.linkEntityTypeBaseUrl,

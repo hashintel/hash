@@ -3,6 +3,7 @@ description: Graph queries – how to query, create, and update entities using t
 globs: apps/hash-frontend/**/*.ts, apps/hash-frontend/**/*.tsx
 alwaysApply: false
 ---
+
 # Graph Queries in HASH Frontend
 
 This guide explains how to query, create, and update entities using the GraphQL API in the HASH frontend.
@@ -19,61 +20,70 @@ Use `queryEntitySubgraphQuery` to fetch entities and their relationships.
 
 ```typescript
 import { useQuery } from "@apollo/client";
-import { getRoots, getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import {
+  getRoots,
+  getOutgoingLinkAndTargetEntities,
+} from "@blockprotocol/graph/stdlib";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   generateEntityIdFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes, systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 // Query entities by type
-const { data, loading } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-  queryEntitySubgraphQuery,
-  {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            // Filter by webId (user/org scope)
-            {
-              equal: [{ path: ["webId"] }, { parameter: webId }],
-            },
-            // Filter by entity type
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.dashboard.entityTypeId,
-              { ignoreParents: true },
-            ),
-            // Exclude archived entities
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
+const { data, loading } = useQuery<
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables
+>(queryEntitySubgraphQuery, {
+  variables: {
+    request: {
+      filter: {
+        all: [
+          // Filter by webId (user/org scope)
+          {
+            equal: [{ path: ["webId"] }, { parameter: webId }],
+          },
+          // Filter by entity type
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.dashboard.entityTypeId,
+            { ignoreParents: true },
+          ),
+          // Exclude archived entities
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      graphResolveDepths: {
+        inheritsFrom: 255,
+        isOfType: true,
+      },
+      // Traverse outgoing links to get linked entities
+      traversalPaths: [
+        {
+          edges: [
+            { kind: "has-left-entity", direction: "incoming" },
+            { kind: "has-right-entity", direction: "outgoing" },
           ],
         },
-        graphResolveDepths: {
-          inheritsFrom: 255,
-          isOfType: true,
-        },
-        // Traverse outgoing links to get linked entities
-        traversalPaths: [
-          {
-            edges: [
-              { kind: "has-left-entity", direction: "incoming" },
-              { kind: "has-right-entity", direction: "outgoing" },
-            ],
-          },
-        ],
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
-      },
+      ],
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-    skip: !webId,
-    fetchPolicy: "cache-and-network",
   },
-);
+  skip: !webId,
+  fetchPolicy: "cache-and-network",
+});
 ```
 
 ### Parsing Subgraph Responses
@@ -122,26 +132,38 @@ Use `createEntityMutation` to create new entities.
 
 ```typescript
 import { useMutation } from "@apollo/client";
-import { HashEntity, mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { CreateEntityMutation, CreateEntityMutationVariables } from "../../graphql/api-types.gen";
+import {
+  HashEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
+import type {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
 import { createEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 
-const [createEntity] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
-  createEntityMutation,
-);
+const [createEntity] = useMutation<
+  CreateEntityMutation,
+  CreateEntityMutationVariables
+>(createEntityMutation);
 
 // Create an entity
 const handleCreate = async () => {
   const properties: MyEntityProperties = {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "My Entity",
-    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": "A description",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+      "My Entity",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+      "A description",
   };
 
   const { data } = await createEntity({
     variables: {
       entityTypeIds: [systemEntityTypes.myType.entityTypeId],
       webId: activeWorkspaceWebId,
-      properties: mergePropertyObjectAndMetadata<MyEntityType>(properties, undefined),
+      properties: mergePropertyObjectAndMetadata<MyEntityType>(
+        properties,
+        undefined,
+      ),
     },
   });
 
@@ -168,8 +190,8 @@ await createEntity({
     webId: activeWorkspaceWebId,
     properties: mergePropertyObjectAndMetadata({}, undefined),
     linkData: {
-      leftEntityId: parentEntityId,  // Source entity
-      rightEntityId: childEntityId,   // Target entity
+      leftEntityId: parentEntityId, // Source entity
+      rightEntityId: childEntityId, // Target entity
     },
   },
 });
@@ -180,13 +202,17 @@ await createEntity({
 Use `updateEntityMutation` with property patches.
 
 ```typescript
-import type { UpdateEntityMutation, UpdateEntityMutationVariables } from "../../graphql/api-types.gen";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
-  updateEntityMutation,
-);
+const [updateEntity] = useMutation<
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables
+>(updateEntityMutation);
 
 // Update entity properties
 await updateEntity({
@@ -195,12 +221,13 @@ await updateEntity({
       entityId: entity.metadata.recordId.entityId,
       propertyPatches: [
         {
-          op: "add",  // Use "add" for new or existing properties, "remove" to delete
+          op: "add", // Use "add" for new or existing properties, "remove" to delete
           path: [systemPropertyTypes.myProperty.propertyTypeBaseUrl],
           property: {
             value: "new value",
             metadata: {
-              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },
@@ -214,10 +241,10 @@ await updateEntity({
 
 ### Property Patch Operations
 
-| Op | Description |
-|----|-------------|
-| `add` | Add or update a property |
-| `remove` | Remove a property |
+| Op        | Description                                                    |
+| --------- | -------------------------------------------------------------- |
+| `add`     | Add or update a property                                       |
+| `remove`  | Remove a property                                              |
 | `replace` | Replace an existing property (use `add` for simpler semantics) |
 
 ### Data Type IDs
@@ -277,20 +304,22 @@ When you need to check if the current user can edit an entity, set `includePermi
 ### Requesting Permissions
 
 ```typescript
-const { data } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-  queryEntitySubgraphQuery,
-  {
-    variables: {
-      request: {
-        filter: { /* your filter */ },
-        graphResolveDepths: { inheritsFrom: 255, isOfType: true },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: true, // Enable permission checking
+const { data } = useQuery<
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables
+>(queryEntitySubgraphQuery, {
+  variables: {
+    request: {
+      filter: {
+        /* your filter */
       },
+      graphResolveDepths: { inheritsFrom: 255, isOfType: true },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: true, // Enable permission checking
     },
   },
-);
+});
 ```
 
 ### Using Permissions

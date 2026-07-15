@@ -58,7 +58,7 @@ export const DashboardHeader = ({
           >
             <TextInput
               value={editedTitle}
-              onChange={(value) => setEditedTitle(value ?? "")}
+              onChange={(value) => setEditedTitle(value)}
               placeholder="Dashboard title"
               size="md"
             />
