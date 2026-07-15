@@ -1,6 +1,6 @@
 import { parseServerRunRequest, toPetrinautRunConfig } from "./run-request";
 
-import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core";
+import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
 export const MAX_REQUEST_LINE_BYTES = 10 * 1024 * 1024;
 

@@ -22,7 +22,9 @@ export default defineConfig({
     emptyOutDir: true,
     rolldownOptions: {
       external: (id) =>
-        id === "@hashintel/petrinaut-core" || nodeBuiltins.has(id),
+        id === "@hashintel/petrinaut-core" ||
+        id.startsWith("@hashintel/petrinaut-core/") ||
+        nodeBuiltins.has(id),
       output: {
         banner: "#!/usr/bin/env node",
       },

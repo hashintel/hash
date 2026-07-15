@@ -148,7 +148,6 @@ export type {
 // --- Simulation ---
 export {
   addAllMonteCarloMetricValues,
-  compilePetrinautModel,
   createMonteCarloExperiment,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
@@ -160,7 +159,6 @@ export {
 } from "./simulation";
 export type {
   BackpressureConfig,
-  CompilePetrinautModelConfig,
   CreateMonteCarloExperimentConfig,
   CreateSimulationConfig,
   Simulation,
@@ -178,14 +176,6 @@ export type {
   InitialMarking,
   InitialPlaceMarking,
   InitialTokenAttributeValue,
-  PetrinautCompiledModel,
-  PetrinautCompiledModelMetadata,
-  PetrinautCompiledModelMetricMetadata,
-  PetrinautCompiledModelParameterMetadata,
-  PetrinautCompiledModelPlaceMetadata,
-  PetrinautRunCompletionReason,
-  PetrinautRunConfig,
-  PetrinautRunResult,
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,

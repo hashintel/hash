@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { handleProtocolLine } from "./protocol";
 
-import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core";
+import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
 const metadata: PetrinautCompiledModel["metadata"] = {
   parameters: [

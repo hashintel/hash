@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 
-import { compilePetrinautModel } from "@hashintel/petrinaut-core";
+import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 
 import { loadSdcpnModel } from "../runtime/load-model";
 import {

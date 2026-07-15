@@ -2,7 +2,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { createServer, type Socket } from "node:net";
 import { resolve } from "node:path";
 
-import { compilePetrinautModel } from "@hashintel/petrinaut-core";
+import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 
 import { consumeBufferedJsonLines } from "../runtime/json-lines";
 import { loadSdcpnModel } from "../runtime/load-model";

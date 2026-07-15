@@ -15,7 +15,10 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "paths": {
-      "@hashintel/petrinaut-core": ["../petrinaut-core/src/index.ts"]
+      "@hashintel/petrinaut-core": ["../petrinaut-core/src/index.ts"],
+      "@hashintel/petrinaut-core/compiled-model": [
+        "../petrinaut-core/src/compiled-model.ts"
+      ]
     }
   },
   "include": ["src", "vite.config.ts", "../petrinaut-core/src/vite-types.d.ts"]

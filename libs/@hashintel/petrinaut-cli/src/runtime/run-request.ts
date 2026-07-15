@@ -1,9 +1,11 @@
 import type {
   InitialMarking,
   InitialPlaceMarking,
+} from "@hashintel/petrinaut-core";
+import type {
   PetrinautCompiledModelMetadata,
   PetrinautRunConfig,
-} from "@hashintel/petrinaut-core";
+} from "@hashintel/petrinaut-core/compiled-model";
 
 type JsonRecord = Record<string, unknown>;
 
