@@ -5,6 +5,9 @@ then reuse it for every Optuna trial. The model and its TypeScript/HIR code are
 compiled and type-checked before the CLI becomes ready; every `run` gets fresh
 simulation state.
 
+See [Petrinaut CLI model examples](./MODEL_EXAMPLES.md) for complete requests
+using parameters, uncolored tokens, and several colored token schemas.
+
 ## Build
 
 From the HASH repository root:
