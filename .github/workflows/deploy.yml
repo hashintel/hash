@@ -94,7 +94,8 @@ jobs:
               ecs: [
                 { service: "graph",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph" },
                 { service: "graph-admin",  cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph-admin" },
-                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" }
+                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" },
+                { service: "atlas",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-atlas" }
               ]
             },
             {
