@@ -13,9 +13,22 @@ use crate::store::postgres::query::Transpile;
 /// - Preservation of case-sensitivity
 ///
 /// Internal double quotes are escaped by doubling them (`""`) as per PostgreSQL's standard.
+///
+/// Construction panics on empty names: Postgres rejects zero-length quoted identifiers, so an
+/// empty [`Identifier`] could only ever transpile to invalid SQL.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Identifier<'name> {
     name: Cow<'name, str>,
+}
+
+impl<'name> Identifier<'name> {
+    fn new(name: Cow<'name, str>) -> Self {
+        assert!(
+            !name.is_empty(),
+            "identifiers must not be empty: Postgres rejects zero-length quoted identifiers"
+        );
+        Self { name }
+    }
 }
 
 impl fmt::Debug for Identifier<'_> {
@@ -26,23 +39,19 @@ impl fmt::Debug for Identifier<'_> {
 
 impl<'name> From<&'name str> for Identifier<'name> {
     fn from(name: &'name str) -> Self {
-        Self {
-            name: Cow::Borrowed(name),
-        }
+        Self::new(Cow::Borrowed(name))
     }
 }
 
 impl From<String> for Identifier<'_> {
     fn from(identifier: String) -> Self {
-        Self {
-            name: Cow::Owned(identifier),
-        }
+        Self::new(Cow::Owned(identifier))
     }
 }
 
 impl<'name> From<Cow<'name, str>> for Identifier<'name> {
     fn from(name: Cow<'name, str>) -> Self {
-        Self { name }
+        Self::new(name)
     }
 }
 
@@ -125,9 +134,9 @@ mod tests {
     }
 
     #[test]
-    fn empty_identifier() {
-        let id = Identifier::from("");
-        assert_eq!(id.transpile_to_string(), r#""""#);
+    #[should_panic(expected = "identifiers must not be empty")]
+    fn empty_identifier_is_rejected() {
+        _ = Identifier::from("");
     }
 
     #[test]

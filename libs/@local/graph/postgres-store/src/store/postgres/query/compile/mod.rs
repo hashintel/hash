@@ -56,6 +56,8 @@ pub struct CompilerArtifacts<'p> {
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
     has_to_many_join: bool,
+    /// Set once an embeddings distance subquery is installed; a statement supports only one.
+    has_embeddings_filter: bool,
 }
 
 struct PathSelection {
@@ -146,7 +148,7 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
 pub enum SelectCompilerError {
     #[display("Cannot convert parameter for distance function")]
     ConvertDistanceParameter,
-    #[display("Only a single embedding for the same path is allowed")]
+    #[display("Only a single embedding filter is allowed per statement")]
     MultipleEmbeddings,
     #[display("Only embeddings are supported for cosine distance")]
     UnsupportedEmbeddingPath,
@@ -156,6 +158,8 @@ pub enum SelectCompilerError {
     UnsupportedDistanceExpression,
     #[display("Cannot add a cursor: {reason}")]
     CursorDisallowed { reason: &'static str },
+    #[display("Parameters with a pending conversion cannot be compiled")]
+    PendingParameterConversion,
     #[display("String operations are not supported on paths backed by materialized array columns")]
     UnsupportedTextArrayOperation,
 }
@@ -202,6 +206,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 cursor_disallowed_reason: None,
                 has_to_many_join: false,
+                has_embeddings_filter: false,
             },
             temporal_axes,
             table_hooks,
@@ -616,9 +621,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// # Panics
     ///
-    /// Panics when a non-distance filter carries a parameter with a pending conversion
-    /// (`convert: Some(..)`) — only the cosine-distance arm handles conversions so far. Also
-    /// panics when an embeddings table declares no grouping columns, though the static table
+    /// Panics when an embeddings table declares no grouping columns, though the static table
     /// list makes that unreachable.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
@@ -642,29 +645,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::NotEqual(lhs, rhs) => Expression::not_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Exists { path } => Expression::is_not_null(self.compile_path_column(path)),
             Filter::Greater(lhs, rhs) => Expression::greater(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::GreaterOrEqual(lhs, rhs) => Expression::greater_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Less(lhs, rhs) => Expression::less(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::LessOrEqual(lhs, rhs) => Expression::less_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
                 (
@@ -676,6 +679,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     FilterExpression::Path { path },
                 ) => {
                     let _span = tracing::info_span!("compile_cosine_distance").entered();
+                    ensure!(
+                        !self.artifacts.has_embeddings_filter,
+                        SelectCompilerError::MultipleEmbeddings
+                    );
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
@@ -692,7 +699,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     let path_alias = self.add_join_statements(path);
                     let parameter_expression = self.compile_parameter(parameter).0;
-                    let maximum_expression = self.compile_filter_expression(max).0;
+                    let maximum_expression = self.compile_filter_expression(max)?.0;
 
                     let (embeddings_column, None) = path.terminating_column() else {
                         bail!(SelectCompilerError::UnsupportedEmbeddingPath);
@@ -755,17 +762,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     }) = self.from.as_mut()
                         && let Some(last_join) = self.artifacts.joins.last()
                     {
-                        ensure!(
-                            matches!(
-                                last_join.table,
-                                Table::DataTypeEmbeddings
-                                    | Table::PropertyTypeEmbeddings
-                                    | Table::EntityTypeEmbeddings
-                                    | Table::EntityEmbeddings
-                            ),
-                            SelectCompilerError::MultipleEmbeddings
-                        );
-
                         let select_columns: &[_] = match embeddings_table {
                             Table::DataTypeEmbeddings => {
                                 &[Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId)]
@@ -864,6 +860,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         )
                         .alias(last_join.table.aliased_name(last_join.alias))
                         .build();
+                        self.artifacts.has_embeddings_filter = true;
                     }
 
                     self.sort_by.insert(
@@ -883,20 +880,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),
             },
             Filter::In(lhs, rhs) => Expression::r#in(
-                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(lhs)?.0,
                 self.compile_filter_expression_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -908,14 +905,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::EndsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -927,14 +924,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::ContainsSegment(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -1424,14 +1421,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
+    /// Compiles a [`FilterExpression`] to an [`Expression`] and its parameter type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SelectCompilerError::PendingParameterConversion`] when the parameter still
+    /// carries a conversion; conversions have to be resolved before compilation.
     pub fn compile_filter_expression<'f: 'q>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> (Expression, ParameterType)
+    ) -> Result<(Expression, ParameterType), Report<SelectCompilerError>>
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        match expression {
+        Ok(match expression {
             FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
                 let parameter_type =
@@ -1444,12 +1447,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 (self.compile_path_column(path), parameter_type)
             }
             FilterExpression::Parameter { parameter, convert } => {
-                if convert.is_some() {
-                    unimplemented!("Cannot convert parameter at this stage");
-                }
+                ensure!(
+                    convert.is_none(),
+                    SelectCompilerError::PendingParameterConversion
+                );
                 self.compile_parameter(parameter)
             }
-        }
+        })
     }
 
     #[instrument(level = "debug", skip_all)]

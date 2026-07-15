@@ -1918,6 +1918,23 @@ fn embedding_distance_filter() -> Filter<'static, Entity> {
 }
 
 #[test]
+fn second_embedding_filter_is_rejected() {
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+    let filter = embedding_distance_filter();
+    compiler
+        .add_filter(&filter)
+        .expect("the first embedding filter should compile");
+
+    let error = compiler
+        .add_filter(&filter)
+        .expect_err("a second embedding filter should be rejected");
+    assert!(matches!(
+        error.current_context(),
+        SelectCompilerError::MultipleEmbeddings
+    ));
+}
+
+#[test]
 fn cursor_after_embedding_filter_is_rejected() {
     let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
     let filter = embedding_distance_filter();
