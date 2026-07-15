@@ -9,6 +9,8 @@ import {
 } from "@zag-js/dom-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { cx } from "@hashintel/ds-helpers/css";
+
 import {
   OverlayBody,
   OverlayContext,
@@ -18,7 +20,7 @@ import { overlayPartsStyles } from "../../util/overlay-parts.recipe";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type Position } from "../Tooltip/tooltip";
 import { PopoverContainer, PopoverHeader } from "./popover-parts";
-import { positionerStyles } from "./popover.recipe";
+import { contentStyles, positionerStyles } from "./popover.recipe";
 
 /** Reads the current element out of a (possibly callback) ref, when available. */
 const resolveRef = (ref: React.Ref<Element>): Element | null =>
@@ -275,7 +277,10 @@ const PopoverRoot = ({
     >
       <Portal container={portalContainerRef}>
         <ArkPopover.Positioner className={positionerStyles}>
-          <ArkPopover.Content ref={contentRef} className={className}>
+          <ArkPopover.Content
+            ref={contentRef}
+            className={cx(contentStyles, className)}
+          >
             <OverlayContext.Provider value={overlayContextValue}>
               {children}
             </OverlayContext.Provider>

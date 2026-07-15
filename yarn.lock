@@ -6919,6 +6919,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli"
+  dependencies:
+    "@hashintel/petrinaut-core": "workspace:*"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
+    typescript: "npm:5.9.3"
+    vite: "npm:8.1.0"
+    vitest: "npm:4.1.8"
+  bin:
+    petrinaut: ./dist/cli.js
+    petrinaut_cli: ./dist/cli.js
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/petrinaut-core@workspace:*, @hashintel/petrinaut-core@workspace:^, @hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"

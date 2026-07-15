@@ -61,6 +61,35 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.differentialEquations).toEqual([]);
     });
 
+    it.each([
+      ["real", "not-a-number", "Default value must be a finite number"],
+      ["integer", "1.5", "Default value must be an integer"],
+      ["boolean", "1", 'Default value must be "true" or "false"'],
+    ] as const)(
+      "rejects an invalid %s parameter default",
+      (type, defaultValue, message) => {
+        const result = parseSDCPNFile({
+          version: 1,
+          meta: { generator: "Petrinaut" },
+          ...minimalSDCPN,
+          parameters: [
+            {
+              id: "parameter",
+              name: "Parameter",
+              variableName: "parameter",
+              type,
+              defaultValue,
+            },
+          ],
+        });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.error).toContain(message);
+        }
+      },
+    );
+
     it("preserves read arc types during import", () => {
       const result = parseSDCPNFile({
         version: 1,

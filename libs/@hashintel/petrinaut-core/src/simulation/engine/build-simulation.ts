@@ -129,19 +129,28 @@ function packInitialPlaceMarking(
     return { bytes: EMPTY_BYTES, count: 0 };
   }
 
-  if (tokenLayout === null || tokenLayout.strideBytes === 0) {
-    if (typeof value !== "number") {
+  if (tokenLayout === null) {
+    if (
+      typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < 0 ||
+      value > 0xffff_ffff
+    ) {
       throw new Error(
-        `Initial marking for uncolored place ${place.id} must be a token count number`,
+        `Initial marking for uncolored place ${place.id} must be an integer between 0 and 4294967295`,
       );
     }
-    return { bytes: EMPTY_BYTES, count: Math.max(0, Math.round(value)) };
+    return { bytes: EMPTY_BYTES, count: value };
   }
 
   if (!Array.isArray(value)) {
     throw new Error(
       `Initial marking for colored place ${place.id} must be an array of token records`,
     );
+  }
+
+  if (tokenLayout.strideBytes === 0) {
+    return { bytes: EMPTY_BYTES, count: value.length };
   }
 
   const type = sdcpn.types.find((tp) => tp.id === place.colorId);
@@ -589,7 +598,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     sanitizedSdcpn.parameters,
   );
   const rootParameterValues = extensions.parameters
-    ? mergeParameterValues(inputParameterValues, defaultParameterValues)
+    ? mergeParameterValues(
+        inputParameterValues,
+        defaultParameterValues,
+        sanitizedSdcpn.parameters,
+      )
     : {};
   const flattened = flattenComponentInstancesForSimulation({
     sdcpn: sanitizedSdcpn,

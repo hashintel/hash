@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getParameterValueError } from "../parameter-values";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
@@ -316,24 +317,38 @@ export const differentialEquationSchema = z
       "A differential equation for continuous dynamics on coloured tokens. The `colorId` MUST match the colour of every place that references this equation via `differentialEquationId`, and returned derivatives only update that colour's real-valued elements.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
-export const parameterSchema = z
-  .strictObject({
-    id: idSchema,
-    name: displayNameSchema.meta({
-      description: "Human-readable parameter name.",
-    }),
-    variableName: variableNameSchema.meta({
-      description:
-        "lower_snake_case identifier used DIRECTLY in user code as `parameters.<value>` (e.g. `parameters.crash_threshold`, NOT `parameters.crashThreshold`). Must start with a lowercase letter; only `[a-z0-9_]` allowed.",
-    }),
-    type: z.enum(["real", "integer", "boolean"]).meta({
-      description:
-        "Primitive parameter type. Note: parameter values are stored numerically (booleans coerce via `Number()`); the type is primarily a documentation/UI hint.",
-    }),
-    defaultValue: z.string().meta({
-      description:
-        'Default parameter value as a plain numeric string (e.g. `"3"`, `"0.05"`). Parsed via `Number()` with a `|| 0` fallback, so non-numeric strings silently become 0. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions.',
-    }),
+export const parameterObjectSchema = z.strictObject({
+  id: idSchema,
+  name: displayNameSchema.meta({
+    description: "Human-readable parameter name.",
+  }),
+  variableName: variableNameSchema.meta({
+    description:
+      "lower_snake_case identifier used DIRECTLY in user code as `parameters.<value>` (e.g. `parameters.crash_threshold`, NOT `parameters.crashThreshold`). Must start with a lowercase letter; only `[a-z0-9_]` allowed.",
+  }),
+  type: z.enum(["real", "integer", "boolean"]).meta({
+    description:
+      'Primitive parameter type. Real and integer values use numeric strings; boolean values use the literal strings `"true"` and `"false"`.',
+  }),
+  defaultValue: z.string().meta({
+    description:
+      'Default parameter value as a plain string: numeric for real/integer parameters (e.g. `"3"`, `"0.05"`) and `"true"` or `"false"` for booleans. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions.',
+  }),
+});
+
+export const parameterSchema = parameterObjectSchema
+  .superRefine((parameter, context) => {
+    const error = getParameterValueError(
+      parameter.type,
+      parameter.defaultValue,
+    );
+    if (error) {
+      context.addIssue({
+        code: "custom",
+        path: ["defaultValue"],
+        message: `Default value ${error}`,
+      });
+    }
   })
   .meta({
     description:
