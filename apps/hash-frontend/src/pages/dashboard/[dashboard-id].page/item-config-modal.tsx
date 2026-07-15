@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Modal as BaseModal } from "@hashintel/design-system";
 import {
@@ -7,6 +7,7 @@ import {
   PortalContainerContext,
   TextInput,
 } from "@hashintel/ds-components";
+import { getChartConfigProblems } from "@local/hash-isomorphic-utils/chart-config-validation";
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 
 import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
@@ -80,6 +81,7 @@ export const ItemConfigModal = ({
     itemEntityId,
     createItemEntity,
     webId,
+    initialGoal,
     initialValues,
     onGenerationStarted,
     onComplete: () => {
@@ -157,6 +159,14 @@ export const ItemConfigModal = ({
     ? JSON.stringify(state.chartConfig, null, 2)
     : "";
 
+  const chartDataKeys = useMemo(
+    () =>
+      state.chartData && state.chartData.length > 0
+        ? Object.keys(state.chartData[0] as Record<string, unknown>)
+        : [],
+    [state.chartData],
+  );
+
   const handleSaveStructuralQuery = useCallback(
     async (value: string) => {
       let parsedJson: unknown;
@@ -190,9 +200,9 @@ export const ItemConfigModal = ({
 
   const handleSaveChartConfig = useCallback(
     async (value: string) => {
-      let parsed: ChartConfig;
+      let parsed: unknown;
       try {
-        parsed = JSON.parse(value) as ChartConfig;
+        parsed = JSON.parse(value);
       } catch (error) {
         throw new Error(
           `Not saved – the chart config is not valid JSON: ${
@@ -200,9 +210,15 @@ export const ItemConfigModal = ({
           }`,
         );
       }
-      await saveChartConfig(parsed);
+
+      const problems = getChartConfigProblems(parsed, chartDataKeys);
+      if (problems.length > 0) {
+        throw new Error(`Not saved – ${problems.join("; ")}`);
+      }
+
+      await saveChartConfig(parsed as ChartConfig);
     },
-    [saveChartConfig],
+    [chartDataKeys, saveChartConfig],
   );
 
   const renderQueryBuilder = useCallback(
@@ -217,11 +233,6 @@ export const ItemConfigModal = ({
     [],
   );
 
-  const chartDataKeys =
-    state.chartData && state.chartData.length > 0
-      ? Object.keys(state.chartData[0] as Record<string, unknown>)
-      : [];
-
   const renderChartConfigBuilder = useCallback(
     (value: string, onChange: (newValue: string) => void) => (
       <ChartConfigBuilder
@@ -230,11 +241,8 @@ export const ItemConfigModal = ({
         dataKeys={chartDataKeys}
       />
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chartDataKeys.join(",")],
+    [chartDataKeys],
   );
-
-  const goalValue = state.userGoal || initialGoal;
 
   return (
     <BaseModal
@@ -333,7 +341,7 @@ export const ItemConfigModal = ({
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <TextInput
-                    value={goalValue}
+                    value={state.userGoal}
                     onChange={(value) => setUserGoal(value)}
                     placeholder="Describe what you want to visualize..."
                     disabled={state.isLoading}
@@ -348,7 +356,7 @@ export const ItemConfigModal = ({
                   type="submit"
                   iconName="sparkles"
                   loading={state.isLoading && isConfiguring}
-                  disabled={!goalValue.trim() || state.isLoading}
+                  disabled={!state.userGoal.trim() || state.isLoading}
                 >
                   {isConfiguring ? "Generating..." : "Generate"}
                 </Button>

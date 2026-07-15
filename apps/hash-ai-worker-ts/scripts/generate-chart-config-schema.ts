@@ -35,12 +35,15 @@ writeFileSync(
   path.join(
     __dirname,
     "..",
+    "..",
+    "..",
+    "libs",
+    "@local",
+    "hash-isomorphic-utils",
     "src",
-    "activities",
-    "flow-activities",
-    "chart-config-schema.gen.ts",
+    "chart-config-schema.ts",
   ),
   schemaContent,
 );
 
-console.log("Generated chart-config-schema.gen.ts");
+console.log("Generated chart-config-schema.ts");

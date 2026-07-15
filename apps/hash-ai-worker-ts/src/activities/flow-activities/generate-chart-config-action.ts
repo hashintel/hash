@@ -1,5 +1,6 @@
 import dedent from "dedent";
 
+import { chartConfigSchema } from "@local/hash-isomorphic-utils/chart-config-schema";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
@@ -8,7 +9,6 @@ import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { stringify } from "../shared/stringify.js";
-import { chartConfigSchema } from "./chart-config-schema.gen.js";
 import { getChartConfigProblems } from "./chart-config-validation.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";

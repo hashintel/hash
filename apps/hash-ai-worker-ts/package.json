@@ -26,7 +26,6 @@
   "scripts": {
     "build": "rimraf ./dist/ && tsc -p tsconfig.build.json && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
-    "codegen": "yarn generate:chart-config-schema",
     "compare-llm-response": "NODE_ENV=development yarn exe ./scripts/compare-llm-response.ts",
     "dev": "LOG_LEVEL=debug NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",

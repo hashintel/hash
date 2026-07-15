@@ -86,6 +86,8 @@ type UseDashboardItemConfigParams = {
    */
   createItemEntity?: () => Promise<EntityId>;
   webId: WebId;
+  /** The goal stored on an existing dashboard item. */
+  initialGoal?: string;
   /**
    * Existing configuration stored on the entity, used to pre-populate the
    * editors when re-configuring an already-configured item.
@@ -126,6 +128,7 @@ export const useDashboardItemConfig = ({
   itemEntityId,
   createItemEntity,
   webId,
+  initialGoal = "",
   initialValues,
   onGenerationStarted,
   onComplete,
@@ -136,6 +139,7 @@ export const useDashboardItemConfig = ({
    */
   const seededStateRef = useRef<ConfigState>({
     ...initialState,
+    userGoal: initialGoal,
     structuralQuery: initialValues?.structuralQuery ?? null,
     pythonScript: initialValues?.pythonScript ?? null,
     chartType: initialValues?.chartType ?? null,
@@ -375,10 +379,7 @@ export const useDashboardItemConfig = ({
           fetchPolicy: "network-only",
         });
 
-        if (
-          generationFinalizingRef.current ||
-          generationSettledRef.current
-        ) {
+        if (generationFinalizingRef.current || generationSettledRef.current) {
           return;
         }
 
@@ -750,7 +751,9 @@ export const useDashboardItemConfig = ({
         setState((prev) => ({ ...prev, pythonScript, isLoading: false }));
       } catch (err) {
         const error =
-          err instanceof Error ? err : new Error("Failed to save python script");
+          err instanceof Error
+            ? err
+            : new Error("Failed to save python script");
         setError(error.message);
         throw error;
       }
