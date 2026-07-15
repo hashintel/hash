@@ -1935,6 +1935,39 @@ fn second_embedding_filter_is_rejected() {
 }
 
 #[test]
+fn buried_embeddings_join_is_not_rewritten() {
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+
+    // Within one combined filter every branch shares a `condition_index`, so the distance arm
+    // reuses the embeddings join created by the `Exists` branch — buried under the properties
+    // join added in between. Rewriting the topmost join would replace the wrong one.
+    let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed("name"))]);
+    let filter = Filter::All(vec![
+        Filter::Exists {
+            path: EntityQueryPath::Embedding,
+        },
+        Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::Properties(Some(json_path)),
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Bob")),
+                convert: None,
+            },
+        ),
+        embedding_distance_filter(),
+    ]);
+
+    let error = compiler
+        .add_filter(&filter)
+        .expect_err("a buried embeddings join cannot be rewritten into the distance subquery");
+    assert!(matches!(
+        error.current_context(),
+        SelectCompilerError::MultipleEmbeddings
+    ));
+}
+
+#[test]
 fn cursor_after_embedding_filter_is_rejected() {
     let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
     let filter = embedding_distance_filter();

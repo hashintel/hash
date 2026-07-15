@@ -754,6 +754,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     }) = self.from.as_mut()
                         && let Some(last_join) = self.artifacts.joins.last()
                     {
+                        // The rewrite below replaces the topmost join with the distance
+                        // subquery, which is only sound when that join is the embeddings join
+                        // resolved for this path. A reused embeddings join buried under later
+                        // joins (created by an earlier non-distance filter on the embedding
+                        // path) cannot be rewritten.
+                        ensure!(
+                            last_join.table == embeddings_table && last_join.alias == path_alias,
+                            SelectCompilerError::MultipleEmbeddings
+                        );
+
                         let select_columns: &[_] = match embeddings_table {
                             Table::DataTypeEmbeddings => {
                                 &[Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId)]
