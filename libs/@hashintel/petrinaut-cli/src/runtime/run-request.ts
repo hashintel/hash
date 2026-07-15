@@ -31,6 +31,19 @@ function isObject(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function parseOptionalFiniteNumber(
+  value: unknown,
+  fieldName: string,
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${fieldName} must be a finite number`);
+  }
+  return value;
+}
+
 function asRecord(value: unknown, fieldName: string): JsonRecord {
   if (value === undefined) {
     return {};
@@ -152,13 +165,13 @@ export function parseServerRunRequest(value: unknown): ServerRunRequest {
     metrics: Array.isArray(data.metrics)
       ? (data.metrics as string[])
       : undefined,
-    maxSteps: typeof data.maxSteps === "number" ? data.maxSteps : undefined,
-    dt: typeof data.dt === "number" ? data.dt : undefined,
+    maxSteps: parseOptionalFiniteNumber(data.maxSteps, "maxSteps"),
+    dt: parseOptionalFiniteNumber(data.dt, "dt"),
     maxTime:
-      typeof data.maxTime === "number" || data.maxTime === null
-        ? data.maxTime
-        : undefined,
-    seed: typeof data.seed === "number" ? data.seed : undefined,
+      data.maxTime === null
+        ? null
+        : parseOptionalFiniteNumber(data.maxTime, "maxTime"),
+    seed: parseOptionalFiniteNumber(data.seed, "seed"),
   };
 }
 

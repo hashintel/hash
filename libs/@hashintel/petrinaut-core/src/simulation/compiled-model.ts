@@ -1,3 +1,5 @@
+import { v4 as generateUuid } from "uuid";
+
 import { compileHirArtifacts } from "../hir";
 import { buildSimulation } from "./engine/build-simulation";
 import { computeNextFrame } from "./engine/compute-next-frame";
@@ -94,7 +96,8 @@ export type CompilePetrinautModelConfig = {
 const MAX_SEED = 2_147_483_647;
 
 function generateSeed(): number {
-  return Math.floor(Math.random() * MAX_SEED) + 1;
+  const randomWord = Number.parseInt(generateUuid().slice(0, 8), 16);
+  return (randomWord % MAX_SEED) + 1;
 }
 
 function createMetadata(sdcpn: SDCPN): PetrinautCompiledModelMetadata {
@@ -290,6 +293,17 @@ export function compilePetrinautModel(
       const maxSteps = runConfig.maxSteps;
       if (maxTime === null && maxSteps === undefined) {
         throw new Error("Run config requires either maxTime or maxSteps");
+      }
+      if (
+        maxTime !== null &&
+        (!Number.isFinite(maxTime) || maxTime < 0)
+      ) {
+        throw new Error(
+          "Run config maxTime must be a finite non-negative number or null",
+        );
+      }
+      if (!Number.isFinite(dt) || dt <= 0) {
+        throw new Error("Run config dt must be a finite positive number");
       }
       if (
         maxSteps !== undefined &&
