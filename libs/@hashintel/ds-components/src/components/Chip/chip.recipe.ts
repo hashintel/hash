@@ -159,6 +159,7 @@ export const styles = sva({
       fillLight: {
         root: {
           background: "colorPalette.bg.surface",
+          borderColor: "colorPalette.bd.subtle",
           color: "colorPalette.fg.link",
         },
       },
@@ -293,9 +294,9 @@ export const styles = sva({
 });
 
 // A prefix/suffix slot. `naked` adds no styling beyond the flex base. `straight`
-// separates the affix with a 1px divider (a box-shadow keyed to `currentColor`,
-// so it survives the button reset and matches the text colour). `circle` and
-// `angle` are full-height tinted zones that bleed past the chip's padding +
+// separates the affix with a 1px divider (a box-shadow reading `--chip-divider`,
+// so it survives the button reset). `circle` is a bordered, brighter badge.
+// `angle` is a full-height tinted zone that bleeds past the chip's padding +
 // border. `interactive` layers a button reset on top.
 export const affixStyles = cva({
   base: {
@@ -317,11 +318,15 @@ export const affixStyles = cva({
           "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
         backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
       },
+      // A circular badge: a brighter (`bgSolid.min`) surface with a subtle ring,
+      // matching the fillLight chip's own border. The ring is a box-shadow so it
+      // survives the interactive button reset.
       circle: {
         alignSelf: "stretch",
         aspectRatio: "1",
         borderRadius: "full",
-        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+        backgroundColor: "colorPalette.bgSolid.min",
+        boxShadow: "[inset 0 0 0 1px var(--colors-color-palette-bd-subtle)]",
       },
     },
     side: {
