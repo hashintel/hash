@@ -45,12 +45,9 @@ const DETAIL_LABEL_RADIUS = 6;
  * Width (px) of the white outline that traces the whole node+label silhouette — a
  * white backdrop of the circle and pill, enlarged by this much and drawn behind
  * the fills, so only the outer ring shows and the two pieces merge into one
- * continuous outline. On hover it thickens around the circle only (see
- * {@link DETAIL_OUTLINE_WIDTH_ACTIVE}); the label's outline keeps this width.
+ * continuous outline. Constant across idle and hover.
  */
 const DETAIL_OUTLINE_WIDTH = 1.5;
-/** Bumped white outline width (px) around the active (hovered/selected) circle. */
-const DETAIL_OUTLINE_WIDTH_ACTIVE = 3;
 /**
  * Width (px) the active circle grows by, in the node's own colour, inside the
  * white outline — so the node appears to enlarge slightly on hover.
@@ -144,10 +141,9 @@ const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
 /**
  * The detailed (zoomed-in) node rendering: a larger circle showing the node's
  * icon, with its label in a pill beneath, and a white outline around the whole
- * node+label silhouette. Active (hover/selected): the white outline around the
- * circle thickens, the label text goes bold, and the circle grows slightly in its
- * own colour (inside the white outline). Each node's parts share a per-node depth
- * band (see
+ * node+label silhouette. Active (hover/selected): the label text goes bold and the
+ * circle grows slightly in its own colour (inside the white outline, which keeps a
+ * constant width). Each node's parts share a per-node depth band (see
  * {@link detailZ}) so a front node occludes every part of a node behind it, and
  * the active node jumps to the front. The parts are not pickable — the compact
  * layer's points resolve picking.
@@ -197,10 +193,9 @@ export class DetailedNodeLayer extends CompositeLayer<
 
     return [
       // The white outline: one ring around the whole node+label silhouette, built
-      // from enlarged white backdrops (circle + pill) drawn behind the fills. It
-      // thickens on the active node — the circle via a per-node radius (which also
-      // accounts for the circle growing), the pill via the extra bold-sized
-      // backdrop below.
+      // from enlarged white backdrops (circle + pill) drawn behind the fills. The
+      // ring keeps a constant width; on the active node the circle backdrop just
+      // follows the grown circle (offset outward by the accent width).
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-outline-circle`,
         data,
@@ -211,11 +206,9 @@ export class DetailedNodeLayer extends CompositeLayer<
         ],
         getFillColor: DETAIL_WHITE,
         getRadius: (point) =>
-          point.id === activeId
-            ? DETAIL_NODE_DIAMETER / 2 +
-              DETAIL_CIRCLE_ACCENT_WIDTH +
-              DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_NODE_DIAMETER / 2 + DETAIL_OUTLINE_WIDTH,
+          DETAIL_NODE_DIAMETER / 2 +
+          DETAIL_OUTLINE_WIDTH +
+          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: activeId,

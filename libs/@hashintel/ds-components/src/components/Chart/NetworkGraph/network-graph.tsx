@@ -159,7 +159,7 @@ const containerStyles = css({
   height: "full",
   overflow: "hidden",
   // deck.gl renders onto a transparent canvas; give it a surface to sit on.
-  backgroundColor: "white",
+  backgroundColor: "neutral.s05",
   cursor: "grab",
 });
 
