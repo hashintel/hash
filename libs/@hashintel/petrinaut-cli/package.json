@@ -19,7 +19,8 @@
     "test:unit": "vitest"
   },
   "dependencies": {
-    "@hashintel/petrinaut-core": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*",
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

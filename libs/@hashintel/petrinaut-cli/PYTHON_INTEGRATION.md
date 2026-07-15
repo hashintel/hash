@@ -2,8 +2,9 @@
 
 Petrinaut CLI is a long-lived Node.js process. Start it once for one model,
 then reuse it for every Optuna trial. The model and its TypeScript/HIR code are
-compiled and type-checked before the CLI becomes ready; every `run` gets fresh
-simulation state.
+compiled, type-checked, and engine-preflighted before the CLI becomes ready.
+Every advertised metric must also compile; every `run` gets fresh simulation
+state.
 
 See [Petrinaut CLI model examples](./MODEL_EXAMPLES.md) for complete requests
 using parameters, uncolored tokens, and several colored token schemas.
@@ -155,7 +156,8 @@ For parallel trials, create one client/process per Optuna worker.
 
 - `metrics`: model metric names or IDs. Multiple metrics may be requested;
   metric display names must be unique because results are keyed by name.
-- `maxSteps` or `maxTime`: simulation stopping condition.
+- `maxSteps` or `maxTime`: simulation stopping condition. When `maxTime` stops
+  the run, the last step is shortened so `finalTime` equals it exactly.
 - `dt`: simulation time step; defaults to `1`.
 - `seed`: optional deterministic integer seed from `0` through
   `2,147,483,647`.

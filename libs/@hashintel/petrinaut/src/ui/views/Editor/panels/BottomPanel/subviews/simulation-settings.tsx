@@ -307,19 +307,29 @@ const SimulationSettingsContent: React.FC = () => {
                       {param.variableName}
                     </div>
                   </div>
-                  {param.type === "boolean" && selectedScenario ? (
+                  {param.type === "boolean" ? (
                     <Toggle
                       size="xs"
                       value={
-                        (scenarioParameterValues[param.variableName] ??
-                          param.defaultValue) !== "0"
+                        selectedScenario
+                          ? (scenarioParameterValues[param.variableName] ??
+                              param.defaultValue) !== "0"
+                          : (parameterValues[param.variableName] ??
+                              param.defaultValue) === "true"
                       }
-                      onChange={(checked) =>
-                        setScenarioParameterValue(
-                          param.variableName,
-                          checked ? "1" : "0",
-                        )
-                      }
+                      onChange={(checked) => {
+                        if (selectedScenario) {
+                          setScenarioParameterValue(
+                            param.variableName,
+                            checked ? "1" : "0",
+                          );
+                        } else {
+                          setParameterValue(
+                            param.variableName,
+                            checked ? "true" : "false",
+                          );
+                        }
+                      }}
                       disabled={isSimulationActive}
                     />
                   ) : param.type === "ratio" && selectedScenario ? (

@@ -253,13 +253,29 @@ export function toPetrinautRunConfig(
   metadata: PetrinautCompiledModelMetadata,
   request: ServerRunRequest,
 ): PetrinautRunConfig {
-  return {
+  const common = {
     initialMarking: normalizeInitialMarking(metadata, request),
     parameterValues: normalizeParameterValues(metadata, request),
     ...(request.seed !== undefined ? { seed: request.seed } : {}),
     ...(request.dt !== undefined ? { dt: request.dt } : {}),
-    ...(request.maxTime !== undefined ? { maxTime: request.maxTime } : {}),
-    ...(request.maxSteps !== undefined ? { maxSteps: request.maxSteps } : {}),
     metrics: normalizeMetrics(request),
+  };
+
+  if (request.maxTime !== undefined && request.maxTime !== null) {
+    return {
+      ...common,
+      maxTime: request.maxTime,
+      ...(request.maxSteps !== undefined ? { maxSteps: request.maxSteps } : {}),
+    };
+  }
+
+  if (request.maxSteps === undefined) {
+    throw new Error("Run config requires either maxTime or maxSteps");
+  }
+
+  return {
+    ...common,
+    maxSteps: request.maxSteps,
+    ...(request.maxTime === null ? { maxTime: null } : {}),
   };
 }

@@ -193,6 +193,8 @@ describe("handleProtocolLine", () => {
   });
 
   it.each([
+    [{}, "Run config requires either maxTime or maxSteps"],
+    [{ maxTime: null }, "Run config requires either maxTime or maxSteps"],
     [{ parameters: [] }, "parameters must be an object"],
     [{ initialState: "invalid" }, "initialState must be an object"],
     [{ metrics: ["Metric", 1] }, "metrics must be an array of strings"],

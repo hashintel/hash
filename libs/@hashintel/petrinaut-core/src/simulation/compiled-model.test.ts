@@ -60,7 +60,7 @@ describe("compilePetrinautModel", () => {
   );
 
   it("requires at least one stopping condition", () => {
-    expect(() => model.run()).toThrow(
+    expect(() => Reflect.apply(model.run, model, [])).toThrow(
       "Run config requires either maxTime or maxSteps",
     );
   });
@@ -89,6 +89,39 @@ describe("compilePetrinautModel", () => {
     } as const;
 
     expect(model.run(config)).toEqual(model.run(config));
+  });
+
+  it.each([
+    { dt: 1, maxTime: 0.5, expectedFrames: 2 },
+    { dt: 0.1, maxTime: 1, expectedFrames: 11 },
+  ])(
+    "stops exactly at maxTime with dt=$dt",
+    ({ dt, maxTime, expectedFrames }) => {
+      const result = model.run({
+        initialMarking: {
+          place__susceptible: 20,
+          place__infected: 2,
+          place__recovered: 0,
+        },
+        maxTime,
+        dt,
+        seed: 42,
+      });
+
+      expect(result.completionReason).toBe("maxTime");
+      expect(result.finalTime).toBe(maxTime);
+      expect(result.frameCount).toBe(expectedFrames);
+    },
+  );
+
+  it("validates requested metrics before constructing a run", () => {
+    expect(() =>
+      model.run({
+        initialMarking: { missing_place: 1 },
+        metrics: ["Missing metric"],
+        maxSteps: 0,
+      }),
+    ).toThrow('Metric "Missing metric" does not exist in the model');
   });
 
   it("uses the extension-sanitized model for metadata", () => {
@@ -158,6 +191,123 @@ describe("compilePetrinautModel", () => {
       'Model metric names must be unique because run results are keyed by name: "Infected Fraction"',
     );
   });
+
+  it("rejects duplicate metric ids before HIR artifacts can be overwritten", () => {
+    const metric = sirModel.petriNetDefinition.metrics?.[0];
+    expect(metric).toBeDefined();
+
+    expect(() =>
+      compilePetrinautModel({
+        sdcpn: {
+          ...sirModel.petriNetDefinition,
+          metrics: [metric!, { ...metric!, name: "Duplicate id" }],
+        },
+      }),
+    ).toThrow(`Model metric ids must be unique: "${metric!.id}"`);
+  });
+
+  it("rejects metrics that have no compiled artifact", () => {
+    expect(() =>
+      compilePetrinautModel({
+        sdcpn: {
+          ...sirModel.petriNetDefinition,
+          metrics: [{ id: "empty", name: "Empty", code: "" }],
+        },
+      }),
+    ).toThrow(
+      'Metric "Empty" has not been compiled. Check the model\'s metric diagnostics.',
+    );
+  });
+
+  it("returns metric names such as __proto__ as own result properties", () => {
+    const protoMetricModel = compilePetrinautModel({
+      sdcpn: {
+        ...sirModel.petriNetDefinition,
+        metrics: [
+          {
+            id: "proto-metric",
+            name: "__proto__",
+            code: "return 7;",
+          },
+        ],
+      },
+    });
+
+    const result = protoMetricModel.run({
+      metrics: ["__proto__"],
+      maxSteps: 0,
+      seed: 1,
+    });
+    expect(Object.hasOwn(result.metrics, "__proto__")).toBe(true);
+    expect(result.metrics.__proto__).toBe(7);
+  });
+
+  it("validates model references before returning a ready runner", () => {
+    expect(() =>
+      compilePetrinautModel({
+        sdcpn: {
+          places: [
+            {
+              id: "place",
+              name: "Place",
+              colorId: "missing-color",
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      }),
+    ).toThrow(
+      "Type with ID missing-color referenced by place place does not exist in SDCPN",
+    );
+  });
+
+  it("enforces integer parameter types for direct Core callers", () => {
+    const integerModel = compilePetrinautModel({
+      sdcpn: {
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [
+          {
+            id: "count",
+            name: "Count",
+            variableName: "count",
+            type: "integer",
+            defaultValue: "1",
+          },
+        ],
+      },
+    });
+
+    expect(() =>
+      integerModel.run({
+        parameterValues: { count: "1.5" },
+        maxSteps: 0,
+      }),
+    ).toThrow('Parameter "count" must be an integer');
+  });
+
+  it.each([-1, 1.5, 4_294_967_296])(
+    "rejects invalid uncolored markings for direct Core callers: %s",
+    (count) => {
+      expect(() =>
+        model.run({
+          initialMarking: { place__susceptible: count },
+          maxSteps: 0,
+        }),
+      ).toThrow(
+        "Initial marking for uncolored place place__susceptible must be an integer between 0 and 4294967295",
+      );
+    },
+  );
 
   it("returns token counts only for root places advertised by metadata", () => {
     const place = (id: string) => ({

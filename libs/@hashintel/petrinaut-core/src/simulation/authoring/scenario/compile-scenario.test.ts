@@ -10,11 +10,12 @@ const param = (
   id: string,
   variableName: string,
   defaultValue: string,
+  type: Parameter["type"] = "real",
 ): Parameter => ({
   id,
   name: variableName,
   variableName,
-  type: "real",
+  type,
   defaultValue,
 });
 
@@ -75,6 +76,44 @@ describe("compileScenario", () => {
       if (result.ok) {
         expect(result.result.parameterValues.x).toBe("42");
       }
+    });
+
+    it("preserves boolean defaults and overrides as boolean strings", () => {
+      const withDefault = compileScenario(scenario(), [
+        param("enabled", "enabled", "true", "boolean"),
+      ]);
+      const withOverride = compileScenario(
+        scenario({ parameterOverrides: { enabled: "false" } }),
+        [param("enabled", "enabled", "true", "boolean")],
+      );
+
+      expect(withDefault).toMatchObject({
+        ok: true,
+        result: { parameterValues: { enabled: "true" } },
+      });
+      expect(withOverride).toMatchObject({
+        ok: true,
+        result: { parameterValues: { enabled: "false" } },
+      });
+    });
+
+    it("rejects fractional integer parameter overrides", () => {
+      const result = compileScenario(
+        scenario({ parameterOverrides: { count: "1.5" } }),
+        [param("count", "count", "1", "integer")],
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        errors: [
+          {
+            source: "parameterOverride",
+            itemId: "count",
+            message:
+              'Parameter "count" expression evaluated to 1.5, expected an integer.',
+          },
+        ],
+      });
     });
 
     it("evaluates an initial state expression", () => {
@@ -144,6 +183,23 @@ describe("compileScenario", () => {
       if (result.ok) {
         expect(result.result.initialState.place1).toBe(50);
       }
+    });
+
+    it("exposes boolean scenario parameters as booleans to bindings", () => {
+      const result = compileScenario(
+        scenario({
+          scenarioParameters: [
+            { type: "boolean", identifier: "enabled", default: 1 },
+          ],
+          parameterOverrides: { enabled: "scenario.enabled" },
+        }),
+        [param("enabled", "enabled", "false", "boolean")],
+      );
+
+      expect(result).toMatchObject({
+        ok: true,
+        result: { parameterValues: { enabled: "true" } },
+      });
     });
 
     it("uses supplied scenario parameter values over defaults", () => {

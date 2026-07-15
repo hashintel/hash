@@ -8,6 +8,9 @@ compiles one model once, then accepts one simulation request per parameter set.
 It supports stdin/stdout by default or an explicit Unix socket. It does not
 expose HTTP or TCP.
 
+The process reports ready only after TypeScript/HIR compilation and an engine
+preflight have succeeded, including every metric advertised by `metadata`.
+
 See [Using Petrinaut CLI from Python](./PYTHON_INTEGRATION.md) for a compact
 stdio wrapper and Optuna example.
 
@@ -156,13 +159,17 @@ Run config fields:
 - `parameters`: parameter values. Keys may be parameter variable name,
   parameter id, or display name. Exact ids take priority, followed by variable
   names and then display names; duplicate aliases use the model's last entry.
+  Real values must be finite, integers must be integral, and booleans must be
+  JSON booleans or the strings `"true"` and `"false"`.
 - `initialState`: initial markings. Keys may be place id or display name.
   Exact ids take priority; duplicate display names use the model's last entry.
   Uncolored token counts must be integers from `0` through `4,294,967,295`.
 - `metrics`: metric names/ids evaluated on the final frame.
 - `maxSteps`: optional maximum number of simulation steps.
 - `maxTime`: optional maximum simulation time. At least one of `maxSteps` or
-  `maxTime` is required. `dt` defaults to `1` if omitted.
+  `maxTime` is required. The last step is shortened when necessary so a
+  `maxTime` completion returns that exact `finalTime`. `dt` defaults to `1` if
+  omitted.
 - `seed`: optional deterministic integer seed from `0` through
   `2,147,483,647`.
 

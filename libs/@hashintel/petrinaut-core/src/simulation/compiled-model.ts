@@ -64,17 +64,28 @@ export type PetrinautCompiledModelMetadata = {
   metrics: PetrinautCompiledModelMetricMetadata[];
 };
 
-export type PetrinautRunConfig = {
+type PetrinautRunOptions = {
   initialMarking?: InitialMarking;
   parameterValues?: Record<string, string>;
   seed?: number;
   dt?: number;
-  maxTime?: number | null;
-  /** Number of simulation steps to execute. Stops before `maxTime` if lower. */
-  maxSteps?: number;
   /** Metric ids or names to evaluate on the final frame. */
   metrics?: readonly string[];
 };
+
+export type PetrinautRunConfig = PetrinautRunOptions &
+  (
+    | {
+        /** Number of simulation steps to execute. Stops before `maxTime` if lower. */
+        maxSteps: number;
+        maxTime?: number | null;
+      }
+    | {
+        maxTime: number;
+        /** Number of simulation steps to execute. Stops before `maxTime` if lower. */
+        maxSteps?: number;
+      }
+  );
 
 export type PetrinautRunResult = {
   seed: number;
@@ -88,7 +99,7 @@ export type PetrinautRunResult = {
 
 export type PetrinautCompiledModel = {
   readonly metadata: PetrinautCompiledModelMetadata;
-  run(config?: PetrinautRunConfig): PetrinautRunResult;
+  run(this: void, config: PetrinautRunConfig): PetrinautRunResult;
 };
 
 export type CompilePetrinautModelConfig = {
@@ -104,15 +115,30 @@ function generateSeed(): number {
   return (randomWord % MAX_SEED) + 1;
 }
 
-function validateMetricNames(sdcpn: SDCPN): void {
+function validateMetricIdentities(sdcpn: SDCPN): void {
+  const ids = new Set<string>();
   const names = new Set<string>();
   for (const metric of sdcpn.metrics ?? []) {
+    if (ids.has(metric.id)) {
+      throw new Error(`Model metric ids must be unique: "${metric.id}"`);
+    }
     if (names.has(metric.name)) {
       throw new Error(
         `Model metric names must be unique because run results are keyed by name: "${metric.name}"`,
       );
     }
+    ids.add(metric.id);
     names.add(metric.name);
+  }
+}
+
+function validateCompiledMetrics(sdcpn: SDCPN, artifacts: HirArtifacts): void {
+  for (const metric of sdcpn.metrics ?? []) {
+    if (!artifacts.metrics[metric.id]) {
+      throw new Error(
+        `Metric "${metric.name}" has not been compiled. Check the model's metric diagnostics.`,
+      );
+    }
   }
 }
 
@@ -241,16 +267,19 @@ function createFrameReader(args: {
   };
 }
 
-function evaluateMetrics(args: {
+type ResolvedMetric = {
+  metric: Metric;
+  evaluate: ReturnType<typeof createHirMetricEvaluator>;
+};
+
+function resolveMetrics(args: {
   sdcpn: SDCPN;
   artifacts: HirArtifacts;
   metricNamesOrIds: readonly string[];
-  frame: SimulationFrameReader;
-}): Record<string, number> {
-  const { sdcpn, artifacts, metricNamesOrIds, frame } = args;
-  const values: Record<string, number> = {};
+}): ResolvedMetric[] {
+  const { sdcpn, artifacts, metricNamesOrIds } = args;
 
-  for (const metricNameOrId of metricNamesOrIds) {
+  return metricNamesOrIds.map((metricNameOrId) => {
     const metric = findMetric(sdcpn, metricNameOrId);
     const artifact = artifacts.metrics[metric.id];
     if (!artifact) {
@@ -259,15 +288,29 @@ function evaluateMetrics(args: {
       );
     }
 
-    const evaluate = createHirMetricEvaluator({
-      metricName: metric.name,
-      artifact,
-      places: sdcpn.places,
-    });
-    values[metric.name] = evaluate(frame);
-  }
+    return {
+      metric,
+      evaluate: createHirMetricEvaluator({
+        metricName: metric.name,
+        artifact,
+        places: sdcpn.places,
+      }),
+    };
+  });
+}
 
-  return values;
+function evaluateMetrics(
+  metrics: readonly ResolvedMetric[],
+  frame: SimulationFrameReader,
+): Record<string, number> {
+  return Object.fromEntries(
+    metrics.map(({ metric, evaluate }) => [metric.name, evaluate(frame)]),
+  );
+}
+
+function timesAreEqual(left: number, right: number): boolean {
+  const scale = Math.max(1, Math.abs(left), Math.abs(right));
+  return Math.abs(left - right) <= Number.EPSILON * scale * 16;
 }
 
 /**
@@ -282,7 +325,7 @@ export function compilePetrinautModel(
 ): PetrinautCompiledModel {
   const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
-  validateMetricNames(sdcpn);
+  validateMetricIdentities(sdcpn);
   const compiled = config.hirArtifacts
     ? { artifacts: config.hirArtifacts, failures: [] }
     : compileHirArtifacts(sdcpn, extensions);
@@ -300,15 +343,34 @@ export function compilePetrinautModel(
     throw new Error(`Model HIR compilation failed:\n${details}`);
   }
 
+  validateCompiledMetrics(sdcpn, artifacts);
+
+  // Instantiate the engine once before advertising readiness. This catches
+  // invalid model references and stale supplied HIR artifacts at startup.
+  buildSimulation({
+    sdcpn,
+    extensions,
+    initialMarking: {},
+    parameterValues: {},
+    seed: 1,
+    dt: 1,
+    maxTime: 0,
+    hirArtifacts: artifacts,
+  });
+
   const metadata = createMetadata(sdcpn);
 
   return {
     metadata,
-    run(runConfig = {}) {
-      const seed = runConfig.seed ?? generateSeed();
-      const dt = runConfig.dt ?? 1;
-      const maxTime = runConfig.maxTime ?? null;
-      const maxSteps = runConfig.maxSteps;
+    run(runConfig) {
+      const runtimeConfig: Partial<PetrinautRunOptions> & {
+        maxTime?: number | null;
+        maxSteps?: number;
+      } = (runConfig as PetrinautRunConfig | undefined) ?? {};
+      const seed = runtimeConfig.seed ?? generateSeed();
+      const dt = runtimeConfig.dt ?? 1;
+      const maxTime = runtimeConfig.maxTime ?? null;
+      const maxSteps = runtimeConfig.maxSteps;
       if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
         throw new Error(
           `Run config seed must be an integer between 0 and ${MAX_SEED}`,
@@ -332,11 +394,17 @@ export function compilePetrinautModel(
         throw new Error("Run config maxSteps must be a non-negative integer");
       }
 
+      const metrics = resolveMetrics({
+        sdcpn,
+        artifacts,
+        metricNamesOrIds: runtimeConfig.metrics ?? [],
+      });
+
       let simulation = buildSimulation({
         sdcpn,
         extensions,
-        initialMarking: runConfig.initialMarking ?? {},
-        parameterValues: runConfig.parameterValues ?? {},
+        initialMarking: runtimeConfig.initialMarking ?? {},
+        parameterValues: runtimeConfig.parameterValues ?? {},
         seed,
         dt,
         maxTime,
@@ -354,6 +422,22 @@ export function compilePetrinautModel(
           break;
         }
 
+        if (maxTime !== null) {
+          const remainingTime = maxTime - simulation.currentTime;
+          if (
+            remainingTime < 0 ||
+            timesAreEqual(simulation.currentTime, maxTime)
+          ) {
+            simulation = { ...simulation, currentTime: maxTime };
+            completionReason = "maxTime";
+            break;
+          }
+          simulation = {
+            ...simulation,
+            dt: Math.min(dt, remainingTime),
+          };
+        }
+
         const result = computeNextFrame(simulation);
         const currentFrame =
           result.simulation.frames[result.simulation.currentFrameNumber];
@@ -362,10 +446,18 @@ export function compilePetrinautModel(
         }
         simulation = {
           ...result.simulation,
+          dt,
           frames: [currentFrame],
           currentFrameNumber: 0,
         };
         completionReason = result.completionReason;
+        if (
+          maxTime !== null &&
+          timesAreEqual(simulation.currentTime, maxTime)
+        ) {
+          simulation = { ...simulation, currentTime: maxTime };
+          completionReason = "maxTime";
+        }
         steps++;
       }
 
@@ -384,12 +476,12 @@ export function compilePetrinautModel(
         stringPool: simulation.stringPool,
       });
 
-      const finalPlaceTokenCounts: Record<string, number> = {};
-      for (const place of metadata.places) {
-        finalPlaceTokenCounts[place.id] = finalFrameReader.getPlaceTokenCount(
+      const finalPlaceTokenCounts = Object.fromEntries(
+        metadata.places.map((place) => [
           place.id,
-        );
-      }
+          finalFrameReader.getPlaceTokenCount(place.id),
+        ]),
+      );
 
       return {
         seed,
@@ -398,14 +490,7 @@ export function compilePetrinautModel(
         frameCount: steps + 1,
         finalTime: simulation.currentTime,
         finalPlaceTokenCounts,
-        metrics: runConfig.metrics
-          ? evaluateMetrics({
-              sdcpn,
-              artifacts,
-              metricNamesOrIds: runConfig.metrics,
-              frame: finalFrameReader,
-            })
-          : {},
+        metrics: evaluateMetrics(metrics, finalFrameReader),
       };
     },
   };

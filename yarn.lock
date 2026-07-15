@@ -6742,6 +6742,7 @@ __metadata:
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    typescript: "npm:5.9.3"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.8"
   bin:

@@ -10,6 +10,7 @@ import {
   idSchema,
   inputArcSchema,
   nodePositionCommitSchema,
+  parameterObjectSchema,
   parameterSchema,
   placeSchema,
   positionSchema,
@@ -90,7 +91,7 @@ export const differentialEquationUpdateSchema = differentialEquationSchema
       "Fields to assign to an existing differential equation. Omitted fields are left unchanged.",
   });
 
-export const parameterUpdateSchema = parameterSchema
+export const parameterUpdateSchema = parameterObjectSchema
   .omit({ id: true })
   .partial()
   .meta({

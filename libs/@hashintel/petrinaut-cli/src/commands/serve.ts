@@ -63,11 +63,14 @@ export async function serve(options: ServeOptions): Promise<void> {
       }
 
       if (bufferedLines.requestTooLarge) {
-        writeResponse(socket, {
-          id: null,
-          error: { message: "Request line is too large" },
-        });
-        socket.destroy();
+        buffer = "";
+        socket.pause();
+        socket.end(
+          `${JSON.stringify({
+            id: null,
+            error: { message: "Request line is too large" },
+          })}\n`,
+        );
       }
     });
 
