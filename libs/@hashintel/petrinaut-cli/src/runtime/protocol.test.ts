@@ -60,7 +60,7 @@ const metadata: PetrinautCompiledModel["metadata"] = {
   ],
 };
 
-function createModel() {
+function createModel(modelMetadata = metadata) {
   const runMock = vi.fn(() => ({
     seed: 42,
     status: "complete" as const,
@@ -71,7 +71,7 @@ function createModel() {
     metrics: { Metric: 1 },
   }));
   return {
-    metadata,
+    metadata: modelMetadata,
     run: runMock,
     runMock,
   };
@@ -127,6 +127,68 @@ describe("handleProtocolLine", () => {
       maxSteps: 1,
       dt: 0.25,
       seed: 42,
+    });
+  });
+
+  it("prioritizes exact ids and uses last-wins name aliases", () => {
+    const model = createModel({
+      ...metadata,
+      parameters: [
+        {
+          id: "exact-parameter",
+          name: "Shared parameter",
+          variableName: "first_parameter",
+          type: "real",
+          defaultValue: "1",
+          valueRange: null,
+        },
+        {
+          id: "later-parameter",
+          name: "exact-parameter",
+          variableName: "later_parameter",
+          type: "real",
+          defaultValue: "1",
+          valueRange: null,
+        },
+        {
+          id: "last-parameter",
+          name: "Shared parameter",
+          variableName: "last_parameter",
+          type: "real",
+          defaultValue: "1",
+          valueRange: null,
+        },
+      ],
+      places: [
+        { id: "first-place", name: "Shared place", index: 0, color: null },
+        { id: "exact-place", name: "Other place", index: 1, color: null },
+        { id: "last-place", name: "Shared place", index: 2, color: null },
+        { id: "other-place", name: "exact-place", index: 3, color: null },
+      ],
+    });
+
+    expect(
+      send(model, {
+        id: 3,
+        method: "run",
+        params: {
+          parameters: {
+            "exact-parameter": 2,
+            "Shared parameter": 3,
+          },
+          initialState: {
+            "exact-place": 4,
+            "Shared place": 5,
+          },
+          maxSteps: 0,
+        },
+      }),
+    ).toMatchObject({ id: 3, result: { seed: 42 } });
+    expect(model.runMock).toHaveBeenCalledWith({
+      parameterValues: { first_parameter: "2", last_parameter: "3" },
+      initialMarking: { "exact-place": 4, "last-place": 5 },
+      metrics: [],
+      maxSteps: 0,
     });
   });
 

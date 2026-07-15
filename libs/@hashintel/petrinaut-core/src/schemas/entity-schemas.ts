@@ -328,11 +328,11 @@ export const parameterSchema = z
     }),
     type: z.enum(["real", "integer", "boolean"]).meta({
       description:
-        "Primitive parameter type. Note: parameter values are stored numerically (booleans coerce via `Number()`); the type is primarily a documentation/UI hint.",
+        'Primitive parameter type. Real and integer values use numeric strings; boolean values use the literal strings `"true"` and `"false"`.',
     }),
     defaultValue: z.string().meta({
       description:
-        'Default parameter value as a plain numeric string (e.g. `"3"`, `"0.05"`). Parsed via `Number()` with a `|| 0` fallback, so non-numeric strings silently become 0. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions.',
+        'Default parameter value as a plain string: numeric for real/integer parameters (e.g. `"3"`, `"0.05"`) and `"true"` or `"false"` for booleans. Expressions are NOT supported here — use scenario `parameterOverrides` for expressions.',
     }),
   })
   .meta({

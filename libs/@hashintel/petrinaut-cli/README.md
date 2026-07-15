@@ -154,8 +154,10 @@ Methods:
 Run config fields:
 
 - `parameters`: parameter values. Keys may be parameter variable name,
-  parameter id, or display name.
+  parameter id, or display name. Exact ids take priority, followed by variable
+  names and then display names; duplicate aliases use the model's last entry.
 - `initialState`: initial markings. Keys may be place id or display name.
+  Exact ids take priority; duplicate display names use the model's last entry.
   Uncolored token counts must be integers from `0` through `4,294,967,295`.
 - `metrics`: metric names/ids evaluated on the final frame.
 - `maxSteps`: optional maximum number of simulation steps.

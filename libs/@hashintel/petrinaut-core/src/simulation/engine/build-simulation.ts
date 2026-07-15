@@ -129,7 +129,7 @@ function packInitialPlaceMarking(
     return { bytes: EMPTY_BYTES, count: 0 };
   }
 
-  if (tokenLayout === null || tokenLayout.strideBytes === 0) {
+  if (tokenLayout === null) {
     if (typeof value !== "number") {
       throw new Error(
         `Initial marking for uncolored place ${place.id} must be a token count number`,
@@ -142,6 +142,10 @@ function packInitialPlaceMarking(
     throw new Error(
       `Initial marking for colored place ${place.id} must be an array of token records`,
     );
+  }
+
+  if (tokenLayout.strideBytes === 0) {
+    return { bytes: EMPTY_BYTES, count: value.length };
   }
 
   const type = sdcpn.types.find((tp) => tp.id === place.colorId);

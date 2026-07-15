@@ -132,7 +132,10 @@ For parallel trials, create one client/process per Optuna worker.
 ## Inputs and outputs
 
 - `parameters`: keys may be parameter variable names, IDs, or display names.
-- `initialState`: keys may be place IDs or display names.
+  Exact IDs take priority, then variable names, then display names; duplicate
+  aliases use the model's last entry.
+- `initialState`: keys may be place IDs or display names. Exact IDs take
+  priority; duplicate display names use the model's last entry.
 - Uncolored places accept an integer token count from `0` through
   `4,294,967,295`, for example `"Infected": 10`.
 - Colored places accept one object per token. Different places may use

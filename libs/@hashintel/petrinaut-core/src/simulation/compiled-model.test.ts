@@ -212,4 +212,42 @@ describe("compilePetrinautModel", () => {
       }).finalPlaceTokenCounts,
     ).toEqual({ root: 2 });
   });
+
+  it("accepts record arrays for colors with no elements", () => {
+    const emptyColorModel = compilePetrinautModel({
+      sdcpn: {
+        places: [
+          {
+            id: "empty-colored-place",
+            name: "EmptyColoredPlace",
+            colorId: "empty-color",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [],
+        types: [
+          {
+            id: "empty-color",
+            name: "EmptyColor",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [],
+          },
+        ],
+        differentialEquations: [],
+        parameters: [],
+      },
+    });
+
+    expect(
+      emptyColorModel.run({
+        initialMarking: { "empty-colored-place": [{}, {}] },
+        maxSteps: 0,
+        seed: 1,
+      }).finalPlaceTokenCounts,
+    ).toEqual({ "empty-colored-place": 2 });
+  });
 });

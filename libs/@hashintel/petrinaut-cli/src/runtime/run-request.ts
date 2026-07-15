@@ -93,21 +93,16 @@ function normalizeParameterValues(
   metadata: PetrinautCompiledModelMetadata,
   request: ServerRunRequest,
 ): Record<string, string> {
-  const byInputName = new Map<
-    string,
-    PetrinautCompiledModelMetadata["parameters"][number]
-  >();
-  for (const parameter of metadata.parameters) {
-    byInputName.set(parameter.variableName, parameter);
-    byInputName.set(parameter.id, parameter);
-    byInputName.set(parameter.name, parameter);
-  }
-
   const values: Record<string, string> = {};
   for (const [key, value] of Object.entries(
     asRecord(request.parameters, "parameters"),
   )) {
-    const parameter = byInputName.get(key);
+    const parameter =
+      metadata.parameters.find((candidate) => candidate.id === key) ??
+      metadata.parameters.findLast(
+        (candidate) => candidate.variableName === key,
+      ) ??
+      metadata.parameters.findLast((candidate) => candidate.name === key);
     if (!parameter) {
       throw new Error(`Unknown parameter "${key}"`);
     }
@@ -125,9 +120,9 @@ function resolvePlaceId(
   metadata: PetrinautCompiledModelMetadata,
   key: string,
 ): string {
-  const place = metadata.places.find(
-    (candidate) => candidate.id === key || candidate.name === key,
-  );
+  const place =
+    metadata.places.find((candidate) => candidate.id === key) ??
+    metadata.places.findLast((candidate) => candidate.name === key);
   if (!place) {
     throw new Error(`Place "${key}" does not exist`);
   }
