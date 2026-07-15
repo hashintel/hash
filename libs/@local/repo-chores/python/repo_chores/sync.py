@@ -36,6 +36,7 @@ from repo_chores.toml_edit import (
     reconcile_string_array,
 )
 from repo_chores.workspace import (
+    Finding,
     Member,
     Workspace,
     WorkspaceError,
@@ -48,19 +49,6 @@ PYTEST_SCRIPT = "uv run --frozen pytest tests"
 
 DEFAULT_LICENSE = "AGPL-3"
 NPM_SCOPE = "@python"
-
-
-@dataclass(frozen=True, kw_only=True, slots=True)
-class Finding:
-    """A single deviation from the expected workspace state.
-
-    A fixable finding is corrected in apply mode; an unfixable finding
-    requires a manual edit and fails the run in either mode.
-    """
-
-    path: str
-    message: str
-    fixable: bool = True
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)

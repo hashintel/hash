@@ -225,7 +225,7 @@ Common commands:
 
 ```sh
 uv sync                    # create/refresh .venv from uv.lock
-mise run lint:python       # everything CI runs: lock stability, sync --check, ruff, ty, tach
+mise run lint:python       # everything CI runs: lock stability, sync --check, dependency lint, ruff, ty, tach
 mise run fix:python        # apply ruff autofixes + formatting, refresh the lock
 mise run sync:python       # regenerate the boring parts (see below)
 ```

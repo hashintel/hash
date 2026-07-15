@@ -1,11 +1,11 @@
 [project]
-name            = "hash-repo-chores"
-version         = "0.0.0"
-description     = "Keeps the boring parts of the Python workspace correct: membership, version bounds, and turbo wiring"
+name = "hash-repo-chores"
+version = "0.0.0"
+description = "Keeps the boring parts of the Python workspace correct: membership, version bounds, and turbo wiring"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "packaging>=25",
-    "tomlkit>=0.13",
+    "packaging>=26.2,<27",
+    "tomlkit>=0.15,<0.16",
 ]
 
 [project.scripts]
@@ -20,6 +20,6 @@ packages = ["repo_chores"]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
-    "ruff>=0.15.21",
+    "pytest>=9.1.1,<10",
+    "ruff>=0.15.21,<0.16",
 ]

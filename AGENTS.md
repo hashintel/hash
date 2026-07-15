@@ -61,7 +61,7 @@ The HASH repository is organized into several key directories:
 - TypeScript type check: `yarn lint:tsc`
 - ESLint: `yarn lint:eslint`
 - Formatting check: `yarn lint:format`
-- Python (ruff, ty, tach, uv.lock stability, workspace sync): `mise run lint:python`
+- Python (ruff, ty, tach, dependency bounds, uv.lock stability, workspace sync): `mise run lint:python`
 
 - Fix ESLint issues: `yarn fix:eslint`
 - Fix formatting: `yarn fix:format`

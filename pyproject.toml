@@ -12,7 +12,14 @@ description = "Workspace-level Python configuration for the HASH monorepo"
 requires-python = ">=3.14,<3.15"
 
 [tool.uv]
-package = false
+# `uv add` writes cargo-style bounded ranges (>=1.2.3, <2.0.0) by default.
+# `repo-chores lint` rejects requirements without a lower and upper bound.
+add-bounds = "major"
+# Dependency cooldown: newly published releases are held back before
+# resolution considers them, matching the yarn (`npmMinimalAgeGate`) and mise
+# (`minimum_release_age`) posture of 5 days.
+exclude-newer = "5 days"
+package       = false
 
 # Managed by `mise run sync:python`: every pyproject.toml in the repository
 # must be listed here explicitly. CI fails if one is missing.
@@ -26,10 +33,10 @@ dev = [
     # Workspace tooling: `uv run repo-chores sync [--check]` and
     # `uv run repo-chores prune <scope>`.
     "hash-repo-chores",
-    "pytest>=8.0",
-    "ruff>=0.15.21",
+    "pytest>=9.1.1,<10",
+    "ruff>=0.15.21,<0.16",
     "tach>=0.35,<0.36",
-    "ty>=0.0.59",
+    "ty>=0.0.58,<0.1",
 ]
 
 [tool.uv.sources]
