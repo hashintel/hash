@@ -22,12 +22,16 @@ import asyncio
 from enum import Enum
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Annotated, Optional, Sequence, Literal, Union
+from typing import Generic, TypeVar
+from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 from fastapi import Request
 
 import optuna
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+from src.utils import AppStatus, Phase, set_status
 from src.petrinaut_client import PetrinautModel,PetrinautModelSpec
 
 log = logging.getLogger("pn_optimize")
@@ -38,25 +42,30 @@ log = logging.getLogger("pn_optimize")
 
 # Search space comprising of parameters and initial state. One entry per optimizable input.
 #   name : Optuna param name and (by default) flag name; 
-#   type : "float" | "int" | "categorical"
+#   type : "float" | "int" 
 #   float/int: low, high (+ optional step, log=True); categorical: choices=[...]
 # Specification of all parameters
 
+T = TypeVar("T", int, float)
+
 @dataclass(frozen=True)
-class Bounds:
-    low: float
-    high: float
+class Bounds(Generic[T]):
+    low: T
+    high: T
     log: bool = False
+
+FloatBounds = Bounds[float]
+IntBounds = Bounds[int]
 
 BOUNDS: dict[str, dict[str, Bounds]] = {
     "parameters":{
-        "infection_rate": Bounds(0.01, 10.0),
-        "recovery_rate": Bounds(0.01, 10.0)
+        "infection_rate": FloatBounds(0.01, 10.0),
+        "recovery_rate": FloatBounds(0.01, 10.0)
     },
     "initial_states":{
-        "Susceptible": Bounds(0.0, 1000),
-        "Infected": Bounds(0.0, 1000),
-        "Recovered": Bounds(0.0, 1000),
+        "Susceptible": IntBounds(0, 1000),
+        "Infected": IntBounds(0, 1000),
+        "Recovered": IntBounds(0, 1000),
     }
 }
 
@@ -65,9 +74,9 @@ class Parameters(BaseModel):
     recovery_rate: float | None = None
 
 class InitialStates(BaseModel):
-    Susceptible: float | None = None
-    Infected: float | None = None
-    Recovered: float | None = None
+    Susceptible: int | None = None
+    Infected: int | None = None
+    Recovered: int | None = None
 
 
 # Hard-coded allowable optuna samplers 
@@ -172,9 +181,14 @@ class PetrinautOptimizer:
                 if name in self.fixed[group_name]:
                     values[group_name][name] = self.fixed[group_name][name]
                 else:
-                    values[group_name][name] = trial.suggest_float(
-                        f"{group_name}.{name}", b.low, b.high, log=b.log
-                    )
+                    if group_name == 'initial_states':
+                        values[group_name][name] = trial.suggest_int(
+                            f"{group_name}.{name}", b.low, b.high, log=False
+                        )
+                    else:
+                        values[group_name][name] = trial.suggest_float(
+                            f"{group_name}.{name}", b.low, b.high, log=b.log
+                        )
         return values
 
 
@@ -233,10 +247,13 @@ class PetrinautOptimizer:
         Yields:
             _type_: json line of data or event
         """
+        app = request.app
         if not self.lock.acquire(blocking=False):
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
- 
+        
+        set_status(app, phase=Phase.running, detail="optimization running")
+    
         loop = asyncio.get_running_loop()
         q: asyncio.Queue = asyncio.Queue()
         stop_flag = threading.Event()
@@ -280,11 +297,17 @@ class PetrinautOptimizer:
             while True:
                 item = await q.get()
                 if item is _SENTINEL:
+                    set_status(app, phase=Phase.done, detail="optimization completed")
                     yield "event: done\ndata: {}\n\n"
                     break
+                if item.get("state") == "ERROR":
+                    set_status(app, phase=Phase.error, detail=item.get("message"))
+                    yield f"data: {json.dumps(item)}\n\n"
+                    continue
                 yield f"data: {json.dumps(item)}\n\n"
                 if await request.is_disconnected():
                     stop_flag.set()
+                    set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
                     break
         finally:
             stop_flag.set()
@@ -300,10 +323,13 @@ class PetrinautOptimizer:
         Yields:
             _type_: json line of data or event
         """
+        app = request.app
         if not self.lock.acquire(blocking=False):
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
- 
+
+        set_status(app, phase=Phase.running, detail="optimization running")
+
         loop = asyncio.get_running_loop()
         q: asyncio.Queue = asyncio.Queue()
         stop_flag = threading.Event()
@@ -359,11 +385,17 @@ class PetrinautOptimizer:
             while True:
                 item = await q.get()
                 if item is _SENTINEL:
+                    set_status(app, phase=Phase.done, detail="optimization completed")
                     yield "event: done\ndata: {}\n\n"
                     break
+                if item.get("state") == "ERROR":
+                    set_status(app, phase=Phase.error, detail=item.get("message"))
+                    yield f"data: {json.dumps(item)}\n\n"
+                    continue
                 yield f"data: {json.dumps(item)}\n\n"
                 if await request.is_disconnected():
                     stop_flag.set()
+                    set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
                     break
         finally:
             stop_flag.set()
