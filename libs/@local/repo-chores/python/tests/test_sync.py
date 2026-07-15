@@ -152,8 +152,10 @@ class TestAssemblePackageJson:
             directory="packages/alpha",
             name="alpha",
             requires_python=">=3.14,<3.15",
+            dependencies=(),
             dev_dependencies=(),
             workspace_dependencies=workspace_dependencies,
+            insecure_bounds_allowlist=(),
             has_tests=has_tests,
         )
 

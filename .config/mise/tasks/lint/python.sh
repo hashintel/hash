@@ -15,6 +15,8 @@ run uv sync --locked
 # Boundaries: explicit workspace membership, uniform requires-python, shared
 # tool pins, and generated package.json turbo wiring.
 run uv run --frozen repo-chores sync --check
+# Dependency rules: fully bounded version ranges, registry-only sources.
+run uv run --frozen repo-chores lint
 run uv run --frozen ruff format --check .
 run uv run --frozen ruff check .
 run uv run --frozen ty check

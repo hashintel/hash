@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from repo_chores import prune
+from repo_chores.lint import lint
 from repo_chores.sync import synchronize
 from repo_chores.workspace import WorkspaceError, find_workspace_root
 
@@ -24,6 +25,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--check",
         action="store_true",
         help="Report deviations without fixing them (exit 1 if any are found)",
+    )
+
+    subparsers.add_parser(
+        "lint",
+        help="Lint dependency requirements: upper bounds and registry-only sources",
     )
 
     prune_parser = subparsers.add_parser(
@@ -68,12 +74,29 @@ def run_sync(*, check: bool) -> None:
         raise SystemExit(1)
 
 
+def run_lint() -> None:
+    try:
+        root = find_workspace_root(Path.cwd())
+        findings = lint(root)
+    except WorkspaceError as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(2) from error
+
+    for finding in findings:
+        print(f"{finding.path}: {finding.message}")
+
+    if findings:
+        raise SystemExit(1)
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
 
     match args.command:
         case "sync":
             run_sync(check=args.check)
+        case "lint":
+            run_lint()
         case "prune":
             prune.run(args.scope, dry_run=args.dry_run)
         case _:  # pragma: no cover - argparse enforces the command set

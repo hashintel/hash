@@ -17,6 +17,10 @@ path  = "toml_edit"
 layer = "orchestration"
 path  = "sync"
 
+[[modules]]
+layer = "orchestration"
+path  = "lint"
+
 # prune runs before anything is installed: the bootstrap layer forbids every
 # internal import, and the empty external list forbids third-party ones.
 [[modules]]

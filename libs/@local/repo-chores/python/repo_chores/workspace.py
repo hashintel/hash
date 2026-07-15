@@ -36,6 +36,29 @@ class WorkspaceError(RuntimeError):
     """Raised when the workspace or one of its manifests cannot be interpreted."""
 
 
+INSECURE_BOUNDS_ALLOWLIST_KEY = (
+    "allow_insecure_unbounded_dependency_ranges_that_i_will_personally_fix_when_they_break"
+)
+"""The `[tool.hash]` key exempting named dependencies from the upper-bound lint.
+
+The name is deliberately painful: an unbounded range is a standing invitation
+for an upstream release to break the build, so opting out should read like
+the commitment it is."""
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class Finding:
+    """A single deviation from the expected workspace state.
+
+    A fixable finding can be corrected automatically in apply mode; an
+    unfixable finding requires a manual edit and fails the run either way.
+    """
+
+    path: str
+    message: str
+    fixable: bool = True
+
+
 @dataclass(frozen=True, kw_only=True, slots=True)
 class Member:
     """A Python package manifest discovered in the repository."""
@@ -47,8 +70,10 @@ class Member:
     """The distribution name, or None when the manifest has no `[project]` name."""
 
     requires_python: str | None
+    dependencies: tuple[str, ...]
     dev_dependencies: tuple[str, ...]
     workspace_dependencies: tuple[str, ...]
+    insecure_bounds_allowlist: tuple[str, ...]
     has_tests: bool
 
 
@@ -60,6 +85,7 @@ class Workspace:
     requires_python: str
     declared_members: tuple[str, ...]
     dev_dependencies: tuple[str, ...]
+    insecure_bounds_allowlist: tuple[str, ...]
     members: tuple[Member, ...]
 
 
@@ -109,6 +135,11 @@ def _str_entries(table: Mapping[str, object], key: str, /) -> tuple[str, ...]:
 def _dev_dependencies(manifest: Mapping[str, object], /) -> tuple[str, ...]:
     """Read the dev dependency group of a manifest."""
     return _str_entries(_table_at(manifest, "dependency-groups"), "dev")
+
+
+def _insecure_bounds_allowlist(manifest: Mapping[str, object], /) -> tuple[str, ...]:
+    """Read the manifest's upper-bound lint exemptions."""
+    return _str_entries(_table_at(manifest, "tool", "hash"), INSECURE_BOUNDS_ALLOWLIST_KEY)
 
 
 def find_workspace_root(start: Path, /) -> Path:
@@ -163,8 +194,10 @@ def load_member(root: Path, manifest_path: Path, /) -> Member:
         directory=manifest_path.parent.relative_to(root).as_posix(),
         name=_str_at(project, "name"),
         requires_python=_str_at(project, "requires-python"),
+        dependencies=_str_entries(project, "dependencies"),
         dev_dependencies=_dev_dependencies(manifest),
         workspace_dependencies=workspace_dependencies,
+        insecure_bounds_allowlist=_insecure_bounds_allowlist(manifest),
         has_tests=(manifest_path.parent / "tests").is_dir(),
     )
 
@@ -187,6 +220,7 @@ def load_workspace(root: Path, /) -> Workspace:
         requires_python=requires_python,
         declared_members=_str_entries(_table_at(manifest, "tool", "uv", "workspace"), "members"),
         dev_dependencies=_dev_dependencies(manifest),
+        insecure_bounds_allowlist=_insecure_bounds_allowlist(manifest),
         members=tuple(
             load_member(root, manifest_path) for manifest_path in find_member_manifests(root)
         ),
