@@ -92,10 +92,19 @@ const CLICK_MOVE_THRESHOLD_PX = 4;
 const CLICK_PICK_RADIUS_PX = 4;
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
-/** Point opacity when zoomed all the way out; fades in to {@link POINT_OPACITY} at mid-zoom. */
+/**
+ * Point opacity floor — used both when zoomed all the way out and, symmetrically,
+ * when zoomed all the way in (as the detailed view takes over).
+ */
 const POINT_MIN_OPACITY = 0.5;
-/** Zoom-range fraction at/above which points are fully opaque (below, they fade out as you zoom out). */
-const OPACITY_FULL_FRACTION = 0.5;
+/** Zoom offset (from the reference framing) at which points reach full opacity while zooming in. */
+const OPACITY_FULL_OFFSET = 2.5;
+/**
+ * Zoom offset at which points — after a couple of levels at full opacity — begin
+ * fading back out as you keep zooming in, so the crowd recedes behind the
+ * detailed view.
+ */
+const OPACITY_FADE_OUT_OFFSET = 4.5;
 /**
  * Zoom offset (relative to the reference framing) at/above which the node layer
  * switches from the {@link CompactNodeLayer} to the {@link DetailedNodeLayer} —
@@ -515,19 +524,33 @@ export const NetworkGraph = ({
   }, [currentZoom, referenceZoom]);
 
   /**
-   * Point opacity as a function of zoom: {@link POINT_MIN_OPACITY} when zoomed
-   * all the way out, rising linearly to full opacity at the midpoint of the zoom
-   * range and staying fully opaque as the view zooms further in.
+   * Point opacity as a function of zoom, as a three-part curve:
+   * 1. fade in from {@link POINT_MIN_OPACITY} (fully zoomed out) to full opacity
+   *    by {@link OPACITY_FULL_OFFSET},
+   * 2. hold at full opacity through {@link OPACITY_FADE_OUT_OFFSET}, then
+   * 3. fade back down to {@link POINT_MIN_OPACITY} by the max zoom, so the point
+   *    crowd recedes again as the detailed view takes over.
    */
   const pointOpacity = useMemo(() => {
     if (currentZoom === null || referenceZoom === null) {
       return POINT_OPACITY;
     }
-    const minZoom = referenceZoom + MIN_ZOOM_OFFSET;
-    const maxZoom = referenceZoom + MAX_ZOOM_OFFSET;
-    const fraction = (currentZoom - minZoom) / (maxZoom - minZoom);
-    const fade = Math.min(1, Math.max(0, fraction / OPACITY_FULL_FRACTION));
-    return POINT_MIN_OPACITY + fade * (POINT_OPACITY - POINT_MIN_OPACITY);
+    const offset = currentZoom - referenceZoom;
+    const lerp = (from: number, to: number, amount: number) =>
+      from + (to - from) * Math.min(1, Math.max(0, amount));
+
+    if (offset <= OPACITY_FULL_OFFSET) {
+      const amount =
+        (offset - MIN_ZOOM_OFFSET) / (OPACITY_FULL_OFFSET - MIN_ZOOM_OFFSET);
+      return lerp(POINT_MIN_OPACITY, POINT_OPACITY, amount);
+    }
+    if (offset <= OPACITY_FADE_OUT_OFFSET) {
+      return POINT_OPACITY;
+    }
+    const amount =
+      (offset - OPACITY_FADE_OUT_OFFSET) /
+      (MAX_ZOOM_OFFSET - OPACITY_FADE_OUT_OFFSET);
+    return lerp(POINT_OPACITY, POINT_MIN_OPACITY, amount);
   }, [currentZoom, referenceZoom]);
 
   /**
