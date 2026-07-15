@@ -6,7 +6,7 @@ import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
 
-const ajv = new Ajv({ allErrors: true });
+const ajv = new Ajv();
 const validateChartConfig = ajv.compile(chartConfigSchema);
 
 /**
