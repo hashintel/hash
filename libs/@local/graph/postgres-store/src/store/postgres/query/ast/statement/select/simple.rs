@@ -16,12 +16,11 @@ use crate::store::postgres::query::{
 #[builder(derive(Debug, Clone, Into))]
 pub struct SimpleSelect {
     pub quantifier: Option<SelectQuantifier>,
-    /// The target list of the statement.
-    ///
-    /// Accepts a single [`SelectExpression`] or a ready-made [`NonEmptyVec`]; parse a [`Vec`]
-    /// beforehand via `NonEmptyVec::try_from`.
-    #[builder(into)]
-    pub selects: NonEmptyVec<SelectExpression>,
+    /// gram.y's `opt_target_list`: an empty list is valid (`SELECT FROM t` yields zero-column
+    /// rows, used for count-style queries). Note that `distinct_clause` grammatically requires
+    /// a non-empty target list; Postgres rejects `SELECT DISTINCT FROM t` at parse time.
+    #[builder(default)]
+    pub selects: Vec<SelectExpression>,
     #[builder(into)]
     pub from: Option<FromItem<'static>>,
     pub where_clause: Option<Expression>,
@@ -131,10 +130,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn empty_target_list_is_valid() {
+        // gram.y's `opt_target_list` may be empty; count-style queries rely on it.
+        let statement = SimpleSelect::builder()
+            .from(crate::store::postgres::query::FromItem::table(
+                crate::store::postgres::query::Table::OntologyIds,
+            ))
+            .build();
+
+        assert_eq!(
+            statement.transpile_to_string(),
+            "SELECT \nFROM \"ontology_ids\""
+        );
+    }
+
+    #[test]
     fn builder_sets_quantifier() {
         let statement = SimpleSelect::builder()
             .distinct()
-            .selects(SelectExpression::Asterisk(None))
+            .selects(vec![SelectExpression::Asterisk(None)])
             .build();
 
         assert!(

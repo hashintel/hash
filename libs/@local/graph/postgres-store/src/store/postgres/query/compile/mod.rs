@@ -488,11 +488,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    ///
-    /// # Panics
-    ///
-    /// Panics when nothing was selected — add a selection or start the compiler with
-    /// [`Self::with_asterisk`] before compiling.
     #[instrument(level = "info", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         let simple = SimpleSelect::builder()
@@ -501,10 +496,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .ok()
                     .map(SelectQuantifier::DistinctOn),
             )
-            .selects(
-                NonEmptyVec::try_from(self.selects.clone())
-                    .expect("at least one selection is added before compiling"),
-            )
+            .selects(self.selects.clone())
             .maybe_from(self.from.clone())
             .maybe_where_clause(self.where_condition())
             .build();
@@ -813,31 +805,24 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         **last_from = FromItem::subquery(
                             SimpleSelect::builder()
                                 .selects(
-                                    NonEmptyVec::try_from(
-                                        select_columns
-                                            .iter()
-                                            .map(|&column| SelectExpression::Expression {
-                                                expression: Expression::ColumnReference(
-                                                    column.into(),
-                                                ),
-                                                output_name: None,
-                                            })
-                                            .chain(once(SelectExpression::Expression {
-                                                expression: Expression::Function(Function::Min(
-                                                    Box::new(Expression::cosine_distance(
-                                                        Expression::ColumnReference(
-                                                            embeddings_column.into(),
-                                                        ),
-                                                        parameter_expression,
-                                                    )),
+                                    select_columns
+                                        .iter()
+                                        .map(|&column| SelectExpression::Expression {
+                                            expression: Expression::ColumnReference(column.into()),
+                                            output_name: None,
+                                        })
+                                        .chain(once(SelectExpression::Expression {
+                                            expression: Expression::Function(Function::Min(
+                                                Box::new(Expression::cosine_distance(
+                                                    Expression::ColumnReference(
+                                                        embeddings_column.into(),
+                                                    ),
+                                                    parameter_expression,
                                                 )),
-                                                output_name: Some(Identifier::from("distance")),
-                                            }))
-                                            .collect::<Vec<_>>(),
-                                    )
-                                    .unwrap_or_else(|_| {
-                                        unreachable!("the distance selection is always present")
-                                    }),
+                                            )),
+                                            output_name: Some(Identifier::from("distance")),
+                                        }))
+                                        .collect::<Vec<_>>(),
                                 )
                                 .from(FromItem::table(embeddings_table))
                                 .group_by(
@@ -1168,26 +1153,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .name(Table::OntologyIds)
             .statement(
                 SimpleSelect::builder()
-                    .selects(
-                        NonEmptyVec::try_from(vec![
-                            SelectExpression::Asterisk(None),
-                            SelectExpression::Expression {
-                                expression: Expression::window(
-                                    Expression::Function(Function::Max(Box::new(
-                                        Expression::ColumnReference(version_column.aliased(alias)),
-                                    ))),
-                                    WindowDefinition::builder().partition_by(
-                                        Expression::ColumnReference(
-                                            Column::OntologyIds(OntologyIds::BaseUrl)
-                                                .aliased(alias),
-                                        ),
+                    .selects(vec![
+                        SelectExpression::Asterisk(None),
+                        SelectExpression::Expression {
+                            expression: Expression::window(
+                                Expression::Function(Function::Max(Box::new(
+                                    Expression::ColumnReference(version_column.aliased(alias)),
+                                ))),
+                                WindowDefinition::builder().partition_by(
+                                    Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
                                     ),
                                 ),
-                                output_name: Some(Identifier::from("latest_version")),
-                            },
-                        ])
-                        .expect("the latest-version selection is always present"),
-                    )
+                            ),
+                            output_name: Some(Identifier::from("latest_version")),
+                        },
+                    ])
                     .from(
                         FromItem::table(version_column.table())
                             .alias(version_column.table().aliased_name(alias))

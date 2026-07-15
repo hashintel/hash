@@ -907,7 +907,7 @@ mod tests {
     #[test]
     fn transpile_subquery_with_column_aliases() {
         let subquery = SimpleSelect::builder()
-            .selects(SelectExpression::Asterisk(None))
+            .selects(vec![SelectExpression::Asterisk(None)])
             .from(FromItem::table(Table::OntologyIds))
             .build();
 
@@ -933,7 +933,7 @@ mod tests {
     #[test]
     fn transpile_lateral_subquery() {
         let subquery = SimpleSelect::builder()
-            .selects(SelectExpression::Asterisk(None))
+            .selects(vec![SelectExpression::Asterisk(None)])
             .from(FromItem::table(Table::OntologyIds))
             .build();
 

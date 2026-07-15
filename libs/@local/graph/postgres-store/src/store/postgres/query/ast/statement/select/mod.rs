@@ -116,7 +116,7 @@ mod tests {
         let statement = SelectStatement::builder()
             .select_clause(
                 SimpleSelect::builder()
-                    .selects(SelectExpression::Asterisk(None))
+                    .selects(vec![SelectExpression::Asterisk(None)])
                     .group_by(GroupByClause::builder().grouping_elements(
                         GroupingElement::Expressions(NonEmptyVec::from(web_id())),
                     ))

@@ -111,16 +111,13 @@ mod tests {
 
     fn ontology_ids_statement() -> SimpleSelect {
         SimpleSelect::builder()
-            .selects(
-                NonEmptyVec::try_from(vec![
-                    SelectExpression::Asterisk(None),
-                    SelectExpression::Expression {
-                        expression: max_version_expression(),
-                        output_name: Some(Identifier::from("latest_version")),
-                    },
-                ])
-                .expect("two select expressions should form a valid target list"),
-            )
+            .selects(vec![
+                SelectExpression::Asterisk(None),
+                SelectExpression::Expression {
+                    expression: max_version_expression(),
+                    output_name: Some(Identifier::from("latest_version")),
+                },
+            ])
             .from(
                 FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased_name(Alias {
                     condition_index: 0,
@@ -154,7 +151,7 @@ mod tests {
                 .name("data_types")
                 .statement(
                     SimpleSelect::builder()
-                        .selects(SelectExpression::Asterisk(None))
+                        .selects(vec![SelectExpression::Asterisk(None)])
                         .from(FromItem::table(Table::DataTypes).alias(
                             Table::DataTypes.aliased_name(Alias {
                                 condition_index: 3,
@@ -212,7 +209,7 @@ mod tests {
     fn transpile_recursive_cte() {
         fn select_all(table: Table) -> SimpleSelect {
             SimpleSelect::builder()
-                .selects(SelectExpression::Asterisk(None))
+                .selects(vec![SelectExpression::Asterisk(None)])
                 .from(FromItem::table(table))
                 .build()
         }

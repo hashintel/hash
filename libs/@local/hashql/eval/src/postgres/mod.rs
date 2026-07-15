@@ -376,10 +376,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             };
             let table_ref = cont_alias.table_ref();
             let subquery = SimpleSelect::builder()
-                .selects(SelectExpression::Expression {
+                .selects(vec![SelectExpression::Expression {
                     expression,
                     output_name: Some(ContinuationColumn::Entry.identifier()),
-                })
+                }])
                 .build();
 
             let subquery = query::FromItem::Subquery {
@@ -489,10 +489,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
 
         let query = SimpleSelect::builder()
-            .selects(
-                query::NonEmptyVec::try_from(select_expressions)
-                    .expect("a placeholder is added when nothing is selected"),
-            )
+            .selects(select_expressions)
             .from(from)
             .maybe_where_clause(Expression::conjunction(db.conditions))
             .build();

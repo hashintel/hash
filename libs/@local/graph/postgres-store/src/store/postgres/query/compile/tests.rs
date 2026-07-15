@@ -1677,7 +1677,7 @@ fn sort_by_label_and_type_title() {
 #[test]
 fn transpile_offset() {
     let statement = SelectStatement::builder()
-        .select_clause(SimpleSelect::builder().selects(SelectExpression::Asterisk(None)))
+        .select_clause(SimpleSelect::builder().selects(vec![SelectExpression::Asterisk(None)]))
         .limit(10)
         .offset(20)
         .build();
