@@ -99,11 +99,12 @@ pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLi
     });
 }
 
-/// Total window to wait for an external type fetcher to become reachable at startup.
+/// Total window to wait for an external dependency to become reachable at startup.
 ///
-/// On a fresh ECS task the type fetcher is reached through its Service Connect (Envoy) sidecar,
-/// which takes a few seconds to accept connections. Failing immediately would crash-loop the
-/// task, so the probe retries with backoff until this window is exhausted.
+/// On a fresh ECS task external services (type fetcher, Temporal) are reached through the
+/// Service Connect (Envoy) sidecar, which takes a few seconds to accept connections. Failing
+/// immediately would crash-loop the task, so the probe retries with backoff until this window
+/// is exhausted.
 pub(crate) const REACHABILITY_WINDOW: Duration = Duration::from_secs(30);
 
 /// Waits for the type fetcher at `address` to respond to its `/health` endpoint.
