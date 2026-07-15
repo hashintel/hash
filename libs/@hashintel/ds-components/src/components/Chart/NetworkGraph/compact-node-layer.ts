@@ -1,6 +1,7 @@
 import { CompositeLayer } from "@deck.gl/core";
-import { LineLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { LineLayer, PathLayer, ScatterplotLayer } from "@deck.gl/layers";
 
+import type { BundledPath } from "./edge-bundling";
 import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 
@@ -15,6 +16,9 @@ const HOVERED_MIN_RADIUS = 8;
 /** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
 const NEIGHBOUR_MIN_RADIUS = 5;
 const EDGE_COLOR = [80, 88, 110] as const;
+/** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */
+const BACKGROUND_EDGE_OPACITY = 0.4;
+const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
 /**
@@ -26,6 +30,13 @@ const BASE_LAYER_PARAMETERS = { depthWriteEnabled: false } as const;
 type _CompactNodeLayerProps = {
   /** Highlight edges to draw — only the incident edges of the active node. */
   edges: HoverLine[];
+  /**
+   * Edges drawn faintly behind everything else, at {@link BACKGROUND_EDGE_OPACITY},
+   * as bundled polylines. Used by the detail view to show the whole graph's
+   * structure (all edges touching the visible nodes), not just the hovered node's.
+   * Empty in the compact view.
+   */
+  backgroundEdgePaths: BundledPath[];
   /** Neighbours of the active node, drawn with a "grown" ring. */
   neighbours: NetworkGraphPoint[];
   /** The hovered/selected node, drawn with a prominent grown ring. */
@@ -56,6 +67,7 @@ export type CompactNodeLayerProps = _CompactNodeLayerProps &
 
 const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   edges: [],
+  backgroundEdgePaths: [],
   neighbours: [],
   activeNode: null,
   colorByHex: new Map<string, RgbColor>(),
@@ -74,8 +86,8 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
  *
  * The `points` sublayer is the pickable one; picking the graph resolves nodes off
  * it. In the detail variation the points are hidden (see `showPoints`) and the
- * detailed node layer takes over picking, leaving this layer to draw only the
- * hovered node's edges.
+ * detailed node layer takes over picking, leaving this layer to draw the faint
+ * bundled background edges and the hovered node's edges.
  */
 export class CompactNodeLayer extends CompositeLayer<
   Required<_CompactNodeLayerProps>
@@ -88,6 +100,7 @@ export class CompactNodeLayer extends CompositeLayer<
       id,
       data,
       edges,
+      backgroundEdgePaths,
       neighbours,
       activeNode,
       colorByHex,
@@ -102,6 +115,21 @@ export class CompactNodeLayer extends CompositeLayer<
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
 
     return [
+      // The faint "all edges" of the detail view, bundled along the node
+      // hierarchy and drawn behind everything else so the nodes and hovered-edge
+      // highlight sit on top. Empty in the compact view.
+      new PathLayer<BundledPath>({
+        id: `${id}-background-edges`,
+        data: backgroundEdgePaths,
+        parameters: BASE_LAYER_PARAMETERS,
+        getPath: (path) => path,
+        getColor: [...EDGE_COLOR, BACKGROUND_EDGE_ALPHA] as Color,
+        getWidth: 0.75,
+        widthUnits: "pixels",
+        widthMinPixels: 0.5,
+        capRounded: true,
+        jointRounded: true,
+      }),
       // Hidden in the detail variation so the crowd doesn't show through behind the
       // translucent detailed nodes; the detailed layer resolves picking there.
       ...(showPoints

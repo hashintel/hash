@@ -6,12 +6,14 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CompactNodeLayer } from "./compact-node-layer";
 import { DetailedNodeLayer } from "./detailed-node-layer";
+import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
   DETAIL_ICON_TEXTURE,
   hexToRgb,
   iconTextureUrl,
 } from "./network-graph-util";
 
+import type { BundledPath } from "./edge-bundling";
 import type {
   DetailIconAtlas,
   HoverLine,
@@ -608,6 +610,49 @@ export const NetworkGraph = ({
     return visible;
   }, [isDetailZoom, viewState, containerSize, view, points]);
 
+  /**
+   * The node hierarchy used to bundle the detail-view edges (root → colour/type →
+   * spatial sub-cluster → node). Independent of the viewport, so it is built once
+   * per node set.
+   */
+  const bundleHierarchy = useMemo(() => buildBundleHierarchy(points), [points]);
+
+  /**
+   * Every edge touching a currently visible detail node, as a bundled polyline —
+   * including edges whose other endpoint is off-screen, so connections trailing
+   * out of view are still drawn. The detail view draws these faintly so the whole
+   * graph's structure shows, not just the hovered node's edges. Empty outside
+   * detail zoom. Walks the visible nodes' adjacency (cheap) rather than the full
+   * edge list, deduping each edge, then routes it along {@link bundleHierarchy}.
+   */
+  const detailEdgePaths = useMemo(() => {
+    if (!isDetailZoom || detailPoints.length === 0) {
+      return [];
+    }
+    const seen = new Set<number>();
+    const paths: BundledPath[] = [];
+    for (const point of detailPoints) {
+      const incident = adjacency.get(point.id);
+      if (!incident) {
+        continue;
+      }
+      for (const edge of incident) {
+        // Reached via `point` (in view), so at least one endpoint is visible;
+        // draw each edge once even if both endpoints are.
+        if (seen.has(edge.id)) {
+          continue;
+        }
+        seen.add(edge.id);
+        const from = pointById.get(edge.fromId);
+        const to = pointById.get(edge.toId);
+        if (from && to) {
+          paths.push(bundleEdgePath(from, to, bundleHierarchy));
+        }
+      }
+    }
+    return paths;
+  }, [isDetailZoom, detailPoints, adjacency, pointById, bundleHierarchy]);
+
   const layers = useMemo(() => {
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
@@ -616,6 +661,8 @@ export const NetworkGraph = ({
       pickable: true,
       data: points,
       edges: highlight?.lines ?? [],
+      // All edges touching visible nodes, bundled and drawn faintly in detail view.
+      backgroundEdgePaths: detailEdgePaths,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
       colorByHex,
@@ -625,8 +672,9 @@ export const NetworkGraph = ({
       // In the detail variation the grow highlights give way to the detailed
       // layer's colour-matched outline.
       showGrowHighlights: !isDetailZoom,
-      // Hide the compact crowd in detail zoom so it doesn't show through behind
-      // the translucent detailed nodes; the layer still draws hovered edges.
+      // Hide the compact crowd in detail zoom so it doesn't show through behind the
+      // translucent detailed nodes; the layer still draws the faint background
+      // edges and the hovered node's edges.
       showPoints: !isDetailZoom,
     });
 
@@ -649,6 +697,7 @@ export const NetworkGraph = ({
   }, [
     points,
     highlight,
+    detailEdgePaths,
     activeNode,
     colorByHex,
     radiusScale,
