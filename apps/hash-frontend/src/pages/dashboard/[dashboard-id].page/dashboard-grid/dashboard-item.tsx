@@ -79,13 +79,7 @@ export const DashboardItem = ({
   hoveredEntityId,
   onHoveredEntityChange,
 }: DashboardItemProps) => {
-  const {
-    chartConfig,
-    chartType,
-    configurationStatus,
-    title,
-    entityId,
-  } = item;
+  const { chartConfig, chartType, configurationStatus, title, entityId } = item;
 
   const isRegenerating =
     configurationStatus === "configuring" && !!chartType && !!chartConfig;
