@@ -55,38 +55,65 @@ function asRecord(value: unknown, fieldName: string): JsonRecord {
 }
 
 function stringifyParameterValue(value: unknown, key: string): string {
-  if (typeof value === "string") {
-    return value;
+  if (typeof value !== "string" && typeof value !== "number") {
+    throw new Error(`Parameter "${key}" must be a number or numeric string`);
   }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(number)) {
+    throw new Error(`Parameter "${key}" must be a finite number`);
   }
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
+  return String(number);
+}
+
+function normalizeParameterValue(
+  parameter: PetrinautCompiledModelMetadata["parameters"][number],
+  value: unknown,
+  key: string,
+): string {
+  if (parameter.type === "boolean") {
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    if (value === "true" || value === "false") {
+      return value;
+    }
+    throw new Error(`Boolean parameter "${key}" must be true or false`);
   }
-  throw new Error(`Parameter "${key}" must be a string, number or boolean`);
+
+  const normalized = stringifyParameterValue(value, key);
+  if (parameter.type === "integer" && !Number.isInteger(Number(normalized))) {
+    throw new Error(`Integer parameter "${key}" must be an integer`);
+  }
+  return normalized;
 }
 
 function normalizeParameterValues(
   metadata: PetrinautCompiledModelMetadata,
   request: ServerRunRequest,
 ): Record<string, string> {
-  const byInputName = new Map<string, string>();
+  const byInputName = new Map<
+    string,
+    PetrinautCompiledModelMetadata["parameters"][number]
+  >();
   for (const parameter of metadata.parameters) {
-    byInputName.set(parameter.variableName, parameter.variableName);
-    byInputName.set(parameter.id, parameter.variableName);
-    byInputName.set(parameter.name, parameter.variableName);
+    byInputName.set(parameter.variableName, parameter);
+    byInputName.set(parameter.id, parameter);
+    byInputName.set(parameter.name, parameter);
   }
 
   const values: Record<string, string> = {};
   for (const [key, value] of Object.entries(
     asRecord(request.parameters, "parameters"),
   )) {
-    const variableName = byInputName.get(key);
-    if (!variableName) {
+    const parameter = byInputName.get(key);
+    if (!parameter) {
       throw new Error(`Unknown parameter "${key}"`);
     }
-    values[variableName] = stringifyParameterValue(value, key);
+    values[parameter.variableName] = normalizeParameterValue(
+      parameter,
+      value,
+      key,
+    );
   }
 
   return values;
@@ -115,22 +142,28 @@ function normalizePlaceMarking(
     throw new Error(`Place "${placeId}" does not exist`);
   }
 
-  if (Array.isArray(value)) {
+  if (place.color) {
+    if (!Array.isArray(value)) {
+      throw new Error(
+        `Initial marking for colored place "${place.name}" must be a token array`,
+      );
+    }
+    for (const [index, token] of value.entries()) {
+      if (!isObject(token)) {
+        throw new Error(
+          `Token ${index} for colored place "${place.name}" must be an object`,
+        );
+      }
+    }
     return value as InitialPlaceMarking;
   }
 
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
     throw new Error(
-      `Initial marking for place "${place.name}" must be a number or token array`,
+      `Initial marking for uncolored place "${place.name}" must be a non-negative integer`,
     );
   }
-
-  const tokenCount = Math.max(0, Math.round(value));
-  if (!place.color) {
-    return tokenCount;
-  }
-
-  return Array.from({ length: tokenCount }, () => ({}));
+  return value;
 }
 
 function normalizeInitialMarking(
@@ -151,6 +184,32 @@ function normalizeMetrics(request: ServerRunRequest): string[] {
   return request.metrics ?? [];
 }
 
+function parseOptionalObject(
+  value: unknown,
+  fieldName: string,
+): JsonRecord | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isObject(value)) {
+    throw new Error(`${fieldName} must be an object`);
+  }
+  return value;
+}
+
+function parseOptionalMetrics(value: unknown): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (
+    !Array.isArray(value) ||
+    !value.every((metric) => typeof metric === "string")
+  ) {
+    throw new Error("metrics must be an array of strings");
+  }
+  return value;
+}
+
 export function parseServerRunRequest(value: unknown): ServerRunRequest {
   const data = asRecord(value, "request body");
   for (const key of Object.keys(data)) {
@@ -159,18 +218,29 @@ export function parseServerRunRequest(value: unknown): ServerRunRequest {
     }
   }
 
+  const maxSteps = parseOptionalFiniteNumber(data.maxSteps, "maxSteps");
+  if (maxSteps !== undefined && (!Number.isInteger(maxSteps) || maxSteps < 0)) {
+    throw new Error("maxSteps must be a non-negative integer");
+  }
+  const dt = parseOptionalFiniteNumber(data.dt, "dt");
+  if (dt !== undefined && dt <= 0) {
+    throw new Error("dt must be a positive number");
+  }
+  const maxTime =
+    data.maxTime === null
+      ? null
+      : parseOptionalFiniteNumber(data.maxTime, "maxTime");
+  if (maxTime !== undefined && maxTime !== null && maxTime < 0) {
+    throw new Error("maxTime must be a non-negative number or null");
+  }
+
   return {
-    parameters: isObject(data.parameters) ? data.parameters : undefined,
-    initialState: isObject(data.initialState) ? data.initialState : undefined,
-    metrics: Array.isArray(data.metrics)
-      ? (data.metrics as string[])
-      : undefined,
-    maxSteps: parseOptionalFiniteNumber(data.maxSteps, "maxSteps"),
-    dt: parseOptionalFiniteNumber(data.dt, "dt"),
-    maxTime:
-      data.maxTime === null
-        ? null
-        : parseOptionalFiniteNumber(data.maxTime, "maxTime"),
+    parameters: parseOptionalObject(data.parameters, "parameters"),
+    initialState: parseOptionalObject(data.initialState, "initialState"),
+    metrics: parseOptionalMetrics(data.metrics),
+    maxSteps,
+    dt,
+    maxTime,
     seed: parseOptionalFiniteNumber(data.seed, "seed"),
   };
 }

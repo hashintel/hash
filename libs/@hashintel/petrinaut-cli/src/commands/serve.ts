@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import { compilePetrinautModel } from "@hashintel/petrinaut-core";
 
+import { consumeBufferedJsonLines } from "../runtime/json-lines";
 import { loadSdcpnModel } from "../runtime/load-model";
 import {
   handleProtocolLine,
@@ -45,21 +46,24 @@ export async function serve(options: ServeOptions): Promise<void> {
     socket.setEncoding("utf8");
     socket.on("data", (chunk) => {
       buffer += chunk;
-      if (Buffer.byteLength(buffer, "utf8") > MAX_REQUEST_LINE_BYTES) {
+      const bufferedLines = consumeBufferedJsonLines(
+        buffer,
+        MAX_REQUEST_LINE_BYTES,
+      );
+      buffer = bufferedLines.remainder;
+
+      for (const line of bufferedLines.lines) {
+        handleProtocolLine(model, line, (value) =>
+          writeResponse(socket, value),
+        );
+      }
+
+      if (bufferedLines.requestTooLarge) {
         writeResponse(socket, {
           id: null,
           error: { message: "Request line is too large" },
         });
         socket.destroy();
-        return;
-      }
-
-      let newlineIndex = buffer.indexOf("\n");
-      while (newlineIndex !== -1) {
-        const line = buffer.slice(0, newlineIndex);
-        buffer = buffer.slice(newlineIndex + 1);
-        handleProtocolLine(model, line, (value) => writeResponse(socket, value));
-        newlineIndex = buffer.indexOf("\n");
       }
     });
 

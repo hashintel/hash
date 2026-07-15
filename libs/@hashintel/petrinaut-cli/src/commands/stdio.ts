@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline";
 import { resolve } from "node:path";
+import { createInterface } from "node:readline";
 
 import { compilePetrinautModel } from "@hashintel/petrinaut-core";
 

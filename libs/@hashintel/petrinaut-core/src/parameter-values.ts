@@ -50,7 +50,21 @@ export function mergeParameterValues(
   // Override with SimulationStore values where they exist
   for (const [key, value] of Object.entries(simulationStoreValues)) {
     if (value !== "") {
-      merged[key] = Number(value);
+      const defaultValue = defaultValues[key];
+      if (typeof defaultValue === "boolean") {
+        if (value !== "true" && value !== "false") {
+          throw new Error(
+            `Boolean parameter "${key}" must be "true" or "false"`,
+          );
+        }
+        merged[key] = value === "true";
+      } else {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) {
+          throw new Error(`Parameter "${key}" must be a finite number`);
+        }
+        merged[key] = numericValue;
+      }
     }
   }
 

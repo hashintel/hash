@@ -6743,6 +6743,7 @@ __metadata:
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     vite: "npm:8.1.0"
+    vitest: "npm:4.1.8"
   bin:
     petrinaut: ./dist/cli.js
     petrinaut_cli: ./dist/cli.js

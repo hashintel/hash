@@ -1,7 +1,4 @@
-import {
-  parseServerRunRequest,
-  toPetrinautRunConfig,
-} from "./run-request";
+import { parseServerRunRequest, toPetrinautRunConfig } from "./run-request";
 
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core";
 

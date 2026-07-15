@@ -15,7 +15,8 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "serve": "node ./dist/cli.js serve",
-    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock"
+    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock",
+    "test:unit": "vitest"
   },
   "dependencies": {
     "@hashintel/petrinaut-core": "workspace:*"
@@ -25,6 +26,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "vite": "8.1.0"
+    "vite": "8.1.0",
+    "vitest": "4.1.8"
   }
 }

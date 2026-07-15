@@ -1,5 +1,9 @@
 import { v4 as generateUuid } from "uuid";
 
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  sanitizeSDCPNForExtensions,
+} from "../extensions";
 import { compileHirArtifacts } from "../hir";
 import { buildSimulation } from "./engine/build-simulation";
 import { computeNextFrame } from "./engine/compute-next-frame";
@@ -264,9 +268,11 @@ function evaluateMetrics(args: {
 export function compilePetrinautModel(
   config: CompilePetrinautModelConfig,
 ): PetrinautCompiledModel {
+  const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
+  const sdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
   const compiled = config.hirArtifacts
     ? { artifacts: config.hirArtifacts, failures: [] }
-    : compileHirArtifacts(config.sdcpn, config.extensions);
+    : compileHirArtifacts(sdcpn, extensions);
   const { artifacts, failures } = compiled;
 
   if (failures.length > 0) {
@@ -281,7 +287,6 @@ export function compilePetrinautModel(
     throw new Error(`Model HIR compilation failed:\n${details}`);
   }
 
-  const sdcpn = config.sdcpn;
   const metadata = createMetadata(sdcpn);
 
   return {
@@ -294,10 +299,7 @@ export function compilePetrinautModel(
       if (maxTime === null && maxSteps === undefined) {
         throw new Error("Run config requires either maxTime or maxSteps");
       }
-      if (
-        maxTime !== null &&
-        (!Number.isFinite(maxTime) || maxTime < 0)
-      ) {
+      if (maxTime !== null && (!Number.isFinite(maxTime) || maxTime < 0)) {
         throw new Error(
           "Run config maxTime must be a finite non-negative number or null",
         );
@@ -314,7 +316,7 @@ export function compilePetrinautModel(
 
       let simulation = buildSimulation({
         sdcpn,
-        extensions: config.extensions,
+        extensions,
         initialMarking: runConfig.initialMarking ?? {},
         parameterValues: runConfig.parameterValues ?? {},
         seed,
@@ -323,7 +325,10 @@ export function compilePetrinautModel(
         hirArtifacts: artifacts,
       });
 
-      let completionReason: PetrinautRunCompletionReason | null = null;
+      let completionReason: PetrinautRunCompletionReason | null =
+        maxTime !== null && maxTime <= simulation.currentTime
+          ? "maxTime"
+          : null;
       let steps = 0;
       while (completionReason === null) {
         if (maxSteps !== undefined && steps >= maxSteps) {
@@ -332,12 +337,21 @@ export function compilePetrinautModel(
         }
 
         const result = computeNextFrame(simulation);
-        simulation = result.simulation;
+        const currentFrame =
+          result.simulation.frames[result.simulation.currentFrameNumber];
+        if (!currentFrame) {
+          throw new Error("Simulation produced no current frame");
+        }
+        simulation = {
+          ...result.simulation,
+          frames: [currentFrame],
+          currentFrameNumber: 0,
+        };
         completionReason = result.completionReason;
         steps++;
       }
 
-      const finalFrame = simulation.frames[simulation.currentFrameNumber];
+      const finalFrame = simulation.frames[0];
       if (!finalFrame) {
         throw new Error("Simulation produced no final frame");
       }
@@ -346,7 +360,7 @@ export function compilePetrinautModel(
       const finalFrameReader = createFrameReader({
         layout: simulation.frameLayout,
         frame: finalFrame,
-        number: simulation.currentFrameNumber,
+        number: steps,
         time: simulation.currentTime,
         places,
         stringPool: simulation.stringPool,
@@ -362,7 +376,7 @@ export function compilePetrinautModel(
         seed,
         status: "complete",
         completionReason,
-        frameCount: simulation.currentFrameNumber + 1,
+        frameCount: steps + 1,
         finalTime: simulation.currentTime,
         finalPlaceTokenCounts,
         metrics: runConfig.metrics

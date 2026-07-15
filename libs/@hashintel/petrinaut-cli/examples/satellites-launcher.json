@@ -39,7 +39,7 @@
         }
       ],
       "lambdaType": "predicate",
-      "lambdaCode": "// Check if two satellites collide (are within collision threshold)\nexport default Lambda((tokens, parameters) => {\n  const { satellite_radius } = parameters;\n\n  // Get the two satellites\n  const [a, b] = tokens.Space;\n\n  // Calculate distance between satellites\n  const distance = Math.hypot(b.x - a.x, b.y - a.y);\n\n  // Collision occurs if distance is less than threshold\n  return distance < satellite_radius;\n})",
+      "lambdaCode": "// Check if two satellites collide (are within collision threshold)\nexport default Lambda((tokens, parameters) => {\n  const { collision_threshold, satellite_radius } = parameters;\n\n  // Get the two satellites\n  const [a, b] = tokens.Space;\n\n  // Calculate distance between satellites\n  const distance = Math.hypot(b.x - a.x, b.y - a.y);\n\n  // Collision occurs when the satellite surfaces are within the threshold\n  return distance < satellite_radius * 2 + collision_threshold;\n})",
       "transitionKernelCode": "// When satellites collide, they become debris (lose velocity)\nexport default TransitionKernel((tokens) => {\n  // Both satellites become stationary debris at their collision point\n  return {\n    Debris: [\n      // Position preserved, direction and velocity zeroed\n      {\n        x: tokens.Space[0].x,\n        y: tokens.Space[0].y,\n        velocity: 0,\n        direction: 0\n      },\n      {\n        x: tokens.Space[1].x,\n        y: tokens.Space[1].y,\n        velocity: 0,\n        direction: 0\n      },\n    ]\n  };\n})",
       "x": 270,
       "y": 180

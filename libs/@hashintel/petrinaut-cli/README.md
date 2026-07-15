@@ -157,7 +157,9 @@ Run config fields:
   parameter id, or display name.
 - `initialState`: initial markings. Keys may be place id or display name.
 - `metrics`: metric names/ids evaluated on the final frame.
-- `maxSteps`: number of simulation steps. `dt` defaults to `1` if omitted.
+- `maxSteps`: optional maximum number of simulation steps.
+- `maxTime`: optional maximum simulation time. At least one of `maxSteps` or
+  `maxTime` is required. `dt` defaults to `1` if omitted.
 - `seed`: optional random seed.
 
 Transition predicates are part of the model structure, not the run request. To
