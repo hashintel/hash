@@ -1,3 +1,4 @@
+import type { paths } from "@local/petrinaut-optimizer-types";
 import type { Express } from "express";
 
 export const PETRINAUT_OPTIMIZER_STATUS_PATH =
@@ -5,10 +6,45 @@ export const PETRINAUT_OPTIMIZER_STATUS_PATH =
 
 const STATUS_REQUEST_TIMEOUT_MS = 5_000;
 
-type Fetch = (
-  input: string | URL,
-  init?: RequestInit,
-) => Promise<Response>;
+type PetrinautOptimizerStatus =
+  paths["/status"]["get"]["responses"][200]["content"]["application/json"];
+
+const PETRINAUT_OPTIMIZER_PHASES = [
+  "idle",
+  "running",
+  "done",
+  "error",
+] as const satisfies readonly NonNullable<PetrinautOptimizerStatus["phase"]>[];
+
+const isPetrinautOptimizerPhase = (
+  value: unknown,
+): value is NonNullable<PetrinautOptimizerStatus["phase"]> =>
+  typeof value === "string" &&
+  PETRINAUT_OPTIMIZER_PHASES.some((phase) => phase === value);
+
+const isPetrinautOptimizerStatus = (
+  value: unknown,
+): value is PetrinautOptimizerStatus => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const {
+    detail,
+    phase,
+    updated_at: updatedAt,
+  } = value as Record<string, unknown>;
+
+  return (
+    isPetrinautOptimizerPhase(phase) &&
+    (detail === undefined || detail === null || typeof detail === "string") &&
+    (updatedAt === undefined ||
+      updatedAt === null ||
+      typeof updatedAt === "string")
+  );
+};
+
+type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 type WarningLogger = {
   warn: (message: string, metadata?: Record<string, unknown>) => void;
@@ -44,7 +80,9 @@ export const getPetrinautOptimizerOrigin = (
 
   const port = Number(portValue);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error("HASH_PETRINAUT_OPT_PORT must be an integer from 1 to 65535");
+    throw new Error(
+      "HASH_PETRINAUT_OPT_PORT must be an integer from 1 to 65535",
+    );
   }
 
   const urlHost =
@@ -86,6 +124,11 @@ export const setupPetrinautOptimizerHandler = (
       }
 
       const status: unknown = await upstreamResponse.json();
+      if (!isPetrinautOptimizerStatus(status)) {
+        throw new Error(
+          "Petrinaut optimizer returned an invalid status payload",
+        );
+      }
       res.json(status);
     } catch (error) {
       logger.warn("Could not reach Petrinaut optimizer", { error });

@@ -524,6 +524,7 @@ __metadata:
     "@local/hash-graph-client": "workspace:*"
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
+    "@local/petrinaut-optimizer-types": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@mailchimp/mailchimp_marketing": "npm:3.0.80"
@@ -8695,7 +8696,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/petrinaut-optimizer-types@workspace:libs/@local/petrinaut-optimizer-types":
+"@local/petrinaut-optimizer-types@workspace:*, @local/petrinaut-optimizer-types@workspace:libs/@local/petrinaut-optimizer-types":
   version: 0.0.0-use.local
   resolution: "@local/petrinaut-optimizer-types@workspace:libs/@local/petrinaut-optimizer-types"
   dependencies:
