@@ -138,15 +138,8 @@ export const resolveInvocation = async ({
       }
     };
 
-    const getArtifactLastModified = async (
-      key: string,
-    ): Promise<Date | null> => {
-      try {
-        return await uploadProvider.getObjectLastModified({ key });
-      } catch {
-        return null;
-      }
-    };
+    const getArtifactLastModified = (key: string): Promise<Date | null> =>
+      uploadProvider.getObjectLastModified({ key });
 
     const resolution = await analysis.resolve({
       webId,

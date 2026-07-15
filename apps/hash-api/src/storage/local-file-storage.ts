@@ -181,8 +181,16 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     try {
       const stats = await fs.promises.stat(filePath);
       return stats.mtime;
-    } catch {
-      return null;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        return null;
+      }
+
+      throw error;
     }
   }
 
