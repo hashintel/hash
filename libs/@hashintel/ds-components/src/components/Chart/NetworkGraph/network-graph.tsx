@@ -13,9 +13,10 @@ import {
   iconTextureUrl,
 } from "./network-graph-util";
 
-import type { BundledPath } from "./edge-bundling";
+import type { BundledEdge } from "./edge-bundling";
 import type {
   DetailIconAtlas,
+  HoverableEdge,
   HoverLine,
   NetworkGraphPoint,
   NetworkGraphEdge,
@@ -133,6 +134,29 @@ const DETAIL_MAX_EDGES = 400;
  * (or its label) straddling the edge isn't culled away.
  */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
+/**
+ * Picking tolerance (px) around the pointer for deck.gl's hover picking, so the
+ * thin edges can actually be hovered without pixel-perfect aim. Nodes still win
+ * where they overlap an edge, being drawn on top.
+ */
+const EDGE_PICK_RADIUS_PX = 5;
+/**
+ * Style of the pill drawn on a hovered edge, mirroring the detail node label (see
+ * `detailed-node-layer.ts`) — same font, ink, padding and radius — but outlined
+ * in black rather than the node's colour. Drawn imperatively on a 2D overlay
+ * canvas (not a deck.gl layer) so it can track the edge's on-screen centre as the
+ * view pans and zooms.
+ */
+const EDGE_LABEL_FONT =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const EDGE_LABEL_FONT_SIZE = 12;
+const EDGE_LABEL_PADDING_X = 6;
+const EDGE_LABEL_PADDING_Y = 2;
+const EDGE_LABEL_RADIUS = 6;
+const EDGE_LABEL_INK = "rgb(15, 18, 25)";
+const EDGE_LABEL_BACKGROUND = "rgb(255, 255, 255)";
+const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
+const EDGE_LABEL_BORDER_WIDTH = 1;
 
 /**
  * Clamp an orthographic pan `target` so the viewport never shows more than
@@ -173,6 +197,162 @@ const clampPanTarget = (
   ];
 };
 
+/**
+ * Clip a screen-space segment `a → b` to the rect `[0, 0] … [width, height]`
+ * (Liang–Barsky), returning the visible sub-segment or `null` if it lies wholly
+ * outside. Used to find the part of a hovered edge that is actually on screen.
+ */
+const clipSegmentToViewport = (
+  a: [number, number],
+  b: [number, number],
+  width: number,
+  height: number,
+): [[number, number], [number, number]] | null => {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  // Each boundary as (pk, qk): the segment is inside this boundary where
+  // `pk * t <= qk` (Liang–Barsky).
+  const tests: [number, number][] = [
+    [-dx, a[0]],
+    [dx, width - a[0]],
+    [-dy, a[1]],
+    [dy, height - a[1]],
+  ];
+  let t0 = 0;
+  let t1 = 1;
+  for (const [pk, qk] of tests) {
+    if (pk === 0) {
+      // Parallel to this boundary: reject only if it starts outside it.
+      if (qk < 0) {
+        return null;
+      }
+      continue;
+    }
+    const rk = qk / pk;
+    if (pk < 0) {
+      if (rk > t1) {
+        return null;
+      }
+      if (rk > t0) {
+        t0 = rk;
+      }
+    } else {
+      if (rk < t0) {
+        return null;
+      }
+      if (rk < t1) {
+        t1 = rk;
+      }
+    }
+  }
+  return [
+    [a[0] + t0 * dx, a[1] + t0 * dy],
+    [a[0] + t1 * dx, a[1] + t1 * dy],
+  ];
+};
+
+/**
+ * The point at the middle of a polyline's on-screen length: project each vertex,
+ * clip every segment to the viewport, then walk to half the total visible arc
+ * length. This lands the edge label at the centre of the edge, or — when the edge
+ * runs off screen — at the centre of the portion still in view. Returns `null`
+ * when no part of the polyline is visible.
+ */
+const edgeLabelAnchor = (
+  screenPoints: [number, number][],
+  width: number,
+  height: number,
+): [number, number] | null => {
+  const segments: [[number, number], [number, number], number][] = [];
+  let totalLength = 0;
+  for (let index = 0; index + 1 < screenPoints.length; index += 1) {
+    const start = screenPoints[index];
+    const end = screenPoints[index + 1];
+    if (!start || !end) {
+      continue;
+    }
+    const clipped = clipSegmentToViewport(start, end, width, height);
+    if (!clipped) {
+      continue;
+    }
+    const length = Math.hypot(
+      clipped[1][0] - clipped[0][0],
+      clipped[1][1] - clipped[0][1],
+    );
+    segments.push([clipped[0], clipped[1], length]);
+    totalLength += length;
+  }
+  const first = segments[0];
+  if (!first) {
+    return null;
+  }
+  if (totalLength === 0) {
+    // Every visible part is a single point (e.g. a dot-length edge): use it.
+    return first[0];
+  }
+  let remaining = totalLength / 2;
+  for (const [start, end, length] of segments) {
+    if (remaining <= length) {
+      const fraction = length === 0 ? 0 : remaining / length;
+      return [
+        start[0] + (end[0] - start[0]) * fraction,
+        start[1] + (end[1] - start[1]) * fraction,
+      ];
+    }
+    remaining -= length;
+  }
+  return first[0];
+};
+
+/** Trace a rounded-rect path (no fill/stroke) on a 2D context. */
+const roundRectPath = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void => {
+  const clampedRadius = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + clampedRadius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, clampedRadius);
+  ctx.arcTo(x + width, y + height, x, y + height, clampedRadius);
+  ctx.arcTo(x, y + height, x, y, clampedRadius);
+  ctx.arcTo(x, y, x + width, y, clampedRadius);
+  ctx.closePath();
+};
+
+/** Draw the edge label pill (white fill, black outline) centred at `anchor`. */
+const drawEdgeLabel = (
+  ctx: CanvasRenderingContext2D,
+  anchor: [number, number],
+  text: string,
+): void => {
+  ctx.font = `${EDGE_LABEL_FONT_SIZE}px ${EDGE_LABEL_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const textWidth = ctx.measureText(text).width;
+  const rectWidth = textWidth + EDGE_LABEL_PADDING_X * 2;
+  const rectHeight = EDGE_LABEL_FONT_SIZE + EDGE_LABEL_PADDING_Y * 2;
+  const [centerX, centerY] = anchor;
+  roundRectPath(
+    ctx,
+    centerX - rectWidth / 2,
+    centerY - rectHeight / 2,
+    rectWidth,
+    rectHeight,
+    EDGE_LABEL_RADIUS,
+  );
+  ctx.fillStyle = EDGE_LABEL_BACKGROUND;
+  ctx.fill();
+  ctx.lineWidth = EDGE_LABEL_BORDER_WIDTH;
+  ctx.strokeStyle = EDGE_LABEL_BORDER;
+  ctx.stroke();
+  ctx.fillStyle = EDGE_LABEL_INK;
+  ctx.fillText(text, centerX, centerY);
+};
+
 const containerStyles = css({
   position: "relative",
   width: "full",
@@ -181,6 +361,19 @@ const containerStyles = css({
   // deck.gl renders onto a transparent canvas; give it a surface to sit on.
   backgroundColor: "neutral.s05",
   cursor: "grab",
+});
+
+/**
+ * The overlay canvas the hovered-edge label is drawn on, above the deck.gl canvas
+ * and transparent to pointer events so it never intercepts hover/clicks.
+ */
+const labelCanvasStyles = css({
+  position: "absolute",
+  top: "0",
+  left: "0",
+  width: "full",
+  height: "full",
+  pointerEvents: "none",
 });
 
 /**
@@ -208,6 +401,8 @@ export const NetworkGraph = ({
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef>(null);
+  // The overlay canvas the hovered-edge label is drawn on.
+  const labelCanvasRef = useRef<HTMLCanvasElement>(null);
   // Pointer-down position, to tell a click apart from a pan on release.
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
@@ -215,6 +410,8 @@ export const NetworkGraph = ({
   // Last hovered node id reported to `onNodeHover` (`null` when none), so we
   // only fire when the hovered node actually changes.
   const lastHoveredIdRef = useRef<number | null>(null);
+  // Id of the currently hovered edge, so we only update state when it changes.
+  const hoveredEdgeIdRef = useRef<number | null>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
     null,
   );
@@ -227,6 +424,8 @@ export const NetworkGraph = ({
   // Mask atlas of every icon used by the data, built once for the IconLayer.
   const [iconAtlas, setIconAtlas] = useState<DetailIconAtlas | null>(null);
   const [hovered, setHovered] = useState<NetworkGraphPoint | null>(null);
+  // The edge under the pointer, if any, drawn emphasised with a label pill.
+  const [hoveredEdge, setHoveredEdge] = useState<HoverableEdge | null>(null);
   // The zoom the graph was first framed at, used as the reference point from
   // which the point radius grows as the user zooms in.
   const [referenceZoom, setReferenceZoom] = useState<number | null>(null);
@@ -337,7 +536,11 @@ export const NetworkGraph = ({
       if (!from || !to) {
         continue;
       }
-      lines.push({ source: [from.x, from.y], target: [to.x, to.y] });
+      lines.push({
+        id: edge.id,
+        source: [from.x, from.y],
+        target: [to.x, to.y],
+      });
       neighbourIds.add(edge.fromId === activeNode.id ? edge.toId : edge.fromId);
     }
     const neighbours: NetworkGraphPoint[] = [];
@@ -508,8 +711,19 @@ export const NetworkGraph = ({
         y,
         radius: CLICK_PICK_RADIUS_PX,
       });
-      const point = (info?.object as NetworkGraphPoint | undefined) ?? null;
-      onNodeClick?.({ point, x, y });
+      const object =
+        (info?.object as
+          | NetworkGraphPoint
+          | HoverLine
+          | BundledEdge
+          | undefined) ?? null;
+      // Edges are pickable too; a click landing on one (it carries `path` or
+      // `source`, not node fields) is ignored so it leaves the selection intact.
+      if (object && ("path" in object || "source" in object)) {
+        return;
+      }
+      // Narrowed to a node (or null) by the guard above.
+      onNodeClick?.({ point: object, x, y });
     },
     [onNodeClick],
   );
@@ -575,6 +789,65 @@ export const NetworkGraph = ({
     }
     return currentZoom >= referenceZoom + DETAIL_ZOOM_OFFSET;
   }, [currentZoom, referenceZoom]);
+
+  /**
+   * Which edges, if any, are hoverable: the faint bundled `"background"` edges in
+   * the detail view (always), the selected node's `"highlight"` incident lines in
+   * the compact view (only while a node is selected), or `"none"`.
+   */
+  const hoverableEdgeKind = useMemo<"none" | "highlight" | "background">(
+    () =>
+      isDetailZoom ? "background" : selected != null ? "highlight" : "none",
+    [isDetailZoom, selected],
+  );
+
+  /**
+   * Draw the hovered edge's label on the overlay canvas, re-projecting on every
+   * view change so the pill tracks the centre of the edge's on-screen portion as
+   * the user pans and zooms. Clears the canvas when nothing is hovered, or when
+   * edges aren't hoverable in the current view (so a label can't linger over an
+   * edge that is no longer shown — e.g. after the selection is cleared).
+   */
+  useEffect(() => {
+    const canvas = labelCanvasRef.current;
+    if (!canvas || !containerSize) {
+      return;
+    }
+    const { width, height } = containerSize;
+    // Back the canvas at device resolution so the text stays crisp, then draw in
+    // CSS pixels.
+    const dpr = window.devicePixelRatio || 1;
+    const pixelWidth = Math.round(width * dpr);
+    const pixelHeight = Math.round(height * dpr);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    if (!hoveredEdge || !viewState || hoverableEdgeKind === "none") {
+      return;
+    }
+    const viewport = view.makeViewport({ width, height, viewState });
+    if (!viewport) {
+      return;
+    }
+    const screenPoints = hoveredEdge.path.map(
+      (worldPoint): [number, number] => {
+        const [x = 0, y = 0] = viewport.project([worldPoint[0], worldPoint[1]]);
+        return [x, y];
+      },
+    );
+    const anchor = edgeLabelAnchor(screenPoints, width, height);
+    if (!anchor) {
+      return;
+    }
+    drawEdgeLabel(ctx, anchor, `Edge ${hoveredEdge.edgeId}`);
+  }, [hoveredEdge, hoverableEdgeKind, viewState, containerSize, view]);
 
   /**
    * The points fed to the detail layers: those within the viewport (plus a
@@ -649,7 +922,7 @@ export const NetworkGraph = ({
       return [];
     }
     const seen = new Set<number>();
-    const paths: BundledPath[] = [];
+    const paths: BundledEdge[] = [];
     for (let round = 0; paths.length < DETAIL_MAX_EDGES; round++) {
       // Any node still had an edge at this round's index — otherwise every node
       // is exhausted and we're done (before the cap).
@@ -670,7 +943,10 @@ export const NetworkGraph = ({
         const from = pointById.get(edge.fromId);
         const to = pointById.get(edge.toId);
         if (from && to) {
-          paths.push(bundleEdgePath(from, to, bundleHierarchy));
+          paths.push({
+            edgeId: edge.id,
+            path: bundleEdgePath(from, to, bundleHierarchy),
+          });
           if (paths.length >= DETAIL_MAX_EDGES) {
             break;
           }
@@ -693,6 +969,9 @@ export const NetworkGraph = ({
       edges: highlight?.lines ?? [],
       // All edges touching visible nodes, bundled and drawn faintly in detail view.
       backgroundEdgePaths: detailEdgePaths,
+      hoveredEdgeId:
+        hoverableEdgeKind === "none" ? null : (hoveredEdge?.edgeId ?? null),
+      hoverableEdgeKind,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
       colorByHex,
@@ -728,6 +1007,8 @@ export const NetworkGraph = ({
     points,
     highlight,
     detailEdgePaths,
+    hoveredEdge,
+    hoverableEdgeKind,
     activeNode,
     colorByHex,
     radiusScale,
@@ -752,17 +1033,59 @@ export const NetworkGraph = ({
           // Double-click-to-zoom off: clicks are handled via `pointerup` above.
           controller={{ doubleClickZoom: false }}
           layers={layers}
+          // A small tolerance so the thin edges can be hovered without pixel-
+          // perfect aim; nodes still win where they overlap, being drawn on top.
+          pickingRadius={EDGE_PICK_RADIUS_PX}
           onHover={(info: PickingInfo) => {
             const object =
-              (info.object as NetworkGraphPoint | undefined) ?? null;
-            const id = object?.id ?? null;
+              (info.object as
+                | NetworkGraphPoint
+                | HoverLine
+                | BundledEdge
+                | undefined) ?? null;
+
+            // Resolve a hovered edge from either representation: a bundled detail
+            // edge carries `path`; a compact highlight line carries `source`.
+            const edge: HoverableEdge | null =
+              object && "path" in object
+                ? { edgeId: object.edgeId, path: object.path }
+                : object && "source" in object
+                  ? {
+                      edgeId: object.id,
+                      path: [object.source, object.target],
+                    }
+                  : null;
+
+            if (edge) {
+              if (hoveredEdgeIdRef.current !== edge.edgeId) {
+                hoveredEdgeIdRef.current = edge.edgeId;
+                setHoveredEdge(edge);
+              }
+              // Hovering an edge drops the node hover but preserves the external
+              // selection: `onNodeHover` is only told the pointer left the node
+              // (`point: null`), which the consumer treats as "keep selection".
+              if (lastHoveredIdRef.current !== null) {
+                lastHoveredIdRef.current = null;
+                setHovered(null);
+                onNodeHover?.({ point: null, x: info.x, y: info.y });
+              }
+              return;
+            }
+
+            // Not over an edge — clear any edge hover, then handle node hover.
+            if (hoveredEdgeIdRef.current !== null) {
+              hoveredEdgeIdRef.current = null;
+              setHoveredEdge(null);
+            }
+            const node = object as NetworkGraphPoint | null;
+            const id = node?.id ?? null;
             // Only react when the hovered node changes (including to no node).
             if (id === lastHoveredIdRef.current) {
               return;
             }
             lastHoveredIdRef.current = id;
-            setHovered(object);
-            onNodeHover?.({ point: object, x: info.x, y: info.y });
+            setHovered(node);
+            onNodeHover?.({ point: node, x: info.x, y: info.y });
           }}
           onViewStateChange={(params) => {
             const raw = params.viewState as OrthographicViewState;
@@ -793,6 +1116,7 @@ export const NetworkGraph = ({
           }
         />
       ) : null}
+      <canvas ref={labelCanvasRef} className={labelCanvasStyles} />
     </div>
   );
 };

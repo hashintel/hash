@@ -1,7 +1,7 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { LineLayer, PathLayer, ScatterplotLayer } from "@deck.gl/layers";
 
-import type { BundledPath } from "./edge-bundling";
+import type { BundledEdge } from "./edge-bundling";
 import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 
@@ -21,6 +21,14 @@ const EDGE_COLOR = [80, 88, 110] as const;
 /** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */
 const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
+/** On-screen width (px) of an edge, and its floor as it scales with zoom. */
+const EDGE_WIDTH = 0.75;
+const EDGE_MIN_WIDTH = 0.5;
+/**
+ * A hovered edge doubles its width and — for the faint background edges — jumps to
+ * full opacity, so it stands out from the crowd of edges around it.
+ */
+const EDGE_HOVER_WIDTH = EDGE_WIDTH * 2;
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
 /**
@@ -38,7 +46,19 @@ type _CompactNodeLayerProps = {
    * structure (all edges touching the visible nodes), not just the hovered node's.
    * Empty in the compact view.
    */
-  backgroundEdgePaths: BundledPath[];
+  backgroundEdgePaths: BundledEdge[];
+  /**
+   * The id of the currently hovered edge, if any — it draws emphasised (double
+   * width, and full opacity for the faint background edges). `null` when no edge
+   * is hovered.
+   */
+  hoveredEdgeId: number | null;
+  /**
+   * Which edge layer, if any, is hoverable (pickable): the faint `"background"`
+   * bundled edges in the detail view, the selected node's `"highlight"` incident
+   * lines in the compact view, or `"none"`.
+   */
+  hoverableEdgeKind: "none" | "highlight" | "background";
   /** Neighbours of the active node, drawn with a "grown" ring. */
   neighbours: NetworkGraphPoint[];
   /** The hovered/selected node, drawn with a prominent grown ring. */
@@ -70,6 +90,8 @@ export type CompactNodeLayerProps = _CompactNodeLayerProps &
 const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   edges: [],
   backgroundEdgePaths: [],
+  hoveredEdgeId: null,
+  hoverableEdgeKind: "none",
   neighbours: [],
   activeNode: null,
   colorByHex: new Map<string, RgbColor>(),
@@ -103,6 +125,8 @@ export class CompactNodeLayer extends CompositeLayer<
       data,
       edges,
       backgroundEdgePaths,
+      hoveredEdgeId,
+      hoverableEdgeKind,
       neighbours,
       activeNode,
       colorByHex,
@@ -119,18 +143,51 @@ export class CompactNodeLayer extends CompositeLayer<
     return [
       // The faint "all edges" of the detail view, bundled along the node
       // hierarchy and drawn behind everything else so the nodes and hovered-edge
-      // highlight sit on top. Empty in the compact view.
-      new PathLayer<BundledPath>({
+      // highlight sit on top. Empty in the compact view. Pickable (so an edge can
+      // be hovered) only in the detail view, where these are the visible edges.
+      new PathLayer<BundledEdge>({
         id: `${id}-background-edges`,
         data: backgroundEdgePaths,
+        pickable: hoverableEdgeKind === "background",
         parameters: BASE_LAYER_PARAMETERS,
-        getPath: (path) => path,
-        getColor: [...EDGE_COLOR, BACKGROUND_EDGE_ALPHA] as Color,
-        getWidth: 0.75,
+        getPath: (edge) => edge.path,
+        // Hovered edge jumps to full opacity; the rest stay faint.
+        getColor: (edge) =>
+          [
+            ...EDGE_COLOR,
+            edge.edgeId === hoveredEdgeId ? RGBA_OPAQUE : BACKGROUND_EDGE_ALPHA,
+          ] as Color,
+        getWidth: (edge) =>
+          edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
         widthUnits: "pixels",
-        widthMinPixels: 0.5,
+        widthMinPixels: EDGE_MIN_WIDTH,
         capRounded: true,
         jointRounded: true,
+        updateTriggers: {
+          getColor: hoveredEdgeId,
+          getWidth: hoveredEdgeId,
+        },
+      }),
+      // The active node's incident edges (compact view). Drawn before the points
+      // so a node's disc paints over the edges meeting at it — and so picking
+      // resolves the node, not its edge, at the node's centre. Pickable only when
+      // a node is selected, per the compact-view hover rule.
+      new LineLayer<HoverLine>({
+        id: `${id}-edges`,
+        data: edges,
+        pickable: hoverableEdgeKind === "highlight",
+        parameters: BASE_LAYER_PARAMETERS,
+        getSourcePosition: (line) => line.source,
+        getTargetPosition: (line) => line.target,
+        // Already fully opaque, so a hovered edge only doubles its width.
+        getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+        getWidth: (line) =>
+          line.id === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
+        widthUnits: "pixels",
+        widthMinPixels: EDGE_MIN_WIDTH,
+        updateTriggers: {
+          getWidth: hoveredEdgeId,
+        },
       }),
       // Hidden in the detail variation so the crowd doesn't show through behind the
       // translucent detailed nodes; the detailed layer resolves picking there.
@@ -156,17 +213,6 @@ export class CompactNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      new LineLayer<HoverLine>({
-        id: `${id}-edges`,
-        data: edges,
-        parameters: BASE_LAYER_PARAMETERS,
-        getSourcePosition: (line) => line.source,
-        getTargetPosition: (line) => line.target,
-        getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getWidth: 0.75,
-        widthUnits: "pixels",
-        widthMinPixels: 0.5,
-      }),
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-highlight-neighbours`,
         parameters: BASE_LAYER_PARAMETERS,

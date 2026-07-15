@@ -23,8 +23,21 @@ export interface NetworkGraphEdge {
 }
 
 export interface HoverLine {
+  /** The edge's id, so a hovered highlight edge can be identified for its label. */
+  id: number;
   source: [number, number];
   target: [number, number];
+}
+
+/**
+ * A hovered edge, normalised for the on-hover label regardless of how it was
+ * drawn: its edge id and the world-space polyline as rendered — a bundled curve
+ * in the detail view, or a straight two-point line for a selected node's
+ * incident edge in the compact view.
+ */
+export interface HoverableEdge {
+  edgeId: number;
+  path: [number, number][];
 }
 
 /** Parse a `#RRGGBB` string into a deck.gl `[r, g, b]` colour. */

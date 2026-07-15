@@ -4,6 +4,15 @@ import type { NetworkGraphPoint } from "./network-graph-util";
 export type BundledPath = [number, number][];
 
 /**
+ * A bundled edge paired with its edge id, so a drawn path can be resolved back
+ * to its edge when picked (hovered).
+ */
+export interface BundledEdge {
+  edgeId: number;
+  path: BundledPath;
+}
+
+/**
  * A 3-level containment hierarchy over the nodes used to route bundled edges:
  * root → colour (node type) → spatial sub-cluster → node. Only the centroids and
  * each node's sub-cluster are stored; the tree path between two nodes is derived
