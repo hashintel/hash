@@ -11,17 +11,18 @@ from pydantic import HttpUrl, PositiveInt
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 from atlas_tools.relation.lineage.api import LineageNode
+from atlas_tools.relation_cards.common.api import (
+    EndpointTypeConstraint,
+    PhraseInput,
+    RelationCardInput,
+    RelationConstraints,
+    RelationExample,
+)
 from atlas_tools.relation_cards.common.cards import qualify_relation_id
 from atlas_tools.relation_cards.common.examples import (
     ExampleCandidate,
     ExampleStratum,
     select_diverse_examples,
-)
-from atlas_tools.relation_cards.common.model import (
-    PhraseInput,
-    RelationCardInput,
-    RelationConstraints,
-    RelationExample,
 )
 from atlas_tools.relation_cards.hash.model import (
     EntityTypeRow,
@@ -328,6 +329,31 @@ def _slug(base_url: HttpUrl) -> str:
     return PurePosixPath(urlsplit(str(base_url)).path.rstrip("/")).name
 
 
+def _endpoint_constraints(
+    associations: Sequence[tuple[EntityTypeRow, LinkConstraint]],
+    rows_by_versioned_url: dict[str, EntityTypeRow],
+) -> tuple[EndpointTypeConstraint, ...]:
+    """Preserve each source type's own target and cardinality constraint."""
+    return tuple(
+        EndpointTypeConstraint(
+            source_type=_phrase(source),
+            target_types=_deduplicate_phrases(
+                _resolve(reference.ref, rows_by_versioned_url)
+                for reference in (constraint.items.one_of if constraint.items is not None else ())
+            ),
+            minimum_targets=constraint.min_items,
+            maximum_targets=constraint.max_items,
+        )
+        for source, constraint in sorted(
+            associations,
+            key=lambda association: (
+                association[0].source_schema.title.casefold(),
+                str(association[0].base_url),
+            ),
+        )
+    )
+
+
 def _single_value_constraint(
     associations: Sequence[tuple[EntityTypeRow, LinkConstraint]],
 ) -> bool | None:
@@ -373,15 +399,15 @@ def build_relation_records(
                 key=lambda item: (item.depth, str(item.id)),
             )
             if str(entry.id) != str(relation.source_schema.id)
+            and versioned_url_base_url(entry.id) != LINK_ENTITY_TYPE_BASE_URL
         ]
 
         relation_associations = associations.get(relation_base_url, [])
         source_types = [source for source, _constraint in relation_associations]
-        target_types = [
-            _resolve(reference.ref, rows_by_versioned_url)
-            for _source, constraint in relation_associations
-            for reference in (constraint.items.one_of if constraint.items is not None else ())
-        ]
+        endpoint_constraints = _endpoint_constraints(
+            relation_associations,
+            rows_by_versioned_url,
+        )
 
         selected_examples, example_selection = _select_examples(
             relation_base_url,
@@ -397,8 +423,7 @@ def build_relation_records(
             description=relation.source_schema.description or None,
             inverse=PhraseInput(label=inverse_title) if inverse_title else None,
             ancestors=_deduplicate_phrases(ancestors),
-            source_types=_deduplicate_phrases(source_types),
-            target_types=_deduplicate_phrases(target_types),
+            endpoint_constraints=endpoint_constraints,
             constraints=RelationConstraints(
                 single_value=_single_value_constraint(relation_associations),
                 direction="source -> target",

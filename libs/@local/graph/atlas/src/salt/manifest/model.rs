@@ -6,12 +6,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::salt::{
     hash::ContentHash,
-    revision::{BaseRevision, DeltaRevision, GenerationId, VariantId},
+    revision::{AuthorizationRevision, BaseRevision, DeltaRevision, GenerationId, VariantId},
 };
+
+pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 14;
 
 /// Complete immutable inputs and artifacts for one atlas generation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct GenerationManifest {
+    pub format_version: u32,
     pub generation_id: GenerationId,
     pub created_at: Timestamp,
     pub input_snapshot: InputSnapshotManifest,
@@ -29,18 +33,20 @@ pub(crate) struct GenerationManifest {
 
 /// Bitemporal bounds and source identities frozen before generation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct InputSnapshotManifest {
     pub ontology_transaction_time: GraphTimestamp<TransactionTime>,
     pub knowledge_transaction_time: GraphTimestamp<TransactionTime>,
     pub knowledge_decision_time_policy: KnowledgeDecisionTimePolicy,
     pub ontology_hash: ContentHash,
     pub knowledge_hash: ContentHash,
+    pub authorization_revision: AuthorizationRevision,
     pub frozen_input_hash: ContentHash,
 }
 
 /// How knowledge decision time is resolved within the pinned transaction view.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "mode", rename_all = "snake_case")]
+#[serde(deny_unknown_fields, tag = "mode", rename_all = "snake_case")]
 pub(crate) enum KnowledgeDecisionTimePolicy {
     Pinned {
         timestamp: GraphTimestamp<DecisionTime>,
@@ -49,10 +55,14 @@ pub(crate) enum KnowledgeDecisionTimePolicy {
 }
 
 /// Canonical embedding producer and projector-prefix transform.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct EmbeddingManifest {
     pub model: String,
     pub producer_contract_hash: ContentHash,
+    pub canonical_corpus_hash: ContentHash,
+    pub projector_corpus_hash: ContentHash,
+    pub representation_audit: crate::salt::representation::RepresentationAuditReport,
     pub canonical_dimensions: usize,
     pub projector_dimensions: usize,
     pub transform_version: String,
@@ -62,6 +72,7 @@ pub(crate) struct EmbeddingManifest {
 
 /// Persisted semantic-neighbor artifact and exact recall audit.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct SemanticGraphManifest {
     #[serde(rename = "k")]
     pub neighbors: usize,
@@ -72,6 +83,11 @@ pub(crate) struct SemanticGraphManifest {
     pub weight_hash: ContentHash,
     pub graph_hash: ContentHash,
     pub exact_audit_hash: ContentHash,
+    pub exact_audit_sample_hash: ContentHash,
+    pub exact_audit_sample_rows: usize,
+    pub exact_audit_neighbors: usize,
+    pub exact_audit_matched: u64,
+    pub exact_audit_expected: u64,
     pub recall_at_50: f64,
 }
 
@@ -84,6 +100,7 @@ pub(crate) enum SemanticMetric {
 
 /// Bounded landmark selection and skeleton identity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct LandmarkManifest {
     #[serde(rename = "max_count")]
     pub maximum_count: usize,
@@ -92,10 +109,12 @@ pub(crate) struct LandmarkManifest {
     pub seed: u64,
     pub retained_fraction: f64,
     pub artifact_hash: ContentHash,
+    pub persistence_reference_source_hash: ContentHash,
 }
 
 /// Projector architecture, checkpoint, objective, and relation budgets.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ProjectorManifest {
     pub architecture_version: u32,
     pub width: usize,
@@ -115,6 +134,7 @@ pub(crate) struct ProjectorManifest {
 
 /// Security, policy, strength, and relation-energy contracts.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct RelationManifest {
     pub security_mode: RelationSecurityMode,
     pub security_allow_list_hash: ContentHash,
@@ -127,7 +147,10 @@ pub(crate) struct RelationManifest {
     pub annotation_vote_schedule: String,
     pub reviewed_holdout_hash: ContentHash,
     pub policy_precedence_version: String,
+    pub policy_input_hash: ContentHash,
     pub policy_hash: ContentHash,
+    pub policy_evaluation_report_hash: ContentHash,
+    pub authorization_noninterference_report_hash: ContentHash,
     pub classifier_version: String,
     pub classifier_model_hash: ContentHash,
     pub classifier_temperature: f64,
@@ -156,6 +179,7 @@ pub(crate) enum RelationSecurityMode {
 
 /// Frozen shared strength-head contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct StrengthHeadManifest {
     pub enabled: bool,
     pub band_vote_corpus_hash: ContentHash,
@@ -179,6 +203,7 @@ pub(crate) enum StrengthModelForm {
 
 /// Globally shared Coincident, Proximal, and Overlay coefficients.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct AttractionGeometryManifest {
     pub coincident: f64,
     pub proximal: f64,
@@ -187,6 +212,7 @@ pub(crate) struct AttractionGeometryManifest {
 
 /// No-repel protection contract, independent from attraction admission.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct NegativeAdmissionManifest {
     pub policy_distribution_stage: ProtectionDistributionStage,
     pub protection_coefficients: ProtectionCoefficientManifest,
@@ -206,6 +232,7 @@ pub(crate) enum ProtectionDistributionStage {
 
 /// Policy-class coefficients used only for protection.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ProtectionCoefficientManifest {
     pub coincident: f64,
     pub proximal: f64,
@@ -214,6 +241,7 @@ pub(crate) struct ProtectionCoefficientManifest {
 
 /// Applicability-floor experiment bound to no-repel protection.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ProtectionApplicabilityManifest {
     pub mode: ProtectionApplicabilityMode,
     pub hard_negative_floor: f64,
@@ -239,6 +267,7 @@ pub(crate) enum PairAggregation {
 
 /// Evidence gate controlling Coincident geometry globally.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct CoincidentGateManifest {
     pub enabled: bool,
     pub class_probability_threshold: f64,
@@ -248,6 +277,7 @@ pub(crate) struct CoincidentGateManifest {
 
 /// Staged typed minimum-separation contract.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct TypedDeconflictManifest {
     pub enabled: bool,
     pub classifier_class_schema: ClassifierClassSchema,
@@ -278,6 +308,7 @@ pub(crate) enum ConflictPolicy {
 
 /// Canonical coordinate-field publication.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct VariantManifest {
     pub canonical_variant: VariantId,
     pub published_variant_count: usize,
@@ -288,11 +319,25 @@ pub(crate) struct VariantManifest {
 
 /// One materialized coordinate field.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct VariantEntryManifest {
     pub id: VariantId,
     pub global_relation_condition: f64,
     pub condition_domain_hash: ContentHash,
     pub selection_evidence_hash: ContentHash,
+    pub quality_suite_version: String,
+    pub projected_field_hash: ContentHash,
+    pub quality_report_hash: ContentHash,
+    pub semantic_fidelity_report_hash: ContentHash,
+    pub semantic_fidelity: f64,
+    pub minimum_semantic_fidelity: f64,
+    pub subgroup_report_hash: ContentHash,
+    pub maximum_subgroup_degradation: f64,
+    pub maximum_allowed_subgroup_degradation: f64,
+    pub relation_baseline_field_hash: ContentHash,
+    pub baseline_relation_loss: f64,
+    pub canonical_relation_loss: f64,
+    pub relation_loss_tolerance: f64,
     pub canonical_field_hash: ContentHash,
     pub procrustes_transform: [f64; 5],
     pub quantization_step: f64,
@@ -302,10 +347,13 @@ pub(crate) struct VariantEntryManifest {
     pub morton_index_hash: ContentHash,
     pub analytic_configuration_hash: ContentHash,
     pub merge_tree_hash: ContentHash,
+    pub normalized_persistence: f64,
+    pub persistence_comparison: crate::salt::generation::PersistenceComparisonReport,
 }
 
 /// Base/delta storage identity and row encoding.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct StorageManifest {
     pub row_count: u64,
     pub row_id_encoding: RowIdEncoding,
@@ -327,11 +375,13 @@ pub(crate) enum RowIdEncoding {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ArtifactRole {
+    Representations,
     RelationClassifier,
     StrengthHead,
     SemanticGraph,
     RelationIndexes,
     LandmarkSkeleton,
+    LandmarkReferencePersistence,
     ProjectorCheckpoint,
     CanonicalBase,
     CanonicalAnalytics,
@@ -343,11 +393,13 @@ pub(crate) enum ArtifactRole {
 impl fmt::Display for ArtifactRole {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match self {
+            Self::Representations => "representations",
             Self::RelationClassifier => "relation classifier",
             Self::StrengthHead => "strength head",
             Self::SemanticGraph => "semantic graph",
             Self::RelationIndexes => "relation indexes",
             Self::LandmarkSkeleton => "landmark skeleton",
+            Self::LandmarkReferencePersistence => "landmark reference persistence",
             Self::ProjectorCheckpoint => "projector checkpoint",
             Self::CanonicalBase => "canonical base",
             Self::CanonicalAnalytics => "canonical analytics",
@@ -361,6 +413,7 @@ impl fmt::Display for ArtifactRole {
 
 /// Binary schema identity for an mmap artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ArtifactFormatManifest {
     pub kind: u16,
     pub version: u16,
@@ -368,6 +421,7 @@ pub(crate) struct ArtifactFormatManifest {
 
 /// Content identity and generation-relative location of one required artifact.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ArtifactManifest {
     pub role: ArtifactRole,
     pub relative_path: String,
@@ -378,6 +432,7 @@ pub(crate) struct ArtifactManifest {
 
 /// Authorization, wire, style, and companion compatibility pins.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ServingManifest {
     pub authorization_adapter_version: String,
     pub gate_evidence_authority: String,
@@ -391,6 +446,7 @@ pub(crate) struct ServingManifest {
 
 /// Source revision, complete configuration, and deterministic seeds.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ReproducibilityManifest {
     pub code_revision: String,
     pub config_hash: ContentHash,
@@ -399,6 +455,7 @@ pub(crate) struct ReproducibilityManifest {
 
 /// One named deterministic seed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct SeedManifest {
     pub name: String,
     pub value: u64,

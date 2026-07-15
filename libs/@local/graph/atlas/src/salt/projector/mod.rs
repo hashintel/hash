@@ -46,4 +46,6 @@ pub(crate) use self::{
 #[cfg(test)]
 mod adaptive_tests;
 #[cfg(test)]
+mod artifact_tests;
+#[cfg(test)]
 mod tests;

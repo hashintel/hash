@@ -12,6 +12,7 @@ hash-graph-embeddings = { workspace = true, public = true }
 type-system           = { workspace = true, public = true }
 
 # Public third-party dependencies
+axum = { workspace = true, public = true }
 burn = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion", "candle"], public = true }
 # The burn facade re-exports these; the types appearing in our public API are
 # defined in the sub-crates, so the public-dependency contract names them too.
@@ -24,12 +25,13 @@ camino       = { workspace = true, public = true }
 # Error sources surfaced through public error enums.
 cxx            = { version = "1.0.194", public = true }
 tempfile       = { version = "3.27.0", public = true }
-tokio          = { workspace = true, public = true }
+tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal"], public = true }
 tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+clap                                     = { workspace = true, features = ["derive"] }
 ed25519-dalek                            = "3.0.0"
 error-stack.workspace                    = true
 faer                                     = "0.24.4"
@@ -49,7 +51,7 @@ rand_xoshiro                             = { workspace = true }
 rayon                                    = { workspace = true }
 regex                                    = { workspace = true }
 serde                                    = { workspace = true, features = ["derive"] }
-serde_json                               = { workspace = true }
+serde_json                               = { workspace = true, features = ["float_roundtrip"] }
 sha2                                     = { workspace = true }
 simple-mermaid                           = { workspace = true }
 sprs                                     = { version = "0.11.4", default-features = false }
@@ -71,6 +73,7 @@ npyz                      = "0.9.1"
 tempfile                  = "3.27.0"
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-postgres            = { workspace = true }
+tower                     = { workspace = true, features = ["util"] }
 tracing-subscriber        = { workspace = true }
 uuid                      = { workspace = true, features = ["v4"] }
 

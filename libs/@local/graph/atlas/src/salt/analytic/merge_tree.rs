@@ -1,3 +1,8 @@
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "merge-tree identities require canonical little-endian integer and float encodings"
+)]
+
 use super::{error::AnalyticError, raster::DensityRaster};
 use crate::salt::hash::{ContentHash, ContentHasher};
 
@@ -22,6 +27,9 @@ impl Default for MergeTreeConfig {
 /// One persistent component born at a peak and killed at a merge level.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct PersistenceLeaf {
+    pub id: u64,
+    pub parent: Option<u64>,
+    pub representative_pixel: usize,
     pub birth: f64,
     pub death: f64,
 }
@@ -73,12 +81,19 @@ impl MergeTree {
         self.density_maximum
     }
 
-    /// Returns the identity of the maximum density and persistent leaves.
+    /// Returns the identity of the maximum density and persistent topology.
     #[must_use]
     pub(crate) fn content_hash(&self) -> ContentHash {
-        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v1");
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
         hasher.update(&self.density_maximum.to_bits().to_le_bytes());
         for leaf in &self.leaves {
+            hasher.update(&leaf.id.to_le_bytes());
+            hasher.update(&leaf.parent.unwrap_or(u64::MAX).to_le_bytes());
+            hasher.update(
+                &u64::try_from(leaf.representative_pixel)
+                    .expect("pixel index should fit u64")
+                    .to_le_bytes(),
+            );
             hasher.update(&leaf.birth.to_bits().to_le_bytes());
             hasher.update(&leaf.death.to_bits().to_le_bytes());
         }
@@ -90,20 +105,23 @@ impl MergeTree {
 struct Components {
     parent: Vec<usize>,
     birth: Vec<f64>,
+    representative_pixel: Vec<usize>,
 }
 
 impl Components {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             parent: Vec::new(),
             birth: Vec::new(),
+            representative_pixel: Vec::new(),
         }
     }
 
-    fn add(&mut self, birth: f64) -> usize {
+    fn add(&mut self, birth: f64, representative_pixel: usize) -> usize {
         let component = self.parent.len();
         self.parent.push(component);
         self.birth.push(birth);
+        self.representative_pixel.push(representative_pixel);
         component
     }
 
@@ -120,6 +138,14 @@ impl Components {
         }
         root
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+struct PendingLeaf {
+    component: usize,
+    parent: Option<usize>,
+    birth: f64,
+    death: f64,
 }
 
 /// Computes persistent components of a density raster.
@@ -142,13 +168,11 @@ pub(crate) fn merge_tree(
     validate_fraction("floor fraction", config.floor_fraction)?;
     validate_fraction("persistence fraction", config.persistence_fraction)?;
     let values = raster.values();
-    let expected =
-        raster
-            .size()
-            .checked_mul(raster.size())
-            .ok_or(AnalyticError::GridAreaOverflow {
-                size: raster.size(),
-            })?;
+    let expected = raster.size().checked_mul(raster.size()).ok_or_else(|| {
+        AnalyticError::GridAreaOverflow {
+            size: raster.size(),
+        }
+    })?;
     if values.len() != expected {
         return Err(AnalyticError::DensityLength {
             expected,
@@ -185,31 +209,34 @@ pub(crate) fn merge_tree(
     let size = raster.size();
     let mut component_of = vec![INACTIVE; values.len()];
     let mut components = Components::new();
-    let mut leaves = Vec::new();
+    let mut pending_leaves = Vec::new();
     for pixel in order {
         let roots = neighbor_roots(&mut components, &component_of, pixel, size);
         component_of[pixel] = if roots.is_empty() {
-            components.add(values[pixel])
+            components.add(values[pixel], pixel)
         } else {
             merge_roots(
                 &mut components,
                 roots.as_slice(),
                 values[pixel],
                 config.persistence_fraction,
-                &mut leaves,
+                &mut pending_leaves,
             )
         };
     }
     for component in 0..components.parent.len() {
         if components.parent[component] == component {
             retain_leaf(
+                component,
+                None,
                 components.birth[component],
                 floor,
                 config.persistence_fraction,
-                &mut leaves,
+                &mut pending_leaves,
             );
         }
     }
+    let leaves = finalize_leaves(&components, &pending_leaves);
     Ok(MergeTree {
         density_maximum,
         leaves,
@@ -217,7 +244,7 @@ pub(crate) fn merge_tree(
 }
 
 fn validate_fraction(field: &'static str, value: f64) -> Result<(), AnalyticError> {
-    if !value.is_finite() || !(0.0 < value && value <= 1.0) {
+    if !(value.is_finite() && 0.0 < value && value <= 1.0) {
         return Err(AnalyticError::InvalidFraction { field, value });
     }
     Ok(())
@@ -258,12 +285,17 @@ fn neighbor_roots(
     roots
 }
 
+#[expect(
+    clippy::float_cmp,
+    reason = "equal density bits intentionally use stable component identity as the elder-rule \
+              tie-break"
+)]
 fn merge_roots(
     components: &mut Components,
     roots: &[usize],
     level: f64,
     persistence_fraction: f64,
-    leaves: &mut Vec<PersistenceLeaf>,
+    leaves: &mut Vec<PendingLeaf>,
 ) -> usize {
     let mut eldest = roots[0];
     for &root in &roots[1..] {
@@ -275,7 +307,14 @@ fn merge_roots(
     }
     for &root in roots {
         if root != eldest {
-            retain_leaf(components.birth[root], level, persistence_fraction, leaves);
+            retain_leaf(
+                root,
+                Some(eldest),
+                components.birth[root],
+                level,
+                persistence_fraction,
+                leaves,
+            );
             components.parent[root] = eldest;
         }
     }
@@ -284,14 +323,60 @@ fn merge_roots(
 
 #[inline]
 fn retain_leaf(
+    component: usize,
+    parent: Option<usize>,
     birth: f64,
     death: f64,
     persistence_fraction: f64,
-    leaves: &mut Vec<PersistenceLeaf>,
+    leaves: &mut Vec<PendingLeaf>,
 ) {
     if birth - death >= persistence_fraction * birth {
-        leaves.push(PersistenceLeaf { birth, death });
+        leaves.push(PendingLeaf {
+            component,
+            parent,
+            birth,
+            death,
+        });
     }
+}
+
+fn finalize_leaves(components: &Components, pending: &[PendingLeaf]) -> Vec<PersistenceLeaf> {
+    let mut leaf_of_component = vec![INACTIVE; components.parent.len()];
+    for (leaf, pending_leaf) in pending.iter().enumerate() {
+        leaf_of_component[pending_leaf.component] = leaf;
+    }
+    pending
+        .iter()
+        .enumerate()
+        .map(|(leaf, pending_leaf)| {
+            let parent =
+                retained_parent(pending_leaf.parent, &components.parent, &leaf_of_component)
+                    .map(|parent| u64::try_from(parent).expect("leaf index should fit u64"));
+            PersistenceLeaf {
+                id: u64::try_from(leaf).expect("leaf index should fit u64"),
+                parent,
+                representative_pixel: components.representative_pixel[pending_leaf.component],
+                birth: pending_leaf.birth,
+                death: pending_leaf.death,
+            }
+        })
+        .collect()
+}
+
+fn retained_parent(
+    mut component: Option<usize>,
+    component_parents: &[usize],
+    leaf_of_component: &[usize],
+) -> Option<usize> {
+    while let Some(current) = component {
+        let leaf = leaf_of_component[current];
+        if leaf != INACTIVE {
+            return Some(leaf);
+        }
+        let parent = component_parents[current];
+        component = (parent != current).then_some(parent);
+    }
+    None
 }
 
 struct NeighborRoots {
@@ -317,7 +402,7 @@ impl NeighborRoots {
     }
 
     #[inline]
-    fn is_empty(&self) -> bool {
+    const fn is_empty(&self) -> bool {
         self.len == 0
     }
 

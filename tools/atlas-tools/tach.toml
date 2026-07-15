@@ -59,7 +59,7 @@ layer               = "capability"
 path                = "atlas_tools.relation.evaluation.storage"
 
 [[modules]]
-depends_on          = []
+depends_on          = ["atlas_tools.relation.evaluation.domain"]
 depends_on_external = ["rich", "textual"]
 layer               = "capability"
 path                = "atlas_tools.relation.evaluation.visualization"

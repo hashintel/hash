@@ -23,6 +23,13 @@ const LABEL_REGIONS: SectionId = SectionId::new(10);
 const LABEL_ROWS: SectionId = SectionId::new(11);
 const LABEL_OFFSETS: SectionId = SectionId::new(12);
 const LABEL_TEXT: SectionId = SectionId::new(13);
+const LEAF_PARENTS: SectionId = SectionId::new(14);
+const LEAF_REPRESENTATIVE_PIXELS: SectionId = SectionId::new(15);
+const LEAF_REGIONS: SectionId = SectionId::new(16);
+const REGION_PARENTS: SectionId = SectionId::new(17);
+const REGION_PERSISTENCE: SectionId = SectionId::new(18);
+const REGION_LEAVES: SectionId = SectionId::new(19);
+const REGION_REPRESENTATIVE_ROWS: SectionId = SectionId::new(20);
 
 /// Publishes the complete analytic field and its entity-backed labels.
 ///
@@ -33,6 +40,11 @@ const LABEL_TEXT: SectionId = SectionId::new(13);
 ///
 /// This returns an error when a section cannot be represented or immutable
 /// publication fails.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the publisher keeps the complete twenty-section analytic schema in one audit \
+              boundary"
+)]
 pub(crate) fn publish_analytic_artifact(
     path: &Utf8Path,
     configuration: ContentHash,
@@ -53,6 +65,16 @@ pub(crate) fn publish_analytic_artifact(
         .iter()
         .map(|leaf| leaf.death)
         .collect::<Vec<_>>();
+    let leaf_parents = tree
+        .leaves()
+        .iter()
+        .map(|leaf| leaf.parent.unwrap_or(u64::MAX))
+        .collect::<Vec<_>>();
+    let leaf_representative_pixels = tree
+        .leaves()
+        .iter()
+        .map(|leaf| u64::try_from(leaf.representative_pixel).expect("pixel index should fit u64"))
+        .collect::<Vec<_>>();
     let peak_pixels = regions
         .peaks()
         .iter()
@@ -63,11 +85,33 @@ pub(crate) fn publish_analytic_artifact(
         .iter()
         .map(|peak| peak.density)
         .collect::<Vec<_>>();
+    let region_parents = regions
+        .peaks()
+        .iter()
+        .map(|peak| peak.parent_region.unwrap_or(u32::MAX))
+        .collect::<Vec<_>>();
+    let region_persistence = regions
+        .peaks()
+        .iter()
+        .map(|peak| peak.persistence)
+        .collect::<Vec<_>>();
+    let region_leaves = regions
+        .peaks()
+        .iter()
+        .map(|peak| peak.persistence_leaf)
+        .collect::<Vec<_>>();
     let label_regions = labels.iter().map(|label| label.region).collect::<Vec<_>>();
     let label_rows = labels
         .iter()
         .map(|label| label.row.as_u32())
         .collect::<Vec<_>>();
+    let mut region_representative_rows = vec![u32::MAX; regions.peaks().len()];
+    for label in labels {
+        let region = usize::try_from(label.region).expect("region identity should fit usize");
+        if region < region_representative_rows.len() {
+            region_representative_rows[region] = label.row.as_u32();
+        }
+    }
     let mut label_offsets = Vec::with_capacity(labels.len() + 1);
     let mut label_text = Vec::new();
     label_offsets.push(0_u64);
@@ -76,7 +120,7 @@ pub(crate) fn publish_analytic_artifact(
         label_offsets.push(u64::try_from(label_text.len()).expect("usize should fit u64"));
     }
 
-    let mut sections = Vec::with_capacity(13);
+    let mut sections = Vec::with_capacity(20);
     push(
         &mut sections,
         CONFIGURATION_HASH,
@@ -110,6 +154,21 @@ pub(crate) fn publish_analytic_artifact(
         &label_offsets,
     )?;
     push(&mut sections, LABEL_TEXT, &[label_text.len()], &label_text)?;
+    append(&mut sections, LEAF_PARENTS, &leaf_parents)?;
+    append(
+        &mut sections,
+        LEAF_REPRESENTATIVE_PIXELS,
+        &leaf_representative_pixels,
+    )?;
+    append(&mut sections, LEAF_REGIONS, regions.leaf_regions())?;
+    append(&mut sections, REGION_PARENTS, &region_parents)?;
+    append(&mut sections, REGION_PERSISTENCE, &region_persistence)?;
+    append(&mut sections, REGION_LEAVES, &region_leaves)?;
+    append(
+        &mut sections,
+        REGION_REPRESENTATIVE_ROWS,
+        &region_representative_rows,
+    )?;
     publish_artifact(path, ANALYTIC_FORMAT, &sections)
 }
 

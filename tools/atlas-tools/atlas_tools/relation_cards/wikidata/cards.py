@@ -46,7 +46,7 @@ from atlas_tools.relation.lineage.api import (
     SourceSnapshotIdentity,
     publish_source_lineage,
 )
-from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
+from atlas_tools.relation_cards.common.api import CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import IdentifierLeakError
 from atlas_tools.relation_cards.common.cards import (
     CardRow,

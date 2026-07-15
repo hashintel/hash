@@ -2,7 +2,7 @@ use core::num::NonZeroUsize;
 
 use burn::{
     backend::{Autodiff, Candle, candle::CandleDevice},
-    tensor::{Int, Tensor, TensorData, backend::Backend as _},
+    tensor::{Int, Tensor, TensorData},
 };
 use camino::Utf8PathBuf;
 use rand::SeedableRng as _;
@@ -29,16 +29,35 @@ type TestBackend = Candle;
 type TrainBackend = Autodiff<Candle>;
 
 #[test]
+fn architecture_validation_rejects_unbounded_resource_shapes() {
+    let error = ProjectorConfig {
+        width: 1_025,
+        ..ProjectorConfig::default()
+    }
+    .validate()
+    .expect_err("width above the M0 envelope must fail before allocation");
+
+    assert!(matches!(
+        error,
+        ProjectorError::DimensionLimit {
+            field: "hidden width",
+            value: 1_025,
+            maximum: 1_024,
+        }
+    ));
+}
+
+#[test]
 fn film_is_identity_for_every_condition_at_initialization() {
     let device = CandleDevice::Cpu;
-    TestBackend::seed(&device, 42);
-    let projector = ConditionedProjector::<TestBackend>::new(
+    let projector = ConditionedProjector::<TestBackend>::new_seeded(
         ProjectorConfig {
             width: 16,
             residual_blocks: 2,
             role_dimensions: 4,
             ..ProjectorConfig::default()
         },
+        42,
         &device,
     )
     .expect("test architecture should initialize");
@@ -59,6 +78,43 @@ fn film_is_identity_for_every_condition_at_initialization() {
     for (zero, one) in zero.into_iter().zip(one) {
         assert!((zero - one).abs() <= 1.0e-6);
     }
+}
+
+#[test]
+#[expect(
+    clippy::float_cmp,
+    reason = "deterministic initialization requires bit-identical concurrent outputs"
+)]
+fn seeded_initialization_is_deterministic_under_concurrency() {
+    let handles = (0..8)
+        .map(|_| {
+            std::thread::spawn(|| {
+                let device = CandleDevice::Cpu;
+                ConditionedProjector::<TestBackend>::new_seeded(
+                    ProjectorConfig {
+                        width: 16,
+                        residual_blocks: 2,
+                        role_dimensions: 4,
+                        ..ProjectorConfig::default()
+                    },
+                    42,
+                    &device,
+                )
+                .expect("seeded architecture should initialize")
+                .forward(input(&device, [0.25, 0.25]))
+                .expect("seeded projector should run")
+                .into_data()
+                .to_vec::<f32>()
+                .expect("coordinates should download")
+            })
+        })
+        .collect::<Vec<_>>();
+    let outputs = handles
+        .into_iter()
+        .map(|handle| handle.join().expect("projector thread should complete"))
+        .collect::<Vec<_>>();
+
+    assert!(outputs.windows(2).all(|pair| pair[0] == pair[1]));
 }
 
 #[test]
@@ -207,14 +263,14 @@ fn objective_rejects_non_finite_values() {
 #[test]
 fn surrogate_step_clips_relation_coordinates_before_updating_model() {
     let device = CandleDevice::Cpu;
-    TrainBackend::seed(&device, 19);
-    let model = ConditionedProjector::<TrainBackend>::new(
+    let model = ConditionedProjector::<TrainBackend>::new_seeded(
         ProjectorConfig {
             width: 8,
             residual_blocks: 1,
             role_dimensions: 2,
             ..ProjectorConfig::default()
         },
+        19,
         &device,
     )
     .expect("test architecture should initialize");

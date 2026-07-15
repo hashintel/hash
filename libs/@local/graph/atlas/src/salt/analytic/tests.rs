@@ -14,6 +14,7 @@ fn empty_analytics_preserve_the_complete_artifact_schema() {
         merge_tree(&raster, MergeTreeConfig::default()).expect("empty merge tree should build");
     let regions = density_regions(
         &raster,
+        &tree,
         &[],
         RegionConfig {
             density_floor_fraction: 0.1,
@@ -36,7 +37,7 @@ fn empty_analytics_preserve_the_complete_artifact_schema() {
     )
     .expect("empty analytic artifact should publish");
 
-    assert_eq!(published.header.section_count, 13);
+    assert_eq!(published.header.section_count, 20);
 }
 
 #[test]
@@ -76,10 +77,16 @@ fn exact_isolated_peaks_have_floor_deaths() {
         tree.leaves(),
         &[
             PersistenceLeaf {
+                id: 0,
+                parent: None,
+                representative_pixel: 4 * 16 + 4,
                 birth: 1.0,
                 death: 0.005
             },
             PersistenceLeaf {
+                id: 1,
+                parent: None,
+                representative_pixel: 10 * 16 + 10,
                 birth: 0.8,
                 death: 0.005
             }
@@ -114,12 +121,29 @@ fn saddle_persistence_controls_whether_the_younger_peak_survives() {
     )
     .expect("ridge should sweep");
 
-    assert!(counted.leaves().contains(&PersistenceLeaf {
-        birth: 0.50,
-        death: 0.45
-    }));
+    let younger = counted
+        .leaves()
+        .iter()
+        .find(|leaf| leaf.birth == 0.50 && leaf.death == 0.45)
+        .expect("persistent younger peak should be retained");
+    assert_eq!(younger.parent, Some(1));
+    assert_eq!(younger.representative_pixel, 2 * 5 + 3);
     assert_eq!(counted.leaves().len(), 2);
     assert_eq!(filtered.leaves().len(), 1);
+
+    let regions = density_regions(
+        &raster,
+        &counted,
+        &[],
+        RegionConfig {
+            density_floor_fraction: 0.01,
+            minimum_peak_fraction: 0.05,
+            maximum_regions: 2,
+        },
+    )
+    .expect("persistent saddle topology should map to regions");
+    assert_eq!(regions.leaf_regions(), &[1, 0]);
+    assert_eq!(regions.peaks()[1].parent_region, Some(0));
 }
 
 #[test]
@@ -176,9 +200,18 @@ fn watershed_assigns_separated_points_to_density_ordered_peaks() {
     density[4 * 7 + 3] = 0.5;
     density[5 * 7 + 3] = 0.8;
     let raster = DensityRaster::from_values(7, density);
+    let tree = merge_tree(
+        &raster,
+        MergeTreeConfig {
+            floor_fraction: 0.1,
+            persistence_fraction: 0.05,
+        },
+    )
+    .expect("separated finite basins should have persistent peaks");
 
     let regions = density_regions(
         &raster,
+        &tree,
         &[[0.2, 0.5], [0.8, 0.5]],
         RegionConfig {
             density_floor_fraction: 0.1,
@@ -202,10 +235,17 @@ fn watershed_assigns_separated_points_to_density_ordered_peaks() {
         ],
     )
     .expect("valid candidates should label occupied regions");
-    assert_eq!(labels[0].row, row(1));
-    assert_eq!(labels[0].text, "Primary");
-    assert_eq!(labels[1].region, 1);
-    assert_eq!(labels[1].text, "Independent");
+    let primary = labels
+        .iter()
+        .find(|label| label.region == 0)
+        .expect("first region should be labeled");
+    assert_eq!(primary.row, row(1));
+    assert_eq!(primary.text, "Primary");
+    let independent = labels
+        .iter()
+        .find(|label| label.region == 1)
+        .expect("second region should be labeled");
+    assert_eq!(independent.text, "Independent");
 }
 
 #[inline]

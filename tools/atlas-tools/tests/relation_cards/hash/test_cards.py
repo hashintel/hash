@@ -58,10 +58,15 @@ def test_hash_artifacts_keep_identifiers_out_of_card_text(tmp_path: Path) -> Non
         assert "https://" not in row["card_text"]
         assert row["card_hash"]
         assert "retrieved_at" not in row
+    owns_card = next(row for row in card_rows if row["base_url"].endswith("/owns/"))
+    assert "Ancestors:" not in owns_card["card_text"]
+    assert "A generic connection." not in owns_card["card_text"]
 
     manifest = json.loads(paths.manifest.read_text(encoding="utf-8"))
     details = manifest["details"]
     assert details["link_types"] == len(card_rows)
+    assert details["link_types_format_version"] == 2
+    assert details["card_format_version"] == 8
     assert details["database_name"] == "graph"
     assert details["snapshot_at"] == "2026-07-12T12:00:00Z"
     assert details["snapshot"] == {

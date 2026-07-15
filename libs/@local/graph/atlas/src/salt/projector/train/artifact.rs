@@ -1,7 +1,8 @@
 use core::{error::Error, fmt};
 use std::{
     fs,
-    io::{self, Write as _},
+    io::{self, Read as _, Write as _},
+    panic::{AssertUnwindSafe, catch_unwind},
 };
 
 use burn::{
@@ -19,6 +20,7 @@ use crate::salt::hash::{ContentHash, hash_reader};
 const CHECKPOINT_MAGIC: &[u8; 8] = b"SALTPROJ";
 const CHECKPOINT_ENVELOPE_VERSION: u32 = 1;
 const CHECKPOINT_HEADER_BYTES: usize = 64;
+const MAXIMUM_CHECKPOINT_BYTES: usize = 512 * 1024 * 1024;
 
 /// Identity and disposition of an immutable projector checkpoint.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -44,6 +46,7 @@ pub(crate) enum ProjectorCheckpointError {
         expected: ProjectorConfig,
         actual: ProjectorConfig,
     },
+    RecordStructure,
     ExistingCheckpointMismatch,
 }
 
@@ -65,6 +68,9 @@ impl fmt::Display for ProjectorCheckpointError {
                 formatter,
                 "projector checkpoint architecture {actual:?} differs from expected {expected:?}"
             ),
+            Self::RecordStructure => formatter.write_str(
+                "projector checkpoint record structure differs from the declared architecture",
+            ),
             Self::ExistingCheckpointMismatch => {
                 formatter.write_str("existing immutable projector checkpoint has different content")
             }
@@ -80,6 +86,7 @@ impl Error for ProjectorCheckpointError {
             Self::Architecture(error) => Some(error),
             Self::InvalidEnvelope { .. }
             | Self::ArchitectureMismatch { .. }
+            | Self::RecordStructure
             | Self::ExistingCheckpointMismatch => None,
         }
     }
@@ -124,11 +131,11 @@ pub(crate) fn publish_projector_checkpoint<B: Backend>(
     })?;
     fs::create_dir_all(parent)?;
     let staging = tempfile::tempdir_in(parent)?;
-    let recorded = staging.path().join("projector.mpk");
+    let staged_checkpoint = staging.path().join("projector.mpk");
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let payload = recorder.record(model.clone().into_record(), ())?;
+    let payload = recorder.record(model.clone().canonicalize_parameter_ids().into_record(), ())?;
     let header = checkpoint_header(model.config(), payload.len())?;
-    let mut file = fs::File::create(&recorded)?;
+    let mut file = fs::File::create(&staged_checkpoint)?;
     file.write_all(&header)?;
     file.write_all(&payload)?;
     file.sync_all()?;
@@ -137,9 +144,9 @@ pub(crate) fn publish_projector_checkpoint<B: Backend>(
             reason: "checkpoint length does not fit u64",
         }
     })?;
-    let content_hash = hash_reader(fs::File::open(&recorded)?)?;
+    let content_hash = hash_reader(fs::File::open(&staged_checkpoint)?)?;
 
-    let reused_existing = match fs::hard_link(&recorded, path) {
+    let reused_existing = match fs::hard_link(&staged_checkpoint, path) {
         Ok(()) => {
             fs::File::open(parent)?.sync_all()?;
             false
@@ -171,7 +178,21 @@ pub(crate) fn load_projector_checkpoint<B: Backend>(
     config: ProjectorConfig,
     device: &B::Device,
 ) -> Result<ConditionedProjector<B>, ProjectorCheckpointError> {
-    let bytes = fs::read(path)?;
+    let file = fs::File::open(path)?;
+    let maximum =
+        u64::try_from(MAXIMUM_CHECKPOINT_BYTES).expect("checkpoint byte limit should fit into u64");
+    if file.metadata()?.len() > maximum {
+        return Err(ProjectorCheckpointError::InvalidEnvelope {
+            reason: "checkpoint exceeds the M0 byte limit",
+        });
+    }
+    let mut bytes = Vec::new();
+    file.take(maximum + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > MAXIMUM_CHECKPOINT_BYTES {
+        return Err(ProjectorCheckpointError::InvalidEnvelope {
+            reason: "checkpoint exceeds the M0 byte limit",
+        });
+    }
     load_projector_checkpoint_bytes(&bytes, config, device)
 }
 
@@ -191,6 +212,7 @@ pub(crate) fn load_projector_checkpoint_bytes<B: Backend>(
     config: ProjectorConfig,
     device: &B::Device,
 ) -> Result<ConditionedProjector<B>, ProjectorCheckpointError> {
+    config.validate()?;
     let (actual, payload) = checkpoint_payload(bytes)?;
     if actual != config {
         return Err(ProjectorCheckpointError::ArchitectureMismatch {
@@ -199,8 +221,15 @@ pub(crate) fn load_projector_checkpoint_bytes<B: Backend>(
         });
     }
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let record = recorder.load(payload.to_vec(), device)?;
-    Ok(ConditionedProjector::new(config, device)?.load_record(record))
+    let model = ConditionedProjector::new(config, device)?;
+    let model = catch_unwind(AssertUnwindSafe(|| {
+        let record = recorder.load(payload.to_vec(), device)?;
+        Ok::<_, ProjectorCheckpointError>(model.load_record(record))
+    }))
+    .map_err(|_panic| ProjectorCheckpointError::RecordStructure)?;
+    let model = model?;
+    model.validate_loaded_architecture(config)?;
+    Ok(model)
 }
 
 fn checkpoint_header(
@@ -212,6 +241,11 @@ fn checkpoint_header(
             reason: "checkpoint length overflows usize",
         },
     )?;
+    if total_bytes > MAXIMUM_CHECKPOINT_BYTES {
+        return Err(ProjectorCheckpointError::InvalidEnvelope {
+            reason: "checkpoint exceeds the M0 byte limit",
+        });
+    }
     let mut header = [0_u8; CHECKPOINT_HEADER_BYTES];
     header[..8].copy_from_slice(CHECKPOINT_MAGIC);
     header[8..12].copy_from_slice(&CHECKPOINT_ENVELOPE_VERSION.to_le_bytes());
@@ -249,6 +283,11 @@ fn checkpoint_payload(bytes: &[u8]) -> Result<(ProjectorConfig, &[u8]), Projecto
     if bytes.len() < CHECKPOINT_HEADER_BYTES {
         return Err(ProjectorCheckpointError::InvalidEnvelope {
             reason: "file is shorter than its fixed header",
+        });
+    }
+    if bytes.len() > MAXIMUM_CHECKPOINT_BYTES {
+        return Err(ProjectorCheckpointError::InvalidEnvelope {
+            reason: "checkpoint exceeds the M0 byte limit",
         });
     }
     if &bytes[..8] != CHECKPOINT_MAGIC {

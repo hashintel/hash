@@ -28,14 +28,21 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
         (0.5, vec![[0.0, 0.0], [3.0, 0.0], [0.0, 3.0]]),
         (1.0, vec![[0.0, 0.0], [2.0, 0.0], [0.0, 3.0]]),
     ]);
-    let quality = [0_u8, 1, 2]
-        .map(|value| ConditionQuality {
-            semantic_fidelity: true,
-            persistence: true,
-            task_evidence: true,
-            report: ContentHash::digest(&[value]),
+    let quality = projected
+        .fields()
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let value = u8::try_from(index).expect("fixture index should fit u8");
+            ConditionQuality::new(
+                field.content_hash(),
+                ContentHash::digest(&[value, 0]),
+                ContentHash::digest(&[value, 1]),
+                0.99,
+                1.0,
+            )
         })
-        .to_vec();
+        .collect();
     let semantic =
         KnnTable::new(3, 1, vec![2, 2, 0], vec![0.1; 3]).expect("semantic graph should validate");
     let evaluated = projected
@@ -43,6 +50,10 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
             ConditionDomain::new(0.0, 1.0, ContentHash::digest(b"condition-domain"))
                 .expect("condition domain should validate"),
             quality,
+            ConditionQualityPolicy {
+                minimum_semantic_fidelity: 0.95,
+                maximum_subgroup_degradation: 2.0,
+            },
             &[relation_edge()],
             &semantic,
             RelationEnergy::new(0.5, 1.0, 0.5, 0.25, 1.0e-8)
@@ -62,6 +73,14 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
     let canonical = evaluated
         .select_canonical(1.0)
         .expect("passing final condition should select");
+    let bounds = CoordinateBounds::new([-10.0; 2], [10.0; 2]).expect("bounds should validate");
+    let (alternate_quantization, _alternate_measurement) = canonical
+        .clone()
+        .quantize(0.3, bounds.minimum(), bounds.maximum())
+        .expect("alternate canonical coordinates should quantize");
+    let (canonical, _quantization) = canonical
+        .quantize(0.25, bounds.minimum(), bounds.maximum())
+        .expect("canonical coordinates should quantize");
 
     let identities = IdentityDirectory::new(vec![entity(10), entity(20), entity(30)])
         .expect("unique identities should index");
@@ -79,7 +98,7 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
         importance: ImportanceConfig {
             grid_depths: &grid_depths,
             hash_seed: 42,
-            bounds: CoordinateBounds::new([-10.0; 2], [10.0; 2]).expect("bounds should validate"),
+            bounds,
         },
         raster: RasterConfig {
             grid_size: 32,
@@ -113,6 +132,15 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
         config,
     )
     .expect("identical materialization should be idempotent");
+    let alternate = materialize_canonical(
+        &root.join("base-alternate.atlas"),
+        &root.join("analytic-alternate.atlas"),
+        &identities,
+        &alternate_quantization,
+        signals,
+        config,
+    )
+    .expect("alternate quantization should materialize");
 
     assert!(!first.base.artifact.reused_existing);
     assert!(!first.analytic.reused_existing);
@@ -123,6 +151,10 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
         repeated.base.artifact.content_hash
     );
     assert_eq!(first.analytic.content_hash, repeated.analytic.content_hash);
+    assert_ne!(
+        first.base.artifact.content_hash, alternate.base.artifact.content_hash,
+        "changing the applied quantization step must change canonical bytes",
+    );
     assert!(first.region_count >= 2);
     assert!(first.label_count >= 2);
     assert!(first.normalized_persistence > 0.0);
@@ -143,6 +175,55 @@ fn passing_ladder_materializes_idempotent_base_and_analytic_artifacts() {
     assert!(repeated_legacy.layout.reused_existing);
     assert!(repeated_legacy.identities.reused_existing);
     assert!(repeated_legacy.manifest.reused_existing);
+}
+
+#[test]
+fn quality_measurement_must_name_the_exact_projected_field() {
+    let projected = ProjectedLadder::from_fields([
+        (0.0, vec![[0.0, 0.0], [1.0, 0.0]]),
+        (1.0, vec![[0.0, 0.0], [0.5, 0.0]]),
+    ]);
+    let quality = projected
+        .fields()
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            ConditionQuality::new(
+                if index == 0 {
+                    field.content_hash()
+                } else {
+                    ContentHash::digest(b"another projected field")
+                },
+                ContentHash::digest(&[u8::try_from(index).expect("fixture index should fit")]),
+                ContentHash::digest(&[u8::try_from(index + 2).expect("fixture index should fit")]),
+                0.99,
+                1.0,
+            )
+        })
+        .collect();
+    let semantic =
+        KnnTable::new(2, 1, vec![1, 0], vec![0.1; 2]).expect("semantic graph should validate");
+
+    assert!(matches!(
+        projected.evaluate(
+            ConditionDomain::new(0.0, 1.0, ContentHash::digest(b"condition-domain"))
+                .expect("condition domain should validate"),
+            quality,
+            ConditionQualityPolicy {
+                minimum_semantic_fidelity: 0.95,
+                maximum_subgroup_degradation: 2.0,
+            },
+            &[],
+            &semantic,
+            RelationEnergy::new(0.5, 1.0, 0.5, 0.25, 1.0e-8)
+                .expect("relation energy should validate"),
+            ConditionMeasurementConfig {
+                distinguishability_floor: 1.0e-4,
+                monotonicity_tolerance: 1.0e-9,
+            },
+        ),
+        Err(GenerationError::QualityField { index: 1, .. })
+    ));
 }
 
 fn relation_edge() -> AttractionEdge {

@@ -23,26 +23,33 @@
 //!
 //! # Loading and borrowing
 //!
-//! [`ArtifactView::new`] validates borrowed bytes. [`MappedArtifact`] keeps a
-//! shared file lock alive with its read-only mapping and returns
+//! [`ArtifactView::new`] validates borrowed bytes. [`MappedArtifact`] snapshots
+//! each source into a private unlinked file before mapping and returns
 //! [`ArtifactView`] values whose typed sections borrow that mapping. Section
 //! headers, descriptors, and numeric arrays are borrowed through `zerocopy`;
 //! semantic validation remains explicit and no numeric section is copied.
 //!
-//! The file lock is advisory. Artifact writers must honor it and must publish
-//! immutable files instead of rewriting mapped paths.
+//! The private snapshot prevents later writes or truncation of the published
+//! path from changing live bytes or invalidating the mapping. A shared advisory
+//! lock is still taken while copying to coordinate with conforming publishers;
+//! correctness does not depend on that lock.
 //!
 //! # Cost
 //!
-//! Header and descriptor validation uses constant additional space. Payload
-//! hash verification and padding checks scan `O(file length)` bytes once when
-//! a view is created. Section lookup scans at most 256 descriptors and typed
-//! section access is constant time.
+//! Loading copies `O(file length)` bytes once into private temporary storage.
+//! Header and descriptor validation then uses constant additional memory.
+//! Payload hash verification and padding checks scan the private snapshot once.
+//! Section lookup scans at most 256 descriptors and typed section access is
+//! constant time.
 #![expect(unsafe_code)]
 
-use std::fs::File;
+use std::{
+    fs::File,
+    io::{self, Read as _, Seek as _, Write as _},
+};
 
 use memmap2::{Mmap, MmapOptions};
+use tempfile::tempfile;
 use zerocopy::{
     FromBytes, Immutable, IntoBytes, KnownLayout,
     byteorder::little_endian::{U16, U32, U64},
@@ -417,36 +424,75 @@ impl<'artifact> SectionView<'artifact> {
     }
 }
 
-/// An immutable file-backed artifact.
+/// An immutable private snapshot of a file-backed artifact.
 ///
-/// The mapping and its shared file lock have the same lifetime. Call
-/// [`Self::view`] to borrow validated sections.
+/// The snapshot's writable handle is dropped immediately after mapping. Call
+/// [`Self::bytes`] to borrow bytes that cannot be changed through the published
+/// artifact path.
 #[derive(Debug)]
 pub(crate) struct MappedFile {
-    map: Mmap,
-    _file: File,
+    map: Option<Mmap>,
 }
 
 impl MappedFile {
-    /// Maps an immutable file while retaining its shared lock and exact handle.
+    /// Copies one regular file into a private snapshot and maps that snapshot.
     ///
     /// # Errors
     ///
-    /// This returns an error when locking or mapping fails.
-    pub(crate) fn map_immutable(file: File) -> Result<Self, ArtifactMapError> {
+    /// This returns an error when locking, bounded snapshotting, or mapping
+    /// fails.
+    pub(crate) fn map_immutable(mut file: File) -> Result<Self, ArtifactMapError> {
         file.try_lock_shared()
             .map_err(|error| ArtifactMapError::Io(error.into()))?;
-        // SAFETY: the shared lock and exact file handle remain owned by this
-        // value for at least as long as the read-only mapping.
-        let map = unsafe { MmapOptions::new().map(&file) }.map_err(ArtifactMapError::Io)?;
-        Ok(Self { map, _file: file })
+        let metadata = file.metadata().map_err(ArtifactMapError::Io)?;
+        if !metadata.is_file() {
+            return Err(ArtifactMapError::Io(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "mapped artifact source is not a regular file",
+            )));
+        }
+        file.rewind().map_err(ArtifactMapError::Io)?;
+        let expected = metadata.len();
+        let mut snapshot = tempfile().map_err(ArtifactMapError::Io)?;
+        let copied = io::copy(
+            &mut std::io::Read::by_ref(&mut file).take(expected.saturating_add(1)),
+            &mut snapshot,
+        )
+        .map_err(ArtifactMapError::Io)?;
+        if copied != expected {
+            return Err(ArtifactMapError::Io(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "mapped artifact length changed while it was snapshotted",
+            )));
+        }
+        snapshot.flush().map_err(ArtifactMapError::Io)?;
+        snapshot.rewind().map_err(ArtifactMapError::Io)?;
+        let map = if expected == 0 {
+            None
+        } else {
+            let length = usize::try_from(expected).map_err(|_error| {
+                ArtifactMapError::Io(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "mapped artifact length does not fit memory",
+                ))
+            })?;
+            // SAFETY: `snapshot` is an unlinked private file. Its only writable
+            // handle is dropped before this function returns, while `Mmap`
+            // retains the platform mapping independently.
+            Some(
+                unsafe { MmapOptions::new().len(length).map(&snapshot) }
+                    .map_err(ArtifactMapError::Io)?,
+            )
+        };
+        drop(snapshot);
+        Ok(Self { map })
     }
 
     /// Borrows the exact bytes retained by this mapping.
     #[must_use]
     #[inline]
     pub(crate) fn bytes(&self) -> &[u8] {
-        &self.map
+        self.map.as_deref().unwrap_or_default()
     }
 }
 

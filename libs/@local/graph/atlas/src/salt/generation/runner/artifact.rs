@@ -20,6 +20,15 @@ pub(super) struct ModelArtifact {
     mapped: MappedArtifact,
 }
 
+impl ModelArtifact {
+    /// Borrows the already validated classifier parameters.
+    #[inline]
+    pub(super) fn classifier(&self) -> ClassifierView<'_> {
+        ClassifierView::new(self.mapped.view())
+            .expect("retained classifier mapping should remain valid")
+    }
+}
+
 pub(super) fn inspect_model(
     path: &Utf8Path,
     format: ArtifactFormat,

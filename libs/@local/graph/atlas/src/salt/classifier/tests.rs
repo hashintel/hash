@@ -81,6 +81,16 @@ fn simd_inference_matches_independent_scalar_goldens() {
 }
 
 #[test]
+fn python_export_matches_rust_classifier_artifact() {
+    let bytes = include_bytes!("../../../fixtures/relation-classifier-python-v1.salt");
+    assert_eq!(bytes.as_slice(), fixture());
+
+    let (_file, artifact) = map_fixture(bytes).expect("Python fixture should map");
+    let classifier = ClassifierView::new(artifact.view()).expect("Python fixture should validate");
+    assert_close(classifier.temperature(), 2.0, f64::EPSILON);
+}
+
+#[test]
 fn rejects_wrong_class_order_and_non_positive_scales() {
     let mut bytes = fixture();
     bytes[CLASS_ORDER_OFFSET..CLASS_ORDER_OFFSET + 3].copy_from_slice(&[1, 0, 2]);

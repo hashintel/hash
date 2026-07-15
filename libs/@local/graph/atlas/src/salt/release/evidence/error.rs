@@ -19,6 +19,7 @@ pub(crate) enum GateEvidenceError {
     GateMismatch,
     Duplicate { gate: GateId },
     Missing { gate: GateId },
+    Unexpected { gate: GateId },
     Failed { gate: GateId, reason: &'static str },
     Hash { gate: GateId },
     Report,
@@ -59,6 +60,9 @@ impl fmt::Display for GateEvidenceError {
             }
             Self::Duplicate { gate } => write!(formatter, "release evidence repeats {gate}"),
             Self::Missing { gate } => write!(formatter, "release evidence omits {gate}"),
+            Self::Unexpected { gate } => {
+                write!(formatter, "release evidence includes non-M0 gate {gate}")
+            }
             Self::Failed { gate, reason } => {
                 write!(formatter, "release evidence for {gate} failed: {reason}")
             }
@@ -95,6 +99,7 @@ impl Error for GateEvidenceError {
             | Self::GateMismatch
             | Self::Duplicate { .. }
             | Self::Missing { .. }
+            | Self::Unexpected { .. }
             | Self::Failed { .. }
             | Self::Hash { .. }
             | Self::Report

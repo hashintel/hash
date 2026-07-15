@@ -1,17 +1,22 @@
 """Identifier-free input models for the canonical relation-card renderer."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, NonNegativeInt, model_validator
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 type RelationDirection = Literal["symmetric", "source -> target"]
 
 
 class FrozenModel(BaseModel):
-    """Closed, immutable base for canonical renderer inputs."""
+    """Reject coercion, mutation, unknown fields, and invalid defaults."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
 
 
 class PhraseInput(FrozenModel):
@@ -19,6 +24,25 @@ class PhraseInput(FrozenModel):
 
     label: str
     description: str | None = None
+
+
+class EndpointTypeConstraint(FrozenModel):
+    """One source type's allowed target types and per-source cardinality."""
+
+    source_type: PhraseInput
+    target_types: tuple[PhraseInput, ...] = ()
+    minimum_targets: NonNegativeInt | None = None
+    maximum_targets: NonNegativeInt | None = None
+
+    @model_validator(mode="after")
+    def check_cardinality(self) -> Self:
+        if (
+            self.minimum_targets is not None
+            and self.maximum_targets is not None
+            and self.minimum_targets > self.maximum_targets
+        ):
+            raise ValueError("minimum_targets must not exceed maximum_targets")
+        return self
 
 
 class RelationConstraints(FrozenModel):
@@ -53,6 +77,7 @@ class RelationCardInput(FrozenModel):
     aliases: tuple[str, ...] = ()
     inverse: PhraseInput | None = None
     ancestors: tuple[PhraseInput, ...] = ()
+    endpoint_constraints: tuple[EndpointTypeConstraint, ...] = ()
     source_types: tuple[PhraseInput, ...] = ()
     target_types: tuple[PhraseInput, ...] = ()
     constraints: RelationConstraints

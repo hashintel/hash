@@ -34,6 +34,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
 from atlas_tools.relation.evaluation.domain.api import (
     PLACEMENT_CLASSES,
     ClassifierConfig,
+    CoincidentReviewCounts,
     FrozenMapping,
     NonEmptyStr,
     PlacementClass,
@@ -263,6 +264,25 @@ class ClassifierClosureBinding(BaseModel):
         return tuple(value) if isinstance(value, list) else value
 
 
+class ClassifierCoincidentReviewBinding(BaseModel):
+    """Record the Coincident-evidence decisions applied during fitting."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    schema_version: Literal[2] = 2
+    artifact_id: Sha256Hex
+    decisions_hash: Sha256Hex
+    manifest_hash: Sha256Hex
+    policy_id: Literal["coincident-evidence-confirm-reject-or-exclude-v2"]
+    reviewer: NonEmptyStr
+    counts: CoincidentReviewCounts
+
+
 class ClassifierTargetResolutionBinding(BaseModel):
     """Record the reviewed target decisions applied to ambiguous soft labels."""
 
@@ -282,8 +302,8 @@ class ClassifierTargetResolutionBinding(BaseModel):
     counts: TargetResolutionCounts
 
 
-class ClassifierBundleMetadata(ArtifactMetadata):
-    """Describe all files and scalar contracts in a classifier bundle."""
+class LegacyClassifierBundleMetadata(ArtifactMetadata):
+    """Describe immutable schema-v4 classifier bundles without Coincident review."""
 
     schema_version: Literal[4] = 4
     artifact: Literal["relation-policy-classifier"] = "relation-policy-classifier"
@@ -334,6 +354,16 @@ class ClassifierBundleMetadata(ArtifactMetadata):
         if self.metrics.max_fold_iterations > self.config.max_iterations:
             raise ValueError("fold iterations exceed the configured maximum")
         return self
+
+
+class ClassifierBundleMetadata(LegacyClassifierBundleMetadata):
+    """Describe schema-v5 classifiers and their optional Coincident decisions."""
+
+    schema_version: Literal[5] = 5
+    coincident_reviews: ClassifierCoincidentReviewBinding | None = None
+
+
+type LoadedClassifierBundleMetadata = LegacyClassifierBundleMetadata | ClassifierBundleMetadata
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -393,6 +423,6 @@ class ClassifierBundle:
     metadata_path: Path
     arrays_path: Path
     out_of_fold_path: Path
-    metadata: ClassifierBundleMetadata
+    metadata: LoadedClassifierBundleMetadata
     fit: ClassifierFit
     arrays: ClassifierArrays

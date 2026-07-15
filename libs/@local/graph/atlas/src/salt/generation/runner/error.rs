@@ -6,14 +6,16 @@ use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 
 use crate::salt::{
     classifier::ClassifierError,
-    generation::GenerationError,
+    generation::{GenerationError, PersistenceComparisonError},
     graph::SemanticGraphError,
     identity::ArtifactOrdinal,
     landmark::{LandmarkAssignmentError, LandmarkError, LandmarkFitError},
-    manifest::ManifestError,
+    manifest::{ArtifactRole, ManifestError},
     projector::{ProjectorCheckpointError, ProjectorFitError, ProjectorInferenceError},
     relation::RelationIndexError,
-    release::GateEvidenceError,
+    release::{GateEvidenceError, ReleaseHead},
+    representation::{RepresentationAuditError, RepresentationError},
+    snapshot::SnapshotError,
     storage::mmap::{ArtifactMapError, ArtifactWriteError},
 };
 
@@ -47,10 +49,65 @@ pub(crate) enum CanonicalGenerationError {
         index: usize,
         actual: ArtifactOrdinal,
     },
+    RelationPolicyCapacity {
+        count: usize,
+    },
+    CoincidentGateThreshold {
+        field: &'static str,
+        value: f64,
+    },
+    StratificationRow {
+        position: usize,
+        row: u32,
+    },
+    StratificationRole {
+        row: u32,
+        expected: u32,
+        actual: u32,
+    },
+    AnchorRow {
+        row: u32,
+        rows: usize,
+    },
+    AnchorScalar {
+        row: u32,
+        field: &'static str,
+        value: f64,
+    },
+    StrengthHeadUnsupported,
+    NonUnitStrengthWithoutHead {
+        relation: ArtifactOrdinal,
+        strength: f64,
+    },
+    ManifestContractArtifacts {
+        actual: usize,
+    },
+    ManifestContractVersion {
+        actual: u32,
+    },
+    ManifestContractVariantCount {
+        declared: usize,
+        entries: usize,
+        maximum: usize,
+    },
+    ManifestContractCanonical,
+    SnapshotProvenance,
     SecurityPolicy,
+    ActivationConflict {
+        actual: Option<ReleaseHead>,
+    },
+    ReloadMissing,
+    ReloadMismatch,
+    ReproductionManifest,
+    ReproductionEvidence,
+    ReproductionArtifact {
+        role: ArtifactRole,
+    },
     ExistingModelArtifact,
     Io(io::Error),
     Map(ArtifactMapError),
+    Representation(RepresentationError),
+    RepresentationAudit(RepresentationAuditError),
     Classifier(ClassifierError),
     Graph(SemanticGraphError),
     Relation(RelationIndexError),
@@ -63,10 +120,17 @@ pub(crate) enum CanonicalGenerationError {
     ProjectorCheckpoint(ProjectorCheckpointError),
     Manifest(Report<ManifestError>),
     Generation(GenerationError),
+    Persistence(PersistenceComparisonError),
     Evidence(GateEvidenceError),
+    Snapshot(Report<SnapshotError>),
 }
 
 impl fmt::Display for CanonicalGenerationError {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the display implementation exhaustively renders the typed generation failure \
+                  surface"
+    )]
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InputRows {
@@ -109,13 +173,100 @@ impl fmt::Display for CanonicalGenerationError {
                 formatter,
                 "relation policy at dense index {index} declares ordinal {actual}"
             ),
+            Self::RelationPolicyCapacity { count } => write!(
+                formatter,
+                "generation contains {count} relation policies, exceeding the packed ordinal \
+                 domain",
+            ),
+            Self::CoincidentGateThreshold { field, value } => write!(
+                formatter,
+                "generation Coincident gate {field} threshold is outside [0, 1]: {value}",
+            ),
+            Self::StratificationRow { position, row } => write!(
+                formatter,
+                "representation stratification position {position} contains generation row {row}",
+            ),
+            Self::StratificationRole {
+                row,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "representation stratification row {row} has role {actual}, expected {expected}",
+            ),
+            Self::AnchorRow { row, rows } => {
+                write!(
+                    formatter,
+                    "anchor row {row} is outside the {rows}-row corpus"
+                )
+            }
+            Self::AnchorScalar { row, field, value } => write!(
+                formatter,
+                "anchor {field} for row {row} must be finite, f32-representable, and non-negative \
+                 where required; got {value}",
+            ),
+            Self::StrengthHeadUnsupported => formatter
+                .write_str("the initial M0 profile requires the neutral relation-strength control"),
+            Self::NonUnitStrengthWithoutHead { relation, strength } => write!(
+                formatter,
+                "relation {relation} has free strength {strength} without a derived strength head",
+            ),
+            Self::ManifestContractArtifacts { actual } => write!(
+                formatter,
+                "generation contract contains {actual} caller-authored output artifacts",
+            ),
+            Self::ManifestContractVersion { actual } => {
+                write!(
+                    formatter,
+                    "generation contract has unsupported format version {actual}"
+                )
+            }
+            Self::ManifestContractVariantCount {
+                declared,
+                entries,
+                maximum,
+            } => write!(
+                formatter,
+                "generation contract declares {declared} variants, contains {entries}, and allows \
+                 {maximum}; M0 requires one canonical variant",
+            ),
+            Self::ManifestContractCanonical => {
+                formatter.write_str("generation contract does not contain the canonical M0 variant")
+            }
+            Self::SnapshotProvenance => formatter.write_str(
+                "permission queries and generation inputs name different temporal snapshots",
+            ),
             Self::SecurityPolicy => formatter
                 .write_str("manifest relation security metadata differs from enforced admission"),
+            Self::ActivationConflict { actual } => match actual {
+                Some(actual) => write!(
+                    formatter,
+                    "atlas activation compare-and-swap conflicted with active head {actual:?}"
+                ),
+                None => formatter
+                    .write_str("atlas activation compare-and-swap expected an active generation"),
+            },
+            Self::ReloadMissing => formatter
+                .write_str("newly activated atlas generation was absent during restart loading"),
+            Self::ReloadMismatch => formatter.write_str(
+                "restart loading returned an atlas generation other than the activated release",
+            ),
+            Self::ReproductionManifest => {
+                formatter.write_str("independent generation runs produced different manifests")
+            }
+            Self::ReproductionEvidence => formatter
+                .write_str("independent generation runs produced different gate measurements"),
+            Self::ReproductionArtifact { role } => write!(
+                formatter,
+                "independent generation runs produced different {role} bytes"
+            ),
             Self::ExistingModelArtifact => {
                 formatter.write_str("existing immutable model artifact has different content")
             }
             Self::Io(error) => write!(formatter, "generation storage failed: {error}"),
             Self::Map(error) => error.fmt(formatter),
+            Self::Representation(error) => error.fmt(formatter),
+            Self::RepresentationAudit(error) => error.fmt(formatter),
             Self::Classifier(error) => error.fmt(formatter),
             Self::Graph(error) => error.fmt(formatter),
             Self::Relation(error) => error.fmt(formatter),
@@ -128,7 +279,9 @@ impl fmt::Display for CanonicalGenerationError {
             Self::ProjectorCheckpoint(error) => error.fmt(formatter),
             Self::Manifest(error) => error.fmt(formatter),
             Self::Generation(error) => error.fmt(formatter),
+            Self::Persistence(error) => error.fmt(formatter),
             Self::Evidence(error) => error.fmt(formatter),
+            Self::Snapshot(error) => error.fmt(formatter),
         }
     }
 }
@@ -138,6 +291,8 @@ impl Error for CanonicalGenerationError {
         match self {
             Self::Io(error) => Some(error),
             Self::Map(error) => Some(error),
+            Self::Representation(error) => Some(error),
+            Self::RepresentationAudit(error) => Some(error),
             Self::Classifier(error) => Some(error),
             Self::Graph(error) => Some(error),
             Self::Relation(error) => Some(error),
@@ -149,6 +304,7 @@ impl Error for CanonicalGenerationError {
             Self::ProjectorInference(error) => Some(error),
             Self::ProjectorCheckpoint(error) => Some(error),
             Self::Generation(error) => Some(error),
+            Self::Persistence(error) => Some(error),
             Self::Evidence(error) => Some(error),
             Self::InputRows { .. }
             | Self::RelationType { .. }
@@ -157,9 +313,29 @@ impl Error for CanonicalGenerationError {
             | Self::RelationOrdinal { .. }
             | Self::DuplicateRelationOrdinal { .. }
             | Self::RelationPolicyOrdinal { .. }
+            | Self::RelationPolicyCapacity { .. }
+            | Self::CoincidentGateThreshold { .. }
+            | Self::StratificationRow { .. }
+            | Self::StratificationRole { .. }
+            | Self::AnchorRow { .. }
+            | Self::AnchorScalar { .. }
+            | Self::StrengthHeadUnsupported
+            | Self::NonUnitStrengthWithoutHead { .. }
+            | Self::ManifestContractArtifacts { .. }
+            | Self::ManifestContractVersion { .. }
+            | Self::ManifestContractVariantCount { .. }
+            | Self::ManifestContractCanonical
+            | Self::SnapshotProvenance
             | Self::SecurityPolicy
+            | Self::ActivationConflict { .. }
+            | Self::ReloadMissing
+            | Self::ReloadMismatch
+            | Self::ReproductionManifest
+            | Self::ReproductionEvidence
+            | Self::ReproductionArtifact { .. }
             | Self::ExistingModelArtifact
-            | Self::Manifest(_) => None,
+            | Self::Manifest(_)
+            | Self::Snapshot(_) => None,
         }
     }
 }
@@ -177,6 +353,8 @@ macro_rules! from_error {
 
 from_error!(io::Error, Io);
 from_error!(ArtifactMapError, Map);
+from_error!(RepresentationError, Representation);
+from_error!(RepresentationAuditError, RepresentationAudit);
 from_error!(ClassifierError, Classifier);
 from_error!(SemanticGraphError, Graph);
 from_error!(RelationIndexError, Relation);
@@ -189,4 +367,6 @@ from_error!(ProjectorInferenceError, ProjectorInference);
 from_error!(ProjectorCheckpointError, ProjectorCheckpoint);
 from_error!(Report<ManifestError>, Manifest);
 from_error!(GenerationError, Generation);
+from_error!(PersistenceComparisonError, Persistence);
 from_error!(GateEvidenceError, Evidence);
+from_error!(Report<SnapshotError>, Snapshot);

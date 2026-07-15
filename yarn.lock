@@ -13760,10 +13760,13 @@ __metadata:
   resolution: "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas"
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/darwin-kperf-criterion": "workspace:*"
     "@rust/error-stack": "workspace:*"
+    "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
   languageName: unknown
   linkType: soft

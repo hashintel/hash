@@ -17,22 +17,33 @@ use crate::salt::{
     evaluation::{ConditionDomain, ConditionMeasurementConfig},
     format::CLASSIFIER_FORMAT,
     generation::{
-        CanonicalMaterializationConfig, FrozenCanonicalSignals, GenerationFreezeSource,
-        RelationModelSources, activate_generation, freeze_generation_input,
+        CanonicalMaterializationConfig, ConditionQuality, ConditionQualityEvaluationError,
+        ConditionQualityEvaluator, FrozenCanonicalSignals, GenerationFreezeSource,
+        GenerationManifestContract, PersistedCondition, PersistenceDiagnostics,
+        PersistenceEvaluationError, PersistenceEvaluationSubject, PersistenceGatePolicy,
+        PersistenceQualityEvaluator, ProjectedCondition, RelationModelSources, RelationPolicyInput,
+        RelationPolicyRecords, activate_generation,
     },
     graph::{SemanticGraphConfig, USearchConfig},
+    hash::ContentHash,
     identity::{ArtifactOrdinal, GenerationRowId, IdentityDirectory},
     landmark::{LandmarkCandidate, LandmarkConfig, LandmarkFitConfig},
     manifest::{ArtifactRole, RelationSecurityMode, tests::fixture_manifest},
     materialize::{CoordinateBounds, ImportanceConfig},
-    policy::{CoincidentGate, PlacementPosterior, PolicyEvidence, Probability, resolve},
+    policy::{PlacementPosterior, Probability},
     projector::{
         EntityRole, GradientBudget, HardNegativeConfig, LossWeights, ProjectorBatchPlanConfig,
         ProjectorConfig, ProjectorLossConfig, ProjectorOptimizerConfig, RelationEnergy,
         SemanticAffinity, SupportEnergy,
     },
-    relation::{AttractionConfig, ProtectionConfig, RelationConfidence, RelationPolicy},
-    release::test_support::{passing_payloads_without_ann, signer},
+    relation::{AttractionConfig, ProtectionConfig, RelationConfidence},
+    release::test_support::signer,
+    representation::{
+        AUDITED_PREFIX_DIMENSIONS, CanonicalEmbedding, OwnedCanonicalEmbedding,
+        PROJECTOR_DIMENSIONS, RepresentationAuditReport, canonical_corpus_hash, prefix_corpus_hash,
+        projector_corpus_hash,
+    },
+    revision::AuthorizationRevision,
     snapshot::{
         AuthorizedSnapshot, EntityAtEdition, LinkCandidate, RelationSecurityPolicy, authorize_link,
         authorize_relation_geometry,
@@ -44,6 +55,146 @@ use crate::salt::{
 const ROWS: usize = 32;
 
 type TrainBackend = Autodiff<Candle>;
+
+#[derive(Debug)]
+struct FixtureConditionQualityEvaluator;
+
+impl ConditionQualityEvaluator for FixtureConditionQualityEvaluator {
+    fn suite_version(&self) -> &str {
+        "fixture-condition-quality-v1"
+    }
+
+    fn contract_hash(&self) -> crate::salt::hash::ContentHash {
+        crate::salt::hash::ContentHash::digest(b"fixture-condition-quality-evaluator-v1")
+    }
+
+    fn evaluate(
+        &self,
+        fields: &[ProjectedCondition],
+    ) -> Result<Vec<ConditionQuality>, ConditionQualityEvaluationError> {
+        Ok(fields
+            .iter()
+            .map(|field| {
+                let mut semantic =
+                    crate::salt::hash::ContentHasher::new(b"fixture-semantic-fidelity-report-v1");
+                semantic.update(field.content_hash().as_bytes());
+                let mut task = crate::salt::hash::ContentHasher::new(b"fixture-task-report-v1");
+                task.update(field.content_hash().as_bytes());
+                ConditionQuality::new(
+                    field.content_hash(),
+                    semantic.finish(),
+                    task.finish(),
+                    0.99,
+                    1.0,
+                )
+            })
+            .collect())
+    }
+
+    fn evaluate_persisted(
+        &self,
+        field: PersistedCondition<'_>,
+    ) -> Result<ConditionQuality, ConditionQualityEvaluationError> {
+        if field.coordinates().len() != ROWS || !field.condition().is_finite() {
+            return Err(ConditionQualityEvaluationError::new(
+                "fixture received an invalid persisted field",
+            ));
+        }
+        let mut semantic =
+            crate::salt::hash::ContentHasher::new(b"fixture-semantic-fidelity-report-v1");
+        semantic.update(field.content_hash().as_bytes());
+        let mut task = crate::salt::hash::ContentHasher::new(b"fixture-task-report-v1");
+        task.update(field.content_hash().as_bytes());
+        Ok(ConditionQuality::new(
+            field.content_hash(),
+            semantic.finish(),
+            task.finish(),
+            0.99,
+            1.0,
+        ))
+    }
+}
+
+static CONDITION_QUALITY_EVALUATOR: FixtureConditionQualityEvaluator =
+    FixtureConditionQualityEvaluator;
+
+#[derive(Debug)]
+struct FixturePersistenceQualityEvaluator;
+
+impl PersistenceQualityEvaluator for FixturePersistenceQualityEvaluator {
+    fn suite_version(&self) -> &str {
+        "fixture-persistence-quality-v1"
+    }
+
+    fn contract_hash(&self) -> crate::salt::hash::ContentHash {
+        crate::salt::hash::ContentHash::digest(b"fixture-persistence-evaluator-v1")
+    }
+
+    fn evaluate(
+        &self,
+        subject: PersistenceEvaluationSubject<'_>,
+    ) -> Result<PersistenceDiagnostics, PersistenceEvaluationError> {
+        let report_hash = |domain: &[u8]| {
+            let mut hasher = crate::salt::hash::ContentHasher::new(domain);
+            hasher.update(subject.checkpoint_hash.as_bytes());
+            hasher.update(subject.field_hash.as_bytes());
+            hasher.update(subject.candidate_tree.content_hash().as_bytes());
+            hasher.update(subject.reference_tree.content_hash().as_bytes());
+            hasher.update(subject.reference_source_hash.as_bytes());
+            hasher.finish()
+        };
+        Ok(PersistenceDiagnostics {
+            candidate_low_persistence_mass: 0.0,
+            reference_low_persistence_mass: 0.0,
+            candidate_noise_persistence: 0.0,
+            reference_noise_persistence: 0.0,
+            planted_shape_cases: 6,
+            planted_shape_failures: 0,
+            distribution_report_hash: report_hash(b"fixture-persistence-distributions-v1"),
+            planted_shape_report_hash: report_hash(b"fixture-persistence-planted-v1"),
+            noise_report_hash: report_hash(b"fixture-persistence-noise-v1"),
+        })
+    }
+}
+
+static PERSISTENCE_QUALITY_EVALUATOR: FixturePersistenceQualityEvaluator =
+    FixturePersistenceQualityEvaluator;
+const PERSISTENCE_THRESHOLDS: &[f64] = &[1.0e-6];
+
+#[test]
+fn external_authority_rejects_runner_derived_gates() {
+    let issuer = crate::salt::release::test_support::TestExternalGateGrantIssuer::new();
+    let result = crate::salt::release::TrustedExternalGateAuthority::new(
+        crate::salt::release::GateId::AnnRecall,
+        &issuer,
+        signer().verifier(),
+    );
+
+    assert!(matches!(
+        result,
+        Err(crate::salt::release::GateEvidenceError::Failed {
+            gate: crate::salt::release::GateId::AnnRecall,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn release_authority_requires_an_independent_authorization_suite() {
+    let release_signer = signer();
+    let issuer = crate::salt::release::test_support::TestExternalGateGrantIssuer::new();
+    let mut authorities = crate::salt::release::test_support::external_authorities(&issuer);
+    authorities.retain(|authority| {
+        authority.gate() != crate::salt::release::GateId::AuthorizationNoninterference
+    });
+
+    assert!(matches!(
+        CanonicalReleaseAuthority::new(&release_signer, authorities),
+        Err(crate::salt::release::GateEvidenceError::Missing {
+            gate: crate::salt::release::GateId::AuthorizationNoninterference,
+        })
+    ));
+}
 
 #[test]
 fn model_copy_uses_the_exact_frozen_mapping_after_path_replacement() {
@@ -91,12 +242,21 @@ fn generation_contract_is_order_canonical_and_excludes_derived_outputs() {
         expected
     );
 
-    let mut governance = manifest;
+    let mut governance = manifest.clone();
     governance.relations.annotation_corpus_hash =
         crate::salt::hash::ContentHash::digest(b"different annotation corpus");
     assert_ne!(
         super::identity::manifest_contract_hash(&governance),
         expected
+    );
+
+    let mut timestamped = manifest;
+    timestamped.created_at = "2026-07-15T12:00:00Z"
+        .parse()
+        .expect("fixture timestamp should parse");
+    assert_ne!(
+        super::identity::manifest_contract_hash(&timestamped),
+        expected,
     );
 }
 
@@ -110,6 +270,17 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     let identities =
         IdentityDirectory::new(entities.clone()).expect("generation entities should be unique");
     let representation_values = representations();
+    let mut canonical_embeddings =
+        Vec::with_capacity(ROWS * crate::salt::representation::CANONICAL_DIMENSIONS);
+    for row in representation_values.chunks_exact(crate::salt::representation::PROJECTOR_DIMENSIONS)
+    {
+        canonical_embeddings.extend_from_slice(row);
+        canonical_embeddings.resize(
+            canonical_embeddings.len() + crate::salt::representation::CANONICAL_DIMENSIONS
+                - crate::salt::representation::PROJECTOR_DIMENSIONS,
+            0.0,
+        );
+    }
     let roles = [EntityRole::KnowledgeEntity; ROWS];
 
     let relation_type =
@@ -131,7 +302,10 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         &HashSet::from([relation_type.clone()]),
     )
     .expect("fixture link should be visible");
-    let snapshot = AuthorizedSnapshot::from_authorized_links(vec![authorized]);
+    let snapshot = AuthorizedSnapshot::from_authorized_links(
+        vec![authorized],
+        AuthorizationRevision::new(ContentHash::digest(b"fixture-authorization-revision")),
+    );
     let relation_security = RelationSecurityPolicy::for_test(
         RelationSecurityMode::AllSnapshotLinks,
         HashSet::new(),
@@ -142,20 +316,21 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     );
     let ordinal = ArtifactOrdinal::try_from(0_u32).expect("zero ordinal should validate");
     let relation_ordinals = HashMap::from([(relation_type.clone(), ordinal)]);
-    let relation_policies = [RelationPolicy {
-        relation: ordinal,
-        policy: resolve(
-            PolicyEvidence {
-                human_override: Some(
-                    PlacementPosterior::new(0.0, 1.0, 0.0)
-                        .expect("proximal posterior should validate"),
-                ),
-                ..PolicyEvidence::default()
-            },
-            CoincidentGate::default(),
+    let relation_policy_inputs = [RelationPolicyInput::new(
+        ordinal,
+        RelationPolicyRecords::new(
+            Some(
+                PlacementPosterior::new(0.0, 1.0, 0.0).expect("proximal posterior should validate"),
+            ),
+            None,
+            None,
         ),
-        strength: RelationStrength::UNIT,
-    }];
+        OwnedCanonicalEmbedding::from_vec(
+            canonical_embeddings[..crate::salt::representation::CANONICAL_DIMENSIONS].to_vec(),
+        )
+        .expect("relation-card embedding should validate"),
+        RelationStrength::UNIT,
+    )];
     let relation_confidence = HashMap::from([(link_entity, RelationConfidence::default())]);
     let landmark_candidates = landmark_candidates();
     let importance = vec![1.0; ROWS];
@@ -166,21 +341,55 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     publish_classifier_fixture(&classifier);
 
     let mut manifest = fixture_manifest();
+    let mut projector_values = Vec::with_capacity(ROWS * PROJECTOR_DIMENSIONS);
+    for row in canonical_embeddings.chunks_exact(crate::salt::representation::CANONICAL_DIMENSIONS)
+    {
+        let mut prefix = [0.0_f32; PROJECTOR_DIMENSIONS];
+        let _normalization = CanonicalEmbedding::new(row)
+            .expect("fixture canonical embedding should validate")
+            .normalize_prefix(&mut prefix);
+        projector_values.extend_from_slice(&prefix);
+    }
+    let canonical_hash = canonical_corpus_hash(&canonical_embeddings);
+    let projector_hash = projector_corpus_hash(&projector_values);
+    manifest.embedding.canonical_corpus_hash = canonical_hash;
+    manifest.embedding.projector_corpus_hash = projector_hash;
+    manifest.embedding.representation_audit = RepresentationAuditReport {
+        suite_version: "representation-audit-v1".to_owned(),
+        canonical_corpus_hash: canonical_hash,
+        projector_corpus_hash: projector_hash,
+        identity_directory_hash: identities.content_hash(),
+        stratification_input_hash: super::input::representation_stratification_hash(
+            &landmark_candidates,
+            &roles,
+        )
+        .expect("fixture stratification inputs should validate"),
+        prefix_corpus_hashes: AUDITED_PREFIX_DIMENSIONS
+            .map(|dimensions| prefix_corpus_hash(&canonical_embeddings, dimensions)),
+        query_sample_hash: crate::salt::hash::ContentHash::digest(b"runner-audit-sample"),
+        sample_rows: ROWS,
+        overall_recall: [[0.9; 3]; 4],
+        stratified_report_hash: crate::salt::hash::ContentHash::digest(b"runner-audit-strata"),
+        diagnostic_report_hash: crate::salt::hash::ContentHash::digest(b"runner-audit-diagnostics"),
+        clump_report_hash: crate::salt::hash::ContentHash::digest(b"runner-audit-clumps"),
+    };
     manifest.relations.security_mode = RelationSecurityMode::AllSnapshotLinks;
     manifest.relations.strength_head.enabled = false;
     manifest.artifacts.clear();
     let gate_signer = signer();
-    let gate_payloads = passing_payloads_without_ann(&manifest);
+    let external_issuer = crate::salt::release::test_support::TestExternalGateGrantIssuer::new();
     let conditions = [0.0_f32, 0.1];
     let grid_depths = [2_u8, 4, 8];
-    let frozen = freeze_generation_input(GenerationFreezeSource {
+    let source = GenerationFreezeSource {
+        manifest_contract: GenerationManifestContract::new(manifest)
+            .expect("fixture contract should not contain generated artifacts"),
         geometry: authorize_relation_geometry(&snapshot, &relation_security),
         identities,
-        representations: representation_values.into_boxed_slice(),
+        canonical_embeddings: canonical_embeddings.into_boxed_slice(),
         roles: roles.into(),
         type_context: None,
         relation_ordinals,
-        relation_policies: relation_policies.into(),
+        relation_policy_inputs: relation_policy_inputs.into(),
         relation_confidence,
         landmark_candidates: landmark_candidates.into_boxed_slice(),
         subgroup_minimums: Box::new([]),
@@ -195,24 +404,86 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             classifier,
             strength_head: None,
         },
-    })
-    .expect("authorized inputs should freeze");
+    };
+    let reproduction_source = source.clone();
+    let release_authority = CanonicalReleaseAuthority::new(
+        &gate_signer,
+        crate::salt::release::test_support::external_authorities(&external_issuer),
+    )
+    .expect("external authorities should be scoped");
     let outcome = run_canonical_generation::<TrainBackend>(
-        &frozen,
-        generation_config(
-            root,
-            manifest,
-            &conditions,
-            &grid_depths,
-            gate_payloads,
-            &gate_signer,
-        ),
+        source,
+        &generation_config(root, &conditions, &grid_depths),
+        &release_authority,
         &CandleDevice::Cpu,
     )
     .expect("complete canonical generation should publish");
+    let stored_manifest = std::fs::read(outcome.directory.join("manifest.json"))
+        .expect("manifest should be readable");
+    let decoded: crate::salt::manifest::GenerationManifest =
+        serde_json::from_slice(&stored_manifest).expect("published manifest should decode");
+    let canonical_manifest = decoded
+        .canonical_bytes()
+        .expect("decoded manifest should serialize");
+    if stored_manifest != canonical_manifest {
+        let mismatch = stored_manifest
+            .iter()
+            .zip(&canonical_manifest)
+            .position(|(stored, canonical)| stored != canonical)
+            .unwrap_or(stored_manifest.len().min(canonical_manifest.len()));
+        let start = mismatch.saturating_sub(48);
+        let stored_end = (mismatch + 96).min(stored_manifest.len());
+        let canonical_end = (mismatch + 96).min(canonical_manifest.len());
+        panic!(
+            "manifest changed after decoding at byte {mismatch}: stored={:?}, canonical={:?}",
+            String::from_utf8_lossy(&stored_manifest[start..stored_end]),
+            String::from_utf8_lossy(&canonical_manifest[start..canonical_end]),
+        );
+    }
+    let reproduction_root = root.join("independent-reproduction");
+    let reproduced = run_canonical_generation::<TrainBackend>(
+        reproduction_source,
+        &generation_config(&reproduction_root, &conditions, &grid_depths),
+        &release_authority,
+        &CandleDevice::Cpu,
+    )
+    .expect("independent reproduction should publish");
+    assert_eq!(outcome.manifest, reproduced.manifest);
+    assert!(!outcome.manifest.relations.strength_head.enabled);
+    assert_eq!(
+        outcome.manifest.relations.strength_head.model_hash,
+        crate::salt::hash::ContentHash::digest(b"hash.graph.atlas.salt.unit-strength.v1"),
+    );
+    let canonical = outcome
+        .manifest
+        .variants
+        .entries
+        .iter()
+        .find(|variant| variant.id == outcome.manifest.variants.canonical_variant)
+        .expect("canonical variant should exist");
+    assert_eq!(
+        canonical.projected_field_hash, canonical.canonical_field_hash,
+        "quality evidence must measure the exact persisted coordinate field"
+    );
+    for artifact in &outcome.manifest.artifacts {
+        let original = std::fs::read(outcome.directory.join(&artifact.relative_path))
+            .expect("original artifact should remain readable");
+        let reproduction = std::fs::read(reproduced.directory.join(&artifact.relative_path))
+            .expect("reproduced artifact should remain readable");
+        assert_eq!(
+            original, reproduction,
+            "{} should reproduce byte-for-byte",
+            artifact.role
+        );
+    }
 
-    let store =
-        FileActivationStore::<TrainBackend>::new(root, gate_signer.verifier(), CandleDevice::Cpu);
+    let external_verifiers = release_authority.external_verifiers().clone();
+    let store = FileActivationStore::<TrainBackend>::new(
+        root,
+        gate_signer.verifier(),
+        external_verifiers.clone(),
+        CandleDevice::Cpu,
+    );
     assert!(
         store
             .current()
@@ -223,26 +494,33 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     activate_generation::<TrainBackend>(
         root,
         gate_signer.verifier(),
+        external_verifiers.clone(),
         CandleDevice::Cpu,
         None,
         outcome.candidate,
     )
     .expect("explicit activation should succeed");
 
-    let restarted =
-        FileActivationStore::<TrainBackend>::new(root, gate_signer.verifier(), CandleDevice::Cpu)
-            .load_active()
-            .expect("active generation should verify after restart")
-            .expect("active generation should exist");
+    let restarted = FileActivationStore::<TrainBackend>::new(
+        root,
+        gate_signer.verifier(),
+        external_verifiers.clone(),
+        CandleDevice::Cpu,
+    )
+    .load_active()
+    .expect("active generation should verify after restart")
+    .expect("active generation should exist");
     assert_eq!(
         restarted.release().head(),
         outcome.candidate.release().head()
     );
     for role in [
+        ArtifactRole::Representations,
         ArtifactRole::RelationClassifier,
         ArtifactRole::SemanticGraph,
         ArtifactRole::RelationIndexes,
         ArtifactRole::LandmarkSkeleton,
+        ArtifactRole::LandmarkReferencePersistence,
         ArtifactRole::CanonicalBase,
         ArtifactRole::CanonicalAnalytics,
     ] {
@@ -265,36 +543,39 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     std::fs::write(&outcome.legacy.layout.path, b"tampered")
         .expect("legacy layout should be corruptible in the fixture");
     assert!(
-        FileActivationStore::<TrainBackend>::new(root, gate_signer.verifier(), CandleDevice::Cpu,)
-            .load_active()
-            .is_err(),
+        FileActivationStore::<TrainBackend>::new(
+            root,
+            gate_signer.verifier(),
+            external_verifiers,
+            CandleDevice::Cpu,
+        )
+        .load_active()
+        .is_err(),
         "restart loading must verify opaque legacy exports"
     );
 }
 
 fn generation_config<'config>(
     root: &'config Utf8Path,
-    manifest: crate::salt::manifest::GenerationManifest,
     conditions: &'config [f32],
     grid_depths: &'config [u8],
-    gate_payloads: Vec<crate::salt::release::GateEvidencePayload>,
-    gate_signer: &'config crate::salt::release::GateSigner,
 ) -> CanonicalGenerationConfig<'config> {
     let small = NonZeroUsize::new(4).expect("four should be non-zero");
     CanonicalGenerationConfig {
         root,
-        manifest,
         semantic_index: USearchConfig::default(),
         semantic_graph: SemanticGraphConfig {
             neighbors: NonZeroUsize::new(30).expect("thirty should be non-zero"),
         },
-        audit_rows: &[0, 7, 15, 23, 31],
+        audit_sample_size: NonZeroUsize::new(ROWS).expect("row count should be non-zero"),
+        audit_seed: 40,
         attraction: AttractionConfig::default(),
         protection: ProtectionConfig::new(
             Probability::ZERO,
             Probability::ZERO,
             Probability::ZERO,
             Probability::ZERO,
+            true,
         )
         .expect("zero protection should validate"),
         landmarks: LandmarkConfig {
@@ -363,20 +644,17 @@ fn generation_config<'config>(
             crate::salt::hash::ContentHash::digest(b"runner-condition-domain"),
         )
         .expect("condition domain should validate"),
-        condition_quality: conditions
-            .iter()
-            .map(|condition| crate::salt::generation::ConditionQuality {
-                semantic_fidelity: true,
-                persistence: true,
-                task_evidence: true,
-                report: crate::salt::hash::ContentHash::digest(&condition.to_le_bytes()),
-            })
-            .collect(),
+        condition_quality_evaluator: &CONDITION_QUALITY_EVALUATOR,
+        condition_quality_policy: crate::salt::generation::ConditionQualityPolicy {
+            minimum_semantic_fidelity: 0.95,
+            maximum_subgroup_degradation: 2.0,
+        },
         condition_measurement: ConditionMeasurementConfig {
             distinguishability_floor: f64::MIN_POSITIVE,
             monotonicity_tolerance: 1.0e12,
         },
         canonical_condition: 0.0,
+        variant_quantization_step: 1.0e-3,
         inference_batch_size: NonZeroUsize::new(16).expect("sixteen should be non-zero"),
         materialization: CanonicalMaterializationConfig {
             importance: ImportanceConfig {
@@ -399,9 +677,15 @@ fn generation_config<'config>(
                 b"runner-analytic-config",
             ),
         },
+        persistence_policy: PersistenceGatePolicy {
+            fixed_thresholds: PERSISTENCE_THRESHOLDS,
+            minimum_ratio: f64::EPSILON,
+            maximum_ratio: 1.0e6,
+            maximum_low_persistence_ratio: 1.0e6,
+            maximum_noise_ratio: 1.0e6,
+        },
+        persistence_evaluator: &PERSISTENCE_QUALITY_EVALUATOR,
         legacy_tag: 0,
-        gate_payloads,
-        gate_signer,
     }
 }
 

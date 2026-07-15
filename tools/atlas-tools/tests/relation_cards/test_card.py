@@ -747,7 +747,7 @@ def test_hash_and_wikidata_adapters_have_canonical_format_parity() -> None:
         labels={EN: "Owns"},
         descriptions={EN: "Possession from an owner to an asset."},
         inverse_pid=Pid("P2"),
-        ancestors=(Pid("P3"),),
+        ancestors=(),
         constraints=Constraints(
             single_value=True,
             subject_types=(Qid("Q1"),),
@@ -759,7 +759,6 @@ def test_hash_and_wikidata_adapters_have_canonical_format_parity() -> None:
         splitter=NaiveSentenceSplitter(),
         labels={
             Pid("P2"): EntityLabel(label="Owned By"),
-            Pid("P3"): EntityLabel(label="Link", description="A generic connection."),
             Qid("Q1"): EntityLabel(label="Person", description="A human being."),
             Qid("Q2"): EntityLabel(
                 label="Asset",

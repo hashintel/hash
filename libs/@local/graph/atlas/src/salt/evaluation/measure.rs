@@ -14,9 +14,6 @@ use crate::salt::{
 pub(crate) struct ConditionField<'field> {
     pub condition: f64,
     pub coordinates: &'field [[f64; 2]],
-    pub semantic_fidelity: bool,
-    pub persistence: bool,
-    pub task_evidence: bool,
     pub upstream_report: ContentHash,
 }
 
@@ -238,9 +235,6 @@ pub(crate) fn measure_condition_ladder(
             ConditionEvidence {
                 monotonicity,
                 distinguishability,
-                semantic_fidelity: field.semantic_fidelity,
-                persistence: field.persistence,
-                task_evidence: field.task_evidence,
                 report,
             },
         ));
@@ -255,6 +249,40 @@ pub(crate) fn measure_condition_ladder(
         previous_loss = Some(relation_loss);
     }
     Ok((ConditionLadder::new(domain, candidates)?, measurements))
+}
+
+/// Measures relation energy over one materialization-ready coordinate field.
+///
+/// Local semantic scales are recomputed from the supplied coordinates, so the
+/// result describes that exact field rather than an earlier projector output.
+///
+/// # Errors
+///
+/// This returns an error for a relation endpoint outside the field or when the
+/// scale or relation objective produces a non-finite value.
+pub(crate) fn measure_persisted_relation_loss(
+    coordinates: &[[f64; 2]],
+    relations: &[AttractionEdge],
+    semantic: &KnnTable,
+    energy: RelationEnergy,
+) -> Result<f64, ConditionMeasurementError> {
+    for relation in relations {
+        for row in [relation.left, relation.right] {
+            if row.as_usize() >= coordinates.len() {
+                return Err(ConditionMeasurementError::RelationRow {
+                    row: row.as_u32(),
+                    rows: coordinates.len(),
+                });
+            }
+        }
+    }
+    relation_loss(
+        coordinates,
+        relations,
+        &local_scales(coordinates, semantic)?,
+        energy,
+    )
+    .map_err(Into::into)
 }
 
 fn relation_loss(
@@ -295,7 +323,7 @@ struct MeasurementIdentity<'field> {
 }
 
 fn measurement_hash(identity: MeasurementIdentity<'_>) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.condition-measurement.v2");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.condition-measurement.v3");
     hasher.update(identity.domain.version().as_bytes());
     hasher.update(
         &identity
@@ -319,9 +347,6 @@ fn measurement_hash(identity: MeasurementIdentity<'_>) -> ContentHash {
     hasher.update(&[
         u8::from(identity.monotonicity),
         u8::from(identity.distinguishability),
-        u8::from(identity.field.semantic_fidelity),
-        u8::from(identity.field.persistence),
-        u8::from(identity.field.task_evidence),
     ]);
     if let Some(alignment) = identity.alignment {
         for value in [

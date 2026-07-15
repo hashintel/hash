@@ -7,14 +7,44 @@ use crate::salt::{
     graph::{
         KnnTable, Neighbor, NeighborIndex, ProjectorEmbeddings, SemanticEdgeWeights,
         SemanticGraphConfig, SemanticGraphError, USearchConfig, USearchIndex,
-        audit::{MINIMUM_RECALL, audit_recall},
+        audit::{MINIMUM_RECALL, audit_recall, stratified_audit_sample},
         build_semantic_graph,
         kernel::cosine_distance,
         publish_semantic_graph,
     },
     hash::ContentHash,
+    identity::GenerationRowId,
+    landmark::LandmarkCandidate,
     representation::PROJECTOR_DIMENSIONS,
 };
+
+#[test]
+fn audit_sampling_is_seeded_and_balanced_across_complete_strata() {
+    let mut candidates = (0_u32..8)
+        .map(|row| LandmarkCandidate {
+            row: GenerationRowId::from_u32(row).expect("fixture row should fit"),
+            sampling_weight: 1.0,
+            density: 0,
+            language: row / 4,
+            source: 0,
+            entity_role: 0,
+            type_family: 0,
+            community: 0,
+            temporal_cohort: 0,
+            prior_landmark: false,
+        })
+        .collect::<Vec<_>>();
+    let maximum = NonZeroUsize::new(2).expect("fixture sample should be non-zero");
+    let first = stratified_audit_sample(&candidates, candidates.len(), maximum, 41)
+        .expect("complete strata should sample");
+    candidates.reverse();
+    let reordered = stratified_audit_sample(&candidates, candidates.len(), maximum, 41)
+        .expect("candidate order should not affect sampling");
+
+    assert_eq!(first, reordered);
+    assert_eq!(first.iter().filter(|&&row| row < 4).count(), 1);
+    assert_eq!(first.iter().filter(|&&row| row >= 4).count(), 1);
+}
 
 #[derive(Debug, Copy, Clone)]
 struct ExactIndex<'embedding> {

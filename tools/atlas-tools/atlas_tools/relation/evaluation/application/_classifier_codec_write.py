@@ -36,6 +36,7 @@ from atlas_tools.relation.evaluation.application._classifier_codec_validation im
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierBundle,
     ClassifierBundleMetadata,
+    ClassifierCoincidentReviewBinding,
     ClassifierTargetResolutionBinding,
     hash_mapping,
 )
@@ -50,6 +51,7 @@ def write_classifier_bundle(
     source_hashes: Mapping[str, Sha256Hex],
     closure: VerifiedFamilyClosure,
     target_resolutions: ClassifierTargetResolutionBinding | None = None,
+    coincident_reviews: ClassifierCoincidentReviewBinding | None = None,
 ) -> ClassifierBundle:
     """Write a classifier bundle whose metadata binds every numeric artifact.
 
@@ -70,7 +72,12 @@ def write_classifier_bundle(
     arrays_payload = deterministic_npz(array_mapping(arrays))
     disk_rows = tuple(OutOfFoldDiskRow.from_prediction(row) for row in rows)
     out_of_fold_payload = parquet_bytes(disk_rows, OUT_OF_FOLD_SCHEMA)
-    algorithm_mapping = algorithms(classifier, fit.cross_fit_folds, target_resolutions)
+    algorithm_mapping = algorithms(
+        classifier,
+        fit.cross_fit_folds,
+        target_resolutions,
+        coincident_reviews,
+    )
     metadata = ClassifierBundleMetadata(
         schema_hashes=SCHEMA_HASHES,
         algorithms=algorithm_mapping,
@@ -89,6 +96,7 @@ def write_classifier_bundle(
         cross_fit_temperatures=tuple(fold.temperature for fold in fit.cross_fit_folds),
         closure=closure_binding(closure),
         target_resolutions=target_resolutions,
+        coincident_reviews=coincident_reviews,
         config=classifier.config,
         metrics=fit.metrics,
     )
@@ -123,6 +131,7 @@ async def write_classifier_bundle_async(
     source_hashes: Mapping[str, Sha256Hex],
     closure: VerifiedFamilyClosure,
     target_resolutions: ClassifierTargetResolutionBinding | None = None,
+    coincident_reviews: ClassifierCoincidentReviewBinding | None = None,
 ) -> ClassifierBundle:
     """Write a classifier bundle without blocking Trio's event loop."""
     operation = partial(
@@ -132,5 +141,6 @@ async def write_classifier_bundle_async(
         source_hashes=dict(source_hashes),
         closure=closure,
         target_resolutions=target_resolutions,
+        coincident_reviews=coincident_reviews,
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)

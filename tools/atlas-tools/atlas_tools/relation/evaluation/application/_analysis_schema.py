@@ -125,7 +125,7 @@ EMBEDDING_METADATA_SCHEMA = {
     "schema_version": 1,
 }
 
-METADATA_SCHEMA = {
+LEGACY_METADATA_SCHEMA = {
     "artifact": "relation-policy-classifier",
     "content": [
         CLASSIFIER_ARRAYS_FILENAME,
@@ -148,4 +148,30 @@ METADATA_SCHEMA = {
         "temperature": "positive-finite-float64",
     },
     "schema_version": 4,
+}
+
+METADATA_SCHEMA = {
+    "artifact": "relation-policy-classifier",
+    "content": [
+        CLASSIFIER_ARRAYS_FILENAME,
+        CLASSIFIER_OUT_OF_FOLD_FILENAME,
+    ],
+    "fields": {
+        **_ARTIFACT_METADATA_FIELDS,
+        "schema_version": "literal[5]",
+        "classes": "tuple[coincident,proximal,overlay]",
+        "closure": "classifier-closure-binding-v1",
+        "coincident_reviews": "classifier-coincident-review-binding-v2-or-null",
+        "config": "classifier-config-v1",
+        "cross_fit_temperatures": "tuple[positive-finite-float64]",
+        "embedding_dimension": "positive-int",
+        "fold_assignment_hash": "sha256",
+        "metrics": "classifier-metrics-v2",
+        "model_iterations": "positive-int",
+        "relation_order_hash": "sha256",
+        "rows": "positive-int",
+        "target_resolutions": "classifier-target-resolution-binding-v1-or-null",
+        "temperature": "positive-finite-float64",
+    },
+    "schema_version": 5,
 }

@@ -51,6 +51,7 @@ from atlas_tools.relation.evaluation.analysis.deliverables import SoftLabel
 from atlas_tools.relation.evaluation.domain.api import (
     CardHash,
     ClassifierConfig,
+    CoincidentReviewRow,
     RelationId,
     TargetResolutionRow,
 )
@@ -162,13 +163,17 @@ def fit_policy_classifier(
     families: Sequence[FamilyBindingRow],
     config: ClassifierConfig,
     resolutions: Sequence[TargetResolutionRow] = (),
+    coincident_reviews: Sequence[CoincidentReviewRow] = (),
 ) -> ClassifierFit:
     """Fit final and grouped out-of-fold soft-target classifiers.
 
     Every label must have exactly one embedding and one verified closure row
     with the same relation ID and card hash. A label without placement-vote
-    weight additionally requires one reviewed placement or exclusion decision.
-    Closure families are assigned atomically to balanced deterministic folds. Each held-out
+    weight additionally requires one ambiguous-target decision. A supplied
+    Coincident review either preserves the original soft target, removes
+    Coincident votes while retaining Proximal/Overlay evidence, or applies a
+    zero-weight supervised exclusion. Closure families are assigned atomically to
+    balanced deterministic folds. Each held-out
     fold uses inner grouped predictions for temperature fitting and only its
     outer-training embeddings for applicability. Every optimizer invocation
     must report convergence or the fit fails.
@@ -178,7 +183,13 @@ def fit_policy_classifier(
             optimizer results violate the classifier contract.
 
     """
-    data = join_training_data(labels, embeddings, families, resolutions)
+    data = join_training_data(
+        labels,
+        embeddings,
+        families,
+        resolutions,
+        coincident_reviews,
+    )
     validate_training_cohorts(data, config)
     assignment = grouped_fold_assignment(data, config)
     cross_fit = cross_fit_predictions(

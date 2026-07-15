@@ -16,6 +16,10 @@ pub(crate) struct EntityAtEdition {
 
 /// Link topology and metadata required by downstream relation processing.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "sibling snapshot stages share immutable candidate internals within this boundary"
+)]
 pub(crate) struct LinkCandidate {
     pub(super) link: EntityAtEdition,
     pub(super) left: EntityAtEdition,
@@ -31,7 +35,7 @@ impl LinkCandidate {
     /// the selected entity editions. Authorization verifies every member before
     /// the link can enter an [`AuthorizedSnapshot`](super::AuthorizedSnapshot).
     #[must_use]
-    pub(super) fn new(
+    pub(crate) const fn new(
         link: EntityAtEdition,
         left: EntityAtEdition,
         right: EntityAtEdition,

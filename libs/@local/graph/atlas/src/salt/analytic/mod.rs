@@ -16,6 +16,7 @@ mod error;
 mod label;
 mod merge_tree;
 mod raster;
+mod reference;
 mod region;
 
 #[allow(
@@ -26,8 +27,9 @@ pub(crate) use self::{
     artifact::publish_analytic_artifact,
     error::AnalyticError,
     label::{RegionLabelCandidate, select_region_labels},
-    merge_tree::{MergeTreeConfig, PersistenceLeaf, merge_tree},
+    merge_tree::{MergeTree, MergeTreeConfig, PersistenceLeaf, merge_tree},
     raster::{AnalyticPoint, DensityRaster, RasterConfig, density_raster},
+    reference::publish_persistence_reference,
     region::{RegionConfig, density_regions},
 };
 

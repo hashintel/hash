@@ -17,9 +17,12 @@
 //!
 //! # Numerical behavior
 //!
-//! Reduction order is fixed for a given build target. Targets with native FMA
-//! may differ in the final bits from targets that evaluate multiplication and
-//! addition separately.
+//! Squared components are accumulated into fixed SIMD lanes and reduced in
+//! ascending lane order. The transform therefore has one bit-level contract
+//! across supported IEEE-754 targets.
+
+mod artifact;
+mod audit;
 
 use core::{
     error::Error,
@@ -27,7 +30,13 @@ use core::{
     simd::{f32x8, f64x8, num::SimdFloat as _},
 };
 
-use crate::salt::simd::mul_add_f64x8;
+pub(crate) use artifact::{PublishedRepresentations, publish_representations};
+pub(crate) use audit::{
+    AUDITED_PREFIX_DIMENSIONS, RepresentationAuditError, RepresentationAuditReport,
+    prefix_corpus_hash,
+};
+
+use crate::salt::hash::{ContentHash, ContentHasher};
 
 /// The stored embedding width.
 pub(crate) const CANONICAL_DIMENSIONS: usize = 3_072;
@@ -37,6 +46,109 @@ pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 
 /// The lower bound used when normalizing a projector prefix.
 pub(crate) const NORMALIZATION_EPSILON: f64 = 1.0e-12;
+
+/// Version of the canonical-to-projector transform.
+pub(crate) const TRANSFORM_VERSION: &str = "matryoshka-prefix-v1";
+
+/// Computes the immutable numerical contract for projector-prefix conversion.
+#[must_use]
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "persistent cross-platform transform identities require little-endian scalars"
+)]
+pub(crate) fn transform_contract_hash() -> ContentHash {
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.projector-transform-contract.v1");
+    hasher.update(TRANSFORM_VERSION.as_bytes());
+    hasher.update(
+        &u64::try_from(CANONICAL_DIMENSIONS)
+            .expect("canonical dimensions should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(
+        &u64::try_from(PROJECTOR_DIMENSIONS)
+            .expect("projector dimensions should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(&NORMALIZATION_EPSILON.to_bits().to_le_bytes());
+    hasher.finish()
+}
+
+/// Computes golden output identity for the compiled projector transform.
+#[must_use]
+#[expect(
+    clippy::cast_precision_loss,
+    clippy::little_endian_bytes,
+    reason = "indexes are exactly represented and persistent identities use little-endian scalars"
+)]
+pub(crate) fn transform_golden_vectors_hash() -> ContentHash {
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.projector-transform-golden.v1");
+    for case in 0..3 {
+        let mut canonical = [0.0_f32; CANONICAL_DIMENSIONS];
+        match case {
+            0 => {}
+            1 => {
+                canonical[0] = 3.0;
+                canonical[1] = 4.0;
+            }
+            2 => {
+                for (index, value) in canonical[..PROJECTOR_DIMENSIONS].iter_mut().enumerate() {
+                    *value = (index as f32 - 255.5) / 256.0;
+                }
+            }
+            _ => unreachable!("fixed golden-vector case should be in range"),
+        }
+        let mut projector = [0.0_f32; PROJECTOR_DIMENSIONS];
+        let normalization = CanonicalEmbedding(&canonical).normalize_prefix(&mut projector);
+        hasher.update(&normalization.norm.to_bits().to_le_bytes());
+        hasher.update(&normalization.denominator.to_bits().to_le_bytes());
+        for value in projector {
+            hasher.update(&value.to_bits().to_le_bytes());
+        }
+    }
+    hasher.finish()
+}
+
+/// Computes the canonical identity of a flat 3,072-dimensional corpus.
+#[must_use]
+pub(crate) fn canonical_corpus_hash(values: &[f32]) -> ContentHash {
+    corpus_hash(
+        b"hash.graph.atlas.salt.canonical-embedding-corpus.v2",
+        CANONICAL_DIMENSIONS,
+        values,
+    )
+}
+
+/// Computes the canonical identity of a flat normalized-prefix corpus.
+#[must_use]
+pub(crate) fn projector_corpus_hash(values: &[f32]) -> ContentHash {
+    corpus_hash(
+        b"hash.graph.atlas.salt.projector-representation-corpus.v1",
+        PROJECTOR_DIMENSIONS,
+        values,
+    )
+}
+
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "persistent cross-platform corpus identities require canonical little-endian scalars"
+)]
+fn corpus_hash(domain: &[u8], dimensions: usize, values: &[f32]) -> ContentHash {
+    let mut hasher = ContentHasher::new(domain);
+    hasher.update(
+        &u64::try_from(dimensions)
+            .expect("fixed representation dimensions should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(
+        &u64::try_from(values.len())
+            .expect("slice length should fit the persisted u64 frame")
+            .to_le_bytes(),
+    );
+    for value in values {
+        hasher.update(&value.to_bits().to_le_bytes());
+    }
+    hasher.finish()
+}
 
 /// A finite canonical embedding with the required width.
 ///
@@ -127,15 +239,19 @@ impl<'embedding> CanonicalEmbedding<'embedding> {
 
             let [wide0, wide1, wide2, wide3]: [f64x8; 4] =
                 [input0.cast(), input1.cast(), input2.cast(), input3.cast()];
-            sum0 = mul_add_f64x8(wide0, wide0, sum0);
-            sum1 = mul_add_f64x8(wide1, wide1, sum1);
-            sum2 = mul_add_f64x8(wide2, wide2, sum2);
-            sum3 = mul_add_f64x8(wide3, wide3, sum3);
+            sum0 += wide0 * wide0;
+            sum1 += wide1 * wide1;
+            sum2 += wide2 * wide2;
+            sum3 += wide3 * wide3;
             index += 4;
         }
         debug_assert_eq!(index, input.len());
 
-        let norm = (sum0 + sum1 + sum2 + sum3).reduce_sum().sqrt();
+        let squared_norm = (sum0 + sum1 + sum2 + sum3)
+            .to_array()
+            .into_iter()
+            .fold(0.0, |sum, lane| sum + lane);
+        let norm = squared_norm.sqrt();
         let denominator = norm.max(NORMALIZATION_EPSILON);
         #[expect(
             clippy::cast_possible_truncation,

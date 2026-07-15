@@ -9,6 +9,7 @@
 
 mod crypto;
 mod error;
+mod external;
 mod model;
 mod store;
 
@@ -17,6 +18,10 @@ pub(super) use self::store::publish_gate_evidence;
 pub(crate) use self::{
     crypto::{GateSigner, GateVerifier},
     error::GateEvidenceError,
-    model::{EvidenceAttestation, GateEvidence, GateEvidencePayload, GateEvidenceSet},
+    external::{
+        ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport, ExternalGateVerifierSet,
+        SignedExternalGateGrantIssuer, TrustedExternalGateAuthority,
+    },
+    model::{GateEvidence, GateEvidencePayload, GateEvidenceSet, reproducibility_output_hash},
     store::load_gate_evidence,
 };

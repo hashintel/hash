@@ -394,6 +394,8 @@ uv run relation evaluate runs/cards config/eval/grid.yaml \
 # probes), per-family abstention < 5%, and the cost envelope.
 uv run relation deliverables runs/grid runs/cards config/eval/grid.yaml \
     --decisions runs/evaluate-analysis/decisions.json --out runs/grid-deliverables
+uv run relation review-coincident runs/grid-deliverables runs/cards \
+    --reviewer <reviewer-name> --out runs/coincident-reviews
 
 # Downstream policy pipeline over the grid votes:
 uv run relation aggregate runs/grid runs/cards config/eval/grid.yaml \
@@ -404,18 +406,44 @@ uv run relation resolve-ambiguous runs/soft-labels.parquet runs/cards \
     --reviewer <reviewer-name> --out runs/target-resolutions
 uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
     family-closure config/eval/grid.yaml --resolutions runs/target-resolutions \
-    --out runs/classifier
+    --coincident-reviews runs/coincident-reviews \
+    --deliverables runs/grid-deliverables --out runs/classifier
+uv run relation export-classifier runs/classifier family-closure \
+    --soft-labels runs/soft-labels.parquet \
+    --resolutions runs/target-resolutions \
+    --coincident-reviews runs/coincident-reviews \
+    --deliverables runs/grid-deliverables --out runs/classifier.salt
 uv run relation report runs/grid runs/cards config/eval/grid.yaml \
-    --gold gold.jsonl --classifier runs/classifier \
+    --classifier runs/classifier \
     --closure family-closure --soft-labels runs/soft-labels.parquet \
-    --resolutions runs/target-resolutions --out runs/report
+    --resolutions runs/target-resolutions \
+    --coincident-reviews runs/coincident-reviews \
+    --deliverables runs/grid-deliverables --out runs/report
+uv run relation visualize-report runs/report --out runs/report-visuals
 ```
+
+`review-coincident` presents every obligatory Coincident queue row in a local
+Textual reviewer. It shows the exact card text, complete verdict tally, and every
+judge vote with its family, verdict, repeat index, and reason. The reviewer must
+Confirm C, Reject C, or Exclude every row; undo is supported, and cancellation
+publishes nothing. The resulting immutable schema-v2 artifact is bound to the exact
+deliverable gate, queue, card, and concat-manifest bytes. Confirmation preserves
+the original smoothed C/P/O target and vote weight. Rejection removes C votes,
+recomputes the same smoothed posterior from the remaining P/O counts, and uses the
+remaining count as weight; it fails closed if no P/O evidence remains. Exclusion
+keeps fold and prediction coverage with zero supervised weight. Existing classifier
+and report directories remain immutable, so applying these decisions requires a
+new fit and new report outputs.
 
 The pilot, grid, aggregate, embed, and panel-only report remain valid without a
 family closure. `fit` always requires one, and a report that loads a classifier
-must receive the exact closure with `--closure`. A resolution-bound classifier
-also requires its exact soft labels and target-resolution artifact via
-`--soft-labels` and `--resolutions`; incomplete pairs fail closed.
+must receive the exact closure with `--closure`. A classifier bound to ambiguous
+target resolutions or Coincident reviews also requires the exact soft labels and
+corresponding review artifact; Coincident review additionally requires the exact
+grid deliverables. Use `--soft-labels`, `--resolutions`, `--coincident-reviews`, and
+`--deliverables` as one complete provenance group; incomplete groups fail closed.
+`--gold` is optional: omitting it produces schema-v2 panel/classifier evidence with
+every gold-dependent field explicitly unavailable and no `gold.jsonl` provenance.
 
 `aggregate` emits soft labels (Dirichlet(1,1,1) posterior means over
 {C, P, O}, unclear votes in the ambiguity column, n_votes, entropy, the
@@ -440,22 +468,45 @@ surface besides OpenRouter completion requests.
 
 `fit` trains the multinomial logistic policy classifier against every
 placement-evidenced or explicitly resolved target, using soft-target
-cross-entropy weighted by placement-vote count or the reviewed unit weight. It must first bind
-the complete soft-label and embedding cohort to the independently verified
+cross-entropy weighted by the effective placement-vote count. Coincident review
+adjusts only Coincident evidence: confirmation preserves the synthetic soft label,
+rejection removes C votes while retaining P/O evidence, and exclusion sets the
+supervised weight to zero. Coincident review and all-ambiguous resolution artifacts
+must be disjoint. Fit first binds the
+complete soft-label and embedding cohort to the independently verified
 [relation family closure](docs/relation-family-closure.md). Whole lineage
 components are then assigned to deterministic outer folds. Each held-out fold
 gets a temperature fitted from inner grouped out-of-fold predictions on the
 outer training rows, and an applicability model fitted only from outer-training
 embeddings. Consequently, neither a row nor its lineage component contributes
-to its own reported calibration or applicability evidence. The final
-deployment model, closure binding, separately identified fitting evidence,
-per-fold validation evidence, and immutable numeric arrays form one versioned
-bundle. `report` renders gold agreement, per-class precision/recall, confusion
-matrices, the Coincident Wilson-LCB gate with its feedability line, calibration
-and applicability sections, per-judge health, and vote economics.
+to its own reported calibration or applicability evidence. The final deployment
+model, closure binding, reviewed-input bindings, separately identified fitting
+evidence, per-fold validation evidence, and immutable numeric arrays form one
+versioned schema-v5 evaluation bundle. The loader retains strict schema-v4
+compatibility for historical bundles; new fits write schema v5. This richer bundle
+is not the Atlas deployment format: its NPZ includes cross-fit-only state that Atlas
+must not consume. `export-classifier` revalidates the bundle, closure, and every
+bound review source, requires the canonical 3,072-dimensional embedding contract,
+and writes only Atlas kind-1/version-1 `classifier.salt`. The exporter reads the
+file back through the same strict SALTMMAP codec before reporting success. Atlas can
+mmap that file directly; class order, seven section shapes, little-endian scalar
+encodings, alignment, payload hash, temperature, scales, and sorted applicability
+distances match the Rust consumer exactly. `report` revalidates each required source
+group against the classifier before rendering panel health,
+classifier applicability when
+supplied, per-judge health, and vote economics. With `--gold`, it additionally
+renders gold agreement, per-class precision/recall, confusion matrices, the
+Coincident Wilson-LCB gate with its feedability line, and calibration.
+`visualize-report` validates that published report and emits five deterministic,
+source-bound PNGs for classifier applicability, judge health, vote economics,
+gold evaluation, and the results overview, plus an explainer Markdown file, a
+self-contained embedded-image HTML report, and a multipage PDF. A schema-v2
+no-gold report produces an explicit unavailable gold panel rather than zero
+metrics. When gold becomes available, write the gold-backed report and its
+visualizations to new directories to retain the pre-gold artifacts.
 
-`gold.jsonl` is the swipe-tool export: one row per relation with the majority
-`verdict`, `pass_count`, label `entropy`, and an optional `post_exposure` flag
+Optional `gold.jsonl` is the swipe-tool export: one row per relation with the
+majority `verdict`, `pass_count`, label `entropy`, and an optional `post_exposure` flag
 for rulings made after the adjudicator saw panel outputs. Classifier fitting
 fails when the closure is missing, stale, or does not cover the joined cohort;
 there is no singleton fallback. If the C-predicted gold stratum is too small
@@ -615,9 +666,10 @@ imported/fresh/refinement counts, the realized trigger rate, SDK versions, and
 run dates. `deliverables/` adds `posteriors.jsonl`, `coincident-queue.jsonl`,
 `nomination-queue.jsonl`, `dissent-ledger.jsonl`, `gates.json`, and
 `report.md`; downstream stages add `soft-labels.parquet`,
-`embeddings.parquet`, the classifier bundle (`classifier.json`, `arrays.npz`,
-`predictions.parquet`), and `report.json`/`report.md`, each with a provenance
-sidecar. `.run.lock` and the `inflight/` marker directory are operational
+`embeddings.parquet`, the evaluation classifier bundle (`classifier.json`,
+`arrays.npz`, `out-of-fold.parquet`), the deployable `classifier.salt` export, and
+`report.json`/`report.md`, each with its applicable provenance. `.run.lock` and the
+`inflight/` marker directory are operational
 state rather than handoff artifacts.
 
 ### `hash-cards`
@@ -631,7 +683,12 @@ uv run hash-cards extract-cards --out hash-cards/ \
 repeatable-read transaction it loads active entity-type versions, keeps the
 latest version of each logical type, identifies SemType link types through
 their resolved Link ancestor, and reverses every latest source type's resolved
-`closed_schema.links` map into source and destination summaries. It writes
+`closed_schema.links` map into paired source-to-allowed-target constraints with
+per-source cardinality. It never flattens those associations into a Cartesian
+product. HASH `link-types.jsonl` schema v2 and card format v8 record these pairs;
+v8 also omits the universal SemType Link root from rendered ancestors while
+retaining non-root relation ancestors and complete identity-bearing lineage. One
+simple endpoint pair retains the legacy unambiguous card sections. It writes
 `link-types.jsonl`, `cards.jsonl`, and `cards.manifest.json`; source URLs and
 database identities remain in JSONL metadata and never enter `card_text`.
 

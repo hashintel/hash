@@ -1,16 +1,11 @@
 use burn::tensor::backend::Backend;
-use camino::Utf8Path;
 
 use super::{ActivationError, ActiveRelease, FileActivationStore};
 use crate::salt::{
-    manifest::{
-        ArtifactRole, GenerationManifest, VerifiedArtifact, load_verified_manifest_with_artifacts,
-    },
-    projector::{ConditionedProjector, ProjectorConfig, load_projector_checkpoint_bytes},
+    manifest::{ArtifactRole, GenerationManifest, VerifiedArtifact},
+    projector::{ConditionedProjector, ProjectorConfig},
     storage::mmap::ArtifactView,
 };
-
-const MANIFEST_FILE: &str = "manifest.json";
 
 /// A verified active generation ready for zero-copy reads and projection.
 ///
@@ -47,6 +42,17 @@ impl<B: Backend> LoadedGeneration<B> {
             .find_map(|artifact| (artifact.role() == role).then(|| artifact.view()).flatten())
     }
 
+    /// Borrows verified bytes by their manifest-relative path.
+    #[must_use]
+    pub(crate) fn artifact_bytes(&self, relative_path: &str) -> Option<&[u8]> {
+        let role = self.manifest.artifacts.iter().find_map(|artifact| {
+            (artifact.relative_path == relative_path).then_some(artifact.role)
+        })?;
+        self.artifacts
+            .iter()
+            .find_map(|artifact| (artifact.role() == role).then(|| artifact.bytes()))
+    }
+
     /// Borrows the decoded relation-conditioned projector.
     #[must_use]
     #[inline]
@@ -68,24 +74,10 @@ impl<B: Backend> FileActivationStore<B> {
     /// artifact schema, memory mapping, or projector tensor differs from the
     /// immutable release contract.
     pub(crate) fn load_active(&self) -> Result<Option<LoadedGeneration<B>>, ActivationError> {
-        let Some(release) = self.current()? else {
+        let Some((release, prepared)) = self.prepare_current()? else {
             return Ok(None);
         };
-        let directory = generation_directory(&self.root, release);
-        let verified = load_verified_manifest_with_artifacts(
-            &directory.join(MANIFEST_FILE),
-            release.head().manifest,
-        )?;
-        let (manifest, artifacts) = verified.into_parts();
-        let checkpoint = artifacts
-            .iter()
-            .find(|artifact| artifact.role() == ArtifactRole::ProjectorCheckpoint)
-            .expect("validated manifest should contain a projector checkpoint");
-        let projector = load_projector_checkpoint_bytes::<B>(
-            checkpoint.bytes(),
-            projector_config(&manifest),
-            &self.device,
-        )?;
+        let (manifest, artifacts, projector) = prepared.into_parts();
         Ok(Some(LoadedGeneration {
             release,
             manifest,
@@ -93,12 +85,6 @@ impl<B: Backend> FileActivationStore<B> {
             projector,
         }))
     }
-}
-
-#[inline]
-fn generation_directory(root: &Utf8Path, release: ActiveRelease) -> camino::Utf8PathBuf {
-    root.join("generations")
-        .join(release.head().generation.to_string())
 }
 
 #[inline]

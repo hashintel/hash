@@ -41,6 +41,24 @@
 //! `projection-metadata.json` into the output directory; a serving process
 //! restores them with [`projection::load_projection`].
 //!
+//! ## SALT command and HTTP API
+//!
+//! The `hash-graph-atlas` binary exposes two commands:
+//!
+//! - `fit --request <json>` passes a bounded JSON request to the configured [`cli::AtlasTrainer`].
+//! - `serve --config <json> --bind <address>` starts the Axum 0.8 [`api::router`] over the verified
+//!   active generation.
+//!
+//! The standalone binary provides serving immediately. Its fitting adapter is
+//! intentionally unconfigured; an embedding application supplies an
+//! [`cli::AtlasTrainer`] through [`cli::run_with`].
+//!
+//! The HTTP surface provides `/healthz`, `/v1/atlas/current`,
+//! `/v1/atlas/current/manifest`, and ranged artifact reads beneath
+//! `/v1/atlas/current/artifacts/{*relative_path}`. The current envelope has no
+//! request authorization, so deployments should bind it to a trusted network
+//! boundary.
+//!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
@@ -59,6 +77,10 @@
     clippy::float_arithmetic,
     clippy::indexing_slicing
 )]
+extern crate alloc;
+
+pub mod api;
+pub mod cli;
 pub mod float;
 pub(crate) mod macros;
 pub mod projection;

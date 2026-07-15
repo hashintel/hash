@@ -25,6 +25,7 @@ pub(super) const CONDITION_DOMAIN_HASH: SectionId = SectionId::new(13);
 pub(super) const SELECTION_EVIDENCE_HASH: SectionId = SectionId::new(14);
 pub(super) const PROCRUSTES_TRANSFORM: SectionId = SectionId::new(15);
 pub(super) const IDENTITY_DIRECTORY_HASH: SectionId = SectionId::new(16);
+pub(super) const QUANTIZATION_STEP: SectionId = SectionId::new(17);
 
 /// Selection identity retained beside the narrowed canonical coordinates.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -34,6 +35,7 @@ pub(crate) struct CanonicalProvenance {
     pub condition_domain_hash: ContentHash,
     pub selection_evidence_hash: ContentHash,
     pub procrustes_transform: [f64; 5],
+    pub quantization_step: f64,
 }
 
 /// Publishes canonical coordinates, delivery indexes, and external identities.
@@ -52,6 +54,10 @@ pub(crate) struct CanonicalProvenance {
 /// This returns an error unless ranked rows form a complete permutation of the
 /// identity directory, coordinates are finite and representable as `f32`, and
 /// immutable publication succeeds.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the writer keeps one explicit, auditable section-construction transaction"
+)]
 pub(crate) fn publish_base_artifact(
     path: &Utf8Path,
     identities: &IdentityDirectory,
@@ -137,6 +143,7 @@ pub(crate) fn publish_base_artifact(
     }
 
     let condition = [provenance.condition];
+    let quantization_step = [provenance.quantization_step];
     let identity_directory_hash = identities.content_hash();
     let sections = [
         ArtifactSection::new(ROWS, &[row_count], &rows),
@@ -171,6 +178,7 @@ pub(crate) fn publish_base_artifact(
             &[32],
             identity_directory_hash.as_bytes(),
         ),
+        ArtifactSection::new(QUANTIZATION_STEP, &[1], &quantization_step),
     ];
     let mut validated = Vec::with_capacity(sections.len());
     for section in sections {
@@ -212,7 +220,7 @@ fn coordinate_f32(row: u32, axis: usize, value: f64) -> Result<f32, BaseArtifact
         return Err(BaseArtifactError::NonFiniteCoordinate { row, axis, value });
     }
     let converted = value as f32;
-    if !converted.is_finite() {
+    if !converted.is_finite() || f64::from(converted).to_bits() != value.to_bits() {
         return Err(BaseArtifactError::CoordinateOverflow { row, axis, value });
     }
     Ok(converted)

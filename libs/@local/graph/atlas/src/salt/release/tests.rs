@@ -57,7 +57,7 @@ fn deserialized_report_must_preserve_canonical_gate_order() {
 }
 
 #[test]
-fn missing_duplicate_and_failed_evidence_fail_closed() {
+fn missing_and_duplicate_evidence_fail_closed() {
     let head = release_head();
     let mut missing = passing_outcomes();
     missing.retain(|outcome| outcome.gate != GateId::SecurityApproval);
@@ -77,18 +77,355 @@ fn missing_duplicate_and_failed_evidence_fail_closed() {
         })
     );
 
-    let mut failed = passing_outcomes();
-    failed
-        .iter_mut()
-        .find(|outcome| outcome.gate == GateId::AnnRecall)
-        .expect("ANN gate should exist")
-        .passed = false;
+    let mut unexpected = passing_outcomes();
+    unexpected.push(GateOutcome {
+        gate: GateId::TemporalDrift,
+        evidence: ContentHash::digest(b"not-applicable-to-initial-m0"),
+    });
     assert_eq!(
-        GateReport::new(head, failed),
-        Err(ReleaseGateError::Failed {
-            gate: GateId::AnnRecall
+        GateReport::new(head, unexpected),
+        Err(ReleaseGateError::Unexpected {
+            gate: GateId::TemporalDrift
         })
     );
+}
+
+#[test]
+fn measured_relation_evidence_cannot_override_manifest_truth() {
+    let manifest = fixture_manifest();
+    let signer = test_support::signer();
+    let verifier = signer.verifier();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let canonical = &manifest.variants.entries[0];
+    let mut payloads = test_support::passing_payloads_without_ann(&manifest);
+    payloads.retain(|payload| payload.gate() != GateId::RelationSatisfaction);
+    payloads.extend([
+        GateEvidencePayload::relation_satisfaction(
+            canonical.selection_evidence_hash,
+            canonical.relation_baseline_field_hash,
+            canonical.canonical_field_hash,
+            canonical.baseline_relation_loss,
+            canonical.baseline_relation_loss + 1.0,
+            canonical.relation_loss_tolerance,
+        ),
+        GateEvidencePayload::ann_recall(test_support::recall_audit(&manifest)),
+    ]);
+    let documents = payloads
+        .into_iter()
+        .map(|payload| {
+            GateEvidence::sign(head, payload, &signer).expect("fixture evidence should sign")
+        })
+        .collect();
+
+    assert!(matches!(
+        GateEvidenceSet::new(
+            head,
+            &manifest,
+            &verifier,
+            &test_support::external_verifiers(),
+            documents,
+        ),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::RelationSatisfaction,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn external_approval_for_another_head_is_rejected() {
+    let manifest = fixture_manifest();
+    let signer = test_support::signer();
+    let verifier = signer.verifier();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let wrong_head = ReleaseHead {
+        manifest: ContentHash::digest(b"another manifest"),
+        ..head
+    };
+    let external_signer = GateSigner::new("other-head-approver", [0x7C; 32])
+        .expect("test external authority should validate");
+    let wrong_grant = ExternalGateGrant::sign(
+        wrong_head,
+        GateId::RelationPolicy,
+        "relation-policy-suite-v1",
+        ContentHash::digest(b"reviewed holdout report"),
+        &external_signer,
+    )
+    .expect("wrong-head grant should still be internally valid");
+    let mut payloads = test_support::passing_payloads_without_ann(&manifest);
+    payloads.retain(|payload| payload.gate() != GateId::RelationPolicy);
+    payloads.extend([
+        GateEvidencePayload::RelationPolicy(wrong_grant),
+        GateEvidencePayload::ann_recall(test_support::recall_audit(&manifest)),
+    ]);
+    let documents = payloads
+        .into_iter()
+        .map(|payload| {
+            GateEvidence::sign(head, payload, &signer).expect("fixture evidence should sign")
+        })
+        .collect();
+
+    assert!(matches!(
+        GateEvidenceSet::new(
+            head,
+            &manifest,
+            &verifier,
+            &test_support::external_verifiers(),
+            documents,
+        ),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::RelationPolicy,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn external_quality_grant_must_name_the_measured_report() {
+    let manifest = fixture_manifest();
+    let signer = test_support::signer();
+    let verifier = signer.verifier();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let canonical = &manifest.variants.entries[0];
+    let external_signer = test_support::external_signer();
+    let wrong_grant = ExternalGateGrant::sign(
+        head,
+        GateId::SemanticFidelity,
+        canonical.quality_suite_version.clone(),
+        ContentHash::digest(b"a different semantic report"),
+        &external_signer,
+    )
+    .expect("wrong report grant should still be internally valid");
+    let mut payloads = test_support::passing_payloads_without_ann(&manifest);
+    payloads.retain(|payload| payload.gate() != GateId::SemanticFidelity);
+    payloads.extend([
+        GateEvidencePayload::SemanticFidelity(wrong_grant),
+        GateEvidencePayload::ann_recall(test_support::recall_audit(&manifest)),
+    ]);
+    let documents = payloads
+        .into_iter()
+        .map(|payload| {
+            GateEvidence::sign(head, payload, &signer).expect("fixture evidence should sign")
+        })
+        .collect();
+
+    assert!(matches!(
+        GateEvidenceSet::new(
+            head,
+            &manifest,
+            &verifier,
+            &test_support::external_verifiers(),
+            documents,
+        ),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::SemanticFidelity,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn policy_and_authorization_grants_reject_subject_hashes_in_place_of_reports() {
+    let manifest = fixture_manifest();
+    let signer = test_support::signer();
+    let verifier = signer.verifier();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let external_signer = test_support::external_signer();
+    for (gate, suite_version, subject_hash) in [
+        (
+            GateId::RelationPolicy,
+            manifest.relations.policy_precedence_version.as_str(),
+            manifest.relations.policy_hash,
+        ),
+        (
+            GateId::AuthorizationNoninterference,
+            manifest.serving.authorization_adapter_version.as_str(),
+            manifest.relations.security_geometry_hash,
+        ),
+    ] {
+        let grant =
+            ExternalGateGrant::sign(head, gate, suite_version, subject_hash, &external_signer)
+                .expect("subject-bound grant should still be internally valid");
+        let replacement = match gate {
+            GateId::RelationPolicy => GateEvidencePayload::RelationPolicy(grant),
+            GateId::AuthorizationNoninterference => {
+                GateEvidencePayload::AuthorizationNoninterference(grant)
+            }
+            _ => unreachable!("fixture includes only report-bound gates"),
+        };
+        let mut payloads = test_support::passing_payloads_without_ann(&manifest);
+        payloads.retain(|payload| payload.gate() != gate);
+        payloads.extend([
+            replacement,
+            GateEvidencePayload::ann_recall(test_support::recall_audit(&manifest)),
+        ]);
+        let documents = payloads
+            .into_iter()
+            .map(|payload| {
+                GateEvidence::sign(head, payload, &signer).expect("fixture evidence should sign")
+            })
+            .collect();
+
+        assert!(matches!(
+            GateEvidenceSet::new(
+                head,
+                &manifest,
+                &verifier,
+                &test_support::external_verifiers(),
+                documents,
+            ),
+            Err(GateEvidenceError::Failed {
+                gate: failed_gate,
+                ..
+            }) if failed_gate == gate
+        ));
+    }
+}
+
+#[test]
+fn externally_signed_grant_from_an_unpinned_restart_key_is_rejected() {
+    let manifest = fixture_manifest();
+    let signer = test_support::signer();
+    let verifier = signer.verifier();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let canonical = &manifest.variants.entries[0];
+    let unpinned = GateSigner::new("unpinned-quality-approver", [0x7D; 32])
+        .expect("test external authority should validate");
+    let grant = ExternalGateGrant::sign(
+        head,
+        GateId::SemanticFidelity,
+        canonical.quality_suite_version.clone(),
+        canonical.semantic_fidelity_report_hash,
+        &unpinned,
+    )
+    .expect("correctly scoped unpinned grant should sign");
+    let mut payloads = test_support::passing_payloads_without_ann(&manifest);
+    payloads.retain(|payload| payload.gate() != GateId::SemanticFidelity);
+    payloads.extend([
+        GateEvidencePayload::SemanticFidelity(grant),
+        GateEvidencePayload::ann_recall(test_support::recall_audit(&manifest)),
+    ]);
+    let documents = payloads
+        .into_iter()
+        .map(|payload| {
+            GateEvidence::sign(head, payload, &signer).expect("fixture evidence should sign")
+        })
+        .collect();
+
+    assert!(matches!(
+        GateEvidenceSet::new(
+            head,
+            &manifest,
+            &verifier,
+            &test_support::external_verifiers(),
+            documents,
+        ),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::SemanticFidelity,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn external_authority_pins_cannot_reuse_the_release_key() {
+    let release = test_support::signer().verifier();
+    let entries = [
+        GateId::Representation,
+        GateId::SemanticFidelity,
+        GateId::RelationPolicy,
+        GateId::MergeTreePersistence,
+        GateId::SubgroupBehavior,
+        GateId::AuthorizationNoninterference,
+        GateId::SecurityApproval,
+        GateId::CompanionPin,
+    ]
+    .into_iter()
+    .map(|gate| (gate, release.clone()))
+    .collect();
+
+    assert!(matches!(
+        ExternalGateVerifierSet::new(&release, entries),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::Representation,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn external_issuer_cannot_substitute_an_untrusted_key() {
+    let manifest = fixture_manifest();
+    let head = ReleaseHead {
+        generation: manifest.generation_id,
+        data: DataRevision::new(
+            manifest.storage.base_revision,
+            manifest.storage.initial_delta_revision,
+        ),
+        manifest: manifest
+            .content_hash()
+            .expect("fixture manifest should serialize"),
+    };
+    let issuer = test_support::TestExternalGateGrantIssuer::new();
+    let authority = TrustedExternalGateAuthority::new(
+        GateId::RelationPolicy,
+        &issuer,
+        test_support::signer().verifier(),
+    )
+    .expect("external gate should validate");
+
+    assert!(matches!(
+        authority.issue(head, &manifest),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::RelationPolicy,
+            ..
+        })
+    ));
 }
 
 #[test]
@@ -108,8 +445,9 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
     assert_eq!(evidence.head().manifest, published.content_hash);
     let release = publish_gated_candidate(&root, &evidence).expect("candidate should publish");
     let store = FileActivationStore::<Candle>::new(
-        root,
+        root.clone(),
         test_support::signer().verifier(),
+        test_support::external_verifiers(),
         CandleDevice::Cpu,
     );
 
@@ -123,6 +461,37 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
     assert_eq!(
         store.current().expect("active pointer should read"),
         Some(release.into())
+    );
+
+    let unpinned = GateSigner::new("unpinned-restart-authority", [0xA7; 32])
+        .expect("test authority should validate");
+    let unpinned_verifiers = ExternalGateVerifierSet::new(
+        &test_support::signer().verifier(),
+        [
+            GateId::Representation,
+            GateId::SemanticFidelity,
+            GateId::RelationPolicy,
+            GateId::MergeTreePersistence,
+            GateId::SubgroupBehavior,
+            GateId::AuthorizationNoninterference,
+            GateId::SecurityApproval,
+            GateId::CompanionPin,
+        ]
+        .into_iter()
+        .map(|gate| (gate, unpinned.verifier()))
+        .collect(),
+    )
+    .expect("independent but unpinned restart authorities should form a set");
+    assert!(
+        FileActivationStore::<Candle>::new(
+            root,
+            test_support::signer().verifier(),
+            unpinned_verifiers,
+            CandleDevice::Cpu,
+        )
+        .current()
+        .is_err(),
+        "restart must reject external grants under different out-of-band pins",
     );
 }
 
@@ -141,7 +510,6 @@ fn passing_outcomes() -> Vec<GateOutcome> {
         .enumerate()
         .map(|(index, gate)| GateOutcome {
             gate,
-            passed: true,
             evidence: ContentHash::digest(&index.to_le_bytes()),
         })
         .collect()

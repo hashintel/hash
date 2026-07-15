@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from rich.text import Text
 from textual.app import App, ComposeResult
@@ -10,7 +10,9 @@ from textual.binding import Binding, BindingType
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Footer, Header, ProgressBar, Static
 
-type AmbiguousTargetAction = Literal["coincident", "proximal", "overlay", "excluded"]
+from atlas_tools.relation.evaluation.domain.api import HumanPlacementAction
+
+type AmbiguousTargetAction = HumanPlacementAction
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

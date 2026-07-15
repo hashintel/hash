@@ -230,6 +230,8 @@ pub(crate) fn publish_artifact(
     temporary.as_file_mut().seek(SeekFrom::Start(0))?;
     temporary.as_file_mut().write_all(wire_header.as_bytes())?;
     temporary.as_file().sync_all()?;
+    temporary.as_file_mut().seek(SeekFrom::Start(0))?;
+    let content_hash = hash_reader(temporary.as_file_mut())?;
 
     let reused_existing = match temporary.persist_noclobber(path) {
         Ok(file) => {
@@ -240,7 +242,9 @@ pub(crate) fn publish_artifact(
         Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
             let existing = MappedArtifact::map_immutable(File::open(path)?, format)
                 .map_err(ArtifactWriteError::Map)?;
-            if existing.view().header() != header {
+            if existing.view().header() != header
+                || ContentHash::digest(existing.bytes()) != content_hash
+            {
                 return Err(ArtifactWriteError::ExistingArtifactMismatch {
                     path: path.to_owned(),
                 });
@@ -249,7 +253,6 @@ pub(crate) fn publish_artifact(
         }
         Err(error) => return Err(ArtifactWriteError::Persist(error)),
     };
-    let content_hash = hash_reader(File::open(path)?)?;
     Ok(PublishedArtifact {
         header,
         content_hash,

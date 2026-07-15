@@ -6315,6 +6315,7 @@ dependencies = [
 name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
+ "axum",
  "burn",
  "burn-backend",
  "burn-core",
@@ -6322,6 +6323,7 @@ dependencies = [
  "burn-train",
  "bytes",
  "camino",
+ "clap",
  "codspeed-criterion-compat",
  "cxx",
  "darwin-kperf-criterion",
@@ -6355,6 +6357,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tokio-util",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "type-system",

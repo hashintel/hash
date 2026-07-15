@@ -5,11 +5,11 @@ use camino::Utf8Path;
 use super::error::GenerationError;
 use crate::salt::{
     analytic::{
-        AnalyticPoint, MergeTreeConfig, RasterConfig, RegionConfig, RegionLabelCandidate,
-        density_raster, density_regions, merge_tree, publish_analytic_artifact,
-        select_region_labels,
+        AnalyticPoint, MergeTree, MergeTreeConfig, RasterConfig, RegionConfig,
+        RegionLabelCandidate, density_raster, density_regions, merge_tree,
+        publish_analytic_artifact, select_region_labels,
     },
-    evaluation::CanonicalField,
+    evaluation::QuantizedCanonicalField,
     hash::ContentHash,
     identity::IdentityDirectory,
     materialize::{
@@ -46,6 +46,7 @@ pub(crate) struct CanonicalArtifacts {
     pub label_count: usize,
     pub normalized_persistence: f64,
     pub merge_tree_hash: ContentHash,
+    pub merge_tree: MergeTree,
 }
 
 /// Materializes delivery, density, persistence, region, and label indexes.
@@ -62,7 +63,7 @@ pub(crate) fn materialize_canonical(
     base_path: &Utf8Path,
     analytic_path: &Utf8Path,
     identities: &IdentityDirectory,
-    field: &CanonicalField,
+    field: &QuantizedCanonicalField,
     signals: CanonicalSignals<'_>,
     config: CanonicalMaterializationConfig<'_>,
 ) -> Result<CanonicalArtifacts, GenerationError> {
@@ -99,7 +100,7 @@ pub(crate) fn materialize_canonical(
         .collect::<Vec<_>>();
     let raster = density_raster(&points, config.raster)?;
     let tree = merge_tree(&raster, config.merge_tree)?;
-    let regions = density_regions(&raster, field.coordinates(), config.regions)?;
+    let regions = density_regions(&raster, &tree, field.coordinates(), config.regions)?;
     let labels = identities
         .iter()
         .filter_map(|(row, _)| {
@@ -121,13 +122,16 @@ pub(crate) fn materialize_canonical(
         &labels,
     )?;
 
+    let normalized_persistence = tree.normalized_persistence();
+    let merge_tree_hash = tree.content_hash();
     let artifacts = CanonicalArtifacts {
         base,
         analytic,
         region_count: regions.peaks().len(),
         label_count: labels.len(),
-        normalized_persistence: tree.normalized_persistence(),
-        merge_tree_hash: tree.content_hash(),
+        normalized_persistence,
+        merge_tree_hash,
+        merge_tree: tree,
     };
     tracing::info!(
         target: "hash_graph_atlas::salt",
@@ -141,7 +145,7 @@ pub(crate) fn materialize_canonical(
     Ok(artifacts)
 }
 
-fn canonical_provenance(field: &CanonicalField) -> CanonicalProvenance {
+fn canonical_provenance(field: &QuantizedCanonicalField) -> CanonicalProvenance {
     let selection = field.selection();
     let procrustes_transform = field
         .alignment()
@@ -160,5 +164,6 @@ fn canonical_provenance(field: &CanonicalField) -> CanonicalProvenance {
         condition_domain_hash: selection.domain_version(),
         selection_evidence_hash: selection.evidence(),
         procrustes_transform,
+        quantization_step: field.quantization_step(),
     }
 }

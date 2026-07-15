@@ -11,7 +11,6 @@ use crate::salt::{
     generation::runner::{CanonicalGenerationConfig, FrozenGenerationInput},
     hash::{ContentHash, ContentHasher},
     manifest::GenerationManifest,
-    policy::PolicySource,
     revision::GenerationId,
 };
 
@@ -20,30 +19,41 @@ pub(super) fn generation_id(
     geometry: ContentHash,
     relation_policy: ContentHash,
     classifier: ContentHash,
-    strength: Option<ContentHash>,
     input: &FrozenGenerationInput,
     config: &CanonicalGenerationConfig<'_>,
 ) -> GenerationId {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v1");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v5");
     hasher.update(manifest_contract_hash(manifest).as_bytes());
     hasher.update(geometry.as_bytes());
     hasher.update(relation_policy.as_bytes());
     hasher.update(input_hash(input).as_bytes());
     hasher.update(runtime_config_hash(config).as_bytes());
     hasher.update(classifier.as_bytes());
-    if let Some(strength) = strength {
-        hasher.update(&[1]);
-        hasher.update(strength.as_bytes());
-    } else {
-        hasher.update(&[0]);
-    }
+    hasher.update(&[0]);
     GenerationId::new(hasher.finish())
 }
 
 pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v1");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v4");
+    hasher.update(&manifest.format_version.to_le_bytes());
+    hash_serialized(&mut hasher, &manifest.created_at);
     hash_serialized(&mut hasher, &manifest.input_snapshot);
-    hash_serialized(&mut hasher, &manifest.embedding);
+    hasher.update(manifest.embedding.model.as_bytes());
+    hasher.update(manifest.embedding.producer_contract_hash.as_bytes());
+    hasher.update(
+        &u64::try_from(manifest.embedding.canonical_dimensions)
+            .expect("canonical dimensions should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(
+        &u64::try_from(manifest.embedding.projector_dimensions)
+            .expect("projector dimensions should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(manifest.embedding.transform_version.as_bytes());
+    hasher.update(manifest.embedding.transform_hash.as_bytes());
+    hasher.update(manifest.embedding.golden_vectors_hash.as_bytes());
+    hash_serialized(&mut hasher, &manifest.embedding.representation_audit);
     hash_relation_contract(&mut hasher, manifest);
     hash_serialized(&mut hasher, &manifest.semantic_graph.metric);
     hasher.update(manifest.landmarks.selection_version.as_bytes());
@@ -69,16 +79,13 @@ pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHa
 }
 
 pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v1");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v6");
     hasher.update(input.relation_snapshot_hash.as_bytes());
+    hasher.update(input.relation_policy_input_hash.as_bytes());
+    hasher.update(input.canonical_embedding_hash.as_bytes());
+    hasher.update(input.projector_representation_hash.as_bytes());
     for (_, entity) in input.identities.iter() {
         hash_entity(&mut hasher, entity);
-    }
-    let representations = input.representations();
-    for row in 0..representations.len() {
-        for value in representations.row(row) {
-            hasher.update(&value.to_bits().to_le_bytes());
-        }
     }
     for role in &input.roles {
         hasher.update(&role.index().to_le_bytes());
@@ -141,9 +148,7 @@ pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
                 .to_le_bytes(),
         );
     }
-    let mut anchors = input.anchors.iter().collect::<Vec<_>>();
-    anchors.sort_unstable_by_key(|anchor| anchor.row);
-    for anchor in anchors {
+    for anchor in &input.anchors {
         hasher.update(&anchor.row.as_u32().to_le_bytes());
         hash_f64(&mut hasher, &anchor.target);
         hash_f64(&mut hasher, &[anchor.radius, anchor.weight]);
@@ -161,7 +166,7 @@ pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
 }
 
 pub(super) fn runtime_config_hash(config: &CanonicalGenerationConfig<'_>) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.runtime-config.v1");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.runtime-config.v5");
     hash_usizes(
         &mut hasher,
         &[
@@ -200,7 +205,7 @@ pub(super) fn runtime_config_hash(config: &CanonicalGenerationConfig<'_>) -> Con
             config.landmark_weight,
             config.condition_measurement.distinguishability_floor,
             config.condition_measurement.monotonicity_tolerance,
-            config.canonical_condition,
+            config.variant_quantization_step,
             config.materialization.raster.bandwidth_pixels,
             config.materialization.merge_tree.floor_fraction,
             config.materialization.merge_tree.persistence_fraction,
@@ -208,6 +213,7 @@ pub(super) fn runtime_config_hash(config: &CanonicalGenerationConfig<'_>) -> Con
             config.materialization.regions.minimum_peak_fraction,
         ],
     );
+    hasher.update(&[u8::from(config.protection.protect_ordinary_negatives)]);
     hasher.update(&config.landmarks.seed.to_le_bytes());
     hasher.update(&config.landmark_fit.seed.to_le_bytes());
     hasher.update(config.projector.content_hash().as_bytes());
@@ -215,22 +221,32 @@ pub(super) fn runtime_config_hash(config: &CanonicalGenerationConfig<'_>) -> Con
     hasher.update(config.projector_loss.content_hash().as_bytes());
     hasher.update(config.projector_optimizer.content_hash().as_bytes());
     hasher.update(config.condition_domain.version().as_bytes());
-    let mut audit_rows = config.audit_rows.to_vec();
-    audit_rows.sort_unstable();
-    for row in audit_rows {
-        hasher.update(&row.to_le_bytes());
-    }
+    hasher.update(
+        &u64::try_from(config.audit_sample_size.get())
+            .expect("audit sample size should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(&config.audit_seed.to_le_bytes());
+    hasher.update(&config.canonical_condition.to_bits().to_le_bytes());
     for condition in config.conditions {
         hasher.update(&condition.to_bits().to_le_bytes());
     }
-    for quality in &config.condition_quality {
-        hasher.update(&[
-            u8::from(quality.semantic_fidelity),
-            u8::from(quality.persistence),
-            u8::from(quality.task_evidence),
-        ]);
-        hasher.update(quality.report.as_bytes());
-    }
+    hasher.update(
+        config
+            .condition_quality_evaluator
+            .contract_hash()
+            .as_bytes(),
+    );
+    hasher.update(
+        config
+            .condition_quality_evaluator
+            .suite_version()
+            .as_bytes(),
+    );
+    hasher.update(config.condition_quality_policy.content_hash().as_bytes());
+    hasher.update(config.persistence_policy.content_hash().as_bytes());
+    hasher.update(config.persistence_evaluator.contract_hash().as_bytes());
+    hasher.update(config.persistence_evaluator.suite_version().as_bytes());
     hasher.update(config.materialization.importance.grid_depths);
     hasher.update(&config.materialization.importance.hash_seed.to_le_bytes());
     hash_f64(
@@ -275,6 +291,7 @@ fn hash_relation_contract(hasher: &mut ContentHasher, manifest: &GenerationManif
     relations.security_allow_list_hash = derived_hash;
     relations.security_geometry_hash = derived_hash;
     relations.edge_snapshot_hash = derived_hash;
+    relations.policy_input_hash = derived_hash;
     relations.policy_hash = derived_hash;
     relations.classifier_model_hash = derived_hash;
     relations.classifier_temperature = 1.0;
@@ -321,43 +338,5 @@ fn entity_key(entity: &EntityId) -> [u8; 49] {
 }
 
 pub(super) fn relation_policy_hash(input: &FrozenGenerationInput) -> ContentHash {
-    let mut relation_types = input
-        .relation_ordinals
-        .iter()
-        .map(|(relation_type, ordinal)| (*ordinal, relation_type.to_string()))
-        .collect::<Vec<_>>();
-    relation_types.sort_unstable_by_key(|(ordinal, _)| *ordinal);
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.resolved-relation-policy.v1");
-    for (ordinal, relation_type) in relation_types {
-        hasher.update(&ordinal.as_u32().to_le_bytes());
-        hasher.update(relation_type.as_bytes());
-        if let Some(policy) = input.relation_policies.get(ordinal.as_usize()) {
-            hasher.update(&[policy_source(policy.policy.source)]);
-            for value in [
-                policy.policy.selected.coincident.get(),
-                policy.policy.selected.proximal.get(),
-                policy.policy.selected.overlay.get(),
-                policy.policy.applicability.get(),
-                policy.policy.effective_attraction.coincident.get(),
-                policy.policy.effective_attraction.proximal.get(),
-                policy.policy.effective_attraction.overlay.get(),
-                policy.strength.get(),
-            ] {
-                hasher.update(&value.to_bits().to_le_bytes());
-            }
-            hasher.update(&[u8::from(policy.policy.coincident_admitted)]);
-        }
-    }
-    hasher.finish()
-}
-
-#[inline]
-const fn policy_source(source: PolicySource) -> u8 {
-    match source {
-        PolicySource::HumanOverride => 0,
-        PolicySource::HumanReviewed => 1,
-        PolicySource::Synthetic => 2,
-        PolicySource::Classifier => 3,
-        PolicySource::OverlayFallback => 4,
-    }
+    crate::salt::relation::relation_policy_hash(&input.relation_ordinals, &input.relation_policies)
 }

@@ -2,10 +2,12 @@ use core::{error::Error, fmt};
 
 use camino::Utf8PathBuf;
 
+use super::ConditionQualityEvaluationError;
 use crate::salt::{
     activation::ActivationError,
     analytic::AnalyticError,
     evaluation::{ConditionMeasurementError, EvaluationError},
+    hash::ContentHash,
     manifest::ManifestPublishError,
     materialize::BaseArtifactError,
     projector::ProjectorInferenceError,
@@ -34,6 +36,38 @@ pub(crate) enum GenerationError {
     QualityCount {
         conditions: usize,
         quality: usize,
+    },
+    QualityField {
+        index: usize,
+        expected: ContentHash,
+        actual: ContentHash,
+    },
+    InvalidQualityPolicy {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidQualityMeasurement {
+        index: usize,
+        semantic_fidelity: f64,
+        subgroup_degradation: f64,
+    },
+    InsufficientSemanticFidelity {
+        index: usize,
+        actual: f64,
+        minimum: f64,
+    },
+    ExcessiveSubgroupDegradation {
+        index: usize,
+        actual: f64,
+        maximum: f64,
+    },
+    QualityEvaluation(ConditionQualityEvaluationError),
+    InvalidPersistenceFloor {
+        value: f64,
+    },
+    InsufficientPersistence {
+        actual: f64,
+        minimum: f64,
     },
     SignalRows {
         identities: usize,
@@ -106,6 +140,57 @@ impl fmt::Display for GenerationError {
                 formatter,
                 "generation has {conditions} projected conditions but {quality} quality records"
             ),
+            Self::QualityField {
+                index,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "condition {index} quality report names projected field {actual}, expected \
+                 {expected}",
+            ),
+            Self::InvalidQualityPolicy { field, value } => {
+                write!(
+                    formatter,
+                    "condition quality policy {field} is invalid: {value}"
+                )
+            }
+            Self::InvalidQualityMeasurement {
+                index,
+                semantic_fidelity,
+                subgroup_degradation,
+            } => write!(
+                formatter,
+                "condition {index} has invalid quality measurements: semantic fidelity \
+                 {semantic_fidelity}, subgroup degradation {subgroup_degradation}"
+            ),
+            Self::InsufficientSemanticFidelity {
+                index,
+                actual,
+                minimum,
+            } => write!(
+                formatter,
+                "condition {index} semantic fidelity {actual} is below required {minimum}"
+            ),
+            Self::ExcessiveSubgroupDegradation {
+                index,
+                actual,
+                maximum,
+            } => write!(
+                formatter,
+                "condition {index} subgroup degradation {actual} exceeds allowed {maximum}"
+            ),
+            Self::QualityEvaluation(error) => error.fmt(formatter),
+            Self::InvalidPersistenceFloor { value } => {
+                write!(
+                    formatter,
+                    "normalized persistence floor is invalid: {value}"
+                )
+            }
+            Self::InsufficientPersistence { actual, minimum } => write!(
+                formatter,
+                "canonical normalized persistence {actual} is below the required floor {minimum}"
+            ),
             Self::SignalRows {
                 identities,
                 importance,
@@ -169,6 +254,7 @@ impl Error for GenerationError {
             Self::Projection(error) => Some(error),
             Self::Measurement(error) => Some(error),
             Self::Evaluation(error) => Some(error),
+            Self::QualityEvaluation(error) => Some(error),
             Self::BaseArtifact(error) => Some(error),
             Self::Analytic(error) => Some(error),
             Self::AnalyticArtifact(error) => Some(error),
@@ -184,6 +270,13 @@ impl Error for GenerationError {
             | Self::NonFiniteCondition { .. }
             | Self::UnorderedCondition { .. }
             | Self::QualityCount { .. }
+            | Self::QualityField { .. }
+            | Self::InvalidQualityPolicy { .. }
+            | Self::InvalidQualityMeasurement { .. }
+            | Self::InsufficientSemanticFidelity { .. }
+            | Self::ExcessiveSubgroupDegradation { .. }
+            | Self::InvalidPersistenceFloor { .. }
+            | Self::InsufficientPersistence { .. }
             | Self::SignalRows { .. }
             | Self::InvalidLegacyTag { .. }
             | Self::LegacyRowCount { .. }
@@ -191,6 +284,13 @@ impl Error for GenerationError {
             | Self::ExistingLegacyExport { .. } => None,
             Self::EvidenceHead => None,
         }
+    }
+}
+
+impl From<ConditionQualityEvaluationError> for GenerationError {
+    #[inline]
+    fn from(error: ConditionQualityEvaluationError) -> Self {
+        Self::QualityEvaluation(error)
     }
 }
 

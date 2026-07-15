@@ -1,4 +1,8 @@
-use super::{error::AnalyticError, raster::DensityRaster};
+use super::{
+    error::AnalyticError,
+    merge_tree::{MergeTree, PersistenceLeaf},
+    raster::DensityRaster,
+};
 
 const UNASSIGNED: u32 = u32::MAX;
 
@@ -24,8 +28,11 @@ impl Default for RegionConfig {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RegionPeak {
     pub region: u32,
+    pub persistence_leaf: u64,
+    pub parent_region: Option<u32>,
     pub pixel: usize,
     pub density: f64,
+    pub persistence: f64,
 }
 
 /// A deterministic watershed over the analytic density raster.
@@ -33,6 +40,7 @@ pub(crate) struct RegionPeak {
 pub(crate) struct RegionMap {
     pixel_regions: Vec<u32>,
     point_regions: Vec<u32>,
+    leaf_regions: Vec<u32>,
     peaks: Vec<RegionPeak>,
 }
 
@@ -49,6 +57,15 @@ impl RegionMap {
     #[inline]
     pub(crate) fn point_regions(&self) -> &[u32] {
         &self.point_regions
+    }
+
+    /// Borrows the region assigned to each persistent merge-tree leaf.
+    ///
+    /// Unselected leaves contain `u32::MAX`.
+    #[must_use]
+    #[inline]
+    pub(crate) fn leaf_regions(&self) -> &[u32] {
+        &self.leaf_regions
     }
 
     /// Borrows selected peaks in region-identifier order.
@@ -72,6 +89,7 @@ impl RegionMap {
 /// count is zero or exceeds `u32`, or a point coordinate is non-finite.
 pub(crate) fn density_regions(
     raster: &DensityRaster,
+    tree: &MergeTree,
     points: &[[f64; 2]],
     config: RegionConfig,
 ) -> Result<RegionMap, AnalyticError> {
@@ -99,6 +117,7 @@ pub(crate) fn density_regions(
         return Ok(RegionMap {
             pixel_regions: vec![UNASSIGNED; values.len()],
             point_regions: vec![UNASSIGNED; points.len()],
+            leaf_regions: vec![UNASSIGNED; tree.leaves().len()],
             peaks: Vec::new(),
         });
     }
@@ -112,26 +131,38 @@ pub(crate) fn density_regions(
         }
     }
 
-    let mut maxima = roots
+    let peak_floor = config
+        .minimum_peak_fraction
+        .max(config.density_floor_fraction)
+        * density_maximum;
+    let mut selected_leaves = tree
+        .leaves()
         .iter()
-        .enumerate()
-        .filter_map(|(pixel, &root)| (pixel == root).then_some(pixel))
-        .filter(|&pixel| values[pixel] >= config.minimum_peak_fraction * density_maximum)
+        .filter(|leaf| leaf.birth >= peak_floor)
         .collect::<Vec<_>>();
-    maxima.sort_unstable_by(|&left, &right| {
-        values[right]
-            .total_cmp(&values[left])
-            .then_with(|| left.cmp(&right))
+    selected_leaves.sort_unstable_by(|left, right| {
+        right
+            .birth
+            .total_cmp(&left.birth)
+            .then_with(|| left.representative_pixel.cmp(&right.representative_pixel))
     });
-    maxima.truncate(config.maximum_regions);
+    selected_leaves.truncate(config.maximum_regions);
 
-    let peaks = maxima
+    let mut leaf_regions = vec![UNASSIGNED; tree.leaves().len()];
+    for (region, leaf) in selected_leaves.iter().enumerate() {
+        leaf_regions[leaf_index(leaf)] =
+            u32::try_from(region).expect("validated region count should fit u32");
+    }
+    let peaks = selected_leaves
         .iter()
         .enumerate()
-        .map(|(region, &pixel)| RegionPeak {
+        .map(|(region, leaf)| RegionPeak {
             region: u32::try_from(region).expect("validated region count should fit u32"),
-            pixel,
-            density: values[pixel],
+            persistence_leaf: leaf.id,
+            parent_region: selected_parent(leaf, tree, &leaf_regions),
+            pixel: leaf.representative_pixel,
+            density: leaf.birth,
+            persistence: leaf.persistence(),
         })
         .collect::<Vec<_>>();
     let mut root_regions = vec![UNASSIGNED; values.len()];
@@ -145,12 +176,12 @@ pub(crate) fn density_regions(
             if root == usize::MAX {
                 continue;
             }
-            let region = if root_regions[root] != UNASSIGNED {
-                root_regions[root]
-            } else {
+            let region = if root_regions[root] == UNASSIGNED {
                 let region = nearest_peak(root, raster.size(), &peaks);
                 root_regions[root] = region;
                 region
+            } else {
+                root_regions[root]
             };
             pixel_regions[pixel] = region;
         }
@@ -163,8 +194,28 @@ pub(crate) fn density_regions(
     Ok(RegionMap {
         pixel_regions,
         point_regions,
+        leaf_regions,
         peaks,
     })
+}
+
+fn selected_parent(leaf: &PersistenceLeaf, tree: &MergeTree, leaf_regions: &[u32]) -> Option<u32> {
+    let mut parent = leaf.parent;
+    while let Some(parent_id) = parent {
+        let parent_index =
+            usize::try_from(parent_id).expect("in-memory leaf identity should fit usize");
+        let region = leaf_regions[parent_index];
+        if region != UNASSIGNED {
+            return Some(region);
+        }
+        parent = tree.leaves()[parent_index].parent;
+    }
+    None
+}
+
+#[inline]
+fn leaf_index(leaf: &PersistenceLeaf) -> usize {
+    usize::try_from(leaf.id).expect("in-memory leaf identity should fit usize")
 }
 
 fn resolve_root(
@@ -195,6 +246,10 @@ fn resolve_root(
     }
 }
 
+#[expect(
+    clippy::float_cmp,
+    reason = "equal raster densities intentionally flow toward the lower stable pixel identity"
+)]
 fn ascent_neighbor(pixel: usize, values: &[f64], size: usize, floor: f64) -> usize {
     let row = pixel / size;
     let column = pixel % size;
@@ -249,7 +304,7 @@ fn nearest_peak(root: usize, size: usize, peaks: &[RegionPeak]) -> u32 {
 }
 
 fn validate_fraction(field: &'static str, value: f64) -> Result<(), AnalyticError> {
-    if !value.is_finite() || !(0.0 < value && value <= 1.0) {
+    if !(value.is_finite() && 0.0 < value && value <= 1.0) {
         return Err(AnalyticError::InvalidFraction { field, value });
     }
     Ok(())

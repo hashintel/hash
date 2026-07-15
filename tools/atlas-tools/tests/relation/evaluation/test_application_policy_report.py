@@ -9,10 +9,18 @@ from atlas_tools.relation.evaluation.analysis.api import (
     EmbeddingRow,
     GoldLabel,
     PlacementTally,
+    PolicyReport,
+    PolicyReportWithoutGold,
     placement_posterior,
     soft_labels,
 )
 from atlas_tools.relation.evaluation.application import policy_report as report_application
+from atlas_tools.relation.evaluation.application._policy_report_metadata import (
+    LEGACY_POLICY_REPORT_ALGORITHMS,
+    LegacyPolicyReportMetadata,
+    legacy_policy_report_schema_hashes,
+)
+from atlas_tools.relation.evaluation.application.analysis_artifact import hash_mapping
 from atlas_tools.relation.evaluation.application.analysis_codec import (
     EmbeddingProducerIdentity,
     write_embeddings,
@@ -117,6 +125,17 @@ def _write_gold(path: Path, rows: tuple[GoldLabel, ...]) -> Path:
     return path
 
 
+def _assert_classifier_without_gold(
+    report: PolicyReportWithoutGold,
+    *,
+    eligible_cards: int,
+) -> None:
+    assert report.classifier is not None
+    assert report.classifier.predictions == eligible_cards
+    assert report.classifier.gold is None
+    assert report.classifier.calibration is None
+
+
 def test_report_composition_loads_grid_once_and_publishes_reproducible_ascii(
     completed_fixture: _CompletedFixture,
     monkeypatch: pytest.MonkeyPatch,
@@ -161,6 +180,7 @@ def test_report_composition_loads_grid_once_and_publishes_reproducible_ascii(
     )
 
     assert load_calls == 1
+    assert isinstance(first.report, PolicyReport)
     assert first.report.panel_gold.agreement.value == 1.0
     assert first.report.gold_post_exposure == 1
     assert first.report.panel_gold.independent_gold_cards == 1
@@ -186,6 +206,78 @@ def test_report_composition_loads_grid_once_and_publishes_reproducible_ascii(
     first.report_markdown_path.write_bytes(first.report_markdown_path.read_bytes() + b"damage")
     with pytest.raises(ValueError, match="content hashes do not match"):
         load_policy_report_artifact(first.directory)
+
+
+def test_report_loader_accepts_immutable_legacy_metadata(
+    completed_fixture: _CompletedFixture,
+) -> None:
+    fixture = completed_fixture
+    gold_path = _write_gold(
+        fixture.root / "legacy-gold.jsonl",
+        (_gold(fixture.completed.analysis.cards[0]),),
+    )
+    artifact = write_policy_report_from_grid(
+        completed=fixture.completed,
+        gold_path=gold_path,
+        output_directory=fixture.root / "legacy-report",
+    )
+    assert isinstance(artifact.report, PolicyReport)
+    legacy_metadata = LegacyPolicyReportMetadata(
+        schema_hashes=legacy_policy_report_schema_hashes(),
+        algorithms=LEGACY_POLICY_REPORT_ALGORITHMS,
+        algorithm_hash=hash_mapping(LEGACY_POLICY_REPORT_ALGORITHMS),
+        source_hashes=artifact.metadata.source_hashes,
+        content_hashes=artifact.metadata.content_hashes,
+        gold_rows=artifact.report.gold_cards,
+        classifier_state=artifact.report.classifier_state,
+    )
+    artifact.metadata_path.write_bytes(canonical_json_bytes(legacy_metadata) + b"\n")
+
+    loaded = load_policy_report_artifact(artifact.directory)
+
+    assert isinstance(loaded.metadata, LegacyPolicyReportMetadata)
+    assert loaded.metadata.gold_state == "evaluated"
+    assert loaded.report == artifact.report
+
+
+def test_report_without_gold_omits_source_and_leaves_metrics_undefined(
+    completed_fixture: _CompletedFixture,
+) -> None:
+    fixture = completed_fixture
+    artifact = write_policy_report_from_grid(
+        completed=fixture.completed,
+        output_directory=fixture.root / "report-without-gold",
+    )
+
+    report = artifact.report
+    assert isinstance(report, PolicyReportWithoutGold)
+    assert report.gold_state == "not-provided"
+    assert report.gold_cards is None
+    assert report.gold_post_exposure is None
+    assert report.panel_gold is None
+    assert report.coincident_gate is None
+    assert all(judge.gold_votes is None for judge in report.judges)
+    assert all(judge.gold_agreement is None for judge in report.judges)
+    assert report.economics.pool_cards == len(fixture.completed.analysis.cards)
+    assert artifact.metadata.gold_state == "not-provided"
+    assert artifact.metadata.gold_rows is None
+    assert "gold.jsonl" not in artifact.metadata.source_hashes
+    markdown = artifact.report_markdown_path.read_text(encoding="ascii")
+    assert "Gold: not provided" in markdown
+    assert "Gold cards: 0" not in markdown
+    assert load_policy_report_artifact(artifact.directory) == artifact
+
+    empty_gold_path = _write_gold(fixture.root / "empty-gold.jsonl", ())
+    empty_artifact = write_policy_report_from_grid(
+        completed=fixture.completed,
+        gold_path=empty_gold_path,
+        output_directory=fixture.root / "report-with-empty-gold",
+    )
+    assert isinstance(empty_artifact.report, PolicyReport)
+    assert empty_artifact.report.gold_cards == 0
+    assert empty_artifact.metadata.gold_state == "evaluated"
+    assert empty_artifact.metadata.gold_rows == 0
+    assert empty_artifact.metadata.source_hashes["gold.jsonl"] == sha256_bytes(b"")
 
 
 def test_report_classifier_closure_is_required_revalidated_and_transitive(
@@ -343,6 +435,22 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
     )
     assert report.metadata.source_hashes["classifier/metadata"] == classifier.metadata.metadata_hash
     assert report.report.classifier_state == "evaluated"
+
+    report_without_gold = write_policy_report_from_grid(
+        completed=completed,
+        classifier_directory=classifier_directory,
+        closure_directory=closure.directory,
+        soft_labels_path=labels.path,
+        resolutions_directory=resolutions.paths.directory,
+        output_directory=fixture.root / "classifier-report-without-gold",
+    )
+    assert isinstance(report_without_gold.report, PolicyReportWithoutGold)
+    _assert_classifier_without_gold(
+        report_without_gold.report,
+        eligible_cards=len(completed.analysis.cards),
+    )
+    assert report_without_gold.metadata.gold_state == "not-provided"
+    assert "gold.jsonl" not in report_without_gold.metadata.source_hashes
 
     drifted_sources = dict(classifier.metadata.source_hashes)
     drifted_sources["grid/imported-votes.jsonl"] = "f" * 64

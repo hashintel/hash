@@ -7,6 +7,13 @@ from atlas_tools.relation.evaluation.visualization.ambiguous_targets import (
     AmbiguousTargetReviewRow,
     run_ambiguous_target_review,
 )
+from atlas_tools.relation.evaluation.visualization.coincident_review import (
+    CoincidentReviewApp,
+    CoincidentReviewDecision,
+    CoincidentReviewViewRow,
+    CoincidentVoteReviewEvidence,
+    run_coincident_review,
+)
 from atlas_tools.relation.evaluation.visualization.grid_status import (
     GridStatusApp,
     SnapshotLoader,
@@ -28,6 +35,10 @@ __all__ = [
     "AmbiguousTargetDecision",
     "AmbiguousTargetReviewApp",
     "AmbiguousTargetReviewRow",
+    "CoincidentReviewApp",
+    "CoincidentReviewDecision",
+    "CoincidentReviewViewRow",
+    "CoincidentVoteReviewEvidence",
     "GridFamilyStatus",
     "GridPhase",
     "GridPhaseName",
@@ -39,5 +50,6 @@ __all__ = [
     "SnapshotLoader",
     "build_grid_status_renderable",
     "run_ambiguous_target_review",
+    "run_coincident_review",
     "run_grid_status",
 ]

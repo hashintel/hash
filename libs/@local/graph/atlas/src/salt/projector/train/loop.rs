@@ -54,7 +54,7 @@ pub(crate) fn fit_conditioned_projector<B, Batches>(
     batches: Batches,
     loss_config: ProjectorLossConfig,
     optimizer_config: ProjectorOptimizerConfig,
-    device: &B::Device,
+    _device: &B::Device,
 ) -> Result<FittedConditionedProjector<B::InnerBackend>, ProjectorTrainingError>
 where
     B: AutodiffBackend,
@@ -62,7 +62,6 @@ where
 {
     let started = Instant::now();
     let optimizer_config = optimizer_config.validate()?;
-    B::seed(device, optimizer_config.seed);
     let mut optimizer = AdamConfig::new().with_epsilon(1.0e-8).init();
     let mut scheduler = CosineAnnealingLrSchedulerConfig::new(
         optimizer_config.initial_learning_rate,
@@ -136,9 +135,9 @@ where
             conditions: minimum_steps,
         });
     }
-    B::seed(device, optimizer_config.seed);
-    let mut model = ConditionedProjector::<B>::new(architecture, device)
-        .map_err(ProjectorTrainingError::from)?;
+    let mut model =
+        ConditionedProjector::<B>::new_seeded(architecture, optimizer_config.seed, device)
+            .map_err(ProjectorTrainingError::from)?;
     let mut optimizer = AdamConfig::new().with_epsilon(1.0e-8).init();
     let mut scheduler = CosineAnnealingLrSchedulerConfig::new(
         optimizer_config.initial_learning_rate,

@@ -144,7 +144,9 @@ universal SemType Link root. Its direct lineage edge remains in `lineage.jsonl`
 for source audit and DAG validation, but the closure policy MUST exclude edges
 whose parent is that exact root from component union. Otherwise every SemType
 link would become one classifier cohort and the grouping would encode only the
-universal type-system root.
+universal type-system root. HASH card format v8 also omits this root from rendered
+ancestors as non-discriminating prose, but the identity-bearing lineage edge
+remains mandatory.
 
 The source schema's inverse title and inverse plural title are display strings.
 They never identify another relation and MUST NOT produce inverse edges. A
@@ -310,9 +312,33 @@ The resolution artifact MUST bind the exact soft-label parquet and sidecar plus
 the exact concat cards and manifest. It records the reviewer, closed decision
 policy, canonical decisions hash, placement/exclusion counts, and deterministic
 artifact ID. The classifier bundle records that identity and the exact
-resolution file hashes. Fit MUST NOT accept an incomplete artifact, override a
-positive-weight soft label, or infer a decision from relation names or card
-text.
+resolution file hashes. Fit MUST NOT accept an incomplete resolution artifact,
+use it to override a positive-weight soft label, or infer a decision from relation
+names or card text.
+
+Production completion requires a Coincident-evidence decision for every row in the
+Coincident review queue. A schema-v2 Coincident review artifact MUST cover every
+and only queued row and bind the exact `gates.json`, `coincident-queue.jsonl`,
+`cards.jsonl`, and concat manifest bytes. A schema-v5 exploratory classifier may
+record that no Coincident artifact was supplied and retain direct synthetic soft
+labels, but it MUST NOT be represented as completing the outstanding review gate.
+Once any Coincident reviews are supplied to fit, partial coverage is forbidden.
+
+A confirmation preserves the complete original soft target and placement-vote
+weight. A rejection sets the Coincident tally to zero, recomputes the same
+versioned smoothed posterior from the remaining Proximal and Overlay counts, and
+uses their count as supervised weight. It does not replace P/O evidence with a
+one-hot target. Rejection MUST fail closed and require full placement adjudication
+when no P/O evidence remains. An exclusion retains family-atomic fold and
+prediction coverage with zero supervised weight. Coincident review and
+all-ambiguous target-resolution rows MUST be disjoint.
+
+When a Coincident review artifact is supplied, fit MUST revalidate the grid
+deliverables and soft-label sources, exact relation/card hashes, queue coverage,
+closed decision policy, and artifact hashes before optimization. An extra,
+duplicate, non-Coincident, stale-card, or source-drifted review fails closed. The
+review does not mutate an existing classifier: applying it requires a new immutable
+classifier fit.
 
 The fit command MUST NOT use `relation_id` as a singleton fallback and MUST NOT
 read an optional `family_id` copied into a card or soft-label row. The verified
@@ -324,15 +350,23 @@ The classifier bundle records:
 - the closure schema, algorithm, and edge-policy IDs;
 - the target-resolution artifact ID, policy, reviewer, hashes, and counts when
   all-ambiguous labels required review;
+- the Coincident review artifact ID, policy, reviewer, hashes, and
+  confirmation/rejection/exclusion counts when Coincident review was supplied;
 - the deterministic relation-to-fold assignment;
 - the configured fold count and seed.
 
 Loading or reporting a classifier bundle revalidates this binding. A
 resolution-bound bundle therefore requires the exact resolution artifact and
 soft-label artifact at load time; self-consistent resolution bytes with missing,
-extra, stale-card, or positive-weight rows fail closed. A bundle without closure
-provenance is not valid grouped-CV evidence and requires a refit; it does not
-invalidate the paid votes, soft labels, or embeddings from which it was derived.
+extra, stale-card, or positive-weight rows fail closed. A Coincident-review-bound
+bundle additionally requires the exact review artifact and grid deliverables; the
+loader revalidates every-and-only queue coverage and all recorded source hashes.
+The report interface MUST reject incomplete source groups rather than partially
+checking provenance. A bundle without closure provenance is not valid grouped-CV
+evidence and requires a refit; it does not invalidate the paid votes, soft labels,
+or embeddings from which it was derived. Gold labels are optional at report time;
+without them, the report MUST omit gold provenance and represent gold-dependent
+evidence as unavailable rather than as zero-valued measurements.
 
 ## Errors
 
@@ -352,8 +386,8 @@ Closure publication fails without output when any of these conditions holds:
 - the destination exists or appears during publication;
 - an input changes between verification and publication.
 
-Classifier fitting reports closure or target-resolution errors before running
-an optimizer.
+Classifier fitting reports closure, target-resolution, or Coincident-review
+errors before running an optimizer.
 
 ## Complexity
 
@@ -394,10 +428,16 @@ Existing paid evidence is preserved through this sequence:
    The rendered `Ancestors` section and old `link-types.jsonl` phrases are
    insufficient because they omit source IDs and depths.
 5. Publish source lineage artifacts and then the combined closure into new
-   immutable directories.
-6. Fit a new classifier with the verified closure. Reuse the unchanged soft
-   labels and embeddings after their exact relation and card hashes pass the
-   classifier join.
+   immutable directories. A completed evaluation and a lineage backfill MAY retain
+   different concat manifests when both independently bind the same exact
+   `cards.jsonl` bytes. Keep both provenance chains: evaluation review reopens the
+   evaluated concat manifest, closure validation reopens the lineage concat
+   manifest, and classifier fitting proves that their card bytes and relation/card
+   hashes agree. Do not rewrite either manifest to claim they are interchangeable.
+6. Fit a new classifier with the verified closure and any completed human-review
+   artifacts. Reuse unchanged soft labels and embeddings after their exact relation
+   and card hashes pass the classifier join. Historical classifier and report
+   directories remain immutable.
 7. Treat earlier classifier bundles without closure provenance as unverified
    cross-validation outputs and replace them. Do not rerun paid evaluation or
    embeddings solely for this migration.

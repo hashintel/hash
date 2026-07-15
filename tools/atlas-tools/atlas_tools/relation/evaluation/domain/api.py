@@ -49,6 +49,19 @@ from atlas_tools.relation.evaluation.domain.attempt import (
     request_age,
 )
 from atlas_tools.relation.evaluation.domain.card import EvaluationCard
+from atlas_tools.relation.evaluation.domain.coincident_review import (
+    COINCIDENT_REVIEW_ARTIFACT,
+    COINCIDENT_REVIEW_POLICY_ID,
+    COINCIDENT_REVIEW_SOURCE_NAMES,
+    CoincidentReviewAction,
+    CoincidentReviewCounts,
+    CoincidentReviewManifest,
+    CoincidentReviewRow,
+    CoincidentReviewSourceName,
+    coincident_review_artifact_id,
+    coincident_review_counts,
+    coincident_review_decisions_hash,
+)
 from atlas_tools.relation.evaluation.domain.configuration import (
     RUN_CONFIG_ADAPTER,
     BaseRunConfig,
@@ -117,6 +130,7 @@ from atlas_tools.relation.evaluation.domain.request_policy import (
     HistoricalRequestEvidence,
     HistoricalRequestSubset,
 )
+from atlas_tools.relation.evaluation.domain.review import HumanPlacementAction
 from atlas_tools.relation.evaluation.domain.scalar import (
     FiniteFloat,
     HttpErrorStatusCode,
@@ -167,6 +181,9 @@ __all__ = [
     "BASELINE_REPEAT_INDEX",
     "BUNDLES",
     "CANARY_REPEAT_INDEX",
+    "COINCIDENT_REVIEW_ARTIFACT",
+    "COINCIDENT_REVIEW_POLICY_ID",
+    "COINCIDENT_REVIEW_SOURCE_NAMES",
     "COMPLETION_REQUEST_POLICY_IDS",
     "FRAMINGS",
     "HISTORICAL_COMPLETION_REQUEST_POLICY_IDS",
@@ -192,6 +209,11 @@ __all__ = [
     "BundleId",
     "CardHash",
     "ClassifierConfig",
+    "CoincidentReviewAction",
+    "CoincidentReviewCounts",
+    "CoincidentReviewManifest",
+    "CoincidentReviewRow",
+    "CoincidentReviewSourceName",
     "CompletionRequestPolicyId",
     "CompletionUsage",
     "ConcurrencyConfig",
@@ -219,6 +241,7 @@ __all__ = [
     "HistoricalRequestSubset",
     "HttpErrorStatusCode",
     "HttpStatusCode",
+    "HumanPlacementAction",
     "InFlightRequest",
     "JudgeConfig",
     "JudgeFamilyId",
@@ -293,6 +316,9 @@ __all__ = [
     "attempt_id",
     "bundle_id",
     "bundle_parts",
+    "coincident_review_artifact_id",
+    "coincident_review_counts",
+    "coincident_review_decisions_hash",
     "failure_retry_after",
     "failure_statuses",
     "normalize_embedding_endpoint_url",

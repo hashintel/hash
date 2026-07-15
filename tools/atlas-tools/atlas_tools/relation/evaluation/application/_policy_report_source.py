@@ -1,4 +1,4 @@
-"""Load gold labels and optional family-bound classifier report inputs."""
+"""Load report inputs and bind their exact source identities."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,11 +6,16 @@ from pathlib import Path
 import trio
 
 from atlas_tools.relation.evaluation.analysis.api import GoldLabel
-from atlas_tools.relation.evaluation.application._analysis_codec import read_bytes, sha256_bytes
+from atlas_tools.relation.evaluation.application._analysis_codec import (
+    canonical_json_bytes,
+    read_bytes,
+    sha256_bytes,
+)
 from atlas_tools.relation.evaluation.application.analysis_artifact import ClassifierBundle
 from atlas_tools.relation.evaluation.application.analysis_codec import (
     load_classifier_bundle_async,
 )
+from atlas_tools.relation.evaluation.application.completed import CompletedGrid
 from atlas_tools.relation.evaluation.domain.api import Sha256Hex
 from atlas_tools.relation.family_closure.api import verify_family_closure
 
@@ -22,6 +27,32 @@ class LoadedGold:
     path: Path
     content_hash: Sha256Hex
     rows: tuple[GoldLabel, ...]
+
+
+def report_source_hashes(
+    completed: CompletedGrid,
+    gold: LoadedGold | None,
+    classifier: ClassifierBundle | None,
+) -> dict[str, Sha256Hex]:
+    sources = {
+        "grid/config": completed.prepared.loaded_config.content_hash,
+        "grid/manifest-contract": sha256_bytes(canonical_json_bytes(completed.manifest)),
+        **{
+            f"grid/{name}": content_hash
+            for name, content_hash in completed.manifest.source_hashes.items()
+        },
+    }
+    if gold is not None:
+        sources["gold.jsonl"] = gold.content_hash
+    if classifier is not None:
+        sources["classifier/metadata"] = classifier.metadata.metadata_hash
+        sources.update(
+            {
+                f"classifier/{name}": content_hash
+                for name, content_hash in classifier.metadata.content_hashes.items()
+            }
+        )
+    return sources
 
 
 def load_gold(path: Path) -> LoadedGold:
@@ -63,13 +94,21 @@ def _validate_classifier_paths(
     closure_directory: Path | None,
     soft_labels_path: Path | None,
     resolutions_directory: Path | None,
+    coincident_reviews_directory: Path | None,
+    deliverables_directory: Path | None,
 ) -> None:
     if (classifier_directory is None) != (closure_directory is None):
         raise ValueError("classifier and family closure must be provided together")
-    if (soft_labels_path is None) != (resolutions_directory is None):
-        raise ValueError("soft labels and target resolutions must be provided together")
-    if classifier_directory is None and resolutions_directory is not None:
-        raise ValueError("target resolutions require a classifier")
+    if resolutions_directory is not None and soft_labels_path is None:
+        raise ValueError("target resolutions require soft labels")
+    if (coincident_reviews_directory is None) != (deliverables_directory is None):
+        raise ValueError("Coincident reviews and grid deliverables must be provided together")
+    if coincident_reviews_directory is not None and soft_labels_path is None:
+        raise ValueError("Coincident reviews require soft labels")
+    if classifier_directory is None and (
+        resolutions_directory is not None or coincident_reviews_directory is not None
+    ):
+        raise ValueError("reviewed targets require a classifier")
 
 
 async def _load_classifier(
@@ -78,6 +117,8 @@ async def _load_classifier(
     closure_directory: Path,
     soft_labels_path: Path | None,
     resolutions_directory: Path | None,
+    coincident_reviews_directory: Path | None,
+    deliverables_directory: Path | None,
 ) -> ClassifierBundle:
     closure = await trio.to_thread.run_sync(
         verify_family_closure,
@@ -89,29 +130,45 @@ async def _load_classifier(
         closure=closure,
         soft_labels=soft_labels_path,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
+
+
+def _loaded_gold(path: Path | None, values: list[LoadedGold]) -> LoadedGold | None:
+    if path is None:
+        if values:
+            raise AssertionError("gold loaded without a requested path")
+        return None
+    if len(values) != 1:
+        raise AssertionError("parallel gold loader did not return exactly once")
+    return values[0]
 
 
 async def load_snapshot_inputs(
     *,
-    gold_path: Path,
+    gold_path: Path | None,
     classifier_directory: Path | None,
     closure_directory: Path | None,
     soft_labels_path: Path | None,
     resolutions_directory: Path | None,
-) -> tuple[LoadedGold, ClassifierBundle | None]:
-    """Load gold and an optional classifier bound to its verified closure."""
+    coincident_reviews_directory: Path | None,
+    deliverables_directory: Path | None,
+) -> tuple[LoadedGold | None, ClassifierBundle | None]:
+    """Load optional gold and a classifier bound to its verified closure."""
     _validate_classifier_paths(
         classifier_directory=classifier_directory,
         closure_directory=closure_directory,
         soft_labels_path=soft_labels_path,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     gold_values: list[LoadedGold] = []
     classifier_values: list[ClassifierBundle] = []
 
-    async def load_gold_value() -> None:
-        gold_values.append(await load_gold_async(gold_path))
+    async def load_gold_value(path: Path) -> None:
+        gold_values.append(await load_gold_async(path))
 
     async def load_classifier_value() -> None:
         if classifier_directory is None or closure_directory is None:
@@ -122,15 +179,17 @@ async def load_snapshot_inputs(
                 closure_directory=closure_directory,
                 soft_labels_path=soft_labels_path,
                 resolutions_directory=resolutions_directory,
+                coincident_reviews_directory=coincident_reviews_directory,
+                deliverables_directory=deliverables_directory,
             )
         )
 
     async with trio.open_nursery() as nursery:
-        nursery.start_soon(load_gold_value)
+        if gold_path is not None:
+            nursery.start_soon(load_gold_value, gold_path)
         if classifier_directory is not None:
             nursery.start_soon(load_classifier_value)
-    if len(gold_values) != 1:
-        raise AssertionError("parallel gold loader did not return exactly once")
+    gold = _loaded_gold(gold_path, gold_values)
     if classifier_directory is None:
         if classifier_values:
             raise AssertionError("classifier loaded without a requested directory")
@@ -139,4 +198,4 @@ async def load_snapshot_inputs(
         if len(classifier_values) != 1:
             raise AssertionError("parallel classifier loader did not return exactly once")
         classifier = classifier_values[0]
-    return gold_values[0], classifier
+    return gold, classifier

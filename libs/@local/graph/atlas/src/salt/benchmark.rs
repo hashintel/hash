@@ -194,6 +194,7 @@ impl AnalyticFixture {
             .expect("benchmark merge tree should build");
         let regions = density_regions(
             &raster,
+            &tree,
             &self.coordinates,
             RegionConfig {
                 density_floor_fraction: 0.005,

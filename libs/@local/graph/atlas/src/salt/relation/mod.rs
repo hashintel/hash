@@ -26,13 +26,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use type_system::knowledge::entity::id::EntityId;
+use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 use uuid::Uuid;
 
 use crate::salt::{
     hash::{ContentHash, ContentHasher},
     identity::{ArtifactOrdinal, GenerationRowId, IdentityDirectory},
-    policy::{Probability, ResolvedPolicy},
+    policy::{PolicySource, Probability, ResolvedPolicy},
     snapshot::GeometryAuthorizedLink,
     strength::RelationStrength,
 };
@@ -40,10 +40,6 @@ use crate::salt::{
 mod artifact;
 mod error;
 
-#[allow(
-    unused_imports,
-    reason = "relation artifact publication is invoked by the generation adapter"
-)]
 pub(crate) use self::{artifact::publish_relation_indexes, error::RelationIndexError};
 
 const LINK_SCORED: u8 = 1 << 0;
@@ -207,6 +203,57 @@ pub(crate) struct RelationPolicy {
     pub strength: RelationStrength,
 }
 
+/// Computes the canonical identity of the dense relation-policy sidecar.
+#[must_use]
+pub(crate) fn relation_policy_hash(
+    ordinals: &HashMap<VersionedUrl, ArtifactOrdinal>,
+    policies: &[RelationPolicy],
+) -> ContentHash {
+    let mut relation_types = ordinals
+        .iter()
+        .map(|(relation_type, ordinal)| (*ordinal, relation_type.to_string()))
+        .collect::<Vec<_>>();
+    relation_types.sort_unstable_by_key(|(ordinal, _)| *ordinal);
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.resolved-relation-policy.v1");
+    for (ordinal, relation_type) in relation_types {
+        hasher.update(&ordinal.as_u32().to_le_bytes());
+        hasher.update(relation_type.as_bytes());
+        if let Some(policy) = policies.get(ordinal.as_usize()) {
+            hasher.update(&[policy_source(policy.policy.source)]);
+            for value in policy_values(policy) {
+                hasher.update(&value.to_bits().to_le_bytes());
+            }
+            hasher.update(&[u8::from(policy.policy.coincident_admitted)]);
+        }
+    }
+    hasher.finish()
+}
+
+#[inline]
+pub(super) const fn policy_source(source: PolicySource) -> u8 {
+    match source {
+        PolicySource::HumanOverride => 0,
+        PolicySource::HumanReviewed => 1,
+        PolicySource::Synthetic => 2,
+        PolicySource::Classifier => 3,
+        PolicySource::OverlayFallback => 4,
+    }
+}
+
+#[inline]
+pub(super) fn policy_values(policy: &RelationPolicy) -> [f64; 8] {
+    [
+        policy.policy.selected.coincident.get(),
+        policy.policy.selected.proximal.get(),
+        policy.policy.selected.overlay.get(),
+        policy.policy.applicability.get(),
+        policy.policy.effective_attraction.coincident.get(),
+        policy.policy.effective_attraction.proximal.get(),
+        policy.policy.effective_attraction.overlay.get(),
+        policy.strength.get(),
+    ]
+}
+
 /// Shared generation-level attraction coefficients.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionCoefficients {
@@ -292,6 +339,7 @@ pub(crate) struct ProtectionConfig {
     pub ordinary_floor: Probability,
     pub hard_threshold: Probability,
     pub ordinary_threshold: Probability,
+    pub protect_ordinary_negatives: bool,
 }
 
 impl ProtectionConfig {
@@ -301,11 +349,20 @@ impl ProtectionConfig {
     ///
     /// Returns an error unless the ordinary floor is at most the hard floor
     /// and the hard threshold is at most the ordinary threshold.
+    ///
+    /// # Arguments
+    ///
+    /// * `hard_floor` - Minimum applicability used for hard-negative protection
+    /// * `ordinary_floor` - Minimum applicability used for ordinary negatives
+    /// * `hard_threshold` - Pair mass required to protect hard negatives
+    /// * `ordinary_threshold` - Pair mass required to protect ordinary negatives
+    /// * `protect_ordinary_negatives` - Whether ordinary protection is enforced
     pub(crate) fn new(
         hard_floor: Probability,
         ordinary_floor: Probability,
         hard_threshold: Probability,
         ordinary_threshold: Probability,
+        protect_ordinary_negatives: bool,
     ) -> Result<Self, RelationIndexError> {
         if ordinary_floor > hard_floor || hard_threshold > ordinary_threshold {
             return Err(RelationIndexError::InvalidProtectionOrdering);
@@ -315,6 +372,7 @@ impl ProtectionConfig {
             ordinary_floor,
             hard_threshold,
             ordinary_threshold,
+            protect_ordinary_negatives,
         })
     }
 }
@@ -505,7 +563,8 @@ pub(crate) fn build_relation_indexes(
             hard_mass,
             ordinary_mass,
             hard: hard_mass >= protection.hard_threshold.get(),
-            ordinary: ordinary_mass >= protection.ordinary_threshold.get(),
+            ordinary: protection.protect_ordinary_negatives
+                && ordinary_mass >= protection.ordinary_threshold.get(),
         })
         .collect();
     pair_masses.sort_unstable_by_key(|entry| entry.pair);

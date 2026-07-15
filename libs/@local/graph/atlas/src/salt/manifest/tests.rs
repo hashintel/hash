@@ -1,4 +1,5 @@
-use std::fs;
+use core::mem::size_of;
+use std::{collections::HashMap, fs};
 
 use burn::backend::{Candle, candle::CandleDevice};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -10,16 +11,23 @@ use super::*;
 use crate::salt::{
     card::CARD_FORMAT_VERSION,
     format::{
-        ANALYTIC_FORMAT, BASE_ARTIFACT_FORMAT, CLASSIFIER_FORMAT, LANDMARK_FORMAT, RELATION_FORMAT,
+        ANALYTIC_FORMAT, BASE_ARTIFACT_FORMAT, CLASSIFIER_FORMAT, LANDMARK_FORMAT,
+        PERSISTENCE_REFERENCE_FORMAT, RELATION_FORMAT, REPRESENTATION_FORMAT,
         SEMANTIC_GRAPH_FORMAT,
     },
+    generation::PersistenceComparisonReport,
     hash::{ContentHash, ContentHasher},
     projector::{
         ConditionedProjector, PROJECTOR_ARCHITECTURE_VERSION, ProjectorConfig,
         publish_projector_checkpoint,
     },
-    representation::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
-    revision::{BaseRevision, DeltaRevision, GenerationId, VariantId},
+    representation::{
+        AUDITED_PREFIX_DIMENSIONS, CANONICAL_DIMENSIONS, NORMALIZATION_EPSILON,
+        PROJECTOR_DIMENSIONS, RepresentationAuditReport, TRANSFORM_VERSION, canonical_corpus_hash,
+        prefix_corpus_hash, projector_corpus_hash, transform_contract_hash,
+        transform_golden_vectors_hash,
+    },
+    revision::{AuthorizationRevision, BaseRevision, DeltaRevision, GenerationId, VariantId},
     storage::mmap::{
         ArtifactFormat, ArtifactScalar, ArtifactSection, PublishedArtifact, SectionId,
         publish_artifact,
@@ -67,6 +75,58 @@ fn manifest_rejects_an_ann_backend_below_the_exact_recall_gate() {
 }
 
 #[test]
+fn manifest_rejects_unbound_input_and_projector_transform_contracts() {
+    let mut invalid_input = manifest();
+    invalid_input.input_snapshot.frozen_input_hash = ContentHash::from_bytes([0; 32]);
+    assert!(matches!(
+        invalid_input.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "input_snapshot.frozen_input_hash",
+            ..
+        })
+    ));
+
+    let mut invalid_transform = manifest();
+    invalid_transform.embedding.transform_hash = ContentHash::digest(b"different-transform");
+    assert!(matches!(
+        invalid_transform.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "embedding.transform_hash",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn manifest_rejects_quality_measurements_below_release_policy() {
+    let mut manifest = manifest();
+    manifest.variants.entries[0].semantic_fidelity = 0.90;
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "variants.entries.semantic_fidelity",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn manifest_rejects_clamp_metadata_not_derived_from_row_count() {
+    let mut manifest = manifest();
+    manifest.variants.entries[0].clamp_count = 1;
+    manifest.variants.entries[0].clamp_rate = 0.0;
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "variants.entries.clamp_rate",
+            ..
+        })
+    ));
+}
+
+#[test]
 fn disabled_typed_deconflict_cannot_smuggle_repulsive_geometry() {
     let mut manifest = manifest();
     manifest.relations.typed_deconflict.geometry_coefficient = 0.25;
@@ -75,6 +135,20 @@ fn disabled_typed_deconflict_cannot_smuggle_repulsive_geometry() {
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "relations.typed_deconflict.geometry_coefficient",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn initial_manifest_rejects_an_enabled_strength_head() {
+    let mut manifest = manifest();
+    manifest.relations.strength_head.enabled = true;
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "relations.strength_head.enabled",
             ..
         })
     ));
@@ -165,13 +239,134 @@ fn manifest_publication_rejects_a_role_incompatible_mmap_schema() {
     ));
 }
 
+#[test]
+fn manifest_publication_rejects_a_hash_consistent_legacy_layout_mismatch() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
+    let mut manifest = manifest();
+    publish_test_artifacts(root, &mut manifest);
+    let layout = manifest
+        .artifacts
+        .iter_mut()
+        .find(|artifact| artifact.role == ArtifactRole::LegacyLayout)
+        .expect("legacy layout should exist");
+    let path = root.join(&layout.relative_path);
+    let mut bytes = fs::read(&path).expect("legacy layout should be readable");
+    bytes[..size_of::<f32>()].copy_from_slice(&1.0_f32.to_le_bytes());
+    fs::write(&path, &bytes).expect("legacy layout should be replaceable");
+    layout.content_hash = ContentHash::digest(&bytes);
+    let layout_hash = layout.content_hash;
+    let export_artifact = manifest
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.role == ArtifactRole::LegacyExportManifest)
+        .expect("legacy export manifest should exist");
+    let export_bytes = fs::read(root.join(&export_artifact.relative_path))
+        .expect("legacy export manifest should be readable");
+    let mut export: FixtureLegacyExport =
+        serde_json::from_slice(&export_bytes).expect("legacy export manifest should decode");
+    export.layout_hash = layout_hash;
+    publish_opaque_fixture(
+        root,
+        &mut manifest,
+        ArtifactRole::LegacyExportManifest,
+        &serde_json::to_vec(&export).expect("legacy export manifest should serialize"),
+    );
+
+    let error = publish_manifest(&root.join("manifest.json"), &manifest)
+        .expect_err("mismatched legacy coordinates must fail publication");
+    assert!(
+        matches!(
+            error,
+            ManifestPublishError::Artifact(ArtifactVerificationError::Schema {
+                role: ArtifactRole::LegacyLayout,
+                ..
+            })
+        ),
+        "unexpected publication error: {error:?}"
+    );
+}
+
 fn manifest() -> GenerationManifest {
     fixture_manifest()
 }
 
 pub(crate) fn fixture_manifest() -> GenerationManifest {
     let hash = |name: &str| ContentHash::digest(name.as_bytes());
+    let representation_rows = 52;
+    let semantic_backend = hash("semantic-backend");
+    let audit_sample = hash("exact-audit-sample");
+    let canonical_values = vec![0.0; representation_rows * CANONICAL_DIMENSIONS];
+    let projector_values = vec![0.0; representation_rows * PROJECTOR_DIMENSIONS];
+    let canonical_corpus = canonical_corpus_hash(&canonical_values);
+    let projector_corpus = projector_corpus_hash(&projector_values);
+    let representation_audit = RepresentationAuditReport {
+        suite_version: "representation-audit-v1".to_owned(),
+        canonical_corpus_hash: canonical_corpus,
+        projector_corpus_hash: projector_corpus,
+        identity_directory_hash: hash("identity-directory"),
+        stratification_input_hash: hash("representation-stratification"),
+        prefix_corpus_hashes: AUDITED_PREFIX_DIMENSIONS
+            .map(|dimensions| prefix_corpus_hash(&canonical_values, dimensions)),
+        query_sample_hash: hash("representation-query-sample"),
+        sample_rows: 20,
+        overall_recall: [[0.9; 3]; 4],
+        stratified_report_hash: hash("representation-strata"),
+        diagnostic_report_hash: hash("representation-diagnostics"),
+        clump_report_hash: hash("representation-clumps"),
+    };
+    let relation_policy_hash = crate::salt::relation::relation_policy_hash(&HashMap::new(), &[]);
+    let mut empty_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
+    empty_tree.update(&0.0_f64.to_bits().to_le_bytes());
+    let empty_tree_hash = empty_tree.finish();
+    let persistence_comparison = PersistenceComparisonReport {
+        suite_version: "persistence-quality-v1".to_owned(),
+        evaluator_contract_hash: hash("persistence-evaluator"),
+        checkpoint_hash: hash("projector"),
+        candidate_field_hash: hash("canonical-field"),
+        candidate_tree_hash: empty_tree_hash,
+        reference_tree_hash: empty_tree_hash,
+        reference_source_hash: hash("landmarks"),
+        fixed_thresholds: vec![0.01, 0.05, 0.10],
+        candidate_leaf_counts: vec![0, 0, 0],
+        reference_leaf_counts: vec![0, 0, 0],
+        candidate_normalized_total: 0.0,
+        reference_normalized_total: 0.0,
+        minimum_ratio: 0.5,
+        maximum_ratio: 2.0,
+        candidate_low_persistence_mass: 0.0,
+        reference_low_persistence_mass: 0.0,
+        maximum_low_persistence_ratio: 1.5,
+        candidate_noise_persistence: 0.0,
+        reference_noise_persistence: 0.0,
+        maximum_noise_ratio: 1.5,
+        planted_shape_cases: 6,
+        planted_shape_failures: 0,
+        distribution_report_hash: hash("persistence-distributions"),
+        planted_shape_report_hash: hash("persistence-planted-shapes"),
+        noise_report_hash: hash("persistence-noise"),
+    };
+    let projected_field = hash("canonical-field");
+    let semantic_fidelity_report = hash("semantic-fidelity-report");
+    let subgroup_report = hash("subgroup-report");
+    let quality = crate::salt::generation::ConditionQuality::new(
+        projected_field,
+        semantic_fidelity_report,
+        subgroup_report,
+        0.98,
+        1.5,
+    );
+    let audit = crate::salt::graph::audit::RecallAudit {
+        backend: semantic_backend,
+        sample: audit_sample,
+        sample_rows: 20,
+        neighbors_per_row: 50,
+        matched: 970,
+        expected: 1_000,
+        recall: 0.97,
+    };
     GenerationManifest {
+        format_version: GENERATION_MANIFEST_FORMAT_VERSION,
         generation_id: GenerationId::new(hash("generation")),
         created_at: JiffTimestamp::UNIX_EPOCH,
         input_snapshot: InputSnapshotManifest {
@@ -182,26 +377,35 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             },
             ontology_hash: hash("ontology"),
             knowledge_hash: hash("knowledge"),
+            authorization_revision: AuthorizationRevision::new(hash("authorization-revision")),
             frozen_input_hash: hash("frozen-input"),
         },
         embedding: EmbeddingManifest {
             model: "provider/model".to_owned(),
             producer_contract_hash: hash("producer"),
+            canonical_corpus_hash: canonical_corpus,
+            projector_corpus_hash: projector_corpus,
+            representation_audit,
             canonical_dimensions: CANONICAL_DIMENSIONS,
             projector_dimensions: PROJECTOR_DIMENSIONS,
-            transform_version: "matryoshka-prefix-v1".to_owned(),
-            transform_hash: hash("transform"),
-            golden_vectors_hash: hash("golden-vectors"),
+            transform_version: TRANSFORM_VERSION.to_owned(),
+            transform_hash: transform_contract_hash(),
+            golden_vectors_hash: transform_golden_vectors_hash(),
         },
         semantic_graph: SemanticGraphManifest {
             neighbors: 30,
             metric: SemanticMetric::Cosine,
             backend: "exact-test".to_owned(),
-            backend_hash: hash("semantic-backend"),
+            backend_hash: semantic_backend,
             configuration_hash: hash("semantic-configuration"),
             weight_hash: hash("semantic-weights"),
             graph_hash: hash("semantic-graph"),
-            exact_audit_hash: hash("exact-audit"),
+            exact_audit_hash: audit.content_hash(),
+            exact_audit_sample_hash: audit_sample,
+            exact_audit_sample_rows: 20,
+            exact_audit_neighbors: 50,
+            exact_audit_matched: 970,
+            exact_audit_expected: 1_000,
             recall_at_50: 0.97,
         },
         landmarks: LandmarkManifest {
@@ -211,6 +415,7 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             seed: 41,
             retained_fraction: 2.0 / 52.0,
             artifact_hash: hash("landmarks"),
+            persistence_reference_source_hash: hash("landmarks"),
         },
         projector: ProjectorManifest {
             architecture_version: PROJECTOR_ARCHITECTURE_VERSION,
@@ -240,7 +445,10 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             annotation_vote_schedule: "3x-independent".to_owned(),
             reviewed_holdout_hash: hash("holdout"),
             policy_precedence_version: "v1".to_owned(),
-            policy_hash: hash("policy"),
+            policy_input_hash: hash("policy-input"),
+            policy_hash: relation_policy_hash,
+            policy_evaluation_report_hash: hash("policy-evaluation-report"),
+            authorization_noninterference_report_hash: hash("authorization-noninterference-report"),
             classifier_version: "diagonal-shrinkage-v1".to_owned(),
             classifier_model_hash: hash("classifier"),
             classifier_temperature: 1.0,
@@ -314,6 +522,19 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
                 global_relation_condition: 0.5,
                 condition_domain_hash: hash("condition-domain"),
                 selection_evidence_hash: hash("selection-evidence"),
+                quality_suite_version: "fixture-quality-v1".to_owned(),
+                projected_field_hash: projected_field,
+                quality_report_hash: quality.content_hash(),
+                semantic_fidelity_report_hash: semantic_fidelity_report,
+                semantic_fidelity: 0.98,
+                minimum_semantic_fidelity: 0.95,
+                subgroup_report_hash: subgroup_report,
+                maximum_subgroup_degradation: 1.5,
+                maximum_allowed_subgroup_degradation: 2.0,
+                relation_baseline_field_hash: hash("relation-baseline-field"),
+                baseline_relation_loss: 1.0,
+                canonical_relation_loss: 0.5,
+                relation_loss_tolerance: 0.0,
                 canonical_field_hash: hash("canonical-field"),
                 procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
                 quantization_step: 1.0e-3,
@@ -322,17 +543,25 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
                 bucket_index_hash: hash("buckets"),
                 morton_index_hash: hash("morton"),
                 analytic_configuration_hash: hash("analytic-configuration"),
-                merge_tree_hash: hash("merge-tree"),
+                merge_tree_hash: empty_tree_hash,
+                normalized_persistence: 0.0,
+                persistence_comparison,
             }],
         },
         storage: StorageManifest {
-            row_count: 52,
+            row_count: u64::try_from(representation_rows).expect("fixture rows should fit u64"),
             row_id_encoding: RowIdEncoding::U32,
             identity_directory_hash: hash("identity-directory"),
             base_revision: BaseRevision::ZERO,
             initial_delta_revision: DeltaRevision::ZERO,
         },
         artifacts: vec![
+            artifact(
+                ArtifactRole::Representations,
+                "representations.salt",
+                hash("representations"),
+                Some(REPRESENTATION_FORMAT),
+            ),
             artifact(
                 ArtifactRole::RelationClassifier,
                 "classifier.salt",
@@ -356,6 +585,12 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
                 "landmarks.salt",
                 hash("landmarks"),
                 Some(LANDMARK_FORMAT),
+            ),
+            artifact(
+                ArtifactRole::LandmarkReferencePersistence,
+                "landmark-reference.salt",
+                hash("landmark-reference"),
+                Some(PERSISTENCE_REFERENCE_FORMAT),
             ),
             artifact(
                 ArtifactRole::ProjectorCheckpoint,
@@ -453,8 +688,10 @@ fn fixture_provenance(rows: usize) -> FixtureProvenance {
     let mut identity_directory = ContentHasher::new(b"hash.graph.atlas.salt.identity-directory.v1");
     for row in 0..rows {
         let row = u32::try_from(row).expect("fixture row should fit u32");
+        bucket_index.update(&row.to_le_bytes());
         bucket_index.update(&0_u32.to_le_bytes());
         bucket_index.update(&row.to_le_bytes());
+        morton_index.update(&row.to_le_bytes());
         morton_index.update(&row.to_le_bytes());
         identity_directory.update(&row.to_le_bytes());
         identity_directory.update(&[0; 16]);
@@ -462,7 +699,7 @@ fn fixture_provenance(rows: usize) -> FixtureProvenance {
         identity_directory.update(&[0]);
         identity_directory.update(&[0; 16]);
     }
-    let mut merge_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v1");
+    let mut merge_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
     merge_tree.update(&0.0_f64.to_bits().to_le_bytes());
     FixtureProvenance {
         bucket_index: bucket_index.finish(),
@@ -481,6 +718,10 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
     let landmarks = manifest.landmarks.actual_count;
     let provenance = fixture_provenance(rows);
     manifest.storage.identity_directory_hash = provenance.identity_directory;
+    manifest
+        .embedding
+        .representation_audit
+        .identity_directory_hash = provenance.identity_directory;
     manifest.relations.edge_snapshot_hash = provenance.edge_snapshot;
     manifest.variants.entries[0].bucket_index_hash = provenance.bucket_index;
     manifest.variants.entries[0].morton_index_hash = provenance.morton_index;
@@ -490,6 +731,10 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
         manifest.semantic_graph.backend_hash,
         manifest.semantic_graph.configuration_hash,
         manifest.semantic_graph.weight_hash,
+    ];
+    let representation_provenance = [
+        manifest.embedding.canonical_corpus_hash,
+        manifest.embedding.projector_corpus_hash,
     ];
     let relation_provenance = [
         manifest.relations.policy_hash,
@@ -502,7 +747,9 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
         role_count: manifest.projector.role_count,
         role_dimensions: manifest.projector.role_dimensions,
     };
+    let mut reference_source = manifest.landmarks.artifact_hash;
     for artifact in &mut manifest.artifacts {
+        let role = artifact.role;
         let path = directory.join(&artifact.relative_path);
         if let Some(format) = artifact.format {
             let published = publish_test_mmap(
@@ -513,10 +760,15 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
                 neighbors,
                 landmarks,
                 &canonical,
+                representation_provenance,
                 semantic_provenance,
                 relation_provenance,
                 provenance.identity_directory,
+                reference_source,
             );
+            if role == ArtifactRole::LandmarkSkeleton {
+                reference_source = published.content_hash;
+            }
             *artifact =
                 ArtifactManifest::mmap(artifact.role, artifact.relative_path.clone(), published);
         } else if artifact.role == ArtifactRole::ProjectorCheckpoint {
@@ -531,21 +783,135 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
                 published.byte_length,
             );
         } else {
-            let bytes = artifact.role.to_string();
-            fs::write(&path, bytes.as_bytes()).expect("opaque fixture should publish");
-            *artifact = ArtifactManifest::opaque(
+            debug_assert!(matches!(
                 artifact.role,
-                artifact.relative_path.clone(),
-                ContentHash::digest(bytes.as_bytes()),
-                u64::try_from(bytes.len()).expect("fixture length should fit u64"),
-            );
+                ArtifactRole::LegacyLayout
+                    | ArtifactRole::LegacyIdentities
+                    | ArtifactRole::LegacyExportManifest
+            ));
         }
     }
+    publish_legacy_fixture(directory, manifest);
     manifest.relations.classifier_model_hash =
         artifact_hash(manifest, ArtifactRole::RelationClassifier);
     manifest.semantic_graph.graph_hash = artifact_hash(manifest, ArtifactRole::SemanticGraph);
     manifest.landmarks.artifact_hash = artifact_hash(manifest, ArtifactRole::LandmarkSkeleton);
+    manifest.landmarks.persistence_reference_source_hash = manifest.landmarks.artifact_hash;
     manifest.projector.checkpoint_hash = artifact_hash(manifest, ArtifactRole::ProjectorCheckpoint);
+    manifest.variants.entries[0]
+        .persistence_comparison
+        .reference_source_hash = manifest.landmarks.artifact_hash;
+    manifest.variants.entries[0]
+        .persistence_comparison
+        .checkpoint_hash = manifest.projector.checkpoint_hash;
+}
+
+#[derive(serde::Serialize)]
+struct FixtureIdentityDocument {
+    version: u32,
+    rows: Vec<FixtureIdentityRow>,
+}
+
+#[derive(serde::Serialize)]
+struct FixtureIdentityRow {
+    row: u32,
+    web_id: uuid::Uuid,
+    entity_uuid: uuid::Uuid,
+    draft_id: Option<uuid::Uuid>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct FixtureLegacyExport {
+    version: u32,
+    tag: u16,
+    condition: f64,
+    quantization_step: f64,
+    coordinate_field_hash: ContentHash,
+    row_count: usize,
+    layout_file: String,
+    layout_hash: ContentHash,
+    identities_file: String,
+    identities_hash: ContentHash,
+}
+
+fn publish_legacy_fixture(directory: &Utf8Path, manifest: &mut GenerationManifest) {
+    let row_count =
+        usize::try_from(manifest.storage.row_count).expect("fixture row count should fit usize");
+    publish_opaque_fixture(
+        directory,
+        manifest,
+        ArtifactRole::LegacyLayout,
+        &vec![0; row_count * 2 * size_of::<f32>()],
+    );
+    let identities = FixtureIdentityDocument {
+        version: 1,
+        rows: (0..row_count)
+            .map(|row| FixtureIdentityRow {
+                row: u32::try_from(row).expect("fixture row should fit u32"),
+                web_id: uuid::Uuid::nil(),
+                entity_uuid: uuid::Uuid::nil(),
+                draft_id: None,
+            })
+            .collect(),
+    };
+    publish_opaque_fixture(
+        directory,
+        manifest,
+        ArtifactRole::LegacyIdentities,
+        &serde_json::to_vec(&identities).expect("fixture identities should serialize"),
+    );
+    let layout = manifest
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.role == ArtifactRole::LegacyLayout)
+        .expect("fixture layout should exist")
+        .clone();
+    let identities = manifest
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.role == ArtifactRole::LegacyIdentities)
+        .expect("fixture identities should exist")
+        .clone();
+    let canonical = &manifest.variants.entries[0];
+    let export = FixtureLegacyExport {
+        version: 2,
+        tag: 0,
+        condition: canonical.global_relation_condition,
+        quantization_step: canonical.quantization_step,
+        coordinate_field_hash: canonical.canonical_field_hash,
+        row_count,
+        layout_file: layout.relative_path,
+        layout_hash: layout.content_hash,
+        identities_file: identities.relative_path,
+        identities_hash: identities.content_hash,
+    };
+    publish_opaque_fixture(
+        directory,
+        manifest,
+        ArtifactRole::LegacyExportManifest,
+        &serde_json::to_vec(&export).expect("fixture export should serialize"),
+    );
+}
+
+fn publish_opaque_fixture(
+    directory: &Utf8Path,
+    manifest: &mut GenerationManifest,
+    role: ArtifactRole,
+    bytes: &[u8],
+) {
+    let artifact = manifest
+        .artifacts
+        .iter_mut()
+        .find(|artifact| artifact.role == role)
+        .expect("fixture opaque artifact should exist");
+    let relative_path = artifact.relative_path.clone();
+    fs::write(directory.join(&relative_path), bytes).expect("opaque fixture should publish");
+    *artifact = ArtifactManifest::opaque(
+        role,
+        relative_path,
+        ContentHash::digest(bytes),
+        u64::try_from(bytes.len()).expect("fixture length should fit u64"),
+    );
 }
 
 pub(crate) fn publish_fixture_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifest) {
@@ -560,11 +926,32 @@ fn publish_test_mmap(
     neighbors: usize,
     landmarks: usize,
     canonical: &VariantEntryManifest,
+    representation_provenance: [ContentHash; 2],
     semantic_provenance: [ContentHash; 3],
     relation_provenance: [ContentHash; 2],
     identity_directory_hash: ContentHash,
+    reference_source_hash: ContentHash,
 ) -> PublishedArtifact {
     match role {
+        ArtifactRole::Representations => {
+            let canonical = vec![0.0_f32; rows * CANONICAL_DIMENSIONS];
+            let projector = vec![0.0_f32; rows * PROJECTOR_DIMENSIONS];
+            let roles = vec![0_u32; rows];
+            let normalization_floor = [NORMALIZATION_EPSILON];
+            publish(
+                path,
+                format,
+                vec![
+                    section(1, &[rows, CANONICAL_DIMENSIONS], &canonical),
+                    section(2, &[rows, PROJECTOR_DIMENSIONS], &projector),
+                    section(3, &[rows], &roles),
+                    section(4, &[32], representation_provenance[0].as_bytes()),
+                    section(5, &[32], representation_provenance[1].as_bytes()),
+                    section(6, &[32], identity_directory_hash.as_bytes()),
+                    section(7, &[1], &normalization_floor),
+                ],
+            )
+        }
         ArtifactRole::RelationClassifier | ArtifactRole::StrengthHead => {
             let class_order = [0_u8, 1, 2];
             let coefficients = vec![0.0_f64; 3 * CANONICAL_DIMENSIONS];
@@ -623,6 +1010,7 @@ fn publish_test_mmap(
             let empty_u8: [u8; 0] = [];
             let empty_u32: [u32; 0] = [];
             let empty_f64: [f64; 0] = [];
+            let empty_policy_offsets = [0_u64];
             publish(
                 path,
                 format,
@@ -648,6 +1036,15 @@ fn publish_test_mmap(
                     section(19, &[0], &empty_f64),
                     section(20, &[0], &empty_u8),
                     section(21, &[32], relation_provenance[1].as_bytes()),
+                    section(22, &[1], &empty_policy_offsets),
+                    section(23, &[0], &empty_u8),
+                    section(24, &[0], &empty_u32),
+                    section(25, &[0], &empty_u8),
+                    section(26, &[0, 3], &empty_f64),
+                    section(27, &[0], &empty_f64),
+                    section(28, &[0, 3], &empty_f64),
+                    section(29, &[0], &empty_f64),
+                    section(30, &[0], &empty_u8),
                 ],
             )
         }
@@ -663,6 +1060,32 @@ fn publish_test_mmap(
                     section(1, &[landmarks], &selected),
                     section(2, &[rows], &assignments),
                     section(3, &[landmarks, 2], &coordinates),
+                ],
+            )
+        }
+        ArtifactRole::LandmarkReferencePersistence => {
+            let density_maximum = [0.0_f64];
+            let empty_f64: [f64; 0] = [];
+            let empty_u64: [u64; 0] = [];
+            publish(
+                path,
+                format,
+                vec![
+                    section(1, &[32], canonical.analytic_configuration_hash.as_bytes()),
+                    section(2, &[32], reference_source_hash.as_bytes()),
+                    section(3, &[1], &density_maximum),
+                    section(4, &[0], &empty_f64),
+                    section(5, &[0], &empty_f64),
+                    section(
+                        6,
+                        &[32],
+                        canonical
+                            .persistence_comparison
+                            .reference_tree_hash
+                            .as_bytes(),
+                    ),
+                    section(7, &[0], &empty_u64),
+                    section(8, &[0], &empty_u64),
                 ],
             )
         }
@@ -683,6 +1106,7 @@ fn publish_test_mmap(
             let identities = vec![0_u8; rows * 16];
             let drafts = vec![0_u8; rows];
             let condition = [canonical.global_relation_condition];
+            let quantization_step = [canonical.quantization_step];
             publish(
                 path,
                 format,
@@ -703,6 +1127,7 @@ fn publish_test_mmap(
                     section(14, &[32], canonical.selection_evidence_hash.as_bytes()),
                     section(15, &[5], &canonical.procrustes_transform),
                     section(16, &[32], identity_directory_hash.as_bytes()),
+                    section(17, &[1], &quantization_step),
                 ],
             )
         }
@@ -733,6 +1158,13 @@ fn publish_test_mmap(
                     section(11, &[0], &empty_u32),
                     section(12, &[1], &label_offsets),
                     section(13, &[0], &empty_u8),
+                    section(14, &[0], &empty_u64),
+                    section(15, &[0], &empty_u64),
+                    section(16, &[0], &empty_u32),
+                    section(17, &[0], &empty_u32),
+                    section(18, &[0], &empty_f64),
+                    section(19, &[0], &empty_u64),
+                    section(20, &[0], &empty_u32),
                 ],
             )
         }

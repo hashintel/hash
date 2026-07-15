@@ -158,10 +158,12 @@ fn restart_loads_every_mapped_role_and_the_declared_projector() {
         release.head().generation
     );
     for role in [
+        ArtifactRole::Representations,
         ArtifactRole::RelationClassifier,
         ArtifactRole::SemanticGraph,
         ArtifactRole::RelationIndexes,
         ArtifactRole::LandmarkSkeleton,
+        ArtifactRole::LandmarkReferencePersistence,
         ArtifactRole::CanonicalBase,
         ArtifactRole::CanonicalAnalytics,
     ] {
@@ -185,7 +187,12 @@ fn publish_release(root: &Utf8Path, name: &str) -> GatedRelease {
 }
 
 fn activation_store(root: &Utf8Path) -> FileActivationStore<Candle> {
-    FileActivationStore::new(root, signer().verifier(), CandleDevice::Cpu)
+    FileActivationStore::new(
+        root,
+        signer().verifier(),
+        crate::salt::release::test_support::external_verifiers(),
+        CandleDevice::Cpu,
+    )
 }
 
 fn gated_release(name: &str) -> GatedRelease {
@@ -212,7 +219,6 @@ fn gate_report_for_head(name: &str, head: ReleaseHead) -> GateReport {
         .enumerate()
         .map(|(index, gate)| GateOutcome {
             gate,
-            passed: true,
             evidence: ContentHash::digest(format!("{name}-{index}-evidence").as_bytes()),
         })
         .collect();

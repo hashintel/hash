@@ -6,8 +6,14 @@
 //! vectors, applicability-floor ordering, threshold ordering, and the staged
 //! status of signed geometry as one indivisible contract.
 
+#![expect(
+    clippy::float_cmp,
+    reason = "manifest contract constants require exact IEEE-754 representations"
+)]
+
 use super::{
-    exact, fraction, nonnegative_finite, positive_finite, probability_vector, required_text,
+    exact, fraction, nonnegative_finite, nonzero_hash, positive_finite, probability_vector,
+    required_text,
 };
 use crate::salt::{
     card::CARD_FORMAT_VERSION,
@@ -15,6 +21,10 @@ use crate::salt::{
 };
 
 impl GenerationManifest {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "relation manifest validation keeps the complete cross-field contract visible"
+    )]
     pub(super) fn validate_relations(&self) -> Result<(), ManifestError> {
         let relations = &self.relations;
         for (field, value) in [
@@ -46,6 +56,49 @@ impl GenerationManifest {
             relations.relation_card_format_version == CARD_FORMAT_VERSION,
             "the current corpus format",
         )?;
+        for (field, value) in [
+            (
+                "relations.security_allow_list_hash",
+                relations.security_allow_list_hash,
+            ),
+            (
+                "relations.security_geometry_hash",
+                relations.security_geometry_hash,
+            ),
+            ("relations.edge_snapshot_hash", relations.edge_snapshot_hash),
+            (
+                "relations.relation_card_corpus_hash",
+                relations.relation_card_corpus_hash,
+            ),
+            (
+                "relations.annotation_corpus_hash",
+                relations.annotation_corpus_hash,
+            ),
+            (
+                "relations.reviewed_holdout_hash",
+                relations.reviewed_holdout_hash,
+            ),
+            ("relations.policy_input_hash", relations.policy_input_hash),
+            ("relations.policy_hash", relations.policy_hash),
+            (
+                "relations.policy_evaluation_report_hash",
+                relations.policy_evaluation_report_hash,
+            ),
+            (
+                "relations.authorization_noninterference_report_hash",
+                relations.authorization_noninterference_report_hash,
+            ),
+            (
+                "relations.classifier_model_hash",
+                relations.classifier_model_hash,
+            ),
+            (
+                "relations.applicability_config_hash",
+                relations.applicability_config_hash,
+            ),
+        ] {
+            nonzero_hash(field, value)?;
+        }
         positive_finite(
             "relations.classifier_temperature",
             relations.classifier_temperature,
@@ -79,6 +132,16 @@ impl GenerationManifest {
 
     fn validate_strength_head(&self) -> Result<(), ManifestError> {
         let strength = &self.relations.strength_head;
+        exact(
+            "relations.strength_head.enabled",
+            !strength.enabled,
+            "false for the initial release profile",
+        )?;
+        exact(
+            "relations.strength_head.materialized_h_table_hash",
+            strength.materialized_table_hash.is_none(),
+            "absent while the initial release uses unit strength",
+        )?;
         exact(
             "relations.strength_head.eligibility_threshold_proximal",
             strength.eligibility_threshold_proximal == 0.2,
@@ -170,14 +233,16 @@ impl GenerationManifest {
             "relations.coincident_gate.precision_lcb_threshold",
             gate.precision_lcb_threshold,
         )?;
-        if !gate.enabled {
-            exact(
-                "relations.attraction_geometry_coefficients.coincident",
-                self.relations.attraction_geometry_coefficients.coincident == 0.0,
-                "zero while the Coincident gate is disabled",
-            )?;
-        }
-        Ok(())
+        exact(
+            "relations.coincident_gate.enabled",
+            !gate.enabled,
+            "false for the initial release profile",
+        )?;
+        exact(
+            "relations.attraction_geometry_coefficients.coincident",
+            self.relations.attraction_geometry_coefficients.coincident == 0.0,
+            "zero for the initial release profile",
+        )
     }
 
     fn validate_typed_deconflict(&self) -> Result<(), ManifestError> {

@@ -2,12 +2,19 @@ use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
 
-use super::{GenerationManifest, ManifestError, artifact::validate_artifacts};
+use super::{
+    GENERATION_MANIFEST_FORMAT_VERSION, GenerationManifest, ManifestError,
+    artifact::validate_artifacts,
+};
 use crate::salt::{
-    graph::audit::MINIMUM_RECALL,
+    generation::ConditionQuality,
+    graph::audit::{AUDIT_NEIGHBORS, MINIMUM_RECALL, RecallAudit},
     hash::ContentHash,
-    projector::PROJECTOR_ARCHITECTURE_VERSION,
-    representation::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
+    projector::{PROJECTOR_ARCHITECTURE_VERSION, ProjectorConfig},
+    representation::{
+        CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS, TRANSFORM_VERSION, transform_contract_hash,
+        transform_golden_vectors_hash,
+    },
     revision::{BaseRevision, DeltaRevision, MAX_PUBLISHED_VARIANTS, VariantId},
 };
 
@@ -28,6 +35,50 @@ impl GenerationManifest {
     /// This returns the first missing, non-finite, out-of-range, or
     /// contract-inconsistent field in canonical section order.
     pub(crate) fn validate(&self) -> Result<(), ManifestError> {
+        exact(
+            "format_version",
+            self.format_version == GENERATION_MANIFEST_FORMAT_VERSION,
+            "the current manifest format version",
+        )?;
+        for (field, value) in [
+            (
+                "input_snapshot.ontology_hash",
+                self.input_snapshot.ontology_hash,
+            ),
+            (
+                "input_snapshot.knowledge_hash",
+                self.input_snapshot.knowledge_hash,
+            ),
+            (
+                "input_snapshot.authorization_revision",
+                self.input_snapshot.authorization_revision.content_hash(),
+            ),
+            (
+                "input_snapshot.frozen_input_hash",
+                self.input_snapshot.frozen_input_hash,
+            ),
+        ] {
+            nonzero_hash(field, value)?;
+        }
+        nonzero_hash(
+            "embedding.producer_contract_hash",
+            self.embedding.producer_contract_hash,
+        )?;
+        exact(
+            "embedding.transform_version",
+            self.embedding.transform_version == TRANSFORM_VERSION,
+            "the compiled projector transform version",
+        )?;
+        exact(
+            "embedding.transform_hash",
+            self.embedding.transform_hash == transform_contract_hash(),
+            "the compiled projector transform contract",
+        )?;
+        exact(
+            "embedding.golden_vectors_hash",
+            self.embedding.golden_vectors_hash == transform_golden_vectors_hash(),
+            "the compiled projector transform golden vectors",
+        )?;
         self.validate_embedding()?;
         self.validate_semantic_graph()?;
         self.validate_landmarks()?;
@@ -86,11 +137,65 @@ impl GenerationManifest {
             "embedding.projector_dimensions",
             self.embedding.projector_dimensions == PROJECTOR_DIMENSIONS,
             "512",
+        )?;
+        exact(
+            "embedding.canonical_corpus_hash",
+            self.embedding.canonical_corpus_hash != ContentHash::from_bytes([0; 32]),
+            "a nonzero persisted corpus identity",
+        )?;
+        exact(
+            "embedding.projector_corpus_hash",
+            self.embedding.projector_corpus_hash != ContentHash::from_bytes([0; 32]),
+            "a nonzero persisted corpus identity",
+        )?;
+        exact(
+            "embedding.representation_audit",
+            self.embedding
+                .representation_audit
+                .validate_summary(usize::try_from(self.storage.row_count).unwrap_or(usize::MAX))
+                .is_ok()
+                && self.embedding.representation_audit.canonical_corpus_hash
+                    == self.embedding.canonical_corpus_hash
+                && self.embedding.representation_audit.projector_corpus_hash
+                    == self.embedding.projector_corpus_hash
+                && self.embedding.representation_audit.identity_directory_hash
+                    == self.storage.identity_directory_hash,
+            "a complete report bound to persisted representations and identities",
         )
     }
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "exact-audit counts are bounded far below f64 integer precision"
+    )]
     fn validate_semantic_graph(&self) -> Result<(), ManifestError> {
         required_text("semantic_graph.backend", &self.semantic_graph.backend)?;
+        for (field, value) in [
+            (
+                "semantic_graph.backend_hash",
+                self.semantic_graph.backend_hash,
+            ),
+            (
+                "semantic_graph.configuration_hash",
+                self.semantic_graph.configuration_hash,
+            ),
+            ("semantic_graph.graph_hash", self.semantic_graph.graph_hash),
+            (
+                "semantic_graph.weight_hash",
+                self.semantic_graph.weight_hash,
+            ),
+            (
+                "semantic_graph.exact_audit_sample_hash",
+                self.semantic_graph.exact_audit_sample_hash,
+            ),
+            (
+                "semantic_graph.exact_audit_hash",
+                self.semantic_graph.exact_audit_hash,
+            ),
+        ] {
+            nonzero_hash(field, value)?;
+        }
+        let rows = usize::try_from(self.storage.row_count).unwrap_or(usize::MAX);
         exact(
             "semantic_graph.neighbors",
             self.semantic_graph.neighbors == SEMANTIC_NEIGHBORS,
@@ -104,6 +209,50 @@ impl GenerationManifest {
             "semantic_graph.recall_at_50",
             self.semantic_graph.recall_at_50 >= MINIMUM_RECALL,
             "at least the production ANN recall threshold",
+        )?;
+        exact(
+            "semantic_graph.exact_audit_sample_rows",
+            self.semantic_graph.exact_audit_sample_rows > 0
+                && self.semantic_graph.exact_audit_sample_rows <= rows,
+            "between one and the frozen corpus row count",
+        )?;
+        exact(
+            "semantic_graph.exact_audit_neighbors",
+            rows > 1 && self.semantic_graph.exact_audit_neighbors == AUDIT_NEIGHBORS.min(rows - 1),
+            "recall@50, bounded only by corpus size",
+        )?;
+        let expected = self
+            .semantic_graph
+            .exact_audit_sample_rows
+            .checked_mul(self.semantic_graph.exact_audit_neighbors)
+            .and_then(|count| u64::try_from(count).ok());
+        exact(
+            "semantic_graph.exact_audit_expected",
+            expected == Some(self.semantic_graph.exact_audit_expected)
+                && self.semantic_graph.exact_audit_matched
+                    <= self.semantic_graph.exact_audit_expected,
+            "the complete sampled recall denominator and a bounded numerator",
+        )?;
+        let measured_recall = self.semantic_graph.exact_audit_matched as f64
+            / self.semantic_graph.exact_audit_expected as f64;
+        exact(
+            "semantic_graph.recall_at_50",
+            measured_recall.to_bits() == self.semantic_graph.recall_at_50.to_bits(),
+            "the ratio of exact matched and expected neighbors",
+        )?;
+        let audit = RecallAudit {
+            backend: self.semantic_graph.backend_hash,
+            sample: self.semantic_graph.exact_audit_sample_hash,
+            sample_rows: self.semantic_graph.exact_audit_sample_rows,
+            neighbors_per_row: self.semantic_graph.exact_audit_neighbors,
+            matched: self.semantic_graph.exact_audit_matched,
+            expected: self.semantic_graph.exact_audit_expected,
+            recall: self.semantic_graph.recall_at_50,
+        };
+        exact(
+            "semantic_graph.exact_audit_hash",
+            audit.content_hash() == self.semantic_graph.exact_audit_hash,
+            "the canonical exact-audit measurement identity",
         )
     }
 
@@ -120,6 +269,11 @@ impl GenerationManifest {
                 maximum: self.landmarks.maximum_count,
             });
         }
+        nonzero_hash("landmarks.artifact_hash", self.landmarks.artifact_hash)?;
+        nonzero_hash(
+            "landmarks.persistence_reference_source_hash",
+            self.landmarks.persistence_reference_source_hash,
+        )?;
         fraction(
             "landmarks.retained_fraction",
             self.landmarks.retained_fraction,
@@ -127,6 +281,32 @@ impl GenerationManifest {
     }
 
     fn validate_projector(&self) -> Result<(), ManifestError> {
+        for (field, value) in [
+            ("projector.checkpoint_hash", self.projector.checkpoint_hash),
+            (
+                "projector.loss_config_hash",
+                self.projector.loss_config_hash,
+            ),
+            (
+                "projector.training_config_hash",
+                self.projector.training_config_hash,
+            ),
+        ] {
+            nonzero_hash(field, value)?;
+        }
+        exact(
+            "projector.configuration",
+            ProjectorConfig {
+                width: self.projector.width,
+                residual_blocks: self.projector.residual_blocks,
+                type_context_dimensions: self.projector.type_context_dimensions,
+                role_count: self.projector.role_count,
+                role_dimensions: self.projector.role_dimensions,
+            }
+            .validate()
+            .is_ok(),
+            "a bounded architecture within the M0 resource envelope",
+        )?;
         exact(
             "projector.architecture_version",
             self.projector.architecture_version == PROJECTOR_ARCHITECTURE_VERSION,
@@ -195,6 +375,10 @@ impl GenerationManifest {
         )
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "variant validation keeps the signed manifest contract auditable in field order"
+    )]
     fn validate_variants(&self) -> Result<(), ManifestError> {
         let variants = &self.variants;
         if variants.published_variant_count != variants.entries.len()
@@ -230,6 +414,143 @@ impl GenerationManifest {
             canonical.quantization_step,
         )?;
         fraction("variants.entries.clamp_rate", canonical.clamp_rate)?;
+        let row_count = u32::try_from(self.storage.row_count).map_err(|_error| {
+            ManifestError::InvalidInvariant {
+                field: "variants.entries.clamp_count",
+                expected: "representable for two components per u32 row",
+            }
+        })?;
+        let component_count = 2 * u64::from(row_count);
+        exact(
+            "variants.entries.clamp_count",
+            component_count != 0 && canonical.clamp_count <= component_count,
+            "no greater than two components per nonempty row",
+        )?;
+        let expected_clamp_rate =
+            m0_count_as_f64(canonical.clamp_count) / m0_count_as_f64(component_count);
+        exact(
+            "variants.entries.clamp_rate",
+            canonical.clamp_rate.to_bits() == expected_clamp_rate.to_bits(),
+            "the measured clamp count divided by two components per row",
+        )?;
+        required_text(
+            "variants.entries.quality_suite_version",
+            &canonical.quality_suite_version,
+        )?;
+        exact(
+            "variants.entries.quality_suite_version",
+            canonical.quality_suite_version.trim() == canonical.quality_suite_version,
+            "canonical text without surrounding whitespace",
+        )?;
+        fraction(
+            "variants.entries.semantic_fidelity",
+            canonical.semantic_fidelity,
+        )?;
+        fraction(
+            "variants.entries.minimum_semantic_fidelity",
+            canonical.minimum_semantic_fidelity,
+        )?;
+        exact(
+            "variants.entries.semantic_fidelity",
+            canonical.semantic_fidelity >= canonical.minimum_semantic_fidelity,
+            "no less than the release-policy floor",
+        )?;
+        for (field, value) in [
+            (
+                "variants.entries.maximum_subgroup_degradation",
+                canonical.maximum_subgroup_degradation,
+            ),
+            (
+                "variants.entries.maximum_allowed_subgroup_degradation",
+                canonical.maximum_allowed_subgroup_degradation,
+            ),
+        ] {
+            nonnegative_finite(field, value)?;
+        }
+        exact(
+            "variants.entries.maximum_allowed_subgroup_degradation",
+            canonical.maximum_allowed_subgroup_degradation >= 1.0,
+            "at least one",
+        )?;
+        exact(
+            "variants.entries.maximum_subgroup_degradation",
+            canonical.maximum_subgroup_degradation
+                <= canonical.maximum_allowed_subgroup_degradation,
+            "no greater than the release-policy ceiling",
+        )?;
+        let quality = ConditionQuality::new(
+            canonical.projected_field_hash,
+            canonical.semantic_fidelity_report_hash,
+            canonical.subgroup_report_hash,
+            canonical.semantic_fidelity,
+            canonical.maximum_subgroup_degradation,
+        );
+        exact(
+            "variants.entries.quality_report_hash",
+            quality.content_hash() == canonical.quality_report_hash,
+            "the canonical typed quality measurement",
+        )?;
+        let zero = ContentHash::from_bytes([0; 32]);
+        exact(
+            "variants.entries.relation_baseline_field_hash",
+            canonical.relation_baseline_field_hash != zero,
+            "a nonzero exact persisted-coordinate identity",
+        )?;
+        exact(
+            "variants.entries.canonical_field_hash",
+            canonical.canonical_field_hash != zero,
+            "a nonzero exact persisted-coordinate identity",
+        )?;
+        exact(
+            "variants.entries.projected_field_hash",
+            canonical.projected_field_hash == canonical.canonical_field_hash,
+            "the exact quantized field published to readers",
+        )?;
+        for (field, value) in [
+            (
+                "variants.entries.baseline_relation_loss",
+                canonical.baseline_relation_loss,
+            ),
+            (
+                "variants.entries.canonical_relation_loss",
+                canonical.canonical_relation_loss,
+            ),
+            (
+                "variants.entries.relation_loss_tolerance",
+                canonical.relation_loss_tolerance,
+            ),
+            (
+                "variants.entries.normalized_persistence",
+                canonical.normalized_persistence,
+            ),
+        ] {
+            finite(field, value)?;
+            exact(field, value >= 0.0, "nonnegative")?;
+        }
+        exact(
+            "variants.entries.canonical_relation_loss",
+            canonical.canonical_relation_loss
+                <= canonical.baseline_relation_loss + canonical.relation_loss_tolerance,
+            "no greater than baseline plus the measured tolerance",
+        )?;
+        exact(
+            "variants.entries.persistence_comparison",
+            canonical.persistence_comparison.validate().is_ok()
+                && canonical.persistence_comparison.candidate_field_hash
+                    == canonical.canonical_field_hash
+                && canonical.persistence_comparison.candidate_tree_hash
+                    == canonical.merge_tree_hash
+                && canonical
+                    .persistence_comparison
+                    .candidate_normalized_total
+                    .to_bits()
+                    == canonical.normalized_persistence.to_bits()
+                && canonical.persistence_comparison.checkpoint_hash
+                    == self.projector.checkpoint_hash
+                && canonical.persistence_comparison.reference_source_hash
+                    == self.landmarks.persistence_reference_source_hash,
+            "a valid candidate/reference report bound to the canonical output",
+        )?;
         for value in canonical
             .procrustes_transform
             .into_iter()
@@ -255,6 +576,10 @@ impl GenerationManifest {
     }
 
     fn validate_storage(&self) -> Result<(), ManifestError> {
+        nonzero_hash(
+            "storage.identity_directory_hash",
+            self.storage.identity_directory_hash,
+        )?;
         exact(
             "storage.row_count",
             self.storage.row_count > 0 && u32::try_from(self.storage.row_count).is_ok(),
@@ -295,6 +620,18 @@ impl GenerationManifest {
             "serving.shader_contract_version",
             &self.serving.shader_contract_version,
         )?;
+        for (field, value) in [
+            (
+                "serving.gate_evidence_public_key",
+                self.serving.gate_evidence_public_key,
+            ),
+            (
+                "serving.canvas_companion_sha256",
+                self.serving.canvas_companion_sha256,
+            ),
+        ] {
+            nonzero_hash(field, value)?;
+        }
         exact(
             "serving.wire_versions",
             !self.serving.wire_versions.is_empty(),
@@ -318,6 +655,10 @@ impl GenerationManifest {
             "reproducibility.code_revision",
             &self.reproducibility.code_revision,
         )?;
+        nonzero_hash(
+            "reproducibility.config_hash",
+            self.reproducibility.config_hash,
+        )?;
         let mut names = HashSet::with_capacity(self.reproducibility.seeds.len());
         for seed in &self.reproducibility.seeds {
             required_text("reproducibility.seeds.name", &seed.name)?;
@@ -340,7 +681,7 @@ fn required_text(field: &'static str, value: &str) -> Result<(), ManifestError> 
 }
 
 #[inline]
-fn exact(
+const fn exact(
     field: &'static str,
     condition: bool,
     expected: &'static str,
@@ -353,7 +694,16 @@ fn exact(
 }
 
 #[inline]
-fn finite(field: &'static str, value: f64) -> Result<(), ManifestError> {
+fn nonzero_hash(field: &'static str, value: ContentHash) -> Result<(), ManifestError> {
+    exact(
+        field,
+        value != ContentHash::from_bytes([0; 32]),
+        "a nonzero content identity",
+    )
+}
+
+#[inline]
+const fn finite(field: &'static str, value: f64) -> Result<(), ManifestError> {
     if value.is_finite() {
         Ok(())
     } else {
@@ -380,6 +730,16 @@ fn fraction(field: &'static str, value: f64) -> Result<(), ManifestError> {
     } else {
         Err(ManifestError::InvalidFraction { field, value })
     }
+}
+
+#[inline]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "M0 validates counts below 2^33, which f64 represents exactly"
+)]
+fn m0_count_as_f64(value: u64) -> f64 {
+    debug_assert!(value <= 2 * u64::from(u32::MAX));
+    value as f64
 }
 
 fn probability_vector(field: &'static str, probabilities: [f64; 3]) -> Result<(), ManifestError> {

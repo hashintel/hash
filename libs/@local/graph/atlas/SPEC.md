@@ -783,6 +783,18 @@ calibration and applicability fitting use all cards weighted by n_votes;
 fitting restricted to full-panel cards inherits the ambiguity selection
 bias and is forbidden. (5) Rung composition, stopping decisions,
 sampling parameters, and per-vote provenance are recorded per card.
+
+**Coincident review is class-specific, not full placement adjudication.** A
+confirmation preserves the complete synthetic soft label $q_r$ and its original
+weight $m_r$. A rejection removes the Coincident votes by setting $n_{r,C}=0$,
+then recomputes the same versioned Dirichlet-smoothed target from the remaining
+Proximal and Overlay counts and uses weight $n_{r,P}+n_{r,O}$. It MUST NOT replace
+the remaining evidence with a one-hot human target. If rejection leaves no
+Proximal or Overlay vote, the card escalates to full placement adjudication rather
+than silently becoming Overlay or an unweighted prior. An explicit exclusion may
+retain the row in evaluation and prediction coverage with zero supervised weight.
+The review decision and exact pre-review vote evidence are immutable provenance.
+
 Provenance per vote MUST include the dated model identifier as pinned
 AND as returned by the gateway, the serving provider, and quantization
 where reported: gateway slugs float and open-weight models are served
@@ -2621,8 +2633,15 @@ reproducibility:
   code_revision: ...
   config_hash: ...
   seeds: [...]
-  release_report_hash: ...
 ```
+
+The release-report hash is intentionally stored in the immutable candidate
+marker and the compare-and-swap active pointer, not in the generation
+manifest. A report names the manifest content hash in its release head, so
+placing the report hash back in that manifest would create a circular content
+identity. Candidate publication and restart loading MUST verify both
+directions: the report names the exact manifest hash, and the candidate/active
+sidecar names the exact report hash.
 
 A candidate with missing required hashes or an unpinned client companion MUST
 NOT be promoted to normative production status.

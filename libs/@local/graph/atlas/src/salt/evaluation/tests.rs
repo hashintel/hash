@@ -51,7 +51,7 @@ fn selects_only_an_exact_fully_passing_ladder_member() {
 #[test]
 fn failed_evidence_cannot_cross_the_materialization_boundary() {
     let mut failed = evidence("failed");
-    failed.persistence = false;
+    failed.distinguishability = false;
     let ladder = ConditionLadder::new(domain(), [(0.0, evidence("zero")), (1.0, failed)])
         .expect("ladder shape should validate");
 
@@ -59,7 +59,7 @@ fn failed_evidence_cannot_cross_the_materialization_boundary() {
         ladder.select_canonical(1.0),
         Err(EvaluationError::FailedCanonicalEvidence {
             value: 1.0,
-            criterion: "persistence"
+            criterion: "distinguishability"
         })
     );
 }
@@ -119,6 +119,19 @@ fn measured_ladder_aligns_fields_and_checks_relation_monotonicity() {
     assert!(canonical.alignment().is_some());
     assert_eq!(canonical.coordinates().len(), one.len());
     assert_ne!(canonical.content_hash(), fields[2].upstream_report);
+    let unquantized_hash = canonical.content_hash();
+    let (quantized, quantization) = canonical
+        .quantize(0.25, [-1.0, -1.0], [1.0, 1.0])
+        .expect("canonical field should quantize");
+    assert_ne!(quantized.content_hash(), unquantized_hash);
+    assert!(quantization.clamp_count() > 0);
+    assert!(quantization.clamp_rate() > 0.0);
+    assert!(
+        quantized
+            .coordinates()
+            .iter()
+            .all(|coordinate| { coordinate.iter().all(|value| (-1.0..=1.0).contains(value)) })
+    );
 
     let (_, other_domain) = measure_condition_ladder(
         ConditionDomain::new(0.0, 1.0, ContentHash::digest(b"other-domain"))
@@ -159,9 +172,6 @@ fn evidence(name: &str) -> ConditionEvidence {
     ConditionEvidence {
         monotonicity: true,
         distinguishability: true,
-        semantic_fidelity: true,
-        persistence: true,
-        task_evidence: true,
         report: ContentHash::digest(name.as_bytes()),
     }
 }
@@ -170,9 +180,6 @@ fn field<'field>(condition: f64, coordinates: &'field [[f64; 2]]) -> ConditionFi
     ConditionField {
         condition,
         coordinates,
-        semantic_fidelity: true,
-        persistence: true,
-        task_evidence: true,
         upstream_report: ContentHash::digest(&condition.to_bits().to_le_bytes()),
     }
 }

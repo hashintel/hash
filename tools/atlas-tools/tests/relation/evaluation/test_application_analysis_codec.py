@@ -14,7 +14,15 @@ from atlas_tools.relation.evaluation.analysis.api import (
     fit_policy_classifier,
     placement_posterior,
 )
-from atlas_tools.relation.evaluation.application.analysis_artifact import ArtifactMetadata
+from atlas_tools.relation.evaluation.application._classifier_codec_validation import (
+    LEGACY_SCHEMA_HASHES,
+    legacy_algorithms,
+)
+from atlas_tools.relation.evaluation.application.analysis_artifact import (
+    ArtifactMetadata,
+    LegacyClassifierBundleMetadata,
+    hash_mapping,
+)
 from atlas_tools.relation.evaluation.application.analysis_codec import (
     EmbeddingProducerIdentity,
     load_classifier_bundle,
@@ -281,6 +289,30 @@ def test_classifier_bundle_is_deterministic_cross_validated_and_immutable(
     )
     with pytest.raises(ValueError, match="different family closure"):
         load_classifier_bundle(first.directory, closure=mismatched_closure)
+
+    legacy_algorithm_mapping = legacy_algorithms(
+        first.fit.classifier,
+        first.fit.cross_fit_folds,
+        first.metadata.target_resolutions,
+    )
+    legacy_payload = first.metadata.model_dump(
+        mode="python",
+        exclude={"metadata_hash", "coincident_reviews"},
+    )
+    legacy_payload.update(
+        schema_version=4,
+        schema_hashes=LEGACY_SCHEMA_HASHES,
+        algorithms=legacy_algorithm_mapping,
+        algorithm_hash=hash_mapping(legacy_algorithm_mapping),
+    )
+    legacy_metadata = LegacyClassifierBundleMetadata.model_validate(
+        legacy_payload,
+        strict=True,
+    )
+    _write_metadata(first.metadata_path, legacy_metadata)
+    legacy_loaded = load_classifier_bundle(first.directory, closure=closure)
+    assert isinstance(legacy_loaded.metadata, LegacyClassifierBundleMetadata)
+    assert legacy_loaded.fit == first.fit
 
 
 def test_classifier_loader_rejects_hash_and_card_identity_corruption(tmp_path: Path) -> None:

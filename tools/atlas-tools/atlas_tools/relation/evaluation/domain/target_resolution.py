@@ -15,8 +15,9 @@ from atlas_tools.relation.domain.api import (
     Sha256Hex,
 )
 from atlas_tools.relation.evaluation.domain.identity import CardHash
+from atlas_tools.relation.evaluation.domain.review import HumanPlacementAction
 
-type TargetResolutionAction = Literal["coincident", "proximal", "overlay", "excluded"]
+type TargetResolutionAction = HumanPlacementAction
 type TargetResolutionSourceName = Literal[
     "soft-labels.parquet",
     "soft-labels.parquet.meta.json",

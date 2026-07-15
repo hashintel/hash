@@ -49,6 +49,33 @@ pub(crate) enum EvaluationError {
         expected: ContentHash,
         actual: ContentHash,
     },
+    InvalidQuantizationStep {
+        step: f64,
+    },
+    InvalidQuantizationBounds {
+        axis: usize,
+        minimum: f64,
+        maximum: f64,
+    },
+    QuantizationSize {
+        rows: usize,
+    },
+    NonFiniteCanonicalCoordinate {
+        row: usize,
+        axis: usize,
+        value: f64,
+    },
+    QuantizationOverflow {
+        row: usize,
+        axis: usize,
+        value: f64,
+        step: f64,
+    },
+    CoordinateStorageOverflow {
+        row: usize,
+        axis: usize,
+        value: f64,
+    },
 }
 
 impl fmt::Display for EvaluationError {
@@ -110,6 +137,43 @@ impl fmt::Display for EvaluationError {
             Self::CanonicalReportMismatch { expected, actual } => write!(
                 formatter,
                 "canonical measurement report {actual} differs from selected evidence {expected}"
+            ),
+            Self::InvalidQuantizationStep { step } => {
+                write!(
+                    formatter,
+                    "canonical coordinate quantization step is invalid: {step}"
+                )
+            }
+            Self::InvalidQuantizationBounds {
+                axis,
+                minimum,
+                maximum,
+            } => write!(
+                formatter,
+                "canonical quantization axis {axis} has invalid bounds [{minimum}, {maximum}]",
+            ),
+            Self::QuantizationSize { rows } => write!(
+                formatter,
+                "canonical coordinate quantization cannot represent {rows} rows",
+            ),
+            Self::NonFiniteCanonicalCoordinate { row, axis, value } => write!(
+                formatter,
+                "canonical coordinate row {row}, axis {axis} is non-finite: {value}",
+            ),
+            Self::QuantizationOverflow {
+                row,
+                axis,
+                value,
+                step,
+            } => write!(
+                formatter,
+                "quantizing canonical coordinate row {row}, axis {axis}, value {value} with step \
+                 {step} overflowed",
+            ),
+            Self::CoordinateStorageOverflow { row, axis, value } => write!(
+                formatter,
+                "quantized canonical coordinate row {row}, axis {axis} cannot be represented as \
+                 f32: {value}",
             ),
         }
     }

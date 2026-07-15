@@ -17,9 +17,16 @@ from atlas_tools.relation.evaluation.analysis.classifier_model import (
     embedding_view,
     posterior_vector,
 )
-from atlas_tools.relation.evaluation.analysis.deliverables import SoftLabel
+from atlas_tools.relation.evaluation.analysis.deliverables import (
+    PlacementTally,
+    SoftLabel,
+    placement_posterior,
+)
 from atlas_tools.relation.evaluation.domain.api import (
     ClassifierConfig,
+    CoincidentReviewAction,
+    CoincidentReviewRow,
+    HumanPlacementAction,
     RelationFamilyId,
     RelationId,
     Sha256Hex,
@@ -133,10 +140,75 @@ def _resolution_index(
     return by_relation_id
 
 
+def _coincident_review_index(
+    reviews: Sequence[CoincidentReviewRow],
+) -> dict[RelationId, CoincidentReviewRow]:
+    by_relation_id: dict[RelationId, CoincidentReviewRow] = {}
+    for review in reviews:
+        if review.relation_id in by_relation_id:
+            raise ValueError(f"Coincident reviews repeat relation {review.relation_id}")
+        by_relation_id[review.relation_id] = review
+    return by_relation_id
+
+
+def _human_target(
+    label: SoftLabel,
+    action: HumanPlacementAction,
+) -> tuple[tuple[float, float, float], float]:
+    match action:
+        case "coincident":
+            return (1.0, 0.0, 0.0), 1.0
+        case "proximal":
+            return (0.0, 1.0, 0.0), 1.0
+        case "overlay":
+            return (0.0, 0.0, 1.0), 1.0
+        case "excluded":
+            return posterior_vector(label.posterior), 0.0
+        case _:
+            raise ValueError(f"unsupported human target action {action}")
+
+
+def _coincident_review_target(
+    label: SoftLabel,
+    action: CoincidentReviewAction,
+) -> tuple[tuple[float, float, float], float]:
+    match action:
+        case "confirmed":
+            return posterior_vector(label.posterior), float(label.n_votes)
+        case "rejected":
+            tally = PlacementTally(
+                proximal=label.tally.proximal,
+                overlay=label.tally.overlay,
+            )
+            if tally.n_votes == 0:
+                raise ValueError(
+                    f"rejecting Coincident for {label.relation_id} leaves no placement evidence; "
+                    "full placement adjudication is required"
+                )
+            return posterior_vector(placement_posterior(tally)), float(tally.n_votes)
+        case "excluded":
+            return posterior_vector(label.posterior), 0.0
+        case _:
+            raise ValueError(f"unsupported Coincident review action {action}")
+
+
 def _resolved_target(
     label: SoftLabel,
     resolution: TargetResolutionRow | None,
+    coincident_review: CoincidentReviewRow | None,
 ) -> tuple[tuple[float, float, float], float]:
+    if resolution is not None and coincident_review is not None:
+        raise ValueError(f"relation {label.relation_id} has two human target decisions")
+
+    if coincident_review is not None:
+        if not label.review or label.n_votes == 0:
+            raise ValueError(
+                f"Coincident review cannot override non-Coincident label {label.relation_id}"
+            )
+        if coincident_review.card_hash != label.card_hash:
+            raise ValueError(f"Coincident review card hash differs for {label.relation_id}")
+        return _coincident_review_target(label, coincident_review.action)
+
     if label.n_votes > 0:
         if resolution is not None:
             raise ValueError(
@@ -151,16 +223,7 @@ def _resolved_target(
         )
     if resolution.card_hash != label.card_hash:
         raise ValueError(f"target resolution card hash differs for {label.relation_id}")
-
-    match resolution.action:
-        case "coincident":
-            return (1.0, 0.0, 0.0), 1.0
-        case "proximal":
-            return (0.0, 1.0, 0.0), 1.0
-        case "overlay":
-            return (0.0, 0.0, 1.0), 1.0
-        case "excluded":
-            return posterior_vector(label.posterior), 0.0
+    return _human_target(label, resolution.action)
 
 
 def join_training_data(
@@ -168,6 +231,7 @@ def join_training_data(
     embeddings: Sequence[EmbeddingRow],
     families: Sequence[FamilyBindingRow],
     resolutions: Sequence[TargetResolutionRow] = (),
+    coincident_reviews: Sequence[CoincidentReviewRow] = (),
 ) -> TrainingData:
     """Join exact one-to-one label, embedding, and closure relation sets.
 
@@ -175,18 +239,22 @@ def join_training_data(
     closure may additionally contain non-training deck rows, but it must cover
     every label and bind each one to the same card hash.
 
-    All labels without placement-vote weight require an exact reviewed target.
-    A placement decision contributes one one-hot supervised target with unit
-    weight. An exclusion remains in grouped out-of-fold prediction coverage but
-    contributes zero supervised target weight.
+    All labels without placement-vote weight require an exact ambiguous-target
+    decision. When Coincident reviews are supplied, they must cover every and only
+    positive-weight label marked for review. Confirmation preserves the complete
+    synthetic soft label; rejection removes Coincident votes and recomputes the
+    posterior and weight from remaining Proximal/Overlay evidence. Exclusions
+    remain in grouped out-of-fold prediction coverage with zero supervised weight.
 
-    Raises [`ValueError`] for missing families or resolutions, duplicate or
-    unequal label/embedding sets, mismatched card hashes, or mixed dimensions.
+    Raises [`ValueError`] for missing families or resolutions, incomplete review
+    coverage, duplicate or unequal relation sets, conflicting human decisions,
+    mismatched card hashes, or mixed dimensions.
     """
     labels_by_relation = _label_index(labels)
     embeddings_by_relation = _embedding_index(embeddings)
     families_by_relation = _family_index(families)
     resolutions_by_relation = _resolution_index(resolutions)
+    reviews_by_relation = _coincident_review_index(coincident_reviews)
     ordered_ids = _matching_relation_ids(
         labels_by_relation,
         embeddings_by_relation,
@@ -219,8 +287,27 @@ def join_training_data(
     extra_resolutions = tuple(sorted(set(resolutions_by_relation) - set(labels_by_relation)))
     if extra_resolutions:
         raise ValueError(f"target resolutions include unlabeled relations: {extra_resolutions}")
+    extra_reviews = tuple(sorted(set(reviews_by_relation) - set(labels_by_relation)))
+    if extra_reviews:
+        raise ValueError(f"Coincident reviews include unlabeled relations: {extra_reviews}")
+    if reviews_by_relation:
+        required_review_ids = {
+            label.relation_id for label in ordered_labels if label.review and label.n_votes > 0
+        }
+        supplied_review_ids = set(reviews_by_relation)
+        if supplied_review_ids != required_review_ids:
+            missing = tuple(sorted(required_review_ids - supplied_review_ids))
+            unexpected = tuple(sorted(supplied_review_ids - required_review_ids))
+            raise ValueError(
+                "Coincident reviews do not cover every-and-only reviewed soft label: "
+                f"missing={missing}, unexpected={unexpected}"
+            )
     resolved_targets = tuple(
-        _resolved_target(label, resolutions_by_relation.get(label.relation_id))
+        _resolved_target(
+            label,
+            resolutions_by_relation.get(label.relation_id),
+            reviews_by_relation.get(label.relation_id),
+        )
         for label in ordered_labels
     )
     targets = np.asarray([target for target, _weight in resolved_targets], dtype=np.float64)

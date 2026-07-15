@@ -13,7 +13,7 @@ from atlas_tools.relation.evaluation.analysis.api import (
     render_policy_report_markdown,
     wilson_lower_bound,
 )
-from atlas_tools.relation.evaluation.domain.api import ReportConfig
+from atlas_tools.relation.evaluation.domain.api import RelationFamilyId, ReportConfig
 from tests.relation.evaluation.test_analysis_grid import _analysis
 
 
@@ -139,6 +139,25 @@ def test_policy_report_accounts_for_thresholded_gold_and_raw_calibration() -> No
     assert rendered.endswith("\n")
     assert rendered.encode("ascii").decode("ascii") == rendered
     assert "UNPASSABLE BY SAMPLE SIZE" in rendered
+
+
+def test_report_accepts_verified_closure_families_distinct_from_deck_metadata() -> None:
+    analysis = _analysis()
+    predictions = tuple(
+        row.model_copy(update={"family_id": RelationFamilyId("closure:shared")})
+        for row in _classifier_rows(analysis.cards)
+    )
+
+    report = build_policy_report(
+        analysis,
+        (),
+        ReportConfig(),
+        rubric_version="rubric-v1",
+        classifier_predictions=predictions,
+    )
+
+    assert report.classifier is not None
+    assert report.classifier.predictions == len(analysis.cards)
 
 
 def test_empty_and_post_exposure_gold_have_explicit_non_release_states() -> None:

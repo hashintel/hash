@@ -6,10 +6,12 @@
 //! materialization, gated candidate publication, and explicit compare-and-swap
 //! activation remain distinct state transitions.
 
+mod adapters;
 mod error;
 mod export;
 mod ladder;
 mod materialize;
+mod persistence;
 mod publish;
 mod runner;
 
@@ -18,21 +20,32 @@ mod runner;
     reason = "generation entry points are consumed by the external serving adapter"
 )]
 pub(crate) use self::{
+    adapters::{ConditionQualitySuiteAdapter, PersistenceQualitySuiteAdapter},
     error::GenerationError,
     export::{LegacyCanvasExport, LegacyExportFile, LegacyLayoutTag, export_legacy_canvas},
     ladder::{
-        ConditionQuality, EvaluatedGeneration, ProjectedCondition, ProjectedLadder,
-        project_condition_ladder,
+        ConditionQuality, ConditionQualityEvaluationError, ConditionQualityEvaluator,
+        ConditionQualityPolicy, EvaluatedGeneration, PersistedCondition, ProjectedCondition,
+        ProjectedLadder, evaluate_persisted_quality, project_condition_ladder,
     },
     materialize::{
         CanonicalArtifacts, CanonicalMaterializationConfig, CanonicalSignals, materialize_canonical,
     },
+    persistence::{
+        PersistenceComparisonError, PersistenceComparisonReport, PersistenceDiagnostics,
+        PersistenceEvaluationError, PersistenceEvaluationSubject, PersistenceGatePolicy,
+        PersistenceQualityEvaluator, compare_persistence, landmark_reference_tree,
+        persistence_reference_source_hash,
+    },
     publish::{PublishedCandidate, activate_generation, publish_generation_candidate},
     runner::{
         CanonicalGenerationConfig, CanonicalGenerationError, CanonicalGenerationOutcome,
-        FrozenCanonicalSignals, FrozenGenerationInput, FrozenProjectorTypeContext,
-        GenerationFreezeSource, RelationModelSources, freeze_generation_input,
-        run_canonical_generation,
+        CanonicalReleaseAuthority, CompletedCanonicalGeneration, FrozenCanonicalSignals,
+        FrozenProjectorTypeContext, GenerationFreezeSource, GenerationManifestContract,
+        RelationModelSources, RelationPolicyInput, RelationPolicyRecords,
+        StoreBackedCanonicalGenerationRequest, StoreBackedGenerationSource,
+        StoreBackedSnapshotRequest, run_canonical_generation,
+        run_store_backed_canonical_generation,
     },
 };
 

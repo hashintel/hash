@@ -1,6 +1,10 @@
+#![expect(
+    clippy::std_instead_of_core,
+    reason = "core::io::ErrorKind remains unstable on the pinned nightly toolchain"
+)]
 use std::{
     fs::{self, File},
-    io::{Read as _, Write as _},
+    io::{ErrorKind, Read as _, Write as _},
 };
 
 use camino::Utf8Path;
@@ -44,9 +48,18 @@ pub(crate) fn publish_gated_candidate(
             file.sync_all()?;
             File::open(&directory)?.sync_all()?;
         }
-        Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
-            let mut existing = Vec::new();
-            File::open(&path)?.read_to_end(&mut existing)?;
+        Err(error) if error.error.kind() == ErrorKind::AlreadyExists => {
+            let mut file = File::open(&path)?;
+            file.lock_shared()?;
+            let metadata = file.metadata()?;
+            let expected = u64::try_from(bytes.len()).expect("report length should fit into u64");
+            if !metadata.is_file() || metadata.len() != expected {
+                return Err(ReleasePublishError::ExistingReportMismatch);
+            }
+            let mut existing = Vec::with_capacity(bytes.len());
+            std::io::Read::by_ref(&mut file)
+                .take(expected.saturating_add(1))
+                .read_to_end(&mut existing)?;
             if existing != bytes {
                 return Err(ReleasePublishError::ExistingReportMismatch);
             }

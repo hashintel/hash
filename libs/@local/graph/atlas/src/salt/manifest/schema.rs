@@ -1,5 +1,20 @@
 //! Role-specific validation for mapped generation artifacts.
 
+#![expect(
+    clippy::self_named_module_files,
+    reason = "the schema facade predates its role-specific child modules and remains their stable \
+              parent"
+)]
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "artifact validators recompute canonical cross-platform content identities"
+)]
+
+mod legacy;
+mod persistence;
+mod relation;
+mod representation;
+
 use super::{ArtifactRole, GenerationManifest};
 use crate::salt::{
     classifier::ClassifierView,
@@ -13,6 +28,7 @@ pub(super) fn validate_role_schema(
     manifest: &GenerationManifest,
 ) -> Result<(), &'static str> {
     match role {
+        ArtifactRole::Representations => representation::validate(artifact, manifest),
         ArtifactRole::RelationClassifier => ClassifierView::new(artifact)
             .map(|_| ())
             .map_err(|_error| "classifier parameters or invariants are invalid"),
@@ -23,8 +39,11 @@ pub(super) fn validate_role_schema(
         .map(|_| ())
         .map_err(|_error| "strength-head parameters or invariants are invalid"),
         ArtifactRole::SemanticGraph => validate_graph(artifact, manifest),
-        ArtifactRole::RelationIndexes => validate_relations(artifact, manifest),
+        ArtifactRole::RelationIndexes => relation::validate(artifact, manifest),
         ArtifactRole::LandmarkSkeleton => validate_landmarks(artifact, manifest),
+        ArtifactRole::LandmarkReferencePersistence => {
+            persistence::validate_reference(artifact, manifest)
+        }
         ArtifactRole::ProjectorCheckpoint => Err("projector checkpoint is not an mmap artifact"),
         ArtifactRole::CanonicalBase => validate_base(artifact, manifest),
         ArtifactRole::CanonicalAnalytics => validate_analytics(artifact, manifest),
@@ -32,6 +51,21 @@ pub(super) fn validate_role_schema(
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => Err("legacy exports are not mmap artifacts"),
     }
+}
+
+pub(super) fn validate_opaque_role(
+    role: ArtifactRole,
+    bytes: &[u8],
+    manifest: &GenerationManifest,
+) -> Result<(), &'static str> {
+    legacy::validate(role, bytes, manifest)
+}
+
+pub(super) fn validate_legacy_layout_coordinates(
+    layout: &[u8],
+    canonical_base: ArtifactView<'_>,
+) -> Result<(), &'static str> {
+    legacy::validate_layout_coordinates(layout, canonical_base)
 }
 
 fn validate_graph(
@@ -90,147 +124,6 @@ fn validate_graph(
     Ok(())
 }
 
-fn validate_relations(
-    artifact: ArtifactView<'_>,
-    manifest: &GenerationManifest,
-) -> Result<(), &'static str> {
-    let rows = row_count(manifest)?;
-    if hash(artifact, 1)? != manifest.relations.policy_hash.as_bytes() {
-        return Err("relation policy provenance differs from the manifest");
-    }
-    let counts = vector(artifact, 2, ScalarType::U64, 2)?
-        .as_u64()
-        .expect("section scalar type should be validated");
-    let &[attraction, protection] = counts else {
-        return Err("relation count section has an invalid length");
-    };
-    let attraction =
-        usize::try_from(attraction).map_err(|_error| "attraction count does not fit")?;
-    let protection =
-        usize::try_from(protection).map_err(|_error| "protection count does not fit")?;
-
-    let link_web_ids = matrix(artifact, 3, ScalarType::U8, attraction, 16)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let link_entity_uuids = matrix(artifact, 4, ScalarType::U8, attraction, 16)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let draft_present = vector(artifact, 5, ScalarType::U8, attraction)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let draft_ids = matrix(artifact, 6, ScalarType::U8, attraction, 16)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let relation_types = vector(artifact, 7, ScalarType::U32, attraction)?
-        .as_u32()
-        .expect("section scalar type should be validated");
-    let left = vector(artifact, 8, ScalarType::U32, attraction)?
-        .as_u32()
-        .expect("section scalar type should be validated");
-    let right = vector(artifact, 9, ScalarType::U32, attraction)?
-        .as_u32()
-        .expect("section scalar type should be validated");
-    let confidence = vector(artifact, 10, ScalarType::F64, attraction)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let confidence_provenance = vector(artifact, 11, ScalarType::U8, attraction)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let degree = vector(artifact, 12, ScalarType::F64, attraction)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let strength = vector(artifact, 13, ScalarType::F64, attraction)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let coincident = vector(artifact, 14, ScalarType::F64, attraction)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let proximal = vector(artifact, 15, ScalarType::F64, attraction)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-
-    for index in 0..attraction {
-        if left[index] as usize >= rows
-            || right[index] as usize >= rows
-            || left[index] == right[index]
-        {
-            return Err("relation attraction contains an invalid endpoint");
-        }
-        if draft_present[index] > 1
-            || (draft_present[index] == 0 && draft_ids[index * 16..index * 16 + 16] != [0; 16])
-        {
-            return Err("relation attraction contains an invalid draft identity");
-        }
-        if !unit(confidence[index])
-            || !nonnegative(degree[index])
-            || !nonnegative(strength[index])
-            || !unit(coincident[index])
-            || !unit(proximal[index])
-            || coincident[index] + proximal[index] > 1.0 + 1.0e-12
-        {
-            return Err("relation attraction contains an invalid numeric value");
-        }
-    }
-
-    let first = vector(artifact, 16, ScalarType::U32, protection)?
-        .as_u32()
-        .expect("section scalar type should be validated");
-    let second = vector(artifact, 17, ScalarType::U32, protection)?
-        .as_u32()
-        .expect("section scalar type should be validated");
-    let hard_mass = vector(artifact, 18, ScalarType::F64, protection)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let ordinary_mass = vector(artifact, 19, ScalarType::F64, protection)?
-        .as_f64()
-        .expect("section scalar type should be validated");
-    let flags = vector(artifact, 20, ScalarType::U8, protection)?
-        .as_u8()
-        .expect("section scalar type should be validated");
-    let declared_edge_snapshot = hash(artifact, 21)?;
-    if declared_edge_snapshot != manifest.relations.edge_snapshot_hash.as_bytes() {
-        return Err("relation edge snapshot differs from the manifest");
-    }
-    let mut previous = None;
-    for index in 0..protection {
-        let pair = (first[index], second[index]);
-        if pair.0 >= pair.1
-            || pair.1 as usize >= rows
-            || previous.is_some_and(|previous| previous >= pair)
-        {
-            return Err("relation protection pairs are invalid or unordered");
-        }
-        if !unit(hard_mass[index]) || !unit(ordinary_mass[index]) || flags[index] & !0b11 != 0 {
-            return Err("relation protection contains an invalid mass or flag");
-        }
-        previous = Some(pair);
-    }
-    let mut edge_snapshot = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v1");
-    for index in 0..attraction {
-        edge_snapshot.update(&link_web_ids[index * 16..index * 16 + 16]);
-        edge_snapshot.update(&link_entity_uuids[index * 16..index * 16 + 16]);
-        edge_snapshot.update(&[draft_present[index]]);
-        edge_snapshot.update(&draft_ids[index * 16..index * 16 + 16]);
-        edge_snapshot.update(&relation_types[index].to_le_bytes());
-        edge_snapshot.update(&left[index].to_le_bytes());
-        edge_snapshot.update(&right[index].to_le_bytes());
-        edge_snapshot.update(&confidence[index].to_bits().to_le_bytes());
-        edge_snapshot.update(&[confidence_provenance[index]]);
-        for value in [
-            degree[index],
-            strength[index],
-            coincident[index],
-            proximal[index],
-        ] {
-            edge_snapshot.update(&value.to_bits().to_le_bytes());
-        }
-    }
-    if edge_snapshot.finish().as_bytes() != declared_edge_snapshot {
-        return Err("relation edge snapshot hash does not describe the persisted table");
-    }
-    Ok(())
-}
-
 fn validate_landmarks(
     artifact: ArtifactView<'_>,
     manifest: &GenerationManifest,
@@ -269,6 +162,10 @@ fn validate_landmarks(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "all base delivery columns are cross-validated at one artifact trust boundary"
+)]
 fn validate_base(
     artifact: ArtifactView<'_>,
     manifest: &GenerationManifest,
@@ -320,6 +217,9 @@ fn validate_base(
         .as_f64()
         .expect("section scalar type should be validated");
     let identity_hash = hash(artifact, 16)?;
+    let quantization_step = vector(artifact, 17, ScalarType::F64, 1)?
+        .as_f64()
+        .expect("section scalar type should be validated")[0];
     let canonical = manifest
         .variants
         .entries
@@ -331,6 +231,7 @@ fn validate_base(
         || domain_hash != canonical.condition_domain_hash.as_bytes()
         || evidence_hash != canonical.selection_evidence_hash.as_bytes()
         || transform != canonical.procrustes_transform
+        || quantization_step.to_bits() != canonical.quantization_step.to_bits()
     {
         return Err("base canonical provenance differs from the manifest");
     }
@@ -358,8 +259,10 @@ fn validate_base(
             return Err("base delivery rows are not canonically ordered");
         }
         previous = Some(key);
+        bucket_hash.update(&delivery_rows[index].to_le_bytes());
         bucket_hash.update(&buckets[index].to_le_bytes());
         bucket_hash.update(&priorities[index].to_le_bytes());
+        morton_hash.update(&delivery_rows[index].to_le_bytes());
         morton_hash.update(&morton[index].to_le_bytes());
         if draft_present[index] > 1
             || (draft_present[index] == 0 && draft_ids[index * 16..index * 16 + 16] != [0; 16])
@@ -404,6 +307,10 @@ fn validate_base(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "all analytic columns are cross-validated at one artifact trust boundary"
+)]
 fn validate_analytics(
     artifact: ArtifactView<'_>,
     manifest: &GenerationManifest,
@@ -456,6 +363,27 @@ fn validate_analytics(
     let label_text = variable_vector(artifact, 13, ScalarType::U8)?
         .as_u8()
         .expect("section scalar type should be validated");
+    let leaf_parents = vector(artifact, 14, ScalarType::U64, births.len())?
+        .as_u64()
+        .expect("section scalar type should be validated");
+    let leaf_representative_pixels = vector(artifact, 15, ScalarType::U64, births.len())?
+        .as_u64()
+        .expect("section scalar type should be validated");
+    let leaf_regions = vector(artifact, 16, ScalarType::U32, births.len())?
+        .as_u32()
+        .expect("section scalar type should be validated");
+    let region_parents = vector(artifact, 17, ScalarType::U32, peak_pixels.len())?
+        .as_u32()
+        .expect("section scalar type should be validated");
+    let region_persistence = vector(artifact, 18, ScalarType::F64, peak_pixels.len())?
+        .as_f64()
+        .expect("section scalar type should be validated");
+    let region_leaves = vector(artifact, 19, ScalarType::U64, peak_pixels.len())?
+        .as_u64()
+        .expect("section scalar type should be validated");
+    let region_representative_rows = vector(artifact, 20, ScalarType::U32, peak_pixels.len())?
+        .as_u32()
+        .expect("section scalar type should be validated");
 
     let &[minimum_x, minimum_y, maximum_x, maximum_y] = bounds else {
         return Err("analytic bounds have an invalid length");
@@ -477,9 +405,58 @@ fn validate_analytics(
         .copied()
         .reduce(f64::max)
         .ok_or("analytic density grid is empty")?;
-    let mut merge_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v1");
+    let total_persistence = births
+        .iter()
+        .zip(deaths)
+        .map(|(&birth, &death)| birth - death)
+        .sum::<f64>();
+    let normalized_persistence = if density_maximum > 0.0 {
+        total_persistence / density_maximum
+    } else {
+        0.0
+    };
+    if normalized_persistence.to_bits() != canonical.normalized_persistence.to_bits()
+        || normalized_persistence.to_bits()
+            != canonical
+                .persistence_comparison
+                .candidate_normalized_total
+                .to_bits()
+    {
+        return Err("analytic persistence differs from the manifest");
+    }
+    for (index, threshold) in canonical
+        .persistence_comparison
+        .fixed_thresholds
+        .iter()
+        .enumerate()
+    {
+        let count = births
+            .iter()
+            .zip(deaths)
+            .filter(|&(&birth, &death)| birth - death >= *threshold * density_maximum)
+            .count();
+        if u64::try_from(count).map_err(|_error| "candidate leaf count does not fit")?
+            != canonical.persistence_comparison.candidate_leaf_counts[index]
+        {
+            return Err("candidate leaf counts differ from the comparison report");
+        }
+    }
+    let mut merge_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
     merge_tree.update(&density_maximum.to_bits().to_le_bytes());
-    for (&birth, &death) in births.iter().zip(deaths) {
+    for (leaf, (((&birth, &death), &parent), &representative_pixel)) in births
+        .iter()
+        .zip(deaths)
+        .zip(leaf_parents)
+        .zip(leaf_representative_pixels)
+        .enumerate()
+    {
+        merge_tree.update(
+            &u64::try_from(leaf)
+                .map_err(|_error| "analytic leaf identity does not fit")?
+                .to_le_bytes(),
+        );
+        merge_tree.update(&parent.to_le_bytes());
+        merge_tree.update(&representative_pixel.to_le_bytes());
         merge_tree.update(&birth.to_bits().to_le_bytes());
         merge_tree.update(&death.to_bits().to_le_bytes());
     }
@@ -489,7 +466,22 @@ fn validate_analytics(
     let pixels = grid
         .checked_mul(grid)
         .ok_or("analytic grid dimensions overflow")?;
+    validate_analytic_topology(AnalyticTopology {
+        births,
+        deaths,
+        leaf_parents,
+        leaf_representative_pixels,
+        leaf_regions,
+        peak_pixels,
+        peak_densities,
+        region_parents,
+        region_persistence,
+        region_leaves,
+    })?;
     if peak_pixels.iter().any(|&pixel| pixel >= pixels as u64)
+        || leaf_representative_pixels
+            .iter()
+            .any(|&pixel| pixel >= pixels as u64)
         || pixel_regions
             .iter()
             .chain(point_regions)
@@ -500,8 +492,21 @@ fn validate_analytics(
         || label_rows
             .iter()
             .any(|&row| u64::from(row) >= manifest.storage.row_count)
+        || region_representative_rows
+            .iter()
+            .any(|&row| row != u32::MAX && u64::from(row) >= manifest.storage.row_count)
     {
         return Err("analytic artifact contains an out-of-range index");
+    }
+    for (region, &representative) in region_representative_rows.iter().enumerate() {
+        let mut rows = label_regions
+            .iter()
+            .zip(label_rows)
+            .filter_map(|(&label_region, &row)| (label_region as usize == region).then_some(row));
+        let expected = rows.next().unwrap_or(u32::MAX);
+        if rows.next().is_some() || representative != expected {
+            return Err("analytic representative rows differ from region labels");
+        }
     }
     if label_offsets.first().copied() != Some(0)
         || label_offsets.last().copied() != Some(label_text.len() as u64)
@@ -513,6 +518,101 @@ fn validate_analytics(
         return Err("analytic label offsets or UTF-8 are invalid");
     }
     Ok(())
+}
+
+#[derive(Copy, Clone)]
+struct AnalyticTopology<'artifact> {
+    births: &'artifact [f64],
+    deaths: &'artifact [f64],
+    leaf_parents: &'artifact [u64],
+    leaf_representative_pixels: &'artifact [u64],
+    leaf_regions: &'artifact [u32],
+    peak_pixels: &'artifact [u64],
+    peak_densities: &'artifact [f64],
+    region_parents: &'artifact [u32],
+    region_persistence: &'artifact [f64],
+    region_leaves: &'artifact [u64],
+}
+
+#[expect(
+    clippy::float_cmp,
+    reason = "persisted topology uses exact density equality for its deterministic elder-rule \
+              tie-break"
+)]
+fn validate_analytic_topology(topology: AnalyticTopology<'_>) -> Result<(), &'static str> {
+    let leaf_count = topology.births.len();
+    let region_count = topology.peak_pixels.len();
+    for leaf in 0..leaf_count {
+        let parent = topology.leaf_parents[leaf];
+        if parent != u64::MAX {
+            let parent =
+                usize::try_from(parent).map_err(|_error| "analytic parent does not fit usize")?;
+            if parent >= leaf_count
+                || parent == leaf
+                || topology.births[parent] < topology.births[leaf]
+                || (topology.births[parent] == topology.births[leaf]
+                    && topology.leaf_representative_pixels[parent]
+                        >= topology.leaf_representative_pixels[leaf])
+            {
+                return Err("analytic merge-tree parentage is invalid");
+            }
+        }
+        let region = topology.leaf_regions[leaf];
+        if region != u32::MAX && region as usize >= region_count {
+            return Err("analytic leaf names an out-of-range region");
+        }
+    }
+    for region in 0..region_count {
+        let leaf = usize::try_from(topology.region_leaves[region])
+            .map_err(|_error| "analytic region leaf does not fit usize")?;
+        if leaf >= leaf_count
+            || topology.leaf_regions[leaf] as usize != region
+            || topology.peak_pixels[region] != topology.leaf_representative_pixels[leaf]
+            || topology.peak_densities[region].to_bits() != topology.births[leaf].to_bits()
+            || topology.region_persistence[region].to_bits()
+                != (topology.births[leaf] - topology.deaths[leaf]).to_bits()
+        {
+            return Err("analytic region does not describe its persistent leaf");
+        }
+        let expected_parent = selected_ancestor_region(
+            topology.leaf_parents[leaf],
+            topology.leaf_parents,
+            topology.leaf_regions,
+        )?
+        .unwrap_or(u32::MAX);
+        if topology.region_parents[region] != expected_parent {
+            return Err("analytic region parent differs from the merge tree");
+        }
+    }
+    for (leaf, &region) in topology.leaf_regions.iter().enumerate() {
+        if region != u32::MAX
+            && topology.region_leaves[region as usize]
+                != u64::try_from(leaf).map_err(|_error| "analytic leaf does not fit u64")?
+        {
+            return Err("analytic leaf-to-region mapping is not invertible");
+        }
+    }
+    Ok(())
+}
+
+fn selected_ancestor_region(
+    mut parent: u64,
+    leaf_parents: &[u64],
+    leaf_regions: &[u32],
+) -> Result<Option<u32>, &'static str> {
+    while parent != u64::MAX {
+        let parent_index =
+            usize::try_from(parent).map_err(|_error| "analytic parent does not fit usize")?;
+        if parent_index >= leaf_parents.len() {
+            return Err("analytic parent is outside the leaf domain");
+        }
+        let region = leaf_regions[parent_index];
+        if region != u32::MAX {
+            return Ok(Some(region));
+        }
+        parent = leaf_parents[parent_index];
+    }
+    Ok(None)
 }
 
 fn row_count(manifest: &GenerationManifest) -> Result<usize, &'static str> {

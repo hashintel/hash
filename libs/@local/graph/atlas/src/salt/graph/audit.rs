@@ -12,7 +12,7 @@
 
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashSet},
+    collections::{BTreeMap, BinaryHeap, HashSet},
 };
 
 use rayon::prelude::*;
@@ -21,13 +21,111 @@ use super::{
     NeighborIndex, ProjectorEmbeddings, SemanticGraphError, kernel::cosine_distance,
     normalize_neighbors,
 };
-use crate::salt::hash::{ContentHash, ContentHasher};
+use crate::salt::{
+    hash::{ContentHash, ContentHasher},
+    landmark::LandmarkCandidate,
+};
 
 /// Exact-audit neighbor count.
 pub(crate) const AUDIT_NEIGHBORS: usize = 50;
 
 /// Minimum admitted ANN recall.
 pub(crate) const MINIMUM_RECALL: f64 = 0.95;
+
+/// Selects a deterministic audit sample balanced across categorical strata.
+///
+/// Complete stratum tuples form cells. Cells are ordered by a versioned hash,
+/// rows within each cell are independently hash-ordered, and selection proceeds
+/// round-robin across cells. The resulting sample therefore cannot be chosen by
+/// a caller to hide low-recall regions.
+///
+/// # Errors
+///
+/// Returns an error unless candidates form a complete permutation of the
+/// generation-row domain.
+pub(crate) fn stratified_audit_sample(
+    candidates: &[LandmarkCandidate],
+    row_count: usize,
+    maximum: core::num::NonZeroUsize,
+    seed: u64,
+) -> Result<Vec<u32>, SemanticGraphError> {
+    if candidates.len() != row_count {
+        return Err(SemanticGraphError::AuditCandidateCount {
+            rows: row_count,
+            candidates: candidates.len(),
+        });
+    }
+    let mut seen = vec![false; row_count];
+    let mut cells = BTreeMap::<[u32; 7], Vec<u32>>::new();
+    for candidate in candidates {
+        let row = candidate.row.as_usize();
+        if row >= row_count {
+            return Err(SemanticGraphError::AuditCandidateRow {
+                row: candidate.row.as_u32(),
+                rows: row_count,
+            });
+        }
+        if core::mem::replace(&mut seen[row], true) {
+            return Err(SemanticGraphError::DuplicateAuditCandidateRow {
+                row: candidate.row.as_u32(),
+            });
+        }
+        cells
+            .entry([
+                candidate.density,
+                candidate.language,
+                candidate.source,
+                candidate.entity_role,
+                candidate.type_family,
+                candidate.community,
+                candidate.temporal_cohort,
+            ])
+            .or_default()
+            .push(candidate.row.as_u32());
+    }
+
+    let mut cells = cells
+        .into_iter()
+        .map(|(stratum, mut rows)| {
+            rows.sort_unstable_by_key(|row| audit_priority(seed, *row, &stratum, b"row"));
+            (audit_priority(seed, 0, &stratum, b"cell"), stratum, rows)
+        })
+        .collect::<Vec<_>>();
+    cells.sort_unstable_by_key(|(priority, stratum, _rows)| (*priority, *stratum));
+    let target = maximum.get().min(row_count);
+    let mut sample = Vec::with_capacity(target);
+    let mut offset = 0;
+    while sample.len() < target {
+        let mut advanced = false;
+        for (_priority, _stratum, rows) in &cells {
+            if let Some(&row) = rows.get(offset) {
+                sample.push(row);
+                advanced = true;
+                if sample.len() == target {
+                    break;
+                }
+            }
+        }
+        debug_assert!(advanced, "complete candidates should advance the sample");
+        offset += 1;
+    }
+    Ok(sample)
+}
+
+fn audit_priority(seed: u64, row: u32, stratum: &[u32; 7], domain: &[u8]) -> u64 {
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.stratified-ann-audit.v1");
+    hasher.update(domain);
+    hasher.update(&seed.to_le_bytes());
+    hasher.update(&row.to_le_bytes());
+    for value in stratum {
+        hasher.update(&value.to_le_bytes());
+    }
+    u64::from_le_bytes(
+        hasher.finish().as_bytes()[..8]
+            .try_into()
+            .expect("SHA-256 digest should contain eight bytes"),
+    )
+}
 
 /// Aggregate exact-recall evidence for one backend and corpus.
 #[derive(Debug, Copy, Clone, PartialEq)]

@@ -150,6 +150,8 @@ def test_cli_fit_emits_the_complete_classifier_bundle(
         "config_path": config,
         "output_directory": output,
         "resolutions_directory": None,
+        "coincident_reviews_directory": None,
+        "deliverables_directory": None,
     }
     stdout = capsys.readouterr().out
     assert f"wrote {output / 'classifier.json'}" in stdout
@@ -157,10 +159,13 @@ def test_cli_fit_emits_the_complete_classifier_bundle(
     assert f"wrote {output / 'out-of-fold.parquet'}" in stdout
 
 
+@pytest.mark.parametrize("include_gold", [False, True], ids=["without-gold", "with-gold"])
 def test_cli_report_uses_the_validated_policy_report_stack(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    *,
+    include_gold: bool,
 ) -> None:
     run = tmp_path / "run"
     cards = tmp_path / "cards"
@@ -189,35 +194,36 @@ def test_cli_report_uses_the_validated_policy_report_stack(
         "atlas_tools.relation.evaluation.application.api.write_policy_report",
         report,
     )
-    cli.main(
-        [
-            "report",
-            str(run),
-            str(cards),
-            str(config),
-            "--gold",
-            str(gold),
-            "--classifier",
-            str(classifier),
-            "--closure",
-            str(closure),
-            "--soft-labels",
-            str(soft_labels),
-            "--resolutions",
-            str(resolutions),
-            "--out",
-            str(output),
-        ]
-    )
+    arguments = [
+        "report",
+        str(run),
+        str(cards),
+        str(config),
+        "--classifier",
+        str(classifier),
+        "--closure",
+        str(closure),
+        "--soft-labels",
+        str(soft_labels),
+        "--resolutions",
+        str(resolutions),
+        "--out",
+        str(output),
+    ]
+    if include_gold:
+        arguments[4:4] = ["--gold", str(gold)]
+    cli.main(arguments)
     assert captured == {
         "run_directory": run,
         "cards_directory": cards,
         "config_path": config,
-        "gold_path": gold,
+        "gold_path": gold if include_gold else None,
         "classifier_directory": classifier,
         "closure_directory": closure,
         "soft_labels_path": soft_labels,
         "resolutions_directory": resolutions,
+        "coincident_reviews_directory": None,
+        "deliverables_directory": None,
         "output_directory": output,
     }
     stdout = capsys.readouterr().out

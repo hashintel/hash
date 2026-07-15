@@ -15,8 +15,10 @@ pub(super) use self::publish::publish_gated_candidate;
 pub(crate) use self::{
     error::{ReleaseGateError, ReleasePublishError},
     evidence::{
-        EvidenceAttestation, GateEvidence, GateEvidenceError, GateEvidencePayload, GateEvidenceSet,
-        GateSigner, GateVerifier, load_gate_evidence,
+        ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport, ExternalGateVerifierSet,
+        GateEvidence, GateEvidenceError, GateEvidencePayload, GateEvidenceSet, GateSigner,
+        GateVerifier, SignedExternalGateGrantIssuer, TrustedExternalGateAuthority,
+        load_gate_evidence, reproducibility_output_hash,
     },
     gate::{GateId, GateOutcome, GateReport, GatedRelease, ReleaseHead},
 };

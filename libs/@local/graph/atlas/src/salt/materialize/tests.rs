@@ -179,6 +179,7 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
             condition_domain_hash: ContentHash::digest(b"domain"),
             selection_evidence_hash: ContentHash::digest(b"evidence"),
             procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+            quantization_step: 0.25,
         },
     )
     .expect("base artifact should publish");

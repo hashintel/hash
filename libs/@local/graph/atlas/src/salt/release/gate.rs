@@ -29,14 +29,13 @@ pub(crate) enum GateId {
 }
 
 impl GateId {
-    const ALL: [Self; 13] = [
+    const M0_INITIAL: [Self; 12] = [
         Self::Representation,
         Self::AnnRecall,
         Self::SemanticFidelity,
         Self::RelationPolicy,
         Self::RelationSatisfaction,
         Self::MergeTreePersistence,
-        Self::TemporalDrift,
         Self::SubgroupBehavior,
         Self::AuthorizationNoninterference,
         Self::SnapshotConsistency,
@@ -49,7 +48,7 @@ impl GateId {
     #[must_use]
     #[inline]
     pub(crate) const fn required() -> &'static [Self] {
-        &Self::ALL
+        &Self::M0_INITIAL
     }
 }
 
@@ -117,17 +116,20 @@ impl GateReport {
         outcomes.sort_unstable_by_key(|outcome| outcome.gate);
         let mut seen = BTreeSet::new();
         for outcome in &outcomes {
+            if !GateId::required().contains(&outcome.gate) {
+                return Err(ReleaseGateError::Unexpected { gate: outcome.gate });
+            }
             if !seen.insert(outcome.gate) {
                 return Err(ReleaseGateError::Duplicate { gate: outcome.gate });
             }
         }
-        for gate in GateId::ALL {
+        for &gate in GateId::required() {
             if !seen.contains(&gate) {
                 return Err(ReleaseGateError::Missing { gate });
             }
         }
         Ok(Self {
-            version: 1,
+            version: 3,
             head,
             outcomes,
         })
@@ -140,7 +142,7 @@ impl GateReport {
     /// This returns an error when the format version is unsupported or gate
     /// evidence is incomplete, repeated, or failed.
     pub(crate) fn validate(&self) -> Result<(), ReleaseGateError> {
-        if self.version != 1 {
+        if self.version != 3 {
             return Err(ReleaseGateError::Version {
                 actual: self.version,
             });
@@ -169,7 +171,7 @@ impl GateReport {
     /// Computes the canonical report identity.
     #[must_use]
     pub(crate) fn content_hash(&self) -> ContentHash {
-        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.release-report.v1");
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.release-report.v3");
         hasher.update(self.head.generation.content_hash().as_bytes());
         hasher.update(&self.head.data.base().get().to_le_bytes());
         hasher.update(&self.head.data.delta().get().to_le_bytes());

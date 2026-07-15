@@ -1,38 +1,51 @@
 """Load, validate, and publish the policy-report artifact stack.
 
-The composition facade loads a completed grid exactly once. Gold and an
-optional classifier bundle are then validated against that immutable snapshot.
+The composition facade loads a completed grid exactly once. Optional gold and
+classifier inputs are then validated against that immutable snapshot.
 `report.meta.json` is published last and binds deterministic ASCII JSON and
 Markdown content to every transitive source hash available at this boundary.
 """
 
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Literal
 
 import trio
-from pydantic import NonNegativeInt
 
 from atlas_tools.relation.evaluation.analysis.api import (
     PolicyReport,
+    PolicyReportWithoutGold,
+    PublishedPolicyReport,
     build_policy_report,
-    render_policy_report_markdown,
+    policy_report_bytes,
+    render_published_policy_report_markdown,
+    without_gold_measurements,
 )
 from atlas_tools.relation.evaluation.application._analysis_codec import (
     atomic_replace,
     canonical_json_bytes,
-    load_model,
     read_bytes,
     require_exact_mapping,
     sha256_bytes,
     verify_content_hashes,
     verify_expected_sources,
 )
+from atlas_tools.relation.evaluation.application._policy_report_metadata import (
+    POLICY_REPORT_ALGORITHMS,
+    REPORT_JSON_FILENAME,
+    REPORT_MARKDOWN_FILENAME,
+    REPORT_METADATA_FILENAME,
+    LoadedPolicyReportMetadata,
+    PolicyReportMetadata,
+    expected_policy_report_algorithms,
+    expected_policy_report_schema_hashes,
+    load_policy_report_metadata,
+    policy_report_schema_hashes,
+)
 from atlas_tools.relation.evaluation.application._policy_report_source import (
     LoadedGold,
+    report_source_hashes,
 )
 from atlas_tools.relation.evaluation.application._policy_report_source import (
     load_gold as _load_gold,
@@ -41,7 +54,6 @@ from atlas_tools.relation.evaluation.application._policy_report_source import (
     load_snapshot_inputs as _load_snapshot_inputs,
 )
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
-    ArtifactMetadata,
     ClassifierBundle,
     hash_mapping,
 )
@@ -50,59 +62,6 @@ from atlas_tools.relation.evaluation.application.completed import (
     load_completed_grid_async,
 )
 from atlas_tools.relation.evaluation.domain.api import Sha256Hex
-
-REPORT_JSON_FILENAME = "report.json"
-REPORT_MARKDOWN_FILENAME = "report.md"
-REPORT_METADATA_FILENAME = "report.meta.json"
-
-_ALGORITHMS = {
-    "analysis": "independent-gold-policy-report-v1",
-    "json": "canonical-ascii-json-v1",
-    "markdown": "deterministic-ascii-markdown-v1",
-    "publication": "atomic-manifest-last-v1",
-}
-_METADATA_SCHEMA = {
-    "artifact": "relation-policy-report",
-    "fields": {
-        "algorithm_hash": "sha256",
-        "algorithms": "map[string,string]",
-        "artifact": "literal[relation-policy-report]",
-        "classifier_state": "literal[not-provided,evaluated]",
-        "content_hashes": "map[string,sha256]",
-        "gold_rows": "non-negative-int",
-        "metadata_hash": "computed-sha256",
-        "report_schema_version": "literal[1]",
-        "schema_hashes": "map[string,sha256]",
-        "schema_version": "literal[1]",
-        "source_hashes": "map[string,sha256]",
-    },
-    "schema_version": 1,
-}
-_MARKDOWN_SCHEMA = {
-    "encoding": "ascii",
-    "renderer": _ALGORITHMS["markdown"],
-    "trailing_newline": True,
-}
-
-
-def _schema_hash(value: object) -> Sha256Hex:
-    return sha256_bytes(canonical_json_bytes(value))
-
-
-_SCHEMA_HASHES = {
-    "metadata": _schema_hash(_METADATA_SCHEMA),
-    "report_json": _schema_hash(PolicyReport.model_json_schema()),
-    "report_markdown": _schema_hash(_MARKDOWN_SCHEMA),
-}
-
-
-class PolicyReportMetadata(ArtifactMetadata):
-    """Metadata binding both report renderings to exact validated inputs."""
-
-    artifact: Literal["relation-policy-report"] = "relation-policy-report"
-    report_schema_version: Literal[1] = 1
-    gold_rows: NonNegativeInt
-    classifier_state: Literal["not-provided", "evaluated"]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -113,8 +72,8 @@ class PolicyReportArtifact:
     report_json_path: Path
     report_markdown_path: Path
     metadata_path: Path
-    metadata: PolicyReportMetadata
-    report: PolicyReport
+    metadata: LoadedPolicyReportMetadata
+    report: PublishedPolicyReport
 
 
 def load_gold(path: Path) -> LoadedGold:
@@ -137,70 +96,39 @@ def _validate_classifier(completed: CompletedGrid, bundle: ClassifierBundle) -> 
             raise ValueError(f"classifier bundle does not bind completed grid source {name}")
 
 
-def _source_hashes(
-    completed: CompletedGrid,
-    gold: LoadedGold,
-    classifier: ClassifierBundle | None,
-) -> dict[str, Sha256Hex]:
-    sources = {
-        "gold.jsonl": gold.content_hash,
-        "grid/config": completed.prepared.loaded_config.content_hash,
-        "grid/manifest-contract": sha256_bytes(canonical_json_bytes(completed.manifest)),
-        **{
-            f"grid/{name}": content_hash
-            for name, content_hash in completed.manifest.source_hashes.items()
-        },
-    }
-    if classifier is not None:
-        sources["classifier/metadata"] = classifier.metadata.metadata_hash
-        sources.update(
-            {
-                f"classifier/{name}": content_hash
-                for name, content_hash in classifier.metadata.content_hashes.items()
-            }
-        )
-    return sources
-
-
-def _report_bytes(report: PolicyReport) -> bytes:
-    payload = json.dumps(
-        report.model_dump(mode="json"),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        allow_nan=False,
-    ).encode("ascii")
-    return payload + b"\n"
-
-
 def _publish_report(
     *,
     completed: CompletedGrid,
-    gold: LoadedGold,
+    gold: LoadedGold | None,
     classifier: ClassifierBundle | None,
     output_directory: Path,
 ) -> PolicyReportArtifact:
     if classifier is not None:
         _validate_classifier(completed, classifier)
-    report = build_policy_report(
+    measured_report = build_policy_report(
         completed.analysis,
-        gold.rows,
+        () if gold is None else gold.rows,
         completed.prepared.config.report,
         rubric_version=completed.prepared.config.rubric_version,
         classifier_predictions=(None if classifier is None else classifier.fit.out_of_fold),
     )
-    report_json = _report_bytes(report)
-    report_markdown = render_policy_report_markdown(report).encode("ascii")
+    report: PublishedPolicyReport = (
+        measured_report if gold is not None else without_gold_measurements(measured_report)
+    )
+    report_json = policy_report_bytes(report)
+    report_markdown = render_published_policy_report_markdown(report).encode("ascii")
     metadata = PolicyReportMetadata(
-        schema_hashes=_SCHEMA_HASHES,
-        algorithms=_ALGORITHMS,
-        algorithm_hash=hash_mapping(_ALGORITHMS),
-        source_hashes=_source_hashes(completed, gold, classifier),
+        schema_hashes=policy_report_schema_hashes(report.schema_version),
+        algorithms=POLICY_REPORT_ALGORITHMS,
+        algorithm_hash=hash_mapping(POLICY_REPORT_ALGORITHMS),
+        source_hashes=report_source_hashes(completed, gold, classifier),
         content_hashes={
             REPORT_JSON_FILENAME: sha256_bytes(report_json),
             REPORT_MARKDOWN_FILENAME: sha256_bytes(report_markdown),
         },
-        gold_rows=len(gold.rows),
+        report_schema_version=report.schema_version,
+        gold_state="not-provided" if gold is None else "evaluated",
+        gold_rows=None if gold is None else len(gold.rows),
         classifier_state=report.classifier_state,
     )
     report_json_path = output_directory / REPORT_JSON_FILENAME
@@ -225,7 +153,7 @@ def _publish_report(
 async def _publish_report_async(
     *,
     completed: CompletedGrid,
-    gold: LoadedGold,
+    gold: LoadedGold | None,
     classifier: ClassifierBundle | None,
     output_directory: Path,
 ) -> PolicyReportArtifact:
@@ -242,12 +170,14 @@ async def _publish_report_async(
 async def write_policy_report_from_grid_async(
     *,
     completed: CompletedGrid,
-    gold_path: Path,
+    gold_path: Path | None = None,
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
     soft_labels_path: Path | None = None,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Publish a report from one already validated completed-grid snapshot.
 
@@ -262,6 +192,8 @@ async def write_policy_report_from_grid_async(
         closure_directory=closure_directory,
         soft_labels_path=soft_labels_path,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     return await _publish_report_async(
         completed=completed,
@@ -274,12 +206,14 @@ async def write_policy_report_from_grid_async(
 def write_policy_report_from_grid(
     *,
     completed: CompletedGrid,
-    gold_path: Path,
+    gold_path: Path | None = None,
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
     soft_labels_path: Path | None = None,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Publish a report from a completed snapshot in a synchronous process.
 
@@ -297,6 +231,8 @@ def write_policy_report_from_grid(
         closure_directory=closure_directory,
         soft_labels_path=soft_labels_path,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     return trio.run(operation)
 
@@ -306,17 +242,19 @@ async def write_policy_report_async(
     run_directory: Path,
     cards_directory: Path,
     config_path: Path,
-    gold_path: Path,
+    gold_path: Path | None = None,
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
     soft_labels_path: Path | None = None,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Load independent inputs concurrently and publish one policy report.
 
-    The completed grid is loaded exactly once. Gold and classifier bytes are
-    read concurrently with that snapshot and are validated before publication.
+    The completed grid is loaded exactly once. Requested gold and classifier
+    bytes are read concurrently with that snapshot and validated before publication.
 
     Raises:
         ValueError: A completed-grid, gold, classifier, or report contract fails.
@@ -324,7 +262,7 @@ async def write_policy_report_async(
 
     """
     completed_values: list[CompletedGrid] = []
-    snapshot_values: list[tuple[LoadedGold, ClassifierBundle | None]] = []
+    snapshot_values: list[tuple[LoadedGold | None, ClassifierBundle | None]] = []
 
     async def load_completed_value() -> None:
         completed_values.append(
@@ -343,6 +281,8 @@ async def write_policy_report_async(
                 closure_directory=closure_directory,
                 soft_labels_path=soft_labels_path,
                 resolutions_directory=resolutions_directory,
+                coincident_reviews_directory=coincident_reviews_directory,
+                deliverables_directory=deliverables_directory,
             )
         )
 
@@ -365,12 +305,14 @@ def write_policy_report(
     run_directory: Path,
     cards_directory: Path,
     config_path: Path,
-    gold_path: Path,
+    gold_path: Path | None = None,
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
     soft_labels_path: Path | None = None,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Load and publish a CLI-grade policy report synchronously.
 
@@ -390,6 +332,8 @@ def write_policy_report(
         closure_directory=closure_directory,
         soft_labels_path=soft_labels_path,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     return trio.run(operation)
 
@@ -408,15 +352,15 @@ def load_policy_report_artifact(
     report_json_path = directory / REPORT_JSON_FILENAME
     report_markdown_path = directory / REPORT_MARKDOWN_FILENAME
     metadata_path = directory / REPORT_METADATA_FILENAME
-    metadata = load_model(metadata_path, PolicyReportMetadata)
+    metadata = load_policy_report_metadata(metadata_path)
     require_exact_mapping(
         metadata.schema_hashes,
-        _SCHEMA_HASHES,
+        expected_policy_report_schema_hashes(metadata),
         label="policy-report schema hashes",
     )
     require_exact_mapping(
         metadata.algorithms,
-        _ALGORITHMS,
+        expected_policy_report_algorithms(metadata),
         label="policy-report algorithms",
     )
     verify_expected_sources(metadata.source_hashes, expected_source_hashes)
@@ -430,16 +374,23 @@ def load_policy_report_artifact(
         },
     )
     try:
-        report = PolicyReport.model_validate_json(report_json, strict=True)
+        report: PublishedPolicyReport = (
+            PolicyReport.model_validate_json(report_json, strict=True)
+            if metadata.gold_state == "evaluated"
+            else PolicyReportWithoutGold.model_validate_json(report_json, strict=True)
+        )
     except ValueError as error:
         raise ValueError(f"invalid policy report JSON {report_json_path}: {error}") from error
-    if report_json != _report_bytes(report):
+    if report_json != policy_report_bytes(report):
         raise ValueError("policy report JSON is not canonical")
-    expected_markdown = render_policy_report_markdown(report).encode("ascii")
+    expected_markdown = render_published_policy_report_markdown(report).encode("ascii")
     if report_markdown != expected_markdown:
         raise ValueError("policy report Markdown differs from its machine report")
-    if metadata.gold_rows != report.gold_cards:
-        raise ValueError("policy report metadata gold count differs from report")
+    if metadata.gold_state == "evaluated":
+        if not isinstance(report, PolicyReport) or metadata.gold_rows != report.gold_cards:
+            raise ValueError("policy report metadata gold state differs from report")
+    elif not isinstance(report, PolicyReportWithoutGold):
+        raise ValueError("policy report metadata gold state differs from report")
     if metadata.classifier_state != report.classifier_state:
         raise ValueError("policy report metadata classifier state differs from report")
     return PolicyReportArtifact(

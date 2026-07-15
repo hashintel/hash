@@ -2,85 +2,148 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use super::{GateEvidenceError, GateSigner, GateVerifier, SignatureHex};
+use super::{
+    ExternalGateGrant, ExternalGateVerifierSet, GateEvidenceError, GateSigner, GateVerifier,
+    SignatureHex,
+};
 use crate::salt::{
-    graph::audit::MINIMUM_RECALL,
-    hash::ContentHash,
+    graph::audit::{MINIMUM_RECALL, RecallAudit},
+    hash::{ContentHash, ContentHasher},
     manifest::GenerationManifest,
     release::{GateId, GateOutcome, GateReport, ReleaseHead},
 };
 
-const EVIDENCE_VERSION: u32 = 1;
+mod validate;
 
-/// A signed decision produced by one versioned release suite.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct EvidenceAttestation {
-    suite_version: String,
-    report: ContentHash,
-    passed: bool,
-}
-
-impl EvidenceAttestation {
-    /// Creates a decision bound to its complete external report.
-    ///
-    /// # Errors
-    ///
-    /// This returns an error when `suite_version` is empty, has surrounding
-    /// whitespace, or uses the reserved value `TBD`.
-    pub(crate) fn new(
-        suite_version: impl Into<String>,
-        report: ContentHash,
-        passed: bool,
-    ) -> Result<Self, GateEvidenceError> {
-        let suite_version = suite_version.into();
-        if !canonical_text(&suite_version) {
-            return Err(GateEvidenceError::Failed {
-                gate: GateId::Representation,
-                reason: "suite version is not canonical",
-            });
-        }
-        Ok(Self {
-            suite_version,
-            report,
-            passed,
-        })
-    }
-}
+const EVIDENCE_VERSION: u32 = 15;
 
 /// Typed measurements or approvals for one mandatory release gate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "gate", content = "evidence", rename_all = "kebab-case")]
+#[serde(
+    deny_unknown_fields,
+    tag = "gate",
+    content = "evidence",
+    rename_all = "kebab-case"
+)]
 pub(crate) enum GateEvidencePayload {
-    Representation(EvidenceAttestation),
+    Representation(ExternalGateGrant),
     AnnRecall {
-        exact_audit: ContentHash,
+        backend: ContentHash,
+        sample: ContentHash,
+        sample_rows: usize,
+        neighbors_per_row: usize,
+        matched: u64,
+        expected: u64,
         recall_at_50_bits: u64,
     },
-    SemanticFidelity(EvidenceAttestation),
-    RelationPolicy(EvidenceAttestation),
-    RelationSatisfaction(EvidenceAttestation),
-    MergeTreePersistence(EvidenceAttestation),
-    TemporalDrift(EvidenceAttestation),
-    SubgroupBehavior(EvidenceAttestation),
-    AuthorizationNoninterference(EvidenceAttestation),
-    SnapshotConsistency(EvidenceAttestation),
-    Reproducibility(EvidenceAttestation),
-    SecurityApproval(EvidenceAttestation),
-    CompanionPin {
-        document_version: String,
-        document_hash: ContentHash,
-        wire_versions: Vec<u16>,
-        shader_contract_version: String,
+    SemanticFidelity(ExternalGateGrant),
+    RelationPolicy(ExternalGateGrant),
+    RelationSatisfaction {
+        selection_evidence: ContentHash,
+        baseline_field: ContentHash,
+        canonical_field: ContentHash,
+        baseline_loss_bits: u64,
+        canonical_loss_bits: u64,
+        tolerance_bits: u64,
     },
+    MergeTreePersistence {
+        grant: ExternalGateGrant,
+        report: ContentHash,
+        candidate_tree: ContentHash,
+        reference_tree: ContentHash,
+    },
+    TemporalDrift(ExternalGateGrant),
+    SubgroupBehavior(ExternalGateGrant),
+    AuthorizationNoninterference(ExternalGateGrant),
+    SnapshotConsistency {
+        frozen_input: ContentHash,
+        security_geometry: ContentHash,
+        identity_directory: ContentHash,
+        row_count: u64,
+    },
+    Reproducibility {
+        recipe: ContentHash,
+        first_output: ContentHash,
+        second_output: ContentHash,
+        artifact_count: usize,
+    },
+    SecurityApproval(ExternalGateGrant),
+    CompanionPin(ExternalGateGrant),
 }
 
 impl GateEvidencePayload {
     #[must_use]
-    pub(crate) const fn ann_recall(exact_audit: ContentHash, recall_at_50: f64) -> Self {
+    pub(crate) const fn ann_recall(audit: RecallAudit) -> Self {
         Self::AnnRecall {
-            exact_audit,
-            recall_at_50_bits: recall_at_50.to_bits(),
+            backend: audit.backend,
+            sample: audit.sample,
+            sample_rows: audit.sample_rows,
+            neighbors_per_row: audit.neighbors_per_row,
+            matched: audit.matched,
+            expected: audit.expected,
+            recall_at_50_bits: audit.recall.to_bits(),
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn relation_satisfaction(
+        selection_evidence: ContentHash,
+        baseline_field: ContentHash,
+        canonical_field: ContentHash,
+        baseline_loss: f64,
+        canonical_loss: f64,
+        tolerance: f64,
+    ) -> Self {
+        Self::RelationSatisfaction {
+            selection_evidence,
+            baseline_field,
+            canonical_field,
+            baseline_loss_bits: baseline_loss.to_bits(),
+            canonical_loss_bits: canonical_loss.to_bits(),
+            tolerance_bits: tolerance.to_bits(),
+        }
+    }
+
+    #[must_use]
+    pub(crate) fn merge_tree_persistence(
+        report: &crate::salt::generation::PersistenceComparisonReport,
+        grant: ExternalGateGrant,
+    ) -> Self {
+        Self::MergeTreePersistence {
+            grant,
+            report: report.content_hash(),
+            candidate_tree: report.candidate_tree_hash,
+            reference_tree: report.reference_tree_hash,
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn snapshot_consistency(
+        frozen_input: ContentHash,
+        security_geometry: ContentHash,
+        identity_directory: ContentHash,
+        row_count: u64,
+    ) -> Self {
+        Self::SnapshotConsistency {
+            frozen_input,
+            security_geometry,
+            identity_directory,
+            row_count,
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn reproducibility(
+        recipe: ContentHash,
+        first_output: ContentHash,
+        second_output: ContentHash,
+        artifact_count: usize,
+    ) -> Self {
+        Self::Reproducibility {
+            recipe,
+            first_output,
+            second_output,
+            artifact_count,
         }
     }
 
@@ -92,101 +155,25 @@ impl GateEvidencePayload {
             Self::AnnRecall { .. } => GateId::AnnRecall,
             Self::SemanticFidelity(_) => GateId::SemanticFidelity,
             Self::RelationPolicy(_) => GateId::RelationPolicy,
-            Self::RelationSatisfaction(_) => GateId::RelationSatisfaction,
-            Self::MergeTreePersistence(_) => GateId::MergeTreePersistence,
+            Self::RelationSatisfaction { .. } => GateId::RelationSatisfaction,
+            Self::MergeTreePersistence { .. } => GateId::MergeTreePersistence,
             Self::TemporalDrift(_) => GateId::TemporalDrift,
             Self::SubgroupBehavior(_) => GateId::SubgroupBehavior,
             Self::AuthorizationNoninterference(_) => GateId::AuthorizationNoninterference,
-            Self::SnapshotConsistency(_) => GateId::SnapshotConsistency,
-            Self::Reproducibility(_) => GateId::Reproducibility,
+            Self::SnapshotConsistency { .. } => GateId::SnapshotConsistency,
+            Self::Reproducibility { .. } => GateId::Reproducibility,
             Self::SecurityApproval(_) => GateId::SecurityApproval,
-            Self::CompanionPin { .. } => GateId::CompanionPin,
+            Self::CompanionPin(_) => GateId::CompanionPin,
         }
     }
 
-    fn validate(&self, manifest: &GenerationManifest) -> Result<(), GateEvidenceError> {
-        let gate = self.gate();
-        match self {
-            Self::AnnRecall {
-                exact_audit,
-                recall_at_50_bits,
-            } => {
-                let recall = f64::from_bits(*recall_at_50_bits);
-                if *exact_audit != manifest.semantic_graph.exact_audit_hash
-                    || recall.to_bits() != manifest.semantic_graph.recall_at_50.to_bits()
-                    || !recall.is_finite()
-                    || recall < MINIMUM_RECALL
-                {
-                    return Err(GateEvidenceError::Failed {
-                        gate,
-                        reason: "exact ANN audit does not satisfy the pinned manifest",
-                    });
-                }
-            }
-            Self::CompanionPin {
-                document_version,
-                document_hash,
-                wire_versions,
-                shader_contract_version,
-            } => {
-                let mut expected_wire = manifest.serving.wire_versions.clone();
-                let mut observed_wire = wire_versions.clone();
-                expected_wire.sort_unstable();
-                observed_wire.sort_unstable();
-                if !canonical_text(document_version)
-                    || !canonical_text(shader_contract_version)
-                    || document_version != &manifest.serving.canvas_companion_version
-                    || *document_hash != manifest.serving.canvas_companion_sha256
-                    || observed_wire != expected_wire
-                    || shader_contract_version != &manifest.serving.shader_contract_version
-                {
-                    return Err(GateEvidenceError::Failed {
-                        gate,
-                        reason: "client companion evidence differs from the manifest pins",
-                    });
-                }
-            }
-            payload @ (Self::Representation(_)
-            | Self::SemanticFidelity(_)
-            | Self::RelationPolicy(_)
-            | Self::RelationSatisfaction(_)
-            | Self::MergeTreePersistence(_)
-            | Self::TemporalDrift(_)
-            | Self::SubgroupBehavior(_)
-            | Self::AuthorizationNoninterference(_)
-            | Self::SnapshotConsistency(_)
-            | Self::Reproducibility(_)
-            | Self::SecurityApproval(_)) => {
-                let attestation = payload
-                    .attestation()
-                    .expect("non-measured payload should carry an attestation");
-                if !canonical_text(&attestation.suite_version) || !attestation.passed {
-                    return Err(GateEvidenceError::Failed {
-                        gate,
-                        reason: "the signed suite decision did not pass",
-                    });
-                }
-            }
-        }
-        Ok(())
-    }
-
-    #[inline]
-    const fn attestation(&self) -> Option<&EvidenceAttestation> {
-        match self {
-            Self::Representation(value)
-            | Self::SemanticFidelity(value)
-            | Self::RelationPolicy(value)
-            | Self::RelationSatisfaction(value)
-            | Self::MergeTreePersistence(value)
-            | Self::TemporalDrift(value)
-            | Self::SubgroupBehavior(value)
-            | Self::AuthorizationNoninterference(value)
-            | Self::SnapshotConsistency(value)
-            | Self::Reproducibility(value)
-            | Self::SecurityApproval(value) => Some(value),
-            Self::AnnRecall { .. } | Self::CompanionPin { .. } => None,
-        }
+    fn validate(
+        &self,
+        head: ReleaseHead,
+        manifest: &GenerationManifest,
+        external_verifiers: &ExternalGateVerifierSet,
+    ) -> Result<(), GateEvidenceError> {
+        validate::payload(self, head, manifest, external_verifiers)
     }
 }
 
@@ -246,6 +233,7 @@ impl GateEvidence {
         head: ReleaseHead,
         manifest: &GenerationManifest,
         verifier: &GateVerifier,
+        external_verifiers: &ExternalGateVerifierSet,
     ) -> Result<(), GateEvidenceError> {
         if self.version != EVIDENCE_VERSION {
             return Err(GateEvidenceError::Version {
@@ -262,7 +250,7 @@ impl GateEvidence {
             return Err(GateEvidenceError::GateMismatch);
         }
         verifier.verify(&self.signing_bytes()?, self.signature)?;
-        self.payload.validate(manifest)
+        self.payload.validate(head, manifest, external_verifiers)
     }
 
     fn signing_bytes(&self) -> Result<Vec<u8>, GateEvidenceError> {
@@ -304,6 +292,7 @@ impl GateEvidenceSet {
         head: ReleaseHead,
         manifest: &GenerationManifest,
         verifier: &GateVerifier,
+        external_verifiers: &ExternalGateVerifierSet,
         mut documents: Vec<GateEvidence>,
     ) -> Result<Self, GateEvidenceError> {
         if manifest.content_hash().ok().as_ref() != Some(&head.manifest)
@@ -322,15 +311,19 @@ impl GateEvidenceSet {
         let mut seen = BTreeSet::new();
         let mut outcomes = Vec::with_capacity(GateId::required().len());
         for document in &documents {
+            if !GateId::required().contains(&document.gate()) {
+                return Err(GateEvidenceError::Unexpected {
+                    gate: document.gate(),
+                });
+            }
             if !seen.insert(document.gate()) {
                 return Err(GateEvidenceError::Duplicate {
                     gate: document.gate(),
                 });
             }
-            document.verify(head, manifest, verifier)?;
+            document.verify(head, manifest, verifier, external_verifiers)?;
             outcomes.push(GateOutcome {
                 gate: document.gate(),
-                passed: true,
                 evidence: document.content_hash()?,
             });
         }
@@ -367,7 +360,22 @@ impl GateEvidenceSet {
     }
 }
 
-#[inline]
-fn canonical_text(value: &str) -> bool {
-    !value.is_empty() && value.trim() == value && !value.eq_ignore_ascii_case("TBD")
+/// Computes the canonical identity of all immutable bytes in one output.
+#[must_use]
+pub(crate) fn reproducibility_output_hash(manifest: &GenerationManifest) -> ContentHash {
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.reproducibility-output.v1");
+    hasher.update(manifest.reproducibility.config_hash.as_bytes());
+    for artifact in &manifest.artifacts {
+        hasher.update(artifact.role.to_string().as_bytes());
+        hasher.update(artifact.relative_path.as_bytes());
+        hasher.update(artifact.content_hash.as_bytes());
+        hasher.update(&artifact.byte_length.to_le_bytes());
+        if let Some(format) = artifact.format {
+            hasher.update(&format.kind.to_le_bytes());
+            hasher.update(&format.version.to_le_bytes());
+        } else {
+            hasher.update(&[]);
+        }
+    }
+    hasher.finish()
 }

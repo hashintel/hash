@@ -46,3 +46,10 @@ mod simd;
 mod snapshot;
 mod storage;
 mod strength;
+
+pub(crate) use self::{
+    activation::{FileActivationStore, LoadedGeneration},
+    hash::ContentHash,
+    manifest::{ArtifactManifest, ArtifactRole},
+    release::{ExternalGateVerifierSet, GateId, GateVerifier},
+};

@@ -5,7 +5,6 @@ reported but excluded from agreement, calibration, judge agreement, and the
 release gate because they are not independent validation evidence.
 """
 
-import json
 import math
 import statistics
 from collections.abc import Mapping, Sequence
@@ -14,6 +13,18 @@ from dataclasses import dataclass, field
 from atlas_tools.relation.evaluation.analysis._policy_math import (
     minimum_feedable_count,
     wilson_lower_bound,
+)
+from atlas_tools.relation.evaluation.analysis._policy_report_classifier import (
+    classifier_applicability as _applicability,
+)
+from atlas_tools.relation.evaluation.analysis._policy_report_classifier import (
+    classifier_index as _classifier_index,
+)
+from atlas_tools.relation.evaluation.analysis._policy_report_classifier import (
+    classifier_labels as _classifier_labels,
+)
+from atlas_tools.relation.evaluation.analysis._policy_report_render import (
+    render_policy_report_markdown,
 )
 from atlas_tools.relation.evaluation.analysis.classifier_model import (
     OutOfFoldPrediction,
@@ -77,7 +88,6 @@ _PREDICTED_LABELS: tuple[PredictedLabel, ...] = (
     "overlay",
     "no-call",
 )
-_QUANTILES = (0.05, 0.25, 0.50, 0.75, 0.95)
 
 
 def _rate(
@@ -207,43 +217,6 @@ def _agreement(
     )
 
 
-def _classifier_index(
-    analysis: GridAnalysis,
-    rows: Sequence[OutOfFoldPrediction],
-) -> dict[RelationId, OutOfFoldPrediction]:
-    cards = {card.card.relation_id: card.card for card in analysis.cards}
-    predictions: dict[RelationId, OutOfFoldPrediction] = {}
-    for row in rows:
-        if row.relation_id in predictions:
-            raise ValueError(f"classifier predictions repeat relation {row.relation_id}")
-        card = cards.get(row.relation_id)
-        if card is None:
-            raise ValueError(f"classifier predicts relation outside the grid: {row.relation_id}")
-        if row.card_hash != card.card_hash:
-            raise ValueError(f"classifier card hash differs for {row.relation_id}")
-        if row.family_id != card.family_id:
-            raise ValueError(f"classifier family differs for {row.relation_id}")
-        predictions[row.relation_id] = row
-    missing = tuple(sorted(set(cards) - set(predictions)))
-    if missing:
-        raise ValueError(f"classifier predictions omit grid relations: {missing[:5]}")
-    return predictions
-
-
-def _classifier_labels(
-    predictions: Mapping[RelationId, OutOfFoldPrediction],
-    *,
-    threshold: float,
-) -> dict[RelationId, PredictedLabel]:
-    labels: dict[RelationId, PredictedLabel] = {}
-    for relation_id, row in predictions.items():
-        if row.top_probability < threshold:
-            labels[relation_id] = "no-call"
-        else:
-            labels[relation_id] = row.top_class
-    return labels
-
-
 def _coincident_gate(
     *,
     source: PredictionSource,
@@ -333,33 +306,6 @@ def _calibration(
             )
         )
     return tuple(output)
-
-
-def _applicability(
-    analysis: GridAnalysis,
-    predictions: Mapping[RelationId, OutOfFoldPrediction],
-) -> tuple[ApplicabilitySummary, ...]:
-    producer_by_relation = {card.card.relation_id: card.card.producer for card in analysis.cards}
-    by_producer: dict[str, list[float]] = {}
-    for relation_id, prediction in predictions.items():
-        producer = producer_by_relation[relation_id]
-        by_producer.setdefault(producer, []).append(prediction.applicability)
-    summaries: list[ApplicabilitySummary] = []
-    for producer in sorted(by_producer):
-        values = sorted(by_producer[producer])
-        quantiles = tuple(values[int(point * (len(values) - 1))] for point in _QUANTILES)
-        summaries.append(
-            ApplicabilitySummary(
-                producer=producer,
-                cards=len(values),
-                q05=quantiles[0],
-                q25=quantiles[1],
-                q50=quantiles[2],
-                q75=quantiles[3],
-                q95=quantiles[4],
-            )
-        )
-    return tuple(summaries)
 
 
 @dataclass(slots=True)
@@ -472,8 +418,8 @@ def build_policy_report(
 ) -> PolicyReport:
     """Build one report in indexed linear passes over cards, gold, and votes.
 
-    Classifier rows must cover the grid exactly by relation, card hash, and
-    relation family. Gold may be empty or cover a subset of the grid. A gold
+    Classifier rows must cover the grid exactly by relation and card hash.
+    Gold may be empty or cover a subset of the grid. A gold
     relation outside the grid, duplicate gold, or classifier identity drift
     fails before metrics are computed.
 
@@ -549,183 +495,3 @@ def build_policy_report(
         judges=_judge_health(analysis, gold_by_relation),
         economics=_economics(analysis),
     )
-
-
-def _rate_text(metric: RateMetric) -> str:
-    if metric.value is None:
-        return f"undefined ({metric.state}; n={metric.denominator})"
-    return f"{metric.value:.6f} ({metric.numerator}/{metric.denominator})"
-
-
-def _scalar_text(metric: ScalarMetric, *, suffix: str = "") -> str:
-    if metric.value is None:
-        return f"undefined ({metric.state}; n={metric.observations})"
-    return f"{metric.value:.6f}{suffix} (n={metric.observations})"
-
-
-def _text(value: str) -> str:
-    encoded = json.dumps(value, ensure_ascii=True)[1:-1]
-    return encoded.replace("|", "\\|")
-
-
-def _agreement_lines(agreement: GoldAgreement) -> list[str]:
-    threshold = (
-        "none" if agreement.decision_threshold is None else f"{agreement.decision_threshold:.6f}"
-    )
-    lines = [
-        f"## Gold agreement - {agreement.source}",
-        "",
-        f"- Decision threshold: {threshold}.",
-        f"- Gold cards: {agreement.gold_cards}; independent: "
-        f"{agreement.independent_gold_cards}; post-exposure excluded: "
-        f"{agreement.post_exposure_excluded}.",
-        f"- Independent unclear: {agreement.independent_unclear}.",
-        f"- Placement agreement: {_rate_text(agreement.agreement)}.",
-        f"- No-calls: {agreement.no_calls}.",
-        "",
-        "| class | gold support | predicted | correct | precision | recall |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
-    ]
-    lines.extend(
-        f"| {row.placement_class} | {row.gold_support} | {row.predicted} | "
-        f"{row.correct} | {_rate_text(row.precision)} | {_rate_text(row.recall)} |"
-        for row in agreement.per_class
-    )
-    lines.extend(
-        [
-            "",
-            "| gold / predicted | coincident | proximal | overlay | no-call |",
-            "| --- | ---: | ---: | ---: | ---: |",
-        ]
-    )
-    lines.extend(
-        f"| {row.gold} | {row.coincident} | {row.proximal} | {row.overlay} | {row.no_call} |"
-        for row in agreement.confusion
-    )
-    lines.append("")
-    return lines
-
-
-def _gate_lines(gate: CoincidentGate) -> list[str]:
-    bound = "undefined (no-predictions)" if gate.wilson_lcb is None else f"{gate.wilson_lcb:.6f}"
-    verdict = (
-        "UNPASSABLE BY SAMPLE SIZE"
-        if gate.verdict == "insufficient-sample"
-        else gate.verdict.upper()
-    )
-    return [
-        "## Coincident release gate",
-        "",
-        f"- Source: {gate.source}.",
-        f"- Coincident-predicted independent gold: {gate.stratum_size}; correct: "
-        f"{gate.correct}; precision: {_rate_text(gate.precision)}.",
-        f"- One-sided Wilson LCB at {gate.confidence_level:.6f}: {bound}; target: "
-        f"{gate.precision_target:.6f}.",
-        f"- Feedability: {gate.sample_size_state}; needs "
-        f"{gate.minimum_zero_error_count} zero-error cards.",
-        f"- Verdict: **{verdict}**.",
-        "",
-    ]
-
-
-def _classifier_lines(classifier: ClassifierPolicyEvaluation) -> list[str]:
-    lines = [
-        "## Calibration - out-of-fold independent gold",
-        "",
-        "| bin | count | mean confidence | accuracy |",
-        "| --- | ---: | ---: | ---: |",
-    ]
-    for row in classifier.calibration:
-        closing = "]" if row.upper_inclusive else ")"
-        lines.append(
-            f"| [{row.lower:.2f}, {row.upper:.2f}{closing} | {row.count} | "
-            f"{_scalar_text(row.mean_confidence)} | {_rate_text(row.accuracy)} |"
-        )
-    lines.extend(
-        [
-            "",
-            "## Applicability by producer",
-            "",
-            "| producer | cards | q05 | q25 | q50 | q75 | q95 |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-        ]
-    )
-    lines.extend(
-        f"| {_text(row.producer)} | {row.cards} | {row.q05:.6f} | {row.q25:.6f} | "
-        f"{row.q50:.6f} | {row.q75:.6f} | {row.q95:.6f} |"
-        for row in classifier.applicability
-    )
-    lines.append("")
-    return lines
-
-
-def _judge_lines(judges: Sequence[JudgeHealth]) -> list[str]:
-    lines = [
-        "## Judge health",
-        "",
-        "| judge | votes | abstention | initial schema compliance | repair rate | "
-        "gold agreement | median latency | fresh known cost |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
-    lines.extend(
-        f"| {_text(row.family_id)} | {row.votes} | {_rate_text(row.abstention_rate)} | "
-        f"{_rate_text(row.initial_schema_compliance)} | "
-        f"{_rate_text(row.parse_repair_rate)} | {_rate_text(row.gold_agreement)} | "
-        f"{_scalar_text(row.median_latency_seconds, suffix='s')} | "
-        f"${row.fresh_known_cost_usd:.6f} |"
-        for row in judges
-    )
-    lines.append("")
-    return lines
-
-
-def _economics_lines(economics: PolicyVoteEconomics) -> list[str]:
-    lines = [
-        "## Vote economics",
-        "",
-        f"- Total votes: {economics.total_votes}.",
-        f"- Fresh known cost: ${economics.total_known_cost_usd:.6f}.",
-        f"- Refined cards: {economics.refined_cards}/{economics.pool_cards} "
-        f"({economics.realized_trigger_rate:.6f}).",
-        f"- Coincident review queue: {economics.review_queue_cards} cards.",
-        "",
-        "| family | imported | fresh baseline | refinement | abstentions | total | "
-        "fresh known cost |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
-    lines.extend(
-        f"| {_text(row.family_id)} | {row.imported_votes} | {row.fresh_baseline_votes} | "
-        f"{row.refinement_votes} | {row.abstentions} | {row.total_votes} | "
-        f"${row.known_cost_usd:.6f} |"
-        for row in economics.by_family
-    )
-    lines.append("")
-    return lines
-
-
-def render_policy_report_markdown(report: PolicyReport) -> str:
-    """Render a deterministic ASCII Markdown projection of the machine report.
-
-    The projection is derived exclusively from validated report fields and
-    always ends with one newline.
-    """
-    lines = [
-        "# Relation policy evaluation report",
-        "",
-        f"- Rubric: {_text(report.rubric_version)}.",
-        f"- Eligible cards: {report.eligible_cards}.",
-        f"- Gold cards: {report.gold_cards}; post-exposure excluded: {report.gold_post_exposure}.",
-        f"- Classifier: {report.classifier_state}.",
-        "",
-    ]
-    lines.extend(_agreement_lines(report.panel_gold))
-    if report.classifier is not None:
-        lines.extend(_agreement_lines(report.classifier.gold))
-    lines.extend(_gate_lines(report.coincident_gate))
-    if report.classifier is not None:
-        lines.extend(_classifier_lines(report.classifier))
-    lines.extend(_judge_lines(report.judges))
-    lines.extend(_economics_lines(report.economics))
-    rendered = "\n".join(lines).rstrip() + "\n"
-    rendered.encode("ascii")
-    return rendered

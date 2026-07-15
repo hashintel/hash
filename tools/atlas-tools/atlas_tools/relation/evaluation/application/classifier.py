@@ -8,6 +8,7 @@ import trio
 from atlas_tools.relation.evaluation.analysis.api import fit_policy_classifier
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierBundle,
+    ClassifierCoincidentReviewBinding,
     ClassifierTargetResolutionBinding,
     EmbeddingsArtifact,
     SoftLabelsArtifact,
@@ -17,6 +18,14 @@ from atlas_tools.relation.evaluation.application.analysis_codec import (
     load_embeddings_async,
     load_soft_labels_async,
     write_classifier_bundle_async,
+)
+from atlas_tools.relation.evaluation.application.coincident_classifier import (
+    classifier_coincident_review_binding,
+    classifier_coincident_review_source_hashes,
+    load_classifier_coincident_reviews,
+)
+from atlas_tools.relation.evaluation.application.coincident_review import (
+    VerifiedCoincidentReviewArtifact,
 )
 from atlas_tools.relation.evaluation.application.identity import panel_hash
 from atlas_tools.relation.evaluation.application.source import hash_paths
@@ -40,12 +49,15 @@ async def _load_inputs(
     embeddings_path: Path,
     closure_directory: Path,
     resolutions_directory: Path | None,
+    coincident_reviews_directory: Path | None,
+    deliverables_directory: Path | None,
 ) -> tuple[
     LoadedConfig,
     SoftLabelsArtifact,
     EmbeddingsArtifact,
     VerifiedFamilyClosure,
     VerifiedTargetResolutionArtifact | None,
+    VerifiedCoincidentReviewArtifact | None,
 ]:
     configs: list[LoadedConfig] = []
     labels: list[SoftLabelsArtifact] = []
@@ -89,7 +101,21 @@ async def _load_inputs(
         )
         resolutions.append(await trio.to_thread.run_sync(operation, abandon_on_cancel=False))
     resolution = None if not resolutions else resolutions[0]
-    return configs[0], labels[0], embeddings[0], closures[0], resolution
+    if (coincident_reviews_directory is None) != (deliverables_directory is None):
+        raise ValueError("Coincident reviews and grid deliverables must be provided together")
+    reviews: list[VerifiedCoincidentReviewArtifact] = []
+    if coincident_reviews_directory is not None and deliverables_directory is not None:
+        operation = partial(
+            load_classifier_coincident_reviews,
+            coincident_reviews_directory,
+            deliverables=deliverables_directory,
+            soft_labels=labels[0],
+            expected_cards_hash=closures[0].manifest.details.concat.cards_hash,
+            expected_config_hash=configs[0].content_hash,
+        )
+        reviews.append(await trio.to_thread.run_sync(operation, abandon_on_cancel=False))
+    review = None if not reviews else reviews[0]
+    return configs[0], labels[0], embeddings[0], closures[0], resolution, review
 
 
 def _validate_sources(
@@ -115,6 +141,7 @@ async def _source_hashes(
     embeddings: EmbeddingsArtifact,
     closure: VerifiedFamilyClosure,
     resolutions: VerifiedTargetResolutionArtifact | None,
+    coincident_reviews: VerifiedCoincidentReviewArtifact | None,
 ) -> dict[str, str]:
     paths = {
         "embeddings.meta.json": embeddings.sidecar_path,
@@ -128,15 +155,27 @@ async def _source_hashes(
     resolution_sources = (
         {} if resolutions is None else classifier_target_resolution_source_hashes(resolutions)
     )
+    review_sources = (
+        {}
+        if coincident_reviews is None
+        else classifier_coincident_review_source_hashes(coincident_reviews)
+    )
     grid_sources = {
         f"grid/{name}": content_hash for name, content_hash in labels.metadata.source_hashes.items()
     }
     return {
         **files,
         **resolution_sources,
+        **review_sources,
         **grid_sources,
         "grid-config": loaded.content_hash,
     }
+
+
+def _coincident_binding(
+    artifact: VerifiedCoincidentReviewArtifact,
+) -> ClassifierCoincidentReviewBinding:
+    return classifier_coincident_review_binding(artifact)
 
 
 def _resolution_binding(
@@ -168,6 +207,8 @@ async def fit_classifier_async(
     config_path: Path,
     output_directory: Path,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> ClassifierBundle:
     """Fit every card with grouped folds or validate an existing bundle.
 
@@ -182,12 +223,14 @@ async def fit_classifier_async(
         OSError: An input or output artifact cannot be accessed durably.
 
     """
-    loaded, labels, embeddings, closure, resolutions = await _load_inputs(
+    loaded, labels, embeddings, closure, resolutions, coincident_reviews = await _load_inputs(
         config_path=config_path,
         soft_labels_path=soft_labels_path,
         embeddings_path=embeddings_path,
         closure_directory=closure_directory,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     _validate_sources(loaded, labels, embeddings)
     sources = await _source_hashes(
@@ -196,6 +239,7 @@ async def fit_classifier_async(
         embeddings=embeddings,
         closure=closure,
         resolutions=resolutions,
+        coincident_reviews=coincident_reviews,
     )
     resolution_binding = (
         None
@@ -207,21 +251,27 @@ async def fit_classifier_async(
             embeddings=embeddings,
         )
     )
+    coincident_binding = (
+        None if coincident_reviews is None else _coincident_binding(coincident_reviews)
+    )
     metadata_path = output_directory / "classifier.json"
     if await trio.to_thread.run_sync(
         metadata_path.is_file,
         abandon_on_cancel=False,
     ):
-        bundle = await load_classifier_bundle_async(
+        return await load_classifier_bundle_async(
             output_directory,
             closure=closure,
             expected_source_hashes=sources,
-            soft_labels=None if resolutions_directory is None else labels,
+            soft_labels=(
+                None
+                if resolutions_directory is None and coincident_reviews_directory is None
+                else labels
+            ),
             resolutions_directory=resolutions_directory,
+            coincident_reviews_directory=coincident_reviews_directory,
+            deliverables_directory=deliverables_directory,
         )
-        if bundle.metadata.target_resolutions != resolution_binding:
-            raise ValueError("classifier bundle uses different target resolutions")
-        return bundle
 
     fit = partial(
         fit_policy_classifier,
@@ -230,6 +280,7 @@ async def fit_classifier_async(
         closure.rows,
         loaded.grid().classifier,
         resolutions=() if resolutions is None else resolutions.rows,
+        coincident_reviews=() if coincident_reviews is None else coincident_reviews.rows,
     )
     fitted = await trio.to_thread.run_sync(fit, abandon_on_cancel=False)
     return await write_classifier_bundle_async(
@@ -238,6 +289,7 @@ async def fit_classifier_async(
         source_hashes=sources,
         closure=closure,
         target_resolutions=resolution_binding,
+        coincident_reviews=coincident_binding,
     )
 
 
@@ -249,6 +301,8 @@ def fit_classifier(
     config_path: Path,
     output_directory: Path,
     resolutions_directory: Path | None = None,
+    coincident_reviews_directory: Path | None = None,
+    deliverables_directory: Path | None = None,
 ) -> ClassifierBundle:
     """Run classifier fitting from a synchronous process boundary."""
     operation = partial(
@@ -259,5 +313,7 @@ def fit_classifier(
         config_path=config_path,
         output_directory=output_directory,
         resolutions_directory=resolutions_directory,
+        coincident_reviews_directory=coincident_reviews_directory,
+        deliverables_directory=deliverables_directory,
     )
     return trio.run(operation)

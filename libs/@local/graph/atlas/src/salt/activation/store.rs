@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::{self, BufReader},
+    io::{self, Read as _},
 };
 
 use burn::tensor::backend::Backend;
@@ -11,9 +11,14 @@ use tempfile::NamedTempFile;
 use super::{error::ActivationError, load::projector_config};
 use crate::salt::{
     hash::ContentHash,
-    manifest::{ArtifactRole, load_verified_manifest_with_artifacts},
-    projector::load_projector_checkpoint_bytes,
-    release::{GateReport, GateVerifier, GatedRelease, ReleaseHead, load_gate_evidence},
+    manifest::{
+        ArtifactRole, VerifiedArtifact, load_verified_manifest, verify_loaded_manifest_artifacts,
+    },
+    projector::{ConditionedProjector, load_projector_checkpoint_bytes},
+    release::{
+        ExternalGateVerifierSet, GateReport, GateVerifier, GatedRelease, ReleaseHead,
+        load_gate_evidence,
+    },
 };
 
 const ACTIVE_FILE: &str = "active.json";
@@ -21,6 +26,7 @@ const CANDIDATE_FILE: &str = "candidate.json";
 const LOCK_FILE: &str = ".activation.lock";
 const MANIFEST_FILE: &str = "manifest.json";
 const RELEASE_REPORT_FILE: &str = "release-report.json";
+const MAX_ACTIVATION_JSON_BYTES: u64 = 4 * 1024 * 1024;
 
 /// The exact immutable head and gate report visible to readers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,6 +62,26 @@ impl From<GatedRelease> for ActiveRelease {
     }
 }
 
+pub(super) struct PreparedCandidate<B: Backend> {
+    manifest: crate::salt::manifest::GenerationManifest,
+    artifacts: Vec<VerifiedArtifact>,
+    projector: ConditionedProjector<B>,
+}
+
+impl<B: Backend> PreparedCandidate<B> {
+    #[must_use]
+    #[inline]
+    pub(super) fn into_parts(
+        self,
+    ) -> (
+        crate::salt::manifest::GenerationManifest,
+        Vec<VerifiedArtifact>,
+        ConditionedProjector<B>,
+    ) {
+        (self.manifest, self.artifacts, self.projector)
+    }
+}
+
 /// Result of an explicit activation compare-and-swap.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ActivationOutcome {
@@ -67,9 +93,10 @@ pub(crate) enum ActivationOutcome {
 /// Filesystem activation pointer guarded by a process-shared file lock.
 #[derive(Debug, Clone)]
 pub(crate) struct FileActivationStore<B: Backend> {
-    pub(super) root: Utf8PathBuf,
+    root: Utf8PathBuf,
     verifier: GateVerifier,
-    pub(super) device: B::Device,
+    external_verifiers: ExternalGateVerifierSet,
+    device: B::Device,
 }
 
 impl<B: Backend> FileActivationStore<B> {
@@ -78,11 +105,13 @@ impl<B: Backend> FileActivationStore<B> {
     pub(crate) fn new(
         root: impl Into<Utf8PathBuf>,
         verifier: GateVerifier,
+        external_verifiers: ExternalGateVerifierSet,
         device: B::Device,
     ) -> Self {
         Self {
             root: root.into(),
             verifier,
+            external_verifiers,
             device,
         }
     }
@@ -93,11 +122,32 @@ impl<B: Backend> FileActivationStore<B> {
     ///
     /// This returns an error when the pointer cannot be read or decoded.
     pub(crate) fn current(&self) -> Result<Option<ActiveRelease>, ActivationError> {
-        let active = read_optional_json(&self.root.join(ACTIVE_FILE))?;
-        if let Some(active) = active {
-            verify_candidate::<B>(&self.root, active, &self.verifier, &self.device)?;
-        }
-        Ok(active)
+        self.prepare_current()
+            .map(|prepared| prepared.map(|(active, _prepared)| active))
+    }
+
+    /// Reads the active pointer without reopening the generation it names.
+    ///
+    /// This is used only as a cache key. Callers MUST use [`Self::load_active`]
+    /// before serving any generation content.
+    pub(crate) fn active_pointer(&self) -> Result<Option<ActiveRelease>, ActivationError> {
+        read_optional_json(&self.root.join(ACTIVE_FILE))
+    }
+
+    pub(super) fn prepare_current(
+        &self,
+    ) -> Result<Option<(ActiveRelease, PreparedCandidate<B>)>, ActivationError> {
+        let Some(active) = read_optional_json(&self.root.join(ACTIVE_FILE))? else {
+            return Ok(None);
+        };
+        let prepared = verify_candidate::<B>(
+            &self.root,
+            active,
+            &self.verifier,
+            &self.external_verifiers,
+            &self.device,
+        )?;
+        Ok(Some((active, prepared)))
     }
 
     /// Activates a gated candidate if `expected` still names the active head.
@@ -118,7 +168,13 @@ impl<B: Backend> FileActivationStore<B> {
         desired: GatedRelease,
     ) -> Result<ActivationOutcome, ActivationError> {
         let desired = ActiveRelease::from(desired);
-        verify_candidate::<B>(&self.root, desired, &self.verifier, &self.device)?;
+        let _prepared = verify_candidate::<B>(
+            &self.root,
+            desired,
+            &self.verifier,
+            &self.external_verifiers,
+            &self.device,
+        )?;
         fs::create_dir_all(&self.root)?;
         let lock = OpenOptions::new()
             .create(true)
@@ -191,8 +247,9 @@ fn verify_candidate<B: Backend>(
     root: &Utf8Path,
     desired: ActiveRelease,
     verifier: &GateVerifier,
+    external_verifiers: &ExternalGateVerifierSet,
     device: &B::Device,
-) -> Result<(), ActivationError> {
+) -> Result<PreparedCandidate<B>, ActivationError> {
     let path = candidate_path(root, desired.head);
     let candidate: ActiveRelease =
         read_optional_json(&path)?.ok_or(ActivationError::MissingCandidate {
@@ -223,8 +280,7 @@ fn verify_candidate<B: Backend>(
         .join("generations")
         .join(desired.head.generation.to_string())
         .join(MANIFEST_FILE);
-    let verified = load_verified_manifest_with_artifacts(&manifest_path, desired.head.manifest)?;
-    let (manifest, artifacts) = verified.into_parts();
+    let manifest = load_verified_manifest(&manifest_path, desired.head.manifest)?;
     if manifest.generation_id != desired.head.generation
         || manifest.storage.base_revision != desired.head.data.base()
         || manifest.storage.initial_delta_revision != desired.head.data.delta()
@@ -236,13 +292,28 @@ fn verify_candidate<B: Backend>(
     let generation_directory = manifest_path
         .parent()
         .expect("generation manifest should have a parent");
-    load_gate_evidence(generation_directory, &report, &manifest, verifier)?;
+    load_gate_evidence(
+        generation_directory,
+        &report,
+        &manifest,
+        verifier,
+        external_verifiers,
+    )?;
+    let artifacts = verify_loaded_manifest_artifacts(&manifest_path, &manifest)?;
     let checkpoint = artifacts
         .iter()
         .find(|artifact| artifact.role() == ArtifactRole::ProjectorCheckpoint)
         .expect("validated manifest should contain a projector checkpoint");
-    load_projector_checkpoint_bytes::<B>(checkpoint.bytes(), projector_config(&manifest), device)?;
-    Ok(())
+    let projector = load_projector_checkpoint_bytes::<B>(
+        checkpoint.bytes(),
+        projector_config(&manifest),
+        device,
+    )?;
+    Ok(PreparedCandidate {
+        manifest,
+        artifacts,
+        projector,
+    })
 }
 
 fn candidate_path(root: &Utf8Path, head: ReleaseHead) -> Utf8PathBuf {
@@ -251,9 +322,57 @@ fn candidate_path(root: &Utf8Path, head: ReleaseHead) -> Utf8PathBuf {
         .join(CANDIDATE_FILE)
 }
 
-fn read_optional_json<T: DeserializeOwned>(path: &Utf8Path) -> Result<Option<T>, ActivationError> {
+fn read_optional_json<T: DeserializeOwned + Serialize>(
+    path: &Utf8Path,
+) -> Result<Option<T>, ActivationError> {
     match File::open(path) {
-        Ok(file) => Ok(Some(serde_json::from_reader(BufReader::new(file))?)),
+        Ok(mut file) => {
+            file.lock_shared()?;
+            let metadata = file.metadata()?;
+            if !metadata.is_file() || metadata.len() > MAX_ACTIVATION_JSON_BYTES {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "activation JSON is not a bounded regular file",
+                )
+                .into());
+            }
+            let capacity = usize::try_from(metadata.len()).map_err(|_error| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "activation JSON length does not fit memory",
+                )
+            })?;
+            let mut bytes = Vec::with_capacity(capacity);
+            file.by_ref()
+                .take(MAX_ACTIVATION_JSON_BYTES.saturating_add(1))
+                .read_to_end(&mut bytes)?;
+            if !matches!(
+                u64::try_from(bytes.len()),
+                Ok(length) if length <= MAX_ACTIVATION_JSON_BYTES
+            ) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "activation JSON grew beyond its byte limit while it was read",
+                )
+                .into());
+            }
+            if u64::try_from(bytes.len()).ok() != Some(metadata.len()) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "activation JSON changed while it was read",
+                )
+                .into());
+            }
+            let value = serde_json::from_slice(&bytes)?;
+            if serde_json::to_vec(&value)? != bytes {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "activation JSON is not canonically encoded",
+                )
+                .into());
+            }
+            Ok(Some(value))
+        }
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(error.into()),
     }

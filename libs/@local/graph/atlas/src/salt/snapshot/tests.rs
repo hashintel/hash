@@ -81,11 +81,8 @@ fn forbidden_public_link_is_noninterfering_in_geometry_identity() {
     let public_type = entity_type("public");
     let admitted = authorized_candidate(100, &public_type);
     let hidden = authorized_candidate(200, &public_type);
-    let public_entities = HashSet::from([
-        admitted.candidate().left.entity_id,
-        admitted.candidate().right.entity_id,
-    ]);
-    let public_links = HashSet::from([admitted.candidate().link.entity_id]);
+    let public_entities = HashSet::from([admitted.candidate().left, admitted.candidate().right]);
+    let public_links = HashSet::from([admitted.candidate().link]);
     let policy = RelationSecurityPolicy::new(
         RelationSecurityMode::PublicLinksOnly,
         HashSet::new(),
@@ -112,7 +109,7 @@ fn atlas_safe_deny_override_wins_over_type_and_instance_admission() {
         HashSet::from([relation_type.clone()]),
         HashSet::new(),
         HashSet::new(),
-        HashSet::from([link.candidate().link.entity_id]),
+        HashSet::from([link.candidate().link]),
     );
 
     assert!(
@@ -152,8 +149,8 @@ fn public_mode_ignores_atlas_safe_type_decisions() {
         RelationSecurityMode::PublicLinksOnly,
         HashSet::new(),
         HashSet::from([relation_type.clone()]),
-        HashSet::from([candidate.left.entity_id, candidate.right.entity_id]),
-        HashSet::from([candidate.link.entity_id]),
+        HashSet::from([candidate.left, candidate.right]),
+        HashSet::from([candidate.link]),
         HashSet::new(),
     );
 
@@ -194,6 +191,80 @@ fn geometry_receipt_and_links_are_independent_of_snapshot_order() {
             .iter()
             .map(|link| link.link_entity())
             .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn geometry_identity_binds_the_authorized_required_type_closure() {
+    let relation_type = entity_type("typed-relation");
+    let first_required = entity_type("required-a");
+    let second_required = entity_type("required-b");
+    let link = entity_at(750);
+    let left = entity_at(760);
+    let right = entity_at(770);
+    let permissions = permission_map([link, left, right]);
+    let permitted_types = HashSet::from([first_required.clone(), second_required.clone()]);
+    let baseline = authorize_link(
+        LinkCandidate::for_test(
+            link,
+            left,
+            right,
+            &relation_type,
+            std::slice::from_ref(&first_required),
+        ),
+        &permissions,
+        &permitted_types,
+    )
+    .expect("baseline type closure should authorize");
+    let expanded = authorize_link(
+        LinkCandidate::for_test(
+            link,
+            left,
+            right,
+            &relation_type,
+            &[first_required, second_required],
+        ),
+        &permissions,
+        &permitted_types,
+    )
+    .expect("expanded type closure should authorize");
+    let policy = RelationSecurityPolicy::new(
+        RelationSecurityMode::AllSnapshotLinks,
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::new(),
+    );
+
+    assert_ne!(
+        authorize_relation_links_for_test(&[baseline], &policy).content_hash(),
+        authorize_relation_links_for_test(&[expanded], &policy).content_hash()
+    );
+}
+
+#[test]
+fn public_mode_requires_the_exact_snapshot_editions() {
+    let relation_type = entity_type("edition-scoped-public");
+    let link = authorized_candidate(800, &relation_type);
+    let candidate = link.candidate();
+    let wrong_left = EntityAtEdition {
+        edition_id: EntityEditionId::new(Uuid::from_u128(999_999)),
+        ..candidate.left
+    };
+    let policy = RelationSecurityPolicy::new(
+        RelationSecurityMode::PublicLinksOnly,
+        HashSet::new(),
+        HashSet::new(),
+        HashSet::from([wrong_left, candidate.right]),
+        HashSet::from([candidate.link]),
+        HashSet::new(),
+    );
+
+    assert!(
+        authorize_relation_links_for_test(&[link], &policy)
+            .links()
+            .is_empty()
     );
 }
 

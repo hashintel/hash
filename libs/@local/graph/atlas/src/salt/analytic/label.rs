@@ -18,12 +18,13 @@ pub(crate) struct RegionLabel<'label> {
     pub text: &'label str,
 }
 
-/// Selects the highest-importance entity label in each occupied region.
+/// Selects and ranks one entity-backed label for each occupied region.
 ///
 /// Equal-importance candidates are ordered by generation row and then label
-/// text. The result follows ascending region identity and omits regions with no
-/// candidate, allowing callers to distinguish an unnamed region from a
-/// fabricated fallback.
+/// text. Selected labels are ranked by normalized region persistence plus
+/// semantic importance, with ascending region identity breaking ties. Regions
+/// with no candidate are omitted, allowing callers to distinguish an unnamed
+/// region from a fabricated fallback.
 ///
 /// # Errors
 ///
@@ -69,15 +70,36 @@ pub(crate) fn select_region_labels<'label>(
         }
     }
 
-    Ok(selected
+    let mut labels = selected
         .into_iter()
         .enumerate()
         .filter_map(|(region, candidate)| {
-            candidate.map(|candidate| RegionLabel {
-                region: u32::try_from(region).expect("region identity should originate from u32"),
-                row: candidate.row,
-                text: candidate.text,
+            candidate.map(|candidate| {
+                let peak = regions
+                    .peaks()
+                    .get(region)
+                    .expect("selected region should have a peak");
+                let normalized_persistence = if peak.density > 0.0 {
+                    peak.persistence / peak.density
+                } else {
+                    0.0
+                };
+                (
+                    normalized_persistence + candidate.importance,
+                    RegionLabel {
+                        region: u32::try_from(region)
+                            .expect("region identity should originate from u32"),
+                        row: candidate.row,
+                        text: candidate.text,
+                    },
+                )
             })
         })
-        .collect())
+        .collect::<Vec<_>>();
+    labels.sort_unstable_by(|(left_score, left), (right_score, right)| {
+        right_score
+            .total_cmp(left_score)
+            .then_with(|| left.region.cmp(&right.region))
+    });
+    Ok(labels.into_iter().map(|(_score, label)| label).collect())
 }

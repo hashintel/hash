@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use tempfile::tempdir;
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
+    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -12,7 +15,7 @@ use crate::salt::{
     relation::{
         AdmittedRelationInstance, AttractionCoefficients, AttractionConfig, ProtectionConfig,
         RelationConfidence, RelationIndexError, RelationPair, RelationPolicy,
-        build_relation_indexes, publish_relation_indexes,
+        build_relation_indexes, publish_relation_indexes, relation_policy_hash,
     },
     strength::RelationStrength,
 };
@@ -26,6 +29,8 @@ fn empty_relation_indexes_preserve_the_complete_artifact_schema() {
         &root.join("relations.atlas"),
         ContentHash::digest(b"empty-relation-config"),
         ContentHash::digest(b"empty-edge-snapshot"),
+        &HashMap::new(),
+        &[],
         &crate::salt::relation::RelationIndexes {
             attraction: Vec::new(),
             protection: Vec::new(),
@@ -33,7 +38,7 @@ fn empty_relation_indexes_preserve_the_complete_artifact_schema() {
     )
     .expect("empty relation indexes should publish");
 
-    assert_eq!(published.header.section_count, 21);
+    assert_eq!(published.header.section_count, 30);
 }
 
 #[test]
@@ -76,6 +81,7 @@ fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
         probability(0.0),
         probability(0.5),
         probability(0.6),
+        true,
     )
     .expect("ordered protection settings should validate");
 
@@ -125,23 +131,76 @@ fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
     let root =
         camino::Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
     let path = root.join("relations.atlas");
+    let policies = [policy];
+    let relation_ordinals = HashMap::from([(relation_type(), relation)]);
+    let policy_hash = relation_policy_hash(&relation_ordinals, &policies);
     let published = publish_relation_indexes(
         &path,
-        ContentHash::digest(b"relation-config"),
+        policy_hash,
         ContentHash::digest(b"edge-snapshot"),
+        &relation_ordinals,
+        &policies,
         &indexes,
     )
     .expect("relation indexes should publish");
     let repeated = publish_relation_indexes(
         &path,
-        ContentHash::digest(b"relation-config"),
+        policy_hash,
         ContentHash::digest(b"edge-snapshot"),
+        &relation_ordinals,
+        &policies,
         &indexes,
     )
     .expect("identical relation indexes should be idempotent");
     assert!(!published.reused_existing);
     assert!(repeated.reused_existing);
     assert_eq!(published.content_hash, repeated.content_hash);
+}
+
+#[test]
+fn ordinary_negative_switch_controls_admission_without_erasing_mass() {
+    let relation = ordinal(0);
+    let policy = RelationPolicy {
+        relation,
+        policy: resolved_policy(0.0, 1.0, 0.0, 1.0),
+        strength: RelationStrength::UNIT,
+    };
+    let instance = AdmittedRelationInstance {
+        link_entity: entity(10),
+        relation,
+        left: row(0),
+        right: row(1),
+        confidence: RelationConfidence::default(),
+    };
+    let protection = ProtectionConfig::new(
+        Probability::ZERO,
+        Probability::ZERO,
+        Probability::ZERO,
+        Probability::ZERO,
+        false,
+    )
+    .expect("disabled ordinary protection should validate");
+
+    let indexes = build_relation_indexes(
+        2,
+        &[policy],
+        &[instance],
+        AttractionConfig::default(),
+        protection,
+    )
+    .expect("relation indexes should preserve diagnostic masses");
+    let pair = indexes
+        .protection
+        .first()
+        .expect("one relation pair should be retained");
+    assert!(pair.ordinary_mass > 0.0);
+    assert!(!pair.ordinary);
+}
+
+fn relation_type() -> VersionedUrl {
+    "https://hash.ai/@hash/types/entity-type/relation-test/v/1"
+        .parse()
+        .expect("fixture relation type should parse")
 }
 
 #[test]
@@ -164,6 +223,7 @@ fn force_pruning_does_not_remove_pre_gate_protection() {
         probability(0.0),
         probability(0.8),
         probability(0.8),
+        true,
     )
     .unwrap();
 
@@ -194,6 +254,7 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
         probability(0.0),
         probability(0.0),
         probability(0.0),
+        true,
     )
     .unwrap();
     assert!(matches!(

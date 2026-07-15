@@ -97,6 +97,8 @@ def test_cli_passes_target_resolutions_to_classifier_fit(
         config_path: Path,
         output_directory: Path,
         resolutions_directory: Path | None,
+        coincident_reviews_directory: Path | None,
+        deliverables_directory: Path | None,
     ) -> _ClassifierResult:
         captured.update(
             soft_labels=soft_labels_path,
@@ -105,6 +107,8 @@ def test_cli_passes_target_resolutions_to_classifier_fit(
             config=config_path,
             output=output_directory,
             resolutions=resolutions_directory,
+            coincident_reviews=coincident_reviews_directory,
+            deliverables=deliverables_directory,
         )
         return _ClassifierResult(
             metadata_path=output_directory / "classifier.json",
@@ -134,4 +138,6 @@ def test_cli_passes_target_resolutions_to_classifier_fit(
         "config": config,
         "output": output,
         "resolutions": resolutions,
+        "coincident_reviews": None,
+        "deliverables": None,
     }

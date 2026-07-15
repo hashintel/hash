@@ -237,7 +237,7 @@ impl Error for IdentityError {}
 /// The input order defines row assignment and must therefore be deterministic.
 /// Construction rejects duplicate entities and generations that do not fit the
 /// declared `u32` row encoding.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct IdentityDirectory {
     entities: Box<[EntityId]>,
     rows: HashMap<EntityId, GenerationRowId>,

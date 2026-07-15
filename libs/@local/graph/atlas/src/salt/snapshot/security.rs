@@ -1,12 +1,18 @@
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "geometry identities require canonical little-endian collection lengths"
+)]
+
 use std::collections::HashSet;
 
 use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 use uuid::Uuid;
 
-use super::{AuthorizedLink, AuthorizedSnapshot};
+use super::{AuthorizedLink, AuthorizedSnapshot, EntityAtEdition};
 use crate::salt::{
     hash::{ContentHash, ContentHasher},
     manifest::RelationSecurityMode,
+    revision::AuthorizationRevision,
 };
 
 /// Frozen type and instance admission for relation-driven coordinates.
@@ -21,9 +27,9 @@ pub(crate) struct RelationSecurityPolicy {
     mode: RelationSecurityMode,
     admitted_types: HashSet<VersionedUrl>,
     denied_types: HashSet<VersionedUrl>,
-    public_entities: HashSet<EntityId>,
-    public_links: HashSet<EntityId>,
-    safe_links: HashSet<EntityId>,
+    public_entities: HashSet<EntityAtEdition>,
+    public_links: HashSet<EntityAtEdition>,
+    safe_links: HashSet<EntityAtEdition>,
     allow_list_hash: ContentHash,
 }
 
@@ -35,13 +41,13 @@ impl RelationSecurityPolicy {
     /// `public-links-only`, only the exact public-instance predicate applies.
     /// `all-snapshot-links` retains every visibility-authorized snapshot link.
     #[must_use]
-    pub(super) fn new(
+    pub(crate) fn new(
         mode: RelationSecurityMode,
         admitted_types: HashSet<VersionedUrl>,
         denied_types: HashSet<VersionedUrl>,
-        public_entities: HashSet<EntityId>,
-        public_links: HashSet<EntityId>,
-        safe_links: HashSet<EntityId>,
+        public_entities: HashSet<EntityAtEdition>,
+        public_links: HashSet<EntityAtEdition>,
+        safe_links: HashSet<EntityAtEdition>,
     ) -> Self {
         let allow_list_hash = type_policy_hash(&admitted_types, &denied_types);
         Self {
@@ -61,9 +67,9 @@ impl RelationSecurityPolicy {
         mode: RelationSecurityMode,
         admitted_types: HashSet<VersionedUrl>,
         denied_types: HashSet<VersionedUrl>,
-        public_entities: HashSet<EntityId>,
-        public_links: HashSet<EntityId>,
-        safe_links: HashSet<EntityId>,
+        public_entities: HashSet<EntityAtEdition>,
+        public_links: HashSet<EntityAtEdition>,
+        safe_links: HashSet<EntityAtEdition>,
     ) -> Self {
         Self::new(
             mode,
@@ -94,14 +100,14 @@ impl RelationSecurityPolicy {
         let candidate = link.candidate();
         match self.mode {
             RelationSecurityMode::PublicLinksOnly => {
-                self.public_links.contains(&candidate.link.entity_id)
-                    && self.public_entities.contains(&candidate.left.entity_id)
-                    && self.public_entities.contains(&candidate.right.entity_id)
+                self.public_links.contains(&candidate.link)
+                    && self.public_entities.contains(&candidate.left)
+                    && self.public_entities.contains(&candidate.right)
             }
             RelationSecurityMode::AtlasSafeLinks => {
                 !self.denied_types.contains(&candidate.relation_type)
                     && self.admitted_types.contains(&candidate.relation_type)
-                    && self.safe_links.contains(&candidate.link.entity_id)
+                    && self.safe_links.contains(&candidate.link)
             }
             RelationSecurityMode::AllSnapshotLinks => true,
         }
@@ -151,6 +157,7 @@ impl GeometryAuthorizedLink {
 pub(crate) struct GeometrySnapshot {
     mode: RelationSecurityMode,
     allow_list_hash: ContentHash,
+    authorization_revision: AuthorizationRevision,
     links: Vec<GeometryAuthorizedLink>,
     content_hash: ContentHash,
 }
@@ -183,6 +190,13 @@ impl GeometrySnapshot {
     pub(crate) const fn allow_list_hash(&self) -> ContentHash {
         self.allow_list_hash
     }
+
+    /// Returns the authorization revision bound to every admitted link.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn authorization_revision(&self) -> AuthorizationRevision {
+        self.authorization_revision
+    }
 }
 
 /// Applies the frozen relation security policy to an authorized snapshot.
@@ -191,12 +205,13 @@ pub(crate) fn authorize_relation_geometry(
     snapshot: &AuthorizedSnapshot,
     policy: &RelationSecurityPolicy,
 ) -> GeometrySnapshot {
-    authorize_relation_links(snapshot.links(), policy)
+    authorize_relation_links(snapshot.links(), policy, snapshot.authorization_revision())
 }
 
 fn authorize_relation_links(
     candidates: &[AuthorizedLink],
     policy: &RelationSecurityPolicy,
+    authorization_revision: AuthorizationRevision,
 ) -> GeometrySnapshot {
     let mut links = candidates
         .iter()
@@ -231,15 +246,36 @@ fn authorize_relation_links(
             })
             .then_with(|| left.relation_type.cmp(&right.relation_type))
     });
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.geometry-snapshot.v1");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.geometry-snapshot.v3");
     hasher.update(&[security_mode_discriminant(policy.mode)]);
     hasher.update(policy.allow_list_hash.as_bytes());
+    hasher.update(authorization_revision.content_hash().as_bytes());
     for link in &links {
         let candidate = link.candidate();
         hash_entity(&mut hasher, candidate.link.entity_id);
         hash_entity(&mut hasher, candidate.left.entity_id);
         hash_entity(&mut hasher, candidate.right.entity_id);
         hasher.update(candidate.relation_type.to_string().as_bytes());
+        let mut required_types = candidate
+            .required_entity_types
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        required_types.sort_unstable();
+        required_types.dedup();
+        hasher.update(
+            &u64::try_from(required_types.len())
+                .expect("required type count should fit u64")
+                .to_le_bytes(),
+        );
+        for required_type in required_types {
+            hasher.update(
+                &u64::try_from(required_type.len())
+                    .expect("required type length should fit u64")
+                    .to_le_bytes(),
+            );
+            hasher.update(required_type.as_bytes());
+        }
         hasher.update(candidate.link.edition_id.as_uuid().as_bytes());
         hasher.update(candidate.left.edition_id.as_uuid().as_bytes());
         hasher.update(candidate.right.edition_id.as_uuid().as_bytes());
@@ -247,6 +283,7 @@ fn authorize_relation_links(
     GeometrySnapshot {
         mode: policy.mode,
         allow_list_hash: policy.allow_list_hash,
+        authorization_revision,
         links,
         content_hash: hasher.finish(),
     }
@@ -257,7 +294,11 @@ pub(super) fn authorize_relation_links_for_test(
     links: &[AuthorizedLink],
     policy: &RelationSecurityPolicy,
 ) -> GeometrySnapshot {
-    authorize_relation_links(links, policy)
+    authorize_relation_links(
+        links,
+        policy,
+        AuthorizationRevision::new(ContentHash::digest(b"test-authorization-revision")),
+    )
 }
 
 fn type_policy_hash(

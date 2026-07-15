@@ -10,6 +10,11 @@ pub(crate) enum ProjectorError {
     },
     ZeroRoleDimensions,
     DimensionOverflow,
+    DimensionLimit {
+        field: &'static str,
+        value: usize,
+        maximum: usize,
+    },
     RepresentationShape {
         rows: usize,
         dimensions: usize,
@@ -34,6 +39,20 @@ pub(crate) enum ProjectorError {
         dimensions: usize,
         expected_rows: usize,
     },
+    LoadedBlockCount {
+        expected: usize,
+        actual: usize,
+    },
+    LoadedMatrixShape {
+        parameter: &'static str,
+        expected: [usize; 2],
+        actual: [usize; 2],
+    },
+    LoadedVectorLength {
+        parameter: &'static str,
+        expected: usize,
+        actual: usize,
+    },
 }
 
 impl fmt::Display for ProjectorError {
@@ -55,6 +74,14 @@ impl fmt::Display for ProjectorError {
             Self::DimensionOverflow => {
                 formatter.write_str("projector feature dimensions overflow usize")
             }
+            Self::DimensionLimit {
+                field,
+                value,
+                maximum,
+            } => write!(
+                formatter,
+                "projector {field} is {value}, exceeding the M0 maximum {maximum}"
+            ),
             Self::RepresentationShape { rows, dimensions } => write!(
                 formatter,
                 "projector representation has shape [{rows}, {dimensions}], expected 512 \
@@ -93,6 +120,27 @@ impl fmt::Display for ProjectorError {
                 formatter,
                 "projector condition has shape [{rows}, {dimensions}], expected [{expected_rows}, \
                  1]"
+            ),
+            Self::LoadedBlockCount { expected, actual } => write!(
+                formatter,
+                "loaded projector has {actual} residual blocks, expected {expected}"
+            ),
+            Self::LoadedMatrixShape {
+                parameter,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "loaded projector parameter {parameter} has shape {actual:?}, expected \
+                 {expected:?}"
+            ),
+            Self::LoadedVectorLength {
+                parameter,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "loaded projector parameter {parameter} has length {actual}, expected {expected}"
             ),
         }
     }

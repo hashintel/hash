@@ -1,12 +1,41 @@
 """Expose verified evaluation workflows and durable artifact boundaries."""
 
+from atlas_tools.relation.evaluation.application._atlas_classifier_codec import (
+    ATLAS_CLASSIFIER_ARTIFACT_KIND,
+    ATLAS_CLASSIFIER_DIMENSION,
+    ATLAS_CLASSIFIER_FILENAME,
+    ATLAS_CLASSIFIER_FORMAT_VERSION,
+    AtlasClassifierArtifact,
+    AtlasClassifierModel,
+    load_atlas_classifier,
+    write_atlas_classifier,
+)
 from atlas_tools.relation.evaluation.application.aggregate import (
     aggregate_soft_labels,
     aggregate_soft_labels_async,
 )
+from atlas_tools.relation.evaluation.application.atlas_classifier import (
+    export_atlas_classifier,
+    export_atlas_classifier_async,
+)
 from atlas_tools.relation.evaluation.application.classifier import (
     fit_classifier,
     fit_classifier_async,
+)
+from atlas_tools.relation.evaluation.application.coincident_classifier import (
+    classifier_coincident_review_binding,
+    classifier_coincident_review_source_hashes,
+    load_classifier_coincident_reviews,
+)
+from atlas_tools.relation.evaluation.application.coincident_review import (
+    COINCIDENT_REVIEWS_FILENAME,
+    COINCIDENT_REVIEWS_MANIFEST_FILENAME,
+    CoincidentReviewCancelledError,
+    CoincidentReviewPaths,
+    VerifiedCoincidentReviewArtifact,
+    load_coincident_reviews,
+    publish_coincident_reviews,
+    review_coincident_queue,
 )
 from atlas_tools.relation.evaluation.application.completed import (
     CompletedGrid,
@@ -73,6 +102,11 @@ from atlas_tools.relation.evaluation.application.policy_report import (
     write_policy_report_from_grid,
     write_policy_report_from_grid_async,
 )
+from atlas_tools.relation.evaluation.application.policy_visualization import (
+    PolicyVisualizationRun,
+    visualize_policy_report,
+    visualize_policy_report_async,
+)
 from atlas_tools.relation.evaluation.application.preparation import (
     PreparedEvaluation,
     PreparedGrid,
@@ -103,9 +137,19 @@ from atlas_tools.relation.evaluation.application.target_resolution import (
 from atlas_tools.relation.evaluation.storage.api import GridPaths, PilotPaths
 
 __all__ = [
+    "ATLAS_CLASSIFIER_ARTIFACT_KIND",
+    "ATLAS_CLASSIFIER_DIMENSION",
+    "ATLAS_CLASSIFIER_FILENAME",
+    "ATLAS_CLASSIFIER_FORMAT_VERSION",
+    "COINCIDENT_REVIEWS_FILENAME",
+    "COINCIDENT_REVIEWS_MANIFEST_FILENAME",
     "TARGET_RESOLUTIONS_FILENAME",
     "TARGET_RESOLUTIONS_MANIFEST_FILENAME",
     "AmbiguousTargetReviewCancelledError",
+    "AtlasClassifierArtifact",
+    "AtlasClassifierModel",
+    "CoincidentReviewCancelledError",
+    "CoincidentReviewPaths",
     "CompletedGrid",
     "EmbeddingAcquisitionError",
     "EmbeddingBudgetExceededError",
@@ -126,11 +170,13 @@ __all__ = [
     "PilotPaths",
     "PilotVisualizationRun",
     "PolicyReportArtifact",
+    "PolicyVisualizationRun",
     "PreparedEvaluation",
     "PreparedGrid",
     "PreparedPilot",
     "RubricVotePrompt",
     "TargetResolutionPaths",
+    "VerifiedCoincidentReviewArtifact",
     "VerifiedTargetResolutionArtifact",
     "aggregate_soft_labels",
     "aggregate_soft_labels_async",
@@ -140,12 +186,19 @@ __all__ = [
     "build_grid_state",
     "build_pilot_manifest",
     "build_pilot_state",
+    "classifier_coincident_review_binding",
+    "classifier_coincident_review_source_hashes",
     "embed_grid",
     "embed_grid_async",
+    "export_atlas_classifier",
+    "export_atlas_classifier_async",
     "fit_classifier",
     "fit_classifier_async",
     "judge_pin",
     "judge_request_hash",
+    "load_atlas_classifier",
+    "load_classifier_coincident_reviews",
+    "load_coincident_reviews",
     "load_completed_grid",
     "load_completed_grid_async",
     "load_grid_deliverables",
@@ -163,14 +216,19 @@ __all__ = [
     "prepare_grid_inputs_async",
     "prepare_pilot_inputs",
     "prepare_pilot_inputs_async",
+    "publish_coincident_reviews",
     "publish_target_resolutions",
     "request_contract_hash",
     "review_ambiguous_targets",
+    "review_coincident_queue",
     "rubric_v1_pilot_policy",
     "run_evaluation",
     "run_evaluation_async",
     "visualize_analysis",
     "visualize_analysis_async",
+    "visualize_policy_report",
+    "visualize_policy_report_async",
+    "write_atlas_classifier",
     "write_grid_deliverables",
     "write_grid_deliverables_async",
     "write_policy_report",

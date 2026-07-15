@@ -20,7 +20,7 @@ from atlas_tools.common.data import Sha256Hex
 from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.common.provenance import Provenance, canonical_json_bytes, sha256_file
 from atlas_tools.relation.lineage.api import SourceSnapshotIdentity, publish_source_lineage
-from atlas_tools.relation_cards.common import CARD_FORMAT_VERSION
+from atlas_tools.relation_cards.common.api import PAIRED_ENDPOINT_CARD_FORMAT_VERSION
 from atlas_tools.relation_cards.common.card import build_card
 from atlas_tools.relation_cards.common.cards import (
     CardRow,
@@ -47,7 +47,7 @@ from atlas_tools.relation_cards.hash.postgres import (
     extract_live_hash_relations,
 )
 
-LINK_TYPES_FORMAT_VERSION = 1
+LINK_TYPES_FORMAT_VERSION = 2
 
 
 class HashCardsConfig(BaseModel):
@@ -225,7 +225,7 @@ def emit_hash_cards(
         config=config,
         details=HashCardsManifestDetails(
             link_types_format_version=LINK_TYPES_FORMAT_VERSION,
-            card_format_version=CARD_FORMAT_VERSION,
+            card_format_version=PAIRED_ENDPOINT_CARD_FORMAT_VERSION,
             relation_source=RelationSourceSpec(
                 namespace="hash",
                 local_id_field="base_url",

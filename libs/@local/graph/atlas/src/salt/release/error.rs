@@ -11,6 +11,7 @@ pub(crate) enum ReleaseGateError {
     NonCanonicalOrder,
     Duplicate { gate: GateId },
     Missing { gate: GateId },
+    Unexpected { gate: GateId },
 }
 
 impl fmt::Display for ReleaseGateError {
@@ -29,6 +30,12 @@ impl fmt::Display for ReleaseGateError {
                 write!(formatter, "release gate {gate} appears more than once")
             }
             Self::Missing { gate } => write!(formatter, "release gate {gate} has no evidence"),
+            Self::Unexpected { gate } => {
+                write!(
+                    formatter,
+                    "release gate {gate} is not part of the M0 initial profile"
+                )
+            }
         }
     }
 }

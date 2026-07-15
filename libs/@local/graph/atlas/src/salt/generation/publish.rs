@@ -6,8 +6,11 @@ use camino::Utf8Path;
 use super::error::GenerationError;
 use crate::salt::{
     activation::{ActivationOutcome, ActiveRelease, FileActivationStore},
-    manifest::{GenerationManifest, PublishedManifest, publish_manifest},
-    release::{GateEvidenceSet, GateVerifier, GatedRelease, publish_gated_candidate},
+    manifest::{GenerationManifest, PublishedManifest, publish_manifest_with_artifacts},
+    release::{
+        ExternalGateVerifierSet, GateEvidenceSet, GateVerifier, GatedRelease,
+        publish_gated_candidate,
+    },
 };
 
 const MANIFEST_FILE: &str = "manifest.json";
@@ -54,7 +57,8 @@ pub(crate) fn publish_generation_candidate(
     let directory = root
         .join("generations")
         .join(manifest.generation_id.to_string());
-    let published_manifest = publish_manifest(&directory.join(MANIFEST_FILE), manifest)?;
+    let (published_manifest, _verified_artifacts) =
+        publish_manifest_with_artifacts(&directory.join(MANIFEST_FILE), manifest)?;
     if evidence.head().generation != manifest.generation_id
         || evidence.head().manifest != published_manifest.content_hash
     {
@@ -85,14 +89,16 @@ pub(crate) fn publish_generation_candidate(
 pub(crate) fn activate_generation<B: Backend>(
     root: &Utf8Path,
     verifier: GateVerifier,
+    external_verifiers: ExternalGateVerifierSet,
     device: B::Device,
     expected: Option<ActiveRelease>,
     candidate: PublishedCandidate,
 ) -> Result<ActivationOutcome, GenerationError> {
     let started = Instant::now();
-    let outcome = FileActivationStore::<B>::new(root.to_owned(), verifier, device)
-        .compare_exchange(expected, candidate.release)
-        .map_err(GenerationError::from)?;
+    let outcome =
+        FileActivationStore::<B>::new(root.to_owned(), verifier, external_verifiers, device)
+            .compare_exchange(expected, candidate.release)
+            .map_err(GenerationError::from)?;
     tracing::info!(
         target: "hash_graph_atlas::salt",
         duration_ms = started.elapsed().as_millis(),

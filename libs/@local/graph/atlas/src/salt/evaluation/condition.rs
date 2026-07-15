@@ -64,9 +64,6 @@ impl RelationCondition {
 pub(crate) struct ConditionEvidence {
     pub monotonicity: bool,
     pub distinguishability: bool,
-    pub semantic_fidelity: bool,
-    pub persistence: bool,
-    pub task_evidence: bool,
     pub report: ContentHash,
 }
 
@@ -156,7 +153,8 @@ impl ConditionLadder {
     ///
     /// Selection policy remains outside this validation boundary; this method
     /// proves only that the chosen condition was evaluated and passed every
-    /// required cross-condition and map-quality criterion.
+    /// required cross-condition criterion. The report identity binds the
+    /// external semantic-fidelity and task-suite grants.
     ///
     /// # Errors
     ///
@@ -174,9 +172,6 @@ impl ConditionLadder {
         let checks = [
             ("monotonicity", candidate.evidence.monotonicity),
             ("distinguishability", candidate.evidence.distinguishability),
-            ("semantic-fidelity", candidate.evidence.semantic_fidelity),
-            ("persistence", candidate.evidence.persistence),
-            ("task-evidence", candidate.evidence.task_evidence),
         ];
         if let Some((criterion, _)) = checks.into_iter().find(|(_, passed)| !passed) {
             return Err(EvaluationError::FailedCanonicalEvidence { value, criterion });

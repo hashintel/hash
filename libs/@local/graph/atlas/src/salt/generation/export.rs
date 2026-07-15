@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use super::error::GenerationError;
 use crate::salt::{
-    evaluation::CanonicalField,
+    evaluation::QuantizedCanonicalField,
     hash::{ContentHash, hash_reader},
     identity::IdentityDirectory,
 };
@@ -59,6 +59,7 @@ struct LegacyExportManifest<'name> {
     version: u32,
     tag: u16,
     condition: f64,
+    quantization_step: f64,
     coordinate_field_hash: ContentHash,
     row_count: usize,
     layout_file: &'name str,
@@ -122,7 +123,7 @@ pub(crate) fn export_legacy_canvas(
     output: &Utf8Path,
     tag: LegacyLayoutTag,
     identities: &IdentityDirectory,
-    field: &CanonicalField,
+    field: &QuantizedCanonicalField,
 ) -> Result<LegacyCanvasExport, GenerationError> {
     if identities.len() != field.coordinates().len() {
         return Err(GenerationError::LegacyRowCount {
@@ -162,9 +163,10 @@ pub(crate) fn export_legacy_canvas(
         Ok(())
     })?;
     let manifest_document = LegacyExportManifest {
-        version: 1,
+        version: 2,
         tag: tag.0,
         condition: field.selection().condition().get(),
+        quantization_step: field.quantization_step(),
         coordinate_field_hash: field.content_hash(),
         row_count: identities.len(),
         layout_file: &layout_name,

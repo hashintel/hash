@@ -1,4 +1,4 @@
-use core::num::NonZeroUsize;
+use core::{error::Error, fmt, num::NonZeroUsize};
 use std::time::Instant;
 
 use burn::tensor::backend::Backend;
@@ -7,7 +7,8 @@ use super::error::GenerationError;
 use crate::salt::{
     evaluation::{
         CanonicalField, ConditionDomain, ConditionField, ConditionLadder, ConditionMeasurement,
-        ConditionMeasurementConfig, canonical_field, measure_condition_ladder,
+        ConditionMeasurementConfig, QuantizedCanonicalField, canonical_field,
+        measure_condition_ladder,
     },
     graph::{KnnTable, ProjectorEmbeddings},
     hash::{ContentHash, ContentHasher},
@@ -27,8 +28,39 @@ pub(crate) struct ProjectedCondition {
     content_hash: ContentHash,
 }
 
+/// A borrowed quantized coordinate field submitted for release-quality evaluation.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct PersistedCondition<'field> {
+    condition: f32,
+    coordinates: &'field [[f64; 2]],
+    content_hash: ContentHash,
+}
+
+impl<'field> PersistedCondition<'field> {
+    /// Returns the exact `f32` condition supplied to the projector.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn condition(self) -> f32 {
+        self.condition
+    }
+
+    /// Borrows coordinates narrowed to their published `f32` values.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn coordinates(self) -> &'field [[f64; 2]] {
+        self.coordinates
+    }
+
+    /// Returns the identity of the quantized field published to readers.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn content_hash(self) -> ContentHash {
+        self.content_hash
+    }
+}
+
 impl ProjectedCondition {
-    /// Returns the exact `f32` condition supplied to FiLM.
+    /// Returns the exact `f32` condition supplied to `FiLM`.
     #[must_use]
     #[inline]
     pub(crate) const fn condition(&self) -> f32 {
@@ -50,14 +82,207 @@ impl ProjectedCondition {
     }
 }
 
-/// External quality evidence attached to one projected condition.
+/// External quality measurements attached to one projected condition.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ConditionQuality {
-    pub semantic_fidelity: bool,
-    pub persistence: bool,
-    pub task_evidence: bool,
-    pub report: ContentHash,
+    projected_field: ContentHash,
+    semantic_fidelity_report: ContentHash,
+    subgroup_report: ContentHash,
+    semantic_fidelity_bits: u64,
+    maximum_subgroup_degradation_bits: u64,
 }
+
+impl ConditionQuality {
+    #[must_use]
+    pub(crate) const fn new(
+        projected_field: ContentHash,
+        semantic_fidelity_report: ContentHash,
+        subgroup_report: ContentHash,
+        semantic_fidelity: f64,
+        maximum_subgroup_degradation: f64,
+    ) -> Self {
+        Self {
+            projected_field,
+            semantic_fidelity_report,
+            subgroup_report,
+            semantic_fidelity_bits: semantic_fidelity.to_bits(),
+            maximum_subgroup_degradation_bits: maximum_subgroup_degradation.to_bits(),
+        }
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn projected_field(self) -> ContentHash {
+        self.projected_field
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn semantic_fidelity(self) -> f64 {
+        f64::from_bits(self.semantic_fidelity_bits)
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn semantic_fidelity_report(self) -> ContentHash {
+        self.semantic_fidelity_report
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn maximum_subgroup_degradation(self) -> f64 {
+        f64::from_bits(self.maximum_subgroup_degradation_bits)
+    }
+
+    #[must_use]
+    #[inline]
+    pub(crate) const fn subgroup_report(self) -> ContentHash {
+        self.subgroup_report
+    }
+
+    #[must_use]
+    pub(crate) fn content_hash(self) -> ContentHash {
+        let mut hasher =
+            ContentHasher::new(b"hash.graph.atlas.salt.condition-quality-measurement.v3");
+        hasher.update(self.projected_field.as_bytes());
+        hasher.update(self.semantic_fidelity_report.as_bytes());
+        hasher.update(self.subgroup_report.as_bytes());
+        hasher.update(&self.semantic_fidelity_bits.to_le_bytes());
+        hasher.update(&self.maximum_subgroup_degradation_bits.to_le_bytes());
+        hasher.finish()
+    }
+}
+
+/// Release thresholds applied independently of the quality evaluator.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct ConditionQualityPolicy {
+    pub minimum_semantic_fidelity: f64,
+    pub maximum_subgroup_degradation: f64,
+}
+
+impl ConditionQualityPolicy {
+    fn validate(self) -> Result<(), GenerationError> {
+        if !self.minimum_semantic_fidelity.is_finite()
+            || !(0.0..=1.0).contains(&self.minimum_semantic_fidelity)
+        {
+            return Err(GenerationError::InvalidQualityPolicy {
+                field: "minimum-semantic-fidelity",
+                value: self.minimum_semantic_fidelity,
+            });
+        }
+        if !self.maximum_subgroup_degradation.is_finite() || self.maximum_subgroup_degradation < 1.0
+        {
+            return Err(GenerationError::InvalidQualityPolicy {
+                field: "maximum-subgroup-degradation",
+                value: self.maximum_subgroup_degradation,
+            });
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    pub(crate) fn content_hash(self) -> ContentHash {
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.condition-quality-policy.v1");
+        hasher.update(&self.minimum_semantic_fidelity.to_bits().to_le_bytes());
+        hasher.update(&self.maximum_subgroup_degradation.to_bits().to_le_bytes());
+        hasher.finish()
+    }
+}
+
+/// Re-evaluates quality over the exact quantized field published to readers.
+///
+/// # Arguments
+///
+/// * `evaluator` - External suite that measures the complete field
+/// * `condition` - Global relation-lens value used to produce the field
+/// * `field` - Quantized coordinates and their immutable identity
+/// * `policy` - Release thresholds applied to the returned measurement
+///
+/// # Errors
+///
+/// This returns an error unless the evaluator emits one field-bound,
+/// policy-satisfying measurement for the supplied persisted coordinates.
+///
+/// # Complexity
+///
+/// The wrapper uses constant additional space and does not copy coordinates.
+/// Evaluation cost is determined by `evaluator`.
+pub(crate) fn evaluate_persisted_quality(
+    evaluator: &dyn ConditionQualityEvaluator,
+    condition: f32,
+    field: &QuantizedCanonicalField,
+    policy: ConditionQualityPolicy,
+) -> Result<ConditionQuality, GenerationError> {
+    let persisted = PersistedCondition {
+        condition,
+        coordinates: field.coordinates(),
+        content_hash: field.content_hash(),
+    };
+    let measurement = evaluator.evaluate_persisted(persisted)?;
+    policy.validate()?;
+    validate_quality_measurement(0, persisted.content_hash(), measurement, policy)?;
+    Ok(measurement)
+}
+
+/// A versioned external suite that measures exact projected fields.
+pub(crate) trait ConditionQualityEvaluator: fmt::Debug + Sync {
+    /// Returns the canonical version of the external quality suite.
+    fn suite_version(&self) -> &str;
+
+    /// Returns the evaluator contract included in generation identity.
+    fn contract_hash(&self) -> ContentHash;
+
+    /// Evaluates every field in the supplied canonical order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when an external suite cannot produce complete report
+    /// identities and measurements for the projected fields.
+    fn evaluate(
+        &self,
+        fields: &[ProjectedCondition],
+    ) -> Result<Vec<ConditionQuality>, ConditionQualityEvaluationError>;
+
+    /// Evaluates the exact quantized field considered for publication.
+    ///
+    /// The returned measurement must bind [`PersistedCondition::content_hash`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the external suite cannot evaluate the complete
+    /// persisted field or produce immutable report identities.
+    fn evaluate_persisted(
+        &self,
+        field: PersistedCondition<'_>,
+    ) -> Result<ConditionQuality, ConditionQualityEvaluationError>;
+}
+
+/// Failure reported by an external condition-quality suite.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ConditionQualityEvaluationError {
+    detail: String,
+}
+
+impl ConditionQualityEvaluationError {
+    #[must_use]
+    pub(crate) fn new(detail: impl Into<String>) -> Self {
+        Self {
+            detail: detail.into(),
+        }
+    }
+}
+
+impl fmt::Display for ConditionQualityEvaluationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "condition quality evaluation failed: {}",
+            self.detail
+        )
+    }
+}
+
+impl Error for ConditionQualityEvaluationError {}
 
 /// Complete disposable fields for a bounded condition experiment.
 #[derive(Debug, Clone, PartialEq)]
@@ -97,6 +322,7 @@ impl ProjectedLadder {
         self,
         domain: ConditionDomain,
         quality: Vec<ConditionQuality>,
+        quality_policy: ConditionQualityPolicy,
         relations: &[AttractionEdge],
         semantic: &KnnTable,
         relation_energy: RelationEnergy,
@@ -107,6 +333,15 @@ impl ProjectedLadder {
                 conditions: self.fields.len(),
                 quality: quality.len(),
             });
+        }
+        quality_policy.validate()?;
+        for (index, measurement) in quality.iter().copied().enumerate() {
+            validate_quality_measurement(
+                index,
+                self.fields[index].content_hash(),
+                measurement,
+                quality_policy,
+            )?;
         }
         let fields = condition_fields(&self.fields, &quality);
         let (ladder, measurements) = measure_condition_ladder(
@@ -124,6 +359,49 @@ impl ProjectedLadder {
             measurements,
         })
     }
+}
+
+fn validate_quality_measurement(
+    index: usize,
+    expected_field: ContentHash,
+    measurement: ConditionQuality,
+    policy: ConditionQualityPolicy,
+) -> Result<(), GenerationError> {
+    if measurement.projected_field() != expected_field {
+        return Err(GenerationError::QualityField {
+            index,
+            expected: expected_field,
+            actual: measurement.projected_field(),
+        });
+    }
+    let semantic_fidelity = measurement.semantic_fidelity();
+    let subgroup_degradation = measurement.maximum_subgroup_degradation();
+    if !semantic_fidelity.is_finite()
+        || !(0.0..=1.0).contains(&semantic_fidelity)
+        || !subgroup_degradation.is_finite()
+        || subgroup_degradation < 0.0
+    {
+        return Err(GenerationError::InvalidQualityMeasurement {
+            index,
+            semantic_fidelity,
+            subgroup_degradation,
+        });
+    }
+    if semantic_fidelity < policy.minimum_semantic_fidelity {
+        return Err(GenerationError::InsufficientSemanticFidelity {
+            index,
+            actual: semantic_fidelity,
+            minimum: policy.minimum_semantic_fidelity,
+        });
+    }
+    if subgroup_degradation > policy.maximum_subgroup_degradation {
+        return Err(GenerationError::ExcessiveSubgroupDegradation {
+            index,
+            actual: subgroup_degradation,
+            maximum: policy.maximum_subgroup_degradation,
+        });
+    }
+    Ok(())
 }
 
 /// Projected fields with complete condition-selection evidence.
@@ -148,6 +426,15 @@ impl EvaluatedGeneration {
     #[inline]
     pub(crate) fn measurements(&self) -> &[ConditionMeasurement] {
         &self.measurements
+    }
+
+    #[must_use]
+    pub(crate) fn quality(&self, value: f64) -> Option<ConditionQuality> {
+        self.projected
+            .iter()
+            .zip(&self.quality)
+            .find(|(field, _quality)| f64::from(field.condition).to_bits() == value.to_bits())
+            .map(|(_field, quality)| *quality)
     }
 
     /// Selects and aligns one passing condition for base materialization.
@@ -246,10 +533,11 @@ fn condition_fields<'field>(
         .map(|(field, quality)| ConditionField {
             condition: f64::from(field.condition),
             coordinates: &field.coordinates,
-            semantic_fidelity: quality.semantic_fidelity,
-            persistence: quality.persistence,
-            task_evidence: quality.task_evidence,
-            upstream_report: combined_report(field.content_hash, quality.report),
+            upstream_report: combined_report(
+                field.content_hash,
+                quality.semantic_fidelity_report,
+                quality.subgroup_report,
+            ),
         })
         .collect()
 }
@@ -264,9 +552,14 @@ fn projected_hash(condition: f32, coordinates: &[[f64; 2]]) -> ContentHash {
     hasher.finish()
 }
 
-fn combined_report(projection: ContentHash, quality: ContentHash) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.condition-upstream-report.v1");
+fn combined_report(
+    projection: ContentHash,
+    semantic_fidelity: ContentHash,
+    task_evidence: ContentHash,
+) -> ContentHash {
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.condition-upstream-report.v2");
     hasher.update(projection.as_bytes());
-    hasher.update(quality.as_bytes());
+    hasher.update(semantic_fidelity.as_bytes());
+    hasher.update(task_evidence.as_bytes());
     hasher.finish()
 }

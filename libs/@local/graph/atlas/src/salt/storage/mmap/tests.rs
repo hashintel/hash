@@ -56,6 +56,25 @@ fn borrows_typed_sections_from_mapped_bytes() {
 }
 
 #[test]
+fn private_snapshot_survives_source_overwrite_and_truncation() {
+    let source = write_fixture(&fixture());
+    let artifact =
+        MappedArtifact::map_immutable(source.reopen().expect("fixture should reopen"), FORMAT)
+            .expect("fixture should snapshot");
+
+    std::fs::write(source.path(), b"replaced")
+        .expect("source path should remain independently mutable");
+
+    let matrix = artifact
+        .view()
+        .section(SectionId::new(1))
+        .expect("snapshotted matrix should remain available")
+        .as_f64()
+        .expect("snapshotted matrix should retain its type");
+    assert_eq!(matrix, &[1.25, -2.5, 3.75, 4.0]);
+}
+
+#[test]
 fn streaming_publication_round_trips_and_is_idempotent() {
     let directory = tempdir().expect("temporary directory should be created");
     let path = Utf8PathBuf::from_path_buf(directory.path().join("artifact.salt"))

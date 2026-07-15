@@ -1,15 +1,15 @@
 """Canonical relation-card construction, rendering, and truncation.
 
-Card format v5 is deterministic labeled text, never JSON. Datasource
-adapters resolve their identifiers into :class:`RelationCardInput` before
-calling this module and supply the identifiers they resolved to the final
-text linter.
+Cards are deterministic labeled text, never JSON. Datasource adapters resolve
+their identifiers into :class:`RelationCardInput` before calling this module
+and supply the identifiers they resolved to the final text linter. Independent
+domain/range summaries and paired endpoint constraints are distinct blocks.
 
 Truncation is structural. Referenced descriptions are split into a lead
 sentence and removable detail, then passes run in this fixed order:
 
 1. drop example slots round-robin from the largest strata;
-2. remove ancestor, source-type, and target-type description detail;
+2. remove ancestor and endpoint-type description detail;
 3. drop whole single-example strata while preserving one example;
 4. above the hard budget only, drop examples and then ancestors.
 
@@ -26,6 +26,7 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 from atlas_tools.common import Sha256Hex, sha256_bytes
 from atlas_tools.relation_cards.common.config import CardsConfig
 from atlas_tools.relation_cards.common.model import (
+    EndpointTypeConstraint,
     PhraseInput,
     RelationCardInput,
     RelationConstraints,
@@ -130,6 +131,36 @@ class Phrase(BaseModel):
         return cls(label=label, lead=lead, detail=" ".join(detail) or None)
 
 
+class EndpointConstraint(BaseModel):
+    """One rendered source-to-allowed-target association."""
+
+    source_type: Phrase
+    target_types: list[Phrase] = Field(default_factory=list)
+    minimum_targets: int | None = None
+    maximum_targets: int | None = None
+
+    def render(self) -> str:
+        if not self.target_types:
+            targets = "any target type"
+        elif len(self.target_types) == 1:
+            targets = self.target_types[0].render()
+        else:
+            targets = "one of: " + " | ".join(target.render() for target in self.target_types)
+        minimum = self.minimum_targets
+        maximum = self.maximum_targets
+        if minimum is None and maximum is None:
+            cardinality = ""
+        elif minimum is None:
+            cardinality = f" [targets per source: <= {maximum}]"
+        elif maximum is None:
+            cardinality = f" [targets per source: >= {minimum}]"
+        elif minimum == maximum:
+            cardinality = f" [targets per source: exactly {minimum}]"
+        else:
+            cardinality = f" [targets per source: {minimum}..{maximum}]"
+        return f"{self.source_type.render()} -> {targets}{cardinality}"
+
+
 class ExampleLine(BaseModel):
     """One rendered Examples bullet."""
 
@@ -149,6 +180,7 @@ class CardContents(BaseModel):
     ancestors: list[Phrase] = Field(default_factory=list)
     source_types: list[Phrase] = Field(default_factory=list)
     target_types: list[Phrase] = Field(default_factory=list)
+    endpoint_constraints: list[EndpointConstraint] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
     examples: list[ExampleLine] = Field(default_factory=list)
     epilogue: list[str] = Field(default_factory=list)
@@ -164,6 +196,12 @@ class CardContents(BaseModel):
         ):
             if phrases:
                 yield [header, *(f"  - {phrase.render()}" for phrase in phrases)]
+
+        if self.endpoint_constraints:
+            yield [
+                "Endpoint constraints:",
+                *(f"  - {constraint.render()}" for constraint in self.endpoint_constraints),
+            ]
 
         if self.constraints:
             yield ["Constraints:", *(f"  - {line}" for line in self.constraints)]
@@ -196,6 +234,19 @@ class CardContents(BaseModel):
         def phrase(entry: PhraseInput) -> Phrase | None:
             return Phrase.make(entry, language=card_input.language, splitter=splitter)
 
+        def endpoint(entry: EndpointTypeConstraint) -> EndpointConstraint | None:
+            source_type = phrase(entry.source_type)
+            if source_type is None:
+                return None
+            return EndpointConstraint(
+                source_type=source_type,
+                target_types=[
+                    target for item in entry.target_types if (target := phrase(item)) is not None
+                ],
+                minimum_targets=entry.minimum_targets,
+                maximum_targets=entry.maximum_targets,
+            )
+
         this = cls()
         this.prelude.append(f"Relation: {card_input.title}")
         if card_input.description:
@@ -217,6 +268,20 @@ class CardContents(BaseModel):
         this.target_types = [
             rendered for entry in card_input.target_types if (rendered := phrase(entry))
         ]
+        paired = [
+            rendered
+            for entry in card_input.endpoint_constraints
+            if (rendered := endpoint(entry)) is not None
+        ]
+        if (
+            len(paired) == 1
+            and paired[0].minimum_targets is None
+            and paired[0].maximum_targets in (None, 1)
+        ):
+            this.source_types = [paired[0].source_type]
+            this.target_types = paired[0].target_types
+        else:
+            this.endpoint_constraints = paired
         this.constraints = list(_render_constraints(card_input.constraints))
         this.examples = [
             ExampleLine(
@@ -313,6 +378,14 @@ def _strip_target_type_details(contents: CardContents) -> str | None:
     return _strip_details(contents.target_types, "target_type_details")
 
 
+def _strip_endpoint_type_details(contents: CardContents) -> str | None:
+    phrases = [constraint.source_type for constraint in contents.endpoint_constraints]
+    phrases.extend(
+        target for constraint in contents.endpoint_constraints for target in constraint.target_types
+    )
+    return _strip_details(phrases, "endpoint_type_details")
+
+
 def _drop_ancestors_section(contents: CardContents) -> str | None:
     if not contents.ancestors:
         return None
@@ -330,6 +403,7 @@ def _drop_examples_section(contents: CardContents) -> str | None:
 _BUDGET_PASSES: tuple[TruncationPass, ...] = (
     _drop_example_slot,
     _strip_ancestor_details,
+    _strip_endpoint_type_details,
     _strip_source_type_details,
     _strip_target_type_details,
     _drop_example_stratum,

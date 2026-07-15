@@ -132,7 +132,7 @@ def _example(
     )
 
 
-def test_latest_link_type_uses_resolved_sources_targets_and_ancestors() -> None:
+def test_latest_link_type_uses_resolved_endpoints_and_omits_link_root_ancestor() -> None:
     types = _fixture_types()
     types.append(
         _row(
@@ -141,7 +141,7 @@ def test_latest_link_type_uses_resolved_sources_targets_and_ancestors() -> None:
             "Organization",
             links={
                 _url(RELATION_BASE, 2): {
-                    "items": {"oneOf": [{"$ref": _url(ASSET_BASE, 1)}]},
+                    "items": {"oneOf": [{"$ref": _url(ORGANIZATION_BASE, 1)}]},
                     "maxItems": 1,
                 }
             },
@@ -170,9 +170,21 @@ def test_latest_link_type_uses_resolved_sources_targets_and_ancestors() -> None:
     assert card_input.title == "Owns"
     assert card_input.inverse is not None
     assert card_input.inverse.label == "Owned By"
-    assert [phrase.label for phrase in card_input.ancestors] == ["Link"]
-    assert [phrase.label for phrase in card_input.source_types] == ["Organization", "Person"]
-    assert [phrase.label for phrase in card_input.target_types] == ["Asset"]
+    assert card_input.ancestors == ()
+    assert card_input.source_types == ()
+    assert card_input.target_types == ()
+    assert [
+        (
+            endpoint.source_type.label,
+            tuple(target.label for target in endpoint.target_types),
+            endpoint.minimum_targets,
+            endpoint.maximum_targets,
+        )
+        for endpoint in card_input.endpoint_constraints
+    ] == [
+        ("Organization", ("Organization",), None, 1),
+        ("Person", ("Asset",), None, 1),
+    ]
     assert card_input.constraints.symmetric is None
     assert card_input.constraints.single_value is True
     assert card_input.constraints.direction == "source -> target"
@@ -181,6 +193,28 @@ def test_latest_link_type_uses_resolved_sources_targets_and_ancestors() -> None:
         "Organization",
         "Person",
     }
+
+
+def test_non_root_relation_ancestors_remain_in_card_input() -> None:
+    parent_base = "https://example.com/@acme/types/entity-type/related-to/"
+    child_base = "https://example.com/@acme/types/entity-type/owns-related-to/"
+    link_url = _url(LINK_ENTITY_TYPE_BASE_URL, 1)
+    parent_url = _url(parent_base, 1)
+    types = [
+        _row(LINK_ENTITY_TYPE_BASE_URL, 1, "Link"),
+        _row(parent_base, 1, "Related To", ancestors=((link_url, 1),)),
+        _row(
+            child_base,
+            1,
+            "Owns Related To",
+            ancestors=((parent_url, 1), (link_url, 2)),
+        ),
+    ]
+
+    records = build_relation_records(types, [], example_count=2)
+    child = next(record for record in records if str(record.base_url) == child_base)
+
+    assert tuple(phrase.label for phrase in child.card_input.ancestors) == ("Related To",)
 
 
 def test_examples_are_endpoint_deduplicated_and_bounded() -> None:

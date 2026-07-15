@@ -76,7 +76,7 @@ _REPORT = "report.md"
 _CONTENT_NAMES = frozenset({_POSTERIORS, _COINCIDENT, _NOMINATIONS, _DISSENT, _REPORT})
 _NOMINATION_FRACTION = 0.1
 _ABSTENTION_CEILING = 0.05
-_GRID_SOURCE_NAMES = frozenset(
+_LEGACY_GRID_SOURCE_NAMES = frozenset(
     {
         "attempts.jsonl",
         "cards.jsonl",
@@ -92,6 +92,10 @@ _GRID_SOURCE_NAMES = frozenset(
         "votes.jsonl",
     }
 )
+_GRID_SOURCE_NAMES = _LEGACY_GRID_SOURCE_NAMES | {
+    "pilot-attempts.jsonl",
+    "pilot-manifest.json",
+}
 
 
 class _DeliverableModel(BaseModel):
@@ -303,8 +307,11 @@ class GridGatesArtifact(_DeliverableModel):
 
     @model_validator(mode="after")
     def check_bundle_contract(self) -> Self:
-        if set(self.source_hashes) != _GRID_SOURCE_NAMES:
-            raise ValueError("grid deliverables must bind every source artifact")
+        if frozenset(self.source_hashes) not in {
+            _LEGACY_GRID_SOURCE_NAMES,
+            _GRID_SOURCE_NAMES,
+        }:
+            raise ValueError("grid deliverables must bind one complete source generation")
         if set(self.content_hashes) != _CONTENT_NAMES:
             raise ValueError("grid deliverables must bind every content artifact")
         if dict(self.algorithms) != _ALGORITHMS:

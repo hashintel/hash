@@ -4,22 +4,26 @@ use camino::{Utf8Component, Utf8Path};
 
 use super::{
     ArtifactFormatManifest, ArtifactManifest, ArtifactRole, ArtifactVerificationError,
-    GenerationManifest, ManifestError, schema::validate_role_schema,
+    GenerationManifest, ManifestError,
+    schema::{validate_legacy_layout_coordinates, validate_opaque_role, validate_role_schema},
 };
 use crate::salt::{
     format::{
-        ANALYTIC_FORMAT, BASE_ARTIFACT_FORMAT, CLASSIFIER_FORMAT, LANDMARK_FORMAT, RELATION_FORMAT,
+        ANALYTIC_FORMAT, BASE_ARTIFACT_FORMAT, CLASSIFIER_FORMAT, LANDMARK_FORMAT,
+        PERSISTENCE_REFERENCE_FORMAT, RELATION_FORMAT, REPRESENTATION_FORMAT,
         SEMANTIC_GRAPH_FORMAT, STRENGTH_CLASSIFIER_FORMAT,
     },
     hash::ContentHash,
     storage::mmap::{ArtifactFormat, ArtifactView, MappedArtifact, MappedFile, PublishedArtifact},
 };
 
-const REQUIRED_ARTIFACTS: [ArtifactRole; 10] = [
+const REQUIRED_ARTIFACTS: [ArtifactRole; 12] = [
+    ArtifactRole::Representations,
     ArtifactRole::RelationClassifier,
     ArtifactRole::SemanticGraph,
     ArtifactRole::RelationIndexes,
     ArtifactRole::LandmarkSkeleton,
+    ArtifactRole::LandmarkReferencePersistence,
     ArtifactRole::ProjectorCheckpoint,
     ArtifactRole::CanonicalBase,
     ArtifactRole::CanonicalAnalytics,
@@ -217,10 +221,6 @@ pub(super) fn validate_artifacts(manifest: &GenerationManifest) -> Result<(), Ma
     Ok(())
 }
 
-#[expect(
-    clippy::filetype_is_file,
-    reason = "generation artifacts must be regular files; every other file type is rejected"
-)]
 pub(super) fn verify_artifacts(
     directory: &Utf8Path,
     manifest: &GenerationManifest,
@@ -228,6 +228,15 @@ pub(super) fn verify_artifacts(
     verify_and_retain_artifacts(directory, manifest).map(drop)
 }
 
+#[expect(
+    clippy::filetype_is_file,
+    reason = "generation artifacts must be regular files; every other file type is rejected"
+)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "verification keeps file identity, schema, and cross-artifact checks in one audit \
+              boundary"
+)]
 pub(super) fn verify_and_retain_artifacts(
     directory: &Utf8Path,
     manifest: &GenerationManifest,
@@ -326,9 +335,38 @@ pub(super) fn verify_and_retain_artifacts(
                 actual: actual_hash,
             });
         }
+        if artifact.format.is_none() {
+            validate_opaque_role(artifact.role, retained.bytes(), manifest).map_err(|detail| {
+                ArtifactVerificationError::Schema {
+                    role: artifact.role,
+                    detail,
+                }
+            })?;
+        }
         verified.push(retained);
     }
+    validate_cross_artifact_schema(&verified)?;
     Ok(verified)
+}
+
+fn validate_cross_artifact_schema(
+    verified: &[VerifiedArtifact],
+) -> Result<(), ArtifactVerificationError> {
+    let layout = verified
+        .iter()
+        .find(|artifact| artifact.role() == ArtifactRole::LegacyLayout)
+        .expect("validated manifest should require a legacy layout");
+    let canonical_base = verified
+        .iter()
+        .find(|artifact| artifact.role() == ArtifactRole::CanonicalBase)
+        .and_then(VerifiedArtifact::view)
+        .expect("validated manifest should require a mapped canonical base");
+    validate_legacy_layout_coordinates(layout.bytes(), canonical_base).map_err(|detail| {
+        ArtifactVerificationError::Schema {
+            role: ArtifactRole::LegacyLayout,
+            detail,
+        }
+    })
 }
 
 #[inline]
@@ -373,15 +411,17 @@ fn single_file_name(path: &str) -> bool {
 #[inline]
 const fn expected_format(role: ArtifactRole) -> Option<ArtifactFormat> {
     match role {
+        ArtifactRole::Representations => Some(REPRESENTATION_FORMAT),
         ArtifactRole::RelationClassifier => Some(CLASSIFIER_FORMAT),
         ArtifactRole::StrengthHead => Some(STRENGTH_CLASSIFIER_FORMAT),
         ArtifactRole::SemanticGraph => Some(SEMANTIC_GRAPH_FORMAT),
         ArtifactRole::RelationIndexes => Some(RELATION_FORMAT),
         ArtifactRole::LandmarkSkeleton => Some(LANDMARK_FORMAT),
-        ArtifactRole::ProjectorCheckpoint => None,
+        ArtifactRole::LandmarkReferencePersistence => Some(PERSISTENCE_REFERENCE_FORMAT),
         ArtifactRole::CanonicalBase => Some(BASE_ARTIFACT_FORMAT),
         ArtifactRole::CanonicalAnalytics => Some(ANALYTIC_FORMAT),
-        ArtifactRole::LegacyLayout
+        ArtifactRole::ProjectorCheckpoint
+        | ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => None,
     }
@@ -390,14 +430,17 @@ const fn expected_format(role: ArtifactRole) -> Option<ArtifactFormat> {
 #[inline]
 const fn expected_section_count(role: ArtifactRole) -> Option<u32> {
     match role {
-        ArtifactRole::RelationClassifier | ArtifactRole::StrengthHead => Some(7),
+        ArtifactRole::Representations
+        | ArtifactRole::RelationClassifier
+        | ArtifactRole::StrengthHead => Some(7),
         ArtifactRole::SemanticGraph => Some(6),
-        ArtifactRole::RelationIndexes => Some(21),
+        ArtifactRole::RelationIndexes => Some(30),
         ArtifactRole::LandmarkSkeleton => Some(3),
-        ArtifactRole::ProjectorCheckpoint => None,
-        ArtifactRole::CanonicalBase => Some(16),
-        ArtifactRole::CanonicalAnalytics => Some(13),
-        ArtifactRole::LegacyLayout
+        ArtifactRole::LandmarkReferencePersistence => Some(8),
+        ArtifactRole::CanonicalBase => Some(17),
+        ArtifactRole::CanonicalAnalytics => Some(20),
+        ArtifactRole::ProjectorCheckpoint
+        | ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => None,
     }

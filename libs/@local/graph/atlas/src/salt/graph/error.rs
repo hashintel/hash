@@ -81,6 +81,17 @@ pub(crate) enum SemanticGraphError {
     DuplicateAuditRow {
         row: u32,
     },
+    AuditCandidateCount {
+        rows: usize,
+        candidates: usize,
+    },
+    AuditCandidateRow {
+        row: u32,
+        rows: usize,
+    },
+    DuplicateAuditCandidateRow {
+        row: u32,
+    },
     EmptyAuditSample,
     RecallBelowThreshold {
         actual: f64,
@@ -195,6 +206,18 @@ impl fmt::Display for SemanticGraphError {
             Self::DuplicateAuditRow { row } => {
                 write!(formatter, "semantic recall audit repeats row {row}")
             }
+            Self::AuditCandidateCount { rows, candidates } => write!(
+                formatter,
+                "stratified semantic audit has {candidates} candidates for {rows} rows"
+            ),
+            Self::AuditCandidateRow { row, rows } => write!(
+                formatter,
+                "stratified semantic-audit candidate row {row} is outside {rows} rows"
+            ),
+            Self::DuplicateAuditCandidateRow { row } => write!(
+                formatter,
+                "stratified semantic-audit candidate row {row} appears more than once"
+            ),
             Self::EmptyAuditSample => formatter.write_str("semantic recall audit sample is empty"),
             Self::RecallBelowThreshold { actual, required } => write!(
                 formatter,
@@ -227,6 +250,9 @@ impl Error for SemanticGraphError {
             | Self::UnsortedNeighbors { .. }
             | Self::AuditRowOutOfBounds { .. }
             | Self::DuplicateAuditRow { .. }
+            | Self::AuditCandidateCount { .. }
+            | Self::AuditCandidateRow { .. }
+            | Self::DuplicateAuditCandidateRow { .. }
             | Self::EmptyAuditSample
             | Self::RecallBelowThreshold { .. } => None,
         }

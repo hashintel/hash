@@ -237,6 +237,32 @@ class EmbedCommand(BaseSettings):
         echo(f"wrote {result.artifact.sidecar_path}")
 
 
+class ReviewCoincidentCommand(BaseSettings):
+    """Review every obligatory Coincident queue row into a typed human artifact."""
+
+    deliverables: CliPositionalArg[DirectoryPath]
+    cards: CliPositionalArg[DirectoryPath]
+    reviewer: Annotated[str, Field(min_length=1)]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import review_coincident_queue
+
+        try:
+            result = review_coincident_queue(
+                deliverables=self.deliverables,
+                deck=self.cards,
+                reviewer=self.reviewer,
+                output_directory=self.out,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.paths.rows_path}")
+        echo(f"wrote {result.paths.manifest_path}")
+
+
 class ResolveAmbiguousCommand(BaseSettings):
     """Review all labels without placement evidence into a typed target artifact."""
 
@@ -272,6 +298,8 @@ class FitCommand(BaseSettings):
     config: CliPositionalArg[FilePath]
     out: Path
     resolutions: DirectoryPath | None = None
+    coincident_reviews: DirectoryPath | None = None
+    deliverables: DirectoryPath | None = None
 
     model_config = SettingsConfigDict(extra="forbid")
 
@@ -286,6 +314,8 @@ class FitCommand(BaseSettings):
                 config_path=self.config,
                 output_directory=self.out,
                 resolutions_directory=self.resolutions,
+                coincident_reviews_directory=self.coincident_reviews,
+                deliverables_directory=self.deliverables,
             )
         except (OSError, ValueError) as error:
             fail(error)
@@ -294,17 +324,49 @@ class FitCommand(BaseSettings):
         echo(f"wrote {result.out_of_fold_path}")
 
 
+class ExportClassifierCommand(BaseSettings):
+    """Export a verified fit bundle as Atlas-native ``classifier.salt``."""
+
+    classifier: CliPositionalArg[DirectoryPath]
+    closure: CliPositionalArg[DirectoryPath]
+    out: Path
+    soft_labels: FilePath | None = None
+    resolutions: DirectoryPath | None = None
+    coincident_reviews: DirectoryPath | None = None
+    deliverables: DirectoryPath | None = None
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import export_atlas_classifier
+
+        try:
+            result = export_atlas_classifier(
+                classifier_directory=self.classifier,
+                closure_directory=self.closure,
+                output_path=self.out,
+                soft_labels_path=self.soft_labels,
+                resolutions_directory=self.resolutions,
+                coincident_reviews_directory=self.coincident_reviews,
+                deliverables_directory=self.deliverables,
+            )
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.path}")
+
+
 class ReportCommand(BaseSettings):
     """Render the policy evaluation report (machine JSON plus markdown)."""
 
     run: CliPositionalArg[DirectoryPath]
     cards: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
-    gold: FilePath
+    gold: FilePath | None = None
     classifier: DirectoryPath | None = None
     closure: DirectoryPath | None = None
     soft_labels: FilePath | None = None
     resolutions: DirectoryPath | None = None
+    coincident_reviews: DirectoryPath | None = None
+    deliverables: DirectoryPath | None = None
     out: Path
 
     model_config = SettingsConfigDict(extra="forbid")
@@ -322,6 +384,8 @@ class ReportCommand(BaseSettings):
                 closure_directory=self.closure,
                 soft_labels_path=self.soft_labels,
                 resolutions_directory=self.resolutions,
+                coincident_reviews_directory=self.coincident_reviews,
+                deliverables_directory=self.deliverables,
                 output_directory=self.out,
             )
         except (OSError, ValueError) as error:
@@ -372,6 +436,28 @@ class VisualizeCommand(BaseSettings):
         echo(f"wrote {result.report_html}")
 
 
+class VisualizeReportCommand(BaseSettings):
+    """Render source-bound images and reports from a validated policy report."""
+
+    report: CliPositionalArg[DirectoryPath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import visualize_policy_report
+
+        try:
+            result = visualize_policy_report(self.report, self.out)
+        except (OSError, ValueError) as error:
+            fail(error)
+        for graph in result.graphs:
+            echo(f"wrote {graph}")
+        echo(f"wrote {result.explainer_md}")
+        echo(f"wrote {result.report_pdf}")
+        echo(f"wrote {result.report_html}")
+
+
 class RelationCli(BaseModel):
     """Operations over relation-card sets."""
 
@@ -384,11 +470,14 @@ class RelationCli(BaseModel):
     deliverables: CliSubCommand[DeliverablesCommand]
     aggregate: CliSubCommand[AggregateCommand]
     embed: CliSubCommand[EmbedCommand]
+    review_coincident: CliSubCommand[ReviewCoincidentCommand]
     resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
     fit: CliSubCommand[FitCommand]
+    export_classifier: CliSubCommand[ExportClassifierCommand]
     report: CliSubCommand[ReportCommand]
     analyze: CliSubCommand[AnalyzeCommand]
     visualize: CliSubCommand[VisualizeCommand]
+    visualize_report: CliSubCommand[VisualizeReportCommand]
 
     def cli_cmd(self) -> None:
         CliApp.run_subcommand(self)

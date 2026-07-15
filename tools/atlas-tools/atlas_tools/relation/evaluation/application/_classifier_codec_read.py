@@ -1,5 +1,6 @@
 """Read and strictly validate family-bound classifier bundles."""
 
+import json
 from collections.abc import Mapping, Sequence
 from functools import partial
 from pathlib import Path
@@ -8,6 +9,7 @@ from types import MappingProxyType
 import numpy as np
 import trio
 from numpy.typing import NDArray
+from pydantic import ValidationError
 
 from atlas_tools.relation.evaluation.analysis.api import (
     ApplicabilityModel,
@@ -21,7 +23,6 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     OutOfFoldDiskRow,
     decode_rows,
     fold_assignment_hash,
-    load_model,
     read_bytes,
     read_deterministic_npz,
     read_parquet,
@@ -38,9 +39,11 @@ from atlas_tools.relation.evaluation.application._analysis_schema import (
     OUT_OF_FOLD_SCHEMA,
 )
 from atlas_tools.relation.evaluation.application._classifier_codec_validation import (
+    LEGACY_SCHEMA_HASHES,
     SCHEMA_HASHES,
     algorithms,
     closure_binding,
+    legacy_algorithms,
     require_array_shapes,
     validate_closure_rows,
     validate_out_of_fold,
@@ -49,16 +52,22 @@ from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierArrays,
     ClassifierBundle,
     ClassifierBundleMetadata,
+    ClassifierCoincidentReviewBinding,
     ClassifierTargetResolutionBinding,
+    LegacyClassifierBundleMetadata,
+    LoadedClassifierBundleMetadata,
 )
 from atlas_tools.relation.evaluation.domain.api import Sha256Hex
 from atlas_tools.relation.family_closure.api import VerifiedFamilyClosure
 
 type FloatArray = NDArray[np.float64]
 
+_LEGACY_METADATA_VERSION = 4
+_METADATA_VERSION = 5
+
 
 def _classifier_from_arrays(
-    metadata: ClassifierBundleMetadata,
+    metadata: LoadedClassifierBundleMetadata,
     arrays: Mapping[str, FloatArray],
 ) -> PolicyClassifier:
     coefficients = arrays["coefficients"]
@@ -93,7 +102,7 @@ def _classifier_from_arrays(
 
 
 def _cross_fit_folds_from_arrays(
-    metadata: ClassifierBundleMetadata,
+    metadata: LoadedClassifierBundleMetadata,
     arrays: Mapping[str, FloatArray],
     rows: Sequence[OutOfFoldPrediction],
 ) -> tuple[CrossFitFold, ...]:
@@ -125,12 +134,78 @@ def _cross_fit_folds_from_arrays(
     return tuple(folds)
 
 
+def _load_metadata(path: Path) -> LoadedClassifierBundleMetadata:
+    payload = read_bytes(path)
+    try:
+        document = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"invalid classifier metadata {path}: {error}") from error
+    if not isinstance(document, Mapping):
+        raise ValueError(  # noqa: TRY004 -- malformed artifact documents are value errors
+            f"invalid classifier metadata {path}: expected an object"
+        )
+    version = document.get("schema_version")
+    model: type[LegacyClassifierBundleMetadata | ClassifierBundleMetadata]
+    if version == _LEGACY_METADATA_VERSION:
+        model = LegacyClassifierBundleMetadata
+    elif version == _METADATA_VERSION:
+        model = ClassifierBundleMetadata
+    else:
+        raise ValueError(f"unsupported classifier metadata schema version {version!r}")
+    try:
+        return model.model_validate_json(payload, strict=True)
+    except ValidationError as error:
+        raise ValueError(f"invalid classifier metadata {path}: {error}") from error
+
+
+def _coincident_binding(
+    metadata: LoadedClassifierBundleMetadata,
+) -> ClassifierCoincidentReviewBinding | None:
+    return metadata.coincident_reviews if isinstance(metadata, ClassifierBundleMetadata) else None
+
+
+def _validate_review_bindings(
+    metadata: LoadedClassifierBundleMetadata,
+    *,
+    expected_target_resolutions: ClassifierTargetResolutionBinding | None,
+    expected_coincident_reviews: ClassifierCoincidentReviewBinding | None,
+) -> None:
+    if metadata.target_resolutions != expected_target_resolutions:
+        raise ValueError("classifier metadata is bound to different target resolutions")
+    observed_coincident_reviews = _coincident_binding(metadata)
+    if observed_coincident_reviews != expected_coincident_reviews:
+        raise ValueError("classifier metadata is bound to different Coincident reviews")
+    bindings = (
+        (
+            expected_target_resolutions,
+            "target-resolutions/target-resolutions.jsonl",
+            "target-resolutions/target-resolutions.manifest.json",
+            "target resolution",
+        ),
+        (
+            expected_coincident_reviews,
+            "coincident-reviews/coincident-reviews.jsonl",
+            "coincident-reviews/coincident-reviews.manifest.json",
+            "Coincident review",
+        ),
+    )
+    for binding, rows_name, manifest_name, label in bindings:
+        if binding is None:
+            continue
+        if (
+            metadata.source_hashes.get(rows_name) != binding.decisions_hash
+            or metadata.source_hashes.get(manifest_name) != binding.manifest_hash
+        ):
+            raise ValueError(f"classifier source hashes disagree with {label} binding")
+
+
 def load_classifier_bundle(
     directory: Path,
     *,
     closure: VerifiedFamilyClosure,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
     expected_target_resolutions: ClassifierTargetResolutionBinding | None = None,
+    expected_coincident_reviews: ClassifierCoincidentReviewBinding | None = None,
 ) -> ClassifierBundle:
     """Load a classifier only after strict cross-file and numeric validation.
 
@@ -146,28 +221,20 @@ def load_classifier_bundle(
     metadata_path = directory / CLASSIFIER_METADATA_FILENAME
     arrays_path = directory / CLASSIFIER_ARRAYS_FILENAME
     out_of_fold_path = directory / CLASSIFIER_OUT_OF_FOLD_FILENAME
-    metadata = load_model(metadata_path, ClassifierBundleMetadata)
+    metadata = _load_metadata(metadata_path)
     if metadata.closure != closure_binding(closure):
         raise ValueError("classifier metadata is bound to a different family closure")
-    if metadata.target_resolutions != expected_target_resolutions:
-        raise ValueError("classifier metadata is bound to different target resolutions")
-    if expected_target_resolutions is not None:
-        resolution_sources = {
-            "target-resolutions/target-resolutions.jsonl": (
-                expected_target_resolutions.decisions_hash
-            ),
-            "target-resolutions/target-resolutions.manifest.json": (
-                expected_target_resolutions.manifest_hash
-            ),
-        }
-        if any(
-            metadata.source_hashes.get(name) != digest
-            for name, digest in resolution_sources.items()
-        ):
-            raise ValueError("classifier source hashes disagree with target resolution binding")
+    _validate_review_bindings(
+        metadata,
+        expected_target_resolutions=expected_target_resolutions,
+        expected_coincident_reviews=expected_coincident_reviews,
+    )
+    expected_schema_hashes = (
+        SCHEMA_HASHES if isinstance(metadata, ClassifierBundleMetadata) else LEGACY_SCHEMA_HASHES
+    )
     require_exact_mapping(
         metadata.schema_hashes,
-        SCHEMA_HASHES,
+        expected_schema_hashes,
         label="classifier schema hashes",
     )
     verify_expected_sources(metadata.source_hashes, expected_source_hashes)
@@ -204,9 +271,19 @@ def load_classifier_bundle(
     if fold_assignment_hash(rows) != metadata.fold_assignment_hash:
         raise ValueError("classifier fold assignment does not match metadata")
     cross_fit_folds = _cross_fit_folds_from_arrays(metadata, decoded_arrays, rows)
+    expected_algorithms = (
+        algorithms(
+            classifier,
+            cross_fit_folds,
+            metadata.target_resolutions,
+            metadata.coincident_reviews,
+        )
+        if isinstance(metadata, ClassifierBundleMetadata)
+        else legacy_algorithms(classifier, cross_fit_folds, metadata.target_resolutions)
+    )
     require_exact_mapping(
         metadata.algorithms,
-        algorithms(classifier, cross_fit_folds, metadata.target_resolutions),
+        expected_algorithms,
         label="classifier algorithms",
     )
     fold_by_relation_id = MappingProxyType({row.relation_id: row.fold for row in rows})
@@ -256,6 +333,7 @@ async def load_classifier_bundle_async(
     closure: VerifiedFamilyClosure,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
     expected_target_resolutions: ClassifierTargetResolutionBinding | None = None,
+    expected_coincident_reviews: ClassifierCoincidentReviewBinding | None = None,
 ) -> ClassifierBundle:
     """Validate a classifier bundle without blocking Trio's event loop."""
     expected = None if expected_source_hashes is None else dict(expected_source_hashes)
@@ -265,5 +343,6 @@ async def load_classifier_bundle_async(
         closure=closure,
         expected_source_hashes=expected,
         expected_target_resolutions=expected_target_resolutions,
+        expected_coincident_reviews=expected_coincident_reviews,
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)

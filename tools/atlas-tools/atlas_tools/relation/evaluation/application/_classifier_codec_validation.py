@@ -22,6 +22,7 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
 )
 from atlas_tools.relation.evaluation.application._analysis_schema import (
     ARRAY_SCHEMA,
+    LEGACY_METADATA_SCHEMA,
     METADATA_SCHEMA,
     ORDERING_ALGORITHM,
     OUT_OF_FOLD_SCHEMA,
@@ -30,6 +31,7 @@ from atlas_tools.relation.evaluation.application._analysis_schema import (
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierArrays,
     ClassifierClosureBinding,
+    ClassifierCoincidentReviewBinding,
     ClassifierTargetResolutionBinding,
 )
 from atlas_tools.relation.evaluation.domain.api import RelationFamilyId, RelationId
@@ -42,12 +44,18 @@ SCHEMA_HASHES = {
     "metadata": schema_hash(METADATA_SCHEMA),
     "out_of_fold": schema_hash(OUT_OF_FOLD_SCHEMA),
 }
+LEGACY_SCHEMA_HASHES = {
+    "arrays": schema_hash(ARRAY_SCHEMA),
+    "metadata": schema_hash(LEGACY_METADATA_SCHEMA),
+    "out_of_fold": schema_hash(OUT_OF_FOLD_SCHEMA),
+}
 
 
 def algorithms(
     classifier: PolicyClassifier,
     cross_fit_folds: Sequence[CrossFitFold],
     target_resolutions: ClassifierTargetResolutionBinding | None,
+    coincident_reviews: ClassifierCoincidentReviewBinding | None,
 ) -> dict[str, str]:
     """Return the exact algorithm contract represented by a classifier fit."""
     cross_fit_algorithms = {fold.algorithm for fold in cross_fit_folds}
@@ -58,6 +66,11 @@ def algorithms(
         "applicability": classifier.applicability.algorithm,
         "array_container": "npz-stored-npy-f64-le-v1",
         "calibration": classifier.calibration,
+        "coincident_reviews": (
+            "not-supplied"
+            if coincident_reviews is None
+            else "confirm-original-or-reject-coincident-votes-or-exclude-v2"
+        ),
         "cross_fit": cross_fit_algorithm,
         "multinomial": classifier.model.algorithm,
         "ordering": ORDERING_ALGORITHM,
@@ -66,6 +79,17 @@ def algorithms(
             "not-required" if target_resolutions is None else target_resolutions.policy_id
         ),
     }
+
+
+def legacy_algorithms(
+    classifier: PolicyClassifier,
+    cross_fit_folds: Sequence[CrossFitFold],
+    target_resolutions: ClassifierTargetResolutionBinding | None,
+) -> dict[str, str]:
+    """Reconstruct the immutable schema-v4 algorithm map exactly."""
+    mapping = algorithms(classifier, cross_fit_folds, target_resolutions, None)
+    del mapping["coincident_reviews"]
+    return mapping
 
 
 def classifier_arrays(fit: ClassifierFit) -> ClassifierArrays:
