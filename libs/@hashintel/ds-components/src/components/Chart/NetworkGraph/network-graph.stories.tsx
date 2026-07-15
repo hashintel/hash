@@ -143,7 +143,7 @@ export const Default: Story<NetworkGraphProps> = () => {
               positionFromPoint={tooltipPos}
               onClose={() => setSelected(null)}
               gapX={10}
-              gapY={20}
+              gapY={12}
             >
               <div className={tooltipStyles}>
                 <div>Node {selected.id}</div>

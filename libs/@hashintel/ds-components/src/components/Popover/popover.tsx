@@ -114,9 +114,17 @@ export type PopoverProps = {
   position?: Position;
   /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element. The popover repositions as this point changes. */
   positionFromPoint?: { x: number; y: number };
-  /** The X distance the popover will be from the trigger in px */
+  /**
+   * The horizontal distance the popover will be from the anchor in px. Applied
+   * when the placement is horizontal (`left`/`right`), or - with a
+   * `positionFromPoint` point anchor - always, alongside `gapY`.
+   */
   gapX?: number;
-  /** The Y distance the popover will be from the trigger in px */
+  /**
+   * The vertical distance the popover will be from the anchor in px. Applied
+   * when the placement is vertical (`top`/`bottom`), or - with a
+   * `positionFromPoint` point anchor - always, alongside `gapX`.
+   */
   gapY?: number;
   /** Called when the popover requests to close (e.g. Escape or an interaction outside it). Required for the popover to be dismissable. */
   onClose?: () => void;
@@ -148,7 +156,7 @@ const PopoverRoot = ({
   const portalContainerRef = usePortalContainerRef();
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const direction = position.split("-")[0];
+  const [direction, alignment] = position.split("-");
   const isVertical = direction === "top" || direction === "bottom";
 
   const hasPoint = positionFromPoint !== undefined;
@@ -255,7 +263,13 @@ const PopoverRoot = ({
       }}
       positioning={{
         placement: position,
+        // The gap along the placement direction (the main axis). Trigger- and
+        // point-anchored popovers both take this the same way; the cross-axis
+        // gap for a point is baked into the anchor rect below rather than set
+        // here (see `getAnchorRect`).
         offset: { mainAxis: isVertical ? gapY : gapX },
+        slide: hasPoint ? false : undefined,
+        flip: hasPoint ? false : undefined,
         // When anchored to a point, the trigger element itself doesn't move as
         // the point changes, so floating-ui's default scroll/resize listeners
         // never fire and the popover would stay put. Poll on each animation
@@ -270,9 +284,12 @@ const PopoverRoot = ({
           const point = pointRef.current;
 
           if (point) {
+            const crossGap = isVertical ? gapX : gapY;
+            const crossOffset = alignment === "end" ? -crossGap : crossGap;
+
             return {
-              x: (rect?.left ?? 0) + point.x,
-              y: (rect?.top ?? 0) + point.y,
+              x: (rect?.left ?? 0) + point.x + (isVertical ? crossOffset : 0),
+              y: (rect?.top ?? 0) + point.y + (isVertical ? 0 : crossOffset),
               width: 0,
               height: 0,
             };

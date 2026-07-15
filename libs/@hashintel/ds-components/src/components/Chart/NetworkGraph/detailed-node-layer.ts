@@ -45,12 +45,16 @@ const DETAIL_LABEL_RADIUS = 6;
  * Width (px) of the white outline that traces the whole node+label silhouette — a
  * white backdrop of the circle and pill, enlarged by this much and drawn behind
  * the fills, so only the outer ring shows and the two pieces merge into one
- * continuous outline. Bumps to {@link DETAIL_OUTLINE_WIDTH_ACTIVE} on hover.
+ * continuous outline. On hover it thickens around the circle only (see
+ * {@link DETAIL_OUTLINE_WIDTH_ACTIVE}); the label's outline keeps this width.
  */
 const DETAIL_OUTLINE_WIDTH = 1.5;
-/** Bumped white outline width (px) for the active (hovered/selected) node. */
+/** Bumped white outline width (px) around the active (hovered/selected) circle. */
 const DETAIL_OUTLINE_WIDTH_ACTIVE = 3;
-/** Width (px) of the colour-matched ring around the active circle, outside the white outline. */
+/**
+ * Width (px) the active circle grows by, in the node's own colour, inside the
+ * white outline — so the node appears to enlarge slightly on hover.
+ */
 const DETAIL_CIRCLE_ACCENT_WIDTH = 1.5;
 /** Background padding of the outline's pill backdrop — the label padding + the outline width. */
 const DETAIL_OUTLINE_PADDING: [number, number] = [
@@ -59,16 +63,8 @@ const DETAIL_OUTLINE_PADDING: [number, number] = [
 ];
 /** Corner radius of the outline's pill backdrop, so the ring is even at the corners. */
 const DETAIL_OUTLINE_RADIUS = DETAIL_LABEL_RADIUS + DETAIL_OUTLINE_WIDTH;
-/** Background padding of the active node's bumped (bold-sized) outline pill backdrop. */
-const DETAIL_ACTIVE_OUTLINE_PADDING: [number, number] = [
-  DETAIL_LABEL_PADDING[0] + DETAIL_OUTLINE_WIDTH_ACTIVE,
-  DETAIL_LABEL_PADDING[1] + DETAIL_OUTLINE_WIDTH_ACTIVE,
-];
-/** Corner radius of the active node's bumped outline pill backdrop. */
-const DETAIL_ACTIVE_OUTLINE_RADIUS =
-  DETAIL_LABEL_RADIUS + DETAIL_OUTLINE_WIDTH_ACTIVE;
 /** Font weight applied to the label while the node is active. */
-const DETAIL_LABEL_FONT_WEIGHT_ACTIVE = "bold";
+const DETAIL_LABEL_FONT_WEIGHT_ACTIVE = "500";
 /** Opaque white, used for node/label fills and the outline. */
 const DETAIL_WHITE: Color = [255, 255, 255, 255];
 /** Fully transparent, used to hide the outline backdrops' (invisible) text. */
@@ -80,20 +76,17 @@ const DETAIL_INK: Color = [15, 18, 25, 255];
  * would let a back node's icon/label show over a front node. Instead each node's
  * parts share a per-node depth *band* via the z coordinate, with the depth buffer
  * resolving occlusion: every part of a nearer node beats every part of a node
- * behind it. Within a band the parts stack `circle-accent < outline < circle <
- * icon < label` (back to front) — the label sits above the node, the outline is a
- * white backdrop behind everything, and the circle-accent (active only) is a
- * colour-matched ring behind the outline so it peeks out around the circle.
- * `DETAIL_Z_STEP` is the world-z gap between adjacent levels — tiny, but far above
- * the orthographic depth buffer's resolution.
+ * behind it. Within a band the parts stack `outline < circle < icon < label`
+ * (back to front) — the label sits above the node and the outline is a white
+ * backdrop behind everything. `DETAIL_Z_STEP` is the world-z gap between adjacent
+ * levels — tiny, but far above the orthographic depth buffer's resolution.
  */
 const DETAIL_Z_STEP = 0.001;
-const DETAIL_LEVEL_CIRCLE_ACCENT = 0;
-const DETAIL_LEVEL_OUTLINE = 1;
-const DETAIL_LEVEL_CIRCLE = 2;
-const DETAIL_LEVEL_ICON = 3;
-const DETAIL_LEVEL_LABEL = 4;
-const DETAIL_LEVEL_COUNT = 5;
+const DETAIL_LEVEL_OUTLINE = 0;
+const DETAIL_LEVEL_CIRCLE = 1;
+const DETAIL_LEVEL_ICON = 2;
+const DETAIL_LEVEL_LABEL = 3;
+const DETAIL_LEVEL_COUNT = 4;
 
 /**
  * World-space z for a node part. `order` is the node's front-to-back rank (later
@@ -151,9 +144,10 @@ const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
 /**
  * The detailed (zoomed-in) node rendering: a larger circle showing the node's
  * icon, with its label in a pill beneath, and a white outline around the whole
- * node+label silhouette. Active (hover/selected): the white outline thickens, the
- * label text goes bold, and the circle gains a colour-matched ring just outside
- * its white outline. Each node's parts share a per-node depth band (see
+ * node+label silhouette. Active (hover/selected): the white outline around the
+ * circle thickens, the label text goes bold, and the circle grows slightly in its
+ * own colour (inside the white outline). Each node's parts share a per-node depth
+ * band (see
  * {@link detailZ}) so a front node occludes every part of a node behind it, and
  * the active node jumps to the front. The parts are not pickable — the compact
  * layer's points resolve picking.
@@ -202,34 +196,11 @@ export class DetailedNodeLayer extends CompositeLayer<
       activeId != null ? [activeNode as NetworkGraphPoint] : [];
 
     return [
-      // The active node's colour-matched circle accent: a filled disc behind the
-      // white outline, enlarged past it, so it peeks out as a coloured ring around
-      // the circle. The label's white outline covers it elsewhere, so it reads as
-      // an accent on the circle only. Active node only.
-      ...(activeNode
-        ? [
-            new ScatterplotLayer<NetworkGraphPoint>({
-              id: `${id}-circle-accent`,
-              data: [activeNode],
-              getPosition: (point) => [
-                point.x,
-                point.y,
-                zFor(point, DETAIL_LEVEL_CIRCLE_ACCENT),
-              ],
-              getFillColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
-              getRadius:
-                DETAIL_NODE_DIAMETER / 2 +
-                DETAIL_OUTLINE_WIDTH_ACTIVE +
-                DETAIL_CIRCLE_ACCENT_WIDTH,
-              radiusUnits: "pixels",
-              updateTriggers: { getPosition: activeId },
-            }),
-          ]
-        : []),
       // The white outline: one ring around the whole node+label silhouette, built
       // from enlarged white backdrops (circle + pill) drawn behind the fills. It
-      // thickens on the active node — the circle via a per-node radius, the pill
-      // via the extra bold-sized backdrop below.
+      // thickens on the active node — the circle via a per-node radius (which also
+      // accounts for the circle growing), the pill via the extra bold-sized
+      // backdrop below.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-outline-circle`,
         data,
@@ -240,10 +211,11 @@ export class DetailedNodeLayer extends CompositeLayer<
         ],
         getFillColor: DETAIL_WHITE,
         getRadius: (point) =>
-          DETAIL_NODE_DIAMETER / 2 +
-          (point.id === activeId
-            ? DETAIL_OUTLINE_WIDTH_ACTIVE
-            : DETAIL_OUTLINE_WIDTH),
+          point.id === activeId
+            ? DETAIL_NODE_DIAMETER / 2 +
+              DETAIL_CIRCLE_ACCENT_WIDTH +
+              DETAIL_OUTLINE_WIDTH_ACTIVE
+            : DETAIL_NODE_DIAMETER / 2 + DETAIL_OUTLINE_WIDTH,
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: activeId,
@@ -275,8 +247,9 @@ export class DetailedNodeLayer extends CompositeLayer<
         getBorderWidth: 0,
         updateTriggers: { getPosition: activeId },
       }),
-      // The active node's bumped pill outline — bold-sized so it matches the bold
-      // label, and wider so its white ring thickens. Active (labelled) node only.
+      // The active label's outline backdrop — bold-sized so its white ring matches
+      // the bold label text. Same width as idle (the outline only thickens around
+      // the circle, not the label). Active (labelled) node only.
       ...(activeNode?.label
         ? [
             new TextLayer<NetworkGraphPoint>({
@@ -298,15 +271,16 @@ export class DetailedNodeLayer extends CompositeLayer<
               getPixelOffset: [0, DETAIL_LABEL_OFFSET],
               getColor: DETAIL_TRANSPARENT,
               background: true,
-              backgroundPadding: DETAIL_ACTIVE_OUTLINE_PADDING,
-              backgroundBorderRadius: DETAIL_ACTIVE_OUTLINE_RADIUS,
+              backgroundPadding: DETAIL_OUTLINE_PADDING,
+              backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
               getBackgroundColor: DETAIL_WHITE,
               getBorderWidth: 0,
               updateTriggers: { getPosition: activeId },
             }),
           ]
         : []),
-      // The node circle — no stroke; the outline backdrop provides its ring.
+      // The node circle — no stroke; the outline backdrop provides its ring. The
+      // active circle grows by the accent width so it looks like the node enlarges.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-nodes`,
         data,
@@ -316,9 +290,14 @@ export class DetailedNodeLayer extends CompositeLayer<
           zFor(point, DETAIL_LEVEL_CIRCLE),
         ],
         getFillColor: rgbFor,
-        getRadius: DETAIL_NODE_DIAMETER / 2,
+        getRadius: (point) =>
+          DETAIL_NODE_DIAMETER / 2 +
+          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
-        updateTriggers: { getPosition: activeId },
+        updateTriggers: {
+          getPosition: activeId,
+          getRadius: activeId,
+        },
       }),
       // Icons sit on top of the nodes. Absent until the atlas has rasterised.
       ...(iconAtlas
