@@ -27,7 +27,7 @@ export interface BundleHierarchy {
  * flat colour hierarchy, so bundles form locally instead of every same-colour
  * edge routing through one per-colour centroid.
  */
-const SUBGRID = 8;
+const SUBGRID = 16;
 /**
  * Bundling strength β (0..1): how strongly each edge is pulled onto its tree
  * path. 1 = hug the hierarchy tightly (max bundling); 0 = straight lines.

@@ -83,7 +83,7 @@ export interface NetworkGraphProps {
 const ZOOM_RADIUS_RATE = 1;
 /** Zoom range relative to the initial framing — how far out/in the user can zoom. */
 const MIN_ZOOM_OFFSET = -2;
-const MAX_ZOOM_OFFSET = 7;
+const MAX_ZOOM_OFFSET = 9;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
@@ -119,6 +119,15 @@ const DETAIL_ZOOM_OFFSET = MAX_ZOOM_OFFSET - 0.5;
  * a safety net for dense clusters; at max zoom only a handful are ever in view.
  */
 const DETAIL_MAX_NODES = 1500;
+/**
+ * Cap on how many edges are drawn in the detail view at once. Above this the
+ * edges are sampled round-robin across the visible nodes (see the
+ * `detailEdgePaths` memo) so the budget is spread evenly over nodes rather than
+ * spent on a few high-degree hubs — keeping the drawn edges relatively uniform
+ * across the graph. A safety net against dense clusters bundling thousands of
+ * paths per frame.
+ */
+const DETAIL_MAX_EDGES = 400;
 /**
  * Extra viewport margin (px) within which nodes are still included, so a node
  * (or its label) straddling the edge isn't culled away.
@@ -618,12 +627,22 @@ export const NetworkGraph = ({
   const bundleHierarchy = useMemo(() => buildBundleHierarchy(points), [points]);
 
   /**
-   * Every edge touching a currently visible detail node, as a bundled polyline —
-   * including edges whose other endpoint is off-screen, so connections trailing
-   * out of view are still drawn. The detail view draws these faintly so the whole
-   * graph's structure shows, not just the hovered node's edges. Empty outside
-   * detail zoom. Walks the visible nodes' adjacency (cheap) rather than the full
-   * edge list, deduping each edge, then routes it along {@link bundleHierarchy}.
+   * Up to {@link DETAIL_MAX_EDGES} edges touching a currently visible detail node,
+   * as bundled polylines — including edges whose other endpoint is off-screen, so
+   * connections trailing out of view are still drawn. The detail view draws these
+   * faintly so the whole graph's structure shows, not just the hovered node's
+   * edges. Empty outside detail zoom. Walks the visible nodes' adjacency (cheap)
+   * rather than the full edge list, deduping each edge, then routes it along
+   * {@link bundleHierarchy}.
+   *
+   * Above the cap, edges are sampled **round-robin** across the visible nodes: on
+   * round `k` we take each node's `k`-th incident edge before taking any node's
+   * `(k+1)`-th. This spends the budget max-min fairly — every node's edges come in
+   * early, high-degree hubs are truncated last — so the drawn edges stay relatively
+   * uniform across nodes instead of a few hubs eating the whole budget. Taking
+   * edges in adjacency (insertion) order keeps the chosen subset stable frame to
+   * frame, avoiding flicker as the view pans. Work is bounded: it stops at the cap,
+   * otherwise costs O(visible incidences) like the uncapped walk.
    */
   const detailEdgePaths = useMemo(() => {
     if (!isDetailZoom || detailPoints.length === 0) {
@@ -631,15 +650,20 @@ export const NetworkGraph = ({
     }
     const seen = new Set<number>();
     const paths: BundledPath[] = [];
-    for (const point of detailPoints) {
-      const incident = adjacency.get(point.id);
-      if (!incident) {
-        continue;
-      }
-      for (const edge of incident) {
+    for (let round = 0; paths.length < DETAIL_MAX_EDGES; round++) {
+      // Any node still had an edge at this round's index — otherwise every node
+      // is exhausted and we're done (before the cap).
+      let anyRemaining = false;
+      for (const point of detailPoints) {
+        const incident = adjacency.get(point.id);
+        if (!incident || round >= incident.length) {
+          continue;
+        }
+        anyRemaining = true;
+        const edge = incident[round];
         // Reached via `point` (in view), so at least one endpoint is visible;
-        // draw each edge once even if both endpoints are.
-        if (seen.has(edge.id)) {
+        // draw each edge once even if it's later reached via its other endpoint.
+        if (!edge || seen.has(edge.id)) {
           continue;
         }
         seen.add(edge.id);
@@ -647,7 +671,13 @@ export const NetworkGraph = ({
         const to = pointById.get(edge.toId);
         if (from && to) {
           paths.push(bundleEdgePath(from, to, bundleHierarchy));
+          if (paths.length >= DETAIL_MAX_EDGES) {
+            break;
+          }
         }
+      }
+      if (!anyRemaining) {
+        break;
       }
     }
     return paths;

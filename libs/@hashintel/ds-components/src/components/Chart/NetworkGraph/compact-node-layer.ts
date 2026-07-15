@@ -11,13 +11,15 @@ const RGBA_OPAQUE = 255;
 /** Colour used if a point's hex value cannot be resolved. */
 const FALLBACK_COLOR: RgbColor = [148, 148, 148];
 const POINT_RADIUS = 0.1;
+/** Maximum on-screen radius (px) of a crowd point, so it never grows too large. */
+const POINT_MAX_RADIUS = 10;
 /** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
 const HOVERED_MIN_RADIUS = 8;
 /** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
 const NEIGHBOUR_MIN_RADIUS = 5;
 const EDGE_COLOR = [80, 88, 110] as const;
 /** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */
-const BACKGROUND_EDGE_OPACITY = 0.4;
+const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
@@ -145,6 +147,7 @@ export class CompactNodeLayer extends CompositeLayer<
               radiusScale,
               radiusUnits: "pixels",
               radiusMinPixels: POINT_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS,
               // Opacity scales with zoom; an active highlight dims the crowd no
               // brighter than that.
               opacity: dimmed
@@ -191,6 +194,7 @@ export class CompactNodeLayer extends CompositeLayer<
         radiusUnits: "pixels",
         // Keep the hovered node prominent regardless of zoom level.
         radiusMinPixels: HOVERED_MIN_RADIUS,
+        radiusMaxPixels: POINT_MAX_RADIUS * 1.5,
         stroked: true,
         getLineColor: [255, 255, 255, RGBA_OPAQUE],
         getLineWidth: 1.5,
