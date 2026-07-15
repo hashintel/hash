@@ -27,8 +27,6 @@ log = logging.getLogger("pn_client")
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 DEFAULT_CLI_PATH = PACKAGE_ROOT / "libs" / "@hashintel" / "petrinaut-cli" /  "dist" / "cli.js"
 DEFAULT_MODEL_PATH = PACKAGE_ROOT / "libs" / "@hashintel" / "petrinaut-cli" / "examples" / "supply-chain-profit-model.json"
-print(DEFAULT_CLI_PATH)
-print(DEFAULT_MODEL_PATH)
 DEFAULT_METRIC = "Profit"
 DEFAULT_STEPS = 100
 DEFAULT_TIMESTEP = 0.1
