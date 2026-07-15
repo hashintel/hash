@@ -32,6 +32,7 @@ import {
   getExperimentMetricDiagnosticError,
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
+import { ExperimentOptimizationToggle } from "./experiment-optimization-toggle";
 
 import type {
   MonteCarloMetricSpec,
@@ -869,6 +870,7 @@ export const CreateExperimentDrawer = ({
   const [seed, setSeed] = useState(DEFAULT_SEED);
   const [dt, setDt] = useState(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
+  const [optimizationEnabled, setOptimizationEnabled] = useState(false);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
@@ -905,6 +907,7 @@ export const CreateExperimentDrawer = ({
     setSeed(DEFAULT_SEED);
     setDt(DEFAULT_DT);
     setMaxTime(DEFAULT_MAX_TIME);
+    setOptimizationEnabled(false);
     setMetricDrafts([]);
     setMetricLabelFocusId(null);
     setError(null);
@@ -1077,6 +1080,10 @@ export const CreateExperimentDrawer = ({
                 />
               </div>
             </div>
+            <ExperimentOptimizationToggle
+              enabled={optimizationEnabled}
+              onChange={setOptimizationEnabled}
+            />
           </Section>
 
           <Section title="Scenario" collapsible defaultOpen>

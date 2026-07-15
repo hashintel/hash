@@ -17,6 +17,8 @@ export {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+export { PetrinautOptimizationContext } from "./optimization-context";
+export type { PetrinautOptimization } from "./optimization-context";
 export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,

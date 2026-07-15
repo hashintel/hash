@@ -78,6 +78,7 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
+export type { PetrinautOptimization } from "./optimization";
 export { createPetrinautActions } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
