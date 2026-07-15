@@ -43,6 +43,12 @@ type _CompactNodeLayerProps = {
    * the detail variation, which highlights via a colour-matched outline instead.
    */
   showGrowHighlights: boolean;
+  /**
+   * Whether the coloured node points render. Hidden in the detail variation so the
+   * compact crowd doesn't show through behind the (translucent) detailed nodes;
+   * with the points gone the detailed node layer resolves picking instead.
+   */
+  showPoints: boolean;
 };
 
 export type CompactNodeLayerProps = _CompactNodeLayerProps &
@@ -57,6 +63,7 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   pointOpacity: 1,
   dimmed: false,
   showGrowHighlights: true,
+  showPoints: true,
 };
 
 /**
@@ -65,7 +72,10 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
  * as one composite layer so the graph can swap between this and the detailed
  * variation as a unit.
  *
- * Only the `points` sublayer is pickable; picking the graph resolves nodes off it.
+ * The `points` sublayer is the pickable one; picking the graph resolves nodes off
+ * it. In the detail variation the points are hidden (see `showPoints`) and the
+ * detailed node layer takes over picking, leaving this layer to draw only the
+ * hovered node's edges.
  */
 export class CompactNodeLayer extends CompositeLayer<
   Required<_CompactNodeLayerProps>
@@ -85,29 +95,36 @@ export class CompactNodeLayer extends CompositeLayer<
       pointOpacity,
       dimmed,
       showGrowHighlights,
+      showPoints,
     } = this.props;
     const points = (data ?? []) as NetworkGraphPoint[];
     const colorFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
 
     return [
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-points`,
-        data: points,
-        pickable: true,
-        parameters: BASE_LAYER_PARAMETERS,
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: colorFor,
-        getRadius: POINT_RADIUS,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: POINT_RADIUS,
-        // Opacity scales with zoom; an active highlight dims the crowd no
-        // brighter than that.
-        opacity: dimmed
-          ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
-          : pointOpacity,
-      }),
+      // Hidden in the detail variation so the crowd doesn't show through behind the
+      // translucent detailed nodes; the detailed layer resolves picking there.
+      ...(showPoints
+        ? [
+            new ScatterplotLayer<NetworkGraphPoint>({
+              id: `${id}-points`,
+              data: points,
+              pickable: true,
+              parameters: BASE_LAYER_PARAMETERS,
+              getPosition: (point) => [point.x, point.y],
+              getFillColor: colorFor,
+              getRadius: POINT_RADIUS,
+              radiusScale,
+              radiusUnits: "pixels",
+              radiusMinPixels: POINT_RADIUS,
+              // Opacity scales with zoom; an active highlight dims the crowd no
+              // brighter than that.
+              opacity: dimmed
+                ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
+                : pointOpacity,
+            }),
+          ]
+        : []),
       new LineLayer<HoverLine>({
         id: `${id}-edges`,
         data: edges,

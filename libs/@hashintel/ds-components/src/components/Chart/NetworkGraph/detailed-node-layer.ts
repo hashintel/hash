@@ -69,6 +69,14 @@ const DETAIL_TRANSPARENT: Color = [0, 0, 0, 0];
 /** Dark ink for the label text. */
 const DETAIL_INK: Color = [15, 18, 25, 255];
 /**
+ * Opacity of a detail node's coloured circle fill. Slightly translucent so the
+ * background reads softer than the fully-opaque icon, label and white outline. It
+ * blends over the white outline backdrop directly behind it, lightening the
+ * colour rather than showing the graph through it.
+ */
+const DETAIL_NODE_FILL_OPACITY = 0.85;
+const DETAIL_NODE_FILL_ALPHA = Math.round(255 * DETAIL_NODE_FILL_OPACITY);
+/**
  * The node parts live in separate sublayers, so across-sublayer draw order alone
  * would let a back node's icon/label show over a front node. Instead each node's
  * parts share a per-node depth *band* via the z coordinate, with the depth buffer
@@ -145,8 +153,9 @@ const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
  * circle grows slightly in its own colour (inside the white outline, which keeps a
  * constant width). Each node's parts share a per-node depth band (see
  * {@link detailZ}) so a front node occludes every part of a node behind it, and
- * the active node jumps to the front. The parts are not pickable — the compact
- * layer's points resolve picking.
+ * the active node jumps to the front. The circle sublayer is pickable: when the
+ * detailed nodes are shown the compact points are hidden, so picking resolves off
+ * these circles.
  */
 export class DetailedNodeLayer extends CompositeLayer<
   Required<_DetailedNodeLayerProps>
@@ -192,10 +201,13 @@ export class DetailedNodeLayer extends CompositeLayer<
       activeId != null ? [activeNode as NetworkGraphPoint] : [];
 
     return [
-      // The white outline: one ring around the whole node+label silhouette, built
-      // from enlarged white backdrops (circle + pill) drawn behind the fills. The
-      // ring keeps a constant width; on the active node the circle backdrop just
-      // follows the grown circle (offset outward by the accent width).
+      // The white outline around the circle: a stroked ring (hollow) rather than a
+      // filled disk, so the translucent node fill shows the background through it
+      // instead of blending over white. The stroke draws inward from the radius,
+      // so with radius = circle + OUTLINE_WIDTH its outer edge sits OUTLINE_WIDTH
+      // beyond the circle and its inner edge meets the fill; the ring keeps a
+      // constant width and, on the active node, follows the grown circle. The pill
+      // backdrop below completes the node+label silhouette.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-outline-circle`,
         data,
@@ -204,7 +216,11 @@ export class DetailedNodeLayer extends CompositeLayer<
           point.y,
           zFor(point, DETAIL_LEVEL_OUTLINE),
         ],
-        getFillColor: DETAIL_WHITE,
+        filled: false,
+        stroked: true,
+        getLineColor: DETAIL_WHITE,
+        getLineWidth: DETAIL_OUTLINE_WIDTH,
+        lineWidthUnits: "pixels",
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
           DETAIL_OUTLINE_WIDTH +
@@ -272,17 +288,21 @@ export class DetailedNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      // The node circle — no stroke; the outline backdrop provides its ring. The
-      // active circle grows by the accent width so it looks like the node enlarges.
+      // The node circle — a slightly translucent colour fill (no stroke; the
+      // outline backdrop provides its ring). The active circle grows by the accent
+      // width so it looks like the node enlarges.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-nodes`,
         data,
+        // The one pickable sublayer: when detailed nodes are shown the compact
+        // points are hidden, so picking (hover/click) resolves off these circles.
+        pickable: true,
         getPosition: (point) => [
           point.x,
           point.y,
           zFor(point, DETAIL_LEVEL_CIRCLE),
         ],
-        getFillColor: rgbFor,
+        getFillColor: (point) => [...rgbFor(point), DETAIL_NODE_FILL_ALPHA],
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
           (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),

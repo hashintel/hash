@@ -489,8 +489,9 @@ export const NetworkGraph = ({
       }
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      // Only the compact layer's `points` sublayer is pickable, so no
-      // `layerIds` filter is needed to resolve the node under the pointer.
+      // Exactly one node sublayer is pickable at a time — the compact `points`
+      // when zoomed out, the detailed nodes when zoomed in — so no `layerIds`
+      // filter is needed to resolve the node under the pointer.
       const info = deck.pickObject({
         x,
         y,
@@ -610,7 +611,8 @@ export const NetworkGraph = ({
   const layers = useMemo(() => {
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
-      // Only this composite (its `points` sublayer) resolves picking.
+      // Picking resolves off the compact `points` sublayer when it is shown, and
+      // off the detailed nodes otherwise (its points are hidden in detail zoom).
       pickable: true,
       data: points,
       edges: highlight?.lines ?? [],
@@ -623,6 +625,9 @@ export const NetworkGraph = ({
       // In the detail variation the grow highlights give way to the detailed
       // layer's colour-matched outline.
       showGrowHighlights: !isDetailZoom,
+      // Hide the compact crowd in detail zoom so it doesn't show through behind
+      // the translucent detailed nodes; the layer still draws hovered edges.
+      showPoints: !isDetailZoom,
     });
 
     if (!isDetailZoom) {
@@ -633,6 +638,8 @@ export const NetworkGraph = ({
       compact,
       new DetailedNodeLayer({
         id: "detailed-nodes",
+        // With the compact points hidden, these nodes resolve picking.
+        pickable: true,
         data: detailPoints,
         activeNode,
         colorByHex,
