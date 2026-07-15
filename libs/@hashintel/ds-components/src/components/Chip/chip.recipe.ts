@@ -7,13 +7,20 @@ export const styles = sva({
   base: {
     root: {
       display: "inline-flex",
+      flex: "[0 1 auto]",
+      width: "[fit-content]",
       alignItems: "center",
-      maxWidth: "full",
       fontWeight: "medium",
       whiteSpace: "nowrap",
       userSelect: "none",
       overflow: "clip",
       border: "var(--form-border-width) solid transparent",
+      // Divider colour shared by the prefix/suffix `straight` treatment and the
+      // remove button. `bd.subtle` reads a touch lighter than the outer border
+      // (`bd.solid`), per the design; `black` (a solid chip) overrides it to a
+      // `currentColor`-keyed line below. (Set as the raw var because Panda
+      // doesn't resolve token paths assigned to a custom property.)
+      "--chip-divider": "var(--colors-color-palette-bd-subtle)",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       "&:focus-visible": {
@@ -25,6 +32,11 @@ export const styles = sva({
       overflow: "hidden",
       textOverflow: "ellipsis",
       minWidth: "0",
+      // The label carries the text's side padding, so a bare label sits
+      // `2 * --chip-px` from the edge while a prefix/suffix icon sits flush at
+      // just `--chip-px` (the tighter inset the design uses for icons). It also
+      // provides the gap between the label and any adjacent affix.
+      paddingInline: "var(--chip-px)",
     },
     // The remove button is a trailing zone separated by a 1px divider, matching
     // a `straight` suffix. The divider is a box-shadow so it survives the button
@@ -40,9 +52,8 @@ export const styles = sva({
       border: "none",
       background: "[transparent]",
       color: "[inherit]",
-      paddingInline: "var(--chip-px)",
-      boxShadow:
-        "[inset 1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
+      paddingInlineStart: "var(--chip-px)",
+      boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
       transition: "[background 0.15s ease]",
       _hover: {
         backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
@@ -65,10 +76,9 @@ export const styles = sva({
           lineHeight: "[1.3]",
           "--form-border-width": "1px",
           "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1)",
+          "--chip-px": "var(--spacing-0\\.5)",
           paddingBlock: "var(--form-padding-y)",
           paddingInline: "var(--chip-px)",
-          gap: "0.5",
           borderRadius: "sm",
         },
       },
@@ -78,10 +88,9 @@ export const styles = sva({
           lineHeight: "[1.3]",
           "--form-border-width": "1px",
           "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1\\.5)",
+          "--chip-px": "var(--spacing-1)",
           paddingBlock: "var(--form-padding-y)",
           paddingInline: "var(--chip-px)",
-          gap: "1",
           borderRadius: "sm",
         },
       },
@@ -91,10 +100,9 @@ export const styles = sva({
           lineHeight: "[1.35]",
           "--form-border-width": "1px",
           "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1\\.5)",
+          "--chip-px": "var(--spacing-1)",
           paddingBlock: "var(--form-padding-y)",
           paddingInline: "var(--chip-px)",
-          gap: "1",
           borderRadius: "md",
         },
       },
@@ -104,10 +112,9 @@ export const styles = sva({
           lineHeight: "[1.4]",
           "--form-border-width": "1px",
           "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-2)",
+          "--chip-px": "var(--spacing-1)",
           paddingBlock: "var(--form-padding-y)",
           paddingInline: "var(--chip-px)",
-          gap: "1",
           borderRadius: "md",
         },
       },
@@ -117,10 +124,9 @@ export const styles = sva({
           lineHeight: "[1.4]",
           "--form-border-width": "1px",
           "--form-padding-y": "[2px]",
-          "--chip-px": "var(--spacing-2\\.5)",
+          "--chip-px": "var(--spacing-1\\.5)",
           paddingBlock: "var(--form-padding-y)",
           paddingInline: "var(--chip-px)",
-          gap: "1.5",
           borderRadius: "md",
         },
       },
@@ -140,13 +146,13 @@ export const styles = sva({
       black: { root: { colorPalette: "neutral" } },
     },
     // All variants share a tonal language: a palette-toned surface with the
-    // palette's `fg.link` (~s110) text. A 1px border keyed to `currentColor`
-    // gives a subtle same-hue edge (and adapts to solid `black`).
+    // palette's `fg.link` (~s110) text. The outer border uses `bd.solid`, a
+    // touch stronger than the `bd.subtle` prefix/suffix divider.
     variant: {
       fill: {
         root: {
           background: "colorPalette.bg.subtle",
-          borderColor: "[color-mix(in srgb, currentColor 15%, transparent)]",
+          borderColor: "colorPalette.bd.solid",
           color: "colorPalette.fg.link",
         },
       },
@@ -184,7 +190,7 @@ export const styles = sva({
         root: {
           _hover: {
             background: "colorPalette.bg.shaded",
-            borderColor: "[color-mix(in srgb, currentColor 25%, transparent)]",
+            borderColor: "colorPalette.bd.solid.hover",
           },
         },
       },
@@ -233,6 +239,17 @@ export const styles = sva({
       color: "black",
       variant: "subtle",
       css: { root: { color: "black.a90" } },
+    },
+    // black has no palette `bd`, so its divider follows the text colour (light
+    // on the solid fill, dark on the light variants).
+    {
+      color: "black",
+      css: {
+        root: {
+          "--chip-divider":
+            "[color-mix(in srgb, currentColor 25%, transparent)]",
+        },
+      },
     },
     // black hover overrides (declared after the generic hovers so they win, and
     // so black never borrows the neutral palette's hover tint).
@@ -292,7 +309,6 @@ export const affixStyles = cva({
       naked: {},
       straight: {
         alignSelf: "stretch",
-        paddingInline: "var(--chip-px)",
       },
       angle: {
         alignSelf: "stretch",
@@ -332,21 +348,23 @@ export const affixStyles = cva({
     },
   },
   compoundVariants: [
-    // straight → a 1px divider on the inner edge (no bleed, no fill).
+    // straight → a 1px divider on the inner edge (no bleed, no fill). Only the
+    // divider→content side is padded here; the label→divider gap comes from the
+    // label's own padding.
     {
       treatment: "straight",
       side: "prefix",
       css: {
-        boxShadow:
-          "[inset -1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
+        paddingInlineEnd: "var(--chip-px)",
+        boxShadow: "[inset -1px 0 0 0 var(--chip-divider)]",
       },
     },
     {
       treatment: "straight",
       side: "suffix",
       css: {
-        boxShadow:
-          "[inset 1px 0 0 0 color-mix(in srgb, currentColor 25%, transparent)]",
+        paddingInlineStart: "var(--chip-px)",
+        boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
       },
     },
     {
