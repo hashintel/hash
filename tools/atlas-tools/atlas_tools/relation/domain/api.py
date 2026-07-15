@@ -3,7 +3,7 @@
 import re
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import (
     AfterValidator,
@@ -12,6 +12,7 @@ from pydantic import (
     PlainSerializer,
     StringConstraints,
 )
+from pydantic_core import CoreSchema, core_schema
 
 from atlas_tools.common import Sha256Hex
 
@@ -53,6 +54,34 @@ type FrozenMapping[Key, Value] = Annotated[
 ]
 
 
+class NonEmptyStringId(str):
+    """Provide one strict, Pydantic-aware base for durable string identities."""
+
+    __slots__ = ()
+
+    def __new__(cls, value: str) -> Self:
+        if not isinstance(value, str):
+            raise TypeError(f"{cls.__name__} requires a string")
+        if not value:
+            raise ValueError(f"{cls.__name__} must not be empty")
+        return str.__new__(cls, value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        _source_type: object,
+        _handler: object,
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(strict=True, min_length=1),
+        )
+
+
+class RelationFamilyId(NonEmptyStringId):
+    """Identify one relation cohort used for grouped classifier evidence."""
+
+
 class FrozenModel(BaseModel):
     """Reject coercion and unknown fields for immutable relation contracts."""
 
@@ -87,6 +116,8 @@ __all__ = [
     "FrozenMapping",
     "FrozenModel",
     "NonEmptyStr",
+    "NonEmptyStringId",
+    "RelationFamilyId",
     "RelationId",
     "RelationNamespace",
     "RelationSourceSpec",

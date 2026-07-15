@@ -3,6 +3,7 @@
 from atlas_tools.relation.domain.api import (
     FrozenMapping,
     NonEmptyStr,
+    RelationFamilyId,
     RelationId,
     RelationNamespace,
     Sha256Hex,
@@ -94,7 +95,6 @@ from atlas_tools.relation.evaluation.domain.identity import (
     ProviderName,
     ProviderSlug,
     ReasoningEffort,
-    RelationFamilyId,
     RequestHash,
     RequestStage,
     SessionId,

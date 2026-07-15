@@ -13,6 +13,8 @@ from typing import Annotated, Literal, NewType, Self
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic_extra_types.language_code import LanguageAlpha2
 
+from atlas_tools.relation.domain.api import FrozenModel, NonEmptyStr
+
 # Which SPARQL endpoint an example set was mined from. None on a record
 # means the whole ladder failed (a recorded skip).
 type ExampleSource = Literal["wdqs", "qlever"]
@@ -128,27 +130,23 @@ def _validate_direct_property_facts(
             raise ValueError(f"{field_name} must use ascending PID order")
         if len(facts) != len(set(facts)):
             raise ValueError(f"{field_name} must not contain duplicates")
-        if pid in facts:
-            raise ValueError(f"{field_name} must not contain a self-reference")
+    if pid in direct_ancestors:
+        raise ValueError("direct_ancestors must not contain a self-reference")
 
 
-class WikidataSnapshotIdentity(BaseModel):
+class WikidataSnapshotIdentity(FrozenModel):
     """Typed identity of the API/cache snapshot used for one extraction."""
 
     kind: Literal["wikidata-api-snapshot-date"] = "wikidata-api-snapshot-date"
-    value: str
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    value: NonEmptyStr
 
 
-class PropertyLineage(BaseModel):
+class PropertyLineage(FrozenModel):
     """Direct identity-bearing facts for one property in the source universe."""
 
     pid: PidField
     direct_ancestors: tuple[PidField, ...] = ()
     p1696_inverse_pids: tuple[PidField, ...] = ()
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
 
     @model_validator(mode="after")
     def check_direct_property_facts(self) -> Self:

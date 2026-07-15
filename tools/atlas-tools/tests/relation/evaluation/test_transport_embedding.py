@@ -179,6 +179,28 @@ def test_native_async_embedding_orders_vectors_and_pins_request_policy(
     trio.run(scenario)
 
 
+def test_embedding_accepts_exact_provider_prefix_stripped_from_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        FakeOpenRouter.instances.clear()
+        FakeOpenRouter.response = _response(
+            ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]),
+            model="text-embedding-3-large",
+        )
+        monkeypatch.setattr(embedding_module, "OpenRouter", FakeOpenRouter)
+        transport = OpenRouterEmbeddingTransport("secret", maximum_batch_size=8)
+
+        outcome = await transport.embed(_request())
+
+        assert isinstance(outcome, EmbeddingAccepted)
+        assert outcome.model == MODEL
+        assert FakeOpenRouter.instances[0].calls[0]["model"] == MODEL
+        await transport.aclose()
+
+    trio.run(scenario)
+
+
 def test_embedding_close_remains_retryable_after_async_sdk_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

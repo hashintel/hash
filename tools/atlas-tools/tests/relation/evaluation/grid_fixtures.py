@@ -8,7 +8,7 @@ import yaml
 from pydantic import JsonValue
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes, sha256_file
-from atlas_tools.relation.concat import concat_relations
+from atlas_tools.relation.concat.api import concat_relations
 from atlas_tools.relation.evaluation.domain.api import (
     ConcurrencyConfig,
     GridJudge,

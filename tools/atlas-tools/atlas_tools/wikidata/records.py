@@ -59,7 +59,7 @@ from atlas_tools.wikidata.model import (
     PropertyRecord,
     entity_number,
 )
-from atlas_tools.wikidata.properties import ExtractionResult
+from atlas_tools.wikidata.properties.api import ExtractionResult
 
 # v4: records preserve direct P1647 and every explicit P1696 separately
 # from card presentation fields, and lineage-records.jsonl carries the

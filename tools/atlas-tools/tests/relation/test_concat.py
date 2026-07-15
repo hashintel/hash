@@ -11,7 +11,7 @@ from atlas_tools.common import (
     sha256_bytes,
     sha256_file,
 )
-from atlas_tools.relation.concat import (
+from atlas_tools.relation.concat.api import (
     ConcatCardRow,
     ConcatProvenance,
     concat_relations,

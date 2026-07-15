@@ -108,16 +108,26 @@ def _vector(value: list[float] | str, *, dimension: int, index: int) -> Embeddin
     return vector
 
 
+def _canonical_response_model(response_model: str, request_model: str) -> str:
+    if response_model == request_model:
+        return request_model
+
+    _provider, separator, provider_model = request_model.partition("/")
+    if separator and response_model == provider_model:
+        return request_model
+
+    raise _RejectedError(
+        "routing",
+        f"embedding response used model {response_model!r}, expected {request_model!r}",
+    )
+
+
 def _accepted(
     response: CreateEmbeddingsResponseBody,
     request: EmbeddingRequest,
     usage: EmbeddingUsage | None,
 ) -> EmbeddingAccepted:
-    if response.model != request.model:
-        raise _RejectedError(
-            "routing",
-            f"embedding response used model {response.model!r}, expected {request.model!r}",
-        )
+    model = _canonical_response_model(response.model, request.model)
 
     if len(response.data) != len(request.texts):
         raise _RejectedError(
@@ -145,7 +155,7 @@ def _accepted(
     )
 
     return EmbeddingAccepted(
-        model=response.model,
+        model=model,
         dimension=request.dimension,
         vectors=vectors,
         usage=usage,

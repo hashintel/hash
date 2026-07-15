@@ -7,7 +7,7 @@ import pytest
 
 from atlas_tools.common.progress import NO_PROGRESS
 from atlas_tools.relation import cli
-from atlas_tools.relation.concat import ConcatPaths
+from atlas_tools.relation.concat.api import ConcatPaths
 from atlas_tools.relation.evaluation.storage.api import GridPaths, JournalPaths, PilotPaths
 from atlas_tools.relation.family_closure.api import FamilyClosurePaths
 
@@ -31,7 +31,7 @@ def test_cli_concat_passes_inputs_and_echoes_paths(
             manifest=out / "cards.manifest.json",
         )
 
-    monkeypatch.setattr("atlas_tools.relation.concat.concat_relations", concat)
+    monkeypatch.setattr("atlas_tools.relation.concat.api.concat_relations", concat)
     cli.main(["concat", str(first), str(second), "--out", str(out)])
     assert captured["paths"] == [first, second]
     assert captured["out"] == out
@@ -60,7 +60,7 @@ def test_cli_concat_fails_cleanly_on_runtime_error(
         assert out == tmp_path / "out"
         raise ValueError("hash mismatch")
 
-    monkeypatch.setattr("atlas_tools.relation.concat.concat_relations", concat)
+    monkeypatch.setattr("atlas_tools.relation.concat.api.concat_relations", concat)
     with pytest.raises(SystemExit) as excinfo:
         cli.main(["concat", str(existing), "--out", str(out)])
     assert excinfo.value.code == 1

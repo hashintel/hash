@@ -103,6 +103,25 @@ def test_live_extraction_uses_one_timestamp_for_types_and_examples() -> None:
     assert example_params[5:] == (24, 96)
 
 
+def test_historical_extraction_uses_the_requested_snapshot_without_reading_now() -> None:
+    connection = _Connection()
+    requested = datetime(2026, 7, 11, 8, 30, tzinfo=UTC)
+
+    extraction = _extract_from_connection(
+        connection,
+        example_count=3,
+        example_security_mode="none",
+        snapshot_at=requested,
+    )
+
+    assert extraction.snapshot_at == requested
+    assert all("transaction_timestamp" not in query for query, _params in connection.queries)
+    ontology_params = next(
+        params for query, params in connection.queries if query == _ENTITY_TYPES_QUERY
+    )
+    assert ontology_params == (requested,)
+
+
 def test_example_query_excludes_drafts_and_preserves_endpoint_roles() -> None:
     assert "temporal.draft_id IS NULL" in _EXAMPLES_QUERY
     assert "NOT entity_editions.archived" in _EXAMPLES_QUERY

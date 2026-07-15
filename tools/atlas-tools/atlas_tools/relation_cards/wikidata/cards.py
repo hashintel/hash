@@ -69,7 +69,7 @@ from atlas_tools.wikidata.model import (
     WikidataSnapshotIdentity,
     entity_number,
 )
-from atlas_tools.wikidata.properties import ExtractionResult
+from atlas_tools.wikidata.properties.api import ExtractionResult
 from atlas_tools.wikidata.records import (
     LadderFlags,
     RecordSet,
@@ -194,6 +194,7 @@ def _lineage_nodes(lineage: tuple[PropertyLineage, ...]) -> tuple[LineageNode, .
                             kind=WIKIDATA_INVERSE_EDGE_KIND,
                         )
                         for inverse_pid in source.p1696_inverse_pids
+                        if inverse_pid != source.pid
                     ),
                     key=lambda edge: (edge.kind, edge.relation_id),
                 )

@@ -14,6 +14,8 @@ Commands:
 - ``wikidata extract-properties``: mine records via the SPARQL and
   wbgetentities APIs, then render cards from them (single render code path
   shared with ``render-cards``).
+- ``wikidata backfill-lineage``: bind lineage-rich records to an exact
+  existing card leaf without rerendering the evaluated card text.
 - ``wikidata render-cards``: re-render cards from an existing
   ``records.jsonl`` with zero transport/network involvement; changing the
   card format or token budget never requires re-extraction.
@@ -28,9 +30,9 @@ Commands:
 
 import sys
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, DirectoryPath, Field, FilePath
+from pydantic import BaseModel, DirectoryPath, Field, FilePath, model_validator
 from pydantic_extra_types.path import ExistingPath
 from pydantic_settings import CliSubCommand, CliToggleFlag
 
@@ -49,6 +51,10 @@ class ExtractPropertiesCommand(BaseModel):
     config: FilePath
     out: Path
     cache_dir: Path | None = None
+    cache_only: CliToggleFlag[bool] = Field(
+        default=False,
+        description="Fail rather than issue a request missing from the snapshot cache.",
+    )
     fixture_dir: DirectoryPath | None = Field(
         default=None,
         description="Serve responses from committed fixtures instead of the network.",
@@ -62,9 +68,15 @@ class ExtractPropertiesCommand(BaseModel):
     )
     quiet: CliToggleFlag[bool] = Field(default=False, description="No progress on stderr.")
 
+    @model_validator(mode="after")
+    def check_cache_only(self) -> Self:
+        if self.cache_only and self.cache_dir is None:
+            raise ValueError("cache-only extraction requires --cache-dir")
+        return self
+
     def cli_cmd(self) -> None:
-        from atlas_tools.relation_cards.wikidata.cards import emit_cards
-        from atlas_tools.wikidata.properties import extract_properties
+        from atlas_tools.relation_cards.wikidata.api import emit_cards
+        from atlas_tools.wikidata.properties.api import extract_properties
         from atlas_tools.wikidata.taxonomy import Taxonomy
         from atlas_tools.wikidata.transport import (
             FixtureTransport,
@@ -86,6 +98,7 @@ class ExtractPropertiesCommand(BaseModel):
                 transport,
                 self.cache_dir,
                 snapshot_date=config.extraction.snapshot_date,
+                read_only=self.cache_only,
             )
 
         taxonomy = Taxonomy.load(self.taxonomy) if self.taxonomy is not None else None
@@ -119,13 +132,40 @@ class RenderCardsCommand(BaseModel):
     out: Path
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation_cards.wikidata.cards import render_cards
+        from atlas_tools.relation_cards.wikidata.api import render_cards
         from atlas_tools.wikidata.records import load_records
 
         config = Config.load(self.config)
         record_set = load_records(self.records)
         paths = render_cards(record_set, config, self.out)
         echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} records considered)")
+        echo(f"wrote {paths.manifest}")
+        echo(f"wrote {paths.lineage_jsonl} ({len(record_set.lineage)} lineage nodes)")
+        echo(f"wrote {paths.lineage_manifest}")
+
+
+class BackfillLineageCommand(BaseModel):
+    """Bind lineage-rich records to exact existing Wikidata card bytes."""
+
+    records: ExistingPath = Field(
+        description="Schema-v4 records file or extraction directory containing direct lineage."
+    )
+    cards: DirectoryPath = Field(
+        description="Exact evaluated leaf containing cards.jsonl and cards.manifest.json."
+    )
+    out: Path
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation_cards.wikidata.api import backfill_lineage
+        from atlas_tools.wikidata.records import load_records
+
+        record_set = load_records(self.records)
+        paths = backfill_lineage(
+            record_set,
+            cards_directory=self.cards,
+            output_directory=self.out,
+        )
+        echo(f"wrote {paths.cards_jsonl} ({len(record_set.records)} exact evaluated cards)")
         echo(f"wrote {paths.manifest}")
         echo(f"wrote {paths.lineage_jsonl} ({len(record_set.lineage)} lineage nodes)")
         echo(f"wrote {paths.lineage_manifest}")
@@ -220,6 +260,7 @@ class SamplingPlanCommand(BaseModel):
 class WikidataCli(BaseModel):
     """Wikidata miner: relation cards and the vec2slug sampling manifest."""
 
+    backfill_lineage: CliSubCommand[BackfillLineageCommand]
     entity_manifest: CliSubCommand[EntityManifestCommand]
     extract_properties: CliSubCommand[ExtractPropertiesCommand]
     render_cards: CliSubCommand[RenderCardsCommand]

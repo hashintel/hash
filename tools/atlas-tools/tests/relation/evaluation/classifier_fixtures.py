@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Protocol
 
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.concat import card_artifact_id
+from atlas_tools.relation.concat.api import card_artifact_id
 from atlas_tools.relation.domain.api import RelationId
 from atlas_tools.relation.family_closure.api import (
     ClosureConcatInput,

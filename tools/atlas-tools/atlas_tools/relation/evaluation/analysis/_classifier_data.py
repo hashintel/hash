@@ -22,6 +22,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     ClassifierConfig,
     RelationFamilyId,
     RelationId,
+    Sha256Hex,
 )
 
 _MIN_FOLDS = 2
@@ -34,14 +35,17 @@ class FamilyGroupedRow(Protocol):
     def relation_id(self) -> RelationId: ...
 
     @property
-    def family_id(self) -> str | None: ...
+    def family_id(self) -> RelationFamilyId | None: ...
 
 
 class FamilyBindingRow(FamilyGroupedRow, Protocol):
-    """A classifier cohort bound to the exact current card bytes."""
+    """A required classifier cohort bound to the exact current card bytes."""
 
     @property
-    def card_hash(self) -> str: ...
+    def family_id(self) -> RelationFamilyId: ...
+
+    @property
+    def card_hash(self) -> Sha256Hex: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,8 +96,6 @@ def _family_index(
     for row in families:
         if row.relation_id in families_by_relation:
             raise ValueError(f"family closure repeats relation {row.relation_id}")
-        if row.family_id is None:
-            raise ValueError(f"family closure relation {row.relation_id} lacks family_id")
         families_by_relation[row.relation_id] = row
     return families_by_relation
 
@@ -114,11 +116,9 @@ def _matching_relation_ids(
             f"missing={missing_embeddings}, extra={extra_embeddings}"
         )
     missing_families = tuple(sorted(label_ids - family_ids))
-    extra_families = tuple(sorted(family_ids - label_ids))
-    if missing_families or extra_families:
+    if missing_families:
         raise ValueError(
-            "family closure relation coverage differs: "
-            f"missing={missing_families}, extra={extra_families}"
+            f"family closure does not cover every labeled relation: missing={missing_families}"
         )
     return tuple(sorted(label_ids))
 
@@ -130,8 +130,12 @@ def join_training_data(
 ) -> TrainingData:
     """Join exact one-to-one label, embedding, and closure relation sets.
 
+    Labels and embeddings must have identical relation coverage. The verified
+    closure may additionally contain non-training deck rows, but it must cover
+    every label and bind each one to the same card hash.
+
     Raises [`ValueError`] for missing families, zero weights, duplicate or
-    unequal relation sets, mismatched card hashes, or mixed dimensions.
+    unequal label/embedding sets, mismatched card hashes, or mixed dimensions.
     """
     labels_by_relation = _label_index(labels)
     embeddings_by_relation = _embedding_index(embeddings)
@@ -162,9 +166,7 @@ def join_training_data(
                 f"family closure card hash differs for relation {label.relation_id}: "
                 f"label {label.card_hash}, closure {family.card_hash}"
             )
-        if family.family_id is None:
-            raise AssertionError("family validation did not narrow a closure row")
-        joined_families.append(RelationFamilyId(family.family_id))
+        joined_families.append(family.family_id)
         matrix[index] = embedding_view(row)
 
     targets = np.asarray(
@@ -215,7 +217,7 @@ def validate_grouped_folds(
         fold = fold_by_relation_id[row.relation_id]
         if isinstance(fold, bool) or not 0 <= fold < folds:
             raise ValueError(f"relation {row.relation_id} has invalid fold {fold}")
-        family_id = RelationFamilyId(row.family_id)
+        family_id = row.family_id
         previous = family_folds.setdefault(family_id, fold)
         if previous != fold:
             raise ValueError(f"fold assignment leaks relation family {family_id}")
@@ -241,7 +243,7 @@ def _relations_by_family(
         if row.family_id is None:
             missing.append(row.relation_id)
         else:
-            by_family[RelationFamilyId(row.family_id)].append(row.relation_id)
+            by_family[row.family_id].append(row.relation_id)
     if missing:
         examples = tuple(sorted(missing)[:5])
         raise ValueError(
@@ -306,6 +308,18 @@ def validate_classifier_cohorts(
             )
 
 
+def _joined_training_families(data: TrainingData) -> tuple[_JoinedFamily, ...]:
+    return tuple(
+        _JoinedFamily(relation_id=label.relation_id, family_id=family_id)
+        for label, family_id in zip(data.labels, data.families, strict=True)
+    )
+
+
+def validate_training_cohorts(data: TrainingData, config: ClassifierConfig) -> None:
+    """Validate nested grouped CV against exactly the joined training cohort."""
+    validate_classifier_cohorts(_joined_training_families(data), config)
+
+
 def grouped_fold_assignment(
     data: TrainingData,
     config: ClassifierConfig,
@@ -313,10 +327,7 @@ def grouped_fold_assignment(
     """Assign whole families to deterministic size-balanced folds."""
     if config.folds < _MIN_FOLDS:
         raise ValueError("classifier config requires at least two grouped folds")
-    grouped_rows = tuple(
-        _JoinedFamily(relation_id=label.relation_id, family_id=family_id)
-        for label, family_id in zip(data.labels, data.families, strict=True)
-    )
+    grouped_rows = _joined_training_families(data)
     relation_ids_by_family = _relations_by_family(grouped_rows)
     fold_by_family = _fold_by_family(relation_ids_by_family, config)
 

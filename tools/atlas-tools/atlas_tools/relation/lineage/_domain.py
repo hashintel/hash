@@ -8,7 +8,7 @@ from typing import Literal, Self
 from pydantic import JsonValue, NonNegativeInt, model_validator
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.concat import card_artifact_id
+from atlas_tools.relation.concat.api import card_artifact_id
 from atlas_tools.relation.domain.api import (
     FrozenModel,
     NonEmptyStr,

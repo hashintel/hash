@@ -28,7 +28,7 @@ class ConcatCommand(BaseSettings):
     model_config = SettingsConfigDict(extra="forbid")
 
     def cli_cmd(self) -> None:
-        from atlas_tools.relation.concat import concat_relations
+        from atlas_tools.relation.concat.api import concat_relations
 
         try:
             paths = concat_relations(self.inputs, out=self.out)

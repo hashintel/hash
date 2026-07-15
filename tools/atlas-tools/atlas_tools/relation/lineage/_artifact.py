@@ -11,8 +11,8 @@ from pathlib import Path
 from pydantic import JsonValue, ValidationError
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes, sha256_file
-from atlas_tools.relation.concat import card_artifact_id
-from atlas_tools.relation.domain.api import RelationId, RelationSourceSpec, Sha256Hex
+from atlas_tools.relation.concat.api import card_artifact_id
+from atlas_tools.relation.domain.api import NonEmptyStr, RelationId, RelationSourceSpec, Sha256Hex
 from atlas_tools.relation.lineage._domain import (
     InverseEdgeKind,
     LeafCardArtifact,
@@ -171,7 +171,7 @@ def publish_source_lineage(
     *,
     cards_directory: PathLike,
     output_directory: PathLike,
-    producer: str,
+    producer: NonEmptyStr,
     snapshot: SourceSnapshotIdentity,
     raw_inputs: Mapping[str, PathLike],
     inverse_edge_kinds: tuple[InverseEdgeKind, ...],

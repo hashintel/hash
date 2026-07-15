@@ -23,6 +23,9 @@ Python tooling for the Semantic Atlas pipeline:
   datasource adapters. Wikidata records and live HASH SemType link types pass
   through the same identifier-free renderer and truncation rules.
 
+See [Relation policy pipeline cookbook](COOKBOOK.md) for the complete production
+command sequence from source extraction through reporting, excluding the pilot.
+
 ## Setup and development
 
 Requires Python 3.14 (pinned in `.python-version`) and
@@ -184,10 +187,8 @@ both leaf artifacts:
 
 ```sh
 uv run wikidata taxonomy --config config.yaml --out taxonomy.parquet --checkpoint tax-ckpt/
-uv run wikidata extract-properties --config config.yaml --out extract/ \
+uv run wikidata extract-properties --config config.yaml --out wikidata-cards/ \
     --cache-dir cache/ --taxonomy taxonomy.parquet
-uv run wikidata render-cards --records extract/ --config config.yaml \
-    --out wikidata-cards/
 uv run hash-cards extract-cards --out hash-cards/ \
     --tokenizer heuristic --sentence-splitter naive
 uv run relation concat wikidata-cards/ hash-cards/ --out cards/
@@ -195,7 +196,30 @@ uv run relation closure cards/ wikidata-cards/ hash-cards/ --out family-closure/
 ```
 
 Each leaf directory contains `cards.jsonl`, `cards.manifest.json`,
-`lineage.jsonl`, and `lineage.manifest.json`. The lineage artifact preserves
+`lineage.jsonl`, and `lineage.manifest.json`. `wikidata extract-properties`
+emits the structured records, cards, and lineage together; a separate
+`render-cards` pass is only for a current intermediate that already contains
+`lineage-records.jsonl`. Pre-lineage intermediates cannot reconstruct direct
+P1647 facts. To backfill an exact historical snapshot, replay its existing
+request cache without allowing current network data to fill gaps:
+
+```sh
+uv run wikidata extract-properties --config config.yaml --out wikidata-replay/ \
+    --cache-dir cache/ --cache-only --taxonomy taxonomy.parquet
+uv run wikidata backfill-lineage --records wikidata-replay/ \
+    --cards exact-evaluated-wikidata-cards/ --out wikidata-cards-backfill/
+uv run hash-cards extract-cards --out hash-cards-backfill/ \
+    --snapshot-at <cards.manifest.json details.snapshot_at>
+```
+
+`--cache-only` requires `--cache-dir` and fails on every missing or transient
+cache entry rather than contacting Wikidata. The replay may discover richer
+relationship metadata that changes freshly rendered cards. `backfill-lineage`
+therefore preserves the exact evaluated `cards.jsonl` bytes and upgrades only
+legacy source/snapshot declarations in its copied manifest; card hashes are
+never reassigned to text the judges did not see. HASH replay uses the exact
+bitemporal timestamp recorded by the evaluated leaf rather than the current
+database state. The lineage artifact preserves
 source identities and direct edges, including dependency-only nodes without a
 selected card, and is hash-bound to the same typed snapshot and finalized leaf
 card artifact. `concat` verifies each manifest-recorded content hash and source declaration,

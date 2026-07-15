@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.properties import chunk_ids, wbgetentities_params
+from atlas_tools.wikidata.properties.api import chunk_ids, wbgetentities_params
 from atlas_tools.wikidata.sparql import (
     example_pairs_query,
     property_ancestors_query,

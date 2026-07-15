@@ -18,7 +18,7 @@ from atlas_tools.wikidata.examples import (
     select_examples,
 )
 from atlas_tools.wikidata.model import Constraints, Pid, PropertyRecord, Qid
-from atlas_tools.wikidata.properties import (
+from atlas_tools.wikidata.properties.api import (
     LadderSkip,
     LadderSuccess,
     chunk_ids,

@@ -10,7 +10,7 @@ from atlas_tools.relation.lineage.api import verify_source_lineage
 from atlas_tools.relation_cards.common.cards import qualify_relation_id
 from atlas_tools.relation_cards.common.config import CardsConfig
 from atlas_tools.relation_cards.hash.adapter import build_relation_records
-from atlas_tools.relation_cards.hash.cards import HashCardsConfig, emit_hash_cards
+from atlas_tools.relation_cards.hash.api import HashCardsConfig, emit_hash_cards
 from atlas_tools.relation_cards.hash.postgres import LiveHashExtraction
 from tests.relation_cards.hash.test_adapter import _fixture_types
 

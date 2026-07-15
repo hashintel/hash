@@ -292,12 +292,15 @@ def extract_and_emit_hash_cards(
     connection_info: DatabaseConnectionInfo,
     config: HashCardsConfig,
     out_dir: PathLike,
+    *,
+    snapshot_at: AwareDatetime | None = None,
 ) -> HashCardsPaths:
-    """Select directly from live HASH PostgreSQL and emit both artifacts."""
+    """Select one HASH PostgreSQL snapshot and emit cards plus lineage."""
     extraction = extract_live_hash_relations(
         connection_info,
         example_count=config.example_count,
         example_security_mode=config.example_security_mode,
+        snapshot_at=snapshot_at,
     )
 
     return emit_hash_cards(

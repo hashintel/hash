@@ -41,6 +41,10 @@ from atlas_tools.wikidata.transport import TRANSIENT_STATUSES, Response, Transpo
 RETRIEVED_AT_HEADER = "x-atlas-retrieved-at"
 
 
+class CacheMissError(RuntimeError):
+    """Report a request absent from a fail-closed snapshot cache replay."""
+
+
 class _CacheKey(BaseModel):
     """Canonical cache-entry identity; hashing it yields the entry key."""
 
@@ -88,10 +92,16 @@ class CachingTransport:
         cache_dir: PathLike,
         *,
         snapshot_date: str,
+        read_only: bool = False,
     ) -> None:
         self._inner = inner
         self._dir = Path(cache_dir)
-        self._dir.mkdir(parents=True, exist_ok=True)
+        self._read_only = read_only
+        if read_only:
+            if not self._dir.is_dir():
+                raise FileNotFoundError(f"snapshot cache directory does not exist: {self._dir}")
+        else:
+            self._dir.mkdir(parents=True, exist_ok=True)
         self._snapshot_date = snapshot_date
 
     def _paths(self, key: str) -> tuple[Path, Path]:
@@ -104,11 +114,19 @@ class CachingTransport:
             metadata = CacheEntryMetadata.model_validate_json(metadata_path.read_bytes())
             if metadata.status not in TRANSIENT_STATUSES:
                 return metadata.response(body_path.read_bytes())
+            if self._read_only:
+                raise CacheMissError(
+                    f"snapshot cache entry {key} contains transient status {metadata.status}"
+                )
             # Self-heal entries poisoned before transient statuses were
             # excluded from caching: evict and refetch.
             metadata_path.unlink()
             body_path.unlink(missing_ok=True)
 
+        if self._read_only:
+            raise CacheMissError(
+                f"snapshot cache miss for {url} with key {key} at {self._snapshot_date}"
+            )
         fetched = self._inner.get(url, params)
         if fetched.status in TRANSIENT_STATUSES:
             return fetched

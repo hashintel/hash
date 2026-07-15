@@ -14,13 +14,11 @@ from atlas_tools.common import sha256_bytes
 from atlas_tools.relation.domain.api import (
     FrozenModel,
     NonEmptyStr,
+    RelationFamilyId,
     RelationId,
     RelationNamespace,
 )
-from atlas_tools.relation.evaluation.domain.identity import (
-    CardHash,
-    RelationFamilyId,
-)
+from atlas_tools.relation.evaluation.domain.identity import CardHash
 
 
 class EvaluationCard(FrozenModel):

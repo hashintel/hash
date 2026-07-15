@@ -4,8 +4,8 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.concat import VerifiedConcatArtifact
-from atlas_tools.relation.domain.api import RelationId, Sha256Hex
+from atlas_tools.relation.concat.api import VerifiedConcatArtifact
+from atlas_tools.relation.domain.api import RelationFamilyId, RelationId, Sha256Hex
 from atlas_tools.relation.family_closure.domain import (
     FAMILY_ALGORITHM,
     FAMILY_ID_PREFIX,
@@ -62,7 +62,7 @@ def family_id_for_relations(relation_ids: Sequence[RelationId]) -> FamilyId:
             }
         )
     )
-    return f"{FAMILY_ID_PREFIX}{digest}"
+    return RelationFamilyId(f"{FAMILY_ID_PREFIX}{digest}")
 
 
 def _validate_source_bindings(

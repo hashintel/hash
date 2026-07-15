@@ -23,14 +23,14 @@ from atlas_tools.relation_cards.common.sentence import (
     make_sentence_splitter,
 )
 from atlas_tools.relation_cards.common.tokens import HeuristicTokenCounter, make_token_counter
-from atlas_tools.relation_cards.wikidata.card import (
-    Card,
-    build_card,
-)
-from atlas_tools.relation_cards.wikidata.cards import (
+from atlas_tools.relation_cards.wikidata.api import (
     ProseSanitizationBudgetError,
     emit_cards,
     render_cards,
+)
+from atlas_tools.relation_cards.wikidata.card import (
+    Card,
+    build_card,
 )
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import (
@@ -42,7 +42,7 @@ from atlas_tools.wikidata.model import (
     PropertyRecord,
     Qid,
 )
-from atlas_tools.wikidata.properties import ExtractionResult, extract_properties
+from atlas_tools.wikidata.properties.api import ExtractionResult, extract_properties
 from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport

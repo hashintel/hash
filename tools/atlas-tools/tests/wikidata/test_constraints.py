@@ -1,6 +1,6 @@
 """P2302 parsing unit tests (parse scope documented in properties.py)."""
 
-from atlas_tools.wikidata.properties import Snak, Statement, parse_constraints
+from atlas_tools.wikidata.properties.api import Snak, Statement, parse_constraints
 
 
 def _constraint(constraint_type: str, qualifiers: dict[str, list[str]] | None = None) -> Statement:

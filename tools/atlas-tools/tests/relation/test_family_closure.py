@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 import atlas_tools.relation.family_closure.artifact as closure_artifact
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.concat import concat_relations, verify_concat_artifact
+from atlas_tools.relation.concat.api import concat_relations, verify_concat_artifact
 from atlas_tools.relation.family_closure.api import (
     HASH_LINK_ROOT_RELATION_ID,
     ClosureEdgePolicy,

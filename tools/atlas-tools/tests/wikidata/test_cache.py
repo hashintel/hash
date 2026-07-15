@@ -8,10 +8,17 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
-from atlas_tools.relation_cards.wikidata.cards import ExtractPaths, emit_cards
-from atlas_tools.wikidata.cache import CacheEntryMetadata, CachingTransport, cache_key
+import pytest
+
+from atlas_tools.relation_cards.wikidata.api import ExtractPaths, emit_cards
+from atlas_tools.wikidata.cache import (
+    CacheEntryMetadata,
+    CacheMissError,
+    CachingTransport,
+    cache_key,
+)
 from atlas_tools.wikidata.config import Config
-from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.properties.api import extract_properties
 from atlas_tools.wikidata.sparql import property_inventory_query, sparql_params
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport, Response
@@ -122,6 +129,30 @@ def test_poisoned_transient_cache_entry_is_evicted_and_refetched(
     # (test_failed_responses_are_cached_too covers that path).
     assert transport.get("http://example.test").status == 200
     assert inner.calls == 1
+
+
+def test_read_only_cache_replays_warm_entries_and_fails_closed_on_miss(
+    tmp_path: Path,
+) -> None:
+    cache_dir = tmp_path / "cache"
+    writer = CachingTransport(
+        ScriptedTransport([Response(status=200, body=b"cached")]),
+        cache_dir,
+        snapshot_date="d",
+    )
+    writer.get("http://example.test", {"query": "known"})
+
+    inner = ScriptedTransport([])
+    replay = CachingTransport(
+        inner,
+        cache_dir,
+        snapshot_date="d",
+        read_only=True,
+    )
+    assert replay.get("http://example.test", {"query": "known"}).body == b"cached"
+    with pytest.raises(CacheMissError, match="snapshot cache miss"):
+        replay.get("http://example.test", {"query": "missing"})
+    assert inner.calls == 0
 
 
 def test_cache_key_includes_snapshot_date(tmp_path: Path) -> None:

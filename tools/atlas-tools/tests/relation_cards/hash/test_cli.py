@@ -1,12 +1,14 @@
 """Pydantic Settings CLI tests for live HASH card extraction."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import AwareDatetime
 
 from atlas_tools.common.postgres import DatabaseConnectionInfo
 from atlas_tools.relation_cards.hash import cli
-from atlas_tools.relation_cards.hash.cards import HashCardsConfig, HashCardsPaths
+from atlas_tools.relation_cards.hash.api import HashCardsConfig, HashCardsPaths
 
 
 def test_cli_reads_database_environment_and_prefers_cli(
@@ -20,8 +22,15 @@ def test_cli_reads_database_environment_and_prefers_cli(
         connection_info: DatabaseConnectionInfo,
         config: HashCardsConfig,
         out_dir: Path,
+        *,
+        snapshot_at: AwareDatetime | None = None,
     ) -> HashCardsPaths:
-        captured.update(connection=connection_info, config=config, out=out_dir)
+        captured.update(
+            connection=connection_info,
+            config=config,
+            out=out_dir,
+            snapshot_at=snapshot_at,
+        )
         return HashCardsPaths(
             entity_types_jsonl=out_dir / "entity-types.jsonl",
             link_types_jsonl=out_dir / "link-types.jsonl",
@@ -44,6 +53,8 @@ def test_cli_reads_database_environment_and_prefers_cli(
             str(tmp_path),
             "--user",
             "operator",
+            "--snapshot-at",
+            "2026-07-13T21:36:05.836447Z",
             "--example-count",
             "3",
             "--tokenizer",
@@ -65,5 +76,15 @@ def test_cli_reads_database_environment_and_prefers_cli(
     assert config.example_count == 3
     assert config.example_security_mode == "none"
     assert config.cards.tokenizer == "heuristic"
+    assert captured["snapshot_at"] == datetime(
+        2026,
+        7,
+        13,
+        21,
+        36,
+        5,
+        836447,
+        tzinfo=UTC,
+    )
     assert captured["out"] == tmp_path
     assert "wrote" in capsys.readouterr().out

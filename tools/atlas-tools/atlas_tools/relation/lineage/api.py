@@ -3,6 +3,7 @@
 from collections.abc import Iterable, Mapping
 from os import PathLike
 
+from atlas_tools.relation.domain.api import NonEmptyStr
 from atlas_tools.relation.lineage._artifact import (
     publish_source_lineage as _publish_source_lineage,
 )
@@ -32,7 +33,7 @@ def publish_source_lineage(
     *,
     cards_directory: PathLike,
     output_directory: PathLike,
-    producer: str,
+    producer: NonEmptyStr,
     snapshot: SourceSnapshotIdentity,
     raw_inputs: Mapping[str, PathLike],
     inverse_edge_kinds: tuple[InverseEdgeKind, ...] = (),

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, PositiveInt, SecretStr
+from pydantic import AwareDatetime, BaseModel, Field, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, CliApp, CliSubCommand, SettingsConfigDict
 
 from atlas_tools.common.cli import echo, fail, run_cli
@@ -12,7 +12,7 @@ from atlas_tools.relation_cards.common.config import (
     SentenceSplitterName,
     TokenizerName,
 )
-from atlas_tools.relation_cards.hash.cards import (
+from atlas_tools.relation_cards.hash.api import (
     HashCardsConfig,
     extract_and_emit_hash_cards,
 )
@@ -29,6 +29,10 @@ class ExtractCardsCommand(BaseSettings):
     user: str = "graph"
     password: SecretStr = SecretStr("graph")
     database: str = "graph"
+    snapshot_at: AwareDatetime | None = Field(
+        default=None,
+        description="Historical bitemporal snapshot; defaults to the transaction timestamp.",
+    )
     example_count: PositiveInt = 8
     example_security_mode: ExampleSecurityMode = Field(
         default="none",
@@ -62,7 +66,12 @@ class ExtractCardsCommand(BaseSettings):
             ),
         )
         try:
-            paths = extract_and_emit_hash_cards(connection_info, config, self.out)
+            paths = extract_and_emit_hash_cards(
+                connection_info,
+                config,
+                self.out,
+                snapshot_at=self.snapshot_at,
+            )
         except (HashPostgresError, OSError, ValueError) as error:
             fail(error)
         echo(f"wrote {paths.entity_types_jsonl}")

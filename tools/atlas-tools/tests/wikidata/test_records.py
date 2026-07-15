@@ -12,11 +12,11 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 
 import atlas_tools.wikidata.transport as transport_module
 from atlas_tools.common.provenance import sha256_file
-from atlas_tools.relation_cards.wikidata.cards import ExtractPaths, emit_cards, render_cards
+from atlas_tools.relation_cards.wikidata.api import ExtractPaths, emit_cards, render_cards
 from atlas_tools.wikidata.cache import CachingTransport
 from atlas_tools.wikidata.config import Config
 from atlas_tools.wikidata.model import Constraints, Example, Pid, PropertyRecord, Qid
-from atlas_tools.wikidata.properties import extract_properties
+from atlas_tools.wikidata.properties.api import extract_properties
 from atlas_tools.wikidata.records import load_records
 from atlas_tools.wikidata.taxonomy import Taxonomy
 from atlas_tools.wikidata.transport import FixtureTransport

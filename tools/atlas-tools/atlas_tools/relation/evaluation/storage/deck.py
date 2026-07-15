@@ -16,7 +16,11 @@ import trio
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
 from atlas_tools.common import Sha256Hex, sha256_bytes
-from atlas_tools.relation.concat import CONCAT_SCHEMA_VERSION, ConcatCardRow, ConcatProvenance
+from atlas_tools.relation.concat.api import (
+    CONCAT_SCHEMA_VERSION,
+    ConcatCardRow,
+    ConcatProvenance,
+)
 from atlas_tools.relation.evaluation.domain.api import (
     CardHash,
     EvaluationCard,

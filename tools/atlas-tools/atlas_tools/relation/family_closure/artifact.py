@@ -14,7 +14,7 @@ from types import MappingProxyType
 from pydantic import ValidationError
 
 from atlas_tools.common import canonical_json_bytes, sha256_bytes, sha256_file
-from atlas_tools.relation.concat import VerifiedConcatArtifact, verify_concat_artifact
+from atlas_tools.relation.concat.api import VerifiedConcatArtifact, verify_concat_artifact
 from atlas_tools.relation.domain.api import RelationId, RelationNamespace, Sha256Hex
 from atlas_tools.relation.family_closure.algorithm import (
     derive_family_assignments,

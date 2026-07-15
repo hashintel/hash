@@ -155,10 +155,12 @@ ancestor were a direct parent. The transitive closure may remain a card-renderin
 input, but it is not the source lineage record.
 
 An actual inverse property ID may produce an inverse edge. In schema v1,
-`wikidata-p1696` is the admitted kind for an exact P1696 property ID. Inverse
-labels and descriptions never produce edges. Whether a P2302 inverse constraint
-whose P2306 qualifier names an exact property is admitted is an explicit open
-question; it MUST NOT be silently treated as P1696.
+`wikidata-p1696` is the admitted kind for an exact P1696 property ID. A P1696
+self-reference is valid source evidence that a property is symmetric, but it is
+a no-op for component union and MUST NOT be projected as a schema-v1 lineage
+self-edge. Inverse labels and descriptions never produce edges. Whether a P2302
+inverse constraint whose P2306 qualifier names an exact property is admitted is
+an explicit open question; it MUST NOT be silently treated as P1696.
 
 ### Why `taxonomy.parquet` is not lineage
 
@@ -348,12 +350,22 @@ Existing paid evidence is preserved through this sequence:
 2. Extend each source adapter to publish identity-bearing direct lineage next
    to newly generated card artifacts.
 3. For the exact v4 Wikidata snapshot, backfill direct P1647 and admitted
-   inverse IDs only from the snapshot-pinned raw property documents, then prove
-   that their projected card identities match the existing concat deck.
+   inverse IDs only from the snapshot-pinned raw property documents. If the
+   original request cache is the source snapshot, rerun `extract-properties`
+   with both `--cache-dir` and `--cache-only`; a missing or transient cache entry
+   stops the backfill instead of fetching current Wikidata data. An older
+   records directory without `lineage-records.jsonl` cannot recover direct
+   P1647 facts through `render-cards`. If richer relationship metadata changes
+   newly rendered card prose, use `wikidata backfill-lineage` to bind those
+   source facts to the exact evaluated card bytes. It may upgrade missing typed
+   source/snapshot declarations in a copied legacy manifest, but it MUST NOT
+   assign a new card hash to an old judgment.
 4. For the existing HASH deck, recover direct SemType identities only from the
-   exact source snapshot that produced the cards. The rendered `Ancestors`
-   section and `link-types.jsonl` phrases are insufficient because they omit
-   source IDs and depths.
+   exact source snapshot that produced the cards. Pass the evaluated manifest's
+   `details.snapshot_at` to `hash-cards extract-cards --snapshot-at`; the query
+   uses that bitemporal instant instead of the current transaction timestamp.
+   The rendered `Ancestors` section and old `link-types.jsonl` phrases are
+   insufficient because they omit source IDs and depths.
 5. Publish source lineage artifacts and then the combined closure into new
    immutable directories.
 6. Fit a new classifier with the verified closure. Reuse the unchanged soft

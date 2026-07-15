@@ -9,33 +9,13 @@ from typing import Final, Literal, Self
 
 from pydantic_core import CoreSchema, core_schema
 
+from atlas_tools.relation.domain.api import NonEmptyStringId
+
 type Verdict = Literal["coincident", "proximal", "overlay", "unclear"]
 type VoteVerdict = Literal["coincident", "proximal", "overlay", "unclear", "ABSTAIN"]
 type PlacementClass = Literal["coincident", "proximal", "overlay"]
 _SHA256_HEX_LENGTH = 64
 _LOWER_HEXADECIMAL = frozenset("0123456789abcdef")
-
-
-class _NonEmptyStringId(str):
-    __slots__ = ()
-
-    def __new__(cls, value: str) -> Self:
-        if not isinstance(value, str):
-            raise TypeError(f"{cls.__name__} requires a string")
-        if not value:
-            raise ValueError(f"{cls.__name__} must not be empty")
-        return str.__new__(cls, value)
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        _source_type: object,
-        _handler: object,
-    ) -> CoreSchema:
-        return core_schema.no_info_after_validator_function(
-            cls,
-            core_schema.str_schema(strict=True, min_length=1),
-        )
 
 
 class _Sha256Id(str):
@@ -67,23 +47,19 @@ class _Sha256Id(str):
         )
 
 
-class RelationFamilyId(_NonEmptyStringId):
-    """Identify a semantic relation family used for classifier grouping."""
-
-
-class JudgeFamilyId(_NonEmptyStringId):
+class JudgeFamilyId(NonEmptyStringId):
     """Identify a judge model family across attempts and analysis."""
 
 
-class ModelId(_NonEmptyStringId):
+class ModelId(NonEmptyStringId):
     """Identify the model requested from or returned by a provider."""
 
 
-class ProviderName(_NonEmptyStringId):
+class ProviderName(NonEmptyStringId):
     """Identify the provider name returned by OpenRouter."""
 
 
-class ProviderSlug(_NonEmptyStringId):
+class ProviderSlug(NonEmptyStringId):
     """Identify the exact OpenRouter provider route."""
 
 

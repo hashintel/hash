@@ -5,10 +5,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
-from pydantic import ConfigDict, NonNegativeInt, StringConstraints, model_validator
+from pydantic import NonNegativeInt, StringConstraints, model_validator
 
 from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes
-from atlas_tools.relation.domain.api import FrozenModel, RelationId, RelationNamespace, Sha256Hex
+from atlas_tools.relation.domain.api import (
+    FrozenModel,
+    NonEmptyStr,
+    RelationFamilyId,
+    RelationId,
+    RelationNamespace,
+    Sha256Hex,
+)
 from atlas_tools.relation.lineage.api import (
     LINEAGE_SCHEMA_VERSION,
     WIKIDATA_INVERSE_EDGE_KIND,
@@ -23,7 +30,7 @@ FAMILIES_FILENAME = "families.jsonl"
 MANIFEST_FILENAME = "families.manifest.json"
 
 type FamilyId = Annotated[
-    str,
+    RelationFamilyId,
     StringConstraints(pattern=r"^lineage-v1:[0-9a-f]{64}$"),
 ]
 
@@ -74,7 +81,7 @@ class ClosureLineageInput(FrozenModel):
     """Bind one source graph and its declared counts into the closure."""
 
     namespace: RelationNamespace
-    producer: str
+    producer: NonEmptyStr
     schema_version: Literal[1] = LINEAGE_SCHEMA_VERSION
     artifact_id: Sha256Hex
     lineage_hash: Sha256Hex
@@ -128,12 +135,7 @@ class FamilyClosureDetails(FrozenModel):
 class FamilyClosureManifest(Provenance[FamilyClosureDetails]):
     """Use the shared provenance envelope with strict closure requirements."""
 
-    model_config = ConfigDict(
-        extra="forbid",
-        frozen=True,
-        strict=True,
-        validate_default=True,
-    )
+    model_config = FrozenModel.model_config
 
     @model_validator(mode="after")
     def check_contract(self) -> Self:

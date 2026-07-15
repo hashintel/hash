@@ -314,9 +314,10 @@ def _extract_from_connection(
     *,
     example_count: PositiveInt,
     example_security_mode: ExampleSecurityMode,
+    snapshot_at: AwareDatetime | None = None,
 ) -> LiveHashExtraction:
     """Select and adapt records using an already-open live transaction."""
-    snapshot_at = _select_snapshot_time(connection)
+    snapshot_at = snapshot_at if snapshot_at is not None else _select_snapshot_time(connection)
     entity_types = _select_entity_types(connection, snapshot_at)
     records_without_examples = build_relation_records(
         entity_types,
@@ -352,8 +353,9 @@ def extract_live_hash_relations(
     *,
     example_count: PositiveInt,
     example_security_mode: ExampleSecurityMode,
+    snapshot_at: AwareDatetime | None = None,
 ) -> LiveHashExtraction:
-    """Read relation records directly from the live HASH database."""
+    """Read relation records from the requested bitemporal database snapshot."""
     try:
         with psycopg.connect(
             host=connection_info.host,
@@ -367,6 +369,7 @@ def extract_live_hash_relations(
                 cast("_Connection", connection),
                 example_count=example_count,
                 example_security_mode=example_security_mode,
+                snapshot_at=snapshot_at,
             )
     except psycopg.Error as error:
         raise HashPostgresError(f"HASH PostgreSQL selection failed: {error}") from error

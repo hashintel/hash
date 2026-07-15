@@ -18,6 +18,7 @@ from atlas_tools.relation.evaluation.analysis._classifier_data import (
     join_training_data,
     validate_classifier_cohorts,
     validate_grouped_folds,
+    validate_training_cohorts,
 )
 from atlas_tools.relation.evaluation.analysis._classifier_math import (
     applicability,
@@ -175,7 +176,7 @@ def fit_policy_classifier(
 
     """
     data = join_training_data(labels, embeddings, families)
-    validate_classifier_cohorts(families, config)
+    validate_training_cohorts(data, config)
     assignment = grouped_fold_assignment(data, config)
     cross_fit = cross_fit_predictions(
         data,

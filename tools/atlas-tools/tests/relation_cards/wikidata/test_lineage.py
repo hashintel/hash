@@ -17,25 +17,28 @@ from atlas_tools.relation.lineage.api import (
     verify_source_lineage,
 )
 from atlas_tools.relation_cards.common.cards import qualify_relation_id
-from atlas_tools.relation_cards.wikidata.cards import (
+from atlas_tools.relation_cards.wikidata.api import (
     ExtractPaths,
-    _lineage_nodes,
+    backfill_lineage,
     emit_cards,
 )
+from atlas_tools.relation_cards.wikidata.cards import _lineage_nodes
 from atlas_tools.wikidata.cli import RenderCardsCommand
 from atlas_tools.wikidata.config import Config, ExtractionConfig
 from atlas_tools.wikidata.model import Pid, PropertyLineage, PropertyRecord
-from atlas_tools.wikidata.properties import (
+from atlas_tools.wikidata.properties.api import (
     EntityDocument,
     EntityIdValue,
     Snak,
     SnakDataValue,
     Statement,
-    _collect_entity_metadata,
-    _PropertyDocuments,
     extract_properties,
     merge_closed_ancestors,
     parse_property_document,
+)
+from atlas_tools.wikidata.properties.extraction import (
+    _collect_entity_metadata,
+    _PropertyDocuments,
 )
 from atlas_tools.wikidata.records import RECORDS_FORMAT_VERSION, load_records
 from atlas_tools.wikidata.taxonomy import Taxonomy
@@ -142,6 +145,61 @@ def test_records_v4_persist_direct_facts_and_dependency_only_nodes(artifact: _Ar
     assert all(list(row) == sorted(row) for row in rows)
 
 
+def test_backfill_lineage_preserves_exact_card_leaf(artifact: _Artifact, tmp_path: Path) -> None:
+    record_set = load_records(artifact.paths.records.records_jsonl.parent)
+    source = artifact.paths.cards.cards_jsonl.parent
+    paths = backfill_lineage(
+        record_set,
+        cards_directory=source,
+        output_directory=tmp_path / "backfilled-leaf",
+    )
+
+    assert paths.cards_jsonl.read_bytes() == artifact.paths.cards.cards_jsonl.read_bytes()
+    assert paths.manifest.read_bytes() == artifact.paths.cards.manifest.read_bytes()
+    verified = verify_source_lineage(paths.lineage_jsonl.parent)
+    assert verified.manifest.producer == "wikidata.backfill-lineage"
+    assert verified.manifest.details.leaf_card_artifact.cards_hash == sha256_file(
+        artifact.paths.cards.cards_jsonl
+    )
+
+
+def test_backfill_lineage_upgrades_legacy_manifest_identity(
+    artifact: _Artifact,
+    tmp_path: Path,
+) -> None:
+    record_set = load_records(artifact.paths.records.records_jsonl.parent)
+    legacy = tmp_path / "legacy-leaf"
+    legacy.mkdir()
+    shutil.copyfile(artifact.paths.cards.cards_jsonl, legacy / "cards.jsonl")
+    manifest = json.loads(artifact.paths.cards.manifest.read_text(encoding="utf-8"))
+    manifest["details"].pop("snapshot")
+    manifest["details"].pop("relation_source")
+    (legacy / "cards.manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    paths = backfill_lineage(
+        record_set,
+        cards_directory=legacy,
+        output_directory=tmp_path / "migrated-leaf",
+    )
+
+    assert paths.cards_jsonl.read_bytes() == artifact.paths.cards.cards_jsonl.read_bytes()
+    migrated = json.loads(paths.manifest.read_text(encoding="utf-8"))
+    assert migrated["details"]["snapshot"] == {
+        "kind": "wikidata-api-snapshot-date",
+        "value": "2025-06-01",
+    }
+    assert migrated["details"]["relation_source"] == {
+        "local_id_field": "pid",
+        "namespace": "wikidata",
+    }
+    assert verify_source_lineage(paths.lineage_jsonl.parent).manifest.producer == (
+        "wikidata.backfill-lineage"
+    )
+
+
 def test_source_lineage_uses_only_direct_p1647_and_exact_p1696(artifact: _Artifact) -> None:
     paths = artifact.paths.cards
     assert paths.lineage_jsonl == artifact.lineage.lineage_path
@@ -225,6 +283,26 @@ def test_p2302_fallback_never_becomes_a_schema_v1_inverse_edge() -> None:
         "wikidata:P20",
     ]
     assert by_id["wikidata:P4"].inverse_edges == ()
+
+
+def test_self_p1696_is_preserved_as_source_data_but_projects_to_no_edge() -> None:
+    record = parse_property_document(
+        _property_document("P26", p1696_inverse_pids=("P26",)),
+        (EN,),
+    )
+    assert record.p1696_inverse_pids == ("P26",)
+    assert record.inverse_pid == "P26"
+
+    [node] = _lineage_nodes(
+        (
+            PropertyLineage(
+                pid=Pid("P26"),
+                p1696_inverse_pids=record.p1696_inverse_pids,
+            ),
+        )
+    )
+    assert node.relation_id == "wikidata:P26"
+    assert node.inverse_edges == ()
 
 
 def test_direct_property_facts_are_sorted_and_kept_separate_from_card_closure() -> None:

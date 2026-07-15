@@ -12,6 +12,7 @@ from pydantic import (
     PositiveInt,
 )
 
+from atlas_tools.relation.domain.api import FrozenModel as StrictFrozenModel
 from atlas_tools.relation_cards.common.model import RelationCardInput
 
 type ExampleSecurityMode = Literal["none", "all-snapshot-links"]
@@ -23,7 +24,7 @@ class FrozenModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 
-class HashSnapshotIdentity(FrozenModel):
+class HashSnapshotIdentity(StrictFrozenModel):
     """Typed identity of the PostgreSQL snapshot used for HASH extraction."""
 
     kind: Literal["hash-postgres-transaction-time"] = "hash-postgres-transaction-time"

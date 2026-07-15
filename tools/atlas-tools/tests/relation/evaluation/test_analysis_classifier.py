@@ -134,8 +134,17 @@ def test_training_join_rejects_card_drift_and_invalid_closure_rows() -> None:
     with pytest.raises(ValueError, match="relation coverage differs"):
         fit_policy_classifier(labels, (*embeddings, extra), families, config)
 
-    with pytest.raises(ValueError, match="family closure relation coverage differs"):
+    with pytest.raises(ValueError, match="family closure does not cover every labeled relation"):
         fit_policy_classifier(labels, embeddings, families[1:], config)
+
+    closure_only = families[0].model_copy(
+        update={
+            "relation_id": "test:unlabeled",
+            "card_hash": "d" * 64,
+        }
+    )
+    fitted = fit_policy_classifier(labels, embeddings, (*families, closure_only), config)
+    assert "test:unlabeled" not in fitted.fold_by_relation_id
 
     drifted_family = families[0].model_copy(update={"card_hash": "f" * 64})
     with pytest.raises(ValueError, match="family closure card hash differs"):
