@@ -25,6 +25,7 @@ import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 type ItemConfigModalProps = {
   open: boolean;
   onClose: () => void;
+  onGenerationStarted?: () => void;
   /** `null` when configuring a new item whose entity is created lazily */
   itemEntityId: EntityId | null;
   /** Creates the item entity (and dashboard link) on first save/generate */
@@ -59,6 +60,7 @@ const modalInnerShadow =
 export const ItemConfigModal = ({
   open,
   onClose,
+  onGenerationStarted,
   itemEntityId,
   createItemEntity,
   webId,
@@ -79,6 +81,7 @@ export const ItemConfigModal = ({
     createItemEntity,
     webId,
     initialValues,
+    onGenerationStarted,
     onComplete: () => {
       onClose();
       reset();
@@ -103,10 +106,15 @@ export const ItemConfigModal = ({
   );
 
   const handleClose = useCallback(() => {
+    const generationInProgress =
+      state.isLoading && state.step !== "goal" && state.step !== "complete";
     onClose();
+    if (generationInProgress) {
+      return;
+    }
     // Reset state after a delay to avoid UI flash
     setTimeout(reset, 300);
-  }, [onClose, reset]);
+  }, [onClose, reset, state.isLoading, state.step]);
 
   /**
    * Persist any sections with unsaved edits, then close. Per-section save

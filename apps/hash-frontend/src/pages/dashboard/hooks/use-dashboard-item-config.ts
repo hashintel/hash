@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
@@ -91,6 +91,8 @@ type UseDashboardItemConfigParams = {
    * editors when re-configuring an already-configured item.
    */
   initialValues?: DashboardItemInitialValues;
+  /** Called once the flow is running so the dashboard can show its card. */
+  onGenerationStarted?: () => void;
   onComplete?: () => void;
 };
 
@@ -125,6 +127,7 @@ export const useDashboardItemConfig = ({
   createItemEntity,
   webId,
   initialValues,
+  onGenerationStarted,
   onComplete,
 }: UseDashboardItemConfigParams) => {
   /**
@@ -141,6 +144,9 @@ export const useDashboardItemConfig = ({
 
   const [state, setState] = useState<ConfigState>(seededStateRef.current);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const generationActiveRef = useRef(false);
+  const generationFinalizingRef = useRef(false);
+  const generationSettledRef = useRef(false);
 
   const entityIdRef = useRef<EntityId | null>(itemEntityId);
   const pendingEntityCreationRef = useRef<Promise<EntityId> | null>(null);
@@ -173,15 +179,7 @@ export const useDashboardItemConfig = ({
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  /**
-   * @todo could probably use useQuery with pollInterval here
-   */
-  const [fetchFlowRun] = useLazyQuery<
-    GetFlowRunByIdQuery,
-    GetFlowRunByIdQueryVariables
-  >(getFlowRunById, {
-    fetchPolicy: "network-only",
-  });
+  const apolloClient = useApolloClient();
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -189,6 +187,39 @@ export const useDashboardItemConfig = ({
       pollIntervalRef.current = null;
     }
   }, []);
+
+  const markGenerationFailed = useCallback(async () => {
+    try {
+      await updateEntity({
+        variables: {
+          entityUpdate: {
+            entityId: await ensureEntityId(),
+            propertyPatches: [
+              {
+                op: "add",
+                path: [
+                  systemPropertyTypes.configurationStatus.propertyTypeBaseUrl,
+                ],
+                property: {
+                  value: "error",
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+    } catch {
+      /**
+       * The original generation error is more useful to the caller. If this
+       * best-effort status update also fails, the final refetch will expose
+       * whatever state was successfully persisted.
+       */
+    }
+  }, [ensureEntityId, updateEntity]);
 
   /**
    * Update the dashboard item entity with the flow outputs.
@@ -318,6 +349,8 @@ export const useDashboardItemConfig = ({
       }));
 
       // The item is fully configured – let the caller close/refresh.
+      generationActiveRef.current = false;
+      generationSettledRef.current = true;
       onComplete?.();
     },
     [ensureEntityId, updateEntity, onComplete],
@@ -333,11 +366,19 @@ export const useDashboardItemConfig = ({
   const pollFlowForCompletion = useCallback(
     async (flowRunId: string) => {
       try {
-        const { data } = await fetchFlowRun({
+        const { data } = await apolloClient.query<
+          GetFlowRunByIdQuery,
+          GetFlowRunByIdQueryVariables
+        >({
+          query: getFlowRunById,
           variables: { flowRunId },
+          fetchPolicy: "network-only",
         });
 
-        if (!data?.getFlowRunById) {
+        if (
+          generationFinalizingRef.current ||
+          generationSettledRef.current
+        ) {
           return;
         }
 
@@ -363,8 +404,13 @@ export const useDashboardItemConfig = ({
 
         // Check if flow completed
         if (flowRun.status === FlowRunStatus.Completed) {
-          stopPolling();
-          await updateEntityWithFlowOutputs(flowRun);
+          generationFinalizingRef.current = true;
+          try {
+            await updateEntityWithFlowOutputs(flowRun);
+            stopPolling();
+          } finally {
+            generationFinalizingRef.current = false;
+          }
           return;
         }
 
@@ -375,38 +421,46 @@ export const useDashboardItemConfig = ({
           flowRun.status === FlowRunStatus.TimedOut ||
           flowRun.status === FlowRunStatus.Terminated
         ) {
-          stopPolling();
+          generationFinalizingRef.current = true;
 
-          // Update entity status to error
-          await updateEntity({
-            variables: {
-              entityUpdate: {
-                entityId: await ensureEntityId(),
-                propertyPatches: [
-                  {
-                    op: "replace",
-                    path: [
-                      systemPropertyTypes.configurationStatus
-                        .propertyTypeBaseUrl,
-                    ],
-                    property: {
-                      value: "error",
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          try {
+            // Update entity status to error
+            await updateEntity({
+              variables: {
+                entityUpdate: {
+                  entityId: await ensureEntityId(),
+                  propertyPatches: [
+                    {
+                      op: "replace",
+                      path: [
+                        systemPropertyTypes.configurationStatus
+                          .propertyTypeBaseUrl,
+                      ],
+                      property: {
+                        value: "error",
+                        metadata: {
+                          dataTypeId:
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        },
                       },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-          });
+            });
 
-          setState((prev) => ({
-            ...prev,
-            error: flowRun.failureMessage ?? "Flow configuration failed",
-            isLoading: false,
-          }));
+            generationSettledRef.current = true;
+            generationActiveRef.current = false;
+            stopPolling();
+            setState((prev) => ({
+              ...prev,
+              error: flowRun.failureMessage ?? "Flow configuration failed",
+              isLoading: false,
+            }));
+            onComplete?.();
+          } finally {
+            generationFinalizingRef.current = false;
+          }
         }
       } catch (err) {
         // Don't stop polling on transient errors, just log
@@ -415,11 +469,12 @@ export const useDashboardItemConfig = ({
       }
     },
     [
-      fetchFlowRun,
+      apolloClient,
       stopPolling,
       updateEntityWithFlowOutputs,
       updateEntity,
       ensureEntityId,
+      onComplete,
     ],
   );
 
@@ -441,7 +496,13 @@ export const useDashboardItemConfig = ({
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
-      stopPolling();
+      /**
+       * A running generation owns its polling independently of the modal.
+       * This lets it finalize after the modal or dashboard page unmounts.
+       */
+      if (!generationActiveRef.current) {
+        stopPolling();
+      }
     };
   }, [stopPolling]);
 
@@ -462,7 +523,15 @@ export const useDashboardItemConfig = ({
       return;
     }
 
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    generationSettledRef.current = false;
+    generationFinalizingRef.current = false;
+    generationActiveRef.current = true;
+    setState((prev) => ({
+      ...prev,
+      step: "query",
+      isLoading: true,
+      error: null,
+    }));
 
     try {
       // Update the entity with the user's goal and set status to configuring
@@ -538,13 +607,21 @@ export const useDashboardItemConfig = ({
           step: "query",
         }));
 
+        onGenerationStarted?.();
+
         // Start polling for flow completion
         startPolling(data.startFlow);
       } else {
         setError("Failed to start configuration flow");
+        await markGenerationFailed();
+        generationActiveRef.current = false;
+        onComplete?.();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate query");
+      await markGenerationFailed();
+      generationActiveRef.current = false;
+      onComplete?.();
     }
   }, [
     state.userGoal,
@@ -554,6 +631,9 @@ export const useDashboardItemConfig = ({
     updateEntity,
     startFlow,
     startPolling,
+    onGenerationStarted,
+    onComplete,
+    markGenerationFailed,
   ]);
 
   const regenerateQuery = useCallback(async () => {
@@ -627,11 +707,12 @@ export const useDashboardItemConfig = ({
 
         setState((prev) => ({ ...prev, structuralQuery, isLoading: false }));
       } catch (err) {
-        setError(
+        const error =
           err instanceof Error
-            ? err.message
-            : "Failed to save structural query",
-        );
+            ? err
+            : new Error("Failed to save structural query");
+        setError(error.message);
+        throw error;
       }
     },
     [updateEntity, ensureEntityId, setError],
@@ -668,9 +749,10 @@ export const useDashboardItemConfig = ({
 
         setState((prev) => ({ ...prev, pythonScript, isLoading: false }));
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to save python script",
-        );
+        const error =
+          err instanceof Error ? err : new Error("Failed to save python script");
+        setError(error.message);
+        throw error;
       }
     },
     [updateEntity, ensureEntityId, setError],
@@ -709,9 +791,10 @@ export const useDashboardItemConfig = ({
 
         setState((prev) => ({ ...prev, chartConfig, isLoading: false }));
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to save chart config",
-        );
+        const error =
+          err instanceof Error ? err : new Error("Failed to save chart config");
+        setError(error.message);
+        throw error;
       }
     },
     [updateEntity, ensureEntityId, setError],
@@ -794,6 +877,9 @@ export const useDashboardItemConfig = ({
 
   const reset = useCallback(() => {
     stopPolling();
+    generationActiveRef.current = false;
+    generationFinalizingRef.current = false;
+    generationSettledRef.current = false;
     setState(seededStateRef.current);
   }, [stopPolling]);
 

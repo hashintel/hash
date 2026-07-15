@@ -79,7 +79,20 @@ export const DashboardItem = ({
   hoveredEntityId,
   onHoveredEntityChange,
 }: DashboardItemProps) => {
-  const { configurationStatus, title, entityId } = item;
+  const {
+    chartConfig,
+    chartType,
+    configurationStatus,
+    title,
+    entityId,
+  } = item;
+
+  const isRegenerating =
+    configurationStatus === "configuring" && !!chartType && !!chartConfig;
+
+  const displayedItem = isRegenerating
+    ? { ...item, configurationStatus: "ready" as const }
+    : item;
 
   const {
     data: chartData,
@@ -88,7 +101,7 @@ export const DashboardItem = ({
     refresh,
   } = useDashboardItemData({
     itemEntityId: entityId,
-    enabled: configurationStatus === "ready",
+    enabled: configurationStatus === "ready" || isRegenerating,
   });
 
   const handleRefreshClick = useCallback(() => {
@@ -176,6 +189,14 @@ export const DashboardItem = ({
                 {title}
               </Typography>
             )}
+            {configurationStatus === "configuring" && (
+              <CircularProgress
+                size={12}
+                aria-label={
+                  isRegenerating ? "Regenerating item" : "Generating new item"
+                }
+              />
+            )}
             {configurationStatus === "ready" && (
               <ButtonBase
                 onClick={handleRefreshClick}
@@ -234,9 +255,9 @@ export const DashboardItem = ({
 
       {/* Content */}
       {!isMinimized && (
-        <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
+        <Box sx={{ flex: 1, p: 1, minHeight: 0, position: "relative" }}>
           <DashboardItemContent
-            item={item}
+            item={displayedItem}
             chartData={chartData}
             dataLoading={dataLoading}
             dataError={dataError}
@@ -246,6 +267,30 @@ export const DashboardItem = ({
             hoveredEntityId={hoveredEntityId}
             onHoveredEntityChange={onHoveredEntityChange}
           />
+          {isRegenerating && (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 8,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1.5,
+                borderRadius: "8px",
+                backgroundColor: "rgba(255, 255, 255, 0.78)",
+                backdropFilter: "blur(2px)",
+              }}
+            >
+              <CircularProgress size={32} />
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{ color: ({ palette }) => palette.gray[70] }}
+              >
+                Regenerating item...
+              </Typography>
+            </Box>
+          )}
         </Box>
       )}
     </Box>

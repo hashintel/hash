@@ -97,7 +97,7 @@ export const DashboardItemContent = ({
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.gray[70] }}
           >
-            AI is configuring your chart...
+            Generating new item...
           </Typography>
         </CenteredMessage>
       );

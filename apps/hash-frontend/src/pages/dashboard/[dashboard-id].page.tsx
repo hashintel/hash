@@ -479,6 +479,10 @@ const DashboardPage: NextPageWithLayout = () => {
     void refetch();
   }, [refetch]);
 
+  const handleItemGenerationStarted = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
   if (loading && !dashboard) {
     return (
       <DashboardContainer
@@ -553,6 +557,7 @@ const DashboardPage: NextPageWithLayout = () => {
           key={selectedItem?.entityId ?? "new-item"}
           open={configModalOpen}
           onClose={handleCloseConfigModal}
+          onGenerationStarted={handleItemGenerationStarted}
           itemEntityId={selectedItem?.entityId ?? null}
           createItemEntity={createItemEntity}
           webId={activeWorkspaceWebId}
