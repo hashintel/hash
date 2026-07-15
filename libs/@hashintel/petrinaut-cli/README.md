@@ -1,11 +1,32 @@
 # `@hashintel/petrinaut-cli`
 
-Internal Unix-socket CLI for running one Petrinaut model repeatedly from
-scripts, Python optimization loops, or backend jobs.
+Internal JSON-lines CLI for running one Petrinaut model repeatedly from scripts,
+Python optimization loops, or backend jobs.
 
 `petrinaut serve` is a long-lived process. It loads Petrinaut Core once,
 compiles one model once, then accepts one simulation request per parameter set.
-It does not expose HTTP or TCP.
+It supports stdin/stdout by default or an explicit Unix socket. It does not
+expose HTTP or TCP.
+
+See [Using Petrinaut CLI from Python](./PYTHON_INTEGRATION.md) for a compact
+stdio wrapper and Optuna example.
+
+## Transports
+
+With no transport flag, JSON lines are read from stdin and written to stdout:
+
+```bash
+petrinaut serve --model ./model.json
+```
+
+The explicit equivalent is `--stdio`. To use a Unix socket instead, pass
+`--socket <path>`:
+
+```bash
+petrinaut serve --model ./model.json --socket /tmp/petrinaut.sock
+```
+
+`--stdio` and `--socket` are mutually exclusive; passing both is an error.
 
 ## Example Flow
 
@@ -15,7 +36,7 @@ Build first:
 turbo --filter @hashintel/petrinaut-cli build
 ```
 
-Start the model process:
+Start the model process with the Unix-socket transport:
 
 ```bash
 yarn workspace @hashintel/petrinaut-cli serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock
@@ -60,9 +81,33 @@ objective = result["metrics"]["Infected Fraction"]
 
 Example JSON models copied from Petrinaut Core live in `examples/`.
 
-## Socket Protocol
+### Python stdio client
 
-Send one JSON object per line to the socket. Read one JSON object per line back.
+`examples/python_stdio.py` launches the CLI using its native JSON-lines stdio
+transport. It uses only the Python standard library.
+
+After building the CLI, run the complete SIR example:
+
+```bash
+python3 libs/@hashintel/petrinaut-cli/examples/python_stdio.py --demo
+```
+
+Or forward raw protocol requests over stdio:
+
+```bash
+printf '%s\n' \
+  '{"id":1,"method":"run","params":{"parameters":{"infection_rate":1.5,"recovery_rate":0.8},"initialState":{"Susceptible":990,"Infected":10,"Recovered":0},"metrics":["Infected Fraction"],"maxSteps":100,"dt":0.1,"seed":4242}}' \
+  | python3 libs/@hashintel/petrinaut-cli/examples/python_stdio.py \
+      --model libs/@hashintel/petrinaut-cli/examples/sir-model.json
+```
+
+The `PetrinautClient` class can also be imported directly into an Optuna
+script and reused across trials.
+
+## JSON-lines Protocol
+
+Send one JSON object per line and read one JSON object per line back over the
+selected transport.
 
 Request:
 

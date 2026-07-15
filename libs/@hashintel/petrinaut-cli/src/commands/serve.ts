@@ -6,25 +6,13 @@ import { compilePetrinautModel } from "@hashintel/petrinaut-core";
 
 import { loadSdcpnModel } from "../runtime/load-model";
 import {
-  parseServerRunRequest,
-  toPetrinautRunConfig,
-} from "../runtime/run-request";
+  handleProtocolLine,
+  MAX_REQUEST_LINE_BYTES,
+} from "../runtime/protocol";
 
 type ServeOptions = {
   modelPath: string;
   socketPath: string;
-};
-
-const MAX_BODY_BYTES = 10 * 1024 * 1024;
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-type SocketRequest = {
-  id?: unknown;
-  method?: unknown;
-  params?: unknown;
 };
 
 function writeResponse(socket: Socket, value: unknown): void {
@@ -54,49 +42,10 @@ export async function serve(options: ServeOptions): Promise<void> {
     activeSockets.add(socket);
     let buffer = "";
 
-    const handleLine = (line: string): void => {
-      if (line.trim() === "") {
-        return;
-      }
-
-      let id: unknown = null;
-      try {
-        const request = JSON.parse(line) as SocketRequest;
-        id = request.id ?? null;
-        if (typeof request.method !== "string") {
-          throw new Error("Request method must be a string");
-        }
-
-        switch (request.method) {
-          case "healthz":
-            writeResponse(socket, { id, result: { ok: true } });
-            return;
-          case "metadata":
-            writeResponse(socket, { id, result: model.metadata });
-            return;
-          case "run": {
-            const runRequest = parseServerRunRequest(request.params ?? {});
-            const result = model.run(
-              toPetrinautRunConfig(model.metadata, runRequest),
-            );
-            writeResponse(socket, { id, result });
-            return;
-          }
-          default:
-            throw new Error(`Unknown method "${request.method}"`);
-        }
-      } catch (error) {
-        writeResponse(socket, {
-          id,
-          error: { message: getErrorMessage(error) },
-        });
-      }
-    };
-
     socket.setEncoding("utf8");
     socket.on("data", (chunk) => {
       buffer += chunk;
-      if (Buffer.byteLength(buffer, "utf8") > MAX_BODY_BYTES) {
+      if (Buffer.byteLength(buffer, "utf8") > MAX_REQUEST_LINE_BYTES) {
         writeResponse(socket, {
           id: null,
           error: { message: "Request line is too large" },
@@ -109,14 +58,16 @@ export async function serve(options: ServeOptions): Promise<void> {
       while (newlineIndex !== -1) {
         const line = buffer.slice(0, newlineIndex);
         buffer = buffer.slice(newlineIndex + 1);
-        handleLine(line);
+        handleProtocolLine(model, line, (value) => writeResponse(socket, value));
         newlineIndex = buffer.indexOf("\n");
       }
     });
 
     socket.on("end", () => {
       if (buffer.trim() !== "") {
-        handleLine(buffer);
+        handleProtocolLine(model, buffer, (value) =>
+          writeResponse(socket, value),
+        );
       }
     });
     socket.on("error", () => {

@@ -2,7 +2,7 @@
   "name": "@hashintel/petrinaut-cli",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Internal Unix-socket CLI for Petrinaut simulations",
+  "description": "Internal JSON-lines CLI for Petrinaut simulations",
   "license": "(MIT OR Apache-2.0)",
   "bin": {
     "petrinaut": "./dist/cli.js",
