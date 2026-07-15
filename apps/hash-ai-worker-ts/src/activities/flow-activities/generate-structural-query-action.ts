@@ -282,7 +282,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         },
         limit: {
           type: "number",
-          description: "Maximum number of results to return (default 10)",
+          description: "Maximum number of results to return (default 100)",
         },
       },
       required: ["filter"],
