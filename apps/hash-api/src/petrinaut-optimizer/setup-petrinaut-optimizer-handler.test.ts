@@ -6,11 +6,7 @@ import {
   setupPetrinautOptimizerHandler,
 } from "./setup-petrinaut-optimizer-handler";
 
-import type {
-  Express,
-  Request,
-  Response as ExpressResponse,
-} from "express";
+import type { Express, Request, Response as ExpressResponse } from "express";
 
 const logger = { warn: () => undefined };
 
@@ -115,5 +111,18 @@ describe(PETRINAUT_OPTIMIZER_STATUS_PATH, () => {
       statusCode: 200,
     });
     expect(requestedUrls).toEqual(["http://petrinaut-opt:4004/status"]);
+  });
+
+  it("rejects an invalid optimizer status", async () => {
+    const result = await callHandler({
+      origin: new URL("http://petrinaut-opt:4004"),
+      fetchImpl: async () => Response.json({ phase: "unknown" }),
+    });
+
+    expect(result).toEqual({
+      body: { error: "Petrinaut optimizer is unavailable" },
+      registeredPath: PETRINAUT_OPTIMIZER_STATUS_PATH,
+      statusCode: 503,
+    });
   });
 });
