@@ -317,6 +317,44 @@ describe("dashboardItemData analysis", () => {
     expect(workflowResult).not.toHaveBeenCalled();
   });
 
+  it("returns a completed workflow's artifact when it becomes available", async () => {
+    workflowStart.mockRejectedValue(
+      new WorkflowExecutionAlreadyStartedError(
+        "already started",
+        `compute-dashboard-item-${WEB_ID}-${configHash}`,
+        "computeDashboardItemData",
+      ),
+    );
+    workflowDescribe.mockResolvedValue({ status: { name: "COMPLETED" } });
+    workflowResult.mockImplementation(async () => {
+      artifactLastModified = new Date();
+      return {};
+    });
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("ready");
+    expect(result.artifacts).toHaveLength(1);
+    expect(workflowResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("errors when a completed workflow did not produce an artifact", async () => {
+    workflowStart.mockRejectedValue(
+      new WorkflowExecutionAlreadyStartedError(
+        "already started",
+        `compute-dashboard-item-${WEB_ID}-${configHash}`,
+        "computeDashboardItemData",
+      ),
+    );
+    workflowDescribe.mockResolvedValue({ status: { name: "COMPLETED" } });
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/without producing a chart data artifact/i);
+    expect(workflowResult).toHaveBeenCalledTimes(1);
+  });
+
   it("surfaces the result of a failed workflow without starting another run", async () => {
     workflowStart.mockRejectedValue(
       new WorkflowExecutionAlreadyStartedError(

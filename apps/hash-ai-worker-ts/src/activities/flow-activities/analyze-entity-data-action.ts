@@ -272,27 +272,6 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
     };
   }
 
-  // Execute the query to get entity data
-  const { subgraph } = await queryEntitySubgraph(
-    { graphApi: graphApiClient },
-    webMachineAuthentication,
-    {
-      filter: scopeFilterToWeb(queryDefinition.filter, webId),
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: almostFullOntologyResolveDepths,
-      traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
-      includeDrafts: false,
-      includePermissions: false,
-    },
-  );
-
-  // Convert to simple graph format for LLM
-  const { entities: simpleEntities, entityTypes } = getSimpleGraph(subgraph);
-  const entityDataJson = JSON.stringify({
-    entities: simpleEntities,
-    entityTypes,
-  });
-
   /**
    * The `targetChartType` input is either a single chart type, or a JSON
    * array of suggested chart types produced by the query-generation step.
@@ -327,6 +306,27 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
   };
 
   try {
+    // Execute the query to get entity data
+    const { subgraph } = await queryEntitySubgraph(
+      { graphApi: graphApiClient },
+      webMachineAuthentication,
+      {
+        filter: scopeFilterToWeb(queryDefinition.filter, webId),
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
+        includeDrafts: false,
+        includePermissions: false,
+      },
+    );
+
+    // Convert to simple graph format for LLM
+    const { entities: simpleEntities, entityTypes } = getSimpleGraph(subgraph);
+    const entityDataJson = JSON.stringify({
+      entities: simpleEntities,
+      entityTypes,
+    });
+
     const { pythonScript, chartData, suggestedChartType, explanation } =
       await runAgenticToolLoop<ToolName, LoopResult>({
         model,

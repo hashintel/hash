@@ -53,6 +53,7 @@ import type {
   PropertyWithMetadata,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type {
@@ -361,6 +362,7 @@ const propertiesForDemoItem = (item: DemoItem, index: number) => ({
 const cleanUpBrokenItems = async (
   context: ImpureGraphContext<false, true>,
   authentication: AuthenticationContext,
+  webId: WebId,
 ) => {
   const { entities: items } = await queryEntities(
     { graphApi: context.graphApi },
@@ -376,6 +378,7 @@ const cleanUpBrokenItems = async (
               },
             ],
           },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
@@ -433,6 +436,7 @@ const cleanUpBrokenItems = async (
                 { parameter: extractEntityUuidFromEntityId(itemEntityId) },
               ],
             },
+            { equal: [{ path: ["webId"] }, { parameter: webId }] },
             { equal: [{ path: ["archived"] }, { parameter: false }] },
           ],
         },
@@ -508,7 +512,7 @@ const seedDashboardDemo = async () => {
   const authentication = { actorId: alice.accountId };
 
   /* Remove partially-configured items left behind by failed config flows. */
-  const cleanedUp = await cleanUpBrokenItems(context, authentication);
+  const cleanedUp = await cleanUpBrokenItems(context, authentication, webId);
   if (cleanedUp > 0) {
     logger.info(`Archived ${cleanedUp} broken dashboard item(s).`);
   }

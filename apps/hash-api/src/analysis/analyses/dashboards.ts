@@ -40,6 +40,8 @@ const DASHBOARD_ITEM_DATA_TTL_MS = 15 * 60 * 1000;
 /** Client poll hint while a computation is in flight. */
 const COMPUTING_RETRY_AFTER_MS = 3_000;
 
+type ComputeWorkflowState = "started" | "running" | "completed";
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -67,7 +69,7 @@ const startComputeWorkflow = async (params: {
   structuralQuery: unknown;
   pythonScript: string;
   storageKey: string;
-}): Promise<void> => {
+}): Promise<ComputeWorkflowState> => {
   const {
     ctx,
     configHash,
@@ -111,6 +113,7 @@ const startComputeWorkflow = async (params: {
         retry: { maximumAttempts: 1 },
       },
     );
+    return "started";
   } catch (error) {
     if (error instanceof WorkflowExecutionAlreadyStartedError) {
       const handle = ctx.temporalClient.workflow.getHandle(workflowId);
@@ -120,7 +123,7 @@ const startComputeWorkflow = async (params: {
         description.status.name === "RUNNING" ||
         description.status.name === "PAUSED"
       ) {
-        return;
+        return "running";
       }
 
       try {
@@ -133,7 +136,7 @@ const startComputeWorkflow = async (params: {
         );
       }
 
-      return;
+      return "completed";
     }
     throw error;
   }
@@ -235,7 +238,7 @@ const dashboardItemData: NamedAnalysis = {
     const lastModified = await ctx.getArtifactLastModified(storageKey);
 
     if (!lastModified || force) {
-      await startComputeWorkflow({
+      const workflowState = await startComputeWorkflow({
         ctx,
         configHash,
         sourceArtifactLastModified: lastModified,
@@ -243,6 +246,23 @@ const dashboardItemData: NamedAnalysis = {
         pythonScript,
         storageKey,
       });
+
+      if (workflowState === "completed") {
+        const completedArtifactLastModified =
+          await ctx.getArtifactLastModified(storageKey);
+
+        if (!completedArtifactLastModified) {
+          throw new AnalysisExecutionError(
+            "Dashboard item computation completed without producing a chart data artifact",
+          );
+        }
+
+        return {
+          status: "ready",
+          artifacts: [{ name: "chartData", key: storageKey }],
+        };
+      }
+
       return { status: "computing", retryAfterMs: COMPUTING_RETRY_AFTER_MS };
     }
 

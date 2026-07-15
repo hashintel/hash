@@ -114,6 +114,14 @@ const DashboardPage: NextPageWithLayout = () => {
   const [hoveredEntityId, setHoveredEntityId] = useState<EntityId | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setIsEditing(false);
+    setConfigModalOpen(false);
+    setSelectedItem(null);
+    setIsAddingNewItem(false);
+    setHoveredEntityId(null);
+  }, [dashboardUuid]);
+
   // Listen for fullscreen changes (e.g., user pressing Escape)
   useEffect(() => {
     const handleFullscreenChange = () => {

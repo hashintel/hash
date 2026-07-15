@@ -453,7 +453,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
 
   /**
    * Canonical keys of the (filter, traversalPaths) combinations that a
-   * test_query has run successfully (returning at least one entity).
+   * test_query has executed without error.
    * submit_query is only accepted for a combination in this set, so the
    * submitted query is guaranteed to have been verified as-is.
    */
@@ -556,9 +556,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
                 )}\n… (results truncated – rely on the entities shown above)`;
               }
 
-              if (simpleEntities.length > 0) {
-                testedQueryKeys.add(queryKey(filter, traversalPaths));
-              }
+              testedQueryKeys.add(queryKey(filter, traversalPaths));
 
               return {
                 kind: "tool-result",

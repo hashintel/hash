@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, TextArea, TextInput } from "@hashintel/ds-components";
 
@@ -29,8 +29,15 @@ export const DashboardHeader = ({
   const [editedTitle, setEditedTitle] = useState(title);
   const [editedDescription, setEditedDescription] = useState(description ?? "");
 
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedTitle(title);
+      setEditedDescription(description ?? "");
+    }
+  }, [description, isEditing, title]);
+
   const handleSave = () => {
-    if (editedTitle !== title || editedDescription !== description) {
+    if (editedTitle !== title || editedDescription !== (description ?? "")) {
       onTitleOrDescriptionChange(editedTitle, editedDescription);
     }
     onEditToggle();
