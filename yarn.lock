@@ -38553,9 +38553,9 @@ __metadata:
   linkType: hard
 
 "serialize-javascript@npm:^7.0.3":
-  version: 7.0.4
-  resolution: "serialize-javascript@npm:7.0.4"
-  checksum: 10c0/f3da6f994c41306fbfabb55eefe280a46da05592939a84b0d95c84e296c92ba9e6a3d86cf7bbd71e7a59e1cfcd8481745910af109bedbd3ed853b444d32f9ee9
+  version: 7.0.7
+  resolution: "serialize-javascript@npm:7.0.7"
+  checksum: 10c0/b8fb3de1484682e3bd7649e12e81ef119c9873537c07bf7ed8c8836fb30be6587679d7c18e445eb80e97c23c9df6390e4da65bef093f2d89fb6dfc10da991b6a
   languageName: node
   linkType: hard
 

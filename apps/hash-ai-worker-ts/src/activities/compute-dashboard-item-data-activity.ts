@@ -22,17 +22,6 @@ import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage
 import type { GraphApi } from "@local/hash-graph-client";
 import type { StructuralQueryDefinition } from "@local/hash-isomorphic-utils/dashboard-types";
 
-/**
- * Cap the number of entities loaded for a dashboard item, to bound memory
- * usage in the worker and the size of the dataset passed to the Python
- * sandbox.
- *
- * The graph rejects queries whose limit exceeds its configured maximum
- * (`HASH_GRAPH_QUERY_ENTITY_LIMIT`, 1000 by default), so this must not be
- * raised above that without also raising the graph's limit.
- */
-const MAXIMUM_ENTITY_COUNT = 1_000;
-
 const SECONDS_BETWEEN_HEARTBEATS = 10;
 
 /**
@@ -76,7 +65,6 @@ export const computeDashboardItemDataActivity = async (
         traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
         includeDrafts: false,
         includePermissions: false,
-        limit: MAXIMUM_ENTITY_COUNT,
       },
     );
 
