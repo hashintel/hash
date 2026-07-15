@@ -13,6 +13,7 @@ const lambdaContext: HirLambdaContext = {
   parameters: [],
   inputPlaces: [],
   inputSlots: [],
+  places: [],
   lambdaType: "stochastic",
 };
 

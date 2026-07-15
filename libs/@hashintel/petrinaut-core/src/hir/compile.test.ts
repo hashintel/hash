@@ -48,7 +48,7 @@ describe("compileHirArtifacts on example models", () => {
     (_name, sdcpn) => {
       const { artifacts, failures } = compileHirArtifacts(sdcpn);
       expect(failures).toEqual([]);
-      expect(artifacts.version).toBe(4);
+      expect(artifacts.version).toBe(5);
       expect(artifacts.fingerprint).toMatch(/^[0-9a-f]{16}$/);
 
       const colorById = new Map(
@@ -113,6 +113,7 @@ describe("compileHirArtifacts on example models", () => {
       for (const artifact of Object.values(artifacts.lambdas)) {
         expect(typeof artifact.source).toBe("string");
         expect(typeof artifact.inputSlotCount).toBe("number");
+        expect(Array.isArray(artifact.placeIds)).toBe(true);
       }
       for (const artifact of Object.values(artifacts.kernels)) {
         expect(typeof artifact.source).toBe("string");

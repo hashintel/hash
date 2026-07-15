@@ -151,7 +151,7 @@ function packToken(token: TokenRecord, pool: StringPool) {
 }
 
 describe("compileHirArtifacts", () => {
-  it("emits stable v4 artifact shapes", () => {
+  it("emits stable v5 artifact shapes", () => {
     const artifacts = compile();
 
     expect({
@@ -187,7 +187,8 @@ describe("compileHirArtifacts", () => {
         },
         "lambda": {
           "inputSlotCount": 1,
-          "source": "(f64, u64, u8, placeBases, indices) => {
+          "placeIds": [],
+          "source": "(f64, u64, u8, placeBases, indices, placeCounts) => {
         return ((u8[placeBases[0] + indices[0] * 24 + 16] !== 0) && (f64[(placeBases[0] + indices[0] * 24) >> 3] >= __params["threshold"]));
       }",
         },
@@ -205,7 +206,7 @@ describe("compileHirArtifacts", () => {
         return count;
       }",
         },
-        "version": 4,
+        "version": 5,
       }
     `);
   });
@@ -229,9 +230,16 @@ describe("compileHirArtifacts", () => {
       { x: 4, active: false, status: "queued" },
     ]) {
       const views = packToken(token, pool);
-      expect(buffer(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-        reference({ Source: [token] }, parameters),
-      );
+      expect(
+        buffer(
+          views.f64,
+          views.u64,
+          views.u8,
+          placeBases,
+          indices,
+          new Uint32Array(),
+        ),
+      ).toBe(reference({ Source: [token] }, parameters));
     }
   });
 });

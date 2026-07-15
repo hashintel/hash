@@ -69,9 +69,9 @@ function validateHirArtifacts(
   }
 
   const runtimeVersion: unknown = (artifacts as { version?: unknown }).version;
-  if (runtimeVersion !== 4) {
+  if (runtimeVersion !== 5) {
     throw new Error(
-      `The compiled HIR artifacts use unsupported version ${String(runtimeVersion)}; expected version 4. Recompile them from the current net.`,
+      `The compiled HIR artifacts use unsupported version ${String(runtimeVersion)}; expected version 5. Recompile them from the current net.`,
     );
   }
 
@@ -225,6 +225,13 @@ function sourceItemId(flattenedId: string): string {
     : flattenedId.slice(separatorIndex + 2);
 }
 
+function scopeSourceItemId(flattenedItemId: string, sourceId: string): string {
+  const separatorIndex = flattenedItemId.lastIndexOf("::");
+  return separatorIndex === -1
+    ? sourceId
+    : `${flattenedItemId.slice(0, separatorIndex)}::${sourceId}`;
+}
+
 /** Error for items whose code has no compiled artifact (outside the
  * supported subset, or artifacts not supplied). */
 function missingArtifactError(
@@ -317,6 +324,7 @@ function createLambdaFn({
   parameterValues,
   artifact,
   expectedSlotCount,
+  placeIndexById,
   stringPool,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
@@ -325,6 +333,7 @@ function createLambdaFn({
   parameterValues: ParameterValues;
   artifact: HirLambdaArtifact | undefined;
   expectedSlotCount: number;
+  placeIndexById: ReadonlyMap<string, number>;
   stringPool: StringPool;
 }): HirCompiledBufferLambda {
   const availability = getTransitionLogicAvailability(
@@ -350,11 +359,25 @@ function createLambdaFn({
     );
   }
 
+  const placeIndices = new Int32Array(artifact.placeIds.length);
+  for (const [ordinal, sourcePlaceId] of artifact.placeIds.entries()) {
+    const flattenedPlaceId = scopeSourceItemId(transition.id, sourcePlaceId);
+    const placeIndex = placeIndexById.get(flattenedPlaceId);
+    if (placeIndex === undefined) {
+      throw new SDCPNItemError(
+        `The compiled Lambda for transition \`${transition.name}\` references place ID \`${sourcePlaceId}\`, which cannot be resolved in this simulation instance. Recompile the artifacts from the current net.`,
+        transition.id,
+      );
+    }
+    placeIndices[ordinal] = placeIndex;
+  }
+
   try {
     return instantiateHirBufferLambda(
       artifact.source,
       parameterValues,
       stringPool,
+      placeIndices,
     );
   } catch (error) {
     throw new SDCPNItemError(
@@ -442,6 +465,7 @@ function createCompiledTransition({
   lambdaArtifact,
   kernelArtifact,
   stringPool,
+  placeIndexById,
 }: {
   transition: SimulationInput["sdcpn"]["transitions"][number];
   sdcpn: SimulationInput["sdcpn"];
@@ -453,6 +477,7 @@ function createCompiledTransition({
   lambdaArtifact: HirLambdaArtifact | undefined;
   kernelArtifact: HirKernelArtifact | undefined;
   stringPool: StringPool;
+  placeIndexById: ReadonlyMap<string, number>;
 }): CompiledTransition {
   const expectedSlotCount = computeInputSlotCount(
     transition,
@@ -472,6 +497,7 @@ function createCompiledTransition({
     parameterValues,
     artifact: lambdaArtifact,
     expectedSlotCount,
+    placeIndexById,
     stringPool,
   });
   const kernelFn = createTransitionKernelFn({
@@ -618,6 +644,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     sdcpn.transitions.map((transition) => [transition.id, transition]),
   );
   const typesMap = new Map(sdcpn.types.map((type) => [type.id, type]));
+  const frameLayout = createEngineFrameLayout(sdcpn);
 
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
@@ -734,13 +761,13 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         kernelArtifact:
           input.hirArtifacts?.kernels[sourceItemId(transition.id)],
         stringPool,
+        placeIndexById: frameLayout.placeIndexById,
       }),
     );
   }
 
   // Calculate buffer size and build place states
   let bufferByteSize = 0;
-  const frameLayout = createEngineFrameLayout(sdcpn);
   const placeStates: EngineFrameSnapshot["places"] = {};
 
   for (const [placeIndex, placeId] of frameLayout.placeIds.entries()) {

@@ -45,6 +45,10 @@ const lambdaContext: HirLambdaContext = {
   parameters: [{ name: "rate", type: "real" }],
   inputPlaces: [poolBinding],
   inputSlots: [{ ...poolBinding, slotStart: 0 }],
+  places: [
+    { id: "pool", name: "Pool" },
+    { id: "out", name: "Out" },
+  ],
   lambdaType: "stochastic",
 };
 
@@ -91,6 +95,21 @@ describe("lintHirUserCode", () => {
         kernelContext,
       ),
     ).toEqual([]);
+  });
+
+  it("types the count-only third Lambda parameter", () => {
+    expect(
+      codes(
+        `export default Lambda((input, parameters, places) => places.Pool.count + places.Out.count);`,
+        lambdaContext,
+      ),
+    ).toEqual([]);
+    expect(
+      codes(
+        `export default Lambda((input, parameters, places) => places.Missing.count);`,
+        lambdaContext,
+      ),
+    ).toContainEqual(["hir:unknown-field", "error"]);
   });
 
   it("reports out-of-subset code as an error by default", () => {

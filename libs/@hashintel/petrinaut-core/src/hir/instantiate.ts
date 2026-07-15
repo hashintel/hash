@@ -52,6 +52,8 @@ export type HirCompiledBufferLambda = (
   u8: Uint8Array,
   placeBases: Int32Array,
   indices: Int32Array,
+  /** Dense per-place token counts from the current frame. */
+  placeCounts: Uint32Array,
 ) => number | boolean;
 
 /**
@@ -86,6 +88,9 @@ export type HirLambdaArtifact = {
   source: string;
   /** Expected `indices.length` — engine-side sanity check. */
   inputSlotCount: number;
+  /** Net-local IDs referenced through the optional third Lambda parameter,
+   * in `__places` ordinal order. */
+  placeIds: string[];
 };
 
 export type HirKernelArtifact = {
@@ -112,7 +117,7 @@ export type HirMetricArtifact = {
  * `compileHirArtifacts`; the engine has no other compilation path.
  */
 export type HirArtifacts = {
-  version: 4;
+  version: 5;
   /** Hash of the sanitized SDCPN + extensions used during compilation. */
   fingerprint: string;
   dynamics: Record<string, HirDynamicsArtifact>;
@@ -184,11 +189,20 @@ export function instantiateHirBufferLambda(
   source: string,
   parameterValues: HirParameterValues,
   stringPool: HirStringPool,
+  placeIndices: Int32Array = new Int32Array(),
 ): HirCompiledBufferLambda {
-  return instantiate(
-    source,
+  // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+  return new Function(
+    "__dist",
+    "__params",
+    "__pool",
+    "__places",
+    `"use strict"; return (${source});`,
+  )(
+    hirDistributionRuntime,
     parameterValues,
     stringPool,
+    placeIndices,
   ) as HirCompiledBufferLambda;
 }
 

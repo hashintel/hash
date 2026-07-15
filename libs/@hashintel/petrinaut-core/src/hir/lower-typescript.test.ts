@@ -31,6 +31,30 @@ function lowerErr(
 }
 
 describe("lowerTypeScriptToHir", () => {
+  it("accepts an optional third parameter for Lambdas only", () => {
+    const lambda = lowerTypeScriptToHir(
+      `export default Lambda((input, parameters, places) => places.Source.count > 0);`,
+      "lambda",
+    );
+    expect(lambda.ok).toBe(true);
+    if (lambda.ok) {
+      expect(lambda.fn.params.map((parameter) => parameter.name)).toEqual([
+        "input",
+        "parameters",
+        "places",
+      ]);
+    }
+
+    const kernel = lowerTypeScriptToHir(
+      `export default TransitionKernel((input, parameters, places) => ({}));`,
+      "kernel",
+    );
+    expect(kernel.ok).toBe(false);
+    if (!kernel.ok) {
+      expect(kernel.diagnostics[0]?.code).toBe("hir:too-many-parameters");
+    }
+  });
+
   describe("module shape", () => {
     it("lowers the default dynamics template", () => {
       const fn = lowerOk(

@@ -163,6 +163,22 @@ describe("SDCPNLanguageServer completions", () => {
       expect(names).not.toContain("Array");
     });
 
+    it("returns every place and its count through the third Lambda parameter", () => {
+      const placeNames = getCompletionNames(
+        baseSdcpn,
+        `export default Lambda((input, parameters, places) => {\n  return places.${CURSOR};\n});`,
+        { type: "transition-lambda" },
+      );
+      expect(placeNames).toEqual(expect.arrayContaining(["Source", "Target"]));
+
+      const stateNames = getCompletionNames(
+        baseSdcpn,
+        `export default Lambda((input, parameters, places) => {\n  return places.Source.${CURSOR};\n});`,
+        { type: "transition-lambda" },
+      );
+      expect(stateNames).toContain("count");
+    });
+
     it("returns token properties after `input.Source[0].`", () => {
       const names = getCompletionNames(
         baseSdcpn,

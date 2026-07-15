@@ -72,6 +72,10 @@ const lambdaContext: HirLambdaContext = {
   ],
   inputPlaces: [(({ slotStart: _s, ...binding }) => binding)(poolSlot)],
   inputSlots: [poolSlot],
+  places: [
+    { id: "pool", name: "Pool" },
+    { id: "buffer", name: "Buffer" },
+  ],
   lambdaType: "stochastic",
 };
 
@@ -111,6 +115,37 @@ function compileLambda(code: string, pool: StringPool, parameters = {}) {
 }
 
 describe("emitBufferLambdaJs (token format v2)", () => {
+  it("reads place counts through the optional third parameter", () => {
+    const pool = new StringPool();
+    const program = emitBufferLambdaJs(
+      lower(
+        `export default Lambda((input, parameters, places) => places.Pool.count + places.Buffer.count);`,
+        "lambda",
+      ),
+      lambdaContext,
+    );
+    expect(program).not.toBeNull();
+    expect(program!.placeIds).toEqual(["pool", "buffer"]);
+    const fn = instantiateHirBufferLambda(
+      program!.source,
+      {},
+      pool,
+      new Int32Array([1, 0]),
+    );
+    const { views, placeBases, indices } = makeRegion(pool);
+
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Uint32Array([4, 7]),
+      ),
+    ).toBe(11);
+  });
+
   it("reads real/boolean attributes at packed byte offsets", () => {
     const pool = new StringPool();
     const { views, placeBases, indices } = makeRegion(pool);
@@ -118,9 +153,16 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].alive ? input.Pool[0].x + input.Pool[1].v : 0);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-      1.5 + 8,
-    );
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Uint32Array(),
+      ),
+    ).toBe(1.5 + 8);
   });
 
   it("resolves interned strings through the pool", () => {
@@ -130,7 +172,16 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].status === "shipped" && input.Pool[1].status.startsWith("q"));`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(true);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Uint32Array(),
+      ),
+    ).toBe(true);
   });
 
   it("assembles uuid attributes as bigints from the two u64 lanes", () => {
@@ -140,7 +191,16 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].id === input.Pool[1].id ? 1 : 0.5);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(0.5);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Uint32Array(),
+      ),
+    ).toBe(0.5);
     void uuid;
   });
 
@@ -158,7 +218,16 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       pool,
       { rate: 2, threshold: 1 },
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(3);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Uint32Array(),
+      ),
+    ).toBe(3);
   });
 });
 

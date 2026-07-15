@@ -106,7 +106,7 @@ export function compileHirArtifacts(
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const artifacts: HirArtifacts = {
-    version: 4,
+    version: 5,
     fingerprint: fingerprintHirCompilationInput(sanitized, extensions),
     dynamics: {},
     lambdas: {},
@@ -199,6 +199,7 @@ export function compileHirArtifacts(
             artifacts.lambdas[transition.id] = {
               source: program.source,
               inputSlotCount: program.inputSlotCount,
+              placeIds: program.placeIds,
             };
           }
         }

@@ -271,11 +271,14 @@ class Lowering {
       );
     }
 
-    if (fnArg.parameters.length > 2) {
+    const maxParameters = this.surface === "lambda" ? 3 : 2;
+    if (fnArg.parameters.length > maxParameters) {
       this.fail(
-        fnArg.parameters[2]!,
+        fnArg.parameters[maxParameters]!,
         "hir:too-many-parameters",
-        "User functions take at most two parameters (tokens and parameters).",
+        this.surface === "lambda"
+          ? "Lambda functions take at most three parameters (tokens, parameters, and places)."
+          : "User functions take at most two parameters (tokens and parameters).",
       );
     }
 
@@ -294,15 +297,18 @@ class Lowering {
         params.push({ name, span: this.spanOf(parameter.name) });
         if (index === 0) {
           scope.locals.add(name);
-        } else {
+        } else if (index === 1) {
           scope.parametersName = name;
+        } else {
+          scope.locals.add(name);
         }
         continue;
       }
       if (ts.isObjectBindingPattern(parameter.name)) {
         // Destructured parameter: synthesize a name and route the bound
         // identifiers to the underlying tokens object / parameter reads.
-        const syntheticName = index === 0 ? "__input" : "__parameters";
+        const syntheticName =
+          index === 0 ? "__input" : index === 1 ? "__parameters" : "__places";
         params.push({
           name: syntheticName,
           span: this.spanOf(parameter.name),
@@ -316,13 +322,13 @@ class Lowering {
               "Renames are not supported when destructuring function parameters.",
             );
           }
-          if (index === 0) {
+          if (index === 0 || index === 2) {
             scope.destructuredFields.set(bound.name, syntheticName);
           } else {
             scope.parameterAliases.set(bound.name, bound.sourceName);
           }
         }
-        if (index === 0) {
+        if (index === 0 || index === 2) {
           scope.locals.add(syntheticName);
         }
         continue;

@@ -233,13 +233,14 @@ export const transitionSchema = z
     }),
     lambdaCode: z.string().meta({
       description: [
-        "Optional module: `export default Lambda((input, parameters) => …)`.",
+        "Optional module: `export default Lambda((input, parameters, places) => …)`; the third argument is optional.",
         "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place.",
         "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
         "Read arc tokens are present in `input` but are not consumed when the transition fires.",
         "Inhibitor arcs and uncoloured input places are NOT present in `input`.",
         "Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`).",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`).",
+        "`places` is keyed by every place name in the containing net and exposes its current token count as `places.PlaceName.count`.",
         "Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled).",
         "Stochastic lambdas MUST return a non-negative number = expected firings per simulation second (0 disables, Infinity always fires).",
         "Lambda is called per token combination satisfying arc weights, so it MUST be deterministic — put randomness in the transition kernel, not here.",

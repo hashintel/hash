@@ -93,6 +93,7 @@ export function computeTransitionEffect(
         frame.tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        frame.placeCounts,
       );
     } catch (error) {
       throw new SDCPNItemError(
