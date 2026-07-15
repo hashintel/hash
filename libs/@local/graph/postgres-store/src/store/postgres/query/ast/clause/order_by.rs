@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, NonEmptyVec, Transpile};
 
-/// gram.y's `opt_asc_desc`: the direction of a [`SortBy`].
+/// The direction of a [`SortBy`]: `ASC | DESC`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SortDirection {
     Ascending,
@@ -18,7 +18,7 @@ impl Transpile for SortDirection {
     }
 }
 
-/// gram.y's `opt_nulls_order`: where a [`SortBy`] places `NULL` values.
+/// Where a [`SortBy`] places `NULL` values: `NULLS { FIRST | LAST }`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum NullsOrder {
     First,
@@ -34,7 +34,8 @@ impl Transpile for NullsOrder {
     }
 }
 
-/// gram.y's `sortby`: `expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ]`.
+/// One `ORDER BY` key: `expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ]` (gram.y:
+/// `sortby`).
 ///
 /// The `USING operator` form is not representable yet.
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
@@ -70,7 +71,7 @@ impl Transpile for SortBy {
     }
 }
 
-/// `ORDER BY sortby [, ...]` (gram.y's `sort_clause`).
+/// `ORDER BY expression [ ... ] [, ...]`.
 #[derive(Debug, Clone, PartialEq, bon::Builder)]
 #[builder(derive(Debug, Clone, Into))]
 pub struct OrderByClause {

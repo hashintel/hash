@@ -1,4 +1,10 @@
 //! The SQL statement AST: statements, clauses, and expressions that transpile to Postgres SQL.
+//!
+//! Node shapes follow Postgres' grammar (`gram.y`): at most the grammar per node, completeness
+//! on demand. Names follow, in order of preference: the SQL keyword (`OrderByClause`), the
+//! synopsis term of the SQL documentation (`GroupingElement`), and only where neither exists
+//! the gram.y nonterminal (`SortBy`, `SimpleSelect`). Doc comments name gram.y productions
+//! where the structure would otherwise be surprising and in "not representable yet" lists.
 
 mod clause;
 mod column_reference;
