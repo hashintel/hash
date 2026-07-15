@@ -3,27 +3,34 @@
 
 Endpoints
 ---------
-POST /init             Initialise the Petri-net execution model (petrinet_model.initialize)
-                       and start an optimization run in the background.
 GET  /optimize         Server-Sent Events stream of objective evaluations,
                        emitted as each trial completes, ending with a summary.       
 GET  /status           Current run model and state.
 
-Run with:  uv run uvicorn optimization_api:app --reload
+Run with:  uv run python -m src.optimization_api
+       or:  uv run uvicorn optimization_api:app --reload
+
+The service binds to HASH_PETRINAUT_OPT_HOST and HASH_PETRINAUT_OPT_PORT
+(loaded from the module's `.env`).
 """
 
 from __future__ import annotations
 
+import os
 import time
 import json
 
 from contextlib import asynccontextmanager
 from typing import Union, Generator
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.utils import AppStatus, Phase, set_status
+
+# Load HASH_PETRINAUT_OPT_* (and any other) variables from the module's `.env`.
+load_dotenv()
 from src.petrinaut_client import PetrinautModelSpec, PetrinautModel
 from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
 
@@ -139,3 +146,14 @@ def get_status():
 @app.get("/")
 async def root() -> dict:
     return {"message": "Welcome to Petrinaut optimization API"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entrypoint
+# ─────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import uvicorn
+
+    host = os.getenv("HASH_PETRINAUT_OPT_HOST", "127.0.0.1")
+    port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)
