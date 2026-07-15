@@ -1,9 +1,0 @@
-# Python
-__pycache__/
-*.pyc
-
-# Desktop store
-*.DS_Store
-
-# Virtual environments
-uv.lock
