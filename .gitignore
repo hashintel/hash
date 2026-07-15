@@ -123,6 +123,7 @@ blocks/**/.env
 **/pip-delete-this-directory.txt
 **/.mypy_cache
 **/.pytest_cache
+**/.ruff_cache
 **/.hypothesis
 **/wheels
 

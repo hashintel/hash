@@ -12,12 +12,15 @@ runs:
       shell: bash
       env:
         SCOPE: ${{ inputs.scope }}
-      run: python3 ${{ github.action_path }}/prune.py "$SCOPE"
+      # Executed directly: pruning happens before any dependencies are
+      # installed, so the script relies on the stdlib alone. `repo-chores
+      # prune` wraps the same logic for use inside the workspace environment.
+      run: python3 libs/@local/repo-chores/python/repo_chores/prune.py "$SCOPE"
 
     - name: Copy required files
       shell: bash
       run: |
-        cp -R Cargo.toml Cargo.lock rust-toolchain.toml oxfmt.config.ts infra/ out/
+        cp -R Cargo.toml Cargo.lock rust-toolchain.toml oxfmt.config.ts pyproject.toml uv.lock infra/ out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob
