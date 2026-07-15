@@ -8,6 +8,7 @@ import {
 
 import type {
   ActorEntityUuid,
+  MachineId,
   RoleName,
   WebId,
 } from "@blockprotocol/type-system";
@@ -18,6 +19,10 @@ vi.mock("@local/hash-graph-sdk/principal/actor-group", () => ({
   getActorGroupRole: vi.fn(),
 }));
 
+vi.mock("@local/hash-backend-utils/machine-actors", () => ({
+  getWebMachineId: vi.fn(),
+}));
+
 vi.mock("@local/hash-graph-sdk/entity", () => ({
   queryEntities: vi.fn(),
 }));
@@ -26,6 +31,7 @@ vi.mock("../../logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -41,10 +47,12 @@ import type { GraphApi } from "../../graph/context-types";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 
 const mockedGetRole = vi.mocked(getActorGroupRole);
+const mockedGetWebMachineId = vi.mocked(getWebMachineId);
 const mockedQueryEntities = vi.mocked(queryEntities);
 
 const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
 const ACTOR_ID = "00000000-0000-4000-8000-0000000000aa" as ActorEntityUuid;
+const WEB_MACHINE_ID = "00000000-0000-4000-8000-0000000000bb" as MachineId;
 const ITEM_UUID = "00000000-0000-4000-8000-00000000feed";
 
 const structuralQuery = {
@@ -158,6 +166,9 @@ describe("dashboardItemData analysis", () => {
     mockedGetRole.mockReset();
     mockedGetRole.mockResolvedValue("member" as RoleName);
 
+    mockedGetWebMachineId.mockReset();
+    mockedGetWebMachineId.mockResolvedValue(WEB_MACHINE_ID);
+
     mockedQueryEntities.mockReset();
     mockedQueryEntities.mockResolvedValue({
       entities: [itemEntity],
@@ -225,12 +236,24 @@ describe("dashboardItemData analysis", () => {
 
     const [workflowName, options] = workflowStart.mock.calls[0]!;
     expect(workflowName).toBe("computeDashboardItemData");
-    expect(options.workflowId).toBe(`compute-dashboard-item-${configHash}`);
+    expect(options.workflowId).toBe(
+      `compute-dashboard-item-${WEB_ID}-${configHash}`,
+    );
     expect(options.args[0]).toMatchObject({
+      authentication: { actorId: WEB_MACHINE_ID },
       webId: WEB_ID,
       pythonScript,
       storageKey,
     });
+  });
+
+  it("does not compute without a web machine", async () => {
+    mockedGetWebMachineId.mockResolvedValue(null);
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("error");
+    expect(workflowStart).not.toHaveBeenCalled();
   });
 
   it("serves a fresh artifact without recomputing", async () => {
@@ -266,7 +289,7 @@ describe("dashboardItemData analysis", () => {
     workflowStart.mockRejectedValue(
       new WorkflowExecutionAlreadyStartedError(
         "already started",
-        `compute-dashboard-item-${configHash}`,
+        `compute-dashboard-item-${WEB_ID}-${configHash}`,
         "computeDashboardItemData",
       ),
     );

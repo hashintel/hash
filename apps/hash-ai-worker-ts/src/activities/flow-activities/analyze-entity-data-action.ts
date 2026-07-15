@@ -10,6 +10,7 @@ import {
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
@@ -31,6 +32,7 @@ import { runAgenticToolLoop } from "../shared/agentic-tool-loop.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { runPythonCode } from "../shared/run-python-code.js";
+import { scopeFilterToWeb } from "../shared/scope-filter-to-web.js";
 import { stringify } from "../shared/stringify.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
@@ -237,6 +239,16 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
 
+  const webMachineId = await getWebMachineId(
+    { graphApi: graphApiClient },
+    userAuthentication,
+    { webId },
+  );
+  if (!webMachineId) {
+    throw new Error(`Could not find the web machine for web "${webId}"`);
+  }
+  const webMachineAuthentication = { actorId: webMachineId };
+
   if (!structuralQuery || !userGoal) {
     return {
       code: StatusCode.InvalidArgument,
@@ -263,9 +275,9 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
   // Execute the query to get entity data
   const { subgraph } = await queryEntitySubgraph(
     { graphApi: graphApiClient },
-    userAuthentication,
+    webMachineAuthentication,
     {
-      filter: queryDefinition.filter,
+      filter: scopeFilterToWeb(queryDefinition.filter, webId),
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: almostFullOntologyResolveDepths,
       traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),

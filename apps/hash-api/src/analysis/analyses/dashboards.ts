@@ -5,6 +5,7 @@ import {
   generateDashboardItemConfigHash,
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -49,6 +50,15 @@ const startComputeWorkflow = async (params: {
 }): Promise<void> => {
   const { ctx, configHash, structuralQuery, pythonScript, storageKey } = params;
 
+  const webMachineId = await getWebMachineId(
+    { graphApi: ctx.graphApi },
+    { actorId: ctx.actorId },
+    { webId: ctx.webId },
+  );
+  if (!webMachineId) {
+    throw new Error(`Could not find the web machine for web "${ctx.webId}"`);
+  }
+
   try {
     await ctx.temporalClient.workflow.start(
       COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW,
@@ -56,14 +66,14 @@ const startComputeWorkflow = async (params: {
         taskQueue: "ai",
         args: [
           {
-            authentication: { actorId: ctx.actorId },
+            authentication: { actorId: webMachineId },
             webId: ctx.webId,
             structuralQuery: JSON.stringify(structuralQuery),
             pythonScript,
             storageKey,
           } satisfies ComputeDashboardItemDataWorkflowParams,
         ],
-        workflowId: `compute-dashboard-item-${configHash}`,
+        workflowId: `compute-dashboard-item-${ctx.webId}-${configHash}`,
         retry: { maximumAttempts: 1 },
       },
     );

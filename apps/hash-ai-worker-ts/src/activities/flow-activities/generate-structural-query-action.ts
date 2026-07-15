@@ -7,6 +7,7 @@ import dedent from "dedent";
  */
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { stableStringify } from "@local/hash-backend-utils/dashboards";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
@@ -28,6 +29,7 @@ import { StatusCode } from "@local/status";
 import { runAgenticToolLoop } from "../shared/agentic-tool-loop.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
+import { scopeFilterToWeb } from "../shared/scope-filter-to-web.js";
 import { stringify } from "../shared/stringify.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
@@ -365,6 +367,16 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
 
+  const webMachineId = await getWebMachineId(
+    { graphApi: graphApiClient },
+    userAuthentication,
+    { webId },
+  );
+  if (!webMachineId) {
+    throw new Error(`Could not find the web machine for web "${webId}"`);
+  }
+  const webMachineAuthentication = { actorId: webMachineId };
+
   const entityTypesResponse = await queryEntityTypes(
     graphApiClient,
     userAuthentication,
@@ -517,14 +529,14 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
             const filter = args.filter as Filter;
             const traversalPaths = (args.traversalPaths ??
               []) as EntityTraversalPath[];
-            const limit = (args.limit as number | undefined) ?? 10;
+            const limit = (args.limit as number | undefined) ?? 100;
 
             try {
               const { subgraph } = await queryEntitySubgraph(
                 { graphApi: graphApiClient },
-                userAuthentication,
+                webMachineAuthentication,
                 {
-                  filter,
+                  filter: scopeFilterToWeb(filter, webId),
                   temporalAxes: currentTimeInstantTemporalAxes,
                   graphResolveDepths: almostFullOntologyResolveDepths,
                   traversalPaths,

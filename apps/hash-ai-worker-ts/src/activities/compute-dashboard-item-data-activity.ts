@@ -12,6 +12,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { runPythonCode } from "./shared/run-python-code.js";
+import { scopeFilterToWeb } from "./shared/scope-filter-to-web.js";
 
 import type {
   ComputeDashboardItemDataWorkflowParams,
@@ -47,7 +48,8 @@ export const computeDashboardItemDataActivity = async (
   }: { graphApiClient: GraphApi; storageProvider: FileStorageProvider },
   params: ComputeDashboardItemDataWorkflowParams,
 ): Promise<ComputeDashboardItemDataWorkflowResult> => {
-  const { authentication, structuralQuery, pythonScript, storageKey } = params;
+  const { authentication, webId, structuralQuery, pythonScript, storageKey } =
+    params;
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat();
@@ -68,7 +70,7 @@ export const computeDashboardItemDataActivity = async (
       { graphApi: graphApiClient },
       authentication,
       {
-        filter: queryDefinition.filter,
+        filter: scopeFilterToWeb(queryDefinition.filter, webId),
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: almostFullOntologyResolveDepths,
         traversalPaths: toApiTraversalPaths(queryDefinition.traversalPaths),
