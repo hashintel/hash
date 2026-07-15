@@ -4,8 +4,11 @@ import type {
   CompletionList,
   Diagnostic,
   DocumentUri,
+  HirCompileResult,
   Hover,
+  PetrinautExtensionSettings,
   Position,
+  SDCPN,
   SignatureHelp,
 } from "@hashintel/petrinaut-core";
 import type {
@@ -18,6 +21,12 @@ export interface LanguageClientContextValue {
   diagnosticsByUri: Map<DocumentUri, Diagnostic[]>;
   /** Total number of diagnostics across all documents. */
   totalDiagnosticsCount: number;
+  /**
+   * Error-severity diagnostics only. Warnings/hints (e.g. HIR semantic
+   * lints) are included in `totalDiagnosticsCount` but not here — use this
+   * to decide whether the net can be simulated.
+   */
+  errorDiagnosticsCount: number;
   /** Notify the server that a document's content changed. */
   notifyDocumentChanged: (uri: DocumentUri, text: string) => void;
   /** Request completions at a position within a document. */
@@ -32,6 +41,15 @@ export interface LanguageClientContextValue {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /**
+   * Compile the SDCPN's user code to HIR artifacts (in the language worker).
+   * Required before starting simulations/experiments — the engine has no
+   * compiler of its own.
+   */
+  requestHirArtifacts: (
+    sdcpn: SDCPN,
+    extensions?: PetrinautExtensionSettings,
+  ) => Promise<HirCompileResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -49,10 +67,23 @@ export interface LanguageClientContextValue {
 const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
+  errorDiagnosticsCount: 0,
   notifyDocumentChanged: () => {},
   requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
+  requestHirArtifacts: () =>
+    Promise.resolve({
+      artifacts: {
+        version: 4,
+        fingerprint: "0000000000000000",
+        dynamics: {},
+        lambdas: {},
+        kernels: {},
+        metrics: {},
+      },
+      failures: [],
+    }),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},

@@ -1,11 +1,14 @@
+/* eslint-disable no-param-reassign -- buffer-ABI kernel mocks write into the
+   staging views they receive */
 import { describe, expect, it } from "vitest";
 
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
+import { compileHirArtifacts } from "../../hir";
+import { instantiateHirBufferKernel } from "../../hir-runtime";
 import { createEngineFrameLayout } from "../frames/internal-frame";
+import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { computePossibleTransition as computePossibleTransitionImpl } from "./compute-possible-transition";
 import { nextRandom } from "./seeded-rng";
 import { StringPool } from "./string-pool";
-import { computeTokenSlotLayout } from "./token-layout";
 import {
   decodeTokenBlock,
   makeTestFrame,
@@ -13,14 +16,12 @@ import {
 } from "./token-layout.test-helpers";
 import { formatUuid, parseUuid, toUuid } from "./uuid";
 
-import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
-  CompiledTransition,
-  LambdaFn,
-  SimulationInstance,
-  TransitionKernelFn,
-  TransitionTokenValues,
-} from "./types";
+  HirCompiledBufferKernel,
+  HirCompiledBufferLambda,
+} from "../../hir-runtime";
+import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type { SimulationInstance } from "./types";
 
 const type1: Color = {
   id: "type1",
@@ -55,79 +56,47 @@ function makeTransition(
   return {
     name: "Transition 1",
     lambdaType: "stochastic",
-    lambdaCode: "return 1.0;",
-    transitionKernelCode: "return {};",
+    lambdaCode: "",
+    transitionKernelCode: "",
     x: 0,
     y: 0,
     ...transition,
   };
 }
 
-function makeCompiledTransitions({
-  places,
-  transitions,
+const makeMiniSdcpn = (
+  places: Place[],
+  types: Color[],
+  transition: Transition,
+): SDCPN => ({
   types,
-  lambdaFns,
-  transitionKernelFns,
+  differentialEquations: [],
+  parameters: [],
+  places,
+  transitions: [transition],
+});
+
+/** Compiles a transition's kernel code to a real buffer program and
+ * instantiates it against `stringPool`. */
+function compileKernelFn({
+  places,
+  types,
+  transition,
+  stringPool,
 }: {
   places: Place[];
-  transitions: Transition[];
   types: Color[];
-  lambdaFns: ReadonlyMap<string, LambdaFn>;
-  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
-}): Map<string, CompiledTransition> {
-  const placesMap = new Map(places.map((place) => [place.id, place]));
-  const typesMap = new Map(types.map((type) => [type.id, type]));
-  const getElements = (placeId: string) => {
-    const place = placesMap.get(placeId);
-    if (!place?.colorId) {
-      return null;
-    }
-
-    return typesMap.get(place.colorId)?.elements ?? null;
-  };
-
-  return new Map(
-    transitions.map((transition) => {
-      const lambdaFn = lambdaFns.get(transition.id);
-      const transitionKernelFn = transitionKernelFns.get(transition.id);
-      if (!lambdaFn || !transitionKernelFn) {
-        throw new Error(`Missing compiled functions for ${transition.id}`);
-      }
-
-      return [
-        transition.id,
-        {
-          id: transition.id,
-          name: transition.name,
-          inputPlaces: transition.inputArcs.map((arc) => {
-            const placeId = getArcEndpointPlaceId(arc)!;
-            const elements = getElements(placeId);
-            return {
-              placeId,
-              placeName: placesMap.get(placeId)?.name ?? placeId,
-              weight: arc.weight,
-              arcType: arc.type,
-              elements,
-              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
-            };
-          }),
-          outputPlaces: transition.outputArcs.map((arc) => {
-            const placeId = getArcEndpointPlaceId(arc)!;
-            const elements = getElements(placeId);
-            return {
-              placeId,
-              placeName: placesMap.get(placeId)?.name ?? placeId,
-              weight: arc.weight,
-              elements,
-              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
-            };
-          }),
-          lambdaFn,
-          transitionKernelFn,
-        },
-      ];
-    }),
+  transition: Transition;
+  stringPool: StringPool;
+}): HirCompiledBufferKernel {
+  const { artifacts, failures } = compileHirArtifacts(
+    makeMiniSdcpn(places, types, { ...transition, lambdaCode: "" }),
+  );
+  expect(failures).toEqual([]);
+  return instantiateHirBufferKernel(
+    artifacts.kernels[transition.id]!.source,
+    {},
+    stringPool,
   );
 }
 
@@ -136,13 +105,13 @@ function makeSimulation({
   transitions,
   types = [],
   lambdaFns,
-  transitionKernelFns,
+  kernelFns,
 }: {
   places?: Place[];
   transitions: Transition[];
   types?: Color[];
-  lambdaFns: ReadonlyMap<string, LambdaFn>;
-  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
+  lambdaFns: ReadonlyMap<string, HirCompiledBufferLambda>;
+  kernelFns?: ReadonlyMap<string, HirCompiledBufferKernel | null>;
 }): SimulationInstance {
   const frameLayout = createEngineFrameLayout({
     places,
@@ -157,13 +126,24 @@ function makeSimulation({
     ),
     types: new Map(types.map((type) => [type.id, type])),
     differentialEquationFns: new Map(),
-    compiledTransitions: makeCompiledTransitions({
-      places,
-      transitions,
-      types,
-      lambdaFns,
-      transitionKernelFns,
-    }),
+    compiledTransitions: new Map(
+      transitions.map((transition) => {
+        const lambdaFn = lambdaFns.get(transition.id);
+        if (!lambdaFn) {
+          throw new Error(`Missing compiled lambda for ${transition.id}`);
+        }
+        return [
+          transition.id,
+          makeCompiledTransition({
+            transition,
+            places,
+            types,
+            lambdaFn,
+            kernelFn: kernelFns?.get(transition.id) ?? null,
+          }),
+        ];
+      }),
+    ),
     parameterValues: {},
     dt: 0.1,
     maxTime: null,
@@ -200,9 +180,6 @@ describe("computePossibleTransition", () => {
     const simulation = makeSimulation({
       transitions: [transition],
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ p2: [{ x: 1.0 }] })],
-      ]),
     });
     const frame = makeTestFrame({
       places: {
@@ -225,9 +202,6 @@ describe("computePossibleTransition", () => {
     const simulation = makeSimulation({
       transitions: [transition],
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({})],
-      ]),
     });
     const frame = makeTestFrame({
       places: {
@@ -249,8 +223,6 @@ describe("computePossibleTransition", () => {
         { placeId: "p2", weight: 1, type: "inhibitor" },
       ],
       outputArcs: [{ placeId: "p3", weight: 1 }],
-      lambdaCode: "return 10.0;",
-      transitionKernelCode: "return { Target: [{ x: 5.0 }] };",
     });
     const simulation = makeSimulation({
       places: [
@@ -261,8 +233,13 @@ describe("computePossibleTransition", () => {
       transitions: [transition],
       types: [type1],
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ Target: [{ x: 5.0 }] })],
+      kernelFns: new Map<string, HirCompiledBufferKernel>([
+        [
+          "t1",
+          (_f64, _u64, _u8, _placeBases, _indices, outF64) => {
+            outF64[0] = 5.0;
+          },
+        ],
       ]),
     });
     const frame = makeTestFrame({
@@ -295,11 +272,9 @@ describe("computePossibleTransition", () => {
       ],
       outputArcs: [{ placeId: "p3", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: "return true;",
-      transitionKernelCode: "return { Target: input.Guard };",
     });
-    let lambdaInput: TransitionTokenValues | null = null;
-    let kernelInput: TransitionTokenValues | null = null;
+    // type1 tokens are a single f64 (x) — stride 8 bytes.
+    let lambdaSeen: { source: number; guard: number } | null = null;
     const simulation = makeSimulation({
       places: [
         makePlace("p1", "Source", "type1"),
@@ -308,25 +283,24 @@ describe("computePossibleTransition", () => {
       ],
       transitions: [transition],
       types: [type1],
-      lambdaFns: new Map([
+      lambdaFns: new Map<string, HirCompiledBufferLambda>([
         [
           "t1",
-          (input) => {
-            lambdaInput = input;
+          (f64, _u64, _u8, placeBases, indices) => {
+            lambdaSeen = {
+              source: f64[(placeBases[0]! + indices[0]! * 8) / 8]!,
+              guard: f64[(placeBases[1]! + indices[1]! * 8) / 8]!,
+            };
             return true;
           },
         ],
       ]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
+      kernelFns: new Map<string, HirCompiledBufferKernel>([
         [
           "t1",
-          (input) => {
-            kernelInput = input;
-            const guardToken = input.Guard?.[0];
-            if (guardToken?.x === undefined) {
-              throw new Error("Expected read arc token");
-            }
-            return { Target: [{ x: guardToken.x }] };
+          (f64, _u64, _u8, placeBases, indices, outF64) => {
+            // Forward the read arc (Guard) token's x to the output.
+            outF64[0] = f64[(placeBases[1]! + indices[1]! * 8) / 8]!;
           },
         ],
       ]),
@@ -345,14 +319,7 @@ describe("computePossibleTransition", () => {
     const result = computePossibleTransition(frame, simulation, "t1", 42);
 
     expect(result).not.toBeNull();
-    expect(lambdaInput).toMatchObject({
-      Source: [{ x: 3.0 }],
-      Guard: [{ x: 7.0 }],
-    });
-    expect(kernelInput).toMatchObject({
-      Source: [{ x: 3.0 }],
-      Guard: [{ x: 7.0 }],
-    });
+    expect(lambdaSeen).toEqual({ source: 3.0, guard: 7.0 });
     expect(result!.remove).toEqual({ p1: new Set([0]) });
     expect(Object.keys(result!.add)).toEqual(["p3"]);
     expect(
@@ -365,8 +332,6 @@ describe("computePossibleTransition", () => {
       id: "t1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p2", weight: 1 }],
-      lambdaCode: "return 10.0;",
-      transitionKernelCode: "return [[[2.0]]];",
     });
     const simulation = makeSimulation({
       places: [
@@ -376,8 +341,13 @@ describe("computePossibleTransition", () => {
       transitions: [transition],
       types: [type1],
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
+      kernelFns: new Map<string, HirCompiledBufferKernel>([
+        [
+          "t1",
+          (_f64, _u64, _u8, _placeBases, _indices, outF64) => {
+            outF64[0] = 2.0;
+          },
+        ],
       ]),
     });
     const frame = makeTestFrame({
@@ -402,7 +372,7 @@ describe("computePossibleTransition", () => {
     expect(result?.newRngState).toBeTypeOf("number");
   });
 
-  it("decodes typed input tokens and encodes typed output tokens", () => {
+  it("reads typed input tokens and encodes typed output tokens", () => {
     const typedColor: Color = {
       id: "typed",
       name: "Typed",
@@ -414,12 +384,13 @@ describe("computePossibleTransition", () => {
         { elementId: "active", name: "active", type: "boolean" },
       ],
     };
+    // Packed layout: amount(f64)@0, count(f64)@8, active(u8)@16 — stride 24.
     const transition = makeTransition({
       id: "t1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p2", weight: 1 }],
     });
-    let lambdaInput: unknown;
+    let lambdaSeen: unknown;
     const simulation = makeSimulation({
       places: [
         makePlace("p1", "Source", typedColor.id),
@@ -427,27 +398,28 @@ describe("computePossibleTransition", () => {
       ],
       transitions: [transition],
       types: [typedColor],
-      lambdaFns: new Map([
+      lambdaFns: new Map<string, HirCompiledBufferLambda>([
         [
           "t1",
-          (tokens) => {
-            lambdaInput = tokens;
+          (f64, _u64, u8, placeBases, indices) => {
+            const base = placeBases[0]! + indices[0]! * 24;
+            lambdaSeen = {
+              amount: f64[base / 8],
+              count: Math.round(f64[(base + 8) / 8]!),
+              active: u8[base + 16] !== 0,
+            };
             return 10.0;
           },
         ],
       ]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
+      kernelFns: new Map<string, HirCompiledBufferKernel>([
         [
           "t1",
-          () => ({
-            Target: [
-              {
-                amount: 2.5,
-                count: 3.6,
-                active: false,
-              },
-            ],
-          }),
+          (_f64, _u64, _u8, _placeBases, _indices, outF64, _outU64, outU8) => {
+            outF64[0] = 2.5;
+            outF64[1] = Math.round(3.6); // integer attributes are pre-rounded
+            outU8[16] = 0;
+          },
         ],
       ]),
     });
@@ -466,14 +438,10 @@ describe("computePossibleTransition", () => {
 
     const result = computePossibleTransition(frame, simulation, "t1", 42);
 
-    expect(lambdaInput).toEqual({
-      Source: [
-        {
-          amount: 1.25,
-          count: 3,
-          active: true,
-        },
-      ],
+    expect(lambdaSeen).toEqual({
+      amount: 1.25,
+      count: 3,
+      active: true,
     });
     expect(result).toMatchObject({
       remove: { p1: new Set([0]) },
@@ -496,22 +464,37 @@ describe("computePossibleTransition", () => {
         { elementId: "x", name: "x", type: "real" },
       ],
     };
+    const uuidPlaces = [
+      makePlace("p1", "Source", uuidColor.id),
+      makePlace("p2", "Target", uuidColor.id),
+    ];
 
-    const makeUuidSimulation = (kernelFn: TransitionKernelFn) => {
-      const transition = makeTransition({
+    const makeUuidTransition = (transitionKernelCode: string) =>
+      makeTransition({
         id: "t1",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p2", weight: 1 }],
+        transitionKernelCode,
       });
+
+    const makeUuidSimulation = (kernelCode: string) => {
+      const transition = makeUuidTransition(kernelCode);
       return makeSimulation({
-        places: [
-          makePlace("p1", "Source", uuidColor.id),
-          makePlace("p2", "Target", uuidColor.id),
-        ],
+        places: uuidPlaces,
         transitions: [transition],
         types: [uuidColor],
         lambdaFns: new Map([["t1", () => 10.0]]),
-        transitionKernelFns: new Map([["t1", kernelFn]]),
+        kernelFns: new Map([
+          [
+            "t1",
+            compileKernelFn({
+              places: uuidPlaces,
+              types: [uuidColor],
+              transition,
+              stringPool: new StringPool(),
+            }),
+          ],
+        ]),
       });
     };
 
@@ -534,7 +517,9 @@ describe("computePossibleTransition", () => {
     ) => decodeTokenBlock(uuidColor.elements, result!.add.p2![0]!);
 
     it("auto-generates a v4 uuid deterministically per seed when omitted", () => {
-      const simulation = makeUuidSimulation(() => ({ Target: [{ x: 2.0 }] }));
+      const simulation = makeUuidSimulation(
+        `export default TransitionKernel(() => ({ Target: [{ x: 2.0 }] }));`,
+      );
 
       const first = computePossibleTransition(
         makeUuidFrame(),
@@ -564,28 +549,23 @@ describe("computePossibleTransition", () => {
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
       // The auto-generation consumed RNG state beyond the firing draw.
-      expect(first!.newRngState).not.toBe(
-        computePossibleTransition(
-          makeUuidFrame(),
-          makeUuidSimulation(() => ({ Target: [{ id: 1n, x: 2.0 }] })),
-          "t1",
-          42,
-        )!.newRngState,
-      );
+      expect(first!.newRngState).not.toBe(nextRandom(42)[1]);
     });
 
     it("resolves the Uuid.generate() sentinel with the same seeded draw as omission", () => {
       const omitted = computePossibleTransition(
         makeUuidFrame(),
-        makeUuidSimulation(() => ({ Target: [{ x: 2.0 }] })),
+        makeUuidSimulation(
+          `export default TransitionKernel(() => ({ Target: [{ x: 2.0 }] }));`,
+        ),
         "t1",
         42,
       );
       const sentinel = computePossibleTransition(
         makeUuidFrame(),
-        makeUuidSimulation(() => ({
-          Target: [{ id: { __petrinautUuid: "generate" }, x: 2.0 }],
-        })),
+        makeUuidSimulation(
+          `export default TransitionKernel(() => ({ Target: [{ id: Uuid.generate(), x: 2.0 }] }));`,
+        ),
         "t1",
         42,
       );
@@ -598,11 +578,9 @@ describe("computePossibleTransition", () => {
       const run = () =>
         computePossibleTransition(
           makeUuidFrame(),
-          makeUuidSimulation(() => ({
-            Target: [
-              { id: { __petrinautUuid: "from", value: "order-1" }, x: 2.0 },
-            ],
-          })),
+          makeUuidSimulation(
+            `export default TransitionKernel(() => ({ Target: [{ id: Uuid.from("order-1"), x: 2.0 }] }));`,
+          ),
           "t1",
           42,
         );
@@ -618,9 +596,9 @@ describe("computePossibleTransition", () => {
     it("forwards an input token's uuid bigint unchanged", () => {
       const result = computePossibleTransition(
         makeUuidFrame(),
-        makeUuidSimulation((input) => ({
-          Target: [{ id: input.Source![0]!.id, x: 3.0 }],
-        })),
+        makeUuidSimulation(
+          `export default TransitionKernel((input) => ({ Target: [{ id: input.Source[0].id, x: 3.0 }] }));`,
+        ),
         "t1",
         42,
       );
@@ -628,20 +606,25 @@ describe("computePossibleTransition", () => {
       expect(firstAddedToken(result)).toEqual({ id: inputUuid, x: 3.0 });
     });
 
-    it("throws when a Distribution is produced for a uuid element", () => {
-      const distribution = {
-        __brand: "distribution",
-        type: "uniform",
-        min: 0,
-        max: 1,
-      } as const;
-      const simulation = makeUuidSimulation(() => ({
-        Target: [{ id: distribution as never, x: 2.0 }],
-      }));
+    it("rejects a Distribution for a uuid element at compile time", () => {
+      const { failures } = compileHirArtifacts(
+        makeMiniSdcpn(
+          uuidPlaces,
+          [uuidColor],
+          makeUuidTransition(
+            `export default TransitionKernel(() => ({ Target: [{ id: Distribution.Uniform(0, 1), x: 2.0 }] }));`,
+          ),
+        ),
+      );
 
-      expect(() =>
-        computePossibleTransition(makeUuidFrame(), simulation, "t1", 42),
-      ).toThrow("produced a distribution for discrete element id");
+      expect(
+        failures.map((failure) => `${failure.itemType}:${failure.itemId}`),
+      ).toEqual(["transition-kernel:t1"]);
+      expect(
+        failures[0]!.diagnostics.map((diagnostic) => diagnostic.message),
+      ).toEqual(
+        expect.arrayContaining([expect.stringMatching(/discrete \(uuid\)/)]),
+      );
     });
   });
 
@@ -656,24 +639,39 @@ describe("computePossibleTransition", () => {
         { elementId: "x", name: "x", type: "real" },
       ],
     };
+    const stringPlaces = [
+      makePlace("p1", "Source", stringColor.id),
+      makePlace("p2", "Target", stringColor.id),
+    ];
 
-    const makeStringSetup = (kernelFn: TransitionKernelFn) => {
-      const transition = makeTransition({
+    const makeStringTransition = (transitionKernelCode: string) =>
+      makeTransition({
         id: "t1",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p2", weight: 1 }],
+        transitionKernelCode,
       });
+
+    const makeStringSetup = (kernelCode: string) => {
+      const transition = makeStringTransition(kernelCode);
       const stringPool = new StringPool();
       const simulation = {
         ...makeSimulation({
-          places: [
-            makePlace("p1", "Source", stringColor.id),
-            makePlace("p2", "Target", stringColor.id),
-          ],
+          places: stringPlaces,
           transitions: [transition],
           types: [stringColor],
           lambdaFns: new Map([["t1", () => 10.0]]),
-          transitionKernelFns: new Map([["t1", kernelFn]]),
+          kernelFns: new Map([
+            [
+              "t1",
+              compileKernelFn({
+                places: stringPlaces,
+                types: [stringColor],
+                transition,
+                stringPool,
+              }),
+            ],
+          ]),
         }),
         stringPool,
       };
@@ -698,9 +696,9 @@ describe("computePossibleTransition", () => {
       decodeTokenBlock(stringColor.elements, result!.add.p2![0]!, stringPool);
 
     it("interns equal output strings once — identical buffer bytes for equal values", () => {
-      const { simulation, frame, stringPool } = makeStringSetup(() => ({
-        Target: [{ label: "shipped", x: 2.0 }],
-      }));
+      const { simulation, frame, stringPool } = makeStringSetup(
+        `export default TransitionKernel(() => ({ Target: [{ label: "shipped", x: 2.0 }] }));`,
+      );
 
       const first = computePossibleTransition(frame, simulation, "t1", 42);
       expect(firstAddedToken(first, stringPool)).toEqual({
@@ -716,9 +714,9 @@ describe("computePossibleTransition", () => {
     });
 
     it("forwards an input token's string unchanged and reuses its pool id", () => {
-      const { simulation, frame, stringPool } = makeStringSetup((input) => ({
-        Target: [{ label: input.Source![0]!.label, x: 3.0 }],
-      }));
+      const { simulation, frame, stringPool } = makeStringSetup(
+        `export default TransitionKernel((input) => ({ Target: [{ label: input.Source[0].label, x: 3.0 }] }));`,
+      );
 
       const result = computePossibleTransition(frame, simulation, "t1", 42);
 
@@ -730,50 +728,65 @@ describe("computePossibleTransition", () => {
       expect(stringPool.size).toBe(2);
     });
 
-    it('defaults missing string values to "" and stringifies numbers', () => {
-      const missing = makeStringSetup(() => ({ Target: [{ x: 2.0 }] }));
-      expect(
-        firstAddedToken(
-          computePossibleTransition(
-            missing.frame,
-            missing.simulation,
-            "t1",
-            42,
+    it("rejects omitted or non-string values for string elements at compile time", () => {
+      // Omitting a string attribute is a compile failure (no "" default).
+      const omitted = compileHirArtifacts(
+        makeMiniSdcpn(
+          stringPlaces,
+          [stringColor],
+          makeStringTransition(
+            `export default TransitionKernel(() => ({ Target: [{ x: 2.0 }] }));`,
           ),
-          missing.stringPool,
         ),
-      ).toEqual({ label: "", x: 2.0 });
+      );
+      expect(
+        omitted.failures.map(
+          (failure) => `${failure.itemType}:${failure.itemId}`,
+        ),
+      ).toEqual(["transition-kernel:t1"]);
+      expect(omitted.failures[0]!.diagnostics[0]!.message).toMatch(
+        /missing the `label` attribute/,
+      );
 
-      const numeric = makeStringSetup(() => ({
-        Target: [{ label: 42 as never, x: 2.0 }],
-      }));
-      expect(
-        firstAddedToken(
-          computePossibleTransition(
-            numeric.frame,
-            numeric.simulation,
-            "t1",
-            42,
+      // Numbers are not stringified implicitly either.
+      const numeric = compileHirArtifacts(
+        makeMiniSdcpn(
+          stringPlaces,
+          [stringColor],
+          makeStringTransition(
+            `export default TransitionKernel(() => ({ Target: [{ label: 42, x: 2.0 }] }));`,
           ),
-          numeric.stringPool,
         ),
-      ).toEqual({ label: "42", x: 2.0 });
+      );
+      expect(
+        numeric.failures.map(
+          (failure) => `${failure.itemType}:${failure.itemId}`,
+        ),
+      ).toEqual(["transition-kernel:t1"]);
+      expect(numeric.failures[0]!.diagnostics[0]!.message).toMatch(
+        /`label` is a string attribute/,
+      );
     });
 
-    it("throws when a Distribution is produced for a string element", () => {
-      const distribution = {
-        __brand: "distribution",
-        type: "uniform",
-        min: 0,
-        max: 1,
-      } as const;
-      const { simulation, frame } = makeStringSetup(() => ({
-        Target: [{ label: distribution as never, x: 2.0 }],
-      }));
+    it("rejects a Distribution for a string element at compile time", () => {
+      const { failures } = compileHirArtifacts(
+        makeMiniSdcpn(
+          stringPlaces,
+          [stringColor],
+          makeStringTransition(
+            `export default TransitionKernel(() => ({ Target: [{ label: Distribution.Uniform(0, 1), x: 2.0 }] }));`,
+          ),
+        ),
+      );
 
-      expect(() =>
-        computePossibleTransition(frame, simulation, "t1", 42),
-      ).toThrow("produced a distribution for discrete element label");
+      expect(
+        failures.map((failure) => `${failure.itemType}:${failure.itemId}`),
+      ).toEqual(["transition-kernel:t1"]);
+      expect(
+        failures[0]!.diagnostics.map((diagnostic) => diagnostic.message),
+      ).toEqual(
+        expect.arrayContaining([expect.stringMatching(/discrete \(string\)/)]),
+      );
     });
   });
 });

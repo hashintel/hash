@@ -9,6 +9,7 @@ export type {
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameSummary,

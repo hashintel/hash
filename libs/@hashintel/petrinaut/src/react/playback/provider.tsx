@@ -156,6 +156,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // Backpressure ack — based on play mode.
   const prevTotalFramesRef = useRef(totalFrames);
+  const playInitializationRef = useRef<Promise<void> | null>(null);
   useEffect(() => {
     const prevFrames = prevTotalFramesRef.current;
     prevTotalFramesRef.current = totalFrames;
@@ -236,20 +237,35 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     const cfg = getPlayModeBackpressure(computeMode);
 
     if (simState === "NotRun") {
+      const inFlight = playInitializationRef.current;
+      if (inFlight) {
+        await inFlight;
+        return;
+      }
       if (snapshotRef.current.mode !== computeMode) {
         playback.setMode(computeMode);
       }
-      await initialize({
-        seed: Date.now(),
-        dt: dtRef.current,
-        maxFramesAhead: cfg.maxFramesAhead,
-        batchSize: cfg.batchSize,
-      });
-      runSimulation();
-      // Flip playback into Playing immediately. Don't wait for the
-      // simulation-state round-trip — that creates a window where the user
-      // can click again before the UI catches up.
-      playback.play();
+      const initialization = (async () => {
+        await initialize({
+          seed: Date.now(),
+          dt: dtRef.current,
+          maxFramesAhead: cfg.maxFramesAhead,
+          batchSize: cfg.batchSize,
+        });
+        runSimulation();
+        // Flip playback into Playing immediately. Don't wait for the
+        // simulation-state round-trip — that creates a window where the user
+        // can click again before the UI catches up.
+        playback.play();
+      })();
+      playInitializationRef.current = initialization;
+      try {
+        await initialization;
+      } finally {
+        if (playInitializationRef.current === initialization) {
+          playInitializationRef.current = null;
+        }
+      }
       return;
     }
 

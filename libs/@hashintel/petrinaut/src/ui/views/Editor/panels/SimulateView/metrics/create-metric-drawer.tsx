@@ -3,7 +3,7 @@ import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { metricSchema, compileMetric } from "@hashintel/petrinaut-core";
+import { metricSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -16,19 +16,17 @@ import {
   useMetricLspSession,
 } from "./metric-form";
 import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
-import { summarizeMetricLspErrors } from "./metric-lsp";
+import { summarizeMetricLspErrors, validateMetricCompiles } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 
 // -- Footer -------------------------------------------------------------------
 
 const CreateMetricFooter = ({
   form,
-  compileError,
   metricSessionId,
   onClose,
 }: {
   form: MetricFormInstance;
-  compileError: string | null;
   metricSessionId: string;
   onClose: () => void;
 }) => {
@@ -45,10 +43,9 @@ const CreateMetricFooter = ({
   const formError = formErrors.find((e) => typeof e === "string") as
     | string
     | undefined;
-  const hasErrors = !!formError || hasLspErrors || !!compileError;
-  const totalErrorCount =
-    (formError ? 1 : 0) + lspErrorCount + (compileError ? 1 : 0);
-  const firstError = formError ?? firstLspMessage ?? compileError ?? undefined;
+  const hasErrors = !!formError || hasLspErrors;
+  const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
+  const firstError = formError ?? firstLspMessage ?? undefined;
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
@@ -70,10 +67,9 @@ const CreateMetricFooter = ({
               formError ??
               (hasLspErrors
                 ? "Fix the errors in the metric code before saving."
-                : (compileError ??
-                  (isDefaultValue
-                    ? "Make changes to enable creation."
-                    : undefined)))
+                : isDefaultValue
+                  ? "Make changes to enable creation."
+                  : undefined)
             }
             onClick={() => {
               void form.handleSubmit();
@@ -94,11 +90,9 @@ interface CreateMetricDrawerProps {
   onClose: () => void;
 }
 
-export const CreateMetricDrawer = ({
-  open,
-  onClose,
-}: CreateMetricDrawerProps) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { addMetric } = usePetrinautMutations();
 
   const existingMetricNames = new Set(
@@ -117,29 +111,25 @@ export const CreateMetricDrawer = ({
       onClose();
       ctx.reset();
     },
-    { existingMetricNames },
+    {
+      existingMetricNames,
+      validateOnSubmit: async (value) =>
+        await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: petriNetDefinition,
+          extensions,
+          metric: buildMetricFromFormState(value, "metric-submit-validation"),
+        }),
+    },
   );
 
-  // Compile-check the code live so the user sees errors before submitting.
+  // Live validation (TypeScript + HIR semantic/compilability checks) comes
+  // from the metric LSP session diagnostics.
   const values = useStore(form.store, (state) => state.values);
-  const compileOutcome =
-    values.code.trim() === ""
-      ? null
-      : compileMetric({
-          id: "__preview__",
-          name: values.name || "metric",
-          code: values.code,
-        });
-  const compileError =
-    compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
 
   // Owned here (not in MetricFormBody) so the footer can scope its LSP
   // diagnostics summary to the same session.
   const metricSessionId = useMetricLspSession(values.code);
-
-  if (!open) {
-    return null;
-  }
 
   return (
     <Drawer showBackdrop={false} onClose={onClose} swapKey="metric">
@@ -156,10 +146,20 @@ export const CreateMetricDrawer = ({
       </Drawer.Body>
       <CreateMetricFooter
         form={form}
-        compileError={compileError}
         metricSessionId={metricSessionId}
         onClose={onClose}
       />
     </Drawer>
   );
+};
+
+export const CreateMetricDrawer = ({
+  open,
+  onClose,
+}: CreateMetricDrawerProps) => {
+  if (!open) {
+    return null;
+  }
+
+  return <CreateMetricContent onClose={onClose} />;
 };

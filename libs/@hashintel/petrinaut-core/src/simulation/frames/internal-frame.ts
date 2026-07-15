@@ -66,6 +66,10 @@ export type EngineFrameView = {
   tokenBytes: Uint8Array;
   /** Shared f64/u64/u8 views over the whole token region (region offset/length are 8-aligned). */
   tokenViews: TokenRegionViews;
+  /** Dense per-place token counts, indexed by frame place index. */
+  placeCounts: Uint32Array;
+  /** Dense per-place byte offsets into the token region. */
+  placeByteOffsets: Uint32Array;
   getPlaceState(placeId: ID): EngineFramePlaceState | null;
   getPlaceEntries(): [ID, EngineFramePlaceState][];
   getTransitionState(transitionId: ID): SimulationTransitionState | null;
@@ -466,6 +470,8 @@ export function readEngineFrame(
   return {
     tokenBytes,
     tokenViews,
+    placeCounts,
+    placeByteOffsets: placeValueOffsets,
     getPlaceState,
     getPlaceEntries,
     getTransitionState,

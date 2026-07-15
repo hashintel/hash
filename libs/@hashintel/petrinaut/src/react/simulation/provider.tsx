@@ -15,6 +15,7 @@ import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simula
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
@@ -159,6 +160,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
@@ -175,7 +177,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Active simulation handle. Lifecycle is owned by this provider.
   const [simulation, setSimulation] = useState<Simulation | null>(null);
   const simulationRef = useLatest(simulation);
-
+  const initializationGenerationRef = useRef(0);
   // Track error info captured from the simulation's events stream so the UI
   // can surface it. The core handle has a status of "Error" but doesn't
   // re-expose the message via stores; events fire once on transition.
@@ -210,6 +212,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Dispose on unmount.
   useEffect(() => {
     return () => {
+      initializationGenerationRef.current += 1;
       simulationRef.current?.dispose();
     };
   }, [simulationRef]);
@@ -240,6 +243,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   //
 
   const invalidateSimulationForConfigurationChange = (): void => {
+    initializationGenerationRef.current += 1;
     const current = simulationRef.current;
     if (!current) {
       return;
@@ -351,15 +355,23 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxFramesAhead,
     batchSize,
   }) => {
+    const generation = initializationGenerationRef.current + 1;
+    initializationGenerationRef.current = generation;
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
-    const simulationSdcpn = extensionsRef.current.parameters
+    const simulationExtensions = extensionsRef.current;
+    const simulationSdcpn = simulationExtensions.parameters
       ? sdcpn
       : { ...sdcpn, parameters: [] };
+    // Snapshot every compile-sensitive input before awaiting the worker so
+    // artifacts and execution always use the same model configuration.
+    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+    const initialMarking = effectiveInitialMarkingRef.current;
+    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+    const parameterValues = effectiveParameterValuesRef.current;
 
-    // Dispose any in-flight simulation before starting a new one. Update both
-    // the ref (synchronous, so callers in the same tick see `null` not the
-    // disposed handle) and the React state (so subscribers re-render).
+    // Dispose any active simulation before starting a new one. Update both
+    // the ref and React state so same-tick callers see the cleared handle.
     const previous = simulationRef.current;
     if (previous) {
       previous.dispose();
@@ -368,19 +380,26 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
     setError(null);
     setErrorItemId(null);
-
-    // Update local dt
     setStateValues((prev) => ({ ...prev, dt }));
 
     let sim: Simulation;
     try {
+      // Compile the net's user code to HIR artifacts in the language worker —
+      // the simulation engine has no compiler of its own.
+      const { artifacts } = await requestHirArtifacts(
+        simulationSdcpn,
+        simulationExtensions,
+      );
+      if (initializationGenerationRef.current !== generation) {
+        return;
+      }
+
       sim = await createSimulation({
         sdcpn: simulationSdcpn,
-        extensions: extensionsRef.current,
-        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-        initialMarking: effectiveInitialMarkingRef.current,
-        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-        parameterValues: effectiveParameterValuesRef.current,
+        extensions: simulationExtensions,
+        hirArtifacts: artifacts,
+        initialMarking,
+        parameterValues,
         seed,
         dt,
         maxTime: currentState.maxTime,
@@ -391,6 +410,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         createWorker: workerFactoryRef.current,
       });
     } catch (caught) {
+      if (initializationGenerationRef.current !== generation) {
+        return;
+      }
       const message =
         caught instanceof Error
           ? caught.message
@@ -400,11 +422,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       throw caught;
     }
 
+    if (initializationGenerationRef.current !== generation) {
+      sim.dispose();
+      return;
+    }
+
     // Write the ref synchronously *before* setSimulation so a same-tick
-    // caller (e.g. PlaybackProvider's `play()` chains `runSimulation()`
-    // immediately after `await initialize(...)`) sees the new handle.
-    // setSimulation also schedules a re-render so useStore subscribers
-    // pick up the new stores.
+    // caller can run the newly initialized handle immediately.
     simulationRef.current = sim;
     setSimulation(sim);
   };
@@ -418,6 +442,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   };
 
   const reset: SimulationContextValue["reset"] = () => {
+    initializationGenerationRef.current += 1;
     const sdcpn = petriNetDefinitionRef.current;
     const parameters = extensionsRef.current.parameters ? sdcpn.parameters : [];
     const defaultValues = deriveDefaultParameterValues(parameters);

@@ -1,16 +1,26 @@
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
-  compileMetric,
-  type CompiledMetric,
+  createHirMetricEvaluator,
+  sanitizeSDCPNForExtensions,
   type Metric,
 } from "@hashintel/petrinaut-core";
+import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
+import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
 
 import type { ExecutionFrameSource } from "../../../../../../../react/execution-frame/context";
+import type { TimelineMetricEvaluator } from "./series-config/metric";
 import type {
   StreamingStore,
   TimelineFrame,
@@ -108,19 +118,102 @@ function createStreamingStoreController(
   };
 }
 
-function compileTimelineMetric(metric: Metric | null): {
-  fn: CompiledMetric | null;
+type TimelineMetricState = {
+  /** Identity of the compiled metric (id + code), null when none. */
+  key: string | null;
+  evaluate: TimelineMetricEvaluator | null;
   error: string | null;
-} {
-  if (!metric) {
-    return { fn: null, error: null };
-  }
+};
 
-  const outcome = compileMetric(metric);
-  if (outcome.ok) {
-    return { fn: outcome.fn, error: null };
-  }
-  return { fn: null, error: outcome.error };
+const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
+  key: null,
+  evaluate: null,
+  error: null,
+};
+
+/**
+ * Compiles the selected timeline metric through the HIR (in the language
+ * worker) and binds the resulting buffer program to frame readers. The
+ * compile is asynchronous — while it is in flight the extractor plots gaps.
+ */
+function useTimelineMetric(metric: Metric | null): TimelineMetricState {
+  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const [state, setState] = useState<TimelineMetricState>(
+    EMPTY_TIMELINE_METRIC_STATE,
+  );
+  const compilationFingerprint = useMemo(
+    () =>
+      fingerprintHirCompilationInput(
+        sanitizeSDCPNForExtensions(petriNetDefinition, extensions),
+        extensions,
+      ),
+    [extensions, petriNetDefinition],
+  );
+  const key = metric
+    ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}`
+    : null;
+
+  useEffect(() => {
+    if (!metric || !key) {
+      return;
+    }
+
+    let cancelled = false;
+    requestHirArtifacts(
+      { ...petriNetDefinition, metrics: [metric] },
+      extensions,
+    )
+      .then(({ artifacts, failures }) => {
+        if (cancelled) {
+          return;
+        }
+        const artifact = artifacts.metrics[metric.id];
+        if (!artifact) {
+          const message = failures
+            .filter(
+              (failure) =>
+                failure.itemType === "metric" && failure.itemId === metric.id,
+            )
+            .flatMap((failure) =>
+              failure.diagnostics.map((diagnostic) => diagnostic.message),
+            )
+            .join("; ");
+          setState({
+            key,
+            evaluate: null,
+            error: message || `Metric "${metric.name}" did not compile`,
+          });
+          return;
+        }
+        setState({
+          key,
+          evaluate: createHirMetricEvaluator({
+            metricName: metric.name,
+            artifact,
+            places: petriNetDefinition.places,
+          }),
+          error: null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setState({
+            key,
+            evaluate: null,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [metric, key, extensions, petriNetDefinition, requestHirArtifacts]);
+
+  // Effects run after render. Hide a previous evaluator/error synchronously
+  // whenever the metric, schema, code, or extension settings change.
+  return state.key === key ? state : EMPTY_TIMELINE_METRIC_STATE;
 }
 
 /**
@@ -154,7 +247,8 @@ export function useStreamingData(source: ExecutionFrameSource): {
       ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
       : null;
 
-  const compiledMetric = compileTimelineMetric(selectedMetric);
+  const timelineMetric = useTimelineMetric(selectedMetric);
+  const evaluateMetric = timelineMetric.evaluate;
   const availableTypes = colorsEnabled ? types : [];
   const availablePlaces = colorsEnabled
     ? places
@@ -168,7 +262,7 @@ export function useStreamingData(source: ExecutionFrameSource): {
     types: availableTypes,
     transitions,
     selectedMetric,
-    compiledMetric: compiledMetric.fn,
+    evaluateMetric,
   });
 
   const [storeController] = useState(() => createStreamingStoreController([]));
@@ -236,6 +330,6 @@ export function useStreamingData(source: ExecutionFrameSource): {
 
   return {
     store,
-    metricError: compiledMetric.error,
+    metricError: timelineMetric.error,
   };
 }

@@ -7,3 +7,14 @@ import { css } from "@hashintel/ds-helpers/css";
 export const positionerStyles = css({
   zIndex: "popover !important",
 });
+
+export const contentStyles = css({
+  _open: {
+    animationName: "popoverIn",
+    animationDuration: "faster",
+  },
+  _closed: {
+    animationName: "popoverOut",
+    animationDuration: "faster",
+  },
+});

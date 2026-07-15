@@ -1,27 +1,27 @@
+/* eslint-disable no-param-reassign -- buffer-ABI kernel mocks write into the
+   staging views they receive */
 import { describe, expect, it } from "vitest";
 
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import {
   createEngineFrameLayout,
   materializeEngineFrame,
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
+import { makeCompiledTransition } from "./compiled-transition.test-helpers";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
 import { StringPool } from "./string-pool";
-import { computeTokenSlotLayout } from "./token-layout";
 import {
   decodePlaceTokens,
   makeTestFrame,
   type TestFrame,
 } from "./token-layout.test-helpers";
 
-import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
-  CompiledTransition,
-  LambdaFn,
-  SimulationInstance,
-  TransitionKernelFn,
-} from "./types";
+  HirCompiledBufferKernel,
+  HirCompiledBufferLambda,
+} from "../../hir-runtime";
+import type { Color, Place, Transition } from "../../types/sdcpn";
+import type { SimulationInstance } from "./types";
 
 const type1: Color = {
   id: "type1",
@@ -67,80 +67,12 @@ function makeTransition(
   return {
     name: "Transition",
     lambdaType: "stochastic",
-    lambdaCode: "return 1.0;",
-    transitionKernelCode: "return {};",
+    lambdaCode: "",
+    transitionKernelCode: "",
     x: 0,
     y: 0,
     ...transition,
   };
-}
-
-function makeCompiledTransitions({
-  places,
-  transitions,
-  types,
-  lambdaFns,
-  transitionKernelFns,
-}: {
-  places: Place[];
-  transitions: Transition[];
-  types: Color[];
-  lambdaFns: ReadonlyMap<string, LambdaFn>;
-  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
-}): Map<string, CompiledTransition> {
-  const placesMap = new Map(places.map((place) => [place.id, place]));
-  const typesMap = new Map(types.map((type) => [type.id, type]));
-  const getElements = (placeId: string) => {
-    const place = placesMap.get(placeId);
-    if (!place?.colorId) {
-      return null;
-    }
-
-    return typesMap.get(place.colorId)?.elements ?? null;
-  };
-
-  return new Map(
-    transitions.map((transition) => {
-      const lambdaFn = lambdaFns.get(transition.id);
-      const transitionKernelFn = transitionKernelFns.get(transition.id);
-      if (!lambdaFn || !transitionKernelFn) {
-        throw new Error(`Missing compiled functions for ${transition.id}`);
-      }
-
-      return [
-        transition.id,
-        {
-          id: transition.id,
-          name: transition.name,
-          inputPlaces: transition.inputArcs.map((arc) => {
-            const placeId = getArcEndpointPlaceId(arc)!;
-            const elements = getElements(placeId);
-            return {
-              placeId,
-              placeName: placesMap.get(placeId)?.name ?? placeId,
-              weight: arc.weight,
-              arcType: arc.type,
-              elements,
-              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
-            };
-          }),
-          outputPlaces: transition.outputArcs.map((arc) => {
-            const placeId = getArcEndpointPlaceId(arc)!;
-            const elements = getElements(placeId);
-            return {
-              placeId,
-              placeName: placesMap.get(placeId)?.name ?? placeId,
-              weight: arc.weight,
-              elements,
-              tokenLayout: elements ? computeTokenSlotLayout(elements) : null,
-            };
-          }),
-          lambdaFn,
-          transitionKernelFn,
-        },
-      ];
-    }),
-  );
 }
 
 function makeSimulation({
@@ -148,13 +80,13 @@ function makeSimulation({
   transitions,
   types = [],
   lambdaFns,
-  transitionKernelFns,
+  kernelFns,
 }: {
   places?: Place[];
   transitions: Transition[];
   types?: Color[];
-  lambdaFns: ReadonlyMap<string, LambdaFn>;
-  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
+  lambdaFns: ReadonlyMap<string, HirCompiledBufferLambda>;
+  kernelFns?: ReadonlyMap<string, HirCompiledBufferKernel | null>;
 }): SimulationInstance {
   const frameLayout = createEngineFrameLayout({
     places,
@@ -169,13 +101,24 @@ function makeSimulation({
     ),
     types: new Map(types.map((type) => [type.id, type])),
     differentialEquationFns: new Map(),
-    compiledTransitions: makeCompiledTransitions({
-      places,
-      transitions,
-      types,
-      lambdaFns,
-      transitionKernelFns,
-    }),
+    compiledTransitions: new Map(
+      transitions.map((transition) => {
+        const lambdaFn = lambdaFns.get(transition.id);
+        if (!lambdaFn) {
+          throw new Error(`Missing compiled lambda for ${transition.id}`);
+        }
+        return [
+          transition.id,
+          makeCompiledTransition({
+            transition,
+            places,
+            types,
+            lambdaFn,
+            kernelFn: kernelFns?.get(transition.id) ?? null,
+          }),
+        ];
+      }),
+    ),
     parameterValues: {},
     dt: 0.1,
     maxTime: null,
@@ -211,6 +154,15 @@ function executeTransitions(
   };
 }
 
+/** Buffer-ABI kernel mock writing one constant real token per output slot. */
+const constantKernel =
+  (...values: number[]): HirCompiledBufferKernel =>
+  (_f64, _u64, _u8, _placeBases, _indices, outF64) => {
+    for (const [index, value] of values.entries()) {
+      outF64[index] = value;
+    }
+  };
+
 describe("executeTransitions", () => {
   it("returns the original frame when no transitions can fire", () => {
     const transition = makeTransition({
@@ -221,9 +173,6 @@ describe("executeTransitions", () => {
     const simulation = makeSimulation({
       transitions: [transition],
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ p2: [{ x: 1.0 }] })],
-      ]),
     });
     const frame = makeTestFrame({
       places: {
@@ -250,8 +199,6 @@ describe("executeTransitions", () => {
       id: "t1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p2", weight: 1 }],
-      lambdaCode: "return 10.0;",
-      transitionKernelCode: "return [[[2.0]]];",
     });
     const simulation = makeSimulation({
       places: [
@@ -261,9 +208,7 @@ describe("executeTransitions", () => {
       transitions: [transition],
       types: [type1],
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
-      ]),
+      kernelFns: new Map([["t1", constantKernel(2.0)]]),
     });
     const frame = makeTestFrame({
       places: {
@@ -303,8 +248,6 @@ describe("executeTransitions", () => {
       ],
       outputArcs: [{ placeId: "p3", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: "return true;",
-      transitionKernelCode: "return { Target: input.Guard };",
     });
     const simulation = makeSimulation({
       places: [
@@ -315,15 +258,12 @@ describe("executeTransitions", () => {
       transitions: [transition],
       types: [type1],
       lambdaFns: new Map([["t1", () => true]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
+      kernelFns: new Map<string, HirCompiledBufferKernel>([
         [
           "t1",
-          (input) => {
-            const guardToken = input.Guard?.[0];
-            if (guardToken?.x === undefined) {
-              throw new Error("Expected read arc token");
-            }
-            return { Target: [{ x: guardToken.x }] };
+          (f64, _u64, _u8, placeBases, indices, outF64) => {
+            // Forward the read arc (Guard) token's x — type1 stride is 8.
+            outF64[0] = f64[(placeBases[1]! + indices[1]! * 8) / 8]!;
           },
         ],
       ]),
@@ -365,15 +305,11 @@ describe("executeTransitions", () => {
         id: "t1",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p2", weight: 1 }],
-        lambdaCode: "return 10.0;",
-        transitionKernelCode: "return [[[5.0]]];",
       }),
       makeTransition({
         id: "t2",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p3", weight: 1 }],
-        lambdaCode: "return 10.0;",
-        transitionKernelCode: "return [[[10.0]]];",
       }),
     ];
     const simulation = makeSimulation({
@@ -388,9 +324,9 @@ describe("executeTransitions", () => {
         ["t1", () => 10.0],
         ["t2", () => 10.0],
       ]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ "Place 2": [{ x: 5.0 }] })],
-        ["t2", () => ({ "Place 3": [{ x: 10.0 }] })],
+      kernelFns: new Map([
+        ["t1", constantKernel(5.0)],
+        ["t2", constantKernel(10.0)],
       ]),
     });
     const frame = makeTestFrame({
@@ -427,8 +363,6 @@ describe("executeTransitions", () => {
       id: "t1",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p2", weight: 1 }],
-      lambdaCode: "return 10.0;",
-      transitionKernelCode: "return [[[3.0, 4.0]]];",
     });
     const simulation = makeSimulation({
       places: [
@@ -438,9 +372,7 @@ describe("executeTransitions", () => {
       transitions: [transition],
       types: [type2],
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ "Place 2": [{ x: 3.0, y: 4.0 }] })],
-      ]),
+      kernelFns: new Map([["t1", constantKernel(3.0, 4.0)]]),
     });
     const frame = makeTestFrame({
       places: {
@@ -472,15 +404,11 @@ describe("executeTransitions", () => {
         id: "t1",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p2", weight: 1 }],
-        lambdaCode: "return 10.0;",
-        transitionKernelCode: "return [[[2.0]]];",
       }),
       makeTransition({
         id: "t2",
         inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "p2", weight: 1 }],
-        lambdaCode: "return 0.001;",
-        transitionKernelCode: "return [[[3.0]]];",
       }),
     ];
     const simulation = makeSimulation({
@@ -494,9 +422,9 @@ describe("executeTransitions", () => {
         ["t1", () => 10.0],
         ["t2", () => 0.001],
       ]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
-        ["t2", () => ({ "Place 2": [{ x: 3.0 }] })],
+      kernelFns: new Map([
+        ["t1", constantKernel(2.0)],
+        ["t2", constantKernel(3.0)],
       ]),
     });
     const frame = makeTestFrame({

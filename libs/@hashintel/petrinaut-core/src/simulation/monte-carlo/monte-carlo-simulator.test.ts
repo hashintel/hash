@@ -1,9 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import { createMonteCarloUserDefinedMetric } from "./metrics";
-import { createMonteCarloSimulator } from "./monte-carlo-simulator";
+import { compileHirArtifacts } from "../../hir";
+import {
+  createMonteCarloUserDefinedMetric,
+  createMonteCarloUserDefinedMetricConfigsFromSpecs,
+} from "./metrics";
+import { createMonteCarloSimulator as createMonteCarloSimulatorRaw } from "./monte-carlo-simulator";
 
 import type { SDCPN } from "../../types/sdcpn";
+import type { MonteCarloSimulatorConfig } from "./types";
+
+/** createMonteCarloSimulator with HIR artifacts compiled from the config's
+ * SDCPN (the engine no longer compiles user code itself). */
+function createMonteCarloSimulator(
+  config: MonteCarloSimulatorConfig,
+): ReturnType<typeof createMonteCarloSimulatorRaw> {
+  return createMonteCarloSimulatorRaw({
+    ...config,
+    hirArtifacts:
+      config.hirArtifacts ??
+      compileHirArtifacts(config.sdcpn, config.extensions).artifacts,
+  });
+}
 
 const sdcpn: SDCPN = {
   types: [
@@ -463,5 +481,113 @@ describe("MonteCarloSimulator", () => {
     expect(run.status).toBe("complete");
     expect(run.placeTokenCounts).toMatchObject({ pending: 0, done: 1 });
     expect(shippedCountMetric.getLatestFrame()).toMatchObject({ value: 1 });
+  });
+
+  it("runs HIR-compiled expression metrics against the raw frame buffers", () => {
+    const metricCode = `const done = state.places.Done.tokens;
+const backlog = state.places.Pending.tokens.concat(done);
+if (backlog.length === 0) return -1;
+return done.reduce(
+  (sum, order) => order.status === "shipped" ? sum + order.value : sum,
+  0,
+) + backlog.length;`;
+
+    const expressionSdcpn: SDCPN = {
+      types: [
+        {
+          id: "type-order",
+          name: "Order",
+          iconSlug: "circle",
+          displayColor: "#00FF00",
+          elements: [
+            { elementId: "status", name: "status", type: "string" },
+            { elementId: "value", name: "value", type: "real" },
+          ],
+        },
+      ],
+      places: [
+        {
+          id: "pending",
+          name: "Pending",
+          colorId: "type-order",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "done",
+          name: "Done",
+          colorId: "type-order",
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "ship",
+          name: "Ship",
+          inputArcs: [{ placeId: "pending", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "done", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode:
+            'export default Lambda((input) => input.Pending[0].status === "queued");',
+          transitionKernelCode:
+            'export default TransitionKernel((input) => ({ Done: [{ status: "shipped", value: input.Pending[0].value }] }));',
+          x: 50,
+          y: 0,
+        },
+      ],
+      differentialEquations: [],
+      parameters: [],
+      metrics: [
+        { id: "shipped-value", name: "Shipped value", code: metricCode },
+      ],
+    };
+
+    const { artifacts, failures } = compileHirArtifacts(expressionSdcpn);
+    expect(failures).toEqual([]);
+    const artifact = artifacts.metrics["shipped-value"];
+    expect(artifact).toBeDefined();
+
+    const [config] = createMonteCarloUserDefinedMetricConfigsFromSpecs(
+      [
+        {
+          id: "shipped-value",
+          label: "Shipped value",
+          kind: "expression",
+          code: metricCode,
+          artifact: artifact!,
+          sampleRuns: "all",
+          aggregateRuns: "last",
+          aggregateTime: "none",
+        },
+      ],
+      expressionSdcpn,
+    );
+    const metric = createMonteCarloUserDefinedMetric(config!);
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: expressionSdcpn,
+      hirArtifacts: artifacts,
+      runCount: 2,
+      initialMarking: {
+        pending: [{ status: "queued", value: 7 }],
+      },
+      seed: 100,
+      dt: 1,
+      maxTime: 10,
+      metrics: [metric],
+    });
+
+    // Frame 0: nothing shipped yet — one pending order → 0 + 1.
+    expect(metric.getLatestFrame()).toMatchObject({ value: 1 });
+
+    const result = simulator.runUntilComplete({ maxBatches: 20 });
+    expect(result.allFinished).toBe(true);
+    // Shipped order value 7 + one order total in the backlog concat.
+    expect(metric.getLatestFrame()).toMatchObject({ value: 8 });
   });
 });

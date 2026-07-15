@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { compileHirArtifacts } from "../../../hir/compile";
 import { createMonteCarloExperiment } from "./experiment";
 
+import type { HirMetricArtifact } from "../../../hir/instantiate";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";
 import type { MonteCarloUserDefinedMetricFrame } from "../metrics";
@@ -18,6 +20,25 @@ const empty = (): SDCPN => ({
   parameters: [],
   differentialEquations: [],
 });
+
+/** Compiles a metric body to its HIR buffer artifact (expression specs are
+ * artifact-only at runtime). */
+function metricArtifact(
+  code: string,
+  sdcpn: SDCPN = empty(),
+): HirMetricArtifact {
+  const { artifacts, failures } = compileHirArtifacts({
+    ...sdcpn,
+    metrics: [{ id: "__test__", name: "test", code }],
+  });
+  const artifact = artifacts.metrics.__test__;
+  if (!artifact) {
+    throw new Error(
+      `Metric did not compile: ${JSON.stringify(failures, null, 2)}`,
+    );
+  }
+  return artifact;
+}
 
 function makeProgress(
   overrides: Partial<MonteCarloWorkerProgress> = {},
@@ -164,6 +185,7 @@ describe("createMonteCarloExperiment", () => {
         label: "Constant",
         kind: "expression",
         code: "return 1;",
+        artifact: metricArtifact("return 1;"),
       },
     ] as const;
     const promise = createMonteCarloExperiment({
@@ -272,6 +294,7 @@ describe("createMonteCarloExperiment", () => {
           label: "Constant",
           kind: "expression",
           code: "return 1;",
+          artifact: metricArtifact("return 1;"),
           sampleRuns: "all",
           aggregateRuns: "mean",
           aggregateTime: "none",
@@ -303,6 +326,7 @@ describe("createMonteCarloExperiment", () => {
           label: "Constant distribution",
           kind: "expression",
           code: "return 1;",
+          artifact: metricArtifact("return 1;"),
           sampleRuns: "all",
           runOutput: { type: "distribution" },
         },

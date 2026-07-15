@@ -166,6 +166,7 @@ export type {
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameRawView,
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameSummary,
@@ -243,6 +244,16 @@ export type {
   TextDocumentIdentifier,
 } from "./lsp";
 
+// --- HIR (type-only from the main entry; the compiler itself stays in the
+// LSP worker, runtime instantiation in ./hir-runtime) ---
+export type {
+  HirArtifacts,
+  HirCompileFailure,
+  HirCompileResult,
+  HirDiagnostic,
+  HirMetricArtifact,
+} from "./hir";
+
 // --- Playback ---
 export {
   createPlayback,
@@ -315,13 +326,6 @@ export {
   generateDefaultVisualizerCode,
 } from "./default-codes";
 export {
-  compileMetric,
-  type CompiledMetric,
-  type CompileMetricOutcome,
-  type MetricPlaceState,
-  type MetricState,
-} from "./simulation/authoring/metric/compile-metric";
-export {
   compileScenario,
   type CompiledPlaceMarking,
   type CompiledScenarioResult,
@@ -330,7 +334,7 @@ export {
   type ScenarioCompilationError,
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
-export { buildMetricState } from "./simulation/frames/metric-state";
+export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,
@@ -365,7 +369,6 @@ export {
   PETRINAUT_UUID_NAMESPACE,
   toUuid,
 } from "./simulation/engine/uuid";
-export { compileUserCode } from "./simulation/authoring/user-code/compile-user-code";
 export {
   displayNameSchema,
   validateDisplayName,

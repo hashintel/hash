@@ -1,29 +1,25 @@
-import {
-  buildMetricState,
-  type CompiledMetric,
-  type Metric,
-  type Place,
-} from "@hashintel/petrinaut-core";
-
 import { DEFAULT_COLORS } from "../default-colors";
 
-import type { TimelineSeriesConfig } from "../types";
+import type { TimelineFrame, TimelineSeriesConfig } from "../types";
+import type { Metric } from "@hashintel/petrinaut-core";
+
+/** Evaluates the selected metric against one timeline frame. */
+export type TimelineMetricEvaluator = (frame: TimelineFrame) => number;
 
 /**
  * Builds the timeline series for a user-authored metric.
  *
- * Metric views expose one plotted series and evaluate the compiled metric
- * against each incoming frame. Runtime metric errors become NaN so uPlot draws
- * a gap instead of crashing the timeline.
+ * Metric views expose one plotted series and evaluate the HIR-compiled
+ * metric against each incoming frame. Runtime metric errors become NaN so
+ * uPlot draws a gap instead of crashing the timeline.
  */
 export function buildMetricSeriesConfig(args: {
   metric: Metric | null;
-  compiledMetric: CompiledMetric | null;
-  places: Place[];
+  evaluateMetric: TimelineMetricEvaluator | null;
 }): TimelineSeriesConfig {
-  const { metric, compiledMetric, places } = args;
+  const { metric, evaluateMetric } = args;
 
-  if (!metric || !compiledMetric) {
+  if (!metric || !evaluateMetric) {
     return {
       series: [],
       extract: () => Number.NaN,
@@ -40,7 +36,7 @@ export function buildMetricSeriesConfig(args: {
     ],
     extract: (frame) => {
       try {
-        return compiledMetric(buildMetricState(frame, places));
+        return evaluateMetric(frame);
       } catch {
         return Number.NaN;
       }

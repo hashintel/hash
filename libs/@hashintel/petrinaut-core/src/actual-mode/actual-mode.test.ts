@@ -7,6 +7,8 @@ import {
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from ".";
+import { compileHirArtifacts } from "../hir/compile";
+import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -190,5 +192,94 @@ describe("Actual mode recordings", () => {
       queued: { tokenCount: 1 },
       done: { tokenCount: 1 },
     });
+  });
+
+  it.each([
+    { marking: -1, expected: 0 },
+    { marking: 2.9, expected: 2 },
+  ])(
+    "normalizes a numeric marking of $marking consistently",
+    ({ marking, expected }) => {
+      const reader = createActualModeTimelineFrameReader({
+        definition,
+        initialState: { queued: marking },
+        transitionFirings: [],
+        transitionFiringTimesMs: [],
+        point: {
+          kind: "initial",
+          timeMs: 0,
+          transitionFiringIndex: null,
+        },
+        number: 0,
+      });
+
+      expect(reader.getPlaceTokenCount("queued")).toBe(expected);
+      expect(reader.toFrameState().places.queued?.tokenCount).toBe(expected);
+      expect(reader.getRawView?.().placeCounts[0]).toBe(expected);
+    },
+  );
+
+  it("keeps count-only coloured markings consistent for HIR metrics", () => {
+    const colouredDefinition = {
+      ...definition,
+      places: [
+        {
+          ...definition.places[0]!,
+          id: "items",
+          name: "Items",
+          colorId: "item",
+        },
+      ],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#00FF00",
+          elements: [
+            {
+              elementId: "value",
+              name: "value",
+              type: "real",
+            },
+          ],
+        },
+      ],
+      metrics: [
+        {
+          id: "item-count",
+          name: "Item count",
+          code: "return state.places.Items.tokens.length;",
+        },
+      ],
+    } satisfies SDCPN;
+    const reader = createActualModeTimelineFrameReader({
+      definition: colouredDefinition,
+      initialState: { items: 2.9 },
+      transitionFirings: [],
+      transitionFiringTimesMs: [],
+      point: {
+        kind: "initial",
+        timeMs: 0,
+        transitionFiringIndex: null,
+      },
+      number: 0,
+    });
+    const { artifacts, failures } = compileHirArtifacts(colouredDefinition);
+    expect(failures).toEqual([]);
+    const artifact = artifacts.metrics["item-count"];
+    if (!artifact) {
+      throw new Error("Expected the item-count HIR artifact");
+    }
+    const evaluate = createHirMetricEvaluator({
+      metricName: "Item count",
+      artifact,
+      places: colouredDefinition.places,
+    });
+
+    const tokens = reader.getPlaceTokens(colouredDefinition.places[0]!);
+    expect(reader.getPlaceTokenCount("items")).toBe(2);
+    expect(tokens).toEqual([{ value: 0 }, { value: 0 }]);
+    expect(evaluate(reader)).toBe(tokens.length);
   });
 });
