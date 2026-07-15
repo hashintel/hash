@@ -321,20 +321,24 @@ export const WorldMapRenderer = ({
             };
           };
           if (tooltipData.data) {
-            let tooltip = `<strong>${
-              tooltipData.name ?? "Flight"
-            }</strong><br/>`;
-            if (tooltipData.data.lat !== null) {
-              tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°<br />`;
+            const encode = (value: unknown) =>
+              echarts.format.encodeHTML(String(value));
+            let tooltip = `<strong>${encode(
+              tooltipData.name ?? "Flight",
+            )}</strong><br/>`;
+            if (typeof tooltipData.data.lat === "number") {
+              tooltip += `Latitude: ${tooltipData.data.lat.toFixed(2)}°<br/>`;
             }
-            if (tooltipData.data.lng !== null) {
+            if (typeof tooltipData.data.lng === "number") {
               tooltip += `Longitude: ${tooltipData.data.lng.toFixed(2)}°<br/>`;
             }
-            if (tooltipData.data.altitude !== null) {
-              tooltip += `<br/>Altitude: ${tooltipData.data.altitude.toLocaleString()} ft`;
+            if (typeof tooltipData.data.altitude === "number") {
+              tooltip += `<br/>Altitude: ${encode(
+                tooltipData.data.altitude.toLocaleString(),
+              )} ft`;
             }
-            if (tooltipData.data.heading !== null) {
-              tooltip += `<br/>Heading: ${tooltipData.data.heading}°`;
+            if (typeof tooltipData.data.heading === "number") {
+              tooltip += `<br/>Heading: ${encode(tooltipData.data.heading)}°`;
             }
             return tooltip;
           }
