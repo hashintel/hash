@@ -842,13 +842,12 @@ export const NetworkGraph = ({
   }, [currentZoom, referenceZoom]);
 
   /**
-   * Which edges, if any, are hoverable: the faint bundled `"background"` edges in
-   * the detail view (always), the selected node's `"highlight"` incident lines in
-   * the compact view (only while a node is selected), or `"none"`.
+   * Whether any edges are hoverable in the current view: always in the detail view
+   * (the bundled background edges, plus the active node's straight lines), and in
+   * the compact view only while a node is selected (its straight incident lines).
    */
-  const hoverableEdgeKind = useMemo<"none" | "highlight" | "background">(
-    () =>
-      isDetailZoom ? "background" : selected != null ? "highlight" : "none",
+  const edgesHoverable = useMemo(
+    () => isDetailZoom || selected != null,
     [isDetailZoom, selected],
   );
 
@@ -880,7 +879,7 @@ export const NetworkGraph = ({
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    if (!hoveredEdge || !viewState || hoverableEdgeKind === "none") {
+    if (!hoveredEdge || !viewState || !edgesHoverable) {
       return;
     }
     const viewport = view.makeViewport({ width, height, viewState });
@@ -898,7 +897,7 @@ export const NetworkGraph = ({
       return;
     }
     drawEdgeLabel(ctx, anchor, `Edge ${hoveredEdge.edgeId}`);
-  }, [hoveredEdge, hoverableEdgeKind, viewState, containerSize, view]);
+  }, [hoveredEdge, edgesHoverable, viewState, containerSize, view]);
 
   /**
    * The points fed to the detail layers: those within the viewport (plus a
@@ -1010,11 +1009,58 @@ export const NetworkGraph = ({
     return paths;
   }, [isDetailZoom, detailPoints, adjacency, pointById, bundleHierarchy]);
 
+  /**
+   * The active node's incident edges as bundled polylines, for the detail view.
+   * Routed through the same {@link bundleHierarchy} as {@link detailEdgePaths} so a
+   * highlighted edge follows the exact path it had as a faint background edge —
+   * they don't visibly shift when the node is selected. Unlike the background set
+   * these are never capped (so all of a selected node's edges are shown and
+   * hoverable) and drawn prominently. Rebuilt only when the active node changes.
+   */
+  const highlightEdgePaths = useMemo<BundledEdge[]>(() => {
+    if (!isDetailZoom || !activeNode) {
+      return [];
+    }
+    const incident = adjacency.get(activeNode.id) ?? [];
+    const paths: BundledEdge[] = [];
+    for (const edge of incident) {
+      const from = pointById.get(edge.fromId);
+      const to = pointById.get(edge.toId);
+      if (from && to) {
+        paths.push({
+          edgeId: edge.id,
+          path: bundleEdgePath(from, to, bundleHierarchy),
+        });
+      }
+    }
+    return paths;
+  }, [isDetailZoom, activeNode, adjacency, pointById, bundleHierarchy]);
+
   const layers = useMemo(() => {
     // The nodes the hovered edge connects, outlined in the edge's colour — only
     // while edges are actually hoverable in this view.
     const edgeHoverNodes =
-      hoverableEdgeKind !== "none" && hoveredEdge ? hoveredEdge.endpoints : [];
+      edgesHoverable && hoveredEdge ? hoveredEdge.endpoints : [];
+
+    // The bundled background edges are always hoverable in the detail view; the
+    // active node's straight incident lines are hoverable in detail (so all of a
+    // selected node's edges are reachable, not just those that survived the
+    // bundled cap) and in compact only while a node is selected.
+    const backgroundEdgesPickable = isDetailZoom;
+    const highlightEdgesPickable = isDetailZoom
+      ? activeNode != null
+      : selected != null;
+
+    // The active node's incident edges are drawn as straight highlight lines, so
+    // drop them from the bundled set — otherwise the same edge exists in both
+    // layers and hovering it would light up (and the label would flit between) two
+    // representations. Cheap filter over the already-bundled paths; no re-bundling.
+    const activeEdgeIds = new Set(
+      (highlight?.lines ?? []).map((line) => line.id),
+    );
+    const backgroundEdgePaths = detailEdgePaths.filter(
+      (edge) => !activeEdgeIds.has(edge.edgeId),
+    );
 
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
@@ -1022,12 +1068,18 @@ export const NetworkGraph = ({
       // off the detailed nodes otherwise (its points are hidden in detail zoom).
       pickable: true,
       data: points,
-      edges: highlight?.lines ?? [],
-      // All edges touching visible nodes, bundled and drawn faintly in detail view.
-      backgroundEdgePaths: detailEdgePaths,
-      hoveredEdgeId:
-        hoverableEdgeKind === "none" ? null : (hoveredEdge?.edgeId ?? null),
-      hoverableEdgeKind,
+      // The active node's incident edges: straight lines in the compact view;
+      // in the detail view they're drawn as bundled curves instead (see
+      // `highlightEdgePaths`) so they don't shift off the background paths.
+      edges: isDetailZoom ? [] : (highlight?.lines ?? []),
+      // All edges touching visible nodes (minus the active node's, drawn
+      // prominently), bundled and drawn faintly in detail view.
+      backgroundEdgePaths,
+      // The active node's edges, bundled + prominent, in detail view.
+      highlightEdgePaths,
+      hoveredEdgeId: edgesHoverable ? (hoveredEdge?.edgeId ?? null) : null,
+      highlightEdgesPickable,
+      backgroundEdgesPickable,
       edgeHoverNodes,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
@@ -1065,8 +1117,10 @@ export const NetworkGraph = ({
     points,
     highlight,
     detailEdgePaths,
+    highlightEdgePaths,
     hoveredEdge,
-    hoverableEdgeKind,
+    edgesHoverable,
+    selected,
     activeNode,
     colorByHex,
     radiusScale,
