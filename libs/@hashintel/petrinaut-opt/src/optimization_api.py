@@ -15,33 +15,25 @@ Run with:  uv run uvicorn optimization_api:app --reload
 from __future__ import annotations
 
 import time
-import uuid
 import json
 
 from contextlib import asynccontextmanager
 from typing import Union, Generator
 
-import optuna
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from src.utils import AppStatus, Phase, set_status
 from src.petrinaut_client import PetrinautModelSpec, PetrinautModel
 from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
 
-optuna.logging.set_verbosity(optuna.logging.WARNING)
-
-# Concurrency is scoped per session: each `PetrinautOptimizer` holds its own lock
-# so a single session can't be driven by two concurrent streams (see
-# `stream_all`/`stream_best`). Independent sessions run independently — there is
-# deliberately no global single-run guard.
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.sessions: dict[str, PetrinautOptimizer] = {}
+    # Single, app-wide status — no session ids
+    app.state.status = AppStatus()
     yield
-    app.state.sessions.clear()
 
-app = FastAPI(title="Petrinaut optimization API", lifespan=lifespan)
+app = FastAPI(title="Petrinaut optimization Python API",lifespan=lifespan)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,25 +51,27 @@ def dummy_stream() -> Generator[dict[str,Union[float,int]]]:
         yield f"{json.dumps(event)}\n\n"
         n +=1 
 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
-@app.post("/init")
-async def init(opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> dict:
-    """Initialises the Petrinaut model and its optimization model from the Petrinaut UI
+@app.get("/optimize/all",response_class=StreamingResponse)
+async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> StreamingResponse:
+    """Streams optimization results per optimization step (trial) to json line
 
     Args:
+        request (Request): Optimization API generic request
         opt_spec (OptimizationSpec): Specification for Petri Net input optimization with respect to output
         pn_spec (PetrinautModelSpec): Specification for Petri Net execution
 
     Raises:
-        HTTPException: _description_
+        HTTPException: failed to initialise optimization
 
     Returns:
-        dict: API status and Petrinaut model name
+        StreamingResponse: 
     """
-    # Build the model + optimizer. Each session is independent, so a failure here
-    # only fails this request — it never wedges the service for future /init calls.
+    # Build the model + optimizer.
     try:
         # Build the Petri net from the client spec.
         petrinet_model = PetrinautModel(pn_spec)
@@ -86,94 +80,61 @@ async def init(opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> dict:
             opt_spec = opt_spec,
             pn_model = petrinet_model,
         )
+        set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
     except Exception as exc:
+        set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
         raise HTTPException(500, f"failed to initialise optimization: {exc}")
-
-    session_id = str(uuid.uuid4())
-    app.state.sessions[session_id] = optimizer
-    return {"session_id": session_id, "status": "initialised", "pn_model": petrinet_model.name, "opt_study": optimizer.study_name}
-
-
-@app.get("/optimize/{session_id}/stream/all",response_class=StreamingResponse)
-async def optimize_stream_all(session_id: str, request: Request, n_trials:Union[int,None]=None) -> StreamingResponse:
-    """Streams optimization results per optimization step (trial) to json line
-
-    Args:
-        session_id (str): Optimization API curent session id
-        request (Request): Optimization API generic request
-
-    Raises:
-        HTTPException: Unknown session id
-
-    Returns:
-        StreamingResponse: 
-    """
-    optimizer = app.state.sessions.get(session_id)
-    if optimizer is None:
-        raise HTTPException(404, "unknown session_id — call /init first")
-
-    # Set default trials if no argument passed
-    n_trials = n_trials if (n_trials is not None) else optimizer.n_trials
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
     # session wedged.
     return StreamingResponse(
-        optimizer.stream_all(request, n_trials=n_trials),
+        optimizer.stream_all(request, n_trials=optimizer.n_trials),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-@app.get("/optimize/{session_id}/stream/best",response_class=StreamingResponse)
-async def optimize_stream_best(session_id: str, request: Request, n_trials:Union[int,None]=None) -> StreamingResponse:
+@app.get("/optimize/best",response_class=StreamingResponse)
+async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> StreamingResponse:
     """Streams current best optimization results per optimization step (trial) to json line
 
     Args:
-        session_id (str): Optimization API curent session id
         request (Request): Optimization API generic request
+        opt_spec (OptimizationSpec): Specification for Petri Net input optimization with respect to output
+        pn_spec (PetrinautModelSpec): Specification for Petri Net execution
 
     Raises:
-        HTTPException: Unknown session id
+        HTTPException: failed to initialise optimization
 
     Returns:
         StreamingResponse: 
     """
-    optimizer = app.state.sessions.get(session_id)
-    if optimizer is None:
-        raise HTTPException(404, "unknown session_id — call /init first")
-
-    # Set default trials if no argument passed
-    n_trials = n_trials if (n_trials is not None) else optimizer.n_trials
+    # Build the model + optimizer.
+    try:
+        # Build the Petri net from the client spec.
+        petrinet_model = PetrinautModel(pn_spec)
+        # Instantiate Petrinaut optimization class
+        optimizer = PetrinautOptimizer(
+            opt_spec = opt_spec,
+            pn_model = petrinet_model,
+        )
+        set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
+    except Exception as exc:
+        set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
+        raise HTTPException(500, f"failed to initialise optimization: {exc}")
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
     # session wedged.
     return StreamingResponse(
-        optimizer.stream_best(request, n_trials=n_trials),
+        optimizer.stream_best(request, n_trials=optimizer.n_trials),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-@app.delete("/optimize/{session_id}")
-async def teardown(session_id: str):
-    if app.state.sessions.pop(session_id, None) is None:
-        raise HTTPException(404, "unknown session_id")
-    return {"status": "deleted"}
-
-
 @app.get("/status")
-async def status() -> dict:
-    """Lists the currently active optimization sessions."""
-    return {
-        "sessions": [
-            {
-                "session_id": session_id,
-                "pn_model": optimizer.pn_model.name,
-                "opt_study": optimizer.study_name,
-            }
-            for session_id, optimizer in app.state.sessions.items()
-        ]
-    }
+def get_status():
+    return app.state.status
 
 @app.get("/")
 async def root() -> dict:
