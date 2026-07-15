@@ -17,6 +17,8 @@ const RUN_REQUEST_KEYS = new Set([
   "seed",
 ]);
 
+const MAX_UNCOLORED_TOKEN_COUNT = 0xffff_ffff;
+
 export type ServerRunRequest = {
   parameters?: JsonRecord;
   initialState?: JsonRecord;
@@ -161,6 +163,11 @@ function normalizePlaceMarking(
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
     throw new Error(
       `Initial marking for uncolored place "${place.name}" must be a non-negative integer`,
+    );
+  }
+  if (value > MAX_UNCOLORED_TOKEN_COUNT) {
+    throw new Error(
+      `Initial marking for uncolored place "${place.name}" must not exceed ${MAX_UNCOLORED_TOKEN_COUNT}`,
     );
   }
   return value;

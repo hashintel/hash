@@ -133,7 +133,8 @@ For parallel trials, create one client/process per Optuna worker.
 
 - `parameters`: keys may be parameter variable names, IDs, or display names.
 - `initialState`: keys may be place IDs or display names.
-- Uncolored places accept a token count, for example `"Infected": 10`.
+- Uncolored places accept an integer token count from `0` through
+  `4,294,967,295`, for example `"Infected": 10`.
 - Colored places accept one object per token. Different places may use
   different color schemas:
 
@@ -149,15 +150,18 @@ For parallel trials, create one client/process per Optuna worker.
   }
   ```
 
-- `metrics`: model metric names or IDs. Multiple metrics may be requested.
+- `metrics`: model metric names or IDs. Multiple metrics may be requested;
+  metric display names must be unique because results are keyed by name.
 - `maxSteps` or `maxTime`: simulation stopping condition.
 - `dt`: simulation time step; defaults to `1`.
-- `seed`: optional deterministic random seed.
+- `seed`: optional deterministic integer seed from `0` through
+  `2,147,483,647`.
 
 Metrics are evaluated on the final frame. The response also includes the seed,
-completion reason, final time, frame count, and final token count for each
-place. Use `metadata` first to discover the model's parameters, places, colors,
-and available metrics.
+completion reason, final time, frame count, and final token count for each root
+place advertised by `metadata`. Internal subnet places are not returned. Use
+`metadata` first to discover the model's parameters, places, colors, and
+available metrics.
 
 A runnable version of the wrapper is available in
 [`examples/python_stdio.py`](./examples/python_stdio.py).

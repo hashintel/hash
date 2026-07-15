@@ -104,6 +104,18 @@ function generateSeed(): number {
   return (randomWord % MAX_SEED) + 1;
 }
 
+function validateMetricNames(sdcpn: SDCPN): void {
+  const names = new Set<string>();
+  for (const metric of sdcpn.metrics ?? []) {
+    if (names.has(metric.name)) {
+      throw new Error(
+        `Model metric names must be unique because run results are keyed by name: "${metric.name}"`,
+      );
+    }
+    names.add(metric.name);
+  }
+}
+
 function createMetadata(sdcpn: SDCPN): PetrinautCompiledModelMetadata {
   const colorsById = new Map(sdcpn.types.map((color) => [color.id, color]));
 
@@ -270,6 +282,7 @@ export function compilePetrinautModel(
 ): PetrinautCompiledModel {
   const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
+  validateMetricNames(sdcpn);
   const compiled = config.hirArtifacts
     ? { artifacts: config.hirArtifacts, failures: [] }
     : compileHirArtifacts(sdcpn, extensions);
@@ -296,6 +309,11 @@ export function compilePetrinautModel(
       const dt = runConfig.dt ?? 1;
       const maxTime = runConfig.maxTime ?? null;
       const maxSteps = runConfig.maxSteps;
+      if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
+        throw new Error(
+          `Run config seed must be an integer between 0 and ${MAX_SEED}`,
+        );
+      }
       if (maxTime === null && maxSteps === undefined) {
         throw new Error("Run config requires either maxTime or maxSteps");
       }
@@ -367,9 +385,10 @@ export function compilePetrinautModel(
       });
 
       const finalPlaceTokenCounts: Record<string, number> = {};
-      for (const placeId of simulation.frameLayout.placeIds) {
-        finalPlaceTokenCounts[placeId] =
-          finalFrameReader.getPlaceTokenCount(placeId);
+      for (const place of metadata.places) {
+        finalPlaceTokenCounts[place.id] = finalFrameReader.getPlaceTokenCount(
+          place.id,
+        );
       }
 
       return {

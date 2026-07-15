@@ -11,9 +11,13 @@ import {
   MAX_REQUEST_LINE_BYTES,
 } from "../runtime/protocol";
 
+import type { Writable } from "node:stream";
+
 type ServeOptions = {
   modelPath: string;
   socketPath: string;
+  signal?: AbortSignal;
+  errorOutput?: Writable;
 };
 
 function writeResponse(socket: Socket, value: unknown): void {
@@ -69,6 +73,13 @@ export async function serve(options: ServeOptions): Promise<void> {
 
     socket.on("end", () => {
       if (buffer.trim() !== "") {
+        if (Buffer.byteLength(buffer, "utf8") > MAX_REQUEST_LINE_BYTES) {
+          writeResponse(socket, {
+            id: null,
+            error: { message: "Request line is too large" },
+          });
+          return;
+        }
         handleProtocolLine(model, buffer, (value) =>
           writeResponse(socket, value),
         );
@@ -101,12 +112,17 @@ export async function serve(options: ServeOptions): Promise<void> {
     server.listen(options.socketPath);
   });
 
-  process.stderr.write(
+  (options.errorOutput ?? process.stderr).write(
     `Petrinaut socket ready at ${options.socketPath} for model ${modelPath}\n`,
   );
 
   await new Promise<void>((resolveShutdown) => {
     let shuttingDown = false;
+    const removeShutdownListeners = (): void => {
+      process.off("SIGINT", shutdown);
+      process.off("SIGTERM", shutdown);
+      options.signal?.removeEventListener("abort", shutdown);
+    };
     const shutdown = (): void => {
       if (shuttingDown) {
         return;
@@ -116,10 +132,15 @@ export async function serve(options: ServeOptions): Promise<void> {
         socket.destroy();
       }
       server.close(() => {
+        removeShutdownListeners();
         resolveShutdown();
       });
     };
     process.once("SIGINT", shutdown);
     process.once("SIGTERM", shutdown);
+    options.signal?.addEventListener("abort", shutdown, { once: true });
+    if (options.signal?.aborted) {
+      shutdown();
+    }
   });
 }

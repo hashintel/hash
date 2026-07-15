@@ -173,6 +173,22 @@ describe("handleProtocolLine", () => {
     });
   });
 
+  it("rejects uncolored token counts that overflow engine storage", () => {
+    expect(
+      send(createModel(), {
+        id: 10,
+        method: "run",
+        params: { initialState: { Plain: 4_294_967_296 }, maxSteps: 1 },
+      }),
+    ).toEqual({
+      id: 10,
+      error: {
+        message:
+          'Initial marking for uncolored place "Plain" must not exceed 4294967295',
+      },
+    });
+  });
+
   it("preserves request ids on protocol errors", () => {
     expect(send(createModel(), { id: "bad", method: "unknown" })).toEqual({
       id: "bad",

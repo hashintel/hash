@@ -156,11 +156,13 @@ Run config fields:
 - `parameters`: parameter values. Keys may be parameter variable name,
   parameter id, or display name.
 - `initialState`: initial markings. Keys may be place id or display name.
+  Uncolored token counts must be integers from `0` through `4,294,967,295`.
 - `metrics`: metric names/ids evaluated on the final frame.
 - `maxSteps`: optional maximum number of simulation steps.
 - `maxTime`: optional maximum simulation time. At least one of `maxSteps` or
   `maxTime` is required. `dt` defaults to `1` if omitted.
-- `seed`: optional random seed.
+- `seed`: optional deterministic integer seed from `0` through
+  `2,147,483,647`.
 
 Transition predicates are part of the model structure, not the run request. To
 change predicate logic, edit the model; to change values used by predicate
@@ -193,6 +195,10 @@ Metrics are evaluated only on the final frame and returned as scalar values:
 `metrics` may contain multiple names. Each requested metric is evaluated on the
 final frame and returned as a scalar under `result.metrics`. For an optimizer
 that needs one objective value, read the one metric key it requested.
+Metric display names must be unique because result values are keyed by name.
+
+`finalPlaceTokenCounts` contains the root places advertised by `metadata`.
+Internal places created by subnet expansion are not part of the CLI contract.
 
 Errors return one JSON-line response:
 
