@@ -131,9 +131,7 @@ def _array_mapping(arrays: ClassifierArrays) -> dict[str, FloatArray]:
         "applicability_mean": arrays.applicability_mean,
         "applicability_training_distances": arrays.applicability_training_distances,
         "coefficients": arrays.coefficients,
-        "cross_fit_applicability_inverse_scales": (
-            arrays.cross_fit_applicability_inverse_scales
-        ),
+        "cross_fit_applicability_inverse_scales": (arrays.cross_fit_applicability_inverse_scales),
         "cross_fit_applicability_mean": arrays.cross_fit_applicability_mean,
         "cross_fit_applicability_training_distances": (
             arrays.cross_fit_applicability_training_distances

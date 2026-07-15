@@ -20,4 +20,3 @@ type FrozenMapping[Key, Value] = Annotated[
     AfterValidator(_freeze_mapping),
     PlainSerializer(_mapping_json, return_type=dict),
 ]
-

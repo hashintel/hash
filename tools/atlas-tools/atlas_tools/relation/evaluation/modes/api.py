@@ -41,6 +41,7 @@ from atlas_tools.relation.evaluation.modes.sampling import (
     SamplingCard,
     SliceDerivation,
     derive_pilot_slice,
+    pilot_slice_selection_hash,
 )
 
 __all__ = [
@@ -80,5 +81,6 @@ __all__ = [
     "grid_task",
     "message_payload",
     "parse_response",
+    "pilot_slice_selection_hash",
     "refinement_trigger",
 ]

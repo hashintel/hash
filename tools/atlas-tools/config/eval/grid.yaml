@@ -55,7 +55,7 @@ concurrency:
   # successful cohort, and returns to one on a direct or embedded 429.
   initial: 5
   maximum: 15
-  family_maximum: 3
+  family_maximum: 5
   ramp: doubling-v1
 
 guards:

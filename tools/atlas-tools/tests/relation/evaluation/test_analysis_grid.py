@@ -98,9 +98,7 @@ def _vote(
             raw_completion=f'{{"verdict":"{verdict}"}}',
         ),
         evidence=VoteEvidence(
-            accepted_attempt_ids=(
-                AttemptId(sha256_bytes(f"attempt:{vote_id}".encode())),
-            ),
+            accepted_attempt_ids=(AttemptId(sha256_bytes(f"attempt:{vote_id}".encode())),),
             model_returned=model,
         ),
         accounting=VoteAccounting(

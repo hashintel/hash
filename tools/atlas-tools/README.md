@@ -133,7 +133,7 @@ the local development defaults available through `--help`.
 `run` samples **queries**, not candidate corpus rows: every sampled query is still
 compared exactly with every corpus row. The work is therefore proportional to
 `sample × corpus rows × (full pass + prefix passes)`. The default sample is 20,000;
-use 500–1,000 for a smoke run before starting the full audit.
+use 500-1,000 for a smoke run before starting the full audit.
 
 Exact cosine kNN uses FAISS `IndexFlatIP` over L2-normalized vectors. Corpus blocks
 are streamed through a flat index and FAISS merges their top-k results, so no full
@@ -236,7 +236,7 @@ and data-denial filters.
 One `evaluate` command runs either voting phase. The config's `mode` is the
 discriminator: `pilot` (schema v3) derives the factorial-pilot sample and
 auxiliary arms; `grid` (schema v4) executes the production run over the full
-corpus — the pilot's successor.
+corpus -- the pilot's successor.
 
 From `tools/atlas-tools`, run and inspect the factorial pilot:
 
@@ -252,8 +252,8 @@ needs silent operation.
 
 #### The production grid (`mode: grid`, schema v4)
 
-The grid executes the admitted configuration — bundle S1xF1 only, minimal
-effort set explicitly per seat, decoding pinned — over the full relation-card
+The grid executes the admitted configuration -- bundle S1xF1 only, minimal
+effort set explicitly per seat, decoding pinned -- over the full relation-card
 corpus. Its config is judges.yaml at its frozen hash (see
 `config/eval/grid.yaml`): five seats carrying the pilot's route pins plus a
 `pilot_cost_per_vote_usd` anchor, a `panel` section recording the freeze
@@ -286,12 +286,15 @@ Phase B journal prefixes remain valid.
 Three family-stream guards run over fresh calls and stop the run immediately
 (resumably, with the operator paged through the terminal error) when they
 fire: the first-vote check (a family is established only after an accepted
-completion uses the pinned model and parses to a verdict), the cache assertion
-(from the configured call index every completion must report cached prompt
-tokens), and the rolling cost tripwire (mean $/vote over the window must stay
-under the configured multiple of the seat's pilot-measured cost). A retryable
-opening failure, including 429, follows the visible retry policy; a permanent
-client error or a rejected opening route or response pages the run. Everything
+completion uses the pinned model and parses to a verdict), the cache warm-up
+assertion (the family must report at least one cached prompt token by the
+configured billed-result count), and the rolling cost tripwire (mean $/vote
+over the window must stay under the configured multiple of the seat's
+pilot-measured cost). Accepted and locally rejected results advance the cache
+checkpoint and contribute their usage evidence; failures without a provider
+result do not. Resume restores that durable evidence before another call. A
+retryable opening failure, including 429, follows the visible retry policy; a
+permanent client error or a rejected opening route or response pages the run. Everything
 else follows the pilot's fail-closed executor: durable journals, in-flight
 markers, deterministic resume in batches until 100% coverage, and the central
 `max_cost_usd` gate as the hard envelope ceiling. A completed run publishes
@@ -490,8 +493,11 @@ and attempt contracts, reconstructs the deterministic plan and every request,
 and proves resume state before atomically publishing the destination. A
 complete pilot receives its current handoff manifest; an incomplete grid stays
 manifest-free and resumable. `adoption-report.json` records source and output
-hashes, policy evidence, the commit cursor, accepted-but-uncommitted vote IDs,
-the next unattempted task, and `network_calls: 0`.
+hashes, policy evidence, the commit cursor, exactly reconstructable uncommitted
+vote IDs, the provider stage needed to extend the committed prefix, the first
+never-attempted task, and `network_calls: 0`. An accepted initial response is
+not called reconstructable when its malformed content still requires a repair
+request.
 
 Historical request policies are accepted only for attempt IDs inside the
 cryptographically bound source prefix or imported subset recorded by the

@@ -12,7 +12,9 @@ from atlas_tools.relation.evaluation.execution.control import (
 )
 from atlas_tools.relation.evaluation.execution.guard import (
     CompletionPolicy,
+    GridGuardFamilySeed,
     GridGuardPolicy,
+    grid_guard_family_seeds,
 )
 from atlas_tools.relation.evaluation.execution.policy import executor_policy_payload
 from atlas_tools.relation.evaluation.execution.resume import (
@@ -20,6 +22,7 @@ from atlas_tools.relation.evaluation.execution.resume import (
     build_historical_request_evidence,
     build_resume_index,
     observed_request_policy_ids,
+    reconstruct_vote_or_required_stage,
     validate_attempt_sequence,
     verify_historical_request_evidence,
     verify_historical_request_subset,
@@ -55,6 +58,7 @@ __all__ = [
     "ExecutionFailure",
     "ExecutionStalledError",
     "ExecutionStoppedError",
+    "GridGuardFamilySeed",
     "GridGuardPolicy",
     "HistoricalRequestScope",
     "LogicalVoteRunner",
@@ -72,7 +76,9 @@ __all__ = [
     "execute_ordered",
     "execute_votes",
     "executor_policy_payload",
+    "grid_guard_family_seeds",
     "observed_request_policy_ids",
+    "reconstruct_vote_or_required_stage",
     "validate_attempt_sequence",
     "verify_historical_request_evidence",
     "verify_historical_request_subset",

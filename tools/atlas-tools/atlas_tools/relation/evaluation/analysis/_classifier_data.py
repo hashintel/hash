@@ -214,8 +214,7 @@ def _fold_by_family(
 ) -> dict[RelationFamilyId, int]:
     if len(relations_by_family) < config.folds:
         raise ValueError(
-            f"grouped CV needs {config.folds} relation families, "
-            f"found {len(relations_by_family)}"
+            f"grouped CV needs {config.folds} relation families, found {len(relations_by_family)}"
         )
 
     def family_key(
@@ -255,9 +254,7 @@ def validate_classifier_cohorts(
     family_folds = _fold_by_family(relations_by_family, config)
     family_count = len(relations_by_family)
     for fold in range(config.folds):
-        validation_families = sum(
-            assigned_fold == fold for assigned_fold in family_folds.values()
-        )
+        validation_families = sum(assigned_fold == fold for assigned_fold in family_folds.values())
         training_families = family_count - validation_families
         if training_families < config.folds:
             raise ValueError(

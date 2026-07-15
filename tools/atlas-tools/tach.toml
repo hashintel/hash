@@ -100,15 +100,6 @@ depends_on_external = [
 layer = "application"
 path = "atlas_tools.relation.evaluation.application"
 
-# The legacy modules remain visible to the old CLI during the parallel build,
-# but no checked rewrite module can declare them as dependencies.
-[[modules]]
-paths = [
-    "atlas_tools.relation.eval",
-]
-unchecked = true
-visibility = []
-
 [[interfaces]]
 expose = ["api.*"]
 from   = ["atlas_tools.relation.evaluation.domain"]
@@ -130,7 +121,7 @@ expose = ["api.*"]
 from   = ["atlas_tools.relation.evaluation.execution"]
 
 [[interfaces]]
-expose = ["api.*"]
+expose = ["api.*", "grid_finalization.*"]
 from   = ["atlas_tools.relation.evaluation.analysis"]
 
 [[interfaces]]

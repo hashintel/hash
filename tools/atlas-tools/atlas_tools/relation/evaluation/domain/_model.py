@@ -19,4 +19,3 @@ class FrozenModel(BaseModel):
         strict=True,
         validate_default=True,
     )
-

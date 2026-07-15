@@ -25,7 +25,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     VoteTask,
 )
 
-_PAID_PILOT = Path(__file__).parents[3] / "runs" / "evaluate"
+_PAID_PILOT = Path(__file__).parents[3] / "runs" / "evaluate-v2"
 _JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
 
 
@@ -96,7 +96,7 @@ def test_paid_pilot_state_and_manifest_remain_loadable() -> None:
     manifest = HandoffManifest.model_validate_json(manifest_bytes, strict=True)
 
     assert state.expected_votes == 14_796
-    assert state.plan_hash == "8b18ebe2963d447df2487a01249826a9a01417c913ad8712e5138d513d9fda33"
+    assert state.plan_hash == "9deeec39eaa770eda31ca71688969808bc6a293200df9601ec8cdfe2bab91fa3"
     assert manifest.full_grid_card_count == 1_670
     assert len(manifest.judges) == 9
     assert canonical_json_bytes(manifest) == canonical_json_bytes(

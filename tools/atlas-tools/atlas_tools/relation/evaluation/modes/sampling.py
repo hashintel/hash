@@ -11,7 +11,7 @@ import math
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol
 
 from atlas_tools.relation.evaluation.domain.api import (
     CardHash,
@@ -219,7 +219,44 @@ def _apportion(sizes: Mapping[_SamplingStratum, int], target: int) -> dict[_Samp
     return quotas
 
 
-def _row_payload(row: PilotSliceRow) -> dict[str, object]:
+class SliceSelectionRow(Protocol):
+    """Expose exactly the row fields committed by the selection hash."""
+
+    @property
+    def relation_id(self) -> RelationId: ...
+
+    @property
+    def card_hash(self) -> CardHash: ...
+
+    @property
+    def prescreen_stratum(self) -> str: ...
+
+    @property
+    def sampling_stratum(self) -> str: ...
+
+    @property
+    def length_quartile(self) -> LengthQuartile: ...
+
+    @property
+    def pilot_strata(self) -> tuple[str, ...]: ...
+
+    @property
+    def token_count(self) -> int: ...
+
+    @property
+    def is_holdout(self) -> bool: ...
+
+    @property
+    def holdout_verdict(self) -> Verdict | None: ...
+
+    @property
+    def sampling_seed(self) -> int: ...
+
+    @property
+    def selection_key(self) -> Sha256Hex: ...
+
+
+def _row_payload(row: SliceSelectionRow) -> dict[str, object]:
     return {
         "card_hash": row.card_hash,
         "holdout_verdict": row.holdout_verdict,
@@ -235,7 +272,8 @@ def _row_payload(row: PilotSliceRow) -> dict[str, object]:
     }
 
 
-def _selection_hash(rows: Sequence[PilotSliceRow]) -> Sha256Hex:
+def pilot_slice_selection_hash(rows: Sequence[SliceSelectionRow]) -> Sha256Hex:
+    """Hash selection content independently of artifact schema metadata."""
     digest = hashlib.sha256()
     digest.update(b"[")
     separator = b""
@@ -338,6 +376,6 @@ def derive_pilot_slice(
             selected_non_holdouts=target,
             cards_hash=cards_hash,
             sampling_config_hash=sampling_hash,
-            selection_hash=_selection_hash(rows),
+            selection_hash=pilot_slice_selection_hash(rows),
         ),
     )

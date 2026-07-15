@@ -18,7 +18,10 @@ from atlas_tools.relation.evaluation.domain.api import (
     TransientRetryConfig,
     TransportFailure,
 )
-from atlas_tools.relation.evaluation.execution.api import GridGuardPolicy
+from atlas_tools.relation.evaluation.execution.api import (
+    GridGuardFamilySeed,
+    GridGuardPolicy,
+)
 from atlas_tools.relation.evaluation.transport.api import (
     CompletionAccepted,
     CompletionFailed,
@@ -103,7 +106,17 @@ def _policy(
     cost_window: int = 10,
     retry_transport_errors: bool = True,
     initial_billed_costs_usd: tuple[float, ...] = (),
+    family_seed: GridGuardFamilySeed | None = None,
 ) -> GridGuardPolicy:
+    if family_seed is not None and (established or initial_billed_costs_usd):
+        raise ValueError("an explicit family seed cannot be combined with legacy test inputs")
+    if family_seed is None and (established or initial_billed_costs_usd):
+        family_seed = GridGuardFamilySeed(
+            family_id=JudgeFamilyId("test/model"),
+            established=established,
+            billed_calls=max(len(initial_billed_costs_usd), int(established)),
+            recent_costs_usd=initial_billed_costs_usd,
+        )
     return GridGuardPolicy(
         config=GuardConfig(
             cache_check_vote=cache_check_vote,
@@ -113,10 +126,7 @@ def _policy(
         retry_policy=TransientRetryConfig(retry_transport_errors=retry_transport_errors),
         pilot_cost_per_vote_usd={JudgeFamilyId("test/model"): 0.01},
         parse_verdict=_parse,
-        established_families={JudgeFamilyId("test/model")} if established else (),
-        initial_billed_costs_usd={
-            JudgeFamilyId("test/model"): initial_billed_costs_usd
-        },
+        family_seeds=() if family_seed is None else (family_seed,),
     )
 
 
@@ -323,6 +333,80 @@ def test_cache_checkpoint_rejects_a_stream_that_never_warms() -> None:
     assert second.failure.scope == "session"
     assert second.billed_result.usage is not None
     assert second.billed_result.usage.cached_tokens == 0
+
+
+def test_resumed_cache_checkpoint_trips_on_the_next_zero_cache_result() -> None:
+    seed = GridGuardFamilySeed(
+        family_id=JudgeFamilyId("test/model"),
+        established=True,
+        billed_calls=1,
+        cached_tokens=0,
+    )
+    policy = _policy(cache_check_vote=2, family_seed=seed)
+
+    outcome = policy.evaluate(_request(), _accepted(cached_tokens=0))
+
+    assert isinstance(outcome, CompletionRejected)
+    assert outcome.failure.category == "accounting"
+    assert "first 2 billed results" in outcome.failure.message
+
+
+def test_resumed_cache_evidence_preserves_the_checkpoint() -> None:
+    seed = GridGuardFamilySeed(
+        family_id=JudgeFamilyId("test/model"),
+        established=True,
+        billed_calls=1,
+        cached_tokens=20,
+    )
+    policy = _policy(cache_check_vote=2, family_seed=seed)
+
+    outcome = policy.evaluate(_request(), _accepted(cached_tokens=0))
+
+    assert isinstance(outcome, CompletionAccepted)
+
+
+def test_unbilled_failure_does_not_advance_the_cache_checkpoint() -> None:
+    policy = _policy(cache_check_vote=2)
+
+    failed = policy.evaluate(_request(), _rate_limited())
+    accepted = policy.evaluate(_request(), _accepted(cached_tokens=0))
+
+    assert isinstance(failed, CompletionFailed)
+    assert isinstance(accepted, CompletionAccepted)
+
+
+@pytest.mark.parametrize(
+    ("rejected_cached_tokens", "accepted_after_resume"),
+    [
+        pytest.param(0, False, id="zero-cache-rejection-advances-checkpoint"),
+        pytest.param(20, True, id="rejected-cache-evidence-preserves-checkpoint"),
+    ],
+)
+def test_billed_rejection_replays_cache_state(
+    rejected_cached_tokens: int,
+    *,
+    accepted_after_resume: bool,
+) -> None:
+    seed = GridGuardFamilySeed(
+        family_id=JudgeFamilyId("test/model"),
+        established=True,
+        billed_calls=1,
+        cached_tokens=0,
+    )
+    policy = _policy(cache_check_vote=3, family_seed=seed)
+    rejected = CompletionRejected(
+        failure=ResponseFailure(
+            exception_type="ResponseError",
+            message="completion envelope was malformed",
+        ),
+        billed_result=_result("malformed", cached_tokens=rejected_cached_tokens),
+    )
+
+    first = policy.evaluate(_request(), rejected)
+    second = policy.evaluate(_request(), _accepted(cached_tokens=0))
+
+    assert first is rejected
+    assert isinstance(second, CompletionAccepted) is accepted_after_resume
 
 
 def test_billed_rejection_can_trip_rolling_cost_without_losing_result() -> None:

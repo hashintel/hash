@@ -1,7 +1,6 @@
 """Validate durable request evidence before any result is reused."""
 
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 
 from atlas_tools.relation.evaluation.domain.api import (
@@ -341,41 +340,25 @@ def observed_request_policy_ids(
 
 def _validate_completed_vote(
     task: VoteTask,
-    attempts: Sequence[PhysicalAttempt],
+    attempts: tuple[PhysicalAttempt, ...],
     vote: Vote,
     *,
     prompt: VotePrompt,
-    initial_raw: str | None,
-    repair_raw: str | None,
+    grouped: _AttemptsByStage,
 ) -> None:
-    if initial_raw is None:
-        raise ValueError(f"completed vote {task.vote_id} lacks an accepted initial call")
-    initial_parsed = None
-    with suppress(ValueError):
-        initial_parsed = prompt.parse(initial_raw)
-    repaired = initial_parsed is None
-    if repaired:
-        if repair_raw is None:
-            raise ValueError(f"completed vote {task.vote_id} lacks its repair result")
-        try:
-            parsed = prompt.parse(repair_raw)
-        except ValueError:
-            parsed = None
-        final_raw = repair_raw
-    else:
-        if repair_raw is not None:
-            raise ValueError(f"valid initial vote {task.vote_id} has a repair result")
-        parsed = initial_parsed
-        final_raw = initial_raw
-
-    expected = _build_vote(
+    expected = _reconstruct_vote_or_required_stage(
         task=task,
         attempts=attempts,
-        initial_raw=initial_raw,
-        final_raw=final_raw,
-        parsed=parsed,
-        repaired=repaired,
+        grouped=grouped,
+        prompt=prompt,
     )
+    match expected:
+        case "initial" | "repair" as stage:
+            raise ValueError(
+                f"completed vote {task.vote_id} still requires its {stage} provider response"
+            )
+        case Vote():
+            pass
     if vote != expected:
         expected_fields = expected.model_dump(mode="python", round_trip=True)
         observed_fields = vote.model_dump(mode="python", round_trip=True)
@@ -383,6 +366,83 @@ def _validate_completed_vote(
             name for name in expected_fields if expected_fields[name] != observed_fields[name]
         )
         raise ValueError(f"vote {task.vote_id} differs from its attempts in fields {differing}")
+
+
+def _reconstruct_vote_or_required_stage(
+    *,
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    grouped: _AttemptsByStage,
+    prompt: VotePrompt,
+) -> Vote | RequestStage:
+    initial = _successful(grouped, "initial")
+    if initial is None:
+        if grouped["repair"]:
+            raise ValueError(f"repair attempts for {task.vote_id} lack an accepted initial call")
+        return "initial"
+
+    initial_raw = _accepted_content(task, initial)
+    try:
+        initial_parsed = prompt.parse(initial_raw)
+    except ValueError:
+        initial_parsed = None
+
+    if initial_parsed is not None:
+        if grouped["repair"]:
+            raise ValueError(f"repair attempts for {task.vote_id} follow a valid initial response")
+        return _build_vote(
+            task=task,
+            attempts=attempts,
+            initial_raw=initial_raw,
+            final_raw=initial_raw,
+            parsed=initial_parsed,
+            repaired=False,
+        )
+
+    repair = _successful(grouped, "repair")
+    if repair is None:
+        return "repair"
+    repair_raw = _accepted_content(task, repair)
+    try:
+        repair_parsed = prompt.parse(repair_raw)
+    except ValueError:
+        repair_parsed = None
+    return _build_vote(
+        task=task,
+        attempts=attempts,
+        initial_raw=initial_raw,
+        final_raw=repair_raw,
+        parsed=repair_parsed,
+        repaired=True,
+    )
+
+
+def reconstruct_vote_or_required_stage(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    prompt: VotePrompt,
+) -> Vote | RequestStage:
+    """Project accepted evidence or identify the next provider request stage.
+
+    Callers must first obtain `attempts` from `build_resume_index`, which proves
+    request hashes and the historical-policy scope. A returned stage means that
+    exact provider response is still required. Invalid evidence raises instead
+    of being treated as unfinished work.
+
+    Runtime is `O(A)` with `O(A)` temporary references for `A` attempts.
+
+    Raises:
+        ValueError: Accepted evidence violates the initial/repair protocol.
+
+    """
+    grouped = _group_attempts(task, attempts)
+    return _reconstruct_vote_or_required_stage(
+        task=task,
+        attempts=attempts,
+        grouped=grouped,
+        prompt=prompt,
+    )
 
 
 def validate_attempt_sequence(
@@ -405,7 +465,7 @@ def validate_attempt_sequence(
 
     """
     grouped = _group_attempts(task, attempts)
-    initial_raw, repair_raw = _validate_request_hashes(
+    _validate_request_hashes(
         task,
         grouped,
         prompt=prompt,
@@ -422,8 +482,7 @@ def validate_attempt_sequence(
             attempts,
             vote,
             prompt=prompt,
-            initial_raw=initial_raw,
-            repair_raw=repair_raw,
+            grouped=grouped,
         )
 
 

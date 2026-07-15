@@ -72,7 +72,7 @@ _RELATIONS = (
     "test:H3",
 )
 _HOLDOUTS = frozenset({"test:H1", "test:H2", "test:H3"})
-_PAID = Path(__file__).parents[3] / "runs" / "evaluate"
+_PAID = Path(__file__).parents[3] / "runs" / "evaluate-v2"
 
 
 def _policy(*, routing_ceiling: float = 0.005) -> PilotAnalysisPolicy:
@@ -116,9 +116,7 @@ def _card(relation_id: RelationId) -> EvaluationCard:
 
 def _manifest(cards: tuple[EvaluationCard, ...]) -> HandoffManifest:
     relation_ids = tuple(card.relation_id for card in cards)
-    family_efforts: dict[JudgeFamilyId, ReasoningEffort] = {
-        JudgeFamilyId("model/a"): "high"
-    }
+    family_efforts: dict[JudgeFamilyId, ReasoningEffort] = {JudgeFamilyId("model/a"): "high"}
     return HandoffManifest(
         schema_version=3,
         expected_grid=ExpectedGrid(
@@ -354,8 +352,7 @@ def _cohort() -> tuple[
                 _vote(repeat_card, family_id, "S1xF1", "minimal", repeat_index, verdict)
             )
     evidence.extend(
-        _vote(card, JudgeFamilyId("model/a"), "S1xF1", "high", 0, "proximal")
-        for card in cards
+        _vote(card, JudgeFamilyId("model/a"), "S1xF1", "high", 0, "proximal") for card in cards
     )
     votes, attempts = zip(*reversed(evidence), strict=True)
     return manifest, _slice(cards), cards, votes, attempts
@@ -441,9 +438,7 @@ def test_route_replay_fails_before_decisions_when_stream_threshold_is_exceeded()
     )
     corrupted = target.model_copy(
         update={
-            "route": target.route.model_copy(
-                update={"model_requested": ModelId("wrong/model")}
-            ),
+            "route": target.route.model_copy(update={"model_requested": ModelId("wrong/model")}),
         }
     )
     replaced = tuple(
@@ -493,7 +488,7 @@ def _paid_policy() -> PilotAnalysisPolicy:
     )
 
 
-def test_paid_handoff_decision_projection_matches_legacy_golden_hash() -> None:
+def test_adopted_paid_handoff_decision_projection_matches_golden_hash() -> None:
     manifest = HandoffManifest.model_validate_json(
         (_PAID / "manifest.json").read_bytes(), strict=True
     )
@@ -519,5 +514,5 @@ def test_paid_handoff_decision_projection_matches_legacy_golden_hash() -> None:
     }
 
     assert sha256_bytes(canonical_json_bytes(compatibility)) == (
-        "158664cd41d7247f55ec85ea953a5554a7969002c7aa9ab4d8ddcd179aa14a04"
+        "8d9986ad7b0b7c8494f7ba0cbf61ff6c01d8d900695d906a412b9874dcdd1cf1"
     )

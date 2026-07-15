@@ -13,7 +13,7 @@ from atlas_tools.relation.evaluation.application.pilot_reporting import (
 )
 
 _ROOT = Path(__file__).parents[3]
-_PAID = _ROOT / "runs/evaluate"
+_PAID = _ROOT / "runs/evaluate-v2"
 _CARDS = _ROOT / "runs/cards"
 
 
@@ -23,7 +23,7 @@ def test_paid_handoff_writes_legacy_named_ascii_artifacts_with_typed_dissent_evi
     result = analyze_handoff(_PAID, tmp_path)
 
     assert result.decisions_hash == (
-        "a0dba9178ea0d31426a7bb5a8cfdee2b43cfb9caa0822272bad564386fc14669"
+        "a059eaa8c316c19957b830ead3da326809f61eba233c8f6b8bded7402b120cb4"
     )
     assert result.report_hash == (
         "2bc3cab2fa122545e388a38dd497cc8849fb0b5f5eee1550b06fc8fe98f6ec24"

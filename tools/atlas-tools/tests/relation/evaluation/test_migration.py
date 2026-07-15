@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import JsonValue, TypeAdapter
 
 import atlas_tools.relation.evaluation.execution.vote as vote_execution
 from atlas_tools.common import sha256_file
@@ -71,6 +72,7 @@ _REPAIR_REQUEST_HASH = RequestHash("2" * 64)
 _MARKER_REQUEST_HASH = RequestHash("3" * 64)
 _INITIAL_CONTENT = '{"verdict":"overlay","reason":"initial malformed"}'
 _REPAIRED_CONTENT = '{"verdict":"coincident","reason":"same referent"}'
+_JSON_OBJECT_ADAPTER = TypeAdapter(dict[str, JsonValue])
 
 
 @dataclass(frozen=True, slots=True)
@@ -731,8 +733,9 @@ def test_full_pilot_adoption_proves_plan_and_publishes_handoff(tmp_path: Path) -
     assert result.manifest_complete is True
     assert result.next_plan_index == fixture.prepared.plan.expected_votes
     assert result.expected_votes == len(fixture.votes)
-    assert result.accepted_uncommitted == 0
-    assert result.accepted_uncommitted_vote_ids == ()
+    assert result.reconstructable_uncommitted == 0
+    assert result.reconstructable_uncommitted_vote_ids == ()
+    assert result.next_provider_request is None
     assert result.next_unattempted_task is None
     assert state.expected_votes == result.expected_votes
     assert state.historical_request_evidence is None
@@ -808,7 +811,7 @@ def test_adoption_infers_and_pins_historical_request_policy(
     assert result.next_plan_index == 1
 
 
-def test_adoption_reports_reusable_acceptance_and_first_untouched_task(tmp_path: Path) -> None:
+def test_adoption_reports_reconstructable_vote_and_next_provider_request(tmp_path: Path) -> None:
     fixture = _adoption_fixture(tmp_path, complete=False)
     _write_jsonl(fixture.source / "votes.jsonl", ())
     destination = tmp_path / "adopted-pilot"
@@ -823,12 +826,48 @@ def test_adoption_reports_reusable_acceptance_and_first_untouched_task(tmp_path:
 
     first_vote_id = next(fixture.prepared.plan.tasks()).vote_id
     assert result.next_plan_index == 0
-    assert result.accepted_uncommitted == 1
-    assert result.accepted_uncommitted_vote_ids == (first_vote_id,)
+    assert result.reconstructable_uncommitted == 1
+    assert result.reconstructable_uncommitted_vote_ids == (first_vote_id,)
+    assert result.next_provider_request is not None
+    assert result.next_provider_request.plan_index == 1
+    assert result.next_provider_request.request_stage == "initial"
+    assert result.next_provider_request.prior_stage_attempts == 0
     assert result.next_unattempted_task is not None
     assert result.next_unattempted_task.plan_index == 1
     assert result.next_unattempted_task.vote_id != first_vote_id
     assert result.manifest_complete is False
+
+
+def test_adoption_distinguishes_accepted_initial_from_reconstructable_vote(
+    tmp_path: Path,
+) -> None:
+    fixture = _adoption_fixture(tmp_path, complete=False)
+    _write_jsonl(fixture.source / "votes.jsonl", ())
+    native_result = _JSON_OBJECT_ADAPTER.validate_python(fixture.attempts[0]["result"])
+    choices = native_result["choices"]
+    assert isinstance(choices, list)
+    choice = choices[0]
+    assert isinstance(choice, dict)
+    message = choice["message"]
+    assert isinstance(message, dict)
+    message["content"] = "not a rubric response"
+    fixture.attempts[0]["result"] = native_result
+    _write_jsonl(fixture.source / "attempts.jsonl", fixture.attempts)
+
+    result = adopt_directory(
+        source=fixture.source,
+        destination=tmp_path / "adopted-pilot",
+        config_path=fixture.config,
+        cards_directory=fixture.cards,
+        mode="pilot",
+    )
+
+    assert result.reconstructable_uncommitted == 0
+    assert result.reconstructable_uncommitted_vote_ids == ()
+    assert result.next_provider_request is not None
+    assert result.next_provider_request.plan_index == 0
+    assert result.next_provider_request.request_stage == "repair"
+    assert result.next_provider_request.prior_stage_attempts == 0
 
 
 def test_grid_adoption_rebuilds_imports_from_adopted_pilot(tmp_path: Path) -> None:
@@ -882,8 +921,11 @@ def test_grid_adoption_rebuilds_imports_from_adopted_pilot(tmp_path: Path) -> No
     adopted_imports = load_jsonl(destination / "imported-votes.jsonl", Vote)
     assert result.next_plan_index == 0
     assert result.expected_votes > 0
-    assert result.accepted_uncommitted == 0
-    assert result.accepted_uncommitted_vote_ids == ()
+    assert result.reconstructable_uncommitted == 0
+    assert result.reconstructable_uncommitted_vote_ids == ()
+    assert result.next_provider_request is not None
+    assert result.next_provider_request.plan_index == 0
+    assert result.next_provider_request.request_stage == "initial"
     assert result.next_unattempted_task is not None
     assert result.next_unattempted_task.plan_index == 0
     assert tuple(journal.path for journal in result.request_policies) == (

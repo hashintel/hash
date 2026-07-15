@@ -36,6 +36,7 @@ type GateVerdict = Literal["pass", "fail", "insufficient-sample"]
 type SampleSizeState = Literal["sufficient", "insufficient"]
 type WilsonState = Literal["defined", "no-predictions"]
 
+
 class GoldLabel(AnalysisModel):
     """An independently adjudicated relation label."""
 

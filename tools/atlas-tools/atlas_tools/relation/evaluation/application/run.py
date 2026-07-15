@@ -5,18 +5,18 @@ loaded only when validated journals prove that paid work remains. Completed
 runs therefore revalidate and return without constructing a network client.
 """
 
-from collections import deque
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from functools import partial
 from itertools import islice
 from pathlib import Path
-from typing import assert_never
+from typing import Literal, assert_never
 
 import trio
 
 from atlas_tools.common.progress import NO_PROGRESS, ProgressReporter
-from atlas_tools.relation.evaluation.analysis.api import analyze_grid
+from atlas_tools.relation.evaluation.analysis.grid_finalization import analyze_grid
 from atlas_tools.relation.evaluation.application._lifetime import close_owned_transport
 from atlas_tools.relation.evaluation.application.grid_plan import (
     derive_grid_plan,
@@ -58,6 +58,8 @@ from atlas_tools.relation.evaluation.execution.api import (
     build_resume_index,
     execute_votes,
     executor_policy_payload,
+    grid_guard_family_seeds,
+    reconstruct_vote_or_required_stage,
 )
 from atlas_tools.relation.evaluation.modes.api import GridPlan
 from atlas_tools.relation.evaluation.storage.api import (
@@ -76,11 +78,17 @@ from atlas_tools.relation.evaluation.storage.api import (
 from atlas_tools.relation.evaluation.transport.api import (
     AsyncCompletionTransport,
     OpenRouterTransport,
+    TransportVersions,
     request_policy_payload,
     transport_versions,
 )
 
 type EvaluationPaths = PilotPaths | GridPaths
+type _GridPhaseName = Literal[
+    "evaluating grid baseline",
+    "evaluating grid refinement",
+    "evaluating grid holdout canaries",
+]
 
 
 def _advance_progress(progress: ProgressReporter) -> Callable[[Vote], None]:
@@ -90,8 +98,7 @@ def _advance_progress(progress: ProgressReporter) -> Callable[[Vote], None]:
     return advance
 
 
-def _request_contract(config: BaseRunConfig) -> Sha256Hex:
-    versions = transport_versions()
+def _request_contract(config: BaseRunConfig, versions: TransportVersions) -> Sha256Hex:
     return request_contract_hash(
         config,
         executor_policy=executor_policy_payload(),
@@ -104,7 +111,7 @@ def _request_contract(config: BaseRunConfig) -> Sha256Hex:
 @asynccontextmanager
 async def _transport(
     injected: AsyncCompletionTransport | None,
-) -> AsyncIterator[AsyncCompletionTransport]:
+) -> AsyncGenerator[AsyncCompletionTransport]:
     """Yield a caller-owned transport or own one environment-backed client."""
     if injected is not None:
         yield injected
@@ -121,22 +128,31 @@ async def _is_file(path: Path) -> bool:
     return await trio.to_thread.run_sync(path.is_file, abandon_on_cancel=False)
 
 
-async def _pilot_historical_request_evidence(
-    path: Path,
-) -> HistoricalRequestEvidence | None:
+async def _pilot_run_state(path: Path) -> PilotRunState | None:
     if not await _is_file(path):
         return None
-    state = await load_json_async(path, PilotRunState)
-    return state.historical_request_evidence
+    return await load_json_async(path, PilotRunState)
 
 
-async def _grid_historical_request_evidence(
-    path: Path,
-) -> HistoricalRequestEvidence | None:
+async def _grid_run_state(path: Path) -> GridRunState | None:
     if not await _is_file(path):
         return None
-    state = await load_json_async(path, GridRunState)
-    return state.historical_request_evidence
+    return await load_json_async(path, GridRunState)
+
+
+def _pinned_transport_versions(state: PilotRunState | GridRunState) -> TransportVersions:
+    return TransportVersions(
+        openrouter_sdk_version=state.openrouter_sdk_version,
+        openrouter_openapi_version=state.openrouter_openapi_version,
+    )
+
+
+def _verify_transport_versions(expected: TransportVersions) -> None:
+    observed = transport_versions()
+    if observed != expected:
+        raise ValueError(
+            "installed OpenRouter transport versions differ from the durable run state"
+        )
 
 
 def _remaining(plan: VotePlan, start_index: int) -> Iterator[VoteTask]:
@@ -145,6 +161,36 @@ def _remaining(plan: VotePlan, start_index: int) -> Iterator[VoteTask]:
 
 def _plan_range(plan: VotePlan, start_index: int, stop_index: int) -> Iterator[VoteTask]:
     return islice(plan.tasks(), start_index, stop_index)
+
+
+async def _recover_accepted_prefix(
+    plan: VotePlan,
+    resume: ResumeIndex,
+    *,
+    stop_index: int,
+    prompt: RubricVotePrompt,
+    journal: RunJournal,
+    after_commit: Callable[[Vote], None],
+) -> int:
+    """Commit the maximal contiguous prefix requiring no provider response."""
+    if not resume.next_plan_index <= stop_index <= plan.expected_votes:
+        raise ValueError(
+            f"recovery range [{resume.next_plan_index}, {stop_index}) exceeds the plan"
+        )
+
+    cursor = resume.next_plan_index
+    for task in _plan_range(plan, cursor, stop_index):
+        decision = reconstruct_vote_or_required_stage(
+            task,
+            resume.attempts_by_vote.get(task.vote_id, ()),
+            prompt=prompt,
+        )
+        if isinstance(decision, str):
+            break
+        await journal.append_vote(decision)
+        after_commit(decision)
+        cursor += 1
+    return cursor
 
 
 async def _final_snapshot(
@@ -178,16 +224,23 @@ async def _run_pilot(
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
 ) -> PilotPaths:
-    versions = transport_versions()
-    contract = _request_contract(prepared.config)
     paths = PilotPaths.under(output_directory)
     with exclusive_run(paths.journal):
+        existing_state = await _pilot_run_state(paths.state)
+        versions = (
+            transport_versions()
+            if existing_state is None
+            else _pinned_transport_versions(existing_state)
+        )
+        contract = _request_contract(prepared.config, versions)
         state = build_pilot_state(
             prepared,
             request_contract_hash=contract,
             openrouter_sdk_version=versions.openrouter_sdk_version,
             openrouter_openapi_version=versions.openrouter_openapi_version,
-            historical_request_evidence=(await _pilot_historical_request_evidence(paths.state)),
+            historical_request_evidence=(
+                None if existing_state is None else existing_state.historical_request_evidence
+            ),
         )
         await prepare_pilot_async(
             paths,
@@ -217,22 +270,42 @@ async def _run_pilot(
                 "evaluating pilot",
                 total=prepared.plan.expected_votes - resume.next_plan_index,
             )
-            async with _transport(injected_transport) as completion:
-                runner = LogicalVoteRunner(
-                    config=prepared.config,
+            recovered_cursor = await _recover_accepted_prefix(
+                prepared.plan,
+                resume,
+                stop_index=prepared.plan.expected_votes,
+                prompt=prompt,
+                journal=journal,
+                after_commit=_advance_progress(progress),
+            )
+            if recovered_cursor != resume.next_plan_index:
+                snapshot = await journal.snapshot()
+                resume = build_resume_index(
+                    prepared.plan,
+                    votes=snapshot.votes,
+                    attempts=snapshot.attempts,
                     prompt=prompt,
-                    journal=journal,
-                    transport=completion,
-                    resume=resume,
-                )
-                await execute_votes(
-                    _remaining(prepared.plan, resume.next_plan_index),
-                    runner=runner,
                     config=prepared.config,
-                    journal=journal,
-                    start_index=resume.next_plan_index,
-                    after_commit=_advance_progress(progress),
+                    historical_request_evidence=state.historical_request_evidence,
                 )
+            if resume.next_plan_index < prepared.plan.expected_votes:
+                _verify_transport_versions(versions)
+                async with _transport(injected_transport) as completion:
+                    runner = LogicalVoteRunner(
+                        config=prepared.config,
+                        prompt=prompt,
+                        journal=journal,
+                        transport=completion,
+                        resume=resume,
+                    )
+                    await execute_votes(
+                        _remaining(prepared.plan, resume.next_plan_index),
+                        runner=runner,
+                        config=prepared.config,
+                        journal=journal,
+                        start_index=resume.next_plan_index,
+                        after_commit=_advance_progress(progress),
+                    )
         snapshot, _ = await _final_snapshot(
             journal,
             prepared.plan,
@@ -264,11 +337,6 @@ def _grid_guard(
     prompt: RubricVotePrompt,
     attempts: tuple[PhysicalAttempt, ...],
 ) -> GridGuardPolicy:
-    established: frozenset[JudgeFamilyId] = frozenset(
-        JudgeFamilyId(attempt.family_id)
-        for attempt in attempts
-        if attempt.result is not None and attempt.failure is None
-    )
     pilot_costs: dict[JudgeFamilyId, int | float] = {
         JudgeFamilyId(judge.model): judge.pilot_cost_per_vote_usd
         for judge in prepared.config.judges
@@ -278,28 +346,253 @@ def _grid_guard(
         retry_policy=prepared.config.transient_retries,
         pilot_cost_per_vote_usd=pilot_costs,
         parse_verdict=prompt.parse,
-        established_families=established,
-        initial_billed_costs_usd=_resume_billed_costs(
+        family_seeds=grid_guard_family_seeds(
             attempts,
-            window=prepared.config.guards.cost_window,
+            cost_window=prepared.config.guards.cost_window,
         ),
     )
 
 
-def _resume_billed_costs(
-    attempts: tuple[PhysicalAttempt, ...],
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _GridRecovery:
+    snapshot: JournalSnapshot
+    plan: GridPlan
+    resume: ResumeIndex
+    started_phases: frozenset[_GridPhaseName]
+
+
+def _grid_resume(
+    prepared: PreparedGrid,
+    snapshot: JournalSnapshot,
     *,
-    window: int,
-) -> dict[JudgeFamilyId, tuple[float, ...]]:
-    histories: dict[JudgeFamilyId, deque[float]] = {}
-    for attempt in attempts:
-        result = attempt.result
-        usage = None if result is None else result.usage
-        cost = None if usage is None else usage.cost_usd
-        if cost is not None:
-            family_id = JudgeFamilyId(attempt.family_id)
-            histories.setdefault(family_id, deque(maxlen=window)).append(cost)
-    return {family_id: tuple(costs) for family_id, costs in histories.items()}
+    prompt: RubricVotePrompt,
+    historical_request_evidence: HistoricalRequestEvidence | None,
+) -> tuple[GridPlan, ResumeIndex]:
+    plan = derive_grid_plan(prepared, snapshot.votes)
+    resume = build_resume_index(
+        plan,
+        votes=snapshot.votes,
+        attempts=snapshot.attempts,
+        prompt=prompt,
+        config=prepared.config,
+        historical_request_evidence=historical_request_evidence,
+    )
+    return plan, resume
+
+
+async def _recover_grid_range(
+    prepared: PreparedGrid,
+    snapshot: JournalSnapshot,
+    plan: GridPlan,
+    resume: ResumeIndex,
+    *,
+    stop_index: int,
+    prompt: RubricVotePrompt,
+    journal: RunJournal,
+    progress: ProgressReporter,
+    historical_request_evidence: HistoricalRequestEvidence | None,
+) -> tuple[JournalSnapshot, ResumeIndex]:
+    recovered_cursor = await _recover_accepted_prefix(
+        plan,
+        resume,
+        stop_index=stop_index,
+        prompt=prompt,
+        journal=journal,
+        after_commit=_advance_progress(progress),
+    )
+    if recovered_cursor == resume.next_plan_index:
+        return snapshot, resume
+    recovered = await journal.snapshot()
+    recovered_resume = build_resume_index(
+        plan,
+        votes=recovered.votes,
+        attempts=recovered.attempts,
+        prompt=prompt,
+        config=prepared.config,
+        historical_request_evidence=historical_request_evidence,
+    )
+    return recovered, recovered_resume
+
+
+async def _recover_grid_without_transport(
+    prepared: PreparedGrid,
+    *,
+    journal: RunJournal,
+    snapshot: JournalSnapshot,
+    plan: GridPlan,
+    resume: ResumeIndex,
+    prompt: RubricVotePrompt,
+    progress: ProgressReporter,
+    historical_request_evidence: HistoricalRequestEvidence | None,
+) -> _GridRecovery:
+    started: set[_GridPhaseName] = set()
+    if resume.next_plan_index < prepared.phase_a.expected_votes:
+        phase: _GridPhaseName = "evaluating grid baseline"
+        started.add(phase)
+        progress.phase(phase, total=prepared.phase_a.expected_votes - resume.next_plan_index)
+        snapshot, resume = await _recover_grid_range(
+            prepared,
+            snapshot,
+            plan,
+            resume,
+            stop_index=prepared.phase_a.expected_votes,
+            prompt=prompt,
+            journal=journal,
+            progress=progress,
+            historical_request_evidence=historical_request_evidence,
+        )
+        if resume.next_plan_index < prepared.phase_a.expected_votes:
+            return _GridRecovery(
+                snapshot=snapshot,
+                plan=plan,
+                resume=resume,
+                started_phases=frozenset(started),
+            )
+        plan, resume = _grid_resume(
+            prepared,
+            snapshot,
+            prompt=prompt,
+            historical_request_evidence=historical_request_evidence,
+        )
+
+    if resume.next_plan_index < plan.analysis_votes:
+        phase = "evaluating grid refinement"
+        started.add(phase)
+        progress.phase(phase, total=plan.analysis_votes - resume.next_plan_index)
+        snapshot, resume = await _recover_grid_range(
+            prepared,
+            snapshot,
+            plan,
+            resume,
+            stop_index=plan.analysis_votes,
+            prompt=prompt,
+            journal=journal,
+            progress=progress,
+            historical_request_evidence=historical_request_evidence,
+        )
+    if (
+        resume.next_plan_index >= plan.analysis_votes
+        and resume.next_plan_index < plan.expected_votes
+    ):
+        phase = "evaluating grid holdout canaries"
+        started.add(phase)
+        progress.phase(phase, total=plan.expected_votes - resume.next_plan_index)
+        snapshot, resume = await _recover_grid_range(
+            prepared,
+            snapshot,
+            plan,
+            resume,
+            stop_index=plan.expected_votes,
+            prompt=prompt,
+            journal=journal,
+            progress=progress,
+            historical_request_evidence=historical_request_evidence,
+        )
+    return _GridRecovery(
+        snapshot=snapshot,
+        plan=plan,
+        resume=resume,
+        started_phases=frozenset(started),
+    )
+
+
+def _start_grid_phase(
+    progress: ProgressReporter,
+    started: frozenset[_GridPhaseName],
+    phase: _GridPhaseName,
+    *,
+    total: int,
+) -> None:
+    if phase not in started:
+        progress.phase(phase, total=total)
+
+
+async def _execute_grid_online(
+    prepared: PreparedGrid,
+    recovery: _GridRecovery,
+    *,
+    journal: RunJournal,
+    injected_transport: AsyncCompletionTransport | None,
+    prompt: RubricVotePrompt,
+    progress: ProgressReporter,
+    historical_request_evidence: HistoricalRequestEvidence | None,
+) -> tuple[JournalSnapshot, GridPlan]:
+    snapshot = recovery.snapshot
+    resume = recovery.resume
+    after_commit = _advance_progress(progress)
+    async with _transport(injected_transport) as completion:
+        runner = LogicalVoteRunner(
+            config=prepared.config,
+            prompt=prompt,
+            journal=journal,
+            transport=completion,
+            guard=_grid_guard(prepared, prompt=prompt, attempts=snapshot.attempts),
+            resume=resume,
+        )
+        if resume.next_plan_index < prepared.phase_a.expected_votes:
+            phase: _GridPhaseName = "evaluating grid baseline"
+            _start_grid_phase(
+                progress,
+                recovery.started_phases,
+                phase,
+                total=prepared.phase_a.expected_votes - resume.next_plan_index,
+            )
+            await execute_votes(
+                _remaining(prepared.phase_a, resume.next_plan_index),
+                runner=runner,
+                config=prepared.config,
+                journal=journal,
+                start_index=resume.next_plan_index,
+                after_commit=after_commit,
+            )
+            snapshot = await journal.snapshot()
+
+        plan, resume = _grid_resume(
+            prepared,
+            snapshot,
+            prompt=prompt,
+            historical_request_evidence=historical_request_evidence,
+        )
+        if resume.next_plan_index < plan.analysis_votes:
+            phase = "evaluating grid refinement"
+            _start_grid_phase(
+                progress,
+                recovery.started_phases,
+                phase,
+                total=plan.analysis_votes - resume.next_plan_index,
+            )
+            await execute_votes(
+                _plan_range(plan, resume.next_plan_index, plan.analysis_votes),
+                runner=runner,
+                config=prepared.config,
+                journal=journal,
+                start_index=resume.next_plan_index,
+                after_commit=after_commit,
+            )
+            snapshot = await journal.snapshot()
+            _, resume = _grid_resume(
+                prepared,
+                snapshot,
+                prompt=prompt,
+                historical_request_evidence=historical_request_evidence,
+            )
+        if resume.next_plan_index < plan.expected_votes:
+            phase = "evaluating grid holdout canaries"
+            _start_grid_phase(
+                progress,
+                recovery.started_phases,
+                phase,
+                total=plan.expected_votes - resume.next_plan_index,
+            )
+            await execute_votes(
+                _remaining(plan, resume.next_plan_index),
+                runner=runner,
+                config=prepared.config,
+                journal=journal,
+                start_index=resume.next_plan_index,
+                after_commit=after_commit,
+            )
+    return await journal.snapshot(), plan
 
 
 async def _execute_grid(
@@ -311,107 +604,44 @@ async def _execute_grid(
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
     historical_request_evidence: HistoricalRequestEvidence | None,
+    expected_transport_versions: TransportVersions,
 ) -> tuple[JournalSnapshot, GridPlan]:
     prompt = RubricVotePrompt(
         pack=prepared.prompt_pack,
         cards=prepared.deck.by_relation_id,
     )
-    current_plan = derive_grid_plan(prepared, snapshot.votes)
-    current_resume = build_resume_index(
-        current_plan,
-        votes=snapshot.votes,
-        attempts=snapshot.attempts,
+    plan, resume = _grid_resume(
+        prepared,
+        snapshot,
         prompt=prompt,
-        config=prepared.config,
         historical_request_evidence=historical_request_evidence,
     )
-    phase_a_incomplete = len(snapshot.votes) < prepared.phase_a.expected_votes
-    current_incomplete = current_resume.next_plan_index < current_plan.expected_votes
-    if not phase_a_incomplete and not current_incomplete:
-        return snapshot, current_plan
+    if resume.next_plan_index == plan.expected_votes:
+        return snapshot, plan
     if manifest_exists:
         raise ValueError("completed grid manifest has an incomplete vote journal")
-
-    async with _transport(injected_transport) as completion:
-        runner = LogicalVoteRunner(
-            config=prepared.config,
-            prompt=prompt,
-            journal=journal,
-            transport=completion,
-            guard=_grid_guard(prepared, prompt=prompt, attempts=snapshot.attempts),
-            resume=current_resume,
-        )
-        if phase_a_incomplete:
-            progress.phase(
-                "evaluating grid baseline",
-                total=prepared.phase_a.expected_votes - current_resume.next_plan_index,
-            )
-            await execute_votes(
-                _remaining(prepared.phase_a, current_resume.next_plan_index),
-                runner=runner,
-                config=prepared.config,
-                journal=journal,
-                start_index=current_resume.next_plan_index,
-                after_commit=_advance_progress(progress),
-            )
-            snapshot = await journal.snapshot()
-
-        complete_plan = derive_grid_plan(prepared, snapshot.votes)
-        complete_resume = build_resume_index(
-            complete_plan,
-            votes=snapshot.votes,
-            attempts=snapshot.attempts,
-            prompt=prompt,
-            config=prepared.config,
-            historical_request_evidence=historical_request_evidence,
-        )
-        if complete_resume.next_plan_index < complete_plan.analysis_votes:
-            progress.phase(
-                "evaluating grid refinement",
-                total=complete_plan.analysis_votes - complete_resume.next_plan_index,
-            )
-            await execute_votes(
-                _plan_range(
-                    complete_plan,
-                    complete_resume.next_plan_index,
-                    complete_plan.analysis_votes,
-                ),
-                runner=runner,
-                config=prepared.config,
-                journal=journal,
-                start_index=complete_resume.next_plan_index,
-                after_commit=_advance_progress(progress),
-            )
-            snapshot = await journal.snapshot()
-            complete_resume = build_resume_index(
-                complete_plan,
-                votes=snapshot.votes,
-                attempts=snapshot.attempts,
-                prompt=prompt,
-                config=prepared.config,
-                historical_request_evidence=historical_request_evidence,
-            )
-        if complete_resume.next_plan_index < complete_plan.expected_votes:
-            progress.phase(
-                "evaluating grid holdout canaries",
-                total=complete_plan.expected_votes - complete_resume.next_plan_index,
-            )
-            await execute_votes(
-                _remaining(complete_plan, complete_resume.next_plan_index),
-                runner=runner,
-                config=prepared.config,
-                journal=journal,
-                start_index=complete_resume.next_plan_index,
-                after_commit=_advance_progress(progress),
-            )
-    final_snapshot, _ = await _final_snapshot(
-        journal,
-        complete_plan,
+    recovery = await _recover_grid_without_transport(
+        prepared,
+        journal=journal,
+        snapshot=snapshot,
+        plan=plan,
+        resume=resume,
         prompt=prompt,
-        config=prepared.config,
+        progress=progress,
         historical_request_evidence=historical_request_evidence,
     )
-    return final_snapshot, complete_plan
+    if recovery.resume.next_plan_index == recovery.plan.expected_votes:
+        return recovery.snapshot, recovery.plan
+    _verify_transport_versions(expected_transport_versions)
+    return await _execute_grid_online(
+        prepared,
+        recovery,
+        journal=journal,
+        injected_transport=injected_transport,
+        prompt=prompt,
+        progress=progress,
+        historical_request_evidence=historical_request_evidence,
+    )
 
 
 async def _run_grid(
@@ -421,16 +651,23 @@ async def _run_grid(
     injected_transport: AsyncCompletionTransport | None,
     progress: ProgressReporter,
 ) -> GridPaths:
-    versions = transport_versions()
-    contract = _request_contract(prepared.config)
     paths = GridPaths.under(output_directory)
     with exclusive_run(paths.journal):
+        existing_state = await _grid_run_state(paths.state)
+        versions = (
+            transport_versions()
+            if existing_state is None
+            else _pinned_transport_versions(existing_state)
+        )
+        contract = _request_contract(prepared.config, versions)
         state = build_grid_state(
             prepared,
             request_contract_hash=contract,
             openrouter_sdk_version=versions.openrouter_sdk_version,
             openrouter_openapi_version=versions.openrouter_openapi_version,
-            historical_request_evidence=(await _grid_historical_request_evidence(paths.state)),
+            historical_request_evidence=(
+                None if existing_state is None else existing_state.historical_request_evidence
+            ),
         )
         await prepare_grid_async(
             paths,
@@ -450,6 +687,7 @@ async def _run_grid(
             injected_transport=injected_transport,
             progress=progress,
             historical_request_evidence=state.historical_request_evidence,
+            expected_transport_versions=versions,
         )
         prompt = RubricVotePrompt(
             pack=prepared.prompt_pack,

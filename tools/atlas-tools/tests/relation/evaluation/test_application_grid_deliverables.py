@@ -167,7 +167,7 @@ def test_grid_bundle_materializes_review_evidence_and_is_byte_deterministic(
         "dissent-ledger.jsonl": (
             "5445177986481b0dfe76022c7d6e985626ded89f0d0a94ac91ded7837672c198"
         ),
-        "gates.json": "c704e0d177e139695454dde141087552a74186d8ff74700c84e1d7a71985bdf5",
+        "gates.json": "e204489ca538df0588c338664923061e9f05cf27703b5fcb2b15b1114b2153e5",
         "nomination-queue.jsonl": (
             "b6543554d82a3be19bda7b6489aa4c5599636729077f2ee57a9d34a48c8e30bd"
         ),

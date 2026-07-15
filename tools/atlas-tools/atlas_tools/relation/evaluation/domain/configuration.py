@@ -37,6 +37,7 @@ RUBRIC_VERSION = "rubric-v1"
 HTTP_SERVER_ERROR_START = 500
 RETRYABLE_CLIENT_ERROR_STATUS_CODES = frozenset({408, 425, 429})
 
+
 def normalize_embedding_endpoint_url(endpoint_url: str) -> str:
     """Return one canonical HTTPS embeddings operation URL."""
     parsed = urlsplit(endpoint_url)

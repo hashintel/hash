@@ -191,11 +191,9 @@ def test_run_state_binds_slice_before_resume_is_allowed(tmp_path: Path) -> None:
 
 def test_paid_pilot_import_requires_exact_vote_and_prompt_identity() -> None:
     atlas_tools = Path(__file__).parents[3]
-    paid = atlas_tools / "runs" / "evaluate"
+    paid = atlas_tools / "runs" / "evaluate-v2"
     vote_id = VoteId("a4573000eceb1e208ca54231743aee7af98478ae3326ccc556982e833b001f96")
-    prompt_hash = PromptPackHash(
-        "c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2"
-    )
+    prompt_hash = PromptPackHash("c5c617cb6f5b114c6d0f30c01004427669d6247c80da1b692a9acc4e242979e2")
 
     imported = load_pilot_import(
         paid,

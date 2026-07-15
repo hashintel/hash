@@ -68,14 +68,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     dependency_status = _run_tach(project_root, ("check", "--exact"))
-    external_status = _run_tach(
-        project_root,
-        (
-            "check-external",
-            "--exclude",
-            "atlas_tools/relation/eval",
-        ),
-    )
+    external_status = _run_tach(project_root, ("check-external",))
     filesystem_status = check_filesystem_imports([str(project_root / arguments.evaluation_root)])
     return max(dependency_status, external_status, filesystem_status)
 

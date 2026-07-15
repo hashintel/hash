@@ -22,7 +22,7 @@ ROOT = Path(__file__).parents[3]
 PILOT_CONFIG = ROOT / "config/eval/pilot.yaml"
 GRID_CONFIG = ROOT / "config/eval/grid.yaml"
 DECK = ROOT / "runs/cards"
-PAID_PILOT = ROOT / "runs/evaluate"
+PAID_PILOT = ROOT / "runs/evaluate-v2"
 
 type ArtifactRow = CorpusRecord | PhysicalAttempt | SliceRecord | Vote
 
@@ -58,7 +58,7 @@ def test_paid_pilot_preparation_reproduces_prompt_slice_and_plan_inputs() -> Non
         "c60ea72afd3d4c0554e748a9d7c190c3af226f7000333b7aa32d3a80e8c71142"
     )
     assert _jsonl_hash(prepared.slice_records) == (
-        "bcbc7d5cd040dfc3280b309115220d4bd38e0efcb42d46d24fd1186e024aa3b7"
+        "054e2ff6d340c1250106d8a7ec715e3e2d7be011e1e66ee6ee172770f9f220e5"
     )
     assert len(prepared.slice_records) == 150
     assert prepared.full_grid_card_count == 1670
@@ -76,7 +76,7 @@ def test_current_grid_preparation_imports_the_exact_paid_baseline() -> None:
     assert prepared.config.panel.version == 2
     assert prepared.config.panel.frozen is True
     assert prepared.panel_hash == (
-        "c5051313a3d70a7410242ff56952ccea8adc8c438d1a8eed6e39791357fbb7c1"
+        "bfb3bd7c609abe692902e0f3019af0bbd0e0596255421556e90b06c8f3c9d0cf"
     )
     assert len(prepared.pool) == 1_670
     assert all(card.family_id is None for card in prepared.pool)
@@ -84,7 +84,7 @@ def test_current_grid_preparation_imports_the_exact_paid_baseline() -> None:
     assert sum(row.is_shot_excluded for row in prepared.corpus) == 14
     assert sum(row.is_holdout for row in prepared.corpus) == 6
     assert _jsonl_hash(prepared.corpus) == (
-        "4f707448ac6368b7b9af0548997aa7c16c2622ad2254f3927d5d23a956a80778"
+        "dbf541f9ba72f1a14c98d2d3d6cd634c2592c55ea01956d987020a575e0560e3"
     )
 
     assert len(prepared.baseline_by_vote_id) == 8_350
@@ -94,10 +94,10 @@ def test_current_grid_preparation_imports_the_exact_paid_baseline() -> None:
         judge.family_id: 150 for judge in prepared.config.judges
     }
     assert _jsonl_hash(prepared.pilot_import.votes) == (
-        "2ce86e1d6b2d5538106a0e8a65778f2429a4f0721aadff19f621ae92da0a0e74"
+        "9cfede40982dc289756e57331fb65557b35070874ade94811d973491f8178f9c"
     )
     assert _jsonl_hash(prepared.pilot_import.attempts) == (
-        "9726d09ec8a69ba506f646d96515e084985de87602fe5906112ea5e8f4088072"
+        "48dc0cc5767a510df62a10c795a0dee225c828f020700035b8005c034d066e1d"
     )
 
     imported_ids = frozenset(prepared.imported_by_vote_id)

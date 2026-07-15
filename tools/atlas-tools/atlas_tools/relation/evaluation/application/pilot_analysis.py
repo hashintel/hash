@@ -15,7 +15,7 @@ from pathlib import Path
 import trio
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_bytes
+from atlas_tools.common import Sha256Hex, sha256_bytes
 from atlas_tools.relation.evaluation.analysis.api import (
     PilotAnalysisPolicy,
     PilotHoldoutRule,
@@ -38,6 +38,7 @@ from atlas_tools.relation.evaluation.modes.api import (
     FEW_SHOTS,
     HOLDOUTS,
     accepted_holdout_verdicts,
+    pilot_slice_selection_hash,
 )
 from atlas_tools.relation.evaluation.storage.api import VerifiedDeck, load_deck_async
 
@@ -147,9 +148,7 @@ def _validate_source_bindings(
         raise ValueError(f"completed pilot source digests differ from its manifest: {changed}")
     if manifest.slice_derivation.cards_hash != observed["cards.jsonl"]:
         raise ValueError("slice derivation and manifest disagree on the card artifact")
-    selection_hash = sha256_bytes(
-        canonical_json_bytes([row.model_dump(mode="json") for row in slice_rows.rows])
-    )
+    selection_hash = pilot_slice_selection_hash(slice_rows.rows)
     if selection_hash != manifest.slice_derivation.selection_hash:
         raise ValueError("slice records do not match the manifest selection hash")
     return {**observed, "manifest.json": manifest_hash}

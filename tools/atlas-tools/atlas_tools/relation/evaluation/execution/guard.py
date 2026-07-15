@@ -4,13 +4,14 @@ from collections import deque
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from math import isfinite
-from typing import Literal, Protocol
+from typing import Literal, Protocol, Self
 
 from atlas_tools.relation.evaluation.domain.api import (
     AccountingFailure,
     AttemptFailure,
     GuardConfig,
     JudgeFamilyId,
+    PhysicalAttempt,
     ProviderResult,
     ResponseFailure,
     RoutingFailure,
@@ -31,6 +32,23 @@ _CLIENT_ERROR_MIN = 400
 _CLIENT_ERROR_MAX = 500
 
 
+def _require_non_negative_int(value: object, *, name: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{name} must be an integer")
+    if value < 0:
+        raise ValueError(f"{name} must be non-negative")
+
+
+def _validate_recent_costs(costs: object) -> None:
+    if not isinstance(costs, tuple):
+        raise TypeError("recent_costs_usd must be a tuple")
+    for cost in costs:
+        if isinstance(cost, bool) or not isinstance(cost, int | float):
+            raise TypeError("recent billed costs must be numeric")
+        if not isfinite(cost) or cost < 0.0:
+            raise ValueError("recent billed costs must be finite and non-negative")
+
+
 class CompletionPolicy(Protocol):
     """Transform one expected provider outcome before it becomes durable."""
 
@@ -43,11 +61,109 @@ class CompletionPolicy(Protocol):
         ...
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GridGuardFamilySeed:
+    """Exact durable guard state for one fresh grid family.
+
+    Billed calls and cache evidence come from attempts carrying a provider
+    result. Accepted results establish the family. Recent costs retain journal
+    order and contain at most the configured guard window.
+    """
+
+    family_id: JudgeFamilyId
+    established: bool = False
+    billed_calls: int = 0
+    cached_tokens: int = 0
+    recent_costs_usd: tuple[float, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.family_id, JudgeFamilyId):
+            raise TypeError("family_id must be a JudgeFamilyId")
+        if not self.family_id:
+            raise ValueError("family_id must not be empty")
+        if not isinstance(self.established, bool):
+            raise TypeError("established must be a boolean")
+        _require_non_negative_int(self.billed_calls, name="billed_calls")
+        _require_non_negative_int(self.cached_tokens, name="cached_tokens")
+        _validate_recent_costs(self.recent_costs_usd)
+        if len(self.recent_costs_usd) > self.billed_calls:
+            raise ValueError("recent billed costs cannot outnumber billed calls")
+        if self.established and self.billed_calls == 0:
+            raise ValueError("an established family requires a billed call")
+        if self.cached_tokens and self.billed_calls == 0:
+            raise ValueError("cache evidence requires a billed call")
+
+
 @dataclass(slots=True)
 class _FamilyState:
-    calls: int = 0
+    established: bool = False
+    billed_calls: int = 0
     cached_tokens: int = 0
     recent_costs: deque[float] = field(default_factory=deque)
+
+    @classmethod
+    def from_seed(cls, seed: GridGuardFamilySeed) -> Self:
+        return cls(
+            established=seed.established,
+            billed_calls=seed.billed_calls,
+            cached_tokens=seed.cached_tokens,
+            recent_costs=deque(seed.recent_costs_usd),
+        )
+
+    def record_billed_result(self, result: ProviderResult, *, cost_window: int) -> None:
+        self.billed_calls += 1
+        usage = result.usage
+        if usage is None:
+            return
+        self.cached_tokens += usage.cached_tokens
+        if usage.cost_usd is None:
+            return
+        self.recent_costs.append(usage.cost_usd)
+        while len(self.recent_costs) > cost_window:
+            self.recent_costs.popleft()
+
+    def seed(self, family_id: JudgeFamilyId) -> GridGuardFamilySeed:
+        return GridGuardFamilySeed(
+            family_id=family_id,
+            established=self.established,
+            billed_calls=self.billed_calls,
+            cached_tokens=self.cached_tokens,
+            recent_costs_usd=tuple(self.recent_costs),
+        )
+
+
+def grid_guard_family_seeds(
+    attempts: Iterable[PhysicalAttempt],
+    *,
+    cost_window: int,
+) -> tuple[GridGuardFamilySeed, ...]:
+    """Reconstruct fresh-grid guard state from closed physical attempts.
+
+    Accepted and locally rejected attempts carry provider results, so both
+    advance the billed-call count and contribute any usage, cache, and cost
+    evidence. Failed attempts without a provider result do not advance the
+    cache checkpoint. Accepted attempts alone establish a family.
+
+    Families are returned in ascending ID order. Runtime is `O(A + F log F)`
+    for `A` attempts across `F` families, with `O(F * cost_window)` retained
+    cost evidence.
+
+    Raises:
+        ValueError: `cost_window` is not a positive integer.
+    """
+    if isinstance(cost_window, bool) or not isinstance(cost_window, int) or cost_window <= 0:
+        raise ValueError("cost_window must be a positive integer")
+
+    states: dict[JudgeFamilyId, _FamilyState] = {}
+    for attempt in attempts:
+        result = attempt.result
+        if result is None:
+            continue
+        state = states.setdefault(attempt.family_id, _FamilyState())
+        state.record_billed_result(result, cost_window=cost_window)
+        if attempt.failure is None:
+            state.established = True
+    return tuple(states[family_id].seed(family_id) for family_id in sorted(states))
 
 
 def _session_failure(
@@ -116,14 +232,13 @@ class GridGuardPolicy:
     """Turn roster, cache, and cost drift into explicit session outcomes.
 
     The caller serializes each family and passes only fresh provider exchanges.
-    `established_families` comes from durable, non-imported physical attempts
-    with an accepted result and no failure. Cache evidence is deliberately new
-    for each policy instance because a resumed provider cache may be cold.
+    Family seeds restore the exact billed-call, cache, establishment, and cost
+    state reconstructed from durable attempts. Live evaluation applies the same
+    transition: provider results count, while failures without results do not.
     """
 
     __slots__ = (
         "_config",
-        "_established",
         "_parse",
         "_pilot_costs",
         "_retry_policy",
@@ -137,30 +252,27 @@ class GridGuardPolicy:
         retry_policy: TransientRetryConfig,
         pilot_cost_per_vote_usd: Mapping[JudgeFamilyId, int | float],
         parse_verdict: Callable[[str], object],
-        established_families: Iterable[JudgeFamilyId] = (),
-        initial_billed_costs_usd: Mapping[JudgeFamilyId, Iterable[float]] | None = None,
+        family_seeds: Iterable[GridGuardFamilySeed] = (),
     ) -> None:
         self._config = config
         self._retry_policy = retry_policy
         self._pilot_costs = dict(pilot_cost_per_vote_usd)
         self._parse = parse_verdict
-        self._established = set(established_families)
-        self._states = self._initial_states(initial_billed_costs_usd or {})
+        self._states = self._initial_states(family_seeds)
 
     def _initial_states(
         self,
-        histories: Mapping[JudgeFamilyId, Iterable[float]],
+        seeds: Iterable[GridGuardFamilySeed],
     ) -> dict[JudgeFamilyId, _FamilyState]:
         states: dict[JudgeFamilyId, _FamilyState] = {}
-        for family_id, costs in histories.items():
-            if not family_id:
-                raise ValueError("initial billed-cost history has an empty family ID")
-            history = tuple(costs)
-            if any(not isfinite(cost) or cost < 0.0 for cost in history):
-                raise ValueError(f"initial billed-cost history for {family_id} is invalid")
-            states[family_id] = _FamilyState(
-                recent_costs=deque(history[-self._config.cost_window :])
-            )
+        for seed in seeds:
+            if seed.family_id in states:
+                raise ValueError(f"family seeds repeat {seed.family_id}")
+            if len(seed.recent_costs_usd) > self._config.cost_window:
+                raise ValueError(
+                    f"family seed for {seed.family_id} exceeds the configured cost window"
+                )
+            states[seed.family_id] = _FamilyState.from_seed(seed)
         return states
 
     def evaluate(
@@ -171,12 +283,21 @@ class GridGuardPolicy:
         """Apply one family's guard state without hiding billable evidence."""
         family_id = request.judge.family_id
         state = self._states.setdefault(family_id, _FamilyState())
-        call_index = state.calls
-        state.calls += 1
-        unproven_opening = family_id not in self._established
+        unproven_opening = not state.established
+
+        if isinstance(outcome, CompletionAccepted):
+            state.record_billed_result(
+                outcome.result,
+                cost_window=self._config.cost_window,
+            )
+        elif isinstance(outcome, CompletionRejected):
+            state.record_billed_result(
+                outcome.billed_result,
+                cost_window=self._config.cost_window,
+            )
 
         if isinstance(outcome, CompletionRejected):
-            cost_failure = self._record_billed_cost(family_id, outcome.billed_result, state)
+            cost_failure = self._cost_failure(family_id, state)
             if cost_failure is not None:
                 return CompletionRejected(
                     failure=cost_failure,
@@ -203,24 +324,22 @@ class GridGuardPolicy:
                 )
             return CompletionFailed(failure=failure)
 
-        guarded = self._accepted_outcome(request, outcome, call_index, state)
+        guarded = self._accepted_outcome(request, outcome, state)
         if isinstance(guarded, CompletionAccepted):
-            self._established.add(family_id)
+            state.established = True
         return guarded
 
     def _accepted_outcome(
         self,
         request: CompletionRequest,
         outcome: CompletionAccepted,
-        call_index: int,
         state: _FamilyState,
     ) -> CompletionOutcome:
-        family_id = request.judge.family_id
-        if family_id not in self._established:
+        if not state.established:
             rejection = self._opening_rejection(request, outcome)
             if rejection is not None:
                 return rejection
-        return self._accounting_outcome(request, outcome, call_index, state)
+        return self._accounting_outcome(request, outcome, state)
 
     def _opening_rejection(
         self,
@@ -256,7 +375,6 @@ class GridGuardPolicy:
         self,
         request: CompletionRequest,
         outcome: CompletionAccepted,
-        call_index: int,
         state: _FamilyState,
     ) -> CompletionOutcome:
         family_id = request.judge.family_id
@@ -268,34 +386,28 @@ class GridGuardPolicy:
                 message=f"grid completion for {family_id} omitted usage",
             )
 
-        state.cached_tokens += usage.cached_tokens
-        if call_index + 1 >= self._config.cache_check_vote and state.cached_tokens <= 0:
+        if state.billed_calls >= self._config.cache_check_vote and state.cached_tokens <= 0:
             return self._reject(
                 outcome,
                 category="accounting",
                 message=(
                     f"cache assertion failed for {family_id}: no cached prompt tokens "
-                    f"across the first {call_index + 1} calls"
+                    f"across the first {state.billed_calls} billed results"
                 ),
             )
-        failure = self._record_billed_cost(family_id, outcome.result, state)
+        failure = self._cost_failure(family_id, state)
         if failure is None:
             return outcome
         return CompletionRejected(failure=failure, billed_result=outcome.result)
 
-    def _record_billed_cost(
+    def _cost_failure(
         self,
         family_id: JudgeFamilyId,
-        result: ProviderResult,
         state: _FamilyState,
     ) -> AttemptFailure | None:
         expected = self._pilot_costs.get(family_id)
-        usage = result.usage
-        if expected is None or usage is None or usage.cost_usd is None:
+        if expected is None:
             return None
-        state.recent_costs.append(usage.cost_usd)
-        while len(state.recent_costs) > self._config.cost_window:
-            state.recent_costs.popleft()
         if len(state.recent_costs) < self._config.cost_window:
             return None
         rolling_mean = sum(state.recent_costs) / len(state.recent_costs)

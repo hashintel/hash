@@ -219,8 +219,7 @@ def test_fit_is_deterministic_grouped_and_applicability_aware() -> None:
     assert all(len(folds) == 1 for folds in by_family.values())
     assert set(first.fold_by_relation_id.values()) == {0, 1, 2}
     assert (
-        first.metrics.deployed_temperature_cross_entropy
-        <= first.metrics.out_of_fold_cross_entropy
+        first.metrics.deployed_temperature_cross_entropy <= first.metrics.out_of_fold_cross_entropy
     )
 
     predictions = predict_policy(

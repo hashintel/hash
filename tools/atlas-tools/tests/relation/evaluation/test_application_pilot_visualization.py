@@ -15,8 +15,8 @@ from atlas_tools.relation.evaluation.application.pilot_visualization import (
 )
 
 _ROOT = Path(__file__).parents[3]
-_PAID = _ROOT / "runs" / "evaluate"
-_DECISIONS_HASH = "a0dba9178ea0d31426a7bb5a8cfdee2b43cfb9caa0822272bad564386fc14669"
+_PAID = _ROOT / "runs" / "evaluate-v2"
+_DECISIONS_HASH = "a059eaa8c316c19957b830ead3da326809f61eba233c8f6b8bded7402b120cb4"
 _GRAPH_NAMES = (
     "data-health.png",
     "qualification.png",

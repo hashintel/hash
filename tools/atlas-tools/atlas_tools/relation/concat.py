@@ -26,8 +26,6 @@ from atlas_tools.relation_cards.common.cards import (
 )
 
 CONCAT_SCHEMA_VERSION = 2
-type FamilyOverlayAlgorithm = Literal["user-supplied-exact-overlay-v1"]
-FAMILY_OVERLAY_ALGORITHM: FamilyOverlayAlgorithm = "user-supplied-exact-overlay-v1"
 
 
 class ConcatCardRow(CardRow):
@@ -70,32 +68,11 @@ class ConcatInput(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
-class FamilyOverlayDetails(BaseModel):
-    """Record the reviewed assignment contract applied to a concat artifact."""
-
-    schema_version: Literal[1] = 1
-    algorithm: FamilyOverlayAlgorithm = FAMILY_OVERLAY_ALGORITHM
-    assignments_hash: Sha256Hex
-    assignment_count: NonNegativeInt
-    family_count: NonNegativeInt
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    @model_validator(mode="after")
-    def check_counts(self) -> Self:
-        if self.family_count > self.assignment_count:
-            raise ValueError("family_count must not exceed assignment_count")
-        if (self.assignment_count == 0) != (self.family_count == 0):
-            raise ValueError("family_count must be zero if and only if assignment_count is zero")
-        return self
-
-
 class ConcatDetails(BaseModel):
     schema_version: Literal[2] = CONCAT_SCHEMA_VERSION
     sources: dict[RelationNamespace, ConcatSource]
     inputs: list[ConcatInput]
     row_count: NonNegativeInt
-    family_overlay: FamilyOverlayDetails | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -107,11 +84,6 @@ class ConcatDetails(BaseModel):
             raise ValueError("concat inputs must not be empty")
         if len({item.artifact_id for item in self.inputs}) != len(self.inputs):
             raise ValueError("concat inputs contain duplicate artifact IDs")
-        if (
-            self.family_overlay is not None
-            and self.family_overlay.assignment_count != self.row_count
-        ):
-            raise ValueError("family overlay assignment_count must equal concat row_count")
         for namespace, source in self.sources.items():
             if namespace != source.namespace:
                 raise ValueError("source map key must equal source namespace")
@@ -178,15 +150,12 @@ def _artifact_id(cards_hash: Sha256Hex, manifest_hash: Sha256Hex) -> Sha256Hex:
 
 def concat_input_hashes(details: ConcatDetails) -> dict[str, Sha256Hex]:
     """Return the exact provenance inputs declared by concat details."""
-    hashes = {
+    return {
         f"inputs/{item.artifact_id}/cards.jsonl": item.cards_hash for item in details.inputs
     } | {
         f"inputs/{item.artifact_id}/cards.manifest.json": item.manifest_hash
         for item in details.inputs
     }
-    if details.family_overlay is not None:
-        hashes["family-overlay/assignments.jsonl"] = details.family_overlay.assignments_hash
-    return hashes
 
 
 def _verified_artifact(card_dir: Path) -> _InputArtifact:

@@ -45,11 +45,15 @@ _GATE_ORDER: tuple[GateName, ...] = (
 
 
 def _within_cost_ceiling(known_cost_usd: float, ceiling_usd: float | None) -> bool:
-    return ceiling_usd is None or known_cost_usd < ceiling_usd or math.isclose(
-        known_cost_usd,
-        ceiling_usd,
-        rel_tol=0.0,
-        abs_tol=1e-12,
+    return (
+        ceiling_usd is None
+        or known_cost_usd < ceiling_usd
+        or math.isclose(
+            known_cost_usd,
+            ceiling_usd,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
     )
 
 
@@ -400,11 +404,7 @@ def grid_acceptance_gates(
                     else "incomplete fresh billing"
                 )
                 + f"; known cost ${resolved_economics.total_known_cost_usd:.2f}"
-                + (
-                    f" vs ceiling ${ceiling:.2f}"
-                    if ceiling is not None
-                    else " with no ceiling"
-                )
+                + (f" vs ceiling ${ceiling:.2f}" if ceiling is not None else " with no ceiling")
             ),
         ),
     )

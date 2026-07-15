@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 
 from pydantic import JsonValue, TypeAdapter
 
-from atlas_tools.relation.evaluation.analysis.api import (
+from atlas_tools.relation.evaluation.analysis.grid_finalization import (
     GridAnalysis,
     VoteEconomics,
     vote_economics,

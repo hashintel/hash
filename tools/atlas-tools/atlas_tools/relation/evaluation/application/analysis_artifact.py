@@ -159,9 +159,7 @@ class EmbeddingProducerIdentity(BaseModel):
         validate_default=True,
     )
 
-    producer_revision: Literal["openrouter-native-embedding-v1"] = (
-        EMBEDDING_PRODUCER_REVISION
-    )
+    producer_revision: Literal["openrouter-native-embedding-v1"] = EMBEDDING_PRODUCER_REVISION
     request: EmbeddingRequestIdentity
     response: EmbeddingResponseIdentity
     vector_encoding: Literal["f32-le-v1"] = "f32-le-v1"

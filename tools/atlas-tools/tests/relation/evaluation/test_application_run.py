@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -22,6 +24,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     HandoffManifest,
     JudgeConfig,
     ModelId,
+    PhysicalAttempt,
     PilotRunConfig,
     ProviderName,
     ProviderResult,
@@ -29,6 +32,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     RunDates,
     SliceDerivation,
     SliceSamplingConfig,
+    Vote,
 )
 from atlas_tools.relation.evaluation.modes.api import (
     HOLDOUTS,
@@ -36,7 +40,13 @@ from atlas_tools.relation.evaluation.modes.api import (
     PromptCard,
     PromptPack,
 )
-from atlas_tools.relation.evaluation.storage.api import PilotPaths, load_config, load_deck
+from atlas_tools.relation.evaluation.storage.api import (
+    GridPaths,
+    PilotPaths,
+    load_config,
+    load_deck,
+    load_jsonl,
+)
 from atlas_tools.relation.evaluation.transport.api import (
     CompletionAccepted,
     CompletionRequest,
@@ -198,9 +208,11 @@ def _provider_result(*, model: str, content: str) -> ProviderResult:
 @dataclass(slots=True)
 class AsyncMappingTransport:
     calls: int = 0
+    requests: list[CompletionRequest] = field(default_factory=list)
 
     async def complete(self, request: CompletionRequest) -> CompletionAccepted:
         self.calls += 1
+        self.requests.append(request)
         answer = scripted_answer(request.judge.model, _live_local_id(request))
         content = (
             "not JSON" if answer == MALFORMED else f'{{"reason":"scripted","verdict":"{answer}"}}'
@@ -255,6 +267,90 @@ class RecordingProgress:
         _ = message
 
 
+@dataclass(slots=True)
+class ProgressAwareTransport:
+    inner: AsyncMappingTransport
+    progress: RecordingProgress
+    committed_at_calls: list[int] = field(default_factory=list)
+
+    async def complete(self, request: CompletionRequest) -> CompletionAccepted:
+        self.committed_at_calls.append(self.progress.committed)
+        return await self.inner.complete(request)
+
+    async def aclose(self) -> None:
+        return None
+
+
+def _forbid_provider_access(*_args: object, **_kwargs: object) -> None:
+    raise AssertionError("durable accepted results must not touch the provider adapter")
+
+
+def _resume_without_provider(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    cards_directory: Path,
+    config_path: Path,
+    output_directory: Path,
+    pilot_directory: Path | None = None,
+) -> tuple[PilotPaths | GridPaths, RecordingProgress]:
+    progress = RecordingProgress()
+    with monkeypatch.context() as provider_guard:
+        provider_guard.setattr(run_module, "transport_versions", _forbid_provider_access)
+        provider_guard.setattr(run_module, "_transport", _forbid_provider_access)
+        paths = run_evaluation(
+            cards_directory=cards_directory,
+            config_path=config_path,
+            output_directory=output_directory,
+            pilot_directory=pilot_directory,
+            progress=progress,
+        )
+    return paths, progress
+
+
+def _rehearse_partial_pilot_recovery(
+    *,
+    paths: PilotPaths,
+    cards_directory: Path,
+    config_path: Path,
+    output_directory: Path,
+) -> None:
+    votes = load_jsonl(paths.journal.votes, Vote)
+    attempts = load_jsonl(paths.journal.attempts, PhysicalAttempt)
+    missing_vote = votes[1]
+    retained_attempts = tuple(
+        attempt for attempt in attempts if attempt.vote_id != missing_vote.vote_id
+    )
+    assert len(retained_attempts) == len(attempts) - 1
+
+    paths.manifest.unlink()
+    paths.journal.votes.write_bytes(b"")
+    paths.journal.attempts.write_bytes(
+        b"".join(canonical_json_bytes(attempt) + b"\n" for attempt in retained_attempts)
+    )
+    progress = RecordingProgress()
+    inner = AsyncMappingTransport()
+    transport = ProgressAwareTransport(inner=inner, progress=progress)
+
+    recovered = run_evaluation(
+        cards_directory=cards_directory,
+        config_path=config_path,
+        output_directory=output_directory,
+        transport=transport,
+        progress=progress,
+    )
+
+    assert recovered == paths
+    assert transport.committed_at_calls == [1]
+    assert inner.calls == 1
+    request = inner.requests[0]
+    assert request.request_stage == "initial"
+    assert f"wikidata:{_live_local_id(request)}" == missing_vote.relation_id
+    assert request.judge.model == missing_vote.request.judge.model
+    assert progress.committed == len(votes)
+    assert len(load_jsonl(paths.journal.votes, Vote)) == len(votes)
+    assert len(load_jsonl(paths.journal.attempts, PhysicalAttempt)) == len(attempts)
+
+
 def test_owned_completion_transport_closes_when_the_run_is_cancelled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -279,6 +375,7 @@ def test_owned_completion_transport_closes_when_the_run_is_cancelled(
 
 def test_grid_runner_executes_two_phases_and_revalidates_without_network(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cards = write_grid_concat(tmp_path / "cards")
     config = write_grid_config(tmp_path / "grid.yaml", grid_config())
@@ -313,6 +410,31 @@ def test_grid_runner_executes_two_phases_and_revalidates_without_network(
     assert manifest.refined_cards == EXPECTED_REFINED_CARDS
     assert sum(row.refinement_votes for row in manifest.family_counts) == 30
     assert all(row.canary_votes == len(HOLDOUTS) for row in manifest.family_counts)
+
+    all_vote_bytes = paths.journal.votes.read_bytes()
+    all_votes = load_jsonl(paths.journal.votes, Vote)
+    baseline_votes = progress.phases[0][1]
+    assert baseline_votes is not None
+    paths.manifest.unlink()
+    paths.journal.votes.write_bytes(
+        b"".join(canonical_json_bytes(vote) + b"\n" for vote in all_votes[:baseline_votes])
+    )
+    recovered, recovery_progress = _resume_without_provider(
+        monkeypatch,
+        cards_directory=cards,
+        config_path=config,
+        output_directory=output,
+        pilot_directory=pilot,
+    )
+
+    assert recovered == paths
+    assert paths.journal.votes.read_bytes() == all_vote_bytes
+    assert recovery_progress.phases == [
+        ("evaluating grid refinement", 30),
+        ("evaluating grid holdout canaries", len(HOLDOUTS) * 5),
+    ]
+    assert recovery_progress.committed == EXPECTED_TOTAL_VOTES - baseline_votes
+    assert GridManifest.model_validate_json(paths.manifest.read_bytes(), strict=True) == manifest
 
     unused = AsyncMappingTransport()
     repeated_progress = RecordingProgress()
@@ -366,6 +488,7 @@ def test_grid_runner_executes_two_phases_and_revalidates_without_network(
 
 def test_pilot_runner_derives_the_slice_and_publishes_only_after_full_coverage(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cards = write_grid_concat(tmp_path / "cards")
     config = tmp_path / "pilot.yaml"
@@ -406,6 +529,29 @@ def test_pilot_runner_derives_the_slice_and_publishes_only_after_full_coverage(
     assert len(manifest.expected_grid.relation_ids) == 7
     assert manifest.expected_repeat_arm.repeat_indices == (1,)
 
+    all_vote_bytes = paths.journal.votes.read_bytes()
+    paths.manifest.unlink()
+    paths.journal.votes.write_bytes(b"")
+    recovered, recovery_progress = _resume_without_provider(
+        monkeypatch,
+        cards_directory=cards,
+        config_path=config,
+        output_directory=output,
+    )
+
+    assert recovered == paths
+    assert paths.journal.votes.read_bytes() == all_vote_bytes
+    assert recovery_progress.phases == [("evaluating pilot", 64)]
+    assert recovery_progress.committed == 64
+    assert HandoffManifest.model_validate_json(paths.manifest.read_bytes(), strict=True) == manifest
+
+    _rehearse_partial_pilot_recovery(
+        paths=paths,
+        cards_directory=cards,
+        config_path=config,
+        output_directory=output,
+    )
+
     unused = AsyncMappingTransport()
     assert (
         run_evaluation(
@@ -417,3 +563,34 @@ def test_pilot_runner_derives_the_slice_and_publishes_only_after_full_coverage(
         == paths
     )
     assert unused.calls == 0
+
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import sys
+from pathlib import Path
+
+from atlas_tools.relation.evaluation.application.run import run_evaluation
+
+run_evaluation(
+    cards_directory=Path(sys.argv[1]),
+    config_path=Path(sys.argv[2]),
+    output_directory=Path(sys.argv[3]),
+)
+forbidden = ("matplotlib", "pyarrow", "scipy", "sklearn")
+loaded = sorted(root for root in forbidden if root in sys.modules)
+if loaded:
+    raise AssertionError(f"completed pilot imported optional stacks: {loaded}")
+""",
+            str(cards),
+            str(config),
+            str(output),
+        ],
+        cwd=Path(__file__).resolve().parents[3],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode == 0, probe.stderr

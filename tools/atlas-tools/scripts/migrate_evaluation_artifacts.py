@@ -48,7 +48,7 @@ from pydantic import (
 )
 
 from atlas_tools.common import Sha256Hex, canonical_json_bytes, sha256_file
-from atlas_tools.relation.evaluation.analysis.api import analyze_grid
+from atlas_tools.relation.evaluation.analysis.grid_finalization import analyze_grid
 from atlas_tools.relation.evaluation.application.grid_plan import (
     derive_grid_plan,
     split_grid_votes,
@@ -127,6 +127,7 @@ from atlas_tools.relation.evaluation.execution.api import (
     build_resume_index,
     executor_policy_payload,
     observed_request_policy_ids,
+    reconstruct_vote_or_required_stage,
 )
 from atlas_tools.relation.evaluation.storage.api import (
     GridPaths,
@@ -360,6 +361,13 @@ class PlanTaskPointer(_LegacyModel):
     repeat_index: NonNegativeInt
 
 
+class PlanRequestPointer(PlanTaskPointer):
+    """Identify the provider request needed to extend the committed prefix."""
+
+    request_stage: RequestStage
+    prior_stage_attempts: NonNegativeInt
+
+
 class JournalRequestPolicies(_LegacyModel):
     """Report registered wire policies observed in one closed journal."""
 
@@ -380,10 +388,10 @@ class JournalRequestPolicies(_LegacyModel):
 
 
 class AdoptionResult(_LegacyModel):
-    """Prove that a fully prepared directory can resume without provider work."""
+    """Bind reusable evidence and the next paid boundary without provider work."""
 
     kind: Literal["evaluation-artifact-adoption"] = "evaluation-artifact-adoption"
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     mode: MigrationMode
     request_contract_hash: Sha256Hex
     historical_request_evidence: HistoricalRequestEvidence | None
@@ -396,8 +404,9 @@ class AdoptionResult(_LegacyModel):
     ready_for_resume: Literal[True] = True
     next_plan_index: NonNegativeInt
     expected_votes: NonNegativeInt
-    accepted_uncommitted: NonNegativeInt
-    accepted_uncommitted_vote_ids: tuple[VoteId, ...]
+    reconstructable_uncommitted: NonNegativeInt
+    reconstructable_uncommitted_vote_ids: tuple[VoteId, ...]
+    next_provider_request: PlanRequestPointer | None
     next_unattempted_task: PlanTaskPointer | None
     manifest_complete: bool
     network_calls: Literal[0] = 0
@@ -1466,28 +1475,23 @@ def _resume_proof(
 
 @dataclass(frozen=True, slots=True)
 class _AdoptionProgress:
-    accepted_uncommitted_vote_ids: tuple[VoteId, ...]
+    reconstructable_uncommitted_vote_ids: tuple[VoteId, ...]
+    next_provider_request: PlanRequestPointer | None
     next_unattempted_task: PlanTaskPointer | None
 
 
 def _adoption_progress(
     plan: VotePlan,
     votes: tuple[Vote, ...],
-    attempts: tuple[PhysicalAttempt, ...],
+    resume: ResumeIndex,
+    prompt: RubricVotePrompt,
 ) -> _AdoptionProgress:
     completed = {vote.vote_id for vote in votes}
-    accepted = {
-        attempt.vote_id
-        for attempt in attempts
-        if attempt.result is not None and attempt.failure is None
-    }
-    attempted = {attempt.vote_id for attempt in attempts}
-    pending = accepted - completed
-    ordered_pending: list[VoteId] = []
+    attempted = set(resume.attempts_by_vote)
+    reconstructable: list[VoteId] = []
+    next_provider: PlanRequestPointer | None = None
     next_unattempted: PlanTaskPointer | None = None
     for plan_index, task in enumerate(plan.tasks()):
-        if task.vote_id in pending:
-            ordered_pending.append(task.vote_id)
         if next_unattempted is None and task.vote_id not in attempted:
             next_unattempted = PlanTaskPointer(
                 plan_index=plan_index,
@@ -1498,10 +1502,34 @@ def _adoption_progress(
                 effort=task.effort,
                 repeat_index=task.repeat_index,
             )
-    if len(ordered_pending) != len(pending):
-        raise ValueError("accepted uncommitted attempts fall outside the current plan")
+        if task.vote_id in completed:
+            continue
+
+        task_attempts = resume.attempts_by_vote.get(task.vote_id, ())
+        decision = reconstruct_vote_or_required_stage(
+            task,
+            task_attempts,
+            prompt=prompt,
+        )
+        if isinstance(decision, Vote):
+            reconstructable.append(task.vote_id)
+        elif next_provider is None:
+            next_provider = PlanRequestPointer(
+                plan_index=plan_index,
+                vote_id=task.vote_id,
+                relation_id=task.relation_id,
+                family_id=task.judge.family_id,
+                bundle_id=task.bundle_id,
+                effort=task.effort,
+                repeat_index=task.repeat_index,
+                request_stage=decision,
+                prior_stage_attempts=sum(
+                    attempt.request_stage == decision for attempt in task_attempts
+                ),
+            )
     return _AdoptionProgress(
-        accepted_uncommitted_vote_ids=tuple(ordered_pending),
+        reconstructable_uncommitted_vote_ids=tuple(reconstructable),
+        next_provider_request=next_provider,
         next_unattempted_task=next_unattempted,
     )
 
@@ -1682,8 +1710,12 @@ def adopt_directory(
                 historical_request_evidence=policy_proof.historical_request_evidence,
             )
             _install_converted(converted_directory, paths, prepared)
-            votes, attempts, resume, plan = _resume_proof(prepared, paths, state)
-            progress = _adoption_progress(plan, votes, attempts)
+            votes, _attempts, resume, plan = _resume_proof(prepared, paths, state)
+            prompt = RubricVotePrompt(
+                pack=prepared.prompt_pack,
+                cards=prepared.deck.by_relation_id,
+            )
+            progress = _adoption_progress(plan, votes, resume, prompt)
             expected_votes = plan.expected_votes
             manifest_complete = _finalize_manifest(
                 prepared,
@@ -1713,8 +1745,11 @@ def adopt_directory(
                 artifact_hashes=_artifact_hashes(temporary),
                 next_plan_index=resume.next_plan_index,
                 expected_votes=expected_votes,
-                accepted_uncommitted=len(progress.accepted_uncommitted_vote_ids),
-                accepted_uncommitted_vote_ids=progress.accepted_uncommitted_vote_ids,
+                reconstructable_uncommitted=len(progress.reconstructable_uncommitted_vote_ids),
+                reconstructable_uncommitted_vote_ids=(
+                    progress.reconstructable_uncommitted_vote_ids
+                ),
+                next_provider_request=progress.next_provider_request,
                 next_unattempted_task=progress.next_unattempted_task,
                 manifest_complete=manifest_complete,
             )
@@ -1790,7 +1825,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     sys.stdout.write(
         f"adopted {adopted.next_plan_index}/{adopted.expected_votes} committed votes; "
-        f"{adopted.accepted_uncommitted} accepted and uncommitted\n"
+        f"{adopted.reconstructable_uncommitted} reconstructable and uncommitted\n"
     )
     return 0
 

@@ -74,37 +74,6 @@ def test_cli_concat_fails_cleanly_on_runtime_error(
     assert "Error: hash mismatch" in capsys.readouterr().err
 
 
-def test_cli_family_overlay_passes_the_reviewed_mapping_and_echoes_paths(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    cards = tmp_path / "cards"
-    cards.mkdir()
-    assignments = tmp_path / "families.jsonl"
-    assignments.touch()
-    out = tmp_path / "enriched"
-    captured: dict[str, object] = {}
-
-    def overlay(cards: Path, assignments: Path, *, out: Path) -> ConcatPaths:
-        captured.update(cards=cards, assignments=assignments, out=out)
-        return ConcatPaths(
-            cards_jsonl=out / "cards.jsonl",
-            manifest=out / "cards.manifest.json",
-        )
-
-    monkeypatch.setattr(
-        "atlas_tools.relation.family_overlay.apply_family_overlay",
-        overlay,
-    )
-    cli.main(["family-overlay", str(cards), str(assignments), "--out", str(out)])
-
-    assert captured == {"cards": cards, "assignments": assignments, "out": out}
-    stdout = capsys.readouterr().out
-    assert f"wrote {out / 'cards.jsonl'}" in stdout
-    assert f"wrote {out / 'cards.manifest.json'}" in stdout
-
-
 def test_cli_evaluate_dispatches_pilot_and_echoes_handoff_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -140,7 +109,7 @@ def test_cli_evaluate_dispatches_pilot_and_echoes_handoff_paths(
         )
 
     monkeypatch.setattr(
-        "atlas_tools.relation.evaluation.application.api.run_evaluation",
+        "atlas_tools.relation.evaluation.application.run.run_evaluation",
         evaluate,
     )
     cli.main(["evaluate", str(cards), str(config_path), "--out", str(out), "--quiet"])
@@ -198,7 +167,7 @@ def test_cli_evaluate_passes_the_pilot_handoff_and_echoes_grid_paths(
         )
 
     monkeypatch.setattr(
-        "atlas_tools.relation.evaluation.application.api.run_evaluation",
+        "atlas_tools.relation.evaluation.application.run.run_evaluation",
         evaluate,
     )
     cli.main(

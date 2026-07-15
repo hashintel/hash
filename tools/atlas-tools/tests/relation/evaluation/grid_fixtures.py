@@ -44,8 +44,7 @@ _HOLDOUT_VERDICTS: dict[str, Verdict] = {
 }
 _HOLDOUT_VERDICTS["P3403"] = "proximal"
 _HOLDOUT_FAMILIES = {
-    local_id: f"fam-h{index}"
-    for index, local_id in enumerate(sorted(_HOLDOUT_VERDICTS), start=1)
+    local_id: f"fam-h{index}" for index, local_id in enumerate(sorted(_HOLDOUT_VERDICTS), start=1)
 }
 POOL_CARDS = _LIVE_CARDS | _HOLDOUT_FAMILIES
 
@@ -55,9 +54,11 @@ _ABSTAIN_JUDGE = "test/j3"
 _OVERLAY_JUDGES = frozenset({"test/j4", "test/j5"})
 
 EXPECTED_REFINED_CARDS = 3
-EXPECTED_TOTAL_VOTES = len(POOL_CARDS) * len(JUDGE_MODELS) + (
-    EXPECTED_REFINED_CARDS * len(JUDGE_MODELS) * 2
-) + len(HOLDOUTS) * len(JUDGE_MODELS)
+EXPECTED_TOTAL_VOTES = (
+    len(POOL_CARDS) * len(JUDGE_MODELS)
+    + (EXPECTED_REFINED_CARDS * len(JUDGE_MODELS) * 2)
+    + len(HOLDOUTS) * len(JUDGE_MODELS)
+)
 
 
 def scripted_answer(model: str, local_id: str) -> ScriptedAnswer:
@@ -113,9 +114,7 @@ def write_grid_concat(directory: Path, *, include_families: bool = True) -> Path
         }
         if include_families:
             payload["family_id"] = family_id
-        rows.append(
-            CardRow.model_validate(payload)
-        )
+        rows.append(CardRow.model_validate(payload))
     cards_path.write_bytes(b"".join(canonical_json_bytes(row) + b"\n" for row in rows))
     Provenance[JsonValue, JsonValue].make(
         producer="test.wikidata-cards",

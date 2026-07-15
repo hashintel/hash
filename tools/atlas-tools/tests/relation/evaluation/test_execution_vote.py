@@ -40,6 +40,7 @@ from atlas_tools.relation.evaluation.execution.api import (
     WorkItem,
     build_resume_index,
     execute_votes,
+    reconstruct_vote_or_required_stage,
 )
 from atlas_tools.relation.evaluation.storage.api import (
     DurableAttempt,
@@ -161,6 +162,11 @@ class _Prompt:
         if completion != '{"verdict":"proximal"}':
             raise ValueError("malformed verdict")
         return ParsedVote(verdict="proximal", reason="distinct but nearby")
+
+
+class _AlwaysValidPrompt(_Prompt):
+    def parse(self, completion: str) -> ParsedVote:
+        return ParsedVote(verdict="proximal", reason=completion)
 
 
 class _RecordingJournal(RunJournal):
@@ -326,6 +332,57 @@ def test_vote_runner_journals_visible_retry_and_single_repair_in_protocol_order(
         )
         assert resume.next_plan_index == 1
         assert resume.attempts_by_vote[task.vote_id] == attempts
+
+        failed_only = build_resume_index(
+            _SingleTaskPlan(task),
+            votes=(),
+            attempts=attempts[:1],
+            prompt=_Prompt(),
+            config=config,
+        )
+        assert (
+            reconstruct_vote_or_required_stage(
+                task,
+                failed_only.attempts_by_vote[task.vote_id],
+                prompt=_Prompt(),
+            )
+            == "initial"
+        )
+        malformed_initial = build_resume_index(
+            _SingleTaskPlan(task),
+            votes=(),
+            attempts=attempts[:2],
+            prompt=_Prompt(),
+            config=config,
+        )
+        assert (
+            reconstruct_vote_or_required_stage(
+                task,
+                malformed_initial.attempts_by_vote[task.vote_id],
+                prompt=_Prompt(),
+            )
+            == "repair"
+        )
+        assert (
+            reconstruct_vote_or_required_stage(
+                task,
+                resume.attempts_by_vote[task.vote_id],
+                prompt=_Prompt(),
+            )
+            == votes[0]
+        )
+        with pytest.raises(ValueError, match="follow a valid initial response"):
+            reconstruct_vote_or_required_stage(
+                task,
+                attempts,
+                prompt=_AlwaysValidPrompt(),
+            )
+        with pytest.raises(ValueError, match="lack an accepted initial call"):
+            reconstruct_vote_or_required_stage(
+                task,
+                attempts[-1:],
+                prompt=_Prompt(),
+            )
 
     trio.run(scenario)
 
