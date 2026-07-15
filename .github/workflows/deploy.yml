@@ -133,6 +133,18 @@ jobs:
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
             },
             {
+              # Not a turbo package (Python/uv, no package.json), so change
+              # detection runs on `paths` like kratos/hydra. The build context
+              # is the repo root because the image bundles the petrinaut-cli
+              # socket server next to the Python API.
+              service:    "petrinaut-opt",
+              push:       ["ecr"],
+              dockerfile: "libs/@hashintel/petrinaut-opt/docker/Dockerfile",
+              context:    ".",
+              paths:      ["libs/@hashintel/petrinaut-opt", "libs/@hashintel/petrinaut-cli", "libs/@hashintel/petrinaut-core"],
+              ecs: [{ service: "petrinaut-opt", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-petrinaut-opt" }]
+            },
+            {
               service:    "kratos",
               push:       ["ecr"],
               dockerfile: "infra/compose/kratos/Dockerfile",
