@@ -2,7 +2,7 @@
 
 The classifier joins labels and embeddings by exact relation and card
 identity, assigns whole relation families to validation folds, and fits every
-card with its placement posterior weighted by its placement-vote count. No
+card with its evidenced or reviewed target and explicit supervised weight. No
 training-row calibration or applicability estimate observes its outer fold.
 No filesystem, provider, or orchestration state enters this module.
 """
@@ -52,6 +52,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     CardHash,
     ClassifierConfig,
     RelationId,
+    TargetResolutionRow,
 )
 
 __all__ = [
@@ -160,12 +161,14 @@ def fit_policy_classifier(
     embeddings: Sequence[EmbeddingRow],
     families: Sequence[FamilyBindingRow],
     config: ClassifierConfig,
+    resolutions: Sequence[TargetResolutionRow] = (),
 ) -> ClassifierFit:
     """Fit final and grouped out-of-fold soft-target classifiers.
 
     Every label must have exactly one embedding and one verified closure row
-    with the same relation ID and card hash. Closure families are assigned
-    atomically to balanced deterministic folds. Each held-out
+    with the same relation ID and card hash. A label without placement-vote
+    weight additionally requires one reviewed placement or exclusion decision.
+    Closure families are assigned atomically to balanced deterministic folds. Each held-out
     fold uses inner grouped predictions for temperature fitting and only its
     outer-training embeddings for applicability. Every optimizer invocation
     must report convergence or the fit fails.
@@ -175,7 +178,7 @@ def fit_policy_classifier(
             optimizer results violate the classifier contract.
 
     """
-    data = join_training_data(labels, embeddings, families)
+    data = join_training_data(labels, embeddings, families, resolutions)
     validate_training_cohorts(data, config)
     assignment = grouped_fold_assignment(data, config)
     cross_fit = cross_fit_predictions(
@@ -244,7 +247,7 @@ def fit_policy_classifier(
 
     raw_posteriors = tuple(row.raw for row in out_of_fold)
     calibrated_posteriors = tuple(row.calibrated for row in out_of_fold)
-    target_posteriors = tuple(label.posterior for label in data.labels)
+    target_posteriors = tuple(posterior_from_array(row) for row in data.targets)
     weights = tuple(float(value) for value in data.vote_weights)
     metrics = ClassifierMetrics(
         training_cards=len(data.labels),

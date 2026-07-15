@@ -337,6 +337,17 @@ def fit_temperature(
     weights: FloatVector,
 ) -> float:
     """Fit scalar temperature with a fixed-iteration golden-section search."""
+    if logits.shape != targets.shape or logits.ndim != _MATRIX_DIMENSIONS:
+        raise ValueError("temperature logits and targets must have one matrix shape")
+    if weights.shape != (len(logits),):
+        raise ValueError("temperature weights must have one value per row")
+    if not np.isfinite(logits).all() or not np.isfinite(targets).all():
+        raise ValueError("temperature inputs must be finite")
+    if not np.isfinite(weights).all() or (weights < 0.0).any():
+        raise ValueError("temperature weights must be finite and non-negative")
+    if float(weights.sum()) <= 0.0:
+        raise ValueError("temperature fitting requires positive total weight")
+
     lower = math.log(_TEMPERATURE_MIN)
     upper = math.log(_TEMPERATURE_MAX)
 

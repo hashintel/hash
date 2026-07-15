@@ -18,10 +18,6 @@ from atlas_tools.relation.evaluation.analysis.api import (
     PolicyClassifier,
 )
 from atlas_tools.relation.evaluation.application._analysis_codec import (
-    CLASSIFIER_ARRAYS_FILENAME,
-    CLASSIFIER_METADATA_FILENAME,
-    CLASSIFIER_OUT_OF_FOLD_FILENAME,
-    OUT_OF_FOLD_SCHEMA,
     OutOfFoldDiskRow,
     decode_rows,
     fold_assignment_hash,
@@ -35,6 +31,12 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     verify_content_hashes,
     verify_expected_sources,
 )
+from atlas_tools.relation.evaluation.application._analysis_schema import (
+    CLASSIFIER_ARRAYS_FILENAME,
+    CLASSIFIER_METADATA_FILENAME,
+    CLASSIFIER_OUT_OF_FOLD_FILENAME,
+    OUT_OF_FOLD_SCHEMA,
+)
 from atlas_tools.relation.evaluation.application._classifier_codec_validation import (
     SCHEMA_HASHES,
     algorithms,
@@ -47,6 +49,7 @@ from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierArrays,
     ClassifierBundle,
     ClassifierBundleMetadata,
+    ClassifierTargetResolutionBinding,
 )
 from atlas_tools.relation.evaluation.domain.api import Sha256Hex
 from atlas_tools.relation.family_closure.api import VerifiedFamilyClosure
@@ -127,6 +130,7 @@ def load_classifier_bundle(
     *,
     closure: VerifiedFamilyClosure,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
+    expected_target_resolutions: ClassifierTargetResolutionBinding | None = None,
 ) -> ClassifierBundle:
     """Load a classifier only after strict cross-file and numeric validation.
 
@@ -145,6 +149,22 @@ def load_classifier_bundle(
     metadata = load_model(metadata_path, ClassifierBundleMetadata)
     if metadata.closure != closure_binding(closure):
         raise ValueError("classifier metadata is bound to a different family closure")
+    if metadata.target_resolutions != expected_target_resolutions:
+        raise ValueError("classifier metadata is bound to different target resolutions")
+    if expected_target_resolutions is not None:
+        resolution_sources = {
+            "target-resolutions/target-resolutions.jsonl": (
+                expected_target_resolutions.decisions_hash
+            ),
+            "target-resolutions/target-resolutions.manifest.json": (
+                expected_target_resolutions.manifest_hash
+            ),
+        }
+        if any(
+            metadata.source_hashes.get(name) != digest
+            for name, digest in resolution_sources.items()
+        ):
+            raise ValueError("classifier source hashes disagree with target resolution binding")
     require_exact_mapping(
         metadata.schema_hashes,
         SCHEMA_HASHES,
@@ -186,7 +206,7 @@ def load_classifier_bundle(
     cross_fit_folds = _cross_fit_folds_from_arrays(metadata, decoded_arrays, rows)
     require_exact_mapping(
         metadata.algorithms,
-        algorithms(classifier, cross_fit_folds),
+        algorithms(classifier, cross_fit_folds, metadata.target_resolutions),
         label="classifier algorithms",
     )
     fold_by_relation_id = MappingProxyType({row.relation_id: row.fold for row in rows})
@@ -235,6 +255,7 @@ async def load_classifier_bundle_async(
     *,
     closure: VerifiedFamilyClosure,
     expected_source_hashes: Mapping[str, Sha256Hex] | None = None,
+    expected_target_resolutions: ClassifierTargetResolutionBinding | None = None,
 ) -> ClassifierBundle:
     """Validate a classifier bundle without blocking Trio's event loop."""
     expected = None if expected_source_hashes is None else dict(expected_source_hashes)
@@ -243,5 +264,6 @@ async def load_classifier_bundle_async(
         directory,
         closure=closure,
         expected_source_hashes=expected,
+        expected_target_resolutions=expected_target_resolutions,
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)

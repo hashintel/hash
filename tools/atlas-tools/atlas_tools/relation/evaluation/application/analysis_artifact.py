@@ -40,6 +40,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     PositiveFiniteFloat,
     RelationId,
     Sha256Hex,
+    TargetResolutionCounts,
 )
 
 type FloatArray = NDArray[np.float64]
@@ -262,10 +263,29 @@ class ClassifierClosureBinding(BaseModel):
         return tuple(value) if isinstance(value, list) else value
 
 
+class ClassifierTargetResolutionBinding(BaseModel):
+    """Record the reviewed target decisions applied to ambiguous soft labels."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        strict=True,
+        validate_default=True,
+    )
+
+    schema_version: Literal[1] = 1
+    artifact_id: Sha256Hex
+    decisions_hash: Sha256Hex
+    manifest_hash: Sha256Hex
+    policy_id: Literal["human-one-hot-or-supervised-exclusion-v1"]
+    reviewer: NonEmptyStr
+    counts: TargetResolutionCounts
+
+
 class ClassifierBundleMetadata(ArtifactMetadata):
     """Describe all files and scalar contracts in a classifier bundle."""
 
-    schema_version: Literal[3] = 3
+    schema_version: Literal[4] = 4
     artifact: Literal["relation-policy-classifier"] = "relation-policy-classifier"
     rows: PositiveInt
     relation_order_hash: Sha256Hex
@@ -280,6 +300,7 @@ class ClassifierBundleMetadata(ArtifactMetadata):
     temperature: PositiveFiniteFloat
     cross_fit_temperatures: tuple[PositiveFiniteFloat, ...]
     closure: ClassifierClosureBinding
+    target_resolutions: ClassifierTargetResolutionBinding | None = None
     config: ClassifierConfig
     metrics: ClassifierMetrics
 

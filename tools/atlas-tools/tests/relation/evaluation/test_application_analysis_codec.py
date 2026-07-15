@@ -224,7 +224,14 @@ def test_classifier_bundle_is_deterministic_cross_validated_and_immutable(
     tmp_path: Path,
 ) -> None:
     labels, embeddings = _dataset()
-    closure = write_verified_family_closure(tmp_path / "closure", labels)
+    closure_only = labels[0].model_copy(
+        update={
+            "relation_id": "test:closure-only",
+            "card_hash": "d" * 64,
+            "family_id": "closure-only-family",
+        }
+    )
+    closure = write_verified_family_closure(tmp_path / "closure", (*labels, closure_only))
     fit = fit_policy_classifier(
         labels,
         embeddings,

@@ -23,6 +23,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     ClassifierConfig,
     PlacementClass,
     RelationFamilyId,
+    TargetResolutionRow,
 )
 from tests.relation.evaluation.classifier_fixtures import family_assignment_rows
 
@@ -149,6 +150,64 @@ def test_training_join_rejects_card_drift_and_invalid_closure_rows() -> None:
     drifted_family = families[0].model_copy(update={"card_hash": "f" * 64})
     with pytest.raises(ValueError, match="family closure card hash differs"):
         fit_policy_classifier(labels, embeddings, (drifted_family, *families[1:]), config)
+
+
+def test_all_ambiguous_targets_require_explicit_resolution_or_exclusion() -> None:
+    labels, embeddings = _dataset()
+    resolved = _label_from_tally(
+        40,
+        family_id=RelationFamilyId("family-resolved"),
+        tally=PlacementTally(),
+    ).model_copy(update={"unclear_votes": 5})
+    excluded = _label_from_tally(
+        41,
+        family_id=RelationFamilyId("family-excluded"),
+        tally=PlacementTally(),
+    ).model_copy(update={"unclear_votes": 5})
+    ambiguous_labels = (*labels, resolved, excluded)
+    ambiguous_embeddings = (
+        *embeddings,
+        EmbeddingRow.from_values(
+            relation_id=resolved.relation_id,
+            card_hash=resolved.card_hash,
+            values=(0.25, 0.25),
+        ),
+        EmbeddingRow.from_values(
+            relation_id=excluded.relation_id,
+            card_hash=excluded.card_hash,
+            values=(-0.25, -0.25),
+        ),
+    )
+    families = family_assignment_rows(ambiguous_labels)
+    config = ClassifierConfig(folds=3, max_iterations=500, seed=17)
+
+    with pytest.raises(ValueError, match="run relation resolve-ambiguous"):
+        fit_policy_classifier(ambiguous_labels, ambiguous_embeddings, families, config)
+
+    fit = fit_policy_classifier(
+        ambiguous_labels,
+        ambiguous_embeddings,
+        families,
+        config,
+        resolutions=(
+            TargetResolutionRow(
+                relation_id=resolved.relation_id,
+                card_hash=resolved.card_hash,
+                action="overlay",
+            ),
+            TargetResolutionRow(
+                relation_id=excluded.relation_id,
+                card_hash=excluded.card_hash,
+                action="excluded",
+            ),
+        ),
+    )
+
+    assert fit.metrics.training_cards == len(ambiguous_labels)
+    assert fit.metrics.training_vote_weight == sum(label.n_votes for label in labels) + 1
+    assert {row.relation_id for row in fit.out_of_fold} == {
+        label.relation_id for label in ambiguous_labels
+    }
 
 
 def test_grouped_fold_validation_refuses_family_leakage() -> None:

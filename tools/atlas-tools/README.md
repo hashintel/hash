@@ -400,21 +400,35 @@ uv run relation aggregate runs/grid runs/cards config/eval/grid.yaml \
     --out runs/soft-labels.parquet
 uv run relation embed runs/cards config/eval/grid.yaml \
     --out runs/embeddings.parquet --cache runs/embedding-cache
+uv run relation resolve-ambiguous runs/soft-labels.parquet runs/cards \
+    --reviewer <reviewer-name> --out runs/target-resolutions
 uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
-    family-closure config/eval/grid.yaml --out runs/classifier
+    family-closure config/eval/grid.yaml --resolutions runs/target-resolutions \
+    --out runs/classifier
 uv run relation report runs/grid runs/cards config/eval/grid.yaml \
     --gold gold.jsonl --classifier runs/classifier \
-    --closure family-closure --out runs/report
+    --closure family-closure --soft-labels runs/soft-labels.parquet \
+    --resolutions runs/target-resolutions --out runs/report
 ```
 
 The pilot, grid, aggregate, embed, and panel-only report remain valid without a
 family closure. `fit` always requires one, and a report that loads a classifier
-must receive the exact closure with `--closure`; providing only one of
-`--classifier` and `--closure` fails closed.
+must receive the exact closure with `--closure`. A resolution-bound classifier
+also requires its exact soft labels and target-resolution artifact via
+`--soft-labels` and `--resolutions`; incomplete pairs fail closed.
 
 `aggregate` emits soft labels (Dirichlet(1,1,1) posterior means over
 {C, P, O}, unclear votes in the ambiguity column, n_votes, entropy, the
-refinement flag, and the coincident-review flag). `embed` keys each immutable
+refinement flag, and the coincident-review flag). A row with only unclear or
+abstaining responses therefore has the valid uniform prior distribution but
+zero placement-vote weight; that prior is not placement evidence. Before fit,
+`resolve-ambiguous` presents every such exact card in a local Textual review and
+requires an explicit Coincident, Proximal, Overlay, or Excluded decision. A
+placement decision becomes a one-hot distribution with unit supervised weight.
+An exclusion remains in closure, fold, and prediction coverage but contributes
+zero supervised target weight. The immutable resolution artifact is bound to
+the exact soft labels and deck and is recorded by the classifier bundle; fit
+never silently promotes the prior or drops a row. `embed` keys each immutable
 cache entry by the card hash and complete producer identity: normalized
 endpoint, requested and observed model and dimension, request schema, producer
 revision, and `f32-le-v1` vector encoding. Before each cache-miss batch it
@@ -424,8 +438,9 @@ unmatched marker for a requested card has unknown billing state and blocks an
 automatic reissue. The embedding endpoint is the pipeline's only network
 surface besides OpenRouter completion requests.
 
-`fit` trains the multinomial logistic policy classifier against every soft
-label, using soft-target cross-entropy weighted by n_votes. It must first bind
+`fit` trains the multinomial logistic policy classifier against every
+placement-evidenced or explicitly resolved target, using soft-target
+cross-entropy weighted by placement-vote count or the reviewed unit weight. It must first bind
 the complete soft-label and embedding cohort to the independently verified
 [relation family closure](docs/relation-family-closure.md). Whole lineage
 components are then assigned to deterministic outer folds. Each held-out fold

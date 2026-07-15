@@ -23,6 +23,7 @@ from atlas_tools.relation.evaluation.domain.api import (
     RelationFamilyId,
     RelationId,
     Sha256Hex,
+    TargetResolutionRow,
 )
 
 _MIN_FOLDS = 2
@@ -73,8 +74,6 @@ def _label_index(labels: Sequence[SoftLabel]) -> dict[RelationId, SoftLabel]:
         if label.relation_id in labels_by_relation:
             raise ValueError(f"soft labels repeat relation {label.relation_id}")
         labels_by_relation[label.relation_id] = label
-        if label.n_votes <= 0:
-            raise ValueError(f"soft label {label.relation_id} has no placement-vote weight")
     return labels_by_relation
 
 
@@ -123,10 +122,52 @@ def _matching_relation_ids(
     return tuple(sorted(label_ids))
 
 
+def _resolution_index(
+    resolutions: Sequence[TargetResolutionRow],
+) -> dict[RelationId, TargetResolutionRow]:
+    by_relation_id: dict[RelationId, TargetResolutionRow] = {}
+    for resolution in resolutions:
+        if resolution.relation_id in by_relation_id:
+            raise ValueError(f"target resolutions repeat relation {resolution.relation_id}")
+        by_relation_id[resolution.relation_id] = resolution
+    return by_relation_id
+
+
+def _resolved_target(
+    label: SoftLabel,
+    resolution: TargetResolutionRow | None,
+) -> tuple[tuple[float, float, float], float]:
+    if label.n_votes > 0:
+        if resolution is not None:
+            raise ValueError(
+                f"target resolution cannot override positive-weight label {label.relation_id}"
+            )
+        return posterior_vector(label.posterior), float(label.n_votes)
+
+    if resolution is None:
+        raise ValueError(
+            f"soft label {label.relation_id} has no placement-vote weight; "
+            "run relation resolve-ambiguous and pass --resolutions"
+        )
+    if resolution.card_hash != label.card_hash:
+        raise ValueError(f"target resolution card hash differs for {label.relation_id}")
+
+    match resolution.action:
+        case "coincident":
+            return (1.0, 0.0, 0.0), 1.0
+        case "proximal":
+            return (0.0, 1.0, 0.0), 1.0
+        case "overlay":
+            return (0.0, 0.0, 1.0), 1.0
+        case "excluded":
+            return posterior_vector(label.posterior), 0.0
+
+
 def join_training_data(
     labels: Sequence[SoftLabel],
     embeddings: Sequence[EmbeddingRow],
     families: Sequence[FamilyBindingRow],
+    resolutions: Sequence[TargetResolutionRow] = (),
 ) -> TrainingData:
     """Join exact one-to-one label, embedding, and closure relation sets.
 
@@ -134,12 +175,18 @@ def join_training_data(
     closure may additionally contain non-training deck rows, but it must cover
     every label and bind each one to the same card hash.
 
-    Raises [`ValueError`] for missing families, zero weights, duplicate or
+    All labels without placement-vote weight require an exact reviewed target.
+    A placement decision contributes one one-hot supervised target with unit
+    weight. An exclusion remains in grouped out-of-fold prediction coverage but
+    contributes zero supervised target weight.
+
+    Raises [`ValueError`] for missing families or resolutions, duplicate or
     unequal label/embedding sets, mismatched card hashes, or mixed dimensions.
     """
     labels_by_relation = _label_index(labels)
     embeddings_by_relation = _embedding_index(embeddings)
     families_by_relation = _family_index(families)
+    resolutions_by_relation = _resolution_index(resolutions)
     ordered_ids = _matching_relation_ids(
         labels_by_relation,
         embeddings_by_relation,
@@ -169,11 +216,15 @@ def join_training_data(
         joined_families.append(family.family_id)
         matrix[index] = embedding_view(row)
 
-    targets = np.asarray(
-        [posterior_vector(label.posterior) for label in ordered_labels],
-        dtype=np.float64,
+    extra_resolutions = tuple(sorted(set(resolutions_by_relation) - set(labels_by_relation)))
+    if extra_resolutions:
+        raise ValueError(f"target resolutions include unlabeled relations: {extra_resolutions}")
+    resolved_targets = tuple(
+        _resolved_target(label, resolutions_by_relation.get(label.relation_id))
+        for label in ordered_labels
     )
-    weights = np.asarray([label.n_votes for label in ordered_labels], dtype=np.float64)
+    targets = np.asarray([target for target, _weight in resolved_targets], dtype=np.float64)
+    weights = np.asarray([weight for _target, weight in resolved_targets], dtype=np.float64)
     return TrainingData(
         labels=ordered_labels,
         families=tuple(joined_families),

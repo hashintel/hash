@@ -8,10 +8,6 @@ import trio
 
 from atlas_tools.relation.evaluation.analysis.api import SoftLabel
 from atlas_tools.relation.evaluation.application._analysis_codec import (
-    ORDERING_ALGORITHM,
-    PARQUET_ALGORITHM,
-    SOFT_LABEL_METADATA_SCHEMA,
-    SOFT_LABEL_SCHEMA,
     SoftLabelDiskRow,
     atomic_replace,
     decode_rows,
@@ -29,6 +25,12 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     sidecar_path,
     verify_content_hashes,
     verify_expected_sources,
+)
+from atlas_tools.relation.evaluation.application._analysis_schema import (
+    ORDERING_ALGORITHM,
+    PARQUET_ALGORITHM,
+    SOFT_LABEL_METADATA_SCHEMA,
+    SOFT_LABEL_SCHEMA,
 )
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     SoftLabelsArtifact,

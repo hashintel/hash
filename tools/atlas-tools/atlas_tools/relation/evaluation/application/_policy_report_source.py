@@ -57,15 +57,56 @@ async def load_gold_async(path: Path) -> LoadedGold:
     return await trio.to_thread.run_sync(load_gold, path, abandon_on_cancel=False)
 
 
+def _validate_classifier_paths(
+    *,
+    classifier_directory: Path | None,
+    closure_directory: Path | None,
+    soft_labels_path: Path | None,
+    resolutions_directory: Path | None,
+) -> None:
+    if (classifier_directory is None) != (closure_directory is None):
+        raise ValueError("classifier and family closure must be provided together")
+    if (soft_labels_path is None) != (resolutions_directory is None):
+        raise ValueError("soft labels and target resolutions must be provided together")
+    if classifier_directory is None and resolutions_directory is not None:
+        raise ValueError("target resolutions require a classifier")
+
+
+async def _load_classifier(
+    *,
+    classifier_directory: Path,
+    closure_directory: Path,
+    soft_labels_path: Path | None,
+    resolutions_directory: Path | None,
+) -> ClassifierBundle:
+    closure = await trio.to_thread.run_sync(
+        verify_family_closure,
+        closure_directory,
+        abandon_on_cancel=False,
+    )
+    return await load_classifier_bundle_async(
+        classifier_directory,
+        closure=closure,
+        soft_labels=soft_labels_path,
+        resolutions_directory=resolutions_directory,
+    )
+
+
 async def load_snapshot_inputs(
     *,
     gold_path: Path,
     classifier_directory: Path | None,
     closure_directory: Path | None,
+    soft_labels_path: Path | None,
+    resolutions_directory: Path | None,
 ) -> tuple[LoadedGold, ClassifierBundle | None]:
     """Load gold and an optional classifier bound to its verified closure."""
-    if (classifier_directory is None) != (closure_directory is None):
-        raise ValueError("classifier and family closure must be provided together")
+    _validate_classifier_paths(
+        classifier_directory=classifier_directory,
+        closure_directory=closure_directory,
+        soft_labels_path=soft_labels_path,
+        resolutions_directory=resolutions_directory,
+    )
     gold_values: list[LoadedGold] = []
     classifier_values: list[ClassifierBundle] = []
 
@@ -75,15 +116,12 @@ async def load_snapshot_inputs(
     async def load_classifier_value() -> None:
         if classifier_directory is None or closure_directory is None:
             raise AssertionError("classifier loader started without both artifact directories")
-        closure = await trio.to_thread.run_sync(
-            verify_family_closure,
-            closure_directory,
-            abandon_on_cancel=False,
-        )
         classifier_values.append(
-            await load_classifier_bundle_async(
-                classifier_directory,
-                closure=closure,
+            await _load_classifier(
+                classifier_directory=classifier_directory,
+                closure_directory=closure_directory,
+                soft_labels_path=soft_labels_path,
+                resolutions_directory=resolutions_directory,
             )
         )
 

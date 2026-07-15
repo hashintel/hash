@@ -90,9 +90,22 @@ from atlas_tools.relation.evaluation.application.run import (
     run_evaluation,
     run_evaluation_async,
 )
+from atlas_tools.relation.evaluation.application.target_resolution import (
+    TARGET_RESOLUTIONS_FILENAME,
+    TARGET_RESOLUTIONS_MANIFEST_FILENAME,
+    AmbiguousTargetReviewCancelledError,
+    TargetResolutionPaths,
+    VerifiedTargetResolutionArtifact,
+    load_target_resolutions,
+    publish_target_resolutions,
+    review_ambiguous_targets,
+)
 from atlas_tools.relation.evaluation.storage.api import GridPaths, PilotPaths
 
 __all__ = [
+    "TARGET_RESOLUTIONS_FILENAME",
+    "TARGET_RESOLUTIONS_MANIFEST_FILENAME",
+    "AmbiguousTargetReviewCancelledError",
     "CompletedGrid",
     "EmbeddingAcquisitionError",
     "EmbeddingBudgetExceededError",
@@ -117,6 +130,8 @@ __all__ = [
     "PreparedGrid",
     "PreparedPilot",
     "RubricVotePrompt",
+    "TargetResolutionPaths",
+    "VerifiedTargetResolutionArtifact",
     "aggregate_soft_labels",
     "aggregate_soft_labels_async",
     "analyze_handoff",
@@ -139,6 +154,7 @@ __all__ = [
     "load_pilot_handoff_async",
     "load_policy_report_artifact",
     "load_policy_report_artifact_async",
+    "load_target_resolutions",
     "panel_hash",
     "plan_hash",
     "prepare_evaluation_inputs",
@@ -147,7 +163,9 @@ __all__ = [
     "prepare_grid_inputs_async",
     "prepare_pilot_inputs",
     "prepare_pilot_inputs_async",
+    "publish_target_resolutions",
     "request_contract_hash",
+    "review_ambiguous_targets",
     "rubric_v1_pilot_policy",
     "run_evaluation",
     "run_evaluation_async",

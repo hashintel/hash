@@ -7,7 +7,7 @@ from typing import Protocol
 
 from atlas_tools.common import canonical_json_bytes, sha256_bytes
 from atlas_tools.relation.concat.api import card_artifact_id
-from atlas_tools.relation.domain.api import RelationId
+from atlas_tools.relation.domain.api import RelationId, Sha256Hex
 from atlas_tools.relation.family_closure.api import (
     ClosureConcatInput,
     ClosureEdgePolicy,
@@ -78,6 +78,8 @@ def write_verified_family_closure(
     *,
     family_by_relation_id: Mapping[RelationId, str] | None = None,
     provenance_seed: str = "fixture",
+    cards_hash: Sha256Hex | None = None,
+    cards_manifest_hash: Sha256Hex | None = None,
 ) -> VerifiedFamilyClosure:
     """Write and verify a complete closure artifact for application tests."""
     assignments = family_assignment_rows(
@@ -86,12 +88,14 @@ def write_verified_family_closure(
     )
     families_payload = b"".join(canonical_json_bytes(row) + b"\n" for row in assignments)
     families_hash = sha256_bytes(families_payload)
-    cards_hash = sha256_bytes(f"{provenance_seed}:cards".encode())
-    concat_manifest_hash = sha256_bytes(f"{provenance_seed}:concat-manifest".encode())
+    bound_cards_hash = cards_hash or sha256_bytes(f"{provenance_seed}:cards".encode())
+    bound_manifest_hash = cards_manifest_hash or sha256_bytes(
+        f"{provenance_seed}:concat-manifest".encode()
+    )
     concat = ClosureConcatInput(
-        artifact_id=card_artifact_id(cards_hash, concat_manifest_hash),
-        cards_hash=cards_hash,
-        manifest_hash=concat_manifest_hash,
+        artifact_id=card_artifact_id(bound_cards_hash, bound_manifest_hash),
+        cards_hash=bound_cards_hash,
+        manifest_hash=bound_manifest_hash,
     )
     component_sizes: dict[str, int] = defaultdict(int)
     for assignment in assignments:

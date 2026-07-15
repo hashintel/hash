@@ -55,8 +55,12 @@ The closure has the following ownership boundary:
   closure.
 - `embed` acquires vectors for exact card identities without requiring the
   closure.
+- `resolve-ambiguous` reviews labels with no placement-vote weight without
+  requiring the closure and publishes decisions bound to exact soft-label and
+  card artifacts.
 - `fit` requires one verified closure that covers the complete joined soft-label
-  and embedding cohort.
+  and embedding cohort. If any label has no placement-vote weight, fit also
+  requires the exact verified target-resolution artifact.
 - A classifier bundle records the exact closure artifact used for fold
   assignment.
 
@@ -288,8 +292,27 @@ artifact. Existing destinations are immutable and are never repaired in place.
 
 Classifier fitting joins soft labels, embeddings, and family rows by exact
 `relation_id`. It then requires all three inputs to carry the same `card_hash`
-for every relation. Missing, extra, duplicate, or stale family rows fail before
-fold assignment or optimizer construction.
+for every relation. Missing, duplicate, or stale family rows fail before fold
+assignment or optimizer construction. The closure MAY contain additional deck
+rows, such as prompt few-shots excluded from the label and embedding cohort.
+
+A soft label whose Coincident, Proximal, and Overlay counts are all zero still
+has the valid Dirichlet(1,1,1) prior distribution. That uniform prior is not
+observed placement evidence and MUST NOT silently become a training target.
+Fit MUST fail closed unless a schema-v1 target-resolution artifact covers every
+and only such row by exact `(relation_id, card_hash)`. Each reviewed placement
+decision produces the corresponding one-hot distribution with unit supervised
+weight. Each reviewed exclusion remains in family-atomic fold and prediction
+coverage but has zero supervised target weight. This preserves complete report
+coverage without pretending an all-unclear panel supplied placement evidence.
+
+The resolution artifact MUST bind the exact soft-label parquet and sidecar plus
+the exact concat cards and manifest. It records the reviewer, closed decision
+policy, canonical decisions hash, placement/exclusion counts, and deterministic
+artifact ID. The classifier bundle records that identity and the exact
+resolution file hashes. Fit MUST NOT accept an incomplete artifact, override a
+positive-weight soft label, or infer a decision from relation names or card
+text.
 
 The fit command MUST NOT use `relation_id` as a singleton fallback and MUST NOT
 read an optional `family_id` copied into a card or soft-label row. The verified
@@ -299,13 +322,17 @@ The classifier bundle records:
 
 - the closure artifact ID and `families.jsonl` hash;
 - the closure schema, algorithm, and edge-policy IDs;
+- the target-resolution artifact ID, policy, reviewer, hashes, and counts when
+  all-ambiguous labels required review;
 - the deterministic relation-to-fold assignment;
 - the configured fold count and seed.
 
-Loading or reporting a classifier bundle revalidates this binding. A bundle
-without closure provenance is not valid grouped-CV evidence and requires a
-refit; it does not invalidate the paid votes, soft labels, or embeddings from
-which it was derived.
+Loading or reporting a classifier bundle revalidates this binding. A
+resolution-bound bundle therefore requires the exact resolution artifact and
+soft-label artifact at load time; self-consistent resolution bytes with missing,
+extra, stale-card, or positive-weight rows fail closed. A bundle without closure
+provenance is not valid grouped-CV evidence and requires a refit; it does not
+invalidate the paid votes, soft labels, or embeddings from which it was derived.
 
 ## Errors
 
@@ -325,8 +352,8 @@ Closure publication fails without output when any of these conditions holds:
 - the destination exists or appears during publication;
 - an input changes between verification and publication.
 
-Classifier fitting reports the closure error before allocating fit arrays or
-running an optimizer.
+Classifier fitting reports closure or target-resolution errors before running
+an optimizer.
 
 ## Complexity
 

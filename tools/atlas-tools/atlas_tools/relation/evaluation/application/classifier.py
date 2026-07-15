@@ -8,6 +8,7 @@ import trio
 from atlas_tools.relation.evaluation.analysis.api import fit_policy_classifier
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierBundle,
+    ClassifierTargetResolutionBinding,
     EmbeddingsArtifact,
     SoftLabelsArtifact,
 )
@@ -19,6 +20,12 @@ from atlas_tools.relation.evaluation.application.analysis_codec import (
 )
 from atlas_tools.relation.evaluation.application.identity import panel_hash
 from atlas_tools.relation.evaluation.application.source import hash_paths
+from atlas_tools.relation.evaluation.application.target_resolution import (
+    VerifiedTargetResolutionArtifact,
+    classifier_target_resolution_binding,
+    classifier_target_resolution_source_hashes,
+    load_target_resolutions,
+)
 from atlas_tools.relation.evaluation.storage.api import LoadedConfig, load_config_async
 from atlas_tools.relation.family_closure.api import (
     VerifiedFamilyClosure,
@@ -32,11 +39,19 @@ async def _load_inputs(
     soft_labels_path: Path,
     embeddings_path: Path,
     closure_directory: Path,
-) -> tuple[LoadedConfig, SoftLabelsArtifact, EmbeddingsArtifact, VerifiedFamilyClosure]:
+    resolutions_directory: Path | None,
+) -> tuple[
+    LoadedConfig,
+    SoftLabelsArtifact,
+    EmbeddingsArtifact,
+    VerifiedFamilyClosure,
+    VerifiedTargetResolutionArtifact | None,
+]:
     configs: list[LoadedConfig] = []
     labels: list[SoftLabelsArtifact] = []
     embeddings: list[EmbeddingsArtifact] = []
     closures: list[VerifiedFamilyClosure] = []
+    resolutions: list[VerifiedTargetResolutionArtifact] = []
 
     async def load_config() -> None:
         configs.append(await load_config_async(config_path))
@@ -61,9 +76,20 @@ async def _load_inputs(
         nursery.start_soon(load_labels)
         nursery.start_soon(load_embedding_rows)
         nursery.start_soon(load_closure)
-    if len(configs) != 1 or len(labels) != 1 or len(embeddings) != 1 or len(closures) != 1:
+    counts = (len(configs), len(labels), len(embeddings), len(closures))
+    if counts != (1, 1, 1, 1):
         raise AssertionError("parallel classifier loaders did not each return once")
-    return configs[0], labels[0], embeddings[0], closures[0]
+    if resolutions_directory is not None:
+        operation = partial(
+            load_target_resolutions,
+            resolutions_directory,
+            soft_labels=labels[0],
+            expected_cards_hash=closures[0].manifest.details.concat.cards_hash,
+            expected_cards_manifest_hash=closures[0].manifest.details.concat.manifest_hash,
+        )
+        resolutions.append(await trio.to_thread.run_sync(operation, abandon_on_cancel=False))
+    resolution = None if not resolutions else resolutions[0]
+    return configs[0], labels[0], embeddings[0], closures[0], resolution
 
 
 def _validate_sources(
@@ -88,21 +114,50 @@ async def _source_hashes(
     labels: SoftLabelsArtifact,
     embeddings: EmbeddingsArtifact,
     closure: VerifiedFamilyClosure,
+    resolutions: VerifiedTargetResolutionArtifact | None,
 ) -> dict[str, str]:
-    files = await hash_paths(
-        {
-            "embeddings.meta.json": embeddings.sidecar_path,
-            "embeddings.parquet": embeddings.path,
-            "soft-labels.meta.json": labels.sidecar_path,
-            "soft-labels.parquet": labels.path,
-            "family-closure/families.jsonl": closure.families_path,
-            "family-closure/families.manifest.json": closure.manifest_path,
-        }
+    paths = {
+        "embeddings.meta.json": embeddings.sidecar_path,
+        "embeddings.parquet": embeddings.path,
+        "soft-labels.meta.json": labels.sidecar_path,
+        "soft-labels.parquet": labels.path,
+        "family-closure/families.jsonl": closure.families_path,
+        "family-closure/families.manifest.json": closure.manifest_path,
+    }
+    files = await hash_paths(paths)
+    resolution_sources = (
+        {} if resolutions is None else classifier_target_resolution_source_hashes(resolutions)
     )
     grid_sources = {
         f"grid/{name}": content_hash for name, content_hash in labels.metadata.source_hashes.items()
     }
-    return {**files, **grid_sources, "grid-config": loaded.content_hash}
+    return {
+        **files,
+        **resolution_sources,
+        **grid_sources,
+        "grid-config": loaded.content_hash,
+    }
+
+
+def _resolution_binding(
+    artifact: VerifiedTargetResolutionArtifact,
+    *,
+    sources: dict[str, str],
+    labels: SoftLabelsArtifact,
+    embeddings: EmbeddingsArtifact,
+) -> ClassifierTargetResolutionBinding:
+    expected_sources = {
+        "soft-labels.parquet": sources["soft-labels.parquet"],
+        "soft-labels.parquet.meta.json": sources["soft-labels.meta.json"],
+        "cards.jsonl": labels.metadata.source_hashes.get("cards.jsonl"),
+        "cards.manifest.json": embeddings.metadata.source_hashes.get("cards.manifest.json"),
+    }
+    if (
+        None in expected_sources.values()
+        or dict(artifact.manifest.source_hashes) != expected_sources
+    ):
+        raise ValueError("target resolutions belong to different classifier inputs")
+    return classifier_target_resolution_binding(artifact)
 
 
 async def fit_classifier_async(
@@ -112,6 +167,7 @@ async def fit_classifier_async(
     closure_directory: Path,
     config_path: Path,
     output_directory: Path,
+    resolutions_directory: Path | None = None,
 ) -> ClassifierBundle:
     """Fit every card with grouped folds or validate an existing bundle.
 
@@ -126,11 +182,12 @@ async def fit_classifier_async(
         OSError: An input or output artifact cannot be accessed durably.
 
     """
-    loaded, labels, embeddings, closure = await _load_inputs(
+    loaded, labels, embeddings, closure, resolutions = await _load_inputs(
         config_path=config_path,
         soft_labels_path=soft_labels_path,
         embeddings_path=embeddings_path,
         closure_directory=closure_directory,
+        resolutions_directory=resolutions_directory,
     )
     _validate_sources(loaded, labels, embeddings)
     sources = await _source_hashes(
@@ -138,17 +195,33 @@ async def fit_classifier_async(
         labels=labels,
         embeddings=embeddings,
         closure=closure,
+        resolutions=resolutions,
+    )
+    resolution_binding = (
+        None
+        if resolutions is None
+        else _resolution_binding(
+            resolutions,
+            sources=sources,
+            labels=labels,
+            embeddings=embeddings,
+        )
     )
     metadata_path = output_directory / "classifier.json"
     if await trio.to_thread.run_sync(
         metadata_path.is_file,
         abandon_on_cancel=False,
     ):
-        return await load_classifier_bundle_async(
+        bundle = await load_classifier_bundle_async(
             output_directory,
             closure=closure,
             expected_source_hashes=sources,
+            soft_labels=None if resolutions_directory is None else labels,
+            resolutions_directory=resolutions_directory,
         )
+        if bundle.metadata.target_resolutions != resolution_binding:
+            raise ValueError("classifier bundle uses different target resolutions")
+        return bundle
 
     fit = partial(
         fit_policy_classifier,
@@ -156,6 +229,7 @@ async def fit_classifier_async(
         embeddings.rows,
         closure.rows,
         loaded.grid().classifier,
+        resolutions=() if resolutions is None else resolutions.rows,
     )
     fitted = await trio.to_thread.run_sync(fit, abandon_on_cancel=False)
     return await write_classifier_bundle_async(
@@ -163,6 +237,7 @@ async def fit_classifier_async(
         fitted,
         source_hashes=sources,
         closure=closure,
+        target_resolutions=resolution_binding,
     )
 
 
@@ -173,6 +248,7 @@ def fit_classifier(
     closure_directory: Path,
     config_path: Path,
     output_directory: Path,
+    resolutions_directory: Path | None = None,
 ) -> ClassifierBundle:
     """Run classifier fitting from a synchronous process boundary."""
     operation = partial(
@@ -182,5 +258,6 @@ def fit_classifier(
         closure_directory=closure_directory,
         config_path=config_path,
         output_directory=output_directory,
+        resolutions_directory=resolutions_directory,
     )
     return trio.run(operation)

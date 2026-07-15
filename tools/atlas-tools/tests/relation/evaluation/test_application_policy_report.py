@@ -33,7 +33,11 @@ from atlas_tools.relation.evaluation.application.policy_report import (
     write_policy_report_from_grid,
 )
 from atlas_tools.relation.evaluation.application.run import run_evaluation
-from atlas_tools.relation.evaluation.domain.api import PlacementClass
+from atlas_tools.relation.evaluation.application.target_resolution import (
+    publish_target_resolutions,
+)
+from atlas_tools.relation.evaluation.domain.api import PlacementClass, TargetResolutionRow
+from atlas_tools.relation.evaluation.storage.api import load_deck
 from tests.relation.evaluation.classifier_fixtures import write_verified_family_closure
 from tests.relation.evaluation.grid_fixtures import (
     grid_config,
@@ -203,18 +207,18 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
     for index, label in enumerate(soft_labels(completed.analysis)):
         placement_class = index % 3
         tally = PlacementTally(
-            coincident=9 if placement_class == 0 else 0,
-            proximal=9 if placement_class == 1 else 0,
-            overlay=9 if placement_class == 2 else 0,
+            coincident=9 if index > 0 and placement_class == 0 else 0,
+            proximal=9 if index > 0 and placement_class == 1 else 0,
+            overlay=9 if index > 0 and placement_class == 2 else 0,
         )
         training_labels.append(
             label.model_copy(
                 update={
                     "tally": tally,
-                    "unclear_votes": 0,
+                    "unclear_votes": 9 if index == 0 else 0,
                     "abstentions": 0,
                     "posterior": placement_posterior(tally),
-                    "review": placement_class == 0,
+                    "review": index > 0 and placement_class == 0,
                 }
             )
         )
@@ -224,9 +228,25 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
         training_rows,
         source_hashes=source_hashes,
     )
+    deck = load_deck(fixture.cards_directory)
     closure = write_verified_family_closure(
         fixture.root / "classifier-closure",
         training_rows,
+        cards_hash=deck.source_hashes["cards.jsonl"],
+        cards_manifest_hash=deck.source_hashes["cards.manifest.json"],
+    )
+    resolutions = publish_target_resolutions(
+        output_directory=fixture.root / "classifier-target-resolutions",
+        resolutions=(
+            TargetResolutionRow(
+                relation_id=training_rows[0].relation_id,
+                card_hash=training_rows[0].card_hash,
+                action="coincident",
+            ),
+        ),
+        reviewer="report integration reviewer",
+        soft_labels=labels,
+        deck=deck,
     )
     embedding_rows = tuple(
         EmbeddingRow.from_values(
@@ -250,6 +270,7 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
         ),
         source_hashes={
             "cards.jsonl": completed.manifest.source_hashes["cards.jsonl"],
+            "cards.manifest.json": deck.source_hashes["cards.manifest.json"],
             "grid-config": completed.prepared.loaded_config.content_hash,
         },
     )
@@ -260,6 +281,7 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
         closure_directory=closure.directory,
         config_path=fixture.config_path,
         output_directory=classifier_directory,
+        resolutions_directory=resolutions.paths.directory,
     )
     assert classifier.metadata.closure.artifact_id == closure.manifest.details.artifact_id
     assert (
@@ -299,11 +321,24 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
         )
     assert not (mismatched_output / REPORT_METADATA_FILENAME).exists()
 
+    missing_resolutions_output = fixture.root / "missing-resolutions-report"
+    with pytest.RaisesGroup(pytest.RaisesExc(ValueError, match="different target resolutions")):
+        write_policy_report_from_grid(
+            completed=completed,
+            gold_path=gold_path,
+            classifier_directory=classifier_directory,
+            closure_directory=closure.directory,
+            output_directory=missing_resolutions_output,
+        )
+    assert not (missing_resolutions_output / REPORT_METADATA_FILENAME).exists()
+
     report = write_policy_report_from_grid(
         completed=completed,
         gold_path=gold_path,
         classifier_directory=classifier_directory,
         closure_directory=closure.directory,
+        soft_labels_path=labels.path,
+        resolutions_directory=resolutions.paths.directory,
         output_directory=fixture.root / "classifier-report",
     )
     assert report.metadata.source_hashes["classifier/metadata"] == classifier.metadata.metadata_hash
@@ -323,6 +358,8 @@ def test_report_classifier_closure_is_required_revalidated_and_transitive(
             gold_path=gold_path,
             classifier_directory=classifier_directory,
             closure_directory=closure.directory,
+            soft_labels_path=labels.path,
+            resolutions_directory=resolutions.paths.directory,
             output_directory=output_directory,
         )
     assert not (output_directory / REPORT_METADATA_FILENAME).exists()

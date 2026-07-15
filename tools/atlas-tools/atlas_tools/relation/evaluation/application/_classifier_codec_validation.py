@@ -15,19 +15,22 @@ from atlas_tools.relation.evaluation.analysis.api import (
     PolicyClassifier,
 )
 from atlas_tools.relation.evaluation.application._analysis_codec import (
-    ARRAY_SCHEMA,
-    METADATA_SCHEMA,
-    ORDERING_ALGORITHM,
-    OUT_OF_FOLD_SCHEMA,
-    PARQUET_ALGORITHM,
     immutable_float64,
     ordered_rows,
     require_canonical_order,
     schema_hash,
 )
+from atlas_tools.relation.evaluation.application._analysis_schema import (
+    ARRAY_SCHEMA,
+    METADATA_SCHEMA,
+    ORDERING_ALGORITHM,
+    OUT_OF_FOLD_SCHEMA,
+    PARQUET_ALGORITHM,
+)
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierArrays,
     ClassifierClosureBinding,
+    ClassifierTargetResolutionBinding,
 )
 from atlas_tools.relation.evaluation.domain.api import RelationFamilyId, RelationId
 from atlas_tools.relation.family_closure.api import VerifiedFamilyClosure
@@ -44,6 +47,7 @@ SCHEMA_HASHES = {
 def algorithms(
     classifier: PolicyClassifier,
     cross_fit_folds: Sequence[CrossFitFold],
+    target_resolutions: ClassifierTargetResolutionBinding | None,
 ) -> dict[str, str]:
     """Return the exact algorithm contract represented by a classifier fit."""
     cross_fit_algorithms = {fold.algorithm for fold in cross_fit_folds}
@@ -58,6 +62,9 @@ def algorithms(
         "multinomial": classifier.model.algorithm,
         "ordering": ORDERING_ALGORITHM,
         "parquet": PARQUET_ALGORITHM,
+        "target_resolutions": (
+            "not-required" if target_resolutions is None else target_resolutions.policy_id
+        ),
     }
 
 
@@ -245,13 +252,12 @@ def validate_closure_rows(
     rows: Sequence[OutOfFoldPrediction],
     closure: VerifiedFamilyClosure,
 ) -> None:
-    """Require exact relation, card, and family agreement with a closure."""
+    """Require exact prediction coverage and bindings within the complete closure."""
     predictions = {row.relation_id: row for row in rows}
     assignments = closure.by_relation_id
     missing = tuple(sorted(set(predictions) - set(assignments)))
-    extra = tuple(sorted(set(assignments) - set(predictions)))
-    if missing or extra:
-        raise ValueError(f"classifier closure coverage differs: missing={missing}, extra={extra}")
+    if missing:
+        raise ValueError(f"classifier closure does not cover predictions: missing={missing}")
     for relation_id, prediction in predictions.items():
         assignment = assignments[relation_id]
         if prediction.card_hash != assignment.card_hash:

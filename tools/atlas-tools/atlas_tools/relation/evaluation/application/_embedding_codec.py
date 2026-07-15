@@ -8,10 +8,6 @@ import trio
 
 from atlas_tools.relation.evaluation.analysis.api import EmbeddingRow
 from atlas_tools.relation.evaluation.application._analysis_codec import (
-    EMBEDDING_METADATA_SCHEMA,
-    EMBEDDING_SCHEMA,
-    ORDERING_ALGORITHM,
-    PARQUET_ALGORITHM,
     EmbeddingDiskRow,
     atomic_replace,
     decode_rows,
@@ -29,6 +25,12 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     sidecar_path,
     verify_content_hashes,
     verify_expected_sources,
+)
+from atlas_tools.relation.evaluation.application._analysis_schema import (
+    EMBEDDING_METADATA_SCHEMA,
+    EMBEDDING_SCHEMA,
+    ORDERING_ALGORITHM,
+    PARQUET_ALGORITHM,
 )
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     EmbeddingProducerIdentity,

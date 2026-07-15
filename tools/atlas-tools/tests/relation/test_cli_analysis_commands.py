@@ -118,9 +118,9 @@ def test_cli_fit_emits_the_complete_classifier_bundle(
     for path in (labels, embeddings, config):
         path.touch()
     output = tmp_path / "classifier"
-    captured: dict[str, Path] = {}
+    captured: dict[str, Path | None] = {}
 
-    def fit(**paths: Path) -> SimpleNamespace:
+    def fit(**paths: Path | None) -> SimpleNamespace:
         captured.update(paths)
         return SimpleNamespace(
             metadata_path=output / "classifier.json",
@@ -149,6 +149,7 @@ def test_cli_fit_emits_the_complete_classifier_bundle(
         "closure_directory": closure,
         "config_path": config,
         "output_directory": output,
+        "resolutions_directory": None,
     }
     stdout = capsys.readouterr().out
     assert f"wrote {output / 'classifier.json'}" in stdout
@@ -165,11 +166,13 @@ def test_cli_report_uses_the_validated_policy_report_stack(
     cards = tmp_path / "cards"
     classifier = tmp_path / "classifier"
     closure = tmp_path / "closure"
-    for directory in (run, cards, classifier, closure):
+    resolutions = tmp_path / "resolutions"
+    for directory in (run, cards, classifier, closure, resolutions):
         directory.mkdir()
     config = tmp_path / "grid.yaml"
     gold = tmp_path / "gold.jsonl"
-    for path in (config, gold):
+    soft_labels = tmp_path / "soft-labels.parquet"
+    for path in (config, gold, soft_labels):
         path.touch()
     output = tmp_path / "report"
     captured: dict[str, Path | None] = {}
@@ -198,6 +201,10 @@ def test_cli_report_uses_the_validated_policy_report_stack(
             str(classifier),
             "--closure",
             str(closure),
+            "--soft-labels",
+            str(soft_labels),
+            "--resolutions",
+            str(resolutions),
             "--out",
             str(output),
         ]
@@ -209,6 +216,8 @@ def test_cli_report_uses_the_validated_policy_report_stack(
         "gold_path": gold,
         "classifier_directory": classifier,
         "closure_directory": closure,
+        "soft_labels_path": soft_labels,
+        "resolutions_directory": resolutions,
         "output_directory": output,
     }
     stdout = capsys.readouterr().out

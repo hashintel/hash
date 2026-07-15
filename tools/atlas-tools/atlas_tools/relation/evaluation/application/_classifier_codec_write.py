@@ -9,10 +9,6 @@ import trio
 
 from atlas_tools.relation.evaluation.analysis.api import ClassifierFit
 from atlas_tools.relation.evaluation.application._analysis_codec import (
-    CLASSIFIER_ARRAYS_FILENAME,
-    CLASSIFIER_METADATA_FILENAME,
-    CLASSIFIER_OUT_OF_FOLD_FILENAME,
-    OUT_OF_FOLD_SCHEMA,
     OutOfFoldDiskRow,
     atomic_replace,
     deterministic_npz,
@@ -21,6 +17,12 @@ from atlas_tools.relation.evaluation.application._analysis_codec import (
     parquet_bytes,
     relation_order_hash,
     sha256_bytes,
+)
+from atlas_tools.relation.evaluation.application._analysis_schema import (
+    CLASSIFIER_ARRAYS_FILENAME,
+    CLASSIFIER_METADATA_FILENAME,
+    CLASSIFIER_OUT_OF_FOLD_FILENAME,
+    OUT_OF_FOLD_SCHEMA,
 )
 from atlas_tools.relation.evaluation.application._classifier_codec_validation import (
     SCHEMA_HASHES,
@@ -34,6 +36,7 @@ from atlas_tools.relation.evaluation.application._classifier_codec_validation im
 from atlas_tools.relation.evaluation.application.analysis_artifact import (
     ClassifierBundle,
     ClassifierBundleMetadata,
+    ClassifierTargetResolutionBinding,
     hash_mapping,
 )
 from atlas_tools.relation.evaluation.domain.api import Sha256Hex
@@ -46,6 +49,7 @@ def write_classifier_bundle(
     *,
     source_hashes: Mapping[str, Sha256Hex],
     closure: VerifiedFamilyClosure,
+    target_resolutions: ClassifierTargetResolutionBinding | None = None,
 ) -> ClassifierBundle:
     """Write a classifier bundle whose metadata binds every numeric artifact.
 
@@ -66,7 +70,7 @@ def write_classifier_bundle(
     arrays_payload = deterministic_npz(array_mapping(arrays))
     disk_rows = tuple(OutOfFoldDiskRow.from_prediction(row) for row in rows)
     out_of_fold_payload = parquet_bytes(disk_rows, OUT_OF_FOLD_SCHEMA)
-    algorithm_mapping = algorithms(classifier, fit.cross_fit_folds)
+    algorithm_mapping = algorithms(classifier, fit.cross_fit_folds, target_resolutions)
     metadata = ClassifierBundleMetadata(
         schema_hashes=SCHEMA_HASHES,
         algorithms=algorithm_mapping,
@@ -84,6 +88,7 @@ def write_classifier_bundle(
         temperature=classifier.temperature,
         cross_fit_temperatures=tuple(fold.temperature for fold in fit.cross_fit_folds),
         closure=closure_binding(closure),
+        target_resolutions=target_resolutions,
         config=classifier.config,
         metrics=fit.metrics,
     )
@@ -117,6 +122,7 @@ async def write_classifier_bundle_async(
     *,
     source_hashes: Mapping[str, Sha256Hex],
     closure: VerifiedFamilyClosure,
+    target_resolutions: ClassifierTargetResolutionBinding | None = None,
 ) -> ClassifierBundle:
     """Write a classifier bundle without blocking Trio's event loop."""
     operation = partial(
@@ -125,5 +131,6 @@ async def write_classifier_bundle_async(
         fit,
         source_hashes=dict(source_hashes),
         closure=closure,
+        target_resolutions=target_resolutions,
     )
     return await trio.to_thread.run_sync(operation, abandon_on_cancel=False)

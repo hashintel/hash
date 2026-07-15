@@ -237,6 +237,32 @@ class EmbedCommand(BaseSettings):
         echo(f"wrote {result.artifact.sidecar_path}")
 
 
+class ResolveAmbiguousCommand(BaseSettings):
+    """Review all labels without placement evidence into a typed target artifact."""
+
+    soft_labels: CliPositionalArg[FilePath]
+    cards: CliPositionalArg[DirectoryPath]
+    reviewer: Annotated[str, Field(min_length=1)]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import review_ambiguous_targets
+
+        try:
+            result = review_ambiguous_targets(
+                soft_labels=self.soft_labels,
+                deck=self.cards,
+                reviewer=self.reviewer,
+                output_directory=self.out,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.paths.rows_path}")
+        echo(f"wrote {result.paths.manifest_path}")
+
+
 class FitCommand(BaseSettings):
     """Fit the soft-label policy classifier into one versioned bundle."""
 
@@ -245,6 +271,7 @@ class FitCommand(BaseSettings):
     closure: CliPositionalArg[DirectoryPath]
     config: CliPositionalArg[FilePath]
     out: Path
+    resolutions: DirectoryPath | None = None
 
     model_config = SettingsConfigDict(extra="forbid")
 
@@ -258,6 +285,7 @@ class FitCommand(BaseSettings):
                 closure_directory=self.closure,
                 config_path=self.config,
                 output_directory=self.out,
+                resolutions_directory=self.resolutions,
             )
         except (OSError, ValueError) as error:
             fail(error)
@@ -275,6 +303,8 @@ class ReportCommand(BaseSettings):
     gold: FilePath
     classifier: DirectoryPath | None = None
     closure: DirectoryPath | None = None
+    soft_labels: FilePath | None = None
+    resolutions: DirectoryPath | None = None
     out: Path
 
     model_config = SettingsConfigDict(extra="forbid")
@@ -290,6 +320,8 @@ class ReportCommand(BaseSettings):
                 gold_path=self.gold,
                 classifier_directory=self.classifier,
                 closure_directory=self.closure,
+                soft_labels_path=self.soft_labels,
+                resolutions_directory=self.resolutions,
                 output_directory=self.out,
             )
         except (OSError, ValueError) as error:
@@ -352,6 +384,7 @@ class RelationCli(BaseModel):
     deliverables: CliSubCommand[DeliverablesCommand]
     aggregate: CliSubCommand[AggregateCommand]
     embed: CliSubCommand[EmbedCommand]
+    resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
     fit: CliSubCommand[FitCommand]
     report: CliSubCommand[ReportCommand]
     analyze: CliSubCommand[AnalyzeCommand]

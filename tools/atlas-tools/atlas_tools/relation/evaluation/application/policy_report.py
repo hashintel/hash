@@ -246,6 +246,8 @@ async def write_policy_report_from_grid_async(
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
+    soft_labels_path: Path | None = None,
+    resolutions_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Publish a report from one already validated completed-grid snapshot.
 
@@ -258,6 +260,8 @@ async def write_policy_report_from_grid_async(
         gold_path=gold_path,
         classifier_directory=classifier_directory,
         closure_directory=closure_directory,
+        soft_labels_path=soft_labels_path,
+        resolutions_directory=resolutions_directory,
     )
     return await _publish_report_async(
         completed=completed,
@@ -274,6 +278,8 @@ def write_policy_report_from_grid(
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
+    soft_labels_path: Path | None = None,
+    resolutions_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Publish a report from a completed snapshot in a synchronous process.
 
@@ -289,6 +295,8 @@ def write_policy_report_from_grid(
         output_directory=output_directory,
         classifier_directory=classifier_directory,
         closure_directory=closure_directory,
+        soft_labels_path=soft_labels_path,
+        resolutions_directory=resolutions_directory,
     )
     return trio.run(operation)
 
@@ -302,6 +310,8 @@ async def write_policy_report_async(
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
+    soft_labels_path: Path | None = None,
+    resolutions_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Load independent inputs concurrently and publish one policy report.
 
@@ -331,6 +341,8 @@ async def write_policy_report_async(
                 gold_path=gold_path,
                 classifier_directory=classifier_directory,
                 closure_directory=closure_directory,
+                soft_labels_path=soft_labels_path,
+                resolutions_directory=resolutions_directory,
             )
         )
 
@@ -357,6 +369,8 @@ def write_policy_report(
     output_directory: Path,
     classifier_directory: Path | None = None,
     closure_directory: Path | None = None,
+    soft_labels_path: Path | None = None,
+    resolutions_directory: Path | None = None,
 ) -> PolicyReportArtifact:
     """Load and publish a CLI-grade policy report synchronously.
 
@@ -374,6 +388,8 @@ def write_policy_report(
         output_directory=output_directory,
         classifier_directory=classifier_directory,
         closure_directory=closure_directory,
+        soft_labels_path=soft_labels_path,
+        resolutions_directory=resolutions_directory,
     )
     return trio.run(operation)
 

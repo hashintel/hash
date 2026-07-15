@@ -144,11 +144,33 @@ failed or rejected response clears its in-flight marker, so the corrected
 command can be retried; an unmatched in-flight marker blocks automatic reissue
 because its billing outcome is unknown.
 
-## 6. Fit the grouped classifier
+## 6. Resolve all-ambiguous placement targets
+
+A soft label with only `unclear` or `ABSTAIN` responses has a uniform
+Dirichlet(1,1,1) prior but no observed three-class placement weight. Review each
+such card explicitly before fit:
+
+```sh
+uv run relation resolve-ambiguous \
+  runs/soft-labels-v1.parquet \
+  runs/cards-v1 \
+  --reviewer <reviewer-name> \
+  --out runs/target-resolutions-v1
+```
+
+The local TUI uses `c` for Coincident, `p` for Proximal, `o` for Overlay, `x`
+for Excluded, `u` to undo, and `q` to cancel without publishing. Placement
+choices become one-hot distributions with unit supervised weight. Excluded rows
+remain in closure, fold, and prediction coverage but have zero supervised target
+weight. The immutable artifact covers every and only all-ambiguous label and is
+bound to the exact soft-label and deck bytes.
+
+## 7. Fit the grouped classifier
 
 Fit requires the family closure and binds every training row by exact
 `(relation_id, card_hash)`. The closure may contain deck-only few-shot rows that
-are absent from labels and embeddings.
+are absent from labels and embeddings. Pass the reviewed target artifact so fit
+can prove that no uniform prior was silently treated as placement evidence.
 
 ```sh
 uv run relation fit \
@@ -156,10 +178,11 @@ uv run relation fit \
   runs/embeddings-v1.parquet \
   runs/family-closure-v1 \
   config/eval/grid.yaml \
+  --resolutions runs/target-resolutions-v1 \
   --out runs/classifier-v1
 ```
 
-## 7. Render the final report
+## 8. Render the final report
 
 Place the swipe-tool export at `runs/gold.jsonl`, then run:
 
@@ -171,12 +194,16 @@ uv run relation report \
   --gold runs/gold.jsonl \
   --classifier runs/classifier-v1 \
   --closure runs/family-closure-v1 \
+  --soft-labels runs/soft-labels-v1.parquet \
+  --resolutions runs/target-resolutions-v1 \
   --out runs/report-v1
 ```
 
-A classifier report requires the exact closure recorded by the classifier.
-Panel-only reporting may omit both `--classifier` and `--closure`, but supplying
-only one fails closed.
+A classifier report requires the exact closure recorded by the classifier. If
+fit used reviewed resolutions, report also requires the exact soft-label and
+resolution artifacts so it can revalidate every-and-only ambiguous coverage and
+classifier provenance. Panel-only reporting may omit all four artifacts;
+incomplete pairs fail closed.
 
 ## Historical lineage migration after evaluation
 
@@ -243,11 +270,18 @@ uv run relation embed \
   --out runs/embeddings.parquet \
   --cache runs/embedding-cache
 
+uv run relation resolve-ambiguous \
+  runs/soft-labels.parquet \
+  runs/cards-lineage-v1 \
+  --reviewer <reviewer-name> \
+  --out runs/target-resolutions-lineage-v1
+
 uv run relation fit \
   runs/soft-labels.parquet \
   runs/embeddings.parquet \
   runs/family-closure-v1 \
   config/eval/grid.yaml \
+  --resolutions runs/target-resolutions-lineage-v1 \
   --out runs/classifier-lineage-v1
 
 uv run relation report \
@@ -257,12 +291,15 @@ uv run relation report \
   --gold <path-to-gold.jsonl> \
   --classifier runs/classifier-lineage-v1 \
   --closure runs/family-closure-v1 \
+  --soft-labels runs/soft-labels.parquet \
+  --resolutions runs/target-resolutions-lineage-v1 \
   --out runs/report-lineage-v1
 ```
 
-The expected embedding and training cohort is 1,670 relations. The closure has
-1,684 rows because it also covers the fourteen prompt few-shots in the complete
-deck.
+The embedding and classifier prediction cohort is 1,670 relations. Three
+current soft labels have only unclear votes and therefore require review; any
+reviewed exclusions carry zero supervised target weight. The closure has 1,684
+rows because it also covers the fourteen prompt few-shots in the complete deck.
 
 ## Validation before merging code changes
 
