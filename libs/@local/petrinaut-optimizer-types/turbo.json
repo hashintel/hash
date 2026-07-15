@@ -2,10 +2,11 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["codegen"],
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "dependsOn": ["@apps/petrinaut-opt#codegen"],
+      "dependsOn": [],
       "inputs": ["../../../apps/petrinaut-opt/openapi/openapi.json"],
       "outputs": ["src/openapi.gen.ts"]
     }
