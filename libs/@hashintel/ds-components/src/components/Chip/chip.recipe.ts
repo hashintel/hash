@@ -1,11 +1,11 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
 
 export const chipVariants = ["fill", "fillLight", "outline", "subtle"] as const;
 
 export const styles = sva({
-  slots: ["root", "label"],
+  slots: ["root", "label", "removeButton"],
   base: {
     root: {
       display: "inline-flex",
@@ -27,6 +27,31 @@ export const styles = sva({
       overflow: "hidden",
       textOverflow: "ellipsis",
       minWidth: "0",
+    },
+    removeButton: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: "0",
+      cursor: "pointer",
+      appearance: "none",
+      border: "none",
+      background: "[transparent]",
+      color: "[inherit]",
+      padding: "0",
+      borderRadius: "full",
+      opacity: "0.7",
+      transition: "[opacity 0.15s ease, background 0.15s ease]",
+      _hover: {
+        opacity: "1",
+        backgroundColor: "[color-mix(in srgb, currentColor 18%, transparent)]",
+      },
+      "&:focus-visible": {
+        outline: "2px solid",
+        outlineColor: "black.a60",
+        outlineOffset: "[-1px]",
+        opacity: "1",
+      },
     },
   },
   variants: {
@@ -194,5 +219,142 @@ export const styles = sva({
     color: "grey",
     variant: "fillLight",
     shape: "default",
+  },
+});
+
+// A prefix/suffix slot. `naked` adds no styling beyond the flex base.
+// `straight`/`angle` are full-height zones that bleed past the chip's padding +
+// border to sit flush with the (clipped) pill edge; both use a `currentColor`-
+// keyed tint for colour-agnostic contrast. `circle` is a badge sized to the
+// content height. `interactive` layers a button reset on top.
+export const affixStyles = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: "0",
+  },
+  variants: {
+    treatment: {
+      naked: {},
+      straight: {
+        alignSelf: "stretch",
+        paddingInline: "var(--chip-px)",
+        marginBlock:
+          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
+        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      },
+      angle: {
+        alignSelf: "stretch",
+        paddingInline: "var(--chip-px)",
+        marginBlock:
+          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
+        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      },
+      circle: {
+        alignSelf: "stretch",
+        aspectRatio: "1",
+        borderRadius: "full",
+        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      },
+    },
+    side: {
+      prefix: {},
+      suffix: {},
+    },
+    interactive: {
+      true: {
+        cursor: "pointer",
+        appearance: "none",
+        font: "inherit",
+        color: "[inherit]",
+        border: "none",
+        _hover: {
+          backgroundColor:
+            "[color-mix(in srgb, currentColor 20%, transparent)]",
+        },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "black.a60",
+          outlineOffset: "[-2px]",
+        },
+      },
+    },
+  },
+  compoundVariants: [
+    {
+      treatment: "straight",
+      side: "prefix",
+      css: {
+        marginInlineStart:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+      },
+    },
+    {
+      treatment: "straight",
+      side: "suffix",
+      css: {
+        marginInlineEnd:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+      },
+    },
+    {
+      treatment: "angle",
+      side: "prefix",
+      css: {
+        marginInlineStart:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        paddingInlineEnd: "[calc(var(--chip-px) + 0.5em)]",
+        clipPath: "[polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%)]",
+      },
+    },
+    {
+      treatment: "angle",
+      side: "suffix",
+      css: {
+        marginInlineEnd:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        paddingInlineStart: "[calc(var(--chip-px) + 0.5em)]",
+        clipPath: "[polygon(0.5em 0, 100% 0, 100% 100%, 0 100%)]",
+      },
+    },
+  ],
+  defaultVariants: {
+    treatment: "straight",
+    side: "prefix",
+  },
+});
+
+// A status dot drawn with `currentColor` so it always matches the chip's text.
+export const dotStyles = cva({
+  base: {
+    display: "inline-block",
+    flexShrink: "0",
+    borderRadius: "full",
+    boxSizing: "border-box",
+    borderWidth: "1.5px",
+    borderStyle: "solid",
+    borderColor: "[currentColor]",
+  },
+  variants: {
+    size: {
+      xxs: { width: "[6px]", height: "[6px]" },
+      xs: { width: "[6px]", height: "[6px]" },
+      sm: { width: "[7px]", height: "[7px]" },
+      md: { width: "[8px]", height: "[8px]" },
+      lg: { width: "[9px]", height: "[9px]" },
+    },
+    state: {
+      filled: { background: "[currentColor]" },
+      partiallyFilled: {
+        background:
+          "[linear-gradient(to right, currentColor 0 50%, transparent 50% 100%)]",
+      },
+      empty: { background: "[transparent]" },
+    },
+  },
+  defaultVariants: {
+    size: "sm",
+    state: "filled",
   },
 });

@@ -26,11 +26,12 @@ const variants: NonNullable<ChipProps["variant"]>[] = [
 
 const shapes: NonNullable<ChipProps["shape"]>[] = ["default", "round"];
 
-type AffixVariant = "straight" | "circle" | "angle";
+type AffixVariant = "straight" | "circle" | "angle" | "naked";
 
-// The affix `variant`s, plus the default (no zone) treatment.
+// The affix `variant`s, plus the default (unset) treatment.
 const affixStyles: { label: string; variant?: AffixVariant }[] = [
   { label: "default" },
+  { label: "naked", variant: "naked" },
   { label: "straight", variant: "straight" },
   { label: "circle", variant: "circle" },
   { label: "angle", variant: "angle" },
@@ -140,7 +141,6 @@ export const Default: Story<ChipProps> = (args) => (
             color={color}
             variant={variant}
             size={args.size}
-            prefixVariant="angle"
           >
             {color}
           </KitchenSinkChip>
@@ -208,50 +208,59 @@ export const Size: Story<ChipProps> = (args) => (
 );
 Size.parameters = { controls: { exclude: ["size", "children"] } };
 
-export const PrefixAndSuffix: Story<ChipProps> = (args) => (
-  <div className={column}>
-    {affixStyles.map((style) => (
-      <div className={row} key={style.label}>
-        <div className={rowLabel}>{style.label}</div>
-        <Chip
-          {...args}
-          prefix={{ iconName: "sparkles", variant: style.variant }}
-        >
-          Prefix
-        </Chip>
-        <Chip {...args} suffix={{ iconName: "check", variant: style.variant }}>
-          Suffix
-        </Chip>
-        <Chip
-          {...args}
-          prefix={{ iconName: "sparkles", variant: style.variant }}
-          suffix={{ iconName: "check", variant: style.variant }}
-        >
-          Both
-        </Chip>
-      </div>
-    ))}
+export const PrefixAndSuffix: Story<ChipProps> = (args) => {
+  // `suffix` and `removeable` are mutually exclusive, so drop them from the
+  // spread base before setting a suffix on the chips below.
+  const { suffix: _suffix, removeable: _removeable, ...base } = args;
 
-    <div className={row}>
+  return (
+    <div className={column}>
       {affixStyles.map((style) => (
-        <Chip
-          {...args}
-          key={style.label}
-          prefix={{ children: "beta", variant: style.variant }}
-          suffix={{ children: "v2", variant: style.variant }}
-        >
-          {style.label}
-        </Chip>
+        <div className={row} key={style.label}>
+          <div className={rowLabel}>{style.label}</div>
+          <Chip
+            {...base}
+            prefix={{ iconName: "sparkles", variant: style.variant }}
+          >
+            Prefix
+          </Chip>
+          <Chip
+            {...base}
+            suffix={{ iconName: "check", variant: style.variant }}
+          >
+            Suffix
+          </Chip>
+          <Chip
+            {...base}
+            prefix={{ iconName: "sparkles", variant: style.variant }}
+            suffix={{ iconName: "check", variant: style.variant }}
+          >
+            Both
+          </Chip>
+        </div>
       ))}
-    </div>
 
-    <div className={row}>
-      {dotStyles.map((dot) => (
-        <Chip {...args} key={dot} prefix={{ dot }} suffix={{ dot }}>
-          {dot}
-        </Chip>
-      ))}
+      <div className={row}>
+        {affixStyles.map((style) => (
+          <Chip
+            {...base}
+            key={style.label}
+            prefix={{ children: "beta", variant: style.variant }}
+            suffix={{ children: "v2", variant: style.variant }}
+          >
+            {style.label}
+          </Chip>
+        ))}
+      </div>
+
+      <div className={row}>
+        {dotStyles.map((dot) => (
+          <Chip {...base} key={dot} prefix={{ dot }} suffix={{ dot }}>
+            {dot}
+          </Chip>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 PrefixAndSuffix.parameters = { controls: { exclude: ["children"] } };
