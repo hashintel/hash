@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Black-box optimization of a CLI Petrinaut execution via Optuna.
 
+ASSUMPTION: Petri-net used is ../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json
+
 Wraps a command-line program that prints a single numeric objective to stdout.
 `PetrinautOptimizer` proposes inputs, invokes the CLI, parses the result, and
 reports it back to Optuna — maximising (or minimising) the output.
@@ -22,8 +24,7 @@ import asyncio
 from enum import Enum
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-from typing import Literal
+from typing import Generic, TypeVar, Literal, Any
 from pydantic import BaseModel, Field, model_validator
 from fastapi import Request
 
@@ -31,7 +32,7 @@ import optuna
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-from src.utils import AppStatus, Phase, set_status
+from src.utils import Phase, set_status
 from src.petrinaut_client import PetrinautModel,PetrinautModelSpec
 
 log = logging.getLogger("pn_optimize")
@@ -44,39 +45,64 @@ log = logging.getLogger("pn_optimize")
 #   name : Optuna param name and (by default) flag name; 
 #   type : "float" | "int" 
 #   float/int: low, high (+ optional step, log=True); categorical: choices=[...]
-# Specification of all parameters
 
+# Specification of all parameters
 T = TypeVar("T", int, float)
+BoundKind = Literal["int", "float"]
 
 @dataclass(frozen=True)
 class Bounds(Generic[T]):
     low: T
     high: T
+    kind: BoundKind
     log: bool = False
 
-FloatBounds = Bounds[float]
-IntBounds = Bounds[int]
+def IntBounds(low: int, high: int, *, log: bool = False) -> Bounds[int]:
+    return Bounds(low, high, "int", log)
 
-BOUNDS: dict[str, dict[str, Bounds]] = {
-    "parameters":{
-        "infection_rate": FloatBounds(0.01, 10.0),
-        "recovery_rate": FloatBounds(0.01, 10.0)
+def FloatBounds(
+    low: float,
+    high: float,
+    *,
+    log: bool = False,
+) -> Bounds[float]:
+    return Bounds(low, high, "float", log)
+
+BOUNDS: dict[str, dict[str, Bounds[int] | Bounds[float]]] = {
+    "parameters": {
+        "production_rate": FloatBounds(20.0, 250.0),
+        "reorder_threshold": IntBounds(100, 1000),
+        "batch_size": IntBounds(50, 800),
+        "selling_price": FloatBounds(22.0, 60.0),
+        "expedite_fraction": FloatBounds(0.0, 1.0),
+        "marketing_spend": FloatBounds(0.0, 100.0),
+        "demand_multiplier": FloatBounds(0.5, 2.0),
     },
-    "initial_states":{
-        "Susceptible": IntBounds(0, 1000),
-        "Infected": IntBounds(0, 1000),
-        "Recovered": IntBounds(0, 1000),
-    }
+    "initial_state": {
+        "RawInventory": IntBounds(0, 400),
+        "FinishedGoods": IntBounds(0, 400),
+        "CustomerDemand": IntBounds(0, 400),
+        "SoldOrders": IntBounds(0, 400),
+        "LostSales": IntBounds(0, 400),
+    },
 }
 
 class Parameters(BaseModel):
-    infection_rate: float | None = None
-    recovery_rate: float | None = None
+    production_rate: float | None = None # default 100.0
+    reorder_threshold: int | None = None # default 160
+    batch_size: int | None = None # default 180
+    selling_price: float | None = None # default 34.0
+    expedite_fraction: float | None = None # default 0.25
+    marketing_spend: float | None = None # default 20.0
+    demand_multiplier: float | None = None # default 1.0
 
 class InitialStates(BaseModel):
-    Susceptible: int | None = None
-    Infected: int | None = None
-    Recovered: int | None = None
+    RawInventory: int | None = None # default 220
+    FinishedGoods: int | None = None # default 120
+    CustomerDemand: int | None = None # default 0
+    SoldOrders: int | None = None # default 0
+    LostSales: int | None = None # default 0
+    # SupplyScore: Any | None = None # default is created upon initialisation of PetrinautModel class
 
 
 # Hard-coded allowable optuna samplers 
@@ -102,7 +128,7 @@ DEFAULT_N_TRIALS = 100
 
 class OptimizationSpec(BaseModel):
     parameters: Parameters = Parameters()
-    initial_states: InitialStates = InitialStates()
+    initial_state: InitialStates = InitialStates()
     study_name: str = Field(default=DEFAULT_STUDY_NAME, description="Name of optimization study")
     sampler: SamplerName = Field(default=DEFAULT_SAMPLER, description="input sampling algorithm")
     direction: Literal["maximize", "minimize"] = Field(default=DEFAULT_DIRECTION, description="optimization direction")
@@ -110,7 +136,7 @@ class OptimizationSpec(BaseModel):
 
     def fixed(self) -> dict[str, dict[str, float]]:
         out: dict[str, dict[str, float]] = {}
-        for group_name in ("parameters", "initial_states"):
+        for group_name in ("parameters", "initial_state"):
             group = getattr(self, group_name)
             out[group_name] = {
                 name: value for name, value in group if value is not None
@@ -146,7 +172,7 @@ class PetrinautOptimizer:
     ) -> None:
         self.fixed = opt_spec.fixed()
         self.params = opt_spec.parameters
-        self.init_states = opt_spec.initial_states
+        self.init_state = opt_spec.initial_state
         self.study_name = f"{opt_spec.study_name}_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
         self.sampler = SAMPLERS[opt_spec.sampler.lower()](**kwargs)
         self.direction = opt_spec.direction
@@ -181,14 +207,17 @@ class PetrinautOptimizer:
                 if name in self.fixed[group_name]:
                     values[group_name][name] = self.fixed[group_name][name]
                 else:
-                    if group_name == 'initial_states':
+                    b = BOUNDS[group_name][name]
+                    if b.kind == "int":
                         values[group_name][name] = trial.suggest_int(
-                            f"{group_name}.{name}", b.low, b.high, log=False
+                            f"{group_name}.{name}", b.low, b.high, log=b.log
                         )
-                    else:
+                    elif b.kind == "float":
                         values[group_name][name] = trial.suggest_float(
                             f"{group_name}.{name}", b.low, b.high, log=b.log
                         )
+                    else:
+                        raise Exception(f"{group_name}.{name} is not of type IntBounds or FloatBounds")
         return values
 
 
@@ -207,15 +236,15 @@ class PetrinautOptimizer:
         """
         # Suggest new set of params and init states
         # while keeping fixed parameters fixed
-        params_and_init_states = self.suggest(trial)
-        params = params_and_init_states["parameters"]
-        init_states = params_and_init_states["initial_states"]
+        params_and_init_state = self.suggest(trial)
+        params = params_and_init_state["parameters"]
+        init_state = params_and_init_state["initial_state"]
 
         try:
             # Build and invoke the Petrinaut CLI command 
-            value = self.pn_model.run(
-                params=params,
-                init_states=init_states
+            value = self.pn_model.objective(
+                parameters=params,
+                initial_state=init_state
             )
         except RuntimeError as r:
             # This happens in case the Petrinaut execution takes too long to run 
@@ -232,7 +261,7 @@ class PetrinautOptimizer:
             raise optuna.TrialPruned()
 
         # Log results
-        log.info("trial %d  value=%.6g  params=%s  init_states=%s", trial.number, value, params, init_states)
+        log.info("trial %d  value=%.6g  params=%s  init_state=%s", trial.number, value, params, init_state)
 
         return value
 
@@ -260,14 +289,14 @@ class PetrinautOptimizer:
 
         # Callback for generating the payload from optuna optimize worker
         def callback(study, trial):
-            params_and_init_states = {}
+            params_and_init_state = {}
             for k, v in trial.params.items():
                 outer, inner = k.split('.', 1)
-                params_and_init_states.setdefault(outer, {})[inner] = v
+                params_and_init_state.setdefault(outer, {})[inner] = v
             payload = {
                 "step": trial.number,
-                "params": params_and_init_states.get("parameters",dict()),
-                "init_states": params_and_init_states.get("initial_states",dict()),
+                "params": params_and_init_state.get("parameters",dict()),
+                "init_state": params_and_init_state.get("initial_state",dict()),
                 "metric": trial.value,
                 "state": trial.state.name,
             }
@@ -348,14 +377,14 @@ class PetrinautOptimizer:
                     study.stop()
                 return
 
-            best_params_and_init_states = {}
+            best_params_and_init_state = {}
             for k, v in study.best_params.items():
                 outer, inner = k.split('.', 1)
-                best_params_and_init_states.setdefault(outer, {})[inner] = v
+                best_params_and_init_state.setdefault(outer, {})[inner] = v
             payload = {
                 "step": trial.number,
-                "params": best_params_and_init_states.get("parameters",dict()),
-                "init_states": best_params_and_init_states.get("initial_states",dict()),
+                "params": best_params_and_init_state.get("parameters",dict()),
+                "init_state": best_params_and_init_state.get("initial_state",dict()),
                 "metric": study.best_value,
                 "state": "COMPLETE",
             }
@@ -407,14 +436,15 @@ class PetrinautOptimizer:
         _DONE = object()
 
         def callback(study, trial):
-            params_and_init_states = {}
+            params_and_init_state = {}
             for k, v in trial.params.items():
                 outer, inner = k.split('.', 1)
-                params_and_init_states.setdefault(outer, {})[inner] = v
+                params_and_init_state.setdefault(outer, {})[inner] = v
             q.put((
+                str(trial.state),
                 trial.number,
-                params_and_init_states.get("parameters", dict()),
-                params_and_init_states.get("initial_states", dict()),
+                params_and_init_state.get("parameters", dict()),
+                params_and_init_state.get("initial_state", dict()),
                 trial.value
             ))
 
@@ -441,29 +471,38 @@ def main() -> None:
         
     pn_spec = PetrinautModelSpec()
     opt_spec = OptimizationSpec(
-        n_trials = 10,
+        n_trials = 1000,
         parameters = {
-            "infection_rate": 0.1
+            "selling_price":34.0,
+            "expedite_fraction":0.25,
+            "marketing_spend":20.0,
+            "demand_multiplier":1.0,
         },
-        initial_states = {
-            "Susceptible": 100
+        initial_state = {
+            "RawInventory": 220,
+            "FinishedGoods": 120,
+            "CustomerDemand": 0,
+            "SoldOrders": 0,
+            "LostSales": 0,
         }
     )
-    # Build the Petri net from the client spec.
-    petrinet_model = PetrinautModel(pn_spec)
-
-    # Instantiate Petrinaut optimization class
-    optimizer = PetrinautOptimizer(
-        opt_spec = opt_spec,
-        pn_model = petrinet_model
-    )
-
-    for step, params, init_states, metric_value in optimizer.run_stream(
-        optimizer.study, 
-        optimizer.objective, 
-        optimizer.n_trials
-    ):
-        log.info(json.dumps({"step":step,"params":params,"init_states":init_states,"metric":metric_value}))
+    # Create the petrinaut execution specification
+    pn_spec = PetrinautModelSpec()
+    # Build the Petri net from the client spec in a context manager
+    with PetrinautModel(pn_spec) as petrinet_model:
+        # Instantiate Petrinaut optimization class
+        optimizer = PetrinautOptimizer(
+            opt_spec = opt_spec,
+            pn_model = petrinet_model
+        )
+        # Run optimization steps
+        for state, step, params, init_state, metric_value in optimizer.run_stream(
+            optimizer.study, 
+            optimizer.objective, 
+            optimizer.n_trials
+        ):
+            a = 0
+            # log.info(json.dumps({"state":state,"step":step,"params":params,"init_state":init_state,"metric":metric_value},indent=2))
 
 if __name__ == "__main__":
     try:
