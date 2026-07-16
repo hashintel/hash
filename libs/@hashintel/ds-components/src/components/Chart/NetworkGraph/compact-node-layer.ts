@@ -21,9 +21,9 @@ const POINT_RADIUS = 0.1;
 /** Maximum on-screen radius (px) of a crowd point, so it never grows too large. */
 const POINT_MAX_RADIUS = 10;
 /** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
-const HOVERED_MIN_RADIUS = 8;
+export const HOVERED_MIN_RADIUS = 8;
 /** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
-const NEIGHBOUR_MIN_RADIUS = 5;
+export const NEIGHBOUR_MIN_RADIUS = 5;
 /** Width (px) of the white ring around the active/neighbour nodes. */
 const GROW_RING_STROKE = 1.5;
 /** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */

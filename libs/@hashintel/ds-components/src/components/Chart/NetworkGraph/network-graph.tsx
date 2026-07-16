@@ -1,14 +1,20 @@
 import { OrthographicView } from "@deck.gl/core";
+import { IconLayer } from "@deck.gl/layers";
 import { DeckGL, type DeckGLRef } from "@deck.gl/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { CompactNodeLayer } from "./compact-node-layer";
-import { DetailedNodeLayer } from "./detailed-node-layer";
+import {
+  CompactNodeLayer,
+  HOVERED_MIN_RADIUS,
+  NEIGHBOUR_MIN_RADIUS,
+} from "./compact-node-layer";
+import { DetailedNodeLayer, DETAIL_NODE_DIAMETER } from "./detailed-node-layer";
 import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
   DETAIL_ICON_TEXTURE,
+  EDGE_COLOR,
   hexToRgb,
   iconTextureUrl,
 } from "./network-graph-util";
@@ -21,7 +27,7 @@ import type {
   NetworkGraphPoint,
   NetworkGraphEdge,
 } from "./network-graph-util";
-import type { OrthographicViewState, PickingInfo } from "@deck.gl/core";
+import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
 // Re-export the data types (which live in `network-graph-util`) so consumers can
 // keep importing them from `network-graph`, the component's public entry point.
@@ -179,6 +185,14 @@ const EDGE_LABEL_INK = "rgb(15, 18, 25)";
 const EDGE_LABEL_BACKGROUND = "rgb(255, 255, 255)";
 const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
 const EDGE_LABEL_BORDER_WIDTH = 1;
+/**
+ * On-screen size (px) of the direction arrow drawn at the target end of a
+ * highlighted edge, and the gap left between the arrow tip and the node's edge.
+ */
+const ARROW_SIZE_PX = 14;
+const ARROW_GAP_PX = 6;
+/** Resolution (px) the arrow triangle sprite is rasterised at. */
+const ARROW_ICON_TEXTURE = 64;
 
 /**
  * Clamp an orthographic pan `target` so the viewport never shows more than
@@ -373,6 +387,116 @@ const drawEdgeLabel = (
   ctx.stroke();
   ctx.fillStyle = EDGE_LABEL_INK;
   ctx.fillText(text, centerX, centerY);
+};
+
+/** One direction arrow: where its tip sits and how it's oriented. */
+interface EdgeArrow {
+  /** Target node centre in world coords — stable across zoom/pan. */
+  position: [number, number];
+  /**
+   * Screen-space pixel offset from {@link EdgeArrow.position} that backs the arrow
+   * tip off the node by `nodeRadius + gap`, so the gap stays constant on screen.
+   */
+  offset: [number, number];
+  /** Rotation (deg) aligning the triangle with the edge's tangent at the target. */
+  angle: number;
+}
+
+type ArrowIconAtlas = {
+  url: string;
+  mapping: DetailIconAtlas["mapping"];
+};
+
+let arrowIconAtlasCache: ArrowIconAtlas | null = null;
+
+/**
+ * A solid-triangle sprite (white mask, tinted via the layer's `getColor`) pointing
+ * along +x, anchored at its tip so a per-arrow pixel offset places the tip exactly.
+ * Rasterised once and cached; `null` outside the browser.
+ */
+const arrowIconAtlas = (): ArrowIconAtlas | null => {
+  if (arrowIconAtlasCache) {
+    return arrowIconAtlasCache;
+  }
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const size = ARROW_ICON_TEXTURE;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  // An equilateral triangle pointing along +x: the base (a side) equals each
+  // slant side, and its height is `side · √3/2`. Centred in the square canvas.
+  const side = size * 0.8;
+  const height = (side * Math.sqrt(3)) / 2;
+  const tipX = (size + height) / 2;
+  const baseX = (size - height) / 2;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(tipX, size / 2);
+  ctx.lineTo(baseX, size / 2 - side / 2);
+  ctx.lineTo(baseX, size / 2 + side / 2);
+  ctx.closePath();
+  ctx.fill();
+  arrowIconAtlasCache = {
+    url: canvas.toDataURL(),
+    mapping: {
+      arrow: {
+        x: 0,
+        y: 0,
+        width: size,
+        height: size,
+        // Anchor at the tip so `getPosition` + `getPixelOffset` place the tip.
+        anchorX: tipX,
+        anchorY: size / 2,
+        mask: true,
+      },
+    },
+  };
+  return arrowIconAtlasCache;
+};
+
+/**
+ * Shorten a world-space polyline by `trim` world units from its **end** (target),
+ * interpolating a new endpoint. Used to open the gap between a highlighted edge and
+ * the node it points at, so nothing is drawn where the arrow's gap should be.
+ */
+const trimPathEnd = (
+  path: [number, number][],
+  trim: number,
+): [number, number][] => {
+  if (path.length < 2 || trim <= 0) {
+    return path;
+  }
+  let remaining = trim;
+  for (let index = path.length - 1; index >= 1; index -= 1) {
+    const end = path[index];
+    const previous = path[index - 1];
+    if (!end || !previous) {
+      continue;
+    }
+    const dx = end[0] - previous[0];
+    const dy = end[1] - previous[1];
+    const segment = Math.hypot(dx, dy);
+    if (segment === 0) {
+      continue;
+    }
+    if (remaining < segment) {
+      const fraction = remaining / segment;
+      return [
+        ...path.slice(0, index),
+        [end[0] - dx * fraction, end[1] - dy * fraction],
+      ];
+    }
+    remaining -= segment;
+  }
+  // The trim consumed the whole path (edge shorter than the gap): draw nothing.
+  const first = path[0];
+  return first ? [first, first] : path;
 };
 
 const containerStyles = css({
@@ -1036,6 +1160,147 @@ export const NetworkGraph = ({
     return paths;
   }, [isDetailZoom, activeNode, adjacency, pointById, bundleHierarchy]);
 
+  /**
+   * A direction arrow for each highlighted edge — the active node's incident edges
+   * plus a hovered background edge — placed at the target (`toId`) end. Each is
+   * anchored at the target node's world centre with a screen-space offset that
+   * backs the tip off the node, and an angle from the edge's tangent there; all
+   * three are zoom/pan-independent, so this only recomputes when the highlighted
+   * set changes. Fed to the arrow {@link IconLayer}. See {@link EdgeArrow}.
+   */
+  const arrows = useMemo<EdgeArrow[]>(() => {
+    const list: EdgeArrow[] = [];
+    const seen = new Set<number>();
+    const addArrow = (
+      edgeId: number,
+      target: [number, number],
+      previous: [number, number],
+    ) => {
+      if (seen.has(edgeId)) {
+        return;
+      }
+      const dx = target[0] - previous[0];
+      const dy = target[1] - previous[1];
+      const length = Math.hypot(dx, dy);
+      if (length < 1e-9) {
+        return;
+      }
+      seen.add(edgeId);
+      const ux = dx / length;
+      const uy = dy / length;
+      // The target node's on-screen radius: fixed in the detail view; the active
+      // node's or a neighbour's grow-ring radius in the compact view.
+      const targetIsActive = edgeById.get(edgeId)?.toId === activeNode?.id;
+      const targetRadius = isDetailZoom
+        ? DETAIL_NODE_DIAMETER / 2
+        : targetIsActive
+          ? HOVERED_MIN_RADIUS
+          : NEIGHBOUR_MIN_RADIUS;
+      const back = targetRadius + ARROW_GAP_PX;
+      list.push({
+        position: target,
+        // The view's `flipY` makes world y match screen y (down), so the world
+        // tangent is also the screen direction; offset backs the tip toward the
+        // source, and the angle points the triangle into the target node.
+        offset: [-ux * back, -uy * back],
+        angle: -(Math.atan2(uy, ux) * 180) / Math.PI,
+      });
+    };
+
+    if (isDetailZoom) {
+      for (const edge of highlightEdgePaths) {
+        const target = edge.path[edge.path.length - 1];
+        const previous = edge.path[edge.path.length - 2];
+        if (target && previous) {
+          addArrow(edge.edgeId, target, previous);
+        }
+      }
+      // A hovered background edge is highlighted too but isn't in the set above.
+      if (hoveredEdge) {
+        const target = hoveredEdge.path[hoveredEdge.path.length - 1];
+        const previous = hoveredEdge.path[hoveredEdge.path.length - 2];
+        if (target && previous) {
+          addArrow(hoveredEdge.edgeId, target, previous);
+        }
+      }
+    } else {
+      for (const line of highlight?.lines ?? []) {
+        addArrow(line.id, line.target, line.source);
+      }
+    }
+    return list;
+  }, [
+    isDetailZoom,
+    highlightEdgePaths,
+    hoveredEdge,
+    highlight,
+    edgeById,
+    activeNode,
+  ]);
+
+  /**
+   * The detail view's prominent (arrowed) edges — the active node's incident edges
+   * plus a hovered background edge — as bundled curves trimmed at the target end by
+   * the node radius + gap, so the arrow's gap sits empty and no edge shows in it.
+   * The gap is a pixel distance, so this re-trims (cheaply) on zoom; it never
+   * re-bundles. Empty in the compact view.
+   */
+  const trimmedHighlightEdgePaths = useMemo<BundledEdge[]>(() => {
+    if (!isDetailZoom) {
+      return [];
+    }
+    const scale = currentZoom == null ? null : 2 ** currentZoom;
+    const worldTrim =
+      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + ARROW_GAP_PX) / scale;
+    const clip = (path: [number, number][]) =>
+      worldTrim > 0 ? trimPathEnd(path, worldTrim) : path;
+    const list: BundledEdge[] = [];
+    const seen = new Set<number>();
+    for (const edge of highlightEdgePaths) {
+      seen.add(edge.edgeId);
+      list.push({ edgeId: edge.edgeId, path: clip(edge.path) });
+    }
+    // A hovered background edge is highlighted too; trim it from its full path.
+    if (hoveredEdge && !seen.has(hoveredEdge.edgeId)) {
+      list.push({ edgeId: hoveredEdge.edgeId, path: clip(hoveredEdge.path) });
+    }
+    return list;
+  }, [isDetailZoom, highlightEdgePaths, hoveredEdge, currentZoom]);
+
+  /**
+   * The compact view's prominent (arrowed) edges — the active node's straight
+   * incident lines — each with its target pulled back by the node radius + gap, so
+   * the arrow's gap sits empty. Empty in the detail view.
+   */
+  const trimmedHighlightLines = useMemo<HoverLine[]>(() => {
+    if (isDetailZoom) {
+      return [];
+    }
+    const lines = highlight?.lines ?? [];
+    if (currentZoom == null) {
+      return lines;
+    }
+    const scale = 2 ** currentZoom;
+    return lines.map((line) => {
+      const toId = edgeById.get(line.id)?.toId;
+      const targetRadius =
+        toId === activeNode?.id ? HOVERED_MIN_RADIUS : NEIGHBOUR_MIN_RADIUS;
+      const worldTrim = (targetRadius + ARROW_GAP_PX) / scale;
+      const dx = line.target[0] - line.source[0];
+      const dy = line.target[1] - line.source[1];
+      const length = Math.hypot(dx, dy);
+      const fraction = length <= worldTrim ? 0 : (length - worldTrim) / length;
+      return {
+        id: line.id,
+        source: line.source,
+        target: [
+          line.source[0] + dx * fraction,
+          line.source[1] + dy * fraction,
+        ],
+      };
+    });
+  }, [isDetailZoom, highlight, currentZoom, edgeById, activeNode]);
+
   const layers = useMemo(() => {
     // The nodes the hovered edge connects, outlined in the edge's colour — only
     // while edges are actually hoverable in this view.
@@ -1051,15 +1316,18 @@ export const NetworkGraph = ({
       ? activeNode != null
       : selected != null;
 
-    // The active node's incident edges are drawn as straight highlight lines, so
-    // drop them from the bundled set — otherwise the same edge exists in both
-    // layers and hovering it would light up (and the label would flit between) two
-    // representations. Cheap filter over the already-bundled paths; no re-bundling.
-    const activeEdgeIds = new Set(
+    // The active node's incident edges — and a hovered background edge — are drawn
+    // prominently (trimmed, with arrows), so drop them from the bundled set;
+    // otherwise the same edge exists in both layers and hovering it would light up
+    // (and the label flit between) two representations. Cheap filter; no re-bundling.
+    const prominentEdgeIds = new Set(
       (highlight?.lines ?? []).map((line) => line.id),
     );
+    if (hoveredEdge) {
+      prominentEdgeIds.add(hoveredEdge.edgeId);
+    }
     const backgroundEdgePaths = detailEdgePaths.filter(
-      (edge) => !activeEdgeIds.has(edge.edgeId),
+      (edge) => !prominentEdgeIds.has(edge.edgeId),
     );
 
     const compact = new CompactNodeLayer({
@@ -1070,13 +1338,14 @@ export const NetworkGraph = ({
       data: points,
       // The active node's incident edges: straight lines in the compact view;
       // in the detail view they're drawn as bundled curves instead (see
-      // `highlightEdgePaths`) so they don't shift off the background paths.
-      edges: isDetailZoom ? [] : (highlight?.lines ?? []),
-      // All edges touching visible nodes (minus the active node's, drawn
-      // prominently), bundled and drawn faintly in detail view.
+      // `highlightEdgePaths`) so they don't shift off the background paths. Both
+      // are trimmed at the target end to open the arrow's gap.
+      edges: trimmedHighlightLines,
+      // All edges touching visible nodes (minus the prominent ones), bundled and
+      // drawn faintly in detail view.
       backgroundEdgePaths,
-      // The active node's edges, bundled + prominent, in detail view.
-      highlightEdgePaths,
+      // The active node's edges (+ a hovered one), bundled + prominent, in detail.
+      highlightEdgePaths: trimmedHighlightEdgePaths,
       hoveredEdgeId: edgesHoverable ? (hoveredEdge?.edgeId ?? null) : null,
       highlightEdgesPickable,
       backgroundEdgesPickable,
@@ -1096,28 +1365,52 @@ export const NetworkGraph = ({
       showPoints: !isDetailZoom,
     });
 
-    if (!isDetailZoom) {
-      return [compact];
-    }
+    const nodeLayers: Layer[] = isDetailZoom
+      ? [
+          compact,
+          new DetailedNodeLayer({
+            id: "detailed-nodes",
+            // With the compact points hidden, these nodes resolve picking.
+            pickable: true,
+            data: detailPoints,
+            activeNode,
+            colorByHex,
+            iconAtlas,
+            edgeHoverNodes,
+          }),
+        ]
+      : [compact];
 
-    return [
-      compact,
-      new DetailedNodeLayer({
-        id: "detailed-nodes",
-        // With the compact points hidden, these nodes resolve picking.
-        pickable: true,
-        data: detailPoints,
-        activeNode,
-        colorByHex,
-        iconAtlas,
-        edgeHoverNodes,
-      }),
-    ];
+    // Direction arrows on the highlighted edges, drawn on top of everything (they
+    // sit off the node edge, so depth vs. the nodes doesn't matter). Non-pickable.
+    const arrowAtlas = arrowIconAtlas();
+    if (arrowAtlas && arrows.length > 0) {
+      nodeLayers.push(
+        new IconLayer<EdgeArrow>({
+          id: "edge-arrows",
+          data: arrows,
+          iconAtlas: arrowAtlas.url,
+          iconMapping: arrowAtlas.mapping,
+          getIcon: () => "arrow",
+          getPosition: (arrow) => arrow.position,
+          getPixelOffset: (arrow) => arrow.offset,
+          getAngle: (arrow) => arrow.angle,
+          getSize: ARROW_SIZE_PX,
+          sizeUnits: "pixels",
+          getColor: [...EDGE_COLOR, 255],
+          // Always draw (drawn last, sits off the node edge) — no depth clipping.
+          parameters: { depthCompare: "always" },
+        }),
+      );
+    }
+    return nodeLayers;
   }, [
     points,
     highlight,
     detailEdgePaths,
-    highlightEdgePaths,
+    trimmedHighlightEdgePaths,
+    trimmedHighlightLines,
+    arrows,
     hoveredEdge,
     edgesHoverable,
     selected,

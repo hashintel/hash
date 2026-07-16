@@ -17,7 +17,7 @@ const RGBA_OPAQUE = 255;
 /** Colour used if a point's hex value cannot be resolved. */
 const FALLBACK_COLOR: RgbColor = [148, 148, 148];
 /** Diameter (px) of a node in the zoomed-in detail variation. */
-const DETAIL_NODE_DIAMETER = 40;
+export const DETAIL_NODE_DIAMETER = 40;
 /** On-screen size (px) of the icon drawn inside a detail node. */
 const DETAIL_ICON_SIZE = 24;
 /** Font size (px) of the detail label text. */
