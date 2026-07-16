@@ -11,7 +11,11 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
@@ -129,34 +133,51 @@ export const getBlockCollectionContents = (params: {
   );
 
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
-    {
-      linkEntity:
-        | HashLinkEntity<HasIndexedContent>[]
-        | HashLinkEntity<HasSpatiallyPositionedContent>[];
-      rightEntity: HashEntity<Block>[];
-    }[]
+    LinkEntityAndRightEntity<
+      HashEntity<Block>,
+      | HashLinkEntity<HasIndexedContent>
+      | HashLinkEntity<HasSpatiallyPositionedContent>
+    >[]
   >(blockCollectionSubgraph, blockCollectionEntityId)
-    .filter(
-      ({ linkEntity: linkEntityRevisions }) =>
-        linkEntityRevisions[0] &&
-        linkEntityRevisions[0].metadata.entityTypeIds.includes(
-          isCanvas
-            ? systemLinkEntityTypes.hasSpatiallyPositionedContent
-                .linkEntityTypeId
-            : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-        ),
+    .flatMap(
+      ({
+        linkEntity: linkEntityRevisions,
+        rightEntity: rightEntityRevisions,
+      }) => {
+        const containsLinkEntity = linkEntityRevisions[0];
+
+        if (
+          !containsLinkEntity?.metadata.entityTypeIds.includes(
+            isCanvas
+              ? systemLinkEntityTypes.hasSpatiallyPositionedContent
+                  .linkEntityTypeId
+              : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+          )
+        ) {
+          return [];
+        }
+
+        const rightEntity = rightEntityRevisions?.[0];
+
+        if (!rightEntity) {
+          /**
+           * The content link is present but no revision of the block it
+           * points at is visible in the queried interval, e.g. because the
+           * block has been archived or is not visible to the requester –
+           * skip it rather than failing the whole collection.
+           */
+          return [];
+        }
+
+        return [{ containsLinkEntity, rightEntity }];
+      },
     )
     .sort((a, b) =>
-      sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!),
+      sortBlockCollectionLinks(a.containsLinkEntity, b.containsLinkEntity),
     );
 
   return outgoingContentLinks.map<BlockCollectionContentItem>(
-    ({
-      linkEntity: containsLinkEntityRevisions,
-      rightEntity: rightEntityRevisions,
-    }) => {
-      const rightEntity = rightEntityRevisions[0]!;
-
+    ({ containsLinkEntity, rightEntity }) => {
       const componentId =
         rightEntity.properties[
           "https://hash.ai/@h/types/property-type/component-id/"
@@ -178,7 +199,7 @@ export const getBlockCollectionContents = (params: {
       }
 
       return {
-        linkEntity: containsLinkEntityRevisions[0]!,
+        linkEntity: containsLinkEntity,
         rightEntity: {
           metadata: rightEntity.metadata,
           properties: rightEntity.properties,

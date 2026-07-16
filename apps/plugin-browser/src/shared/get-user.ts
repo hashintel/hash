@@ -307,5 +307,15 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         webWebId: getWebIdFromEntityId(user.metadata.recordId.entityId),
       } as LocalStorage["user"];
     })
-    .catch(() => null);
+    .catch((error) => {
+      /**
+       * Failures here include invariant violations thrown while walking the
+       * subgraph, failures to recreate missing settings entities, and network
+       * errors. Callers treat a null return as "signed out", so log the error
+       * to keep the failure observable.
+       */
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Error fetching and processing user:", error);
+      return null;
+    });
 };

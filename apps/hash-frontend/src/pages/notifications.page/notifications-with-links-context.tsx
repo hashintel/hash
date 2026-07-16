@@ -252,6 +252,21 @@ export const useNotificationsWithLinksContextValue =
                * because the user no longer has permission to view them –
                * skip the notification rather than failing the whole list.
                */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                occurredInBlock,
+                occurredInText,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping mention notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
+              );
+
               return null;
             }
 
@@ -331,6 +346,21 @@ export const useNotificationsWithLinksContextValue =
                * because the user no longer has permission to view them –
                * skip the notification rather than failing the whole list.
                */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                occurredInBlock,
+                triggeredByComment,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping comment notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
+              );
+
               return null;
             }
 

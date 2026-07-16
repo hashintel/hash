@@ -50,7 +50,11 @@ import type {
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
 import type { Block, HasIndexedContent } from "./system-types/shared.js";
 import type { ApolloClient } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Node } from "prosemirror-model";
 
@@ -536,38 +540,31 @@ export const save = async ({
       const [blockCollectionEntity] = getRoots(subgraph);
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
-        {
-          linkEntity: HashLinkEntity<
-            HasIndexedContent | HasSpatiallyPositionedContent
-          >[];
-          rightEntity: HashEntity<Block>[];
-        }[]
+        LinkEntityAndRightEntity<
+          HashEntity<Block>,
+          HashLinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>
+        >[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
-        .filter(
+        .flatMap(
           ({
             linkEntity: linkEntityRevisions,
             rightEntity: rightEntityRevisions,
-          }) =>
-            linkEntityRevisions[0] &&
-            linkEntityRevisions[0].metadata.entityTypeIds.includes(
+          }) => {
+            const contentLinkEntity = linkEntityRevisions[0];
+            const blockEntity = rightEntityRevisions?.[0];
+
+            return contentLinkEntity?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
             ) &&
-            rightEntityRevisions[0] &&
-            rightEntityRevisions[0].metadata.entityTypeIds.includes(
-              systemEntityTypes.block.entityTypeId,
-            ),
+              blockEntity?.metadata.entityTypeIds.includes(
+                systemEntityTypes.block.entityTypeId,
+              )
+              ? [{ blockEntity, contentLinkEntity }]
+              : [];
+          },
         )
-        .sort(({ linkEntity: a }, { linkEntity: b }) =>
-          sortBlockCollectionLinks(a[0]!, b[0]!),
-        )
-        .map(
-          ({
-            rightEntity: rightEntityRevisions,
-            linkEntity: linkEntityRevisions,
-          }) => ({
-            blockEntity: rightEntityRevisions[0]!,
-            contentLinkEntity: linkEntityRevisions[0]!,
-          }),
+        .sort((a, b) =>
+          sortBlockCollectionLinks(a.contentLinkEntity, b.contentLinkEntity),
         );
 
       return blocksAndLinks.map(({ blockEntity, contentLinkEntity }) => ({
