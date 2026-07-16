@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build from the repository root:
-# docker build -f apps/petrinaut-opt/Dockerfile .
+# docker build -f apps/petrinaut-opt/docker/Dockerfile .
 
 ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.13
