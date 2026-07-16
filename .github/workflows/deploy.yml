@@ -138,7 +138,7 @@ jobs:
               #   task and workspace dependencies; until then turbo cannot see
               #   it and change detection runs on `paths` like kratos/hydra.
               service:    "petrinaut-opt",
-              push:       ["ecr"],
+              push:       ["ecr", "ghcr"],
               dockerfile: "apps/petrinaut-opt/docker/Dockerfile",
               context:    ".",
               paths:      ["apps/petrinaut-opt", "libs/@hashintel/petrinaut-cli", "libs/@hashintel/petrinaut-core"],
