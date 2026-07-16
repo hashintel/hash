@@ -31,8 +31,8 @@ from fastapi.responses import StreamingResponse
 from src.utils import AppStatus, Phase, set_status
 
 # Load HASH_PETRINAUT_OPT_* (and any other) variables from the module's `.env`.
-APP_ROOT = Path(__file__).resolve().parent.parent
-DOTENV_PATH = APP_ROOT / ".env"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+DOTENV_PATH = REPO_ROOT / ".env"
 load_dotenv(DOTENV_PATH)
 from src.petrinaut_client import PetrinautModelSpec, PetrinautModel
 from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
