@@ -12,11 +12,7 @@ import {
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import {
-  CompactNodeLayer,
-  HOVERED_MIN_RADIUS,
-  NEIGHBOUR_MIN_RADIUS,
-} from "./compact-node-layer";
+import { CompactNodeLayer } from "./compact-node-layer";
 import { DetailedNodeLayer, DETAIL_NODE_DIAMETER } from "./detailed-node-layer";
 import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
@@ -28,6 +24,11 @@ import {
   hexToRgb,
   iconTextureUrl,
 } from "./network-graph-util";
+import {
+  deriveZoomAttributes,
+  HOVERED_MIN_RADIUS,
+  NEIGHBOUR_MIN_RADIUS,
+} from "./zoom-attributes";
 
 import type { IconName } from "../../Icon/icon";
 import type { BundledEdge } from "./edge-bundling";
@@ -168,15 +169,6 @@ export interface NetworkGraphProps {
   ref?: React.Ref<NetworkGraphHandle>;
 }
 
-/**
- * How strongly the point radius grows with zoom. At `0` the radius is fixed in
- * screen pixels; at `1` it scales 1:1 with the zoom's linear scale factor. `0.8`
- * grows the radius slightly sub-linearly as you zoom in.
- */
-const ZOOM_RADIUS_RATE = 1;
-/** Zoom range relative to the initial framing — how far out/in the user can zoom. */
-const MIN_ZOOM_OFFSET = -2;
-const MAX_ZOOM_OFFSET = 9;
 /** Default zoom levels moved per {@link NetworkGraphHandle.zoomIn}/`zoomOut` call. */
 const DEFAULT_ZOOM_STEP = 1;
 /**
@@ -187,59 +179,28 @@ const DEFAULT_ZOOM_STEP = 1;
 const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
+/** Furthest zoom-in, as levels above the initial framing zoom (the camera's `maxZoom`). */
+const MAX_ZOOM_OFFSET = 9;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
 const PAN_PADDING_PX = 10;
+/**
+ * Controller options — stable across renders so deck doesn't re-process the
+ * controller each time. Double-click-to-zoom off: clicks are handled via
+ * `pointerup` on the container instead.
+ */
+const CONTROLLER_OPTIONS = { doubleClickZoom: false } as const;
 /** Pointer travel (px) above which a release is treated as a pan, not a click. */
 const CLICK_MOVE_THRESHOLD_PX = 4;
 /** Picking radius (px) used to resolve the node under a click. */
 const CLICK_PICK_RADIUS_PX = 4;
-/** Base opacity of the points — subtly transparent so dense areas read as depth. */
-const POINT_OPACITY = 1;
-/**
- * Point opacity floor — used both when zoomed all the way out and, symmetrically,
- * when zoomed all the way in (as the detailed view takes over).
- */
-const POINT_MIN_OPACITY = 0.5;
-/** Zoom offset (from the reference framing) at which points reach full opacity while zooming in. */
-const OPACITY_FULL_OFFSET = 2.5;
-/**
- * Zoom offset at which points — after a couple of levels at full opacity — begin
- * fading back out as you keep zooming in, so the crowd recedes behind the
- * detailed view.
- */
-const OPACITY_FADE_OUT_OFFSET = 4.5;
-/**
- * Zoom offset (relative to the reference framing) at/above which the node layer
- * switches from the {@link CompactNodeLayer} to the {@link DetailedNodeLayer} —
- * larger nodes showing their icon and label pill. Sits just below the max so the
- * final zoom-in reveals it.
- */
-const DETAIL_ZOOM_OFFSET = MAX_ZOOM_OFFSET - 0.5;
-/**
- * Cap on how many detail nodes are fed to the {@link DetailedNodeLayer} at once —
- * a safety net for dense clusters; at max zoom only a handful are ever in view.
- */
+const EDGE_PICK_RADIUS_PX = 5;
 const DETAIL_MAX_NODES = 1500;
-/**
- * Cap on how many edges are drawn in the detail view at once. Above this the
- * edges are sampled round-robin across the visible nodes (see the
- * `detailEdgePaths` memo) so the budget is spread evenly over nodes rather than
- * spent on a few high-degree hubs — keeping the drawn edges relatively uniform
- * across the graph. A safety net against dense clusters bundling thousands of
- * paths per frame.
- */
 const DETAIL_MAX_EDGES = 400;
 /**
  * Extra viewport margin (px) within which nodes are still included, so a node
  * (or its label) straddling the edge isn't culled away.
  */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
-/**
- * Picking tolerance (px) around the pointer for deck.gl's hover picking, so the
- * thin edges can actually be hovered without pixel-perfect aim. Nodes still win
- * where they overlap an edge, being drawn on top.
- */
-const EDGE_PICK_RADIUS_PX = 5;
 /**
  * Style of the pill drawn on a hovered edge, mirroring the detail node label (see
  * `detailed-node-layer.ts`) — same font, ink, padding and radius — but outlined
@@ -259,16 +220,10 @@ const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
 const EDGE_LABEL_BORDER_WIDTH = 1;
 /**
  * On-screen size (px) of the direction arrow drawn at the target end of a
- * highlighted edge, and the gap left between the arrow tip and the node's edge.
+ * highlighted edge. (The gap between the arrow tip and the node's edge is
+ * zoom-derived — see `arrowGapPx` in {@link deriveZoomAttributes}.)
  */
 const ARROW_SIZE_PX = 10;
-const ARROW_GAP_PX = 6;
-/**
- * How the arrow gap grows as the user zooms in: the base gap is multiplied by this
- * per zoom level past the initial framing (`gap = ARROW_GAP_PX · rate^(zoom −
- * referenceZoom)`), so the gap widens slightly the further you zoom in.
- */
-const ARROW_GAP_ZOOM_RATE = 1.1;
 /** Resolution (px) the arrow triangle sprite is rasterised at. */
 const ARROW_ICON_TEXTURE = 64;
 
@@ -671,9 +626,6 @@ export const NetworkGraph = ({
   const [hovered, setHovered] = useState<NetworkGraphPoint | null>(null);
   // The edge under the pointer, if any, drawn emphasised with a label pill.
   const [hoveredEdge, setHoveredEdge] = useState<HoverableEdge | null>(null);
-  // The zoom the graph was first framed at, used as the reference point from
-  // which the point radius grows as the user zooms in.
-  const [referenceZoom, setReferenceZoom] = useState<number | null>(null);
 
   const view = useMemo(() => new OrthographicView({ id: "network-graph" }), []);
 
@@ -956,8 +908,6 @@ export const NetworkGraph = ({
         Math.log2((width * outPadding) / (bounds.width || 1)),
         Math.log2((height * outPadding) / (bounds.height || 1)),
       );
-      // Capture the first framing as the reference for zoom-based radius growth.
-      setReferenceZoom((previous) => previous ?? zoom);
       // Only auto-frame until the user takes control of the view.
       setViewState(
         (previous) =>
@@ -1145,6 +1095,19 @@ export const NetworkGraph = ({
     return Array.isArray(zoom) ? zoom[0] : zoom;
   }, [viewState?.zoom]);
 
+  // Report zoom changes to the consumer from an effect, so it runs after commit —
+  // never mid-render. (A programmatic `setViewState` in `applyZoomDelta`/
+  // `revealPoint` runs its updater during render, so calling `onZoom` there would
+  // update the parent while rendering this component.) Deduped so it fires only on
+  // an actual change, regardless of which path (wheel, buttons, reveal) drove it.
+  useEffect(() => {
+    if (currentZoom === null || currentZoom === lastZoomRef.current) {
+      return;
+    }
+    lastZoomRef.current = currentZoom;
+    onZoom?.(currentZoom);
+  }, [currentZoom, onZoom]);
+
   /**
    * Nudge the zoom by `delta` levels about the viewport centre, clamped to the
    * view's own `minZoom`/`maxZoom`, and re-clamp the pan target so zooming out
@@ -1185,17 +1148,10 @@ export const NetworkGraph = ({
                 bounds,
               )
             : previous.target;
-        // Report the change like `onViewStateChange` does, deduped through the
-        // same ref. The guard makes this idempotent, so React re-invoking the
-        // updater (e.g. under StrictMode) can't double-fire `onZoom`.
-        if (next !== lastZoomRef.current) {
-          lastZoomRef.current = next;
-          onZoom?.(next);
-        }
         return { ...previous, zoom: next, target };
       });
     },
-    [bounds, onZoom],
+    [bounds],
   );
 
   /**
@@ -1264,14 +1220,10 @@ export const NetworkGraph = ({
           height,
           bounds,
         );
-        if (next !== lastZoomRef.current) {
-          lastZoomRef.current = next;
-          onZoom?.(next);
-        }
         return { ...previous, zoom: next, target: nextTarget };
       });
     },
-    [view, bounds, onZoom],
+    [view, bounds],
   );
 
   useImperativeHandle(
@@ -1288,70 +1240,15 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Multiplier applied to every point radius so it grows as the user zooms in.
-   * `2 ** (zoom - referenceZoom)` is the linear scale factor since orthographic
-   * zoom is log2; raising it to {@link ZOOM_RADIUS_RATE} gives the desired rate.
+   * Every attribute the view derives from the current zoom — point size, point
+   * opacity, the arrow gap, and the compact/detail switch — computed together by
+   * {@link deriveZoomAttributes} so they stay in one place. Destructured below so
+   * the rest of the component can use each value directly.
    */
-  const radiusScale = useMemo(() => {
-    if (currentZoom === null || referenceZoom === null) {
-      return 1;
-    }
-    return 2 ** (ZOOM_RADIUS_RATE * (currentZoom - referenceZoom));
-  }, [currentZoom, referenceZoom]);
-
-  /**
-   * The arrow gap (px), grown slightly as the user zooms in: {@link ARROW_GAP_PX}
-   * scaled by {@link ARROW_GAP_ZOOM_RATE} per zoom level past the initial framing.
-   * Shared by the arrow offset and the edge trim so the trimmed edge end stays
-   * coincident with the arrow tip.
-   */
-  const arrowGapPx = useMemo(() => {
-    if (currentZoom === null || referenceZoom === null) {
-      return ARROW_GAP_PX;
-    }
-    return ARROW_GAP_PX * ARROW_GAP_ZOOM_RATE ** (currentZoom - referenceZoom);
-  }, [currentZoom, referenceZoom]);
-
-  /**
-   * Point opacity as a function of zoom, as a three-part curve:
-   * 1. fade in from {@link POINT_MIN_OPACITY} (fully zoomed out) to full opacity
-   *    by {@link OPACITY_FULL_OFFSET},
-   * 2. hold at full opacity through {@link OPACITY_FADE_OUT_OFFSET}, then
-   * 3. fade back down to {@link POINT_MIN_OPACITY} by the max zoom, so the point
-   *    crowd recedes again as the detailed view takes over.
-   */
-  const pointOpacity = useMemo(() => {
-    if (currentZoom === null || referenceZoom === null) {
-      return POINT_OPACITY;
-    }
-    const offset = currentZoom - referenceZoom;
-    const lerp = (from: number, to: number, amount: number) =>
-      from + (to - from) * Math.min(1, Math.max(0, amount));
-
-    if (offset <= OPACITY_FULL_OFFSET) {
-      const amount =
-        (offset - MIN_ZOOM_OFFSET) / (OPACITY_FULL_OFFSET - MIN_ZOOM_OFFSET);
-      return lerp(POINT_MIN_OPACITY, POINT_OPACITY, amount);
-    }
-    if (offset <= OPACITY_FADE_OUT_OFFSET) {
-      return POINT_OPACITY;
-    }
-    const amount =
-      (offset - OPACITY_FADE_OUT_OFFSET) /
-      (MAX_ZOOM_OFFSET - OPACITY_FADE_OUT_OFFSET);
-    return lerp(POINT_OPACITY, POINT_MIN_OPACITY, amount);
-  }, [currentZoom, referenceZoom]);
-
-  /**
-   * Whether the view is zoomed in far enough to show the detailed node
-   * variation (larger nodes with icons + label pills) instead of plain points.
-   */
-  const isDetailZoom = useMemo(() => {
-    if (currentZoom === null || referenceZoom === null) {
-      return false;
-    }
-    return currentZoom >= referenceZoom + DETAIL_ZOOM_OFFSET;
-  }, [currentZoom, referenceZoom]);
+  const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
+    () => deriveZoomAttributes(currentZoom),
+    [currentZoom],
+  );
 
   /**
    * Whether any edges are hoverable in the current view: always in the detail view
@@ -1935,8 +1832,7 @@ export const NetworkGraph = ({
           ref={deckRef}
           views={view}
           viewState={viewState}
-          // Double-click-to-zoom off: clicks are handled via `pointerup` above.
-          controller={{ doubleClickZoom: false }}
+          controller={CONTROLLER_OPTIONS}
           layers={layers}
           // A small tolerance so the thin edges can be hovered without pixel-
           // perfect aim; nodes still win where they overlap, being drawn on top.
@@ -2004,25 +1900,31 @@ export const NetworkGraph = ({
             const raw = params.viewState as OrthographicViewState;
             const zoom = Array.isArray(raw.zoom) ? raw.zoom[0] : raw.zoom;
             const rect = containerRef.current?.getBoundingClientRect();
-            // Constrain panning so the view stays within the network + padding.
-            const next: OrthographicViewState =
-              rect && zoom !== undefined && raw.target
-                ? {
-                    ...raw,
-                    target: clampPanTarget(
+            setViewState((previous) => {
+              // deck's interaction viewState carries only target/zoom, so merge it
+              // onto our own state to preserve `minZoom`/`maxZoom`. Without this a
+              // single wheel event wipes those limits, and later imperative zooms
+              // (buttons, `revealPoint`) produce out-of-range values that deck's
+              // controller silently ignores — leaving the camera stuck.
+              const base = previous ?? raw;
+              // Constrain panning so the view stays within the network + padding.
+              const target =
+                rect && zoom !== undefined && raw.target
+                  ? clampPanTarget(
                       raw.target as number[],
                       2 ** zoom,
                       rect.width,
                       rect.height,
                       bounds,
-                    ),
-                  }
-                : raw;
-            setViewState(next);
-            if (zoom !== undefined && zoom !== lastZoomRef.current) {
-              lastZoomRef.current = zoom;
-              onZoom?.(zoom);
-            }
+                    )
+                  : (raw.target ?? base.target);
+              const next: OrthographicViewState = {
+                ...base,
+                zoom: raw.zoom,
+                target,
+              };
+              return next;
+            });
           }}
           getCursor={({ isDragging, isHovering }) =>
             isDragging ? "grabbing" : isHovering ? "pointer" : "grab"

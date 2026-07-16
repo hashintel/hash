@@ -7,6 +7,16 @@ import {
   EDGE_MIN_WIDTH,
   EDGE_WIDTH,
 } from "./network-graph-util";
+import {
+  GROW_RING_STROKE,
+  HOVERED_MAX_MULTIPLIER,
+  HOVERED_MIN_RADIUS,
+  HOVERED_RADIUS_MULTIPLIER,
+  NEIGHBOUR_MIN_RADIUS,
+  NEIGHBOUR_RADIUS_MULTIPLIER,
+  POINT_MAX_RADIUS,
+  POINT_RADIUS,
+} from "./zoom-attributes";
 
 import type { BundledEdge } from "./edge-bundling";
 import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
@@ -17,15 +27,6 @@ type RgbColor = [number, number, number];
 const RGBA_OPAQUE = 255;
 /** Colour used if a point's hex value cannot be resolved. */
 const FALLBACK_COLOR: RgbColor = [148, 148, 148];
-const POINT_RADIUS = 0.1;
-/** Maximum on-screen radius (px) of a crowd point, so it never grows too large. */
-const POINT_MAX_RADIUS = 10;
-/** Minimum on-screen radius (px) of the hovered node, so it stays prominent. */
-export const HOVERED_MIN_RADIUS = 8;
-/** Minimum on-screen radius (px) of the hovered node's connected neighbours. */
-export const NEIGHBOUR_MIN_RADIUS = 5;
-/** Width (px) of the white ring around the active/neighbour nodes. */
-const GROW_RING_STROKE = 1.5;
 /** Opacity of the faint "all edges" drawn behind the detail view (transparent @ 40%). */
 const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
@@ -80,7 +81,7 @@ type _CompactNodeLayerProps = {
   activeNode: NetworkGraphPoint | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
   colorByHex: Map<string, RgbColor>;
-  /** Multiplier applied to point radii so they grow as the user zooms in. */
+  /** Zoom multiplier applied to every node's base radius (deck's `radiusScale`). */
   radiusScale: number;
   /** Base point opacity for the current zoom. */
   pointOpacity: number;
@@ -238,7 +239,7 @@ export class CompactNodeLayer extends CompositeLayer<
         data: showGrowHighlights ? neighbours : [],
         getPosition: (point) => [point.x, point.y],
         getFillColor: colorFor,
-        getRadius: POINT_RADIUS * 1.6,
+        getRadius: POINT_RADIUS * NEIGHBOUR_RADIUS_MULTIPLIER,
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
@@ -254,12 +255,12 @@ export class CompactNodeLayer extends CompositeLayer<
         data: showGrowHighlights && activeNode ? [activeNode] : [],
         getPosition: (point) => [point.x, point.y],
         getFillColor: colorFor,
-        getRadius: POINT_RADIUS * 2.2,
+        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
         radiusScale,
         radiusUnits: "pixels",
         // Keep the hovered node prominent regardless of zoom level.
         radiusMinPixels: HOVERED_MIN_RADIUS,
-        radiusMaxPixels: POINT_MAX_RADIUS * 1.5,
+        radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
         stroked: true,
         getLineColor: [255, 255, 255, RGBA_OPAQUE],
         getLineWidth: GROW_RING_STROKE,
@@ -282,11 +283,13 @@ export class CompactNodeLayer extends CompositeLayer<
         getPosition: (point) => [point.x, point.y],
         filled: false,
         stroked: true,
-        getRadius: POINT_RADIUS * 2.2,
+        // Radius inset by the white ring's stroke so it hugs the inside of it.
+        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
-        radiusMaxPixels: POINT_MAX_RADIUS * 1.5 - GROW_RING_STROKE,
+        radiusMaxPixels:
+          POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER - GROW_RING_STROKE,
         getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
         getLineWidth: EDGE_HOVER_WIDTH,
         lineWidthUnits: "pixels",
@@ -302,7 +305,8 @@ export class CompactNodeLayer extends CompositeLayer<
         getPosition: (point) => [point.x, point.y],
         filled: false,
         stroked: true,
-        getRadius: POINT_RADIUS * 1.6,
+        // Radius inset by the white ring's stroke so it hugs the inside of it.
+        getRadius: POINT_RADIUS * NEIGHBOUR_RADIUS_MULTIPLIER,
         radiusScale,
         radiusUnits: "pixels",
         radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
