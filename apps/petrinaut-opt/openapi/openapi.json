@@ -1,0 +1,736 @@
+{
+  "components": {
+    "schemas": {
+      "AppStatus": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase",
+            "default": "idle"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "title": "AppStatus",
+        "type": "object"
+      },
+      "CategoricalDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "categorical",
+            "title": "Kind",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "minItems": 2,
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "values"
+        ],
+        "title": "CategoricalDomain",
+        "type": "object"
+      },
+      "ContinuousDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "continuous",
+            "title": "Kind",
+            "type": "string"
+          },
+          "maximum": {
+            "title": "Maximum",
+            "type": "number"
+          },
+          "minimum": {
+            "title": "Minimum",
+            "type": "number"
+          },
+          "scale": {
+            "enum": [
+              "linear",
+              "log"
+            ],
+            "title": "Scale",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "minimum",
+          "maximum",
+          "scale"
+        ],
+        "title": "ContinuousDomain",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IntegerDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "integer",
+            "title": "Kind",
+            "type": "string"
+          },
+          "maximum": {
+            "title": "Maximum",
+            "type": "integer"
+          },
+          "minimum": {
+            "title": "Minimum",
+            "type": "integer"
+          },
+          "step": {
+            "exclusiveMinimum": 0.0,
+            "title": "Step",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "minimum",
+          "maximum",
+          "step"
+        ],
+        "title": "IntegerDomain",
+        "type": "object"
+      },
+      "OptimizationBest": {
+        "additionalProperties": false,
+        "properties": {
+          "objective": {
+            "title": "Objective",
+            "type": "number"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "trial": {
+            "minimum": 0.0,
+            "title": "Trial",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trial",
+          "parameters",
+          "objective"
+        ],
+        "title": "OptimizationBest",
+        "type": "object"
+      },
+      "OptimizationCompleteEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "best": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OptimizationBest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedTrials": {
+            "minimum": 0.0,
+            "title": "Completedtrials",
+            "type": "integer"
+          },
+          "failedTrials": {
+            "minimum": 0.0,
+            "title": "Failedtrials",
+            "type": "integer"
+          },
+          "prunedTrials": {
+            "minimum": 0.0,
+            "title": "Prunedtrials",
+            "type": "integer"
+          },
+          "requestedTrials": {
+            "exclusiveMinimum": 0.0,
+            "title": "Requestedtrials",
+            "type": "integer"
+          },
+          "type": {
+            "const": "complete",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "requestedTrials",
+          "completedTrials",
+          "prunedTrials",
+          "failedTrials",
+          "best"
+        ],
+        "title": "OptimizationCompleteEvent",
+        "type": "object"
+      },
+      "OptimizationErrorEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "type": {
+            "const": "error",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "OptimizationErrorEvent",
+        "type": "object"
+      },
+      "OptimizationExecution": {
+        "additionalProperties": false,
+        "properties": {
+          "dt": {
+            "exclusiveMinimum": 0.0,
+            "title": "Dt",
+            "type": "number"
+          },
+          "maxTime": {
+            "exclusiveMinimum": 0.0,
+            "title": "Maxtime",
+            "type": "number"
+          },
+          "seed": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seed",
+          "dt",
+          "maxTime"
+        ],
+        "title": "OptimizationExecution",
+        "type": "object"
+      },
+      "OptimizationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "execution": {
+            "$ref": "#/components/schemas/OptimizationExecution"
+          },
+          "model": {
+            "$ref": "#/components/schemas/OptimizationModel"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "$ref": "#/components/schemas/OptimizationObjective"
+          },
+          "optimization": {
+            "$ref": "#/components/schemas/OptimizationOptions"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/OptimizationScenario"
+          },
+          "searchSpace": {
+            "$ref": "#/components/schemas/OptimizationSearchSpace"
+          }
+        },
+        "required": [
+          "name",
+          "model",
+          "scenario",
+          "searchSpace",
+          "objective",
+          "execution",
+          "optimization"
+        ],
+        "title": "OptimizationInput",
+        "type": "object"
+      },
+      "OptimizationModel": {
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "additionalProperties": true,
+            "title": "Definition",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "definition"
+        ],
+        "title": "OptimizationModel",
+        "type": "object"
+      },
+      "OptimizationObjective": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "maximize",
+              "minimize"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "metricId": {
+            "minLength": 1,
+            "title": "Metricid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metricId",
+          "direction"
+        ],
+        "title": "OptimizationObjective",
+        "type": "object"
+      },
+      "OptimizationOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "sampler": {
+            "enum": [
+              "tpe",
+              "random"
+            ],
+            "title": "Sampler",
+            "type": "string"
+          },
+          "trials": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Trials",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trials",
+          "sampler"
+        ],
+        "title": "OptimizationOptions",
+        "type": "object"
+      },
+      "OptimizationScenario": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "parameterValues": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "title": "Parametervalues",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "parameterValues"
+        ],
+        "title": "OptimizationScenario",
+        "type": "object"
+      },
+      "OptimizationSearchSpace": {
+        "additionalProperties": false,
+        "properties": {
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/OptimizationVariable"
+            },
+            "minItems": 1,
+            "title": "Variables",
+            "type": "array"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "variables"
+        ],
+        "title": "OptimizationSearchSpace",
+        "type": "object"
+      },
+      "OptimizationStartedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "requestedTrials": {
+            "exclusiveMinimum": 0.0,
+            "title": "Requestedtrials",
+            "type": "integer"
+          },
+          "type": {
+            "const": "started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "requestedTrials"
+        ],
+        "title": "OptimizationStartedEvent",
+        "type": "object"
+      },
+      "OptimizationTrialEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "best": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OptimizationBest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "objective": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "state": {
+            "enum": [
+              "complete",
+              "pruned",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "trial": {
+            "minimum": 0.0,
+            "title": "Trial",
+            "type": "integer"
+          },
+          "type": {
+            "const": "trial",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "trial",
+          "parameters",
+          "objective",
+          "state",
+          "best"
+        ],
+        "title": "OptimizationTrialEvent",
+        "type": "object"
+      },
+      "OptimizationVariable": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "discriminator": {
+              "mapping": {
+                "categorical": "#/components/schemas/CategoricalDomain",
+                "continuous": "#/components/schemas/ContinuousDomain",
+                "integer": "#/components/schemas/IntegerDomain"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ContinuousDomain"
+              },
+              {
+                "$ref": "#/components/schemas/IntegerDomain"
+              },
+              {
+                "$ref": "#/components/schemas/CategoricalDomain"
+              }
+            ],
+            "title": "Domain"
+          },
+          "identifier": {
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "domain"
+        ],
+        "title": "OptimizationVariable",
+        "type": "object"
+      },
+      "Phase": {
+        "enum": [
+          "idle",
+          "running",
+          "done",
+          "error"
+        ],
+        "title": "Phase",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Petrinaut optimization Python API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/optimize": {
+      "post": {
+        "description": "Optimize flat parameters of one selected scenario.",
+        "operationId": "optimize_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "discriminator": {
+                    "mapping": {
+                      "complete": "#/components/schemas/OptimizationCompleteEvent",
+                      "error": "#/components/schemas/OptimizationErrorEvent",
+                      "started": "#/components/schemas/OptimizationStartedEvent",
+                      "trial": "#/components/schemas/OptimizationTrialEvent"
+                    },
+                    "propertyName": "type"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/OptimizationStartedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OptimizationTrialEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OptimizationCompleteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OptimizationErrorEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "One OptimizationEvent per NDJSON line"
+          },
+          "413": {
+            "description": "The request body exceeds 8 MiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "The service is already at its study limit"
+          }
+        },
+        "summary": "Optimize"
+      }
+    },
+    "/status": {
+      "get": {
+        "description": "Return process-level status for container and infrastructure checks.",
+        "operationId": "get_status_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Status"
+      }
+    }
+  }
+}

@@ -1,230 +1,232 @@
-#!/usr/bin/env python3
-"""HTTP API for Petrinaut optimization.
-
-Endpoints
----------
-GET  /optimize         Server-Sent Events stream of objective evaluations,
-                       emitted as each trial completes, ending with a summary.       
-GET  /status           Current state of all optimization runs.
-
-Run with:  uv run python -m src.optimization_api
-       or:  uv run uvicorn optimization_api:app --reload
-
-The service binds to HASH_PETRINAUT_OPT_HOST and HASH_PETRINAUT_OPT_PORT
-(loaded from the module's `.env`).
-"""
+"""FastAPI service for streaming Petrinaut optimization studies."""
 
 from __future__ import annotations
 
+import asyncio
 import os
-import time
-import json
-
-from pathlib import Path
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Union, Generator
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from src.utils import AppStatus, Phase, StatusStore, set_status
+from src.optimization_models import (
+    OptimizationCompleteEvent,
+    OptimizationErrorEvent,
+    OptimizationEvent,
+    OptimizationInput,
+    OptimizationStartedEvent,
+)
+from src.petrinaut_client import PetrinautClient
+from src.petrinaut_optimizer import PetrinautOptimizer
+from src.utils import AppStatus, Phase, set_status
 
-# Load HASH_PETRINAUT_OPT_* (and any other) variables from the module's `.env`.
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-DOTENV_PATH = REPO_ROOT / ".env"
-load_dotenv(DOTENV_PATH)
-from src.petrinaut_client import PetrinautModelSpec, PetrinautModel
-from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
+
+load_dotenv()
+
+MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
+MAX_ACTIVE_OPTIMIZATIONS = 4
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 4004
+
+
+class _RequestBodyTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    """Reject oversized optimization bodies, including chunked requests."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        if (
+            scope["type"] != "http"
+            or scope["method"] != "POST"
+            or scope["path"] != "/optimize"
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        content_length = headers.get(b"content-length")
+        if content_length is not None:
+            try:
+                if int(content_length) > MAX_REQUEST_BODY_BYTES:
+                    await self._reject(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
+        received_bytes = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received_bytes
+            message = await receive()
+            if message["type"] == "http.request":
+                received_bytes += len(message.get("body", b""))
+                if received_bytes > MAX_REQUEST_BODY_BYTES:
+                    raise _RequestBodyTooLarge
+            return message
+
+        try:
+            await self.app(scope, limited_receive, send)
+        except _RequestBodyTooLarge:
+            await self._reject(scope, receive, send)
+
+    @staticmethod
+    async def _reject(scope: Scope, receive: Receive, send: Send) -> None:
+        response = JSONResponse(
+            status_code=413,
+            content={"detail": "Request body exceeds the 8 MiB limit"},
+        )
+        await response(scope, receive, send)
+
+
+class NDJSONStreamingResponse(StreamingResponse):
+    media_type = "application/x-ndjson"
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialise the app-wide run status registry on startup.
-
-    Args:
-        app (FastAPI): The application whose `state.statuses` is initialised.
-    """
-    app.state.statuses = StatusStore()
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    app.state.status = AppStatus()
+    app.state.optimization_admission_lock = asyncio.Lock()
+    app.state.active_optimizations = 0
     yield
 
-app = FastAPI(title="Petrinaut optimization Python API",lifespan=lifespan)
 
+app = FastAPI(title="Petrinaut optimization Python API", lifespan=lifespan)
+app.add_middleware(RequestBodyLimitMiddleware)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Dummy functions
-# ─────────────────────────────────────────────────────────────────────────────
-
-def dummy_stream() -> Generator[dict[str,Union[float,int]]]:
-    """Dummy data stream to check that API endpoint works
-    """
-    from datetime import datetime
-    n = 0   
-    while n < 10:
-        time.sleep(2)
-        event = {"inputs":[1.2,3.4],"output":datetime.now().strftime('%H:%M:%S'),"step":n}
-        yield f"{json.dumps(event)}\n\n"
-        n +=1 
-
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
-@app.get("/optimize/all",response_class=StreamingResponse)
-async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> StreamingResponse:
-    """Streams optimization results per optimization step (trial) to json line
-
-    Args:
-        request (Request): Optimization API generic request
-        opt_spec (OptimizationSpec): Specification for Petri Net input optimization with respect to output
-        pn_spec (PetrinautModelSpec): Specification for Petri Net execution
-
-    Raises:
-        HTTPException: failed to initialise optimization
-
-    Returns:
-        StreamingResponse: SSE stream of per-trial evaluation frames.
-    """
-    run_id = app.state.statuses.create().run_id
-
-    # Build the model + optimizer.
-    try:
-        # Build the Petri net from the client spec.
-        petrinet_model = PetrinautModel(pn_spec)
-        # Instantiate Petrinaut optimization class
-        optimizer = PetrinautOptimizer(
-            opt_spec = opt_spec,
-            pn_model = petrinet_model,
-        )
-        # Start the Petrinaut model
-        optimizer.pn_model.start()
-
-        set_status(
-            app,
-            run_id,
-            phase=Phase.running,
-            detail="Petrinaut CLI and Optimization Model initialized",
-        )
-    except Exception as exc:
-        set_status(
-            app,
-            run_id,
-            phase=Phase.error,
-            detail="Petrinaut CLI and Optimization Model could NOT be initialized",
-        )
-        raise HTTPException(
-            500,
-            f"failed to initialise optimization: {exc}",
-            headers={"X-Optimization-Run-ID": run_id},
-        )
-
-    # The optimiser's SSE generator acquires/releases the session lock itself, so
-    # ending the stream (completion, error, or client disconnect) never leaves the
-    # session wedged.
-    return StreamingResponse(
-        optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "X-Optimization-Run-ID": run_id,
+_OPTIMIZATION_EVENT_SCHEMA = {
+    "oneOf": [
+        {"$ref": "#/components/schemas/OptimizationStartedEvent"},
+        {"$ref": "#/components/schemas/OptimizationTrialEvent"},
+        {"$ref": "#/components/schemas/OptimizationCompleteEvent"},
+        {"$ref": "#/components/schemas/OptimizationErrorEvent"},
+    ],
+    "discriminator": {
+        "propertyName": "type",
+        "mapping": {
+            "started": "#/components/schemas/OptimizationStartedEvent",
+            "trial": "#/components/schemas/OptimizationTrialEvent",
+            "complete": "#/components/schemas/OptimizationCompleteEvent",
+            "error": "#/components/schemas/OptimizationErrorEvent",
         },
+    },
+}
+
+
+def create_client(optimization_input: OptimizationInput) -> PetrinautClient:
+    """Create the internal CLI client; kept as a seam for focused tests."""
+    return PetrinautClient(optimization_input.model)
+
+
+async def stream_optimization(
+    request: Request, optimization_input: OptimizationInput
+) -> AsyncIterator[str]:
+    optimizer = PetrinautOptimizer(
+        optimization_input,
+        create_client(optimization_input),
+    )
+    terminal_status_seen = False
+    try:
+        async for event in optimizer.stream(request):
+            if isinstance(event, OptimizationStartedEvent):
+                set_status(
+                    request.app,
+                    phase=Phase.running,
+                    detail="optimization running",
+                )
+            elif isinstance(event, OptimizationCompleteEvent):
+                terminal_status_seen = True
+                set_status(
+                    request.app,
+                    phase=Phase.done,
+                    detail="optimization completed",
+                )
+            elif isinstance(event, OptimizationErrorEvent):
+                terminal_status_seen = True
+                set_status(
+                    request.app,
+                    phase=Phase.error,
+                    detail="optimization failed",
+                )
+            yield event.model_dump_json(by_alias=True) + "\n"
+    finally:
+        if not terminal_status_seen:
+            set_status(
+                request.app,
+                phase=Phase.idle,
+                detail="optimization client disconnected",
+            )
+
+
+async def _acquire_optimization_slot(app: FastAPI) -> None:
+    async with app.state.optimization_admission_lock:
+        if app.state.active_optimizations >= MAX_ACTIVE_OPTIMIZATIONS:
+            raise HTTPException(
+                status_code=429,
+                detail="The optimizer is already running its maximum number of studies",
+            )
+        app.state.active_optimizations += 1
+
+
+async def _stream_with_admission_slot(
+    request: Request, optimization_input: OptimizationInput
+) -> AsyncIterator[str]:
+    try:
+        async for line in stream_optimization(request, optimization_input):
+            yield line
+    finally:
+        async with request.app.state.optimization_admission_lock:
+            request.app.state.active_optimizations -= 1
+
+
+@app.post(
+    "/optimize",
+    # The concrete response below supplies the NDJSON content type. Keeping the
+    # decorator's response class media-type-neutral lets the explicit OpenAPI
+    # schema describe one typed line instead of an untyped string body.
+    response_class=StreamingResponse,
+    response_model=OptimizationEvent,
+    response_description="A stream of newline-delimited OptimizationEvent objects",
+    responses={
+        200: {
+            "description": "One OptimizationEvent per NDJSON line",
+            "content": {
+                "application/x-ndjson": {"schema": _OPTIMIZATION_EVENT_SCHEMA}
+            },
+        },
+        413: {"description": "The request body exceeds 8 MiB"},
+        429: {"description": "The service is already at its study limit"},
+    },
+)
+async def optimize(
+    request: Request, optimization_input: OptimizationInput
+) -> StreamingResponse:
+    """Optimize flat parameters of one selected scenario."""
+    await _acquire_optimization_slot(request.app)
+    return NDJSONStreamingResponse(
+        _stream_with_admission_slot(request, optimization_input),
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-@app.get("/optimize/best",response_class=StreamingResponse)
-async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spec: PetrinautModelSpec) -> StreamingResponse:
-    """Streams current best optimization results per optimization step (trial) to json line
-
-    Args:
-        request (Request): Optimization API generic request
-        opt_spec (OptimizationSpec): Specification for Petri Net input optimization with respect to output
-        pn_spec (PetrinautModelSpec): Specification for Petri Net execution
-
-    Raises:
-        HTTPException: failed to initialise optimization
-
-    Returns:
-        StreamingResponse: SSE stream of best-so-far evaluation frames.
-    """
-    run_id = app.state.statuses.create().run_id
-
-    # Build the model + optimizer.
-    try:
-        # Build the Petri net from the client spec.
-        petrinet_model = PetrinautModel(pn_spec)
-        # Instantiate Petrinaut optimization class
-        optimizer = PetrinautOptimizer(
-            opt_spec = opt_spec,
-            pn_model = petrinet_model,
-        )
-        # Start the Petrinaut model
-        optimizer.pn_model.start()
-        set_status(
-            app,
-            run_id,
-            phase=Phase.running,
-            detail="Petrinaut CLI and Optimization Model initialized",
-        )
-    except Exception as exc:
-        set_status(
-            app,
-            run_id,
-            phase=Phase.error,
-            detail="Petrinaut CLI and Optimization Model could NOT be initialized",
-        )
-        raise HTTPException(
-            500,
-            f"failed to initialise optimization: {exc}",
-            headers={"X-Optimization-Run-ID": run_id},
-        )
-
-    # The optimiser's SSE generator acquires/releases the session lock itself, so
-    # ending the stream (completion, error, or client disconnect) never leaves the
-    # session wedged.
-    return StreamingResponse(
-        optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "X-Optimization-Run-ID": run_id,
-        },
-    )
 
 @app.get("/status")
-def get_status() -> list[AppStatus]:
-    """Return a snapshot of every optimization run's status.
-
-    Returns:
-        list[AppStatus]: Statuses containing their run identifiers.
-    """
-    return app.state.statuses.all()
+def get_status() -> AppStatus:
+    """Return process-level status for container and infrastructure checks."""
+    return app.state.status
 
 
-@app.get("/status/{run_id}")
-def get_run_status(run_id: str) -> AppStatus:
-    """Return the status of one optimization run."""
-    status = app.state.statuses.get(run_id)
-    if status is None:
-        raise HTTPException(404, f"optimization run not found: {run_id}")
-    return status
-
-@app.get("/")
-async def root() -> dict:
-    """Return a welcome message for the API root.
-
-    Returns:
-        dict: A greeting payload.
-    """
-    return {"message": "Welcome to Petrinaut optimization API"}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Entrypoint
-# ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
 
-    host = os.getenv("HASH_PETRINAUT_OPT_HOST", "localhost")
-    port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", "4004"))
+    host = os.getenv("HASH_PETRINAUT_OPT_HOST", DEFAULT_HOST)
+    port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", str(DEFAULT_PORT)))
     uvicorn.run(app, host=host, port=port)

@@ -1,5 +1,10 @@
-import { parseServerRunRequest, toPetrinautRunConfig } from "./run-request";
+import {
+  keyMetricsByRequestedSelector,
+  parseServerRunRequest,
+  toPetrinautRunConfig,
+} from "./run-request";
 
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
 export const MAX_REQUEST_LINE_BYTES = 10 * 1024 * 1024;
@@ -18,6 +23,7 @@ export function handleProtocolLine(
   model: PetrinautCompiledModel,
   line: string,
   writeResponse: (value: unknown) => void,
+  sdcpn?: SDCPN,
 ): void {
   if (line.trim() === "") {
     return;
@@ -44,8 +50,10 @@ export function handleProtocolLine(
         return;
       case "run": {
         const runRequest = parseServerRunRequest(request.params ?? {});
-        const result = model.run(
-          toPetrinautRunConfig(model.metadata, runRequest),
+        const result = keyMetricsByRequestedSelector(
+          model.metadata,
+          runRequest,
+          model.run(toPetrinautRunConfig(model.metadata, runRequest, sdcpn)),
         );
         writeResponse({ id, result });
         return;
