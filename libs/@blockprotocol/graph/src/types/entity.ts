@@ -37,10 +37,13 @@ export type LinkEntityAndRightEntity<
 > = {
   linkEntity: LinkEntityImpl[];
   /**
-   * The revisions of the link's target entity, or `undefined` if the link's
-   * `has-right-entity` edge was not resolved into the subgraph (e.g. because
-   * of resolve depths, or because the requester cannot view the target
-   * entity).
+   * The revisions of the link's target entity.
+   *
+   * `undefined` if the link's `has-right-entity` edge was not resolved into
+   * the subgraph (e.g. because of resolve depths). May be an empty array if
+   * the edge is present but no revisions of the target are in the subgraph —
+   * e.g. the target is archived (its revisions do not overlap the queried
+   * interval) or is not visible to the requester.
    */
   rightEntity?: EntityImpl[];
 };
@@ -51,10 +54,13 @@ export type LinkEntityAndLeftEntity<
 > = {
   linkEntity: LinkEntityImpl[];
   /**
-   * The revisions of the link's source entity, or `undefined` if the link's
-   * `has-left-entity` edge was not resolved into the subgraph (e.g. because
-   * of resolve depths, or because the requester cannot view the source
-   * entity).
+   * The revisions of the link's source entity.
+   *
+   * `undefined` if the link's `has-left-entity` edge was not resolved into
+   * the subgraph (e.g. because of resolve depths). May be an empty array if
+   * the edge is present but no revisions of the source are in the subgraph —
+   * e.g. the source is archived (its revisions do not overlap the queried
+   * interval) or is not visible to the requester.
    */
   leftEntity?: EntityImpl[];
 };
