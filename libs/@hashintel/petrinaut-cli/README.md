@@ -14,6 +14,9 @@ preflight have succeeded, including every metric advertised by `metadata`.
 See [Using Petrinaut CLI from Python](./PYTHON_INTEGRATION.md) for a compact
 stdio wrapper and Optuna example.
 
+See [Driving scenario optimization from Python](./OPTIMIZATION_INTEGRATION.md)
+for the contract between the Optimization form, Optuna, and the CLI.
+
 ## Transports
 
 With no transport flag, JSON lines are read from stdin and written to stdout:
