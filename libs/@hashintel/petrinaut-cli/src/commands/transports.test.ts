@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MAX_REQUEST_LINE_BYTES } from "../runtime/protocol";
 import { serve } from "./serve";
-import { serveStdio } from "./stdio";
+import { MAX_STDIN_MODEL_LINE_BYTES, serveStdio } from "./stdio";
 
 const modelPath = fileURLToPath(
   new URL("../../examples/sir-model.json", import.meta.url),
@@ -71,6 +71,82 @@ describe("CLI transports", () => {
       id: 2,
       result: { seed: 42, completionReason: "maxSteps" },
     });
+  });
+
+  it("bootstraps a model from stdin and materializes scenario parameters", async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const errorOutput = new PassThrough();
+    let stdout = "";
+    let stderr = "";
+    output.setEncoding("utf8");
+    output.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    errorOutput.setEncoding("utf8");
+    errorOutput.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+
+    const model: unknown = JSON.parse(await readFile(modelPath, "utf8"));
+    const serving = serveStdio({
+      modelStdin: true,
+      input,
+      output,
+      errorOutput,
+    });
+    input.end(
+      [
+        JSON.stringify(model),
+        JSON.stringify({
+          id: 1,
+          method: "run",
+          params: {
+            scenario: {
+              id: "scenario__seasonal_flu",
+              parameterValues: {
+                population: 200,
+                infected_ratio: 0.1,
+              },
+            },
+            metrics: ["metric__infected_fraction"],
+            maxSteps: 0,
+            seed: 42,
+          },
+        }),
+        "",
+      ].join("\n"),
+    );
+    await serving;
+
+    expect(stderr).toContain("Petrinaut stdio ready for model <stdin>");
+    expect(parseResponses(stdout)).toMatchObject([
+      {
+        id: 1,
+        result: {
+          seed: 42,
+          finalPlaceTokenCounts: {
+            place__susceptible: 180,
+            place__infected: 20,
+            place__recovered: 0,
+          },
+          metrics: { metric__infected_fraction: 0.1 },
+        },
+      },
+    ]);
+  });
+
+  it("rejects an oversized stdin model before parsing it", async () => {
+    const input = new PassThrough();
+    const serving = serveStdio({
+      modelStdin: true,
+      input,
+      output: new PassThrough(),
+      errorOutput: new PassThrough(),
+    });
+    input.end(`${"x".repeat(MAX_STDIN_MODEL_LINE_BYTES + 1)}\n`);
+
+    await expect(serving).rejects.toThrow("Model JSON line is too large");
   });
 
   it("simulates multiple colored tokens over stdio", async () => {

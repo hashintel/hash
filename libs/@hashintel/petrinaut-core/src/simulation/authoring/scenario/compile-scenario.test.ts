@@ -848,6 +848,15 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(false);
     });
 
+    it("blocks direct access to Node process globals", () => {
+      const result = compileScenario(
+        scenario({ parameterOverrides: { p1: "process.pid" } }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(false);
+    });
+
     it("blocks prototype chain escape", () => {
       const result = compileScenario(
         scenario({
@@ -894,6 +903,42 @@ describe("compileScenario", () => {
         expect(result.errors.some((e) => /constructor/i.test(e.message))).toBe(
           true,
         );
+      }
+    });
+
+    it("blocks generator-constructor access to Node globals", () => {
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "(function*(){}).constructor('return process.pid')().next().value",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.errors.some((error) => /constructor/i.test(error.message)),
+        ).toBe(true);
+      }
+    });
+
+    it("blocks primitive-constructor access to Node globals", () => {
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "(1n).constructor.constructor('return process.pid')()",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.errors.some((error) => /constructor/i.test(error.message)),
+        ).toBe(true);
       }
     });
 

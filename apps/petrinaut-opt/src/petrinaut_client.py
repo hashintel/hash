@@ -1,356 +1,409 @@
-#!/usr/bin/env python3
-"""Python Wrapper for Petri Net execution CLI.
+"""Synchronous client for one long-lived Petrinaut CLI process."""
 
-Inputs: all parameters and initial states to a Petri Net (both fixed and optimizable)
-Output: metric computed inside Petrinaut CLI at the end of the Petri Net execution
-
-
-Example:
-    python3 petrinaut_cli.py --produce-a 0.5 --produce-b 0.5 \
-        --initial-tokens 100 --policy balance
-"""
 from __future__ import annotations
-import logging
 
-import re
 import json
+import math
+import os
+import select
+import signal
 import subprocess
 import threading
+import time
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
-from pathlib import Path
-
-from typing import Any, Dict, Union, Sequence
-from pydantic import BaseModel, Field, PositiveFloat
-
-log = logging.getLogger("pn_client")
-
-# The Petrinaut execution program parameters
-PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-DEFAULT_CLI_PATH = PACKAGE_ROOT / "libs" / "@hashintel" / "petrinaut-cli" /  "dist" / "cli.js"
-DEFAULT_MODEL_PATH = PACKAGE_ROOT / "libs" / "@hashintel" / "petrinaut-cli" / "examples" / "supply-chain-profit-model.json"
-DEFAULT_METRIC = "Profit"
-DEFAULT_STEPS = 100
-DEFAULT_TIMESTEP = 0.1
-DEFAULT_SEED = 1234
-DEFAULT_STORE = ["metric"]
-DEFAULT_OUTPATH = ""
-DEFAULT_COMMAND = ""
-DEFAULT_EVAL_TIMEOUT = None
-
-# Regex for extracting number from Petrinaut CLI
-_NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+from src.optimization_models import OptimizationModel, Scalar
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Petrinaut CLI Python wrapper specification
-# ─────────────────────────────────────────────────────────────────────────────
+PROCESS_SHUTDOWN_TIMEOUT_SECONDS = 5
+MAX_MODEL_BOOTSTRAP_BYTES = 8 * 1024 * 1024
+MAX_PROTOCOL_LINE_BYTES = 8 * 1024 * 1024
+MODEL_BOOTSTRAP_TIMEOUT_SECONDS = 25
+TRIAL_TIMEOUT_SECONDS = 240
+_STDERR_DRAIN_CHUNK_BYTES = 64 * 1024
 
-class PetrinautModelSpec(BaseModel):
-    model_path: str = Field(default=DEFAULT_MODEL_PATH, description="Filepath to Petri Net JSON model")
-    cli_path: str = Field(default=DEFAULT_CLI_PATH, description="Filepath to Petrinaut CLI")
-    metric: str = Field(default=DEFAULT_METRIC, description="Metric name that will be computed at the end of execution")
-    steps: int = Field(default=DEFAULT_STEPS, description="Number of steps in a single execution")
-    dt: float = Field(default=DEFAULT_TIMESTEP, description="Step size for dynamics discretisation in a single execution")
-    seed: int = Field(default=DEFAULT_SEED, description="Random number generator seed (fixed -> deterministic output)")
-    store: Sequence[str] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
-    outpath: str = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
-    command: str = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
-    eval_timeout: PositiveFloat | None = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Petrinaut CLI Python wrapper
-# ─────────────────────────────────────────────────────────────────────────────
+def _child_environment() -> dict[str, str]:
+    """Return the complete, deliberately small environment for the CLI.
 
-class PetrinautModel:
-    """Python wrapper for Petrinaut execution CLI."""
-    
+    The model is user-controlled and scenario expressions execute as
+    JavaScript. Inheriting the service environment would therefore expose
+    credentials even when the container itself is otherwise isolated.
+    """
+    environment = {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "NO_COLOR": "1",
+        "TZ": "UTC",
+    }
+    node_options = os.environ.get("PETRINAUT_CLI_NODE_OPTIONS", "").strip()
+    if node_options:
+        environment["NODE_OPTIONS"] = node_options
+    return environment
+
+
+class PetrinautClientError(RuntimeError):
+    """The Petrinaut process or its transport is no longer usable."""
+
+
+class PetrinautProtocolError(PetrinautClientError):
+    """The Petrinaut process returned an invalid protocol response."""
+
+
+class PetrinautRunError(RuntimeError):
+    """One scenario run failed while the CLI process remained usable."""
+
+
+class PetrinautClient:
+    """Own a CLI process compiled for one immutable model snapshot.
+
+    The executable command is deliberately an internal constructor argument. It
+    is injectable for tests and deployment, but is never part of the HTTP API.
+    """
+
     def __init__(
         self,
-        pn_spec: PetrinautModelSpec,
-        node: str = "node",
-        **kwargs
+        model: OptimizationModel,
+        *,
+        command: Sequence[str] = ("petrinaut",),
+        popen_factory: Callable[..., Any] = subprocess.Popen,
+        bootstrap_timeout_seconds: float = MODEL_BOOTSTRAP_TIMEOUT_SECONDS,
+        request_timeout_seconds: float = TRIAL_TIMEOUT_SECONDS,
     ) -> None:
-        """Configure the wrapper from a model spec (the CLI is not started here).
-
-        Args:
-            pn_spec (PetrinautModelSpec): Execution spec (model/CLI paths, metric, steps, dt, seed, ...).
-            node (str): Node.js executable used to launch the CLI. Defaults to "node".
-            **kwargs: Accepted and ignored; reserved for future options.
-        """
-        # Specification params
-        self.model = Path(pn_spec.model_path).resolve()
-        self.cli = Path(pn_spec.cli_path).resolve()
-        self.node = node
-        self.metric = pn_spec.metric
-        self.steps = pn_spec.steps
-        self.dt = pn_spec.dt
-        self.seed = pn_spec.seed
-        self.eval_timeout = pn_spec.eval_timeout
-
-        # The following are currently unused
-        # they are left here for future releases
-        self.outpath = pn_spec.outpath
-        self.store = pn_spec.store
-        self.command = pn_spec.command
-        
-        # Subprocess for calling petrinaut CLI
-        self._process: subprocess.Popen[str] | None = None
-        # Request id counter
+        if not command or any(not part for part in command):
+            raise ValueError("the Petrinaut command must not be empty")
+        if bootstrap_timeout_seconds <= 0 or request_timeout_seconds <= 0:
+            raise ValueError("Petrinaut timeouts must be positive")
+        self._model = model
+        self._command = tuple(command)
+        self._popen_factory = popen_factory
+        self._bootstrap_timeout_seconds = bootstrap_timeout_seconds
+        self._request_timeout_seconds = request_timeout_seconds
+        self._process: subprocess.Popen[bytes] | None = None
         self._next_id = 1
+        self._state_lock = threading.Lock()
+        self._stdout_buffer = bytearray()
+        self._stderr_buffer = bytearray()
+        self._stderr_thread: threading.Thread | None = None
 
-        # Default coloured place
-        self.financial_data = {
-            "cumulative_profit":0,
-            "cumulative_units_sold":0,
-            "effective_demand":0,
-            "demand_multiplier":1.35,
-            "profit_rate":0,
-            "current_production_rate":125,
-            "current_selling_price":37,
-            "current_marketing_spend":32,
-            "current_expedite_fraction":0.33
-        }
-        
-
-    def __enter__(self) -> "PetrinautModel":
-        """Start the CLI subprocess and return this instance for `with` use.
-
-        Returns:
-            PetrinautModel: This started wrapper instance.
-        """
+    def __enter__(self) -> PetrinautClient:
         self.start()
         return self
 
     def __exit__(self, *_args: object) -> None:
-        """Close the CLI subprocess on context-manager exit.
-
-        Args:
-            *_args (object): Exception type/value/traceback, ignored.
-        """
         self.close()
-    
-
-    def _build_payload(self, parameters:dict, initial_state:dict, method:str = 'run') -> Dict[str,Union[str,Dict]]:
-        """Build a JSON-RPC request payload for the CLI and advance the request id.
-
-        Args:
-            parameters (dict): Petri-net parameters for this run.
-            initial_state (dict): Initial state per place; a default `FinancialData` is injected.
-            method (str): Protocol method to invoke. Defaults to 'run'.
-
-        Returns:
-            Dict[str, Union[str, Dict]]: The request payload to send to the CLI.
-        """
-        _initial_state = initial_state if initial_state else dict()
-        _initial_state["FinancialData"] = [self.financial_data]
-        payload: dict[str, Any] = {
-            "id": self._next_id, 
-            "method": method,
-            "params": {
-                "parameters": parameters,
-                "initialState": _initial_state,
-                "metrics": [self.metric],
-                "maxSteps": self.steps,
-                "dt": self.dt,
-                "seed": self.seed
-            }
-        }
-        self._next_id += 1
-        return payload
 
     def start(self) -> None:
-        """Launch the Petrinaut CLI subprocess in stdio serve mode.
-
-        Raises:
-            FileNotFoundError: The CLI bundle or model file does not exist.
-            RuntimeError: The CLI's stderr is unavailable or it fails to signal readiness.
-        """
-        # Reclaim any existing child before spawning a new one, so a second start()
-        # can never orphan a running CLI we no longer have a handle to.
-        if self._process is not None:
-            self.close()
-            
-        if not self.cli.is_file():
-            raise FileNotFoundError(
-                f"Petrinaut CLI not found at {self.cli}. Build it first."
-            )
-        if not self.model.is_file():
-            raise FileNotFoundError(f"Model not found at {self.model}")
-
-        self._process = subprocess.Popen(
-            [
-                self.node,
-                str(self.cli),
-                "serve",
-                "--model",
-                str(self.model),
-                "--stdio",
-            ],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-        if self._process.stderr is None:
-            raise RuntimeError("Petrinaut stderr is unavailable")
-        status = self._process.stderr.readline()
-        if not status.startswith("Petrinaut stdio ready"):
-            details = status + self._process.stderr.read()
-            self.close()
-            raise RuntimeError(f"Petrinaut failed to start:\n{details.strip()}")
-
-    def exchange(self, request: dict[str, Any]) -> dict[str, Any]:
-        """Send one raw protocol request and return its raw response."""
-        if (
-            self._process is None
-            or self._process.stdin is None
-            or self._process.stdout is None
-        ):
-            raise RuntimeError("PetrinautClient has not been started")
-
-        process = self._process
-        process.stdin.write(json.dumps(request) + "\n")
-        process.stdin.flush()
-
-        timer = None
-        timed_out = threading.Event()
-        if self.eval_timeout is not None:
-            # Unblock a hung readline by killing the CLI after eval_timeout seconds.
-            # Capture this specific process so a late timer can never kill a
-            # replacement started during timeout recovery.
-            def kill_on_timeout() -> None:
-                timed_out.set()
-                if process.poll() is None:
-                    process.kill()
-
-            timer = threading.Timer(self.eval_timeout, kill_on_timeout)
-            timer.start()
-        try:
-            line = process.stdout.readline()
-        finally:
-            if timer is not None:
-                timer.cancel()
-                # If the callback started concurrently with cancel(), wait for it
-                # to finish before deciding whether this exchange timed out.
-                timer.join()
-
-        if timed_out.is_set():
-            stderr = process.stderr.read() if process.stderr is not None else ""
+        """Start the CLI, send its model bootstrap, and wait until it is ready."""
+        with self._state_lock:
+            if self._process is not None:
+                return
             try:
-                self.close()
-                self.start()
-            except Exception as exc:
-                raise RuntimeError(
-                    "Petrinaut timed out and the CLI could not be restarted: "
-                    f"{exc}"
-                ) from exc
-            raise RuntimeError(
-                f"Petrinaut timed out without a response:\n{stderr.strip()}"
+                process = self._popen_factory(
+                    [*self._command, "serve", "--model-stdin", "--stdio"],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    bufsize=0,
+                    close_fds=True,
+                    env=_child_environment(),
+                    start_new_session=True,
+                    umask=0o077,
+                )
+            except (OSError, ValueError) as error:
+                raise PetrinautClientError(
+                    f"failed to start the Petrinaut CLI: {error}"
+                ) from error
+            self._process = process
+
+        if process.stdin is None or process.stdout is None or process.stderr is None:
+            self.close()
+            raise PetrinautClientError("the Petrinaut CLI pipes are unavailable")
+
+        model_json = json.dumps(
+            self._model.as_legacy_file(),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        if len(model_json.encode("utf-8")) > MAX_MODEL_BOOTSTRAP_BYTES:
+            self.close()
+            raise PetrinautClientError("the Petrinaut model exceeds the 8 MiB limit")
+
+        try:
+            process.stdin.write((model_json + "\n").encode())
+            process.stdin.flush()
+            status = self._readline(
+                process.stderr,
+                self._stderr_buffer,
+                timeout_seconds=self._bootstrap_timeout_seconds,
+                description="Petrinaut model bootstrap",
+            ).strip()
+        except (BrokenPipeError, OSError, ValueError, PetrinautClientError) as error:
+            self.close()
+            raise PetrinautClientError(
+                "failed to bootstrap the Petrinaut CLI"
+            ) from error
+
+        if not status.startswith("Petrinaut stdio ready"):
+            exit_code = process.poll()
+            self.close()
+            detail = status or f"process exited with code {exit_code}"
+            raise PetrinautClientError(f"Petrinaut failed to load the model: {detail}")
+
+        self._stderr_buffer.clear()
+        self._stderr_thread = threading.Thread(
+            target=self._drain_stderr,
+            args=(process.stderr,),
+            daemon=True,
+            name="petrinaut-stderr-drain",
+        )
+        self._stderr_thread.start()
+
+    @staticmethod
+    def _fallback_readline(stream: Any, maximum_bytes: int) -> bytes:
+        """Read test doubles without a file descriptor."""
+        line = stream.readline(maximum_bytes + 2)
+        if isinstance(line, str):
+            return line.encode()
+        return line
+
+    def _readline(
+        self,
+        stream: Any,
+        buffer: bytearray,
+        *,
+        timeout_seconds: float,
+        description: str,
+    ) -> str:
+        """Read one bounded UTF-8 line without waiting forever."""
+        try:
+            descriptor = stream.fileno()
+        except (AttributeError, OSError, ValueError):
+            line = self._fallback_readline(stream, MAX_PROTOCOL_LINE_BYTES)
+            if len(line) > MAX_PROTOCOL_LINE_BYTES:
+                raise PetrinautProtocolError(
+                    f"{description} exceeded the 8 MiB line limit"
+                )
+            try:
+                return line.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise PetrinautProtocolError(
+                    f"{description} was not valid UTF-8"
+                ) from error
+
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            newline = buffer.find(b"\n")
+            if newline >= 0:
+                line = bytes(buffer[: newline + 1])
+                del buffer[: newline + 1]
+                break
+            if len(buffer) > MAX_PROTOCOL_LINE_BYTES:
+                raise PetrinautProtocolError(
+                    f"{description} exceeded the 8 MiB line limit"
+                )
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise PetrinautClientError(f"{description} timed out")
+            ready, _, _ = select.select([descriptor], [], [], remaining)
+            if not ready:
+                raise PetrinautClientError(f"{description} timed out")
+            chunk = os.read(descriptor, _STDERR_DRAIN_CHUNK_BYTES)
+            if not chunk:
+                line = bytes(buffer)
+                buffer.clear()
+                break
+            buffer.extend(chunk)
+
+        if len(line) > MAX_PROTOCOL_LINE_BYTES:
+            raise PetrinautProtocolError(
+                f"{description} exceeded the 8 MiB line limit"
             )
+        try:
+            return line.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise PetrinautProtocolError(
+                f"{description} was not valid UTF-8"
+            ) from error
+
+    @staticmethod
+    def _drain_stderr(stream: Any) -> None:
+        """Prevent model-controlled stderr output from filling the pipe."""
+        while True:
+            try:
+                chunk = stream.read(_STDERR_DRAIN_CHUNK_BYTES)
+            except (OSError, ValueError):
+                return
+            if not chunk:
+                return
+
+    def _exchange(self, method: str, params: Mapping[str, Any] | None) -> Any:
+        process = self._process
+        if process is None or process.stdin is None or process.stdout is None:
+            raise PetrinautClientError("the Petrinaut CLI is not running")
+        if process.poll() is not None:
+            raise PetrinautClientError(
+                f"the Petrinaut CLI exited with code {process.returncode}"
+            )
+
+        request_id = self._next_id
+        self._next_id += 1
+        payload: dict[str, Any] = {"id": request_id, "method": method}
+        if params is not None:
+            payload["params"] = dict(params)
+
+        try:
+            process.stdin.write(
+                (json.dumps(payload, separators=(",", ":")) + "\n").encode()
+            )
+            process.stdin.flush()
+            line = self._readline(
+                process.stdout,
+                self._stdout_buffer,
+                timeout_seconds=self._request_timeout_seconds,
+                description="Petrinaut trial response",
+            )
+        except PetrinautProtocolError:
+            # A malformed response is fatal to the stream, but preserve its
+            # category so the optimizer does not treat it as a failed trial.
+            raise
+        except (
+            BrokenPipeError,
+            OSError,
+            ValueError,
+            PetrinautClientError,
+        ) as error:
+            self.close()
+            raise PetrinautClientError(
+                "failed to communicate with the Petrinaut CLI"
+            ) from error
 
         if not line:
-            stderr = (
-                process.stderr.read() if process.stderr is not None else ""
+            raise PetrinautClientError(
+                f"the Petrinaut CLI exited without a response (code {process.poll()})"
             )
-            raise RuntimeError(
-                f"Petrinaut exited without a response:\n{stderr.strip()}"
-            )
-        
-        response = json.loads(line)
+        try:
+            response = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise PetrinautProtocolError(
+                "the Petrinaut CLI returned invalid JSON"
+            ) from error
         if not isinstance(response, dict):
-            raise RuntimeError("Petrinaut returned a non-object response")
-        return response
-
-    
-    def request(self, method: str, parameters: dict[str, Any] | None = None, initial_state: dict[str,Any] | None = None) -> Any:
-        """Submits request to Petrinaut-cli UNIT socket and raises a Python exception for protocol errors."""
-        # Build payload first
-        payload = self._build_payload(
-            method=method,
-            parameters=parameters,
-            initial_state=initial_state
-        )
-        response = self.exchange(payload)
+            raise PetrinautProtocolError(
+                "the Petrinaut CLI returned a non-object response"
+            )
+        if response.get("id") != request_id:
+            raise PetrinautProtocolError(
+                "the Petrinaut CLI returned a mismatched response id"
+            )
         if "error" in response:
             error = response["error"]
             message = error.get("message", error) if isinstance(error, dict) else error
-            raise RuntimeError(str(message))
-        return response.get("result")
+            # A well-formed error response means the CLI handled the request
+            # and can accept another trial. Transport and protocol failures use
+            # the fatal exception classes above instead.
+            raise PetrinautRunError(str(message))
+        if "result" not in response:
+            raise PetrinautProtocolError(
+                "the Petrinaut CLI response omitted its result"
+            )
+        return response["result"]
 
-    def objective(self, parameters:dict, initial_state:dict) -> dict[str, Any]:
-        """Submits a run request to Petrinaut-cli UNIT socket and returns single-vale objective 
+    def run_scenario(
+        self,
+        *,
+        scenario_id: str,
+        parameter_values: Mapping[str, Scalar],
+        metric_id: str,
+        max_time: int | float,
+        dt: int | float,
+        seed: int,
+    ) -> float:
+        """Run a materialized scenario and return its numeric objective metric."""
+        result = self._exchange(
+            "run",
+            {
+                "scenario": {
+                    "id": scenario_id,
+                    "parameterValues": dict(parameter_values),
+                },
+                "metrics": [metric_id],
+                "maxTime": max_time,
+                "dt": dt,
+                "seed": seed,
+            },
+        )
+        if not isinstance(result, dict) or not isinstance(result.get("metrics"), dict):
+            raise PetrinautProtocolError(
+                "the Petrinaut CLI response omitted its metrics"
+            )
+        objective = result["metrics"].get(metric_id)
+        if (
+            isinstance(objective, bool)
+            or not isinstance(objective, (int, float))
+            or not math.isfinite(objective)
+        ):
+            # Metric code is model-controlled and may fail only for particular
+            # suggested values. The response itself is valid, so keep the CLI
+            # alive and let Optuna record this as a failed trial.
+            raise PetrinautRunError(
+                f'Petrinaut metric "{metric_id}" is not a finite number'
+            )
+        return float(objective)
 
-        Args:
-            parameters (dict): All parameters (optimized and fixed) to Petrinaut CLI
-            initial_state (dict): All initial states (optimized and fixed) to Petrinaut CLI
-
-        Returns:
-            objective (float): The metric evaluated from petrinaut-cli execution
-        """
-        response = self.request(method="run", parameters=parameters, initial_state=initial_state)
-        # Return the objective (metric) from the execution
-        objective = response["metrics"][self.metric]
-        return objective
-
-    def metadata(self) -> dict[str, Any]:
-        """Request the loaded model's metadata from the CLI.
-
-        Returns:
-            dict[str, Any]: The metadata result returned by the CLI.
-        """
-        return self.request("metadata")
+    @staticmethod
+    def _signal_process(process: Any, signal_number: signal.Signals) -> None:
+        """Signal the isolated process group, falling back for test doubles."""
+        process_id = getattr(process, "pid", None)
+        if isinstance(process_id, int):
+            try:
+                os.killpg(process_id, signal_number)
+                return
+            except ProcessLookupError:
+                return
+            except OSError:
+                pass
+        if signal_number is signal.SIGTERM:
+            process.terminate()
+        else:
+            process.kill()
 
     def close(self) -> None:
-        """Terminate the CLI subprocess and close its stdio streams if running."""
-        if self._process is not None:
-            if self._process.stdin is not None:
-                self._process.stdin.close()
-            if self._process.poll() is None:
-                try:
-                    self._process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self._process.terminate()
-                    self._process.wait()
-            if self._process.stdout is not None:
-                self._process.stdout.close()
-            if self._process.stderr is not None:
-                self._process.stderr.close()
+        """Stop the owned process. Safe to call repeatedly or during a request."""
+        with self._state_lock:
+            process = self._process
             self._process = None
+        if process is None:
+            return
 
+        if process.stdin is not None and not process.stdin.closed:
+            try:
+                process.stdin.close()
+            except (BrokenPipeError, OSError, ValueError):
+                pass
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s  %(message)s",
-        datefmt="%H:%M:%S",
-    )
+        if process.poll() is None:
+            try:
+                process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                self._signal_process(process, signal.SIGTERM)
+                try:
+                    process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
+                except subprocess.TimeoutExpired:
+                    self._signal_process(process, signal.SIGKILL)
+                    process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
 
-    # Create the petrinaut execution specification
-    pn_spec = PetrinautModelSpec(
-        steps = 365,
-        seed = 1234
-    )
-    # Build the Petri net from the client spec in a context manager
-    with PetrinautModel(pn_spec) as petrinet_model:
-        # Run petrinaut once to get metric value
-        metric_value = petrinet_model.objective(
-            parameters = {
-                "production_rate": 100.0, 
-                "reorder_threshold": 160,
-                "batch_size":180,
-                "selling_price":34.0,
-                "expedite_fraction":0.25,
-                "marketing_spend":20.0,
-                "demand_multiplier":1.0,
-            },
-            initial_state = {
-                "RawInventory": 220,
-                "FinishedGoods": 120,
-                "CustomerDemand": 0,
-                "SoldOrders": 0,
-                "LostSales": 0,
-            }
-        )
-    # Read metric value from petrinaut execution
-    log.info(f'metric_value = {metric_value}')
+        for stream in (process.stdout, process.stderr):
+            if stream is not None and not stream.closed:
+                try:
+                    stream.close()
+                except (OSError, ValueError):
+                    pass
+
+        stderr_thread = self._stderr_thread
+        self._stderr_thread = None
+        if stderr_thread is not None and stderr_thread is not threading.current_thread():
+            stderr_thread.join(timeout=1)
