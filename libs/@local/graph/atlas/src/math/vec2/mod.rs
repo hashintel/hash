@@ -70,36 +70,36 @@ impl Vec2 {
     pub const ZERO: Self = Self::splat(0.0);
 
     /// Creates a vector from its `x` and `y` components.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn new(x: f32, y: f32) -> Self {
         Self([x, y])
     }
 
     /// Creates a vector with both components set to `value`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn splat(value: f32) -> Self {
         Self([value, value])
     }
 
     /// Returns the `x` component.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn x(self) -> f32 {
         self.0[0]
     }
 
     /// Returns the `y` component.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn y(self) -> f32 {
         self.0[1]
     }
 
     /// Returns the dot product of the two vectors.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn dot(self, other: Self) -> f32 {
         self.x() * other.x() + self.y() * other.y()
     }
@@ -110,8 +110,8 @@ impl Vec2 {
     /// The sign tells which side of `self` the other vector lies on:
     /// positive when `other` is counterclockwise from `self`, negative when
     /// clockwise, zero when the vectors are parallel.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn perp_dot(self, other: Self) -> f32 {
         self.x() * other.y() - self.y() * other.x()
     }
@@ -120,22 +120,22 @@ impl Vec2 {
     ///
     /// Prefer this over [`length`](Self::length) when comparing magnitudes
     /// or feeding a squared metric; it avoids the square root.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn length_squared(self) -> f32 {
         self.dot(self)
     }
 
     /// Returns the length of the vector.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn length(self) -> f32 {
         self.length_squared().sqrt()
     }
 
     /// Returns the squared Euclidean distance to `other`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn distance_squared(self, other: Self) -> f32 {
         let dx = self.x() - other.x();
         let dy = self.y() - other.y();
@@ -144,8 +144,8 @@ impl Vec2 {
     }
 
     /// Returns the Euclidean distance to `other`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn distance(self, other: Self) -> f32 {
         self.distance_squared(other).sqrt()
     }
@@ -154,8 +154,8 @@ impl Vec2 {
     ///
     /// At `factor == 0.0` the result is `self`, at `factor == 1.0` it is
     /// `other`; values outside `[0, 1]` extrapolate along the same line.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn lerp(self, other: Self, factor: f32) -> Self {
         self + (other - self) * factor
     }
@@ -164,8 +164,8 @@ impl Vec2 {
     ///
     /// NaN components lose: when exactly one operand is NaN in a component,
     /// the other operand's component is returned, following [`f32::min`].
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn min(self, other: Self) -> Self {
         Self::new(self.x().min(other.x()), self.y().min(other.y()))
     }
@@ -174,8 +174,8 @@ impl Vec2 {
     ///
     /// NaN components lose: when exactly one operand is NaN in a component,
     /// the other operand's component is returned, following [`f32::max`].
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn max(self, other: Self) -> Self {
         Self::new(self.x().max(other.x()), self.y().max(other.y()))
     }
@@ -187,8 +187,8 @@ impl Vec2 {
     /// Panics in debug builds when a component of `low` exceeds the
     /// matching component of `high`, or when a bound is NaN, following
     /// [`f32::clamp`].
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn clamp(self, low: Self, high: Self) -> Self {
         Self::new(
             self.x().clamp(low.x(), high.x()),
@@ -197,8 +197,8 @@ impl Vec2 {
     }
 
     /// Returns whether both components are finite.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn is_finite(self) -> bool {
         self.x().is_finite() && self.y().is_finite()
     }
@@ -377,8 +377,8 @@ impl Vec2x4T {
     /// Returns the four `x` components as SIMD lanes.
     ///
     /// Lane `i` holds the `x` component of vector `i`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn xs(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[..4])
     }
@@ -386,8 +386,8 @@ impl Vec2x4T {
     /// Returns the four `y` components as SIMD lanes.
     ///
     /// Lane `i` holds the `y` component of vector `i`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn ys(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[4..])
     }
@@ -396,8 +396,8 @@ impl Vec2x4T {
     ///
     /// Lane `i` of `xs` and `ys` becomes vector `i`. This is the natural
     /// way to store results back after per-axis arithmetic.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {
         let [x0, x1, x2, x3] = xs.to_array();
         let [y0, y1, y2, y3] = ys.to_array();
@@ -414,8 +414,8 @@ impl Vec2x4T {
     /// # Panics
     ///
     /// Panics if `index >= 4`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
         Vec2::new(self.0[index], self.0[index + 4])
     }
@@ -424,8 +424,8 @@ impl Vec2x4T {
     ///
     /// The lane order is the memory order: `x0 x1 x2 x3 y0 y1 y2 y3`. This
     /// compiles to a single full-width vector load.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn to_simd(self) -> Simd<f32, 8> {
         Simd::from_array(self.0)
     }
@@ -434,8 +434,8 @@ impl Vec2x4T {
     ///
     /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the
     /// multiply-add is fused, rounding once instead of twice.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn dot(self, other: Self) -> Simd<f32, 4> {
         mul_add_f32x4(self.xs(), other.xs(), self.ys() * other.ys())
     }
@@ -445,8 +445,8 @@ impl Vec2x4T {
     /// Lane `i` holds the squared distance between `self[i]` and
     /// `other[i]`. On targets with native FMA the multiply-add is fused,
     /// rounding once instead of twice.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn distance_squared(self, other: Self) -> Simd<f32, 4> {
         let dx = self.xs() - other.xs();
         let dy = self.ys() - other.ys();
@@ -455,8 +455,8 @@ impl Vec2x4T {
     }
 
     /// Returns the four squared lengths as SIMD lanes.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn length_squared(self) -> Simd<f32, 4> {
         self.dot(self)
     }
@@ -577,8 +577,8 @@ impl Vec2x4 {
     /// # Panics
     ///
     /// Panics if `index >= 4`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
         self.0[index]
     }
@@ -587,8 +587,8 @@ impl Vec2x4 {
     ///
     /// The lane order is the memory order: `x0 y0 x1 y1 x2 y2 x3 y3`. This
     /// compiles to a single full-width vector load.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn to_simd(self) -> Simd<f32, 8> {
         let [
             Vec2([x0, y0]),

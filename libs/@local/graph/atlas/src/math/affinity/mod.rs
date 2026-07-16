@@ -24,9 +24,7 @@
 //! points.
 //!
 //! All arithmetic is `f32` with FMA contraction where the target provides
-//! it. The `d^(2b)` power is the one operation evaluated per lane, since
-//! portable SIMD offers no transcendentals; everything else in the kernels
-//! is vectorized.
+//! it, and the kernels are fully vectorized, including the `d^(2b)` power.
 #![expect(
     clippy::min_ident_chars,
     reason = "`a` and `b` are the canonical names of the UMAP curve parameters throughout the \
@@ -36,7 +34,7 @@
 use core::simd::{Select as _, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _};
 
 use super::{
-    kernel::mul_add_f32x4,
+    kernel::{mul_add_f32x4, pow_f32x4},
     vec2::{Vec2, Vec2x4T},
 };
 
@@ -138,7 +136,7 @@ impl AffinityCurve {
         let distance_squared = from.distance_squared(to);
 
         // Shared power: d^(2b - 2), with d^(2b) recovered by one multiply.
-        let power = pow_lanes(distance_squared, self.b - 1.0);
+        let power = pow_f32x4(distance_squared, Simd::splat(self.b - 1.0));
         let coefficient = (Simd::splat(-2.0 * self.a * self.b) * power)
             / mul_add_f32x4(
                 Simd::splat(self.a) * power,
@@ -167,7 +165,7 @@ impl AffinityCurve {
     pub fn repulsion_x4(self, from: Vec2x4T, to: Vec2x4T, repulsion_strength: f32) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
 
-        let power = pow_lanes(distance_squared, self.b);
+        let power = pow_f32x4(distance_squared, Simd::splat(self.b));
         let denominator = (Simd::splat(Self::REPULSION_GUARD) + distance_squared)
             * mul_add_f32x4(Simd::splat(self.a), power, Simd::splat(1.0));
         let coefficient = Simd::splat(2.0 * repulsion_strength * self.b) / denominator;
@@ -215,30 +213,6 @@ impl AffinityCurve {
 
         clip_vec2((from - to) * coefficient)
     }
-}
-
-/// Raises each lane to a scalar power, one [`f32::powf`] call per lane.
-// This is the kernels' scalar island and hot spot: portable SIMD has no
-// `powf`. A vectorized `exp2(p * log2(d))` approximation would slot in
-// here if profiling demands it.
-//
-// The four libm call sites make this function expensive enough in LLVM's
-// cost model that a plain `#[inline]` hint is not a guarantee.
-#[expect(
-    clippy::inline_always,
-    reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \
-              surrounding kernel must be guaranteed, not hinted"
-)]
-#[inline(always)]
-fn pow_lanes(base: Simd<f32, 4>, exponent: f32) -> Simd<f32, 4> {
-    let [b0, b1, b2, b3] = base.to_array();
-
-    Simd::from_array([
-        b0.powf(exponent),
-        b1.powf(exponent),
-        b2.powf(exponent),
-        b3.powf(exponent),
-    ])
 }
 
 /// Scales the per-pair difference vectors and clamps each axis component.

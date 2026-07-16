@@ -72,8 +72,10 @@ The current process envelope has deliberate seams:
   the narrow public operational façade.
 - Concrete serving accepts only `BaseRevision(0)` with `DeltaRevision(0)`.
   Base-plus-delta traits exist, but incremental mutation is not enabled.
-- A release generation is built twice from the same frozen input. The isolated
-  reproduction must match before any external grant is requested.
+- An independent-authority release is built twice from the same frozen input.
+  The isolated reproduction must match before any external grant is requested.
+  Evidence-deferred local fits build once and self-bind the required
+  reproducibility payload; that payload has no independent evidentiary value.
 - Opening an artifact copies it once into a private unlinked file before
   mapping. This protects live readers from path mutation, but it requires
   temporary storage proportional to the opened artifact set.
@@ -122,10 +124,10 @@ source extraction
   -> exact-edition permission checks for every representation row
   -> relation permission and coordinate-influence filtering
   -> frozen canonical input
-  -> isolated reproduction build
+  -> isolated reproduction build (independent-authority mode only)
   -> primary build
   -> durable projector checkpoint decode and architecture verification
-  -> reproduction equality check
+  -> reproduction equality check or explicit deferred self-binding
   -> external report grants
   -> signed complete gate report
   -> inactive candidate marker
@@ -140,8 +142,10 @@ the external issuer path. `evidence_deferred_local` replaces those external
 decisions with local provisional signatures and replaces unavailable source
 provenance, approvals, and companion artifacts with deterministic values
 marked `mock_non_attesting`. The mocks satisfy the current manifest envelope
-only; they do not affect classifier inference, geometry, reproduction, or
-numerical gates. Both modes use the same artifact, candidate, CAS, and restart
+only; they do not affect classifier inference, geometry, or numerical gates.
+Evidence-deferred mode also omits the independent reproduction build and
+self-binds the required reproducibility payload, which is explicitly
+non-attesting. Both modes use the same artifact, candidate, CAS, and restart
 path, and both substitute a repeatable-read PostgreSQL snapshot identity and a
 locally bound extraction receipt. Local attestation samples the live WAL around
 permission reads; evidence-deferred mode deliberately reuses the extraction
@@ -295,9 +299,11 @@ report file is unchanged.
 
 ### Account for reproducibility cost
 
-The store-backed runner first builds an isolated reproduction under a temporary
-directory and then builds the primary generation. It compares manifests and
-artifact outputs before issuing release evidence.
+In independent-authority mode, the store-backed runner first builds an isolated
+reproduction under a temporary directory and then builds the primary
+generation. It compares manifests and artifact outputs before issuing release
+evidence. Evidence-deferred local mode builds only the primary generation and
+self-binds its output identity into a non-attesting reproducibility payload.
 
 The manifest records both the running executable fingerprint and a structured
 execution contract. Production M0 generation accepts only
@@ -313,8 +319,9 @@ two-dimensional squared-L2 indexes. On macOS the executable fingerprint and
 math images use their mapped Mach-O UUIDs rather than replaceable paths.
 
 Plan for approximately two projector fits and two complete artifact builds per
-release attempt. The reported `training_wall_time` is the primary projector
-fit, not total process wall time.
+independent-authority release attempt, or one of each for evidence-deferred
+local mode. The reported `training_wall_time` is the primary projector fit, not
+total process wall time.
 
 Direct PostgreSQL extraction additionally enforces fixed aggregate ceilings of
 4,000,000 type references, 256 MiB of type URL text, and 256 MiB of ontology
@@ -935,7 +942,8 @@ Before exposing a serving process:
   network;
 - put authentication, tenant authorization, TLS, request limits, and
   observability in the surrounding service;
-- size generation time for two complete deterministic builds;
+- size generation time for two complete deterministic builds in
+  independent-authority mode or one build in evidence-deferred local mode;
 - monitor `hash_graph_atlas::salt` tracing events for stage wall time;
 - run quality-gated benchmarks on the intended deployment architecture; and
 - prove restart loading before considering a fit successful.

@@ -265,12 +265,7 @@ fn validate_policy_sidecar<'artifact>(
     }
     let mut policy_hash = ContentHasher::new(b"hash.graph.atlas.salt.resolved-relation-policy.v1");
     for policy in 0..policies {
-        let selected_policy = PlacementPosterior::new(
-            selected[policy * 3],
-            selected[policy * 3 + 1],
-            selected[policy * 3 + 2],
-        )
-        .map_err(|_error| "relation policy selected posterior is invalid")?;
+        let selected_policy = persisted_posterior(&selected[policy * 3..policy * 3 + 3])?;
         let applicability_value = Probability::new(applicability[policy])
             .map_err(|_error| "relation policy applicability is invalid")?;
         let attraction = selected_policy.with_applicability(applicability_value);
@@ -288,31 +283,53 @@ fn validate_policy_sidecar<'artifact>(
             expected_effective.proximal.get(),
             expected_effective.overlay.get(),
         ];
-        if usize::try_from(ordinals[policy]).ok() != Some(policy)
-            || sources[policy] > 4
-            || coincident_admitted[policy] > 1
-            || !selected[policy * 3..policy * 3 + 3]
-                .iter()
-                .copied()
-                .all(unit)
+        if usize::try_from(ordinals[policy]).ok() != Some(policy) {
+            return Err("relation policy sidecar contains a non-dense ordinal");
+        }
+        if sources[policy] > 4 {
+            return Err("relation policy sidecar contains an unknown source");
+        }
+        if coincident_admitted[policy] > 1 {
+            return Err("relation policy sidecar contains an invalid admission flag");
+        }
+        if !selected[policy * 3..policy * 3 + 3]
+            .iter()
+            .copied()
+            .all(unit)
             || (selected[policy * 3..policy * 3 + 3].iter().sum::<f64>() - 1.0).abs() > 1.0e-9
-            || !unit(applicability[policy])
-            || !effective[policy * 3..policy * 3 + 3]
-                .iter()
-                .copied()
-                .all(unit)
-            || !nonnegative(strength[policy])
-            || (sources[policy] <= 2 && applicability_value != Probability::ONE)
-            || (sources[policy] == 4
-                && (selected_policy != PlacementPosterior::OVERLAY
-                    || applicability_value != Probability::ZERO))
-            || coincident_admitted[policy] != u8::from(expected_admission)
-            || effective[policy * 3..policy * 3 + 3]
-                .iter()
-                .zip(expected_values)
-                .any(|(&actual, expected)| actual.to_bits() != expected.to_bits())
         {
-            return Err("relation policy sidecar contains an invalid value");
+            return Err("relation policy sidecar contains an invalid selected posterior");
+        }
+        if !unit(applicability[policy])
+            || (sources[policy] <= 2 && applicability_value != Probability::ONE)
+        {
+            return Err("relation policy sidecar contains invalid applicability");
+        }
+        if sources[policy] == 4
+            && (selected_policy != PlacementPosterior::OVERLAY
+                || applicability_value != Probability::ZERO)
+        {
+            return Err("relation policy sidecar contains an invalid fallback");
+        }
+        if !effective[policy * 3..policy * 3 + 3]
+            .iter()
+            .copied()
+            .all(unit)
+        {
+            return Err("relation policy sidecar contains an invalid effective posterior");
+        }
+        if !nonnegative(strength[policy]) {
+            return Err("relation policy sidecar contains invalid strength");
+        }
+        if coincident_admitted[policy] != u8::from(expected_admission) {
+            return Err("relation policy sidecar contains an inconsistent admission flag");
+        }
+        if effective[policy * 3..policy * 3 + 3]
+            .iter()
+            .zip(expected_values)
+            .any(|(&actual, expected)| actual.to_bits() != expected.to_bits())
+        {
+            return Err("relation policy sidecar contains inconsistent effective attraction");
         }
         let start =
             usize::try_from(offsets[policy]).map_err(|_error| "policy offset does not fit")?;
@@ -350,4 +367,48 @@ fn validate_policy_sidecar<'artifact>(
         effective,
         strength,
     })
+}
+
+fn persisted_posterior(values: &[f64]) -> Result<PlacementPosterior, &'static str> {
+    let coincident = Probability::new(values[0])
+        .map_err(|_error| "relation policy selected posterior is invalid")?;
+    let proximal = Probability::new(values[1])
+        .map_err(|_error| "relation policy selected posterior is invalid")?;
+    let overlay = Probability::new(values[2])
+        .map_err(|_error| "relation policy selected posterior is invalid")?;
+    PlacementPosterior::new(values[0], values[1], values[2])
+        .map_err(|_error| "relation policy selected posterior is invalid")?;
+    Ok(PlacementPosterior {
+        coincident,
+        proximal,
+        overlay,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn persisted_posterior_validation_preserves_component_bits() {
+        let values = [
+            0.340_563_577_086_961_44,
+            0.372_241_283_173_009_64,
+            0.287_195_139_740_028_86,
+        ];
+        let persisted = persisted_posterior(&values).expect("posterior should validate");
+        assert_eq!(persisted.coincident.get().to_bits(), values[0].to_bits());
+        assert_eq!(persisted.proximal.get().to_bits(), values[1].to_bits());
+        assert_eq!(persisted.overlay.get().to_bits(), values[2].to_bits());
+
+        let applicability =
+            Probability::new(0.666_666_666_666_666_7).expect("applicability should validate");
+        let effective = persisted
+            .with_applicability(applicability)
+            .without_coincident();
+        assert_eq!(
+            effective.proximal.get().to_bits(),
+            0.248_160_855_448_673_1_f64.to_bits()
+        );
+    }
 }

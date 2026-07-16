@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use crate::salt::manifest::{ArtifactRole, GenerationManifest};
+use crate::salt::manifest::{ArtifactRole, GenerationAssuranceMode, GenerationManifest};
 
 const MAXIMUM_GATE_REPORT_BYTES: usize = 16 * 1_024 * 1_024;
 
@@ -13,6 +13,7 @@ struct ReportEnvelope {
     suite_version: String,
     outcome: String,
     subjects: serde_json::Map<String, serde_json::Value>,
+    attesting: Option<bool>,
 }
 
 pub(super) fn validate(
@@ -25,8 +26,14 @@ pub(super) fn validate(
     }
     let report: ReportEnvelope =
         serde_json::from_slice(bytes).map_err(|_error| "gate report is not valid JSON")?;
+    let expected_outcome = match (manifest.assurance_mode, role) {
+        (GenerationAssuranceMode::EvidenceDeferredLocal, ArtifactRole::RepresentationReport) => {
+            report.outcome == "deferred" && report.attesting == Some(false)
+        }
+        _ => report.outcome == "pass",
+    };
     if report.schema_version != 1
-        || report.outcome != "pass"
+        || !expected_outcome
         || report.subjects.is_empty()
         || report.suite_version != expected_suite(role, manifest)?
     {
@@ -64,4 +71,44 @@ fn canonical_variant(
         .iter()
         .find(|variant| variant.id == manifest.variants.canonical_variant)
         .ok_or("canonical variant is missing while validating gate reports")
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+    use crate::salt::manifest::fixture_manifest;
+
+    #[test]
+    fn deferred_representation_report_requires_an_explicit_non_attesting_outcome() {
+        let mut manifest = fixture_manifest();
+        manifest.assurance_mode = GenerationAssuranceMode::EvidenceDeferredLocal;
+        let suite = &manifest.embedding.representation_audit.suite_version;
+        let report = serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "suiteVersion": suite,
+            "outcome": "deferred",
+            "attesting": false,
+            "subjects": {"fixture": "fixture-subject"}
+        }))
+        .expect("report should serialize");
+
+        validate(ArtifactRole::RepresentationReport, &report, &manifest)
+            .expect("explicitly deferred representation report should validate");
+
+        let mut falsely_attesting: serde_json::Value =
+            serde_json::from_slice(&report).expect("report should decode");
+        falsely_attesting["attesting"] = json!(true);
+        let falsely_attesting =
+            serde_json::to_vec(&falsely_attesting).expect("report should serialize");
+        assert!(
+            validate(
+                ArtifactRole::RepresentationReport,
+                &falsely_attesting,
+                &manifest
+            )
+            .is_err()
+        );
+    }
 }

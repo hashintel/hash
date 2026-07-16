@@ -4218,6 +4218,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccff2060df2e1a42732ab1e7af8c5f930ed3d0255aaadfae66e032781e8d271a"
 
 [[package]]
+name = "doubled"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1dd32c7cc01b2799bf6ddb980f595b6235fb5ebdb7926b4010202663e9448ffd"
+
+[[package]]
 name = "dragonbox_ecma"
 version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6116,6 +6122,7 @@ dependencies = [
  "camino",
  "clap",
  "codspeed-criterion-compat",
+ "crc-fast",
  "cxx",
  "darwin-kperf-criterion",
  "ed25519-dalek 3.0.0",
@@ -6123,6 +6130,7 @@ dependencies = [
  "faer",
  "fs2",
  "futures",
+ "futures-sink",
  "gemm",
  "gemm-common",
  "hash-graph-authorization",
@@ -6148,6 +6156,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "simple-mermaid",
+ "sleef",
  "sprs",
  "sysinfo 0.39.6",
  "tempfile",
@@ -13129,6 +13138,15 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "sleef"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea6dbf8ab191d2d292f99457cf06f1465b7764a856a5cfee3ab8ada09d7e03cf"
+dependencies = [
+ "doubled",
+]
 
 [[package]]
 name = "slotmap"

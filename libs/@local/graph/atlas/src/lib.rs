@@ -71,6 +71,7 @@
     // Language Features
     const_trait_impl,
     default_field_values,
+    never_type,
 
     // Library Features
     const_convert,
@@ -80,7 +81,8 @@
     future_join,
     pointer_is_aligned_to,
     portable_simd,
-    allocator_api
+    allocator_api,
+    array_try_from_fn
 )]
 #![expect(
     dead_code,
@@ -94,6 +96,7 @@ extern crate alloc;
 pub mod api;
 pub mod cli;
 pub mod float;
+pub mod integrity;
 pub(crate) mod macros;
 pub mod math;
 pub mod projection;

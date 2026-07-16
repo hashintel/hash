@@ -84,8 +84,8 @@ impl Transform {
     ///
     /// The resulting transform maps `p` to
     /// `x_axis * p.x + y_axis * p.y + translation`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
         Self {
             x_axis,
@@ -96,8 +96,8 @@ impl Transform {
 
     /// Creates a transform that scales each axis independently around the
     /// origin.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_scale(scale: Vec2) -> Self {
         Self::from_cols(
             Vec2::new(scale.x(), 0.0),
@@ -107,8 +107,8 @@ impl Transform {
     }
 
     /// Creates a transform that rotates around the origin.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_rotation(rotation: Rotation) -> Self {
         Self::from_cols(
             Vec2::new(rotation.cos(), rotation.sin()),
@@ -118,8 +118,8 @@ impl Transform {
     }
 
     /// Creates a transform that moves every vector by `translation`.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_translation(translation: Vec2) -> Self {
         Self::from_cols(Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0), translation)
     }
@@ -148,8 +148,8 @@ impl Transform {
     /// assert!((moved.x() - -16.0).abs() < 1e-5);
     /// assert!((moved.y() - -8.0).abs() < 1e-5);
     /// ```
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn then(self, next: impl [const] Into<Self>) -> Self {
         let next = next.into();
 
@@ -161,8 +161,8 @@ impl Transform {
     }
 
     /// Transforms a single vector.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn apply(self, vec: Vec2) -> Vec2 {
         let linear = self.apply_linear(vec);
 

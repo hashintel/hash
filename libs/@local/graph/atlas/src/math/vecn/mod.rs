@@ -41,22 +41,22 @@ pub struct VecN<const N: usize>([f32; N]);
 
 impl<const N: usize> VecN<N> {
     /// Creates a vector that owns its components.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn new(components: [f32; N]) -> Self {
         Self(components)
     }
 
     /// Wraps a borrowed array in place, without copying.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_ref(value: &[f32; N]) -> &Self {
         zerocopy::transmute_ref!(value)
     }
 
     /// Wraps a mutably borrowed array in place, without copying.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn from_mut(value: &mut [f32; N]) -> &mut Self {
         let ptr = (&raw mut *value).cast::<Self>();
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the
@@ -66,8 +66,8 @@ impl<const N: usize> VecN<N> {
     }
 
     /// Returns the components as an array reference.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn as_array(&self) -> &[f32; N] {
         &self.0
     }
@@ -77,8 +77,8 @@ impl<const N: usize> VecN<N> {
     /// Returns [`None`] when the vector does not happen to sit at an
     /// address aligned to `align_of::<f32x8>()` bytes. For storage that is
     /// aligned by construction rather than by luck, use [`BoxedVecN`].
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn try_as_aligned(&self) -> Option<&AlignedVecN<N>> {
         AlignedVecN::from_ref(&self.0)
     }
@@ -89,8 +89,8 @@ impl<const N: usize> VecN<N> {
     /// Returns [`None`] when the vector does not happen to sit at an
     /// address aligned to `align_of::<f32x8>()` bytes. For storage that is
     /// aligned by construction rather than by luck, use [`BoxedVecN`].
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn try_as_aligned_mut(&mut self) -> Option<&mut AlignedVecN<N>> {
         AlignedVecN::from_mut(&mut self.0)
     }
@@ -123,8 +123,8 @@ impl<const N: usize> AlignedVecN<N> {
     ///
     /// `value` must be aligned to `align_of::<f32x8>()` bytes. Consumers of
     /// the wrapper are allowed to rely on that alignment for aligned loads.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const unsafe fn from_ref_unchecked(value: &[f32; N]) -> &Self {
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the
         // alignment invariant is the caller's contract.
@@ -138,8 +138,8 @@ impl<const N: usize> AlignedVecN<N> {
     /// `value` must be aligned to `align_of::<f32x8>()` bytes. Consumers of
     /// the wrapper are allowed to rely on that alignment for aligned loads
     /// and stores.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const unsafe fn from_mut_unchecked(value: &mut [f32; N]) -> &mut Self {
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the
         // alignment invariant is the caller's contract.
@@ -177,15 +177,15 @@ impl<const N: usize> AlignedVecN<N> {
     }
 
     /// Returns the components as an array reference.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn as_array(&self) -> &[f32; N] {
         &self.0
     }
 
     /// Returns the components as a mutable array reference.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn as_array_mut(&mut self) -> &mut [f32; N] {
         &mut self.0
     }
@@ -200,8 +200,8 @@ impl<const N: usize> AlignedVecN<N> {
     /// dimension is a multiple of 8, which embedding dimensions in
     /// practice are. The type's alignment invariant guarantees no
     /// misaligned prefix exists, so no components precede the groups.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn lanes(&self) -> (&[f32x8], &[f32]) {
         let (prefix, lanes, suffix) = self.0.as_simd();
         debug_assert_eq!(
@@ -219,8 +219,8 @@ impl<const N: usize> AlignedVecN<N> {
     /// The split is the same as [`lanes`](Self::lanes); writes through
     /// either slice update the vector in place, so SIMD kernels can
     /// transform embeddings without a staging copy.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn lanes_mut(&mut self) -> (&mut [f32x8], &mut [f32]) {
         let (prefix, lanes, suffix) = self.0.as_simd_mut();
         debug_assert_eq!(
@@ -270,8 +270,8 @@ pub struct BoxedVecN<const N: usize, A: Allocator = Global> {
 impl<const N: usize> BoxedVecN<N> {
     /// Copies the vector into a new aligned allocation in the global
     /// allocator.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn new(value: &VecN<N>) -> Self {
         Self::new_in(value, Global)
     }

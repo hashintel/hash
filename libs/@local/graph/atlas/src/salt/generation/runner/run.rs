@@ -39,7 +39,7 @@ use crate::salt::{
     landmark::{
         assign_landmarks, fit_landmark_skeleton, publish_landmark_skeleton, select_landmarks,
     },
-    manifest::{GenerationManifest, SeedManifest},
+    manifest::{GenerationAssuranceMode, GenerationManifest, SeedManifest},
     projector::{
         AdaptiveProjectorBatchFactory, AdaptiveProjectorSource, CoordinateSupportRow,
         fit_conditioned_projector_adaptive, load_projector_checkpoint,
@@ -138,24 +138,33 @@ where
     let binary_fingerprint = running_binary_fingerprint()?;
     let root = config.root;
     ensure_durable_directory(root)?;
-    let reproduction_directory = tempfile::Builder::new()
-        .prefix(".salt-reproduction-")
-        .tempdir_in(root)?;
-    let reproduction_root = Utf8Path::from_path(reproduction_directory.path())
-        .expect("an ASCII child of a UTF-8 root should remain UTF-8");
     let verifier = release_authority.signer().verifier();
-    // Build the independent reproduction from the already frozen input and in
-    // an isolated root. It receives no candidate marker and disappears when
-    // this function returns.
-    let reproduction = build_frozen_canonical_generation::<B>(
-        &input,
-        config,
-        reproduction_root,
-        &verifier,
-        binary_fingerprint,
-        &execution_contract,
-        compute.device(),
-    )?;
+    let assurance_mode = input.begin_manifest().assurance_mode;
+    let reproduction_directory = (assurance_mode
+        == GenerationAssuranceMode::IndependentAuthorities)
+        .then(|| {
+            tempfile::Builder::new()
+                .prefix(".salt-reproduction-")
+                .tempdir_in(root)
+        })
+        .transpose()?;
+    let reproduction = if let Some(directory) = &reproduction_directory {
+        let reproduction_root = Utf8Path::from_path(directory.path())
+            .expect("an ASCII child of a UTF-8 root should remain UTF-8");
+        // Independent-authority releases build from the frozen input in an
+        // isolated root before any candidate is made discoverable.
+        Some(build_frozen_canonical_generation::<B>(
+            &input,
+            config,
+            reproduction_root,
+            &verifier,
+            binary_fingerprint,
+            &execution_contract,
+            compute.device(),
+        )?)
+    } else {
+        None
+    };
     let primary = build_frozen_canonical_generation::<B>(
         &input,
         config,
@@ -165,13 +174,19 @@ where
         &execution_contract,
         compute.device(),
     )?;
-    verify_reproduction(&primary, &reproduction)?;
+    if let Some(reproduction) = &reproduction {
+        verify_reproduction(&primary, reproduction)?;
+    }
     let published_artifact_bytes = artifact_bytes(&primary)?;
-    let working_disk_high_water_bytes = published_artifact_bytes
-        .checked_add(artifact_bytes(&reproduction)?)
-        .ok_or(CanonicalGenerationError::ResourceSizeOverflow {
-            resource: "working generation artifacts",
-        })?;
+    let working_disk_high_water_bytes = if let Some(reproduction) = &reproduction {
+        published_artifact_bytes
+            .checked_add(artifact_bytes(reproduction)?)
+            .ok_or(CanonicalGenerationError::ResourceSizeOverflow {
+                resource: "working generation artifacts",
+            })?
+    } else {
+        published_artifact_bytes
+    };
 
     let manifest_hash = primary.manifest.content_hash()?;
     let head = ReleaseHead {
@@ -180,6 +195,9 @@ where
         manifest: manifest_hash,
     };
     let output_hash = reproducibility_output_hash(&primary.manifest);
+    let reproduced_output_hash = reproduction.as_ref().map_or(output_hash, |generation| {
+        reproducibility_output_hash(&generation.manifest)
+    });
     // External authorities see only a head whose independently regenerated
     // outputs have already matched. No signed grant can turn a reproduction
     // mismatch into a publishable candidate.
@@ -188,7 +206,7 @@ where
     payloads.push(GateEvidencePayload::reproducibility(
         primary.manifest.reproducibility.config_hash,
         output_hash,
-        reproducibility_output_hash(&reproduction.manifest),
+        reproduced_output_hash,
         primary.manifest.artifacts.len(),
     ));
     let documents = payloads

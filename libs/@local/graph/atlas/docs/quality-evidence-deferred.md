@@ -12,8 +12,10 @@ derived from the release seed. The five manifest provenance identities,
 relation-policy and security source reports, companion bytes, and companion
 report are deterministic placeholders marked `mock_non_attesting`. They
 satisfy the current manifest shape only and are not used for classifier
-inference, geometry, model selection, reproduction, or numerical acceptance.
-A server rejects such a generation unless its configuration explicitly sets:
+inference, geometry, model selection, or numerical acceptance. The mode omits
+the independent reproduction build and self-binds the required reproducibility
+payload; that payload is non-attesting and does not prove reproducibility. A
+server rejects such a generation unless its configuration explicitly sets:
 
 ```json
 {
@@ -34,6 +36,8 @@ silently serving a deferred generation.
   across representative production graphs.
 - Planted-shape and merge-tree persistence checks are local suites rather than
   independently reproduced evidence.
+- Reproducibility is not independently checked; the release payload binds the
+  primary output to itself.
 - Subgroup coverage can be sparse or absent for small and homogeneous scopes.
   Reported degradation is not a comprehensive fairness or cohort guarantee.
 - Authorization noninterference and snapshot consistency use an

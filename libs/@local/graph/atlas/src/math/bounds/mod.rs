@@ -171,15 +171,15 @@ impl Bounds2 {
     }
 
     /// Returns the minimum corner.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn min(self) -> Vec2 {
         self.min
     }
 
     /// Returns the maximum corner.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn max(self) -> Vec2 {
         self.max
     }
@@ -187,15 +187,15 @@ impl Bounds2 {
     /// Returns the per-axis extent, `max - min`.
     ///
     /// Both components are non-negative by the type's invariant.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn size(self) -> Vec2 {
         self.max - self.min
     }
 
     /// Returns the center of the box.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn center(self) -> Vec2 {
         (self.min + self.max) * 0.5
     }
@@ -203,8 +203,8 @@ impl Bounds2 {
     /// Returns whether the point lies inside the box, boundary included.
     ///
     /// NaN coordinates are never contained.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn contains(self, point: Vec2) -> bool {
         self.min.x() <= point.x()
             && point.x() <= self.max.x()
@@ -213,8 +213,8 @@ impl Bounds2 {
     }
 
     /// Returns the smallest box covering both operands.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self {
             min: self.min.min(other.min),
@@ -228,8 +228,8 @@ impl Bounds2 {
     /// This repairs degenerate boxes (all points on a line, or a single
     /// point) before operations that divide by the extent, such as
     /// [`fit`](Self::fit) or density rasterization.
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn with_minimum_extent(self, minimum: f32) -> Self {
         let size = self.size();
         let center = self.center();

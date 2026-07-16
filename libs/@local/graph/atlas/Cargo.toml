@@ -24,6 +24,7 @@ bytes        = { workspace = true, public = true }
 camino       = { workspace = true, features = ["serde1"], public = true }
 # Error sources surfaced through public error enums.
 cxx            = { version = "1.0.194", public = true }
+futures-sink   = { workspace = true, public = true }
 tempfile       = { version = "3.27.0", public = true }
 tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal"], public = true }
 tokio-postgres = { workspace = true, public = true }
@@ -33,6 +34,7 @@ uuid           = { workspace = true, public = true }
 
 # Private third-party dependencies
 clap                                     = { workspace = true, features = ["derive"] }
+crc-fast                                 = "1.10.0"
 ed25519-dalek                            = "3.0.0"
 error-stack.workspace                    = true
 faer                                     = "0.24.4"
@@ -61,6 +63,7 @@ serde                                    = { workspace = true, features = ["deri
 serde_json                               = { workspace = true, features = ["float_roundtrip"] }
 sha2                                     = { workspace = true }
 simple-mermaid                           = { workspace = true }
+sleef                                    = "0.3"
 sprs                                     = { version = "0.11.4", default-features = false }
 sysinfo                                  = "0.39.6"
 tiktoken-rs                              = "0.12.0"
