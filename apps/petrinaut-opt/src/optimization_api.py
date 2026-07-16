@@ -177,6 +177,6 @@ async def root() -> dict:
 if __name__ == "__main__":
     import uvicorn
 
-    host = os.getenv("HASH_PETRINAUT_OPT_HOST", "127.0.0.1")
-    port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", "8000"))
+    host = os.getenv("HASH_PETRINAUT_OPT_HOST", "localhost")
+    port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", "4004"))
     uvicorn.run(app, host=host, port=port)

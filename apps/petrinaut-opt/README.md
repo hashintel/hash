@@ -64,7 +64,7 @@ uv run python -m src.petrinaut_optimizer
 ## Run the API
 
 The service binds to `HASH_PETRINAUT_OPT_HOST` and `HASH_PETRINAUT_OPT_PORT`,
-loaded from the module's `.env` (defaults `127.0.0.1:8000`):
+loaded from the module's `.env` (defaults `localhost:4004`):
 
 ```bash
 uv run python -m src.optimization_api
@@ -91,21 +91,34 @@ reports the inputs that were **searched** this trial (fixed inputs are constant
 and omitted) plus the resulting metric.
 
 ```bash
-curl -sN -X GET localhost:8000/optimize/all -H 'content-type: application/json' -d '{
+curl -N -X GET "http://localhost:4004/optimize/all" \
+  -H "Content-Type: application/json" \
+  -d '{
   "opt_spec": {
-    "parameters": {"selling_price": 34.0},
-    "initial_state": {"RawInventory": 220},
-    "n_trials": 30,
-    "sampler": "tpe",
-    "direction": "maximize"
+    "parameters": {
+      "demand_multiplier":1.0
+    },
+    "initial_state": {
+      "RawInventory": 220,
+      "FinishedGoods": 120,
+      "CustomerDemand": 0,
+      "SoldOrders": 0,
+      "LostSales": 0
+    },
+    "study_name": "param_opt",
+    "direction": "maximize",
+    "n_trials": 500
   },
   "pn_spec": {
+    "model_path": "/Users/yz/code/hash/libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json",
+    "cli_path": "/Users/yz/code/hash/libs/@hashintel/petrinaut-cli/dist/cli.js",
     "metric": "Profit",
+    "dt":0.1,
     "steps": 365,
-    "dt": 0.1,
     "seed": 1234
   }
 }'
+
 # data: {"step": 0, "params": {"production_rate": 137.2, ...}, "init_state": {"FinishedGoods": 88, ...}, "metric": 12530.4, "state": "COMPLETE"}
 # data: {"step": 1, ...}
 # event: done
