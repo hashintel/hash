@@ -40,8 +40,8 @@ const BASE_LAYER_PARAMETERS = { depthWriteEnabled: false } as const;
 type _CompactNodeLayerProps = {
   /**
    * The active node's incident edges drawn as straight lines — used in the compact
-   * view. In the detail view they're drawn as bundled curves via
-   * `highlightEdgePaths` instead, so this is empty.
+   * view. In the detail view they're drawn as bundled curves by a separate layer
+   * (above the nodes), so this is empty there.
    */
   edges: HoverLine[];
   /**
@@ -51,13 +51,6 @@ type _CompactNodeLayerProps = {
    * Excludes the active node's edges (drawn prominently). Empty in the compact view.
    */
   backgroundEdgePaths: BundledEdge[];
-  /**
-   * The active node's incident edges as bundled polylines, drawn prominently on top
-   * of the faint background in the detail view. Routed the same way as
-   * `backgroundEdgePaths` so they don't shift when the node is selected. Empty in
-   * the compact view (which uses straight `edges`).
-   */
-  highlightEdgePaths: BundledEdge[];
   /**
    * The id of the currently hovered edge, if any — it draws emphasised (double
    * width, and full opacity for the faint background edges). `null` when no edge
@@ -112,7 +105,6 @@ export type CompactNodeLayerProps = _CompactNodeLayerProps &
 const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   edges: [],
   backgroundEdgePaths: [],
-  highlightEdgePaths: [],
   hoveredEdgeId: null,
   highlightEdgesPickable: false,
   backgroundEdgesPickable: false,
@@ -150,7 +142,6 @@ export class CompactNodeLayer extends CompositeLayer<
       data,
       edges,
       backgroundEdgePaths,
-      highlightEdgePaths,
       hoveredEdgeId,
       highlightEdgesPickable,
       backgroundEdgesPickable,
@@ -193,27 +184,6 @@ export class CompactNodeLayer extends CompositeLayer<
         jointRounded: true,
         updateTriggers: {
           getColor: hoveredEdgeId,
-          getWidth: hoveredEdgeId,
-        },
-      }),
-      // The active node's incident edges (detail view), bundled the same way as the
-      // faint background so they sit exactly on the paths they had before — drawn
-      // prominently (opaque) on top of it. Empty in the compact view. Pickable when
-      // a node is active so all of a selected node's edges are hoverable.
-      new PathLayer<BundledEdge>({
-        id: `${id}-highlight-edges`,
-        data: highlightEdgePaths,
-        pickable: highlightEdgesPickable,
-        parameters: BASE_LAYER_PARAMETERS,
-        getPath: (edge) => edge.path,
-        getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getWidth: (edge) =>
-          edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
-        widthUnits: "pixels",
-        widthMinPixels: EDGE_MIN_WIDTH,
-        capRounded: true,
-        jointRounded: true,
-        updateTriggers: {
           getWidth: hoveredEdgeId,
         },
       }),

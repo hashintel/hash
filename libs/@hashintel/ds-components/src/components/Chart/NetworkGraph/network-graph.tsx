@@ -1,5 +1,5 @@
 import { OrthographicView } from "@deck.gl/core";
-import { IconLayer } from "@deck.gl/layers";
+import { IconLayer, PathLayer } from "@deck.gl/layers";
 import { DeckGL, type DeckGLRef } from "@deck.gl/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -15,6 +15,9 @@ import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
   DETAIL_ICON_TEXTURE,
   EDGE_COLOR,
+  EDGE_HOVER_WIDTH,
+  EDGE_MIN_WIDTH,
+  EDGE_WIDTH,
   hexToRgb,
   iconTextureUrl,
 } from "./network-graph-util";
@@ -189,7 +192,7 @@ const EDGE_LABEL_BORDER_WIDTH = 1;
  * On-screen size (px) of the direction arrow drawn at the target end of a
  * highlighted edge, and the gap left between the arrow tip and the node's edge.
  */
-const ARROW_SIZE_PX = 14;
+const ARROW_SIZE_PX = 10;
 const ARROW_GAP_PX = 6;
 /** Resolution (px) the arrow triangle sprite is rasterised at. */
 const ARROW_ICON_TEXTURE = 64;
@@ -497,6 +500,23 @@ const trimPathEnd = (
   // The trim consumed the whole path (edge shorter than the gap): draw nothing.
   const first = path[0];
   return first ? [first, first] : path;
+};
+
+/**
+ * Shorten a polyline from both ends — `startTrim` world units off the source end
+ * and `endTrim` off the target end — so a detail-view edge stops at each node's
+ * edge instead of running to its centre (under the translucent node).
+ */
+const trimPathBothEnds = (
+  path: [number, number][],
+  startTrim: number,
+  endTrim: number,
+): [number, number][] => {
+  let result = trimPathEnd(path, endTrim);
+  if (startTrim > 0 && result.length >= 2) {
+    result = [...trimPathEnd([...result].reverse(), startTrim)].reverse();
+  }
+  return result;
 };
 
 const containerStyles = css({
@@ -1161,6 +1181,29 @@ export const NetworkGraph = ({
   }, [isDetailZoom, activeNode, adjacency, pointById, bundleHierarchy]);
 
   /**
+   * The hovered edge rebuilt as a full-length bundled curve (source → target
+   * centres). The picked geometry is trimmed to the node edges, but the arrow and
+   * the prominent-trim need the untrimmed path (to place the arrow at the node
+   * centre and to trim exactly once), so we re-bundle just this one edge. Detail
+   * view only; `null` when no background edge is hovered.
+   */
+  const hoveredFullEdge = useMemo<BundledEdge | null>(() => {
+    if (!isDetailZoom || !hoveredEdge) {
+      return null;
+    }
+    const edge = edgeById.get(hoveredEdge.edgeId);
+    const from = edge && pointById.get(edge.fromId);
+    const to = edge && pointById.get(edge.toId);
+    if (!from || !to) {
+      return null;
+    }
+    return {
+      edgeId: hoveredEdge.edgeId,
+      path: bundleEdgePath(from, to, bundleHierarchy),
+    };
+  }, [isDetailZoom, hoveredEdge, edgeById, pointById, bundleHierarchy]);
+
+  /**
    * A direction arrow for each highlighted edge — the active node's incident edges
    * plus a hovered background edge — placed at the target (`toId`) end. Each is
    * anchored at the target node's world centre with a screen-space offset that
@@ -1215,12 +1258,13 @@ export const NetworkGraph = ({
           addArrow(edge.edgeId, target, previous);
         }
       }
-      // A hovered background edge is highlighted too but isn't in the set above.
-      if (hoveredEdge) {
-        const target = hoveredEdge.path[hoveredEdge.path.length - 1];
-        const previous = hoveredEdge.path[hoveredEdge.path.length - 2];
+      // A hovered background edge is highlighted too but isn't in the set above;
+      // use its full (untrimmed) path so the arrow sits at the node centre.
+      if (hoveredFullEdge) {
+        const target = hoveredFullEdge.path[hoveredFullEdge.path.length - 1];
+        const previous = hoveredFullEdge.path[hoveredFullEdge.path.length - 2];
         if (target && previous) {
-          addArrow(hoveredEdge.edgeId, target, previous);
+          addArrow(hoveredFullEdge.edgeId, target, previous);
         }
       }
     } else {
@@ -1232,7 +1276,7 @@ export const NetworkGraph = ({
   }, [
     isDetailZoom,
     highlightEdgePaths,
-    hoveredEdge,
+    hoveredFullEdge,
     highlight,
     edgeById,
     activeNode,
@@ -1240,20 +1284,21 @@ export const NetworkGraph = ({
 
   /**
    * The detail view's prominent (arrowed) edges — the active node's incident edges
-   * plus a hovered background edge — as bundled curves trimmed at the target end by
-   * the node radius + gap, so the arrow's gap sits empty and no edge shows in it.
-   * The gap is a pixel distance, so this re-trims (cheaply) on zoom; it never
-   * re-bundles. Empty in the compact view.
+   * plus a hovered background edge — as bundled curves trimmed to each node's edge:
+   * the source end by the node radius, the target end by the radius + gap (leaving
+   * the arrow's gap empty). The trims are pixel distances, so this re-trims
+   * (cheaply) on zoom; it never re-bundles. Empty in the compact view.
    */
   const trimmedHighlightEdgePaths = useMemo<BundledEdge[]>(() => {
     if (!isDetailZoom) {
       return [];
     }
     const scale = currentZoom == null ? null : 2 ** currentZoom;
-    const worldTrim =
+    const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
+    const targetTrim =
       scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + ARROW_GAP_PX) / scale;
     const clip = (path: [number, number][]) =>
-      worldTrim > 0 ? trimPathEnd(path, worldTrim) : path;
+      trimPathBothEnds(path, sourceTrim, targetTrim);
     const list: BundledEdge[] = [];
     const seen = new Set<number>();
     for (const edge of highlightEdgePaths) {
@@ -1261,11 +1306,14 @@ export const NetworkGraph = ({
       list.push({ edgeId: edge.edgeId, path: clip(edge.path) });
     }
     // A hovered background edge is highlighted too; trim it from its full path.
-    if (hoveredEdge && !seen.has(hoveredEdge.edgeId)) {
-      list.push({ edgeId: hoveredEdge.edgeId, path: clip(hoveredEdge.path) });
+    if (hoveredFullEdge && !seen.has(hoveredFullEdge.edgeId)) {
+      list.push({
+        edgeId: hoveredFullEdge.edgeId,
+        path: clip(hoveredFullEdge.path),
+      });
     }
     return list;
-  }, [isDetailZoom, highlightEdgePaths, hoveredEdge, currentZoom]);
+  }, [isDetailZoom, highlightEdgePaths, hoveredFullEdge, currentZoom]);
 
   /**
    * The compact view's prominent (arrowed) edges — the active node's straight
@@ -1301,6 +1349,32 @@ export const NetworkGraph = ({
     });
   }, [isDetailZoom, highlight, currentZoom, edgeById, activeNode]);
 
+  /**
+   * The faint background bundled edges, minus the prominent (arrowed) ones and each
+   * trimmed at both ends by the node radius so it stops at the node's edge instead
+   * of running to its centre (under the translucent detail nodes). Re-trims cheaply
+   * on zoom; never re-bundles. Empty in the compact view.
+   */
+  const trimmedBackgroundEdgePaths = useMemo<BundledEdge[]>(() => {
+    if (!isDetailZoom) {
+      return [];
+    }
+    const prominentIds = new Set(
+      (highlight?.lines ?? []).map((line) => line.id),
+    );
+    if (hoveredEdge) {
+      prominentIds.add(hoveredEdge.edgeId);
+    }
+    const scale = currentZoom == null ? null : 2 ** currentZoom;
+    const trim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
+    return detailEdgePaths
+      .filter((edge) => !prominentIds.has(edge.edgeId))
+      .map((edge) => ({
+        edgeId: edge.edgeId,
+        path: trimPathBothEnds(edge.path, trim, trim),
+      }));
+  }, [isDetailZoom, detailEdgePaths, highlight, hoveredEdge, currentZoom]);
+
   const layers = useMemo(() => {
     // The nodes the hovered edge connects, outlined in the edge's colour — only
     // while edges are actually hoverable in this view.
@@ -1315,20 +1389,7 @@ export const NetworkGraph = ({
     const highlightEdgesPickable = isDetailZoom
       ? activeNode != null
       : selected != null;
-
-    // The active node's incident edges — and a hovered background edge — are drawn
-    // prominently (trimmed, with arrows), so drop them from the bundled set;
-    // otherwise the same edge exists in both layers and hovering it would light up
-    // (and the label flit between) two representations. Cheap filter; no re-bundling.
-    const prominentEdgeIds = new Set(
-      (highlight?.lines ?? []).map((line) => line.id),
-    );
-    if (hoveredEdge) {
-      prominentEdgeIds.add(hoveredEdge.edgeId);
-    }
-    const backgroundEdgePaths = detailEdgePaths.filter(
-      (edge) => !prominentEdgeIds.has(edge.edgeId),
-    );
+    const hoveredEdgeId = edgesHoverable ? (hoveredEdge?.edgeId ?? null) : null;
 
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
@@ -1341,12 +1402,11 @@ export const NetworkGraph = ({
       // `highlightEdgePaths`) so they don't shift off the background paths. Both
       // are trimmed at the target end to open the arrow's gap.
       edges: trimmedHighlightLines,
-      // All edges touching visible nodes (minus the prominent ones), bundled and
-      // drawn faintly in detail view.
-      backgroundEdgePaths,
-      // The active node's edges (+ a hovered one), bundled + prominent, in detail.
-      highlightEdgePaths: trimmedHighlightEdgePaths,
-      hoveredEdgeId: edgesHoverable ? (hoveredEdge?.edgeId ?? null) : null,
+      // All edges touching visible nodes (minus the prominent ones), bundled,
+      // trimmed to the node edges, and drawn faintly in detail view. The prominent
+      // (highlighted) edges are drawn by a separate layer above the nodes.
+      backgroundEdgePaths: trimmedBackgroundEdgePaths,
+      hoveredEdgeId,
       highlightEdgesPickable,
       backgroundEdgesPickable,
       edgeHoverNodes,
@@ -1381,6 +1441,51 @@ export const NetworkGraph = ({
         ]
       : [compact];
 
+    // The active node's (and a hovered edge's) prominent bundled edges, drawn as a
+    // top-level layer *above* the detailed nodes so a highlighted connection reads
+    // over any node it crosses, not behind it. `depthCompare: "always"` lets it
+    // paint over the depth-writing nodes. Detail view only (empty otherwise); the
+    // compact view keeps its straight lines below the tiny nodes.
+    if (trimmedHighlightEdgePaths.length > 0) {
+      nodeLayers.push(
+        new PathLayer<BundledEdge>({
+          id: "highlight-edges",
+          data: trimmedHighlightEdgePaths,
+          pickable: highlightEdgesPickable,
+          getPath: (edge) => edge.path,
+          getColor: [...EDGE_COLOR, 255],
+          getWidth: (edge) =>
+            edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
+          widthUnits: "pixels",
+          widthMinPixels: EDGE_MIN_WIDTH,
+          capRounded: true,
+          jointRounded: true,
+          updateTriggers: { getWidth: hoveredEdgeId },
+          // Paint over the nodes but don't write depth, so the active node can be
+          // redrawn on top of these edges below.
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+
+    // The active (hovered/selected) node, redrawn above the highlighted edges so it
+    // is never occluded by an edge (its own edges stop at its rim; a hovered edge
+    // may cross it). Its edge-hover ring stays in the layer below — the highlighted
+    // edges are trimmed at their endpoints, so they never cover a ringed node.
+    if (isDetailZoom && activeNode) {
+      nodeLayers.push(
+        new DetailedNodeLayer({
+          id: "detailed-nodes-active",
+          pickable: true,
+          data: [activeNode],
+          activeNode,
+          colorByHex,
+          iconAtlas,
+          edgeHoverNodes: [],
+        }),
+      );
+    }
+
     // Direction arrows on the highlighted edges, drawn on top of everything (they
     // sit off the node edge, so depth vs. the nodes doesn't matter). Non-pickable.
     const arrowAtlas = arrowIconAtlas();
@@ -1407,7 +1512,7 @@ export const NetworkGraph = ({
   }, [
     points,
     highlight,
-    detailEdgePaths,
+    trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
     trimmedHighlightLines,
     arrows,
