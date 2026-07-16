@@ -126,16 +126,17 @@ export interface NetworkGraphProps {
   /** The connections between nodes. Only rendered while a node is hovered. */
   edges: NetworkGraphEdge[];
   /**
-   * The graph's spatial extent: the span between the smallest and largest
-   * coordinates across the data — `width` is `maxX − minX` and `height` is
-   * `maxY − minY`. Accepted but not yet consumed by the component.
+   * The graph's spatial extent as a bounding box over the node coordinates — the
+   * smallest and largest x/y across the data. Used to frame the initial view and
+   * to clamp panning to the network.
    */
-  graphArea: { width: number; height: number };
+  graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
-   * The number of nodes the graph represents. Accepted but not yet consumed by
-   * the component.
+   * The smallest distance between any two nodes, in world coordinates. Sets the
+   * camera's maximum zoom: at max zoom the closest two nodes sit `2 · the detail
+   * hover radius + 10px` apart on screen.
    */
-  numberOfNodes: number;
+  nodeMinDistance: number;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -209,7 +210,11 @@ const ZOOM_STEP = 1;
 const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.05;
-/** Furthest zoom-in, as levels above the initial framing zoom (the camera's `maxZoom`). */
+/**
+ * Fallback furthest zoom-in — levels above the framing zoom — used only when
+ * `nodeMinDistance` is unavailable (an empty/single-node graph). Otherwise the
+ * camera's `maxZoom` is derived from the node spacing (see the framing effect).
+ */
 const MAX_ZOOM_OFFSET = 9;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
 const PAN_PADDING_PX = 10;
@@ -694,10 +699,8 @@ const labelCanvasStyles = css({
 export const NetworkGraph = ({
   points,
   edges,
-  // Destructured (with the `_` unused-binding convention) so they're part of the
-  // accepted props but not yet consumed — see their docs on `NetworkGraphProps`.
-  graphArea: _graphArea,
-  numberOfNodes: _numberOfNodes,
+  graphBounds,
+  nodeMinDistance,
   className,
   selected,
   onSelectedPositionChange,
@@ -747,44 +750,6 @@ export const NetworkGraph = ({
       }
     }
     return map;
-  }, [points]);
-
-  /** Bounding box of all points, used to frame the initial view. */
-  const bounds = useMemo(() => {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const point of points) {
-      if (point.x < minX) {
-        minX = point.x;
-      }
-      if (point.x > maxX) {
-        maxX = point.x;
-      }
-      if (point.y < minY) {
-        minY = point.y;
-      }
-      if (point.y > maxY) {
-        maxY = point.y;
-      }
-    }
-    if (!Number.isFinite(minX)) {
-      minX = 0;
-      maxX = 0;
-      minY = 0;
-      maxY = 0;
-    }
-    return {
-      minX,
-      minY,
-      maxX,
-      maxY,
-      width: maxX - minX,
-      height: maxY - minY,
-      centerX: (minX + maxX) / 2,
-      centerY: (minY + maxY) / 2,
-    };
   }, [points]);
 
   /** Look up a point by id, for resolving edge endpoints. */
@@ -1023,6 +988,8 @@ export const NetworkGraph = ({
       setContainerSize({ width, height });
       const padding = 0.9;
       const outPadding = 1 / (1 + ZOOM_OUT_MARGIN);
+      const graphWidth = graphBounds.maxX - graphBounds.minX;
+      const graphHeight = graphBounds.maxY - graphBounds.minY;
       // Largest zoom at which the network's centre bounds fit within
       // `paddingFraction` of the viewport, reserving `FIT_MARGIN_PX` so nodes
       // near the edge aren't clipped by their radius. The tighter axis wins so
@@ -1031,27 +998,47 @@ export const NetworkGraph = ({
         Math.min(
           Math.log2(
             Math.max(1, width * paddingFraction - FIT_MARGIN_PX) /
-              (bounds.width || 1),
+              (graphWidth || 1),
           ),
           Math.log2(
             Math.max(1, height * paddingFraction - FIT_MARGIN_PX) /
-              (bounds.height || 1),
+              (graphHeight || 1),
           ),
         );
       const framingZoom = fitZoom(padding);
       // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills
       // the viewport — i.e. the view can never span more than that much world.
       const minZoom = fitZoom(outPadding);
+      // Furthest zoom-in: the closest two nodes should sit `2 · detailHoverRadius
+      // + 10px` apart on screen — i.e. their hovered detail circles clear each
+      // other by a 10px gap. Orthographic scale is `2 ** zoom` px per world unit,
+      // so solve `nodeMinDistance · 2 ** maxZoom = target` for the zoom. Falls back
+      // to a fixed offset above the framing when the spacing is unknown (an empty
+      // or single-node graph, where `nodeMinDistance` is 0/Infinity).
+      const detailHoverRadius = DETAIL_NODE_DIAMETER / 2;
+      const targetClosestPx = detailHoverRadius;
+      // Floored at `minZoom` so a very sparse graph (whose closest nodes already
+      // clear the target spacing while the whole graph fits) never yields an
+      // inverted zoom range.
+      const maxZoom = Math.max(
+        minZoom,
+        Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
+          ? Math.log2(targetClosestPx / nodeMinDistance)
+          : framingZoom + MAX_ZOOM_OFFSET,
+      );
       // Only auto-frame until the user takes control of the view.
       setViewState(
         (previous) =>
           previous ?? {
-            target: [bounds.centerX, bounds.centerY, 0],
-            // Start fully zoomed out, at the min zoom; the zoom-in ceiling stays
-            // tuned relative to the tighter fit framing (see MAX_ZOOM_OFFSET).
+            target: [
+              (graphBounds.minX + graphBounds.maxX) / 2,
+              (graphBounds.minY + graphBounds.maxY) / 2,
+              0,
+            ],
+            // Start fully zoomed out, at the min zoom.
             zoom: minZoom,
             minZoom,
-            maxZoom: framingZoom + MAX_ZOOM_OFFSET,
+            maxZoom,
           },
       );
     };
@@ -1059,7 +1046,7 @@ export const NetworkGraph = ({
     const observer = new ResizeObserver(fit);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [bounds]);
+  }, [graphBounds, nodeMinDistance]);
 
   /** Distinct icon names used by the graph points. */
   const pointIconNames = useMemo(
@@ -1159,8 +1146,13 @@ export const NetworkGraph = ({
    * the rest of the component can use each value directly.
    */
   const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
-    () => deriveZoomAttributes(currentZoom),
-    [currentZoom],
+    () =>
+      deriveZoomAttributes(
+        currentZoom,
+        // Detail view shows in the top 0.5 zoom levels, just below the max zoom.
+        viewState?.maxZoom != null ? viewState.maxZoom - 0.5 : null,
+      ),
+    [currentZoom, viewState?.maxZoom],
   );
 
   /**
@@ -1353,13 +1345,13 @@ export const NetworkGraph = ({
                 2 ** next,
                 rect.width,
                 rect.height,
-                bounds,
+                graphBounds,
               )
             : previous.target;
         return { ...previous, zoom: next, target };
       });
     },
-    [bounds],
+    [graphBounds],
   );
 
   /**
@@ -1426,12 +1418,12 @@ export const NetworkGraph = ({
           2 ** next,
           width,
           height,
-          bounds,
+          graphBounds,
         );
         return { ...previous, zoom: next, target: nextTarget };
       });
     },
-    [view, bounds],
+    [view, graphBounds],
   );
 
   useImperativeHandle(
@@ -2211,7 +2203,7 @@ export const NetworkGraph = ({
                         2 ** zoom,
                         rect.width,
                         rect.height,
-                        bounds,
+                        graphBounds,
                       )
                     : clampPanTargetBlocking(
                         raw.target as number[],
@@ -2220,7 +2212,7 @@ export const NetworkGraph = ({
                         2 ** zoom,
                         rect.width,
                         rect.height,
-                        bounds,
+                        graphBounds,
                       )
                   : (raw.target ?? base.target);
               const next: OrthographicViewState = {

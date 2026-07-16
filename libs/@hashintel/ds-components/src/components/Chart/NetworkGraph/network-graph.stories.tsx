@@ -33,6 +33,43 @@ interface GraphData {
 }
 
 /**
+ * The smallest distance between any two distinct points, ignoring points that
+ * share a position. O(n²), so only suitable for small inputs — see how the
+ * stories below avoid running it over the full ~200k-node fixture.
+ */
+function minDistance(points: Array<{ x: number; y: number }>): number {
+  let min = Infinity;
+
+  for (let index = 0; index < points.length; index++) {
+    const from = points[index];
+    if (!from) {
+      continue;
+    }
+    for (let other = index + 1; other < points.length; other++) {
+      const to = points[other];
+      if (!to) {
+        continue;
+      }
+      const dx = from.x - to.x;
+      const dy = from.y - to.y;
+
+      // Skip points occupying the same position.
+      if (dx === 0 && dy === 0) {
+        continue;
+      }
+
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < min) {
+        min = distance;
+      }
+    }
+  }
+
+  return min;
+}
+
+/**
  * Loads the fixture data, optionally trimmed to the first `nodeLimit` points.
  * When trimmed, edges are filtered to those whose endpoints are both among the
  * loaded points, so the graph never references a node that isn't present.
@@ -176,9 +213,11 @@ const randomEdgeDirection = (
 const NetworkGraphStory = ({
   nodeLimit,
   loadingLabel,
+  precomputedMinDistance,
 }: {
   nodeLimit?: number;
   loadingLabel: string;
+  precomputedMinDistance?: number;
 }) => {
   const data = useGraphData(nodeLimit);
   // The frame is the popover's trigger; `positionFromPoint` then anchors the
@@ -223,15 +262,12 @@ const NetworkGraphStory = ({
     return map;
   }, [data]);
 
-  /** The number of nodes in the graph, passed through to the chart. */
-  const numberOfNodes = data?.points.length ?? 0;
-
   /**
-   * The graph's spatial extent — the span between the smallest and largest x/y
-   * across the nodes (`width` = maxX − minX, `height` = maxY − minY) — passed
-   * through to the chart. Also the basis for `spread` below.
+   * The graph's spatial extent as a bounding box over the node coordinates — the
+   * smallest and largest x/y across the nodes — passed through to the chart. Also
+   * the basis for `spread` below.
    */
-  const graphArea = useMemo(() => {
+  const graphBounds = useMemo(() => {
     const points = data?.points ?? [];
     let minX = Infinity;
     let maxX = -Infinity;
@@ -244,18 +280,30 @@ const NetworkGraphStory = ({
       maxY = Math.max(maxY, point.y);
     }
     if (!Number.isFinite(minX)) {
-      return { width: 0, height: 0 };
+      return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     }
-    return { width: maxX - minX, height: maxY - minY };
+    return { minX, maxX, minY, maxY };
   }, [data]);
 
   /** A small offset (2% of the graph's extent) for scattering overlay nodes. */
   const spread = useMemo(() => {
-    if (numberOfNodes === 0) {
+    if (!data?.points.length) {
       return 100;
     }
-    return (Math.hypot(graphArea.width, graphArea.height) || 100) * 0.02;
-  }, [numberOfNodes, graphArea]);
+    const width = graphBounds.maxX - graphBounds.minX;
+    const height = graphBounds.maxY - graphBounds.minY;
+    return (Math.hypot(width, height) || 100) * 0.02;
+  }, [data, graphBounds]);
+
+  /**
+   * The smallest distance between any two nodes, passed to the chart. `minDistance`
+   * is O(n²), so the full-dataset Default story passes a `precomputedMinDistance`
+   * rather than recomputing it here; the smaller stories compute it on the fly.
+   */
+  const nodeMinDistance = useMemo(
+    () => precomputedMinDistance ?? minDistance(data?.points ?? []),
+    [precomputedMinDistance, data],
+  );
 
   /** A brand-new node at `(x, y)`, borrowing a random colour/icon from the graph. */
   const createNewPoint = useCallback(
@@ -396,8 +444,8 @@ const NetworkGraphStory = ({
             ref={graphRef}
             points={data.points}
             edges={data.edges}
-            graphArea={graphArea}
-            numberOfNodes={numberOfNodes}
+            graphBounds={graphBounds}
+            nodeMinDistance={nodeMinDistance}
             selected={selected}
             onNodeClick={handleClick}
             onEdgeClick={handleEdgeClick}
@@ -495,12 +543,23 @@ const NetworkGraphStory = ({
 };
 
 /**
+ * The minimum distance between any two nodes in the full ~200k-node fixture,
+ * pre-computed offline. `minDistance` is O(n²), so running it over the whole
+ * dataset at render time would freeze the browser; the smaller stories below are
+ * cheap enough to compute it on the fly.
+ */
+const FULL_DATASET_MIN_DISTANCE = 0.02236067977446914;
+
+/**
  * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
  * by default; hover a node to reveal its connections and neighbours, and click a
  * node to inspect it. Scroll to zoom and drag to pan.
  */
 export const Default: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory loadingLabel="Loading ~200k nodes…" />
+  <NetworkGraphStory
+    loadingLabel="Loading ~200k nodes…"
+    precomputedMinDistance={FULL_DATASET_MIN_DISTANCE}
+  />
 );
 
 /**

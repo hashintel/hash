@@ -1,17 +1,18 @@
 /**
- * The single source of truth for everything the network graph derives from the
- * current zoom level. Point size, point opacity, the arrow gap, and the
- * compact→detail switch are all computed together by {@link deriveZoomAttributes}
- * from the current zoom alone — so the way each knob responds to zoom (and the
- * relationships between them) lives in one place.
+ * The single source of truth for the point size, point opacity, and arrow gap the
+ * network graph derives from the current zoom, plus the compact→detail switch.
+ * These are computed together by {@link deriveZoomAttributes} — from the current
+ * zoom, and (for the detail switch) a `detailZoom` threshold the caller passes in —
+ * so the way each knob responds to zoom lives in one place.
  *
- * All thresholds below are absolute orthographic zoom levels (`2 ** zoom` = pixels
- * per world unit), not offsets from any framing — so they are tuned to the zoom
- * range the graph actually operates in. That range depends on the data's spatial
- * extent: the full reference dataset frames at ≈ −4.3 and allows zooming in to
- * ≈ 4.7 (its `minZoom`…`maxZoom` is ≈ [−4.4, 4.7]), which is what these are tuned
- * for. Denser/sparser data (or a smaller subset) frames at a different zoom, so
- * these may need revisiting if the data's extent changes materially.
+ * The radius and opacity thresholds below are absolute orthographic zoom levels
+ * (`2 ** zoom` = pixels per world unit), tuned to the framing zoom range the graph
+ * operates in: the full reference dataset frames at ≈ −4.3 with a min zoom of ≈
+ * −4.4. The max zoom and the compact→detail threshold are no longer fixed here —
+ * the graph derives them from the node spacing (max zoom sizes the closest nodes to
+ * a target on-screen gap; detail sits just below it) and passes the latter in.
+ * Denser/sparser data frames at a different zoom, so these may need revisiting if
+ * the data's extent changes materially.
  */
 
 /** Base opacity of the points — subtly transparent so dense areas read as depth. */
@@ -32,12 +33,10 @@ const OPACITY_FULL_ZOOM = -1.5;
 const OPACITY_FADE_OUT_ZOOM = 1.5;
 /** Zoom by which the fade-out has returned points to the opacity floor. */
 const OPACITY_FADE_END_ZOOM = 4.2;
-/**
- * Zoom at/above which the node layer switches from the compact points to the
- * detailed nodes — larger nodes showing their icon and label pill. Just below the
- * reference dataset's max zoom (≈ 4.7) so the final zoom-in reveals it.
- */
-const DETAIL_ZOOM = 4.2;
+// The compact→detail switch is not a fixed threshold: the zoom at/above which the
+// node layer swaps compact points for the detailed nodes (icon + label pill) is
+// passed into `deriveZoomAttributes` as `detailZoom`, derived from the camera's max
+// zoom so detail is revealed a fixed number of zoom levels below the deepest zoom-in.
 
 // ── Node sizing ──────────────────────────────────────────────────────────────
 // deriveZoomAttributes returns `radiusScale`, a single multiplier for the current
@@ -114,12 +113,15 @@ const lerp = (from: number, to: number, amount: number): number =>
   from + (to - from) * clamp01(amount);
 
 /**
- * Derive every zoom-dependent rendering attribute from the current `zoom` alone.
- * `zoom` is `null` until the view has been framed, in which case neutral defaults
- * are returned (the smallest node radii, full opacity, the base arrow gap, and the
- * compact view).
+ * Derive every zoom-dependent rendering attribute from the current `zoom` and the
+ * `detailZoom` threshold (the zoom at/above which the detailed view shows). Both are
+ * `null` until the view has been framed, in which case neutral defaults are returned
+ * (the smallest node radii, full opacity, the base arrow gap, and the compact view).
  */
-export const deriveZoomAttributes = (zoom: number | null): ZoomAttributes => {
+export const deriveZoomAttributes = (
+  zoom: number | null,
+  detailZoom: number | null,
+): ZoomAttributes => {
   if (zoom === null) {
     // Unframed: identity scale, so every node layer clamps to its floor radius.
     return {
@@ -140,8 +142,9 @@ export const deriveZoomAttributes = (zoom: number | null): ZoomAttributes => {
   // Arrow gap widens as you zoom in.
   const arrowGapPx = ARROW_GAP_PX * ARROW_GAP_ZOOM_RATE ** zoom;
 
-  // Compact→detail switch near the top of the zoom range.
-  const isDetailZoom = zoom >= DETAIL_ZOOM;
+  // Compact→detail switch near the top of the zoom range (threshold supplied by
+  // the caller; no detail view until the view has been framed).
+  const isDetailZoom = detailZoom !== null && zoom >= detailZoom;
 
   // Opacity as a three-part curve:
   //   1. fade in from POINT_MIN_OPACITY (zoomed out) to full by OPACITY_FULL_ZOOM,
