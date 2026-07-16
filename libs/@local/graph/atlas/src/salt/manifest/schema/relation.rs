@@ -165,7 +165,17 @@ pub(super) fn validate(
         }
         previous = Some(pair);
     }
-    let mut edge_snapshot = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v1");
+    let mut edge_snapshot = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v2");
+    edge_snapshot.update(
+        &u64::try_from(attraction)
+            .expect("validated attraction count should fit u64")
+            .to_le_bytes(),
+    );
+    edge_snapshot.update(
+        &u64::try_from(protection)
+            .expect("validated protection count should fit u64")
+            .to_le_bytes(),
+    );
     for index in 0..attraction {
         edge_snapshot.update(&link_web_ids[index * 16..index * 16 + 16]);
         edge_snapshot.update(&link_entity_uuids[index * 16..index * 16 + 16]);
@@ -184,6 +194,13 @@ pub(super) fn validate(
         ] {
             edge_snapshot.update(&value.to_bits().to_le_bytes());
         }
+    }
+    for index in 0..protection {
+        edge_snapshot.update(&first[index].to_le_bytes());
+        edge_snapshot.update(&second[index].to_le_bytes());
+        edge_snapshot.update(&hard_mass[index].to_bits().to_le_bytes());
+        edge_snapshot.update(&ordinary_mass[index].to_bits().to_le_bytes());
+        edge_snapshot.update(&[flags[index]]);
     }
     if edge_snapshot.finish().as_bytes() != declared_edge_snapshot {
         return Err("relation edge snapshot hash does not describe the persisted table");

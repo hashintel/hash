@@ -154,6 +154,11 @@ impl GenerationManifestContract {
     fn begin_manifest(&self) -> GenerationManifest {
         self.0.clone()
     }
+
+    #[cfg(test)]
+    pub(super) const fn manifest_mut(&mut self) -> &mut GenerationManifest {
+        &mut self.0
+    }
 }
 
 /// Higher-precedence policy records supplied independently of model inference.
@@ -220,14 +225,17 @@ impl RelationPolicyInput {
 /// Owned extraction result accepted by the generation freezer.
 ///
 /// The geometry snapshot cannot be constructed from raw identifiers outside
-/// the snapshot boundary. All remaining fields are numerical or
-/// presentation inputs whose shape and identity are fixed by
+/// the snapshot boundary. `selected_editions` is row-aligned with `identities`
+/// so both authorization and the frozen-input identity name the exact entity
+/// revision that supplied each representation. All remaining fields are
+/// numerical or presentation inputs whose shape and identity are fixed by
 /// [`freeze_generation_input`].
 #[derive(Debug, Clone)]
 pub(crate) struct GenerationFreezeSource {
     pub manifest_contract: GenerationManifestContract,
     pub geometry: GeometrySnapshot,
     pub identities: IdentityDirectory,
+    pub selected_editions: Box<[crate::salt::snapshot::EntityAtEdition]>,
     pub canonical_embeddings: Box<[f32]>,
     pub roles: Box<[EntityRole]>,
     pub type_context: Option<FrozenProjectorTypeContext>,
@@ -246,6 +254,7 @@ pub(crate) struct GenerationFreezeSource {
 pub(crate) struct StoreBackedGenerationSource {
     pub manifest_contract: GenerationManifestContract,
     pub identities: IdentityDirectory,
+    pub selected_editions: Box<[crate::salt::snapshot::EntityAtEdition]>,
     pub canonical_embeddings: Box<[f32]>,
     pub roles: Box<[EntityRole]>,
     pub type_context: Option<FrozenProjectorTypeContext>,
@@ -270,6 +279,7 @@ impl StoreBackedGenerationSource {
             manifest_contract: self.manifest_contract,
             geometry,
             identities: self.identities,
+            selected_editions: self.selected_editions,
             canonical_embeddings: self.canonical_embeddings,
             roles: self.roles,
             type_context: self.type_context,
@@ -291,6 +301,7 @@ pub(crate) struct FrozenGenerationInput {
     pub(super) manifest_contract: GenerationManifestContract,
     pub(super) geometry: GeometrySnapshot,
     pub(super) identities: IdentityDirectory,
+    pub(super) selected_editions: Box<[crate::salt::snapshot::EntityAtEdition]>,
     pub(super) canonical_embedding_hash: ContentHash,
     pub(super) projector_representation_hash: ContentHash,
     pub(super) canonical_embedding_values: Box<[f32]>,
@@ -327,6 +338,14 @@ impl FrozenGenerationInput {
     #[inline]
     pub(super) fn begin_manifest(&self) -> GenerationManifest {
         self.manifest_contract.begin_manifest()
+    }
+
+    /// Binds the verified store receipt before generation identity is derived.
+    pub(super) fn bind_extraction_receipt(&mut self, receipt_hash: ContentHash) {
+        self.manifest_contract
+            .0
+            .input_snapshot
+            .extraction_receipt_hash = receipt_hash;
     }
 }
 
@@ -373,6 +392,21 @@ pub(crate) fn freeze_generation_input(
         .0
         .input_snapshot
         .authorization_revision = source.geometry.authorization_revision();
+    require_rows(
+        "selected entity editions",
+        rows,
+        source.selected_editions.len(),
+    )?;
+    for (row, ((_, identity), selected)) in source
+        .identities
+        .iter()
+        .zip(source.selected_editions.iter())
+        .enumerate()
+    {
+        if *identity != selected.entity_id {
+            return Err(CanonicalGenerationError::SelectedEditionIdentity { row });
+        }
+    }
     require_rows("canonical embeddings", rows, canonical_embeddings.len())?;
     let (canonical_embedding_hash, projector_representation_hash, representation_values) =
         derive_representations(canonical_embeddings)?;
@@ -460,6 +494,7 @@ pub(crate) fn freeze_generation_input(
         manifest_contract: source.manifest_contract,
         geometry: source.geometry,
         identities: source.identities,
+        selected_editions: source.selected_editions,
         canonical_embedding_hash,
         projector_representation_hash,
         canonical_embedding_values: source.canonical_embeddings,

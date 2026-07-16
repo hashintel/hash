@@ -10,6 +10,39 @@
 //! implementation. A backend is accepted only after [`audit::audit_recall`]
 //! compares its 50-neighbor queries with exact cosine rankings on an explicit
 //! sample.
+//!
+//! # Fuzzy semantic weights
+//!
+//! The persisted neighbor table is converted into a UMAP-style fuzzy
+//! simplicial set. For row `i`, `rho_i` is its first positive neighbor
+//! distance. A bounded binary search chooses `sigma_i` so directed memberships
+//!
+//! ```text
+//! p(i -> j) = exp(-max(0, d(i, j) - rho_i) / sigma_i)
+//! ```
+//!
+//! sum to `log2(k)`. Reciprocal directed memberships are combined by
+//! probabilistic union:
+//!
+//! ```text
+//! w(i, j) = p(i -> j) + p(j -> i) - p(i -> j) * p(j -> i)
+//! ```
+//!
+//! A one-sided edge keeps its directed membership. These weights define
+//! semantic positive sampling and the local scales used to normalize relation
+//! distance; they do not limit or replace the complete relation instance set.
+//!
+//! # ANN reproducibility boundary
+//!
+//! The `USearch` adapter inserts rows through one writer context in generation
+//! order, but its C++ random engine is not a portable byte-level contract.
+//! The durable product is therefore the validated [`KnnTable`] plus a
+//! deterministic exact-recall audit, not the transient HNSW graph.
+//!
+//! Audit rows are selected round-robin across complete categorical strata by
+//! content-derived priorities. For each row, the approximate 50-neighbor set
+//! is intersected with an exact SIMD cosine ranking whose ties resolve by
+//! generation row. Aggregate recall must be at least `0.95`.
 
 use core::{
     num::NonZeroUsize,

@@ -593,7 +593,15 @@ fn hard_miner_excludes_semantic_and_protected_pairs() {
     let coordinates = (0..8).map(|row| [f64::from(row), 0.0]).collect::<Vec<_>>();
     let spatial =
         USearchSpatialIndex::build(&coordinates, config).expect("spatial index should build");
-    assert_eq!(spatial.identity(), config.content_hash());
+    let spatial_identity = spatial.identity();
+    let repeated = USearchSpatialIndex::build(&coordinates, config)
+        .expect("repeated spatial index should build");
+    assert_eq!(spatial_identity, repeated.identity());
+    assert_ne!(
+        spatial_identity,
+        config.content_hash(),
+        "the concrete index identity must additionally bind selected ISA arithmetic"
+    );
     let mined = HardNegativeMiner::new(spatial, &graph, &protection, config)
         .expect("miner should validate")
         .mine(query)
@@ -606,6 +614,27 @@ fn hard_miner_excludes_semantic_and_protected_pairs() {
             && edge.right.as_u32() != 7
     }));
     assert!(mined[0].weight > mined[1].weight);
+}
+
+#[test]
+fn hard_miner_rejects_unbounded_counts_before_allocation() {
+    let config = HardNegativeConfig {
+        neighbors: NonZeroUsize::new(usize::MAX).expect("maximum usize is non-zero"),
+        candidate_multiplier: NonZeroUsize::new(1).expect("multiplier should be non-zero"),
+        connectivity: NonZeroUsize::new(4).expect("connectivity should be non-zero"),
+        expansion_add: NonZeroUsize::new(8).expect("expansion should be non-zero"),
+        expansion_search: NonZeroUsize::new(8).expect("expansion should be non-zero"),
+        maximum_weight: 1.0,
+        rank_exponent: 1.0,
+    };
+
+    assert!(matches!(
+        config.validate(),
+        Err(HardNegativeError::InvalidCount {
+            field: "neighbors",
+            ..
+        })
+    ));
 }
 
 #[test]

@@ -89,6 +89,10 @@ impl GenerationManifest {
                 relations.authorization_noninterference_report_hash,
             ),
             (
+                "relations.security_approval_report_hash",
+                relations.security_approval_report_hash,
+            ),
+            (
                 "relations.classifier_model_hash",
                 relations.classifier_model_hash,
             ),
@@ -99,6 +103,35 @@ impl GenerationManifest {
         ] {
             nonzero_hash(field, value)?;
         }
+        let report_hashes = [
+            relations.policy_evaluation_report_hash,
+            relations.authorization_noninterference_report_hash,
+            relations.security_approval_report_hash,
+        ];
+        let subject_hashes = [
+            relations.security_allow_list_hash,
+            relations.security_geometry_hash,
+            relations.edge_snapshot_hash,
+            relations.relation_card_corpus_hash,
+            relations.annotation_corpus_hash,
+            relations.reviewed_holdout_hash,
+            relations.policy_input_hash,
+            relations.policy_hash,
+            relations.classifier_model_hash,
+            relations.applicability_config_hash,
+            self.input_snapshot.ontology_hash,
+            self.input_snapshot.knowledge_hash,
+            self.input_snapshot.store_snapshot_identity,
+            self.input_snapshot.extraction_receipt_hash,
+            self.input_snapshot.frozen_input_hash,
+        ];
+        exact(
+            "relations.external_report_hashes",
+            report_hashes.iter().enumerate().all(|(index, report)| {
+                !subject_hashes.contains(report) && !report_hashes[..index].contains(report)
+            }),
+            "distinct domain-separated report identities that do not alias gate subjects",
+        )?;
         positive_finite(
             "relations.classifier_temperature",
             relations.classifier_temperature,

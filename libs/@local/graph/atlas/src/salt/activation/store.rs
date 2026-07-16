@@ -232,6 +232,8 @@ pub(crate) fn publish_candidate_marker(
                     generation: release.head.generation,
                 })?;
             if existing == release {
+                File::open(&path)?.sync_all()?;
+                File::open(parent)?.sync_all()?;
                 Ok(())
             } else {
                 Err(ActivationError::CandidateMismatch {

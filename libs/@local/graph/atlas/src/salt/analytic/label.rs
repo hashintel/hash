@@ -1,4 +1,8 @@
-use super::{error::AnalyticError, region::RegionMap};
+use super::{
+    allocation::{collect_exact, empty, filled},
+    error::AnalyticError,
+    region::RegionMap,
+};
 use crate::salt::identity::GenerationRowId;
 
 /// One entity-backed candidate for naming an analytic region.
@@ -34,7 +38,7 @@ pub(crate) fn select_region_labels<'label>(
     regions: &RegionMap,
     candidates: impl IntoIterator<Item = RegionLabelCandidate<'label>>,
 ) -> Result<Vec<RegionLabel<'label>>, AnalyticError> {
-    let mut selected = vec![None; regions.peaks().len()];
+    let mut selected = filled("region label selections", regions.peaks().len(), None)?;
     for candidate in candidates {
         let Some(&region) = regions.point_regions().get(candidate.point) else {
             return Err(AnalyticError::RegionLabelPoint {
@@ -70,36 +74,41 @@ pub(crate) fn select_region_labels<'label>(
         }
     }
 
-    let mut labels = selected
-        .into_iter()
-        .enumerate()
-        .filter_map(|(region, candidate)| {
-            candidate.map(|candidate| {
-                let peak = regions
-                    .peaks()
-                    .get(region)
-                    .expect("selected region should have a peak");
-                let normalized_persistence = if peak.density > 0.0 {
-                    peak.persistence / peak.density
-                } else {
-                    0.0
-                };
-                (
-                    normalized_persistence + candidate.importance,
-                    RegionLabel {
-                        region: u32::try_from(region)
-                            .expect("region identity should originate from u32"),
-                        row: candidate.row,
-                        text: candidate.text,
-                    },
-                )
-            })
-        })
-        .collect::<Vec<_>>();
+    let mut labels = empty("ranked region labels", regions.peaks().len())?;
+    labels.extend(
+        selected
+            .into_iter()
+            .enumerate()
+            .filter_map(|(region, candidate)| {
+                candidate.map(|candidate| {
+                    let peak = regions
+                        .peaks()
+                        .get(region)
+                        .expect("selected region should have a peak");
+                    let normalized_persistence = if peak.density > 0.0 {
+                        peak.persistence / peak.density
+                    } else {
+                        0.0
+                    };
+                    (
+                        normalized_persistence + candidate.importance,
+                        RegionLabel {
+                            region: u32::try_from(region)
+                                .expect("region identity should originate from u32"),
+                            row: candidate.row,
+                            text: candidate.text,
+                        },
+                    )
+                })
+            }),
+    );
     labels.sort_unstable_by(|(left_score, left), (right_score, right)| {
         right_score
             .total_cmp(left_score)
             .then_with(|| left.region.cmp(&right.region))
     });
-    Ok(labels.into_iter().map(|(_score, label)| label).collect())
+    collect_exact(
+        "ordered region labels",
+        labels.into_iter().map(|(_score, label)| label),
+    )
 }

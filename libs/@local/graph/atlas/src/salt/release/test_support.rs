@@ -103,11 +103,11 @@ pub(crate) fn passing_payloads_without_ann(
             ),
             GateId::SecurityApproval => (
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.security_allow_list_hash,
+                manifest.relations.security_approval_report_hash,
             ),
             GateId::CompanionPin => (
                 manifest.serving.canvas_companion_version.as_str(),
-                manifest.serving.canvas_companion_sha256,
+                manifest.serving.companion_compatibility_report_hash,
             ),
             _ => (
                 "test-suite-v1",
@@ -139,6 +139,8 @@ pub(crate) fn passing_payloads_without_ann(
         )),
         GateEvidencePayload::snapshot_consistency(
             manifest.input_snapshot.frozen_input_hash,
+            manifest.input_snapshot.store_snapshot_identity,
+            manifest.input_snapshot.extraction_receipt_hash,
             manifest.relations.security_geometry_hash,
             manifest.storage.identity_directory_hash,
             manifest.storage.row_count,
@@ -212,11 +214,11 @@ impl ExternalGateGrantIssuer for TestExternalGateGrantIssuer {
             )),
             GateId::SecurityApproval => Some((
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.security_allow_list_hash,
+                manifest.relations.security_approval_report_hash,
             )),
             GateId::CompanionPin => Some((
                 manifest.serving.canvas_companion_version.as_str(),
-                manifest.serving.canvas_companion_sha256,
+                manifest.serving.companion_compatibility_report_hash,
             )),
             _ => None,
         };

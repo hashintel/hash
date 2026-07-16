@@ -44,8 +44,7 @@ pub(crate) use self::{
         FrozenProjectorTypeContext, GenerationFreezeSource, GenerationManifestContract,
         RelationModelSources, RelationPolicyInput, RelationPolicyRecords,
         StoreBackedCanonicalGenerationRequest, StoreBackedGenerationSource,
-        StoreBackedSnapshotRequest, run_canonical_generation,
-        run_store_backed_canonical_generation,
+        StoreBackedSnapshotRequest, run_store_backed_canonical_generation,
     },
 };
 

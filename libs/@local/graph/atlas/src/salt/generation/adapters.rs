@@ -1,4 +1,20 @@
 //! Production adapters for external quality suites.
+//!
+//! SALT owns the shape and binding of release measurements but not every
+//! evaluation implementation. These adapters let an application connect an
+//! in-process suite, subprocess harness, or report service without weakening
+//! the typed runner contract.
+//!
+//! Each adapter pins two identities:
+//!
+//! - `suite_version` is a human-readable, canonical version label; and
+//! - `contract_hash` identifies metric definitions, datasets, thresholds, serialization, and any
+//!   other behavior that can change a result.
+//!
+//! The callbacks still receive candidate-bound typed inputs. Returning a
+//! nonzero report hash is not sufficient by itself: the runner checks row and
+//! field identities, applies release thresholds independently, and later
+//! requires the external authority's signed grant for the resulting report.
 
 use core::fmt;
 

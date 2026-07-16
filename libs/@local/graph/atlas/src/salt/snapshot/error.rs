@@ -7,6 +7,10 @@ use crate::salt::revision::AuthorizationRevision;
 pub(crate) enum SnapshotError {
     EntityPermission,
     EntityTypePermission,
+    CorpusPermission {
+        row: usize,
+    },
+    ExtractionReceipt,
     AuthorizationRevision,
     AuthorizationRevisionChanged {
         before: AuthorizationRevision,
@@ -23,6 +27,12 @@ impl fmt::Display for SnapshotError {
             Self::EntityTypePermission => {
                 formatter.write_str("could not authorize snapshot entity types")
             }
+            Self::CorpusPermission { row } => write!(
+                formatter,
+                "generation corpus row {row} is not visible at its selected entity edition"
+            ),
+            Self::ExtractionReceipt => formatter
+                .write_str("store extraction receipt is invalid or does not bind the frozen input"),
             Self::AuthorizationRevision => {
                 formatter.write_str("could not read the authorization subsystem revision")
             }

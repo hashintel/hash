@@ -134,6 +134,11 @@ pub(crate) struct PublishedArtifact {
 ///
 /// This returns an error for invalid sections, integer overflow, I/O failure,
 /// or a different artifact already present at `path`.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the writer keeps hashing, durability, and no-clobber verification in one auditable \
+              transaction"
+)]
 pub(crate) fn publish_artifact(
     path: &Utf8Path,
     format: ArtifactFormat,
@@ -240,7 +245,9 @@ pub(crate) fn publish_artifact(
             false
         }
         Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
-            let existing = MappedArtifact::map_immutable(File::open(path)?, format)
+            let existing_file = File::open(path)?;
+            existing_file.sync_all()?;
+            let existing = MappedArtifact::map_immutable(existing_file, format)
                 .map_err(ArtifactWriteError::Map)?;
             if existing.view().header() != header
                 || ContentHash::digest(existing.bytes()) != content_hash
@@ -249,6 +256,7 @@ pub(crate) fn publish_artifact(
                     path: path.to_owned(),
                 });
             }
+            File::open(parent)?.sync_all()?;
             true
         }
         Err(error) => return Err(ArtifactWriteError::Persist(error)),
@@ -274,7 +282,13 @@ fn descriptors(
         })?;
     let mut previous_id = 0_u16;
     let mut end = u64::try_from(table_bytes).expect("table offset should fit u64");
-    let mut descriptors = Vec::with_capacity(sections.len());
+    let mut descriptors = Vec::new();
+    descriptors
+        .try_reserve_exact(sections.len())
+        .map_err(|_error| ArtifactWriteError::Allocation {
+            buffer: "artifact section descriptors",
+            elements: sections.len(),
+        })?;
     for (index, section) in sections.iter().enumerate() {
         let id = section.id.as_u16();
         let error = if id == 0 {

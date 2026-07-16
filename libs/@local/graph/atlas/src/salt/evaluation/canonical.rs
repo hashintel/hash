@@ -277,21 +277,46 @@ fn field_hash(
     hasher.finish()
 }
 
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "persistent cross-platform content identities require canonical little-endian scalars"
-)]
 fn quantized_field_hash(
     selection: CanonicalCondition,
     alignment: Option<SimilarityTransform>,
     step: f64,
     coordinates: &[[f64; 2]],
 ) -> ContentHash {
+    quantized_field_content_hash(
+        selection.condition().get(),
+        selection.domain_version(),
+        selection.evidence(),
+        alignment.is_some(),
+        step,
+        coordinates.iter().copied(),
+    )
+}
+
+/// Recomputes the identity of persisted canonical coordinates.
+///
+/// Coordinates must be supplied in generation-row order and already widened
+/// from their exact stored `f32` values. This is shared by generation and
+/// restart artifact verification so an embedded field hash cannot stand in for
+/// the coordinate payload it claims.
+#[must_use]
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "persistent cross-platform content identities require canonical little-endian scalars"
+)]
+pub(crate) fn quantized_field_content_hash(
+    condition: f64,
+    domain_version: ContentHash,
+    evidence: ContentHash,
+    alignment_present: bool,
+    step: f64,
+    coordinates: impl IntoIterator<Item = [f64; 2]>,
+) -> ContentHash {
     let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.quantized-canonical-field.v1");
-    hasher.update(&selection.condition().get().to_bits().to_le_bytes());
-    hasher.update(selection.domain_version().as_bytes());
-    hasher.update(selection.evidence().as_bytes());
-    hasher.update(&[u8::from(alignment.is_some())]);
+    hasher.update(&condition.to_bits().to_le_bytes());
+    hasher.update(domain_version.as_bytes());
+    hasher.update(evidence.as_bytes());
+    hasher.update(&[u8::from(alignment_present)]);
     hasher.update(&step.to_bits().to_le_bytes());
     for coordinate in coordinates {
         hasher.update(&coordinate[0].to_bits().to_le_bytes());

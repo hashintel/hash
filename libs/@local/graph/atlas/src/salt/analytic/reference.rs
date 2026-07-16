@@ -33,26 +33,26 @@ pub(crate) fn publish_persistence_reference(
     tree: &MergeTree,
 ) -> Result<PublishedArtifact, ArtifactWriteError> {
     let density_maximum = [tree.density_maximum()];
-    let births = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.birth)
-        .collect::<Vec<_>>();
-    let deaths = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.death)
-        .collect::<Vec<_>>();
-    let parents = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.parent.unwrap_or(u64::MAX))
-        .collect::<Vec<_>>();
-    let representative_pixels = tree
-        .leaves()
-        .iter()
-        .map(|leaf| u64::try_from(leaf.representative_pixel).expect("pixel index should fit u64"))
-        .collect::<Vec<_>>();
+    let births = collect_reference(
+        "persistence-reference births",
+        tree.leaves().iter().map(|leaf| leaf.birth),
+    )?;
+    let deaths = collect_reference(
+        "persistence-reference deaths",
+        tree.leaves().iter().map(|leaf| leaf.death),
+    )?;
+    let parents = collect_reference(
+        "persistence-reference parents",
+        tree.leaves()
+            .iter()
+            .map(|leaf| leaf.parent.unwrap_or(u64::MAX)),
+    )?;
+    let representative_pixels = collect_reference(
+        "persistence-reference representative pixels",
+        tree.leaves().iter().map(|leaf| {
+            u64::try_from(leaf.representative_pixel).expect("pixel index should fit u64")
+        }),
+    )?;
     let merge_tree_hash = tree.content_hash();
     let sections = [
         ArtifactSection::new(CONFIGURATION_HASH, &[32], analytic_configuration.as_bytes()),
@@ -68,7 +68,7 @@ pub(crate) fn publish_persistence_reference(
             &representative_pixels,
         ),
     ];
-    let mut validated = Vec::with_capacity(sections.len());
+    let mut validated = empty_reference("persistence-reference sections", sections.len())?;
     for section in sections {
         validated.push(section.map_err(|error| ArtifactWriteError::InvalidSection {
             index: validated.len(),
@@ -76,4 +76,22 @@ pub(crate) fn publish_persistence_reference(
         })?);
     }
     publish_artifact(path, PERSISTENCE_REFERENCE_FORMAT, &validated)
+}
+
+fn empty_reference<T>(buffer: &'static str, elements: usize) -> Result<Vec<T>, ArtifactWriteError> {
+    let mut values = Vec::new();
+    values
+        .try_reserve_exact(elements)
+        .map_err(|_error| ArtifactWriteError::Allocation { buffer, elements })?;
+    Ok(values)
+}
+
+fn collect_reference<T>(
+    buffer: &'static str,
+    values: impl ExactSizeIterator<Item = T>,
+) -> Result<Vec<T>, ArtifactWriteError> {
+    let elements = values.len();
+    let mut collected = empty_reference(buffer, elements)?;
+    collected.extend(values);
+    Ok(collected)
 }

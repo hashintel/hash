@@ -11,6 +11,7 @@ pub(crate) enum ProjectorTrainingError {
     UnrepresentableCoefficient { name: &'static str, value: f64 },
     InvalidRelationCondition { value: f64 },
     InvalidOptimizerConfig { field: &'static str, value: f64 },
+    OptimizerSteps { steps: usize, maximum: usize },
     TrainingBatchCount { expected: usize, actual: usize },
     EmptyTrainingBatch,
     NoSemanticLoss,
@@ -45,6 +46,10 @@ impl fmt::Display for ProjectorTrainingError {
                 formatter,
                 "projector optimizer field {field} has invalid value {value}"
             ),
+            Self::OptimizerSteps { steps, maximum } => write!(
+                formatter,
+                "projector optimizer requests {steps} steps, exceeding the M0 limit {maximum}"
+            ),
             Self::TrainingBatchCount { expected, actual } => write!(
                 formatter,
                 "projector optimizer expected {expected} batches, received {actual}"
@@ -75,6 +80,7 @@ impl Error for ProjectorTrainingError {
             | Self::UnrepresentableCoefficient { .. }
             | Self::InvalidRelationCondition { .. }
             | Self::InvalidOptimizerConfig { .. }
+            | Self::OptimizerSteps { .. }
             | Self::TrainingBatchCount { .. }
             | Self::EmptyTrainingBatch
             | Self::NoSemanticLoss
@@ -142,6 +148,11 @@ pub(crate) enum HardNegativeError {
         field: &'static str,
         value: f64,
     },
+    InvalidCount {
+        field: &'static str,
+        value: usize,
+        maximum: usize,
+    },
     EmptyCoordinates,
     NonFiniteCoordinate {
         row: usize,
@@ -186,6 +197,14 @@ impl fmt::Display for HardNegativeError {
                     "hard-negative field {field} has invalid value {value}"
                 )
             }
+            Self::InvalidCount {
+                field,
+                value,
+                maximum,
+            } => write!(
+                formatter,
+                "hard-negative field {field} is {value}, exceeding the M0 limit {maximum}"
+            ),
             Self::EmptyCoordinates => {
                 formatter.write_str("hard-negative spatial index cannot be empty")
             }
@@ -239,6 +258,7 @@ impl Error for HardNegativeError {
         match self {
             Self::Index(error) => Some(error),
             Self::InvalidConfig { .. }
+            | Self::InvalidCount { .. }
             | Self::EmptyCoordinates
             | Self::NonFiniteCoordinate { .. }
             | Self::CoordinateOverflow { .. }
@@ -277,6 +297,11 @@ pub(crate) enum ProjectorFitError {
     InvalidPlanValue {
         field: &'static str,
         value: f64,
+    },
+    PlanCapacity {
+        field: &'static str,
+        value: usize,
+        maximum: usize,
     },
     InsufficientTrainingSteps {
         steps: usize,
@@ -317,6 +342,14 @@ impl fmt::Display for ProjectorFitError {
                     "projector batch-plan field {field} is invalid: {value}"
                 )
             }
+            Self::PlanCapacity {
+                field,
+                value,
+                maximum,
+            } => write!(
+                formatter,
+                "projector batch-plan field {field} is {value}, exceeding the M0 limit {maximum}"
+            ),
             Self::InsufficientTrainingSteps { steps, conditions } => write!(
                 formatter,
                 "projector training has {steps} steps for {conditions} conditions; every \
@@ -345,6 +378,7 @@ impl Error for ProjectorFitError {
             | Self::InvalidCondition { .. }
             | Self::UnorderedCondition { .. }
             | Self::InvalidPlanValue { .. }
+            | Self::PlanCapacity { .. }
             | Self::InsufficientTrainingSteps { .. } => None,
         }
     }

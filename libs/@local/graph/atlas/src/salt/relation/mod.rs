@@ -9,6 +9,18 @@
 //! ν(i, j, r) = 1 / sqrt((1 + degree_r(i)) * (1 + degree_r(j))).
 //! ```
 //!
+//! Link and endpoint confidence combine as
+//!
+//! ```text
+//! c_eff = c_link * sqrt(c_left * c_right)
+//! ```
+//!
+//! with a missing score represented by the neutral value one and a separate
+//! provenance bit. Force pruning uses
+//! `c_eff * (coincident_mass + proximal_mass)` before degree normalization and
+//! strength; persisted edges retain all factors so training applies each one
+//! exactly once.
+//!
 //! Attraction retains confidence, degree normalization, frozen strength and
 //! Coincident/Proximal policy factors separately. This prevents class
 //! probabilities or strength from being applied twice.
@@ -23,6 +35,11 @@
 //! Parallel links aggregate by maximum independently in each channel.
 //! Attraction coefficients, degree normalization and strength never enter
 //! protection.
+
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "relation identities require canonical cross-platform scalar encodings"
+)]
 
 use std::collections::{HashMap, HashSet};
 
@@ -427,10 +444,20 @@ pub(crate) struct RelationIndexes {
 }
 
 impl RelationIndexes {
-    /// Returns the canonical identity of the persisted admitted edge table.
+    /// Returns the canonical identity of attraction and no-repel state.
     #[must_use]
     pub(crate) fn edge_snapshot_hash(&self) -> ContentHash {
-        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v1");
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v2");
+        hasher.update(
+            &u64::try_from(self.attraction.len())
+                .expect("attraction count should fit u64")
+                .to_le_bytes(),
+        );
+        hasher.update(
+            &u64::try_from(self.protection.len())
+                .expect("protection count should fit u64")
+                .to_le_bytes(),
+        );
         for edge in &self.attraction {
             let (web_id, entity_uuid, draft_id) = entity_sort_key(edge.link_entity);
             hasher.update(web_id.as_bytes());
@@ -455,6 +482,13 @@ impl RelationIndexes {
             ] {
                 hasher.update(&value.to_bits().to_le_bytes());
             }
+        }
+        for protection in &self.protection {
+            hasher.update(&protection.pair.first.as_u32().to_le_bytes());
+            hasher.update(&protection.pair.second.as_u32().to_le_bytes());
+            hasher.update(&protection.hard_mass.to_bits().to_le_bytes());
+            hasher.update(&protection.ordinary_mass.to_bits().to_le_bytes());
+            hasher.update(&[u8::from(protection.hard) | (u8::from(protection.ordinary) << 1)]);
         }
         hasher.finish()
     }

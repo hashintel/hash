@@ -152,10 +152,13 @@ pub(crate) fn publish_projector_checkpoint<B: Backend>(
             false
         }
         Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-            let existing_hash = hash_reader(fs::File::open(path)?)?;
+            let existing = fs::File::open(path)?;
+            existing.sync_all()?;
+            let existing_hash = hash_reader(existing)?;
             if existing_hash != content_hash {
                 return Err(ProjectorCheckpointError::ExistingCheckpointMismatch);
             }
+            fs::File::open(parent)?.sync_all()?;
             true
         }
         Err(error) => return Err(ProjectorCheckpointError::Io(error)),

@@ -3,6 +3,37 @@
 //! `fit` delegates to an injected [`AtlasTrainer`], keeping extraction and
 //! deployment policy outside the crate-level CLI. `serve` is complete: it
 //! starts the Axum 0.8 router over cryptographically verified active state.
+//!
+//! # Fitting boundary
+//!
+//! The command intentionally does not standardize a source-extraction JSON
+//! schema. `fit --request <path>` reads at most 16 MiB, requires syntactically
+//! valid JSON, and gives the exact bytes plus source path to [`AtlasTrainer`].
+//! An embedding application owns deserialization, credentials, graph-store
+//! composition, quality-suite adapters, release authorities, and backend
+//! selection.
+//!
+//! A successful trainer is expected to freeze authorized inputs, generate and
+//! verify every artifact, publish an inactive candidate, explicitly activate
+//! it, and reopen it through restart verification before returning
+//! [`FitReceipt`]. The CLI prints only that stable receipt as one JSON line.
+//!
+//! [`UnconfiguredAtlasTrainer`] always rejects `fit`; it is used by the
+//! standalone binary so serving can ship without pretending that a production
+//! extractor has been configured. Applications normally inject
+//! [`CallbackAtlasTrainer`] or their own trait implementation through
+//! [`run_with`].
+//!
+//! # Serving boundary
+//!
+//! `serve --config <path>` loads [`AtlasApiConfiguration`], constructs the
+//! pinned Candle CPU checkpoint backend, binds the requested TCP address, and
+//! runs the modern Axum router. SIGINT and, on Unix, SIGTERM trigger graceful
+//! shutdown. The default bind address is `127.0.0.1:4010`.
+//!
+//! Request and configuration documents use bounded reads and structured
+//! errors; the receipt has one fixed output schema. Standard `--help` and
+//! `--version` output remains owned by Clap and exits successfully.
 
 use core::{error::Error, fmt, future::Future, net::SocketAddr, pin::Pin};
 use std::{
@@ -64,9 +95,13 @@ impl FitRequest {
 /// Stable command output from one completed fit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct FitReceipt {
+    /// Content-addressed generation identity.
     pub generation: String,
+    /// Canonical generation-manifest content hash.
     pub manifest_hash: String,
+    /// Signed aggregate release-report content hash.
     pub release_report_hash: String,
+    /// Explicit compare-and-swap activation result.
     pub activation: FitActivation,
 }
 
@@ -74,7 +109,9 @@ pub struct FitReceipt {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FitActivation {
+    /// The fit changed the active pointer to the generated release.
     Activated,
+    /// The exact generated release was already active.
     AlreadyActive,
 }
 

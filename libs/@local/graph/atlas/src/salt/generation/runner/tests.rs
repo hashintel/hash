@@ -56,6 +56,36 @@ const ROWS: usize = 32;
 
 type TrainBackend = Autodiff<Candle>;
 
+#[test]
+fn durable_directory_creates_and_reaccepts_a_missing_parent_chain() {
+    let temporary = tempfile::tempdir().expect("temporary directory should create");
+    let root = Utf8Path::from_path(temporary.path()).expect("temporary path should be UTF-8");
+    let nested = root.join("first/second/third");
+
+    super::run::ensure_durable_directory(&nested)
+        .expect("missing parent chain should be durably created");
+    super::run::ensure_durable_directory(&nested)
+        .expect("an existing directory should be durably re-synchronized");
+
+    assert!(nested.is_dir());
+}
+
+#[test]
+fn durable_directory_rejects_a_file_component() {
+    let temporary = tempfile::tempdir().expect("temporary directory should create");
+    let root = Utf8Path::from_path(temporary.path()).expect("temporary path should be UTF-8");
+    let file = root.join("not-a-directory");
+    std::fs::write(&file, b"fixture").expect("fixture file should write");
+
+    let error = super::run::ensure_durable_directory(&file.join("child"))
+        .expect_err("a file component must fail closed");
+
+    assert!(matches!(
+        error.kind(),
+        std::io::ErrorKind::AlreadyExists | std::io::ErrorKind::NotADirectory
+    ));
+}
+
 #[derive(Debug)]
 struct FixtureConditionQualityEvaluator;
 
@@ -263,12 +293,25 @@ fn generation_contract_is_order_canonical_and_excludes_derived_outputs() {
 #[test]
 fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     let temporary = tempfile::tempdir().expect("temporary generation root should create");
-    let root = Utf8Path::from_path(temporary.path()).expect("temporary root should be UTF-8");
+    let temporary_root =
+        Utf8Path::from_path(temporary.path()).expect("temporary root should be UTF-8");
+    let generation_root = temporary_root.join("nested/generation/root");
+    let root = generation_root.as_path();
     let entities = (0..ROWS)
         .map(|row| entity(100 + u128::try_from(row).expect("row should fit u128") * 10))
         .collect::<Vec<_>>();
     let identities =
         IdentityDirectory::new(entities.clone()).expect("generation entities should be unique");
+    let selected_editions = entities
+        .iter()
+        .enumerate()
+        .map(|(row, &entity)| {
+            edition(
+                entity,
+                30_000 + u128::try_from(row).expect("row should fit u128"),
+            )
+        })
+        .collect::<Vec<_>>();
     let representation_values = representations();
     let mut canonical_embeddings =
         Vec::with_capacity(ROWS * crate::salt::representation::CANONICAL_DIMENSIONS);
@@ -337,7 +380,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     let semantic_priority = vec![1.0; ROWS];
     let density_mass = vec![1.0; ROWS];
     let labels = vec![None::<Box<str>>; ROWS];
-    let classifier = root.join("input-classifier.salt");
+    let classifier = temporary_root.join("input-classifier.salt");
     publish_classifier_fixture(&classifier);
 
     let mut manifest = fixture_manifest();
@@ -385,6 +428,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             .expect("fixture contract should not contain generated artifacts"),
         geometry: authorize_relation_geometry(&snapshot, &relation_security),
         identities,
+        selected_editions: selected_editions.into_boxed_slice(),
         canonical_embeddings: canonical_embeddings.into_boxed_slice(),
         roles: roles.into(),
         type_context: None,
@@ -405,7 +449,14 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             strength_head: None,
         },
     };
-    let reproduction_source = source.clone();
+    let mut reproduction_source = source.clone();
+    let placeholder = &mut reproduction_source
+        .manifest_contract
+        .manifest_mut()
+        .relations
+        .negative_admission
+        .protect_ordinary_negatives;
+    *placeholder = !*placeholder;
     let release_authority = CanonicalReleaseAuthority::new(
         &gate_signer,
         crate::salt::release::test_support::external_authorities(&external_issuer),
@@ -449,6 +500,45 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     )
     .expect("independent reproduction should publish");
     assert_eq!(outcome.manifest, reproduced.manifest);
+    assert_ne!(
+        outcome.manifest.reproducibility.binary_fingerprint,
+        crate::salt::hash::ContentHash::digest(b"generation-binary"),
+        "the runner must replace the caller's executable placeholder"
+    );
+    assert_eq!(
+        outcome
+            .manifest
+            .reproducibility
+            .execution_contract
+            .training_backend,
+        "autodiff<candle<cpu>>"
+    );
+    assert_eq!(
+        outcome
+            .manifest
+            .reproducibility
+            .execution_contract
+            .contract_hash,
+        outcome
+            .manifest
+            .reproducibility
+            .execution_contract
+            .content_hash()
+    );
+    assert_ne!(
+        outcome.manifest.reproducibility.config_hash,
+        crate::salt::hash::ContentHash::digest(b"config"),
+        "the runner must replace the caller's runtime configuration placeholder"
+    );
+    assert!(
+        outcome
+            .manifest
+            .reproducibility
+            .seeds
+            .iter()
+            .all(|seed| seed.name != "projector" && seed.name != "landmarks"),
+        "the runner must replace caller-authored seed entries"
+    );
     assert!(!outcome.manifest.relations.strength_head.enabled);
     assert_eq!(
         outcome.manifest.relations.strength_head.model_hash,

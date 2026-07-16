@@ -1,3 +1,8 @@
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "hard-negative identities use canonical little-endian scalar encodings"
+)]
+
 use core::num::NonZeroUsize;
 use std::{collections::HashSet, time::Instant};
 
@@ -10,6 +15,11 @@ use crate::salt::{
     identity::GenerationRowId,
     relation::{PairProtection, RelationPair},
 };
+
+const MAX_HARD_NEGATIVE_NEIGHBORS: usize = 1_024;
+const MAX_HARD_NEGATIVE_CANDIDATE_MULTIPLIER: usize = 64;
+const MAX_HARD_NEGATIVE_CONNECTIVITY: usize = 512;
+const MAX_HARD_NEGATIVE_EXPANSION: usize = 4_096;
 
 /// Bounded 2D mining schedule and rank-weight function.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -28,9 +38,44 @@ impl HardNegativeConfig {
     ///
     /// # Errors
     ///
-    /// This returns an error when maximum weight or rank exponent is not
-    /// finite and positive.
+    /// This returns an error when a native-index count exceeds the M0 resource
+    /// envelope or a rank-weight coefficient is not finite and positive.
     pub(crate) fn validate(self) -> Result<Self, HardNegativeError> {
+        for (field, value, maximum) in [
+            (
+                "neighbors",
+                self.neighbors.get(),
+                MAX_HARD_NEGATIVE_NEIGHBORS,
+            ),
+            (
+                "candidate-multiplier",
+                self.candidate_multiplier.get(),
+                MAX_HARD_NEGATIVE_CANDIDATE_MULTIPLIER,
+            ),
+            (
+                "connectivity",
+                self.connectivity.get(),
+                MAX_HARD_NEGATIVE_CONNECTIVITY,
+            ),
+            (
+                "expansion-add",
+                self.expansion_add.get(),
+                MAX_HARD_NEGATIVE_EXPANSION,
+            ),
+            (
+                "expansion-search",
+                self.expansion_search.get(),
+                MAX_HARD_NEGATIVE_EXPANSION,
+            ),
+        ] {
+            if value > maximum {
+                return Err(HardNegativeError::InvalidCount {
+                    field,
+                    value,
+                    maximum,
+                });
+            }
+        }
         for (field, value) in [
             ("maximum-weight", self.maximum_weight),
             ("rank-exponent", self.rank_exponent),
@@ -46,7 +91,7 @@ impl HardNegativeConfig {
     #[must_use]
     pub(crate) fn content_hash(self) -> ContentHash {
         let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.hard-negative-usearch.v2");
-        hasher.update(b"usearch-2.25.3");
+        hasher.update(usearch::version().as_bytes());
         hasher.update(b"single-threaded-build");
         for value in [
             self.neighbors.get(),
@@ -182,10 +227,15 @@ impl USearchSpatialIndex {
                 coordinate,
             )?;
         }
+        let mut identity =
+            ContentHasher::new(b"hash.graph.atlas.salt.hard-negative-spatial-index.v1");
+        identity.update(config.content_hash().as_bytes());
+        identity.update(usearch::version().as_bytes());
+        identity.update(index.hardware_acceleration().as_bytes());
         let spatial = Self {
             index,
             coordinates: narrowed.into_boxed_slice(),
-            identity: config.content_hash(),
+            identity: identity.finish(),
         };
         tracing::debug!(
             target: "hash_graph_atlas::salt",
@@ -302,8 +352,9 @@ where
         }
         let requested = self.config.neighbors.get();
         let mut limit = requested
-            .saturating_mul(self.config.candidate_multiplier.get())
-            .saturating_add(1)
+            .checked_mul(self.config.candidate_multiplier.get())
+            .and_then(|limit| limit.checked_add(1))
+            .expect("validated hard-negative limits cannot overflow")
             .min(self.spatial.rows());
         let mut accepted = Vec::with_capacity(requested);
         loop {

@@ -3,6 +3,24 @@
 //! Graph identities, generation rows, and artifact ordinals have different
 //! lifetimes. This module makes every transition explicit and validates the
 //! packed `u32` limit.
+//!
+//! [`IdentityDirectory`] assigns one canonical generation row to every durable
+//! graph [`EntityId`]. The input sequence is part of generation identity: the
+//! directory hash records each row together with web ID, entity UUID, draft
+//! presence, and draft UUID. A different row permutation is therefore a
+//! different frozen input even when the entity set is unchanged.
+//!
+//! Individual artifacts may contain a subset or delivery permutation of those
+//! rows. [`ArtifactIdentityMap`] gives that artifact its own dense
+//! [`ArtifactOrdinal`] domain and validates both directions against the
+//! directory. Algorithms must not use an artifact ordinal as a generation row
+//! or infer either one from vector position without the corresponding map.
+//!
+//! `u32::MAX` is reserved as the absent/unassigned sentinel used by persisted
+//! indexes. Valid packed identities end at `u32::MAX - 1`, and constructors
+//! reject corpora or artifacts that cannot preserve that distinction.
+//!
+//! [`EntityId`]: type_system::knowledge::entity::id::EntityId
 
 use core::{error::Error, fmt};
 use std::collections::HashMap;

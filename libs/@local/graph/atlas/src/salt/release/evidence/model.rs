@@ -15,7 +15,7 @@ use crate::salt::{
 
 mod validate;
 
-const EVIDENCE_VERSION: u32 = 15;
+const EVIDENCE_VERSION: u32 = 16;
 
 /// Typed measurements or approvals for one mandatory release gate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +57,8 @@ pub(crate) enum GateEvidencePayload {
     AuthorizationNoninterference(ExternalGateGrant),
     SnapshotConsistency {
         frozen_input: ContentHash,
+        store_snapshot: ContentHash,
+        extraction_receipt: ContentHash,
         security_geometry: ContentHash,
         identity_directory: ContentHash,
         row_count: u64,
@@ -120,12 +122,16 @@ impl GateEvidencePayload {
     #[must_use]
     pub(crate) const fn snapshot_consistency(
         frozen_input: ContentHash,
+        store_snapshot: ContentHash,
+        extraction_receipt: ContentHash,
         security_geometry: ContentHash,
         identity_directory: ContentHash,
         row_count: u64,
     ) -> Self {
         Self::SnapshotConsistency {
             frozen_input,
+            store_snapshot,
+            extraction_receipt,
             security_geometry,
             identity_directory,
             row_count,

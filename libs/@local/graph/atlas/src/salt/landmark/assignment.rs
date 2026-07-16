@@ -166,9 +166,10 @@ pub(crate) fn assign_landmarks(
             u32::try_from(key).map_err(|_| LandmarkAssignmentError::IndexKeyOverflow { key })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.landmark-assignment.v2");
-    hasher.update(b"usearch-2.25.3");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.landmark-assignment.v3");
+    hasher.update(usearch::version().as_bytes());
     hasher.update(b"single-threaded-build");
+    hasher.update(index.hardware_acceleration().as_bytes());
     hasher.update(
         &u64::try_from(PROJECTOR_DIMENSIONS)
             .expect("projector dimensions should fit u64")

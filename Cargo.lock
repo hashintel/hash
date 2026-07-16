@@ -9,12 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
-name = "accelerate-src"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "415ed64958754dbe991900f3940677e6a7eefb4d7367afd70d642677b0c7d19d"
-
-[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1333,15 +1327,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "blas-src"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bd439b48f5425c9f4597141b52476358e05e08471bc30f4d1c2a1f4084d7c9f"
-dependencies = [
- "accelerate-src",
-]
-
-[[package]]
 name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1863,7 +1848,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dceb9692e292782bab7ad0259e8e8f5ee80ba2b0329a78f0ba589a26a9633dd6"
 dependencies = [
  "atomic_float",
- "blas-src",
  "burn-autodiff",
  "burn-backend",
  "burn-ir",
@@ -2219,14 +2203,12 @@ version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bd9895436c1ba5dc1037a19935d084b838db066ff4e15ef7dded020b7c12a4a"
 dependencies = [
- "accelerate-src",
  "byteorder",
  "candle-metal-kernels",
  "candle-ug",
  "float8",
  "gemm 0.19.0",
  "half",
- "libc",
  "libm",
  "memmap2",
  "num-traits",
@@ -2314,15 +2296,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a"
 dependencies = [
  "rustversion",
-]
-
-[[package]]
-name = "cblas-sys"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6feecd82cce51b0204cf063f0041d69f24ce83f680d87514b004248e7b0fa65"
-dependencies = [
- "libc",
 ]
 
 [[package]]
@@ -6331,6 +6304,8 @@ dependencies = [
  "error-stack",
  "faer",
  "futures",
+ "gemm 0.19.0",
+ "gemm-common 0.19.0",
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-postgres-store",
@@ -6339,9 +6314,11 @@ dependencies = [
  "hash-graph-types",
  "jiff",
  "levenberg-marquardt",
+ "libc",
  "memmap2",
  "nalgebra",
  "npyz 0.9.1",
+ "num_cpus",
  "pin-project-lite",
  "rand 0.10.1",
  "rand_xoshiro",
@@ -9471,8 +9448,6 @@ version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
 dependencies = [
- "cblas-sys",
- "libc",
  "matrixmultiply",
  "num-complex",
  "num-integer",

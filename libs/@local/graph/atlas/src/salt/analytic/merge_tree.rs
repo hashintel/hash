@@ -3,7 +3,11 @@
     reason = "merge-tree identities require canonical little-endian integer and float encodings"
 )]
 
-use super::{error::AnalyticError, raster::DensityRaster};
+use super::{
+    allocation::{collect_exact, empty, filled},
+    error::AnalyticError,
+    raster::DensityRaster,
+};
 use crate::salt::hash::{ContentHash, ContentHasher};
 
 const INACTIVE: usize = usize::MAX;
@@ -109,12 +113,12 @@ struct Components {
 }
 
 impl Components {
-    const fn new() -> Self {
-        Self {
-            parent: Vec::new(),
-            birth: Vec::new(),
-            representative_pixel: Vec::new(),
-        }
+    fn with_capacity(elements: usize) -> Result<Self, AnalyticError> {
+        Ok(Self {
+            parent: empty("merge-tree component parents", elements)?,
+            birth: empty("merge-tree component births", elements)?,
+            representative_pixel: empty("merge-tree component representative pixels", elements)?,
+        })
     }
 
     fn add(&mut self, birth: f64, representative_pixel: usize) -> usize {
@@ -195,11 +199,13 @@ pub(crate) fn merge_tree(
     }
 
     let floor = config.floor_fraction * density_maximum;
-    let mut order = values
-        .iter()
-        .enumerate()
-        .filter_map(|(pixel, &value)| (value >= floor).then_some(pixel))
-        .collect::<Vec<_>>();
+    let mut order = empty("merge-tree activation order", values.len())?;
+    order.extend(
+        values
+            .iter()
+            .enumerate()
+            .filter_map(|(pixel, &value)| (value >= floor).then_some(pixel)),
+    );
     order.sort_unstable_by(|&left, &right| {
         values[right]
             .total_cmp(&values[left])
@@ -207,9 +213,9 @@ pub(crate) fn merge_tree(
     });
 
     let size = raster.size();
-    let mut component_of = vec![INACTIVE; values.len()];
-    let mut components = Components::new();
-    let mut pending_leaves = Vec::new();
+    let mut component_of = filled("merge-tree pixel components", values.len(), INACTIVE)?;
+    let mut components = Components::with_capacity(order.len())?;
+    let mut pending_leaves = empty("merge-tree pending leaves", order.len())?;
     for pixel in order {
         let roots = neighbor_roots(&mut components, &component_of, pixel, size);
         component_of[pixel] = if roots.is_empty() {
@@ -236,7 +242,7 @@ pub(crate) fn merge_tree(
             );
         }
     }
-    let leaves = finalize_leaves(&components, &pending_leaves);
+    let leaves = finalize_leaves(&components, &pending_leaves)?;
     Ok(MergeTree {
         density_maximum,
         leaves,
@@ -340,15 +346,24 @@ fn retain_leaf(
     }
 }
 
-fn finalize_leaves(components: &Components, pending: &[PendingLeaf]) -> Vec<PersistenceLeaf> {
-    let mut leaf_of_component = vec![INACTIVE; components.parent.len()];
+fn finalize_leaves(
+    components: &Components,
+    pending: &[PendingLeaf],
+) -> Result<Vec<PersistenceLeaf>, AnalyticError> {
+    let mut leaf_of_component = filled(
+        "merge-tree leaf component map",
+        components.parent.len(),
+        INACTIVE,
+    )?;
     for (leaf, pending_leaf) in pending.iter().enumerate() {
         leaf_of_component[pending_leaf.component] = leaf;
     }
-    pending
-        .iter()
-        .enumerate()
-        .map(|(leaf, pending_leaf)| {
+    // Persistence filtering may remove an immediate merge parent. Resolve to
+    // the nearest retained ancestor so every published parent still names a
+    // leaf in this exact artifact rather than an internal sweep component.
+    collect_exact(
+        "merge-tree finalized leaves",
+        pending.iter().enumerate().map(|(leaf, pending_leaf)| {
             let parent =
                 retained_parent(pending_leaf.parent, &components.parent, &leaf_of_component)
                     .map(|parent| u64::try_from(parent).expect("leaf index should fit u64"));
@@ -359,8 +374,8 @@ fn finalize_leaves(components: &Components, pending: &[PendingLeaf]) -> Vec<Pers
                 birth: pending_leaf.birth,
                 death: pending_leaf.death,
             }
-        })
-        .collect()
+        }),
+    )
 }
 
 fn retained_parent(

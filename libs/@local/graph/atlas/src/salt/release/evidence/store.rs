@@ -102,9 +102,11 @@ fn publish_document(path: &Utf8Path, bytes: &[u8], gate: GateId) -> Result<(), G
             if existing != bytes {
                 return Err(GateEvidenceError::ExistingEvidenceMismatch { gate });
             }
+            File::open(path)?.sync_all()?;
         }
         Err(error) => return Err(GateEvidenceError::Io(error.error)),
     }
+    File::open(directory)?.sync_all()?;
     Ok(())
 }
 

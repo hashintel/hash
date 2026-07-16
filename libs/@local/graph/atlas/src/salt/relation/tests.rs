@@ -42,6 +42,27 @@ fn empty_relation_indexes_preserve_the_complete_artifact_schema() {
 }
 
 #[test]
+fn edge_snapshot_identity_binds_pair_protection_state() {
+    let mut indexes = crate::salt::relation::RelationIndexes {
+        attraction: Vec::new(),
+        protection: vec![crate::salt::relation::PairProtection {
+            pair: RelationPair::new(row(0), row(1)),
+            hard_mass: 0.75,
+            ordinary_mass: 0.5,
+            hard: true,
+            ordinary: false,
+        }],
+    };
+    let initial = indexes.edge_snapshot_hash();
+
+    indexes.protection[0].ordinary = true;
+    assert_ne!(indexes.edge_snapshot_hash(), initial);
+    indexes.protection[0].ordinary = false;
+    indexes.protection[0].hard_mass = 0.5;
+    assert_ne!(indexes.edge_snapshot_hash(), initial);
+}
+
+#[test]
 fn parallel_links_preserve_attraction_and_max_aggregate_protection() {
     let relation = ordinal(0);
     let policy = RelationPolicy {

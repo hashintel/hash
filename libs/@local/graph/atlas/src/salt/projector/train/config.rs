@@ -1,3 +1,8 @@
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "projector configuration identities use canonical little-endian scalar encodings"
+)]
+
 use core::num::NonZeroUsize;
 
 use super::{
@@ -5,6 +10,8 @@ use super::{
     ProjectorTrainingError,
 };
 use crate::salt::hash::{ContentHash, ContentHasher};
+
+const MAX_OPTIMIZER_STEPS: usize = 100_000;
 
 /// Scalar coefficients multiplying active projector loss families.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -97,8 +104,15 @@ impl ProjectorOptimizerConfig {
     ///
     /// # Errors
     ///
-    /// This returns an error unless `0 <= minimum <= initial <= 1`.
+    /// This returns an error unless `0 <= minimum <= initial <= 1` and the
+    /// schedule fits the bounded M0 work envelope.
     pub(crate) fn validate(self) -> Result<Self, ProjectorTrainingError> {
+        if self.steps.get() > MAX_OPTIMIZER_STEPS {
+            return Err(ProjectorTrainingError::OptimizerSteps {
+                steps: self.steps.get(),
+                maximum: MAX_OPTIMIZER_STEPS,
+            });
+        }
         if !self.initial_learning_rate.is_finite()
             || self.initial_learning_rate <= 0.0
             || self.initial_learning_rate > 1.0
@@ -299,6 +313,25 @@ mod tests {
                 name: "support-epsilon",
                 ..
             })
+        ));
+    }
+
+    #[test]
+    fn optimizer_rejects_effectively_unbounded_work() {
+        let config = ProjectorOptimizerConfig {
+            initial_learning_rate: 1.0e-3,
+            minimum_learning_rate: 1.0e-4,
+            steps: NonZeroUsize::new(MAX_OPTIMIZER_STEPS + 1)
+                .expect("limit plus one should be non-zero"),
+            seed: 17,
+        };
+
+        assert!(matches!(
+            config.validate(),
+            Err(ProjectorTrainingError::OptimizerSteps {
+                steps,
+                maximum: MAX_OPTIMIZER_STEPS,
+            }) if steps == MAX_OPTIMIZER_STEPS + 1
         ));
     }
 }

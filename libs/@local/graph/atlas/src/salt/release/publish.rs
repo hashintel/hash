@@ -63,6 +63,8 @@ pub(crate) fn publish_gated_candidate(
             if existing != bytes {
                 return Err(ReleasePublishError::ExistingReportMismatch);
             }
+            file.sync_all()?;
+            File::open(&directory)?.sync_all()?;
         }
         Err(error) => return Err(ReleasePublishError::Persist(error)),
     }

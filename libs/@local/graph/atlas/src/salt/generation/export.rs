@@ -212,6 +212,7 @@ fn publish_file(
         }
         Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
             let existing = File::open(path)?;
+            existing.sync_all()?;
             let existing_length = existing.metadata()?.len();
             let existing_hash = hash_reader(existing)?;
             if existing_length != length || existing_hash != content_hash {
@@ -219,6 +220,7 @@ fn publish_file(
                     path: path.to_owned(),
                 });
             }
+            File::open(parent)?.sync_all()?;
             true
         }
         Err(error) => return Err(error.into()),

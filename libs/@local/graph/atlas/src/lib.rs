@@ -53,6 +53,12 @@
 //! intentionally unconfigured; an embedding application supplies an
 //! [`cli::AtlasTrainer`] through [`cli::run_with`].
 //!
+//! The repository's `libs/@local/graph/atlas/COOKBOOK.md` contains the complete
+//! operational walkthrough: runner composition, trust configuration,
+//! publication and activation state, API examples, quality-gated benchmarks,
+//! and troubleshooting. Generate docs with `--document-private-items` to read
+//! the crate-internal SALT theory and invariants.
+//!
 //! The HTTP surface provides `/healthz`, `/v1/atlas/current`,
 //! `/v1/atlas/current/manifest`, and ranged artifact reads beneath
 //! `/v1/atlas/current/artifacts/{*relative_path}`. The current envelope has no

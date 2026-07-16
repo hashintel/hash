@@ -5,6 +5,45 @@
 //! families are assigned to size-balanced folds before fitting; out-of-fold
 //! logits calibrate one scalar deployment temperature. Applicability is fitted
 //! independently from the complete training embedding distribution.
+//!
+//! # Objective and optimizer
+//!
+//! For soft target `y_i`, vote weight `v_i`, logits `W x_i + b`, and
+//! coefficient penalty `lambda`, fitting minimizes
+//!
+//! ```text
+//! sum_i v_i * cross_entropy(y_i, softmax(W x_i + b))
+//!     + (lambda / 2) * squared_norm(W)
+//! ```
+//!
+//! Intercepts are not regularized. A deterministic limited-memory BFGS
+//! optimizer uses an Armijo backtracking line search and stops when the maximum
+//! absolute gradient reaches the configured tolerance. Every training fold
+//! must retain positive target mass for all three classes.
+//!
+//! # Grouped validation and calibration
+//!
+//! Rows sharing a relation-family identity remain in one fold, preventing
+//! near-duplicate family examples from leaking across train and validation
+//! partitions. Fold assignment is seeded and size-balanced. Concatenated
+//! out-of-fold logits fit one scalar temperature by a bounded golden-section
+//! search over `[0.05, 20]`; ties prefer a temperature closer to one.
+//! Raw/calibrated cross-entropy and Brier scores are retained separately.
+//!
+//! # Applicability
+//!
+//! Applicability is not a fourth placement class. The complete training corpus
+//! fits one mean and diagonal variance. Per-dimension variance is shrunk toward
+//! pooled variance by
+//!
+//! ```text
+//! shrinkage = dimensions / (rows + dimensions)
+//! ```
+//!
+//! Training standardized distances are sorted and persisted. Inference returns
+//! the empirical upper-tail rank of a new embedding, so an out-of-distribution
+//! relation can fall back toward Overlay without changing the calibrated class
+//! posterior itself.
 
 mod applicability;
 mod calibration;

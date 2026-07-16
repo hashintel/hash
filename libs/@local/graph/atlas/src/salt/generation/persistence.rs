@@ -1,4 +1,30 @@
 //! Two-sided persistence comparison against the landmark reference.
+//!
+//! Persistence protects large-scale map topology from artifacts introduced by
+//! the parametric projector. The reference is non-parametric: every generation
+//! row contributes its frozen density mass at the coordinate of its assigned
+//! landmark. Rasterization and merge-tree construction then use the same
+//! numerical configuration as the canonical candidate.
+//!
+//! For a merge-tree leaf with birth density `B` and death density `D`,
+//! persistence is `B - D`. Fixed thresholds are fractions of the tree's
+//! maximum density, so the leaf count at threshold `t` is
+//!
+//! ```text
+//! count(t) = number of leaves where persistence >= t * maximum_density
+//! ```
+//!
+//! Candidate leaf counts and normalized total persistence must each lie in
+//! `[minimum_ratio * reference, maximum_ratio * reference]`. A zero reference
+//! admits only an exact zero candidate; it is not replaced by a denominator
+//! epsilon. This makes absence of structure a strict contract.
+//!
+//! Distribution, planted-shape, and noise diagnostics come from a versioned
+//! external evaluator. Low-persistence and noise measurements have explicit
+//! upper ratios relative to the reference, while every planted-shape case must
+//! pass. The final report binds evaluator contract, projector checkpoint,
+//! quantized coordinate field, both trees, reference source, thresholds, all
+//! measurements, and all immutable external report identities.
 
 #![expect(
     clippy::little_endian_bytes,

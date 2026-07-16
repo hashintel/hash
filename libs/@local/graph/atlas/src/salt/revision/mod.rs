@@ -3,6 +3,50 @@
 //! A read snapshot binds generation, authorization, base, and delta revisions
 //! into one value. Callers pass that value through the complete read path so
 //! data and cache metadata cannot silently mix revision heads.
+//!
+//! # Generation and manifest identity
+//!
+//! [`GenerationId`] names the complete frozen input and generation recipe:
+//! manifest contract, authorized geometry, relation policy, embeddings,
+//! classifier, support signals, runtime configuration, evaluator contracts,
+//! and deterministic seeds. It deliberately does not hash generated artifact
+//! bytes, because those artifacts and their hashes are outputs of the recipe.
+//!
+//! The manifest has its own content hash after output identities are known. A
+//! release head carries both values. This separation avoids a circular
+//! definition while still letting restart verification prove that a manifest
+//! belongs to the generation recipe it claims.
+//!
+//! # Data revisions
+//!
+//! [`BaseRevision`] identifies an immutable materialized base.
+//! [`DeltaRevision`] identifies the visible append-only mutation prefix over
+//! that base, and [`DataRevision`] carries the pair. They are independent
+//! counters: advancing or compacting a delta must not be represented as an
+//! unrelated generation.
+//!
+//! The current concrete reader accepts only [`DataRevision::ZERO`]. The
+//! revision types and read contracts are already explicit so unsupported
+//! mutation fails at the boundary instead of being silently read as zero.
+//!
+//! # Authorization and scope
+//!
+//! [`AuthorizationRevision`] is a content identity owned by the authorization
+//! subsystem. It must change whenever a permission decision can change.
+//! [`ScopeFingerprint`] distinguishes authorization audiences that may share
+//! data revisions but must not share filtered caches or cohorts.
+//!
+//! [`ReadSnapshot`] combines generation, authorization revision, scope, and
+//! data revision. It is the smallest complete cache/read key for a
+//! permission-filtered atlas view.
+//!
+//! # Mutations and variants
+//!
+//! [`OperationId`] is a stable UUID idempotency key supplied by an event
+//! adapter. It does not order events; deterministic replay requires an explicit
+//! event-time and operation-identity order. [`VariantId`] is a dense identifier
+//! for coordinate variants within one generation and is unrelated to data
+//! revision.
 
 use core::{error::Error, fmt, num::NonZero, str::FromStr};
 

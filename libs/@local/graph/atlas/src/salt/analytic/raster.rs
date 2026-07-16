@@ -1,8 +1,12 @@
 use rayon::prelude::*;
 
-use super::error::AnalyticError;
+use super::{
+    allocation::{empty, filled},
+    error::AnalyticError,
+};
 
 const GAUSSIAN_TRUNCATE: f64 = 4.0;
+const MAXIMUM_GRID_SIZE: usize = 2_048;
 
 /// Parameters for the versioned analytic density field.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -97,7 +101,7 @@ pub(crate) fn density_raster(
     if points.is_empty() {
         return Ok(DensityRaster {
             size: config.grid_size,
-            values: vec![0.0; area],
+            values: filled("empty density raster", area, 0.0)?,
             minimum: [-0.5; 2],
             maximum: [0.5; 2],
         });
@@ -151,7 +155,7 @@ pub(crate) fn density_raster(
         }
     }
 
-    let mut histogram = vec![0.0; area];
+    let mut histogram = filled("density histogram", area, 0.0)?;
     for point in points {
         let x = bin(
             point.coordinate[0],
@@ -176,7 +180,7 @@ pub(crate) fn density_raster(
         histogram[pixel] = density;
     }
 
-    let kernel = gaussian_kernel(config.bandwidth_pixels);
+    let kernel = gaussian_kernel(config.bandwidth_pixels)?;
     let first = convolve_axis(&histogram, config.grid_size, &kernel, 0)?;
     let values = convolve_axis(&first, config.grid_size, &kernel, 1)?;
     Ok(DensityRaster {
@@ -191,6 +195,12 @@ fn validate_config(config: RasterConfig) -> Result<usize, AnalyticError> {
     if config.grid_size < 2 {
         return Err(AnalyticError::GridTooSmall {
             size: config.grid_size,
+        });
+    }
+    if config.grid_size > MAXIMUM_GRID_SIZE {
+        return Err(AnalyticError::GridTooLarge {
+            size: config.grid_size,
+            maximum: MAXIMUM_GRID_SIZE,
         });
     }
     #[expect(
@@ -233,19 +243,19 @@ fn bin(value: f64, minimum: f64, maximum: f64, size: usize) -> usize {
     clippy::cast_sign_loss,
     reason = "a finite positive bandwidth yields a bounded non-negative kernel radius"
 )]
-fn gaussian_kernel(bandwidth: f64) -> Vec<f64> {
-    let radius = (GAUSSIAN_TRUNCATE * bandwidth + 0.5).floor() as usize;
-    let mut kernel = (0..=2 * radius)
-        .map(|index| {
-            let distance = index as f64 - radius as f64;
-            (-0.5 * (distance / bandwidth).powi(2)).exp()
-        })
-        .collect::<Vec<_>>();
+fn gaussian_kernel(bandwidth: f64) -> Result<Vec<f64>, AnalyticError> {
+    let radius = GAUSSIAN_TRUNCATE.mul_add(bandwidth, 0.5).floor() as usize;
+    let elements = 2 * radius + 1;
+    let mut kernel = empty("Gaussian kernel", elements)?;
+    for index in 0..elements {
+        let distance = index as f64 - radius as f64;
+        kernel.push((-0.5 * (distance / bandwidth).powi(2)).exp());
+    }
     let sum = kernel.iter().sum::<f64>();
     for value in &mut kernel {
         *value /= sum;
     }
-    kernel
+    Ok(kernel)
 }
 
 fn convolve_axis(
@@ -255,7 +265,7 @@ fn convolve_axis(
     axis: usize,
 ) -> Result<Vec<f64>, AnalyticError> {
     let radius = kernel.len() / 2;
-    let mut output = vec![0.0; values.len()];
+    let mut output = filled("Gaussian convolution output", values.len(), 0.0)?;
     output
         .par_iter_mut()
         .enumerate()

@@ -1,10 +1,39 @@
+//! Semantic validation for immutable generation manifests.
+//!
+//! JSON decoding proves only that fields have the expected Rust shape. Release
+//! validation additionally proves that those fields describe one supported,
+//! internally consistent generation. This module is the central fail-closed
+//! boundary for that second check.
+//!
+//! Validation proceeds in dependency order:
+//!
+//! 1. input, authorization, and representation identities must be nonzero and bind the persisted
+//!    row domain;
+//! 2. compiled numerical contracts such as representation dimensions, transform golden vectors,
+//!    graph neighborhood size, and projector architecture must match the running binary;
+//! 3. relation policy, strength, negative protection, variants, base/delta revisions, and serving
+//!    pins must agree across manifest sections;
+//! 4. every required artifact role must appear exactly once with a canonical relative path,
+//!    expected schema, length, and content hash; and
+//! 5. reproducibility seeds and configuration identities must be complete.
+//!
+//! Artifact loading performs a second layer of validation over actual bytes.
+//! Role-specific schema checks prove section shapes and numerical invariants;
+//! cross-artifact checks prove, for example, that the legacy layout contains
+//! the exact quantized coordinates from the canonical base. Neither a valid
+//! hash nor a valid manifest alone is sufficient.
+//!
+//! [`GenerationManifest::canonical_bytes`] first calls this validation and then
+//! sorts set-like fields into their canonical order. The resulting SHA-256
+//! identity therefore names semantics and one unambiguous JSON encoding.
+
 use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
 
 use super::{
-    GENERATION_MANIFEST_FORMAT_VERSION, GenerationManifest, ManifestError,
-    artifact::validate_artifacts,
+    ExecutionContractManifest, GENERATION_MANIFEST_FORMAT_VERSION, GenerationManifest,
+    ManifestError, artifact::validate_artifacts,
 };
 use crate::salt::{
     generation::ConditionQuality,
@@ -50,8 +79,16 @@ impl GenerationManifest {
                 self.input_snapshot.knowledge_hash,
             ),
             (
+                "input_snapshot.store_snapshot_identity",
+                self.input_snapshot.store_snapshot_identity,
+            ),
+            (
                 "input_snapshot.authorization_revision",
                 self.input_snapshot.authorization_revision.content_hash(),
+            ),
+            (
+                "input_snapshot.extraction_receipt_hash",
+                self.input_snapshot.extraction_receipt_hash,
             ),
             (
                 "input_snapshot.frozen_input_hash",
@@ -294,6 +331,20 @@ impl GenerationManifest {
         ] {
             nonzero_hash(field, value)?;
         }
+        exact(
+            "serving.companion_compatibility_report_hash",
+            ![
+                self.serving.canvas_companion_sha256,
+                self.relations.security_allow_list_hash,
+                self.relations.security_geometry_hash,
+                self.relations.policy_hash,
+                self.relations.policy_evaluation_report_hash,
+                self.relations.authorization_noninterference_report_hash,
+                self.relations.security_approval_report_hash,
+            ]
+            .contains(&self.serving.companion_compatibility_report_hash),
+            "a domain-separated report identity that does not alias its subject or another report",
+        )?;
         exact(
             "projector.configuration",
             ProjectorConfig {
@@ -558,6 +609,22 @@ impl GenerationManifest {
         {
             finite("variants.entries.transform", value)?;
         }
+        let baseline_condition = canonical.global_relation_condition.to_bits() == 0.0_f64.to_bits();
+        exact(
+            "variants.entries.global_relation_condition",
+            baseline_condition || canonical.global_relation_condition > 0.0,
+            "exact positive zero or a positive finite condition",
+        )?;
+        exact(
+            "variants.entries.procrustes_transform.baseline",
+            !baseline_condition
+                || canonical
+                    .procrustes_transform
+                    .into_iter()
+                    .zip([1.0_f64, 1.0, 0.0, 0.0, 0.0])
+                    .all(|(actual, expected)| actual.to_bits() == expected.to_bits()),
+            "the identity transform for the unaligned zero-condition baseline",
+        )?;
         exact(
             "variants.entries.procrustes_transform.scale",
             canonical.procrustes_transform[0] > 0.0,
@@ -629,6 +696,10 @@ impl GenerationManifest {
                 "serving.canvas_companion_sha256",
                 self.serving.canvas_companion_sha256,
             ),
+            (
+                "serving.companion_compatibility_report_hash",
+                self.serving.companion_compatibility_report_hash,
+            ),
         ] {
             nonzero_hash(field, value)?;
         }
@@ -656,6 +727,11 @@ impl GenerationManifest {
             &self.reproducibility.code_revision,
         )?;
         nonzero_hash(
+            "reproducibility.binary_fingerprint",
+            self.reproducibility.binary_fingerprint,
+        )?;
+        validate_execution_contract(&self.reproducibility.execution_contract)?;
+        nonzero_hash(
             "reproducibility.config_hash",
             self.reproducibility.config_hash,
         )?;
@@ -668,6 +744,117 @@ impl GenerationManifest {
         }
         Ok(())
     }
+}
+
+fn validate_execution_contract(execution: &ExecutionContractManifest) -> Result<(), ManifestError> {
+    nonzero_hash(
+        "reproducibility.execution_contract.dependency_lock_hash",
+        execution.dependency_lock_hash,
+    )?;
+    for (field, value) in [
+        (
+            "reproducibility.execution_contract.generator_version",
+            execution.generator_version.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.rustc_release",
+            execution.rustc_release.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.rustc_commit",
+            execution.rustc_commit.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.rustc_host",
+            execution.rustc_host.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.target",
+            execution.target.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.profile",
+            execution.profile.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.optimization_level",
+            execution.optimization_level.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.debug",
+            execution.debug.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.training_backend",
+            execution.training_backend.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.operating_system",
+            execution.operating_system.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.math_runtime",
+            execution.math_runtime.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.runtime_cpu_features",
+            execution.runtime_cpu_features.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.floating_point_control",
+            execution.floating_point_control.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.math_library_images",
+            execution.math_library_images.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.candle_version",
+            execution.candle_version.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.gemm_version",
+            execution.gemm_version.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.gemm_kernel",
+            execution.gemm_kernel.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.gemm_cache_configuration",
+            execution.gemm_cache_configuration.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.salt_simd_mode",
+            execution.salt_simd_mode.as_str(),
+        ),
+        (
+            "reproducibility.execution_contract.usearch_version",
+            execution.usearch_version.as_str(),
+        ),
+    ] {
+        required_text(field, value)?;
+    }
+    exact(
+        "reproducibility.execution_contract.version",
+        execution.version == 3,
+        "three",
+    )?;
+    exact(
+        "reproducibility.execution_contract.rayon_threads",
+        execution.rayon_threads > 0,
+        "a positive observed thread count",
+    )?;
+    exact(
+        "reproducibility.execution_contract.candle_cpu_threads",
+        execution.candle_cpu_threads > 0,
+        "a positive observed Candle thread count",
+    )?;
+    exact(
+        "reproducibility.execution_contract.contract_hash",
+        execution.contract_hash == execution.content_hash(),
+        "the hash recomputed from every execution property",
+    )
 }
 
 #[inline]

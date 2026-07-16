@@ -9,6 +9,14 @@ pub(crate) enum AnalyticError {
     GridAreaOverflow {
         size: usize,
     },
+    GridTooLarge {
+        size: usize,
+        maximum: usize,
+    },
+    Allocation {
+        buffer: &'static str,
+        elements: usize,
+    },
     InvalidBandwidth {
         value: f64,
     },
@@ -69,6 +77,14 @@ impl fmt::Display for AnalyticError {
                     "analytic grid size {size} overflows its pixel count"
                 )
             }
+            Self::GridTooLarge { size, maximum } => write!(
+                formatter,
+                "analytic grid size {size} exceeds the supported maximum {maximum}"
+            ),
+            Self::Allocation { buffer, elements } => write!(
+                formatter,
+                "unable to allocate {elements} elements for analytic buffer {buffer}"
+            ),
             Self::InvalidBandwidth { value } => write!(
                 formatter,
                 "analytic Gaussian bandwidth must be finite and positive, got {value}"

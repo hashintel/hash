@@ -81,7 +81,8 @@ pub(super) fn populate_manifest(
     manifest.embedding.canonical_corpus_hash = representations.canonical_hash;
     manifest.embedding.projector_corpus_hash = representations.projector_hash;
     manifest.semantic_graph.neighbors = semantic_config.neighbors.get();
-    "usearch-2.25.3-single-threaded-build".clone_into(&mut manifest.semantic_graph.backend);
+    format!("usearch-{}-single-threaded-build", usearch::version())
+        .clone_into(&mut manifest.semantic_graph.backend);
     manifest.semantic_graph.backend_hash = semantic_backend_hash;
     manifest.semantic_graph.configuration_hash = semantic_configuration_hash;
     manifest.semantic_graph.weight_hash = semantic_weight_hash;

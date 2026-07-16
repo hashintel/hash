@@ -125,11 +125,15 @@ pub(super) fn payload(
         }
         GateEvidencePayload::SnapshotConsistency {
             frozen_input,
+            store_snapshot,
+            extraction_receipt,
             security_geometry,
             identity_directory,
             row_count,
         } => {
             if *frozen_input != manifest.input_snapshot.frozen_input_hash
+                || *store_snapshot != manifest.input_snapshot.store_snapshot_identity
+                || *extraction_receipt != manifest.input_snapshot.extraction_receipt_hash
                 || *security_geometry != manifest.relations.security_geometry_hash
                 || *identity_directory != manifest.storage.identity_directory_hash
                 || *row_count != manifest.storage.row_count
@@ -186,7 +190,7 @@ pub(super) fn payload(
         GateEvidencePayload::CompanionPin(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.serving.canvas_companion_version
-                || grant.report() != manifest.serving.canvas_companion_sha256
+                || grant.report() != manifest.serving.companion_compatibility_report_hash
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -219,7 +223,7 @@ pub(super) fn payload(
         GateEvidencePayload::SecurityApproval(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.serving.authorization_adapter_version
-                || grant.report() != manifest.relations.security_allow_list_hash
+                || grant.report() != manifest.relations.security_approval_report_hash
             {
                 return Err(GateEvidenceError::Failed {
                     gate,

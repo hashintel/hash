@@ -58,6 +58,26 @@ fn raster_rejects_an_overflowing_finite_extent() {
 }
 
 #[test]
+fn raster_rejects_a_grid_above_the_bounded_working_set() {
+    let error = density_raster(
+        &[],
+        RasterConfig {
+            grid_size: 2_049,
+            bandwidth_pixels: 1.0,
+        },
+    )
+    .expect_err("an oversized raster must fail before allocation");
+
+    assert!(matches!(
+        error,
+        AnalyticError::GridTooLarge {
+            size: 2_049,
+            maximum: 2_048
+        }
+    ));
+}
+
+#[test]
 fn exact_isolated_peaks_have_floor_deaths() {
     let mut density = vec![0.0; 16 * 16];
     density[4 * 16 + 4] = 1.0;

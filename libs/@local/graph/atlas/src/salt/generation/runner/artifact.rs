@@ -67,10 +67,13 @@ pub(super) fn copy_model(
             false
         }
         Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
-            let existing = MappedArtifact::map_immutable(File::open(destination)?, format)?;
+            let existing_file = File::open(destination)?;
+            existing_file.sync_all()?;
+            let existing = MappedArtifact::map_immutable(existing_file, format)?;
             if ContentHash::digest(existing.bytes()) != content_hash {
                 return Err(CanonicalGenerationError::ExistingModelArtifact);
             }
+            File::open(parent)?.sync_all()?;
             true
         }
         Err(error) => return Err(CanonicalGenerationError::Io(error.error)),

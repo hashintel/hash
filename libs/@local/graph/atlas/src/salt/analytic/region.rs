@@ -1,4 +1,5 @@
 use super::{
+    allocation::{collect_exact, empty, filled},
     error::AnalyticError,
     merge_tree::{MergeTree, PersistenceLeaf},
     raster::DensityRaster,
@@ -115,16 +116,16 @@ pub(crate) fn density_regions(
     let density_maximum = values.iter().copied().fold(0.0_f64, f64::max);
     if density_maximum == 0.0 {
         return Ok(RegionMap {
-            pixel_regions: vec![UNASSIGNED; values.len()],
-            point_regions: vec![UNASSIGNED; points.len()],
-            leaf_regions: vec![UNASSIGNED; tree.leaves().len()],
+            pixel_regions: filled("zero-density pixel regions", values.len(), UNASSIGNED)?,
+            point_regions: filled("zero-density point regions", points.len(), UNASSIGNED)?,
+            leaf_regions: filled("zero-density leaf regions", tree.leaves().len(), UNASSIGNED)?,
             peaks: Vec::new(),
         });
     }
 
     let floor = config.density_floor_fraction * density_maximum;
-    let mut roots = vec![usize::MAX; values.len()];
-    let mut trail = Vec::new();
+    let mut roots = filled("watershed roots", values.len(), usize::MAX)?;
+    let mut trail = empty("watershed traversal trail", values.len())?;
     for pixel in 0..values.len() {
         if values[pixel] >= floor {
             resolve_root(pixel, values, raster.size(), floor, &mut roots, &mut trail);
@@ -135,11 +136,9 @@ pub(crate) fn density_regions(
         .minimum_peak_fraction
         .max(config.density_floor_fraction)
         * density_maximum;
-    let mut selected_leaves = tree
-        .leaves()
-        .iter()
-        .filter(|leaf| leaf.birth >= peak_floor)
-        .collect::<Vec<_>>();
+    let mut selected_leaves: Vec<&PersistenceLeaf> =
+        empty("selected persistence leaves", tree.leaves().len())?;
+    selected_leaves.extend(tree.leaves().iter().filter(|leaf| leaf.birth >= peak_floor));
     selected_leaves.sort_unstable_by(|left, right| {
         right
             .birth
@@ -148,29 +147,31 @@ pub(crate) fn density_regions(
     });
     selected_leaves.truncate(config.maximum_regions);
 
-    let mut leaf_regions = vec![UNASSIGNED; tree.leaves().len()];
+    let mut leaf_regions = filled("persistence leaf regions", tree.leaves().len(), UNASSIGNED)?;
     for (region, leaf) in selected_leaves.iter().enumerate() {
         leaf_regions[leaf_index(leaf)] =
             u32::try_from(region).expect("validated region count should fit u32");
     }
-    let peaks = selected_leaves
-        .iter()
-        .enumerate()
-        .map(|(region, leaf)| RegionPeak {
-            region: u32::try_from(region).expect("validated region count should fit u32"),
-            persistence_leaf: leaf.id,
-            parent_region: selected_parent(leaf, tree, &leaf_regions),
-            pixel: leaf.representative_pixel,
-            density: leaf.birth,
-            persistence: leaf.persistence(),
-        })
-        .collect::<Vec<_>>();
-    let mut root_regions = vec![UNASSIGNED; values.len()];
+    let peaks = collect_exact(
+        "selected region peaks",
+        selected_leaves
+            .iter()
+            .enumerate()
+            .map(|(region, leaf)| RegionPeak {
+                region: u32::try_from(region).expect("validated region count should fit u32"),
+                persistence_leaf: leaf.id,
+                parent_region: selected_parent(leaf, tree, &leaf_regions),
+                pixel: leaf.representative_pixel,
+                density: leaf.birth,
+                persistence: leaf.persistence(),
+            }),
+    )?;
+    let mut root_regions = filled("watershed root regions", values.len(), UNASSIGNED)?;
     for peak in &peaks {
         root_regions[peak.pixel] = peak.region;
     }
 
-    let mut pixel_regions = vec![UNASSIGNED; values.len()];
+    let mut pixel_regions = filled("watershed pixel regions", values.len(), UNASSIGNED)?;
     if !peaks.is_empty() {
         for (pixel, &root) in roots.iter().enumerate() {
             if root == usize::MAX {
@@ -187,10 +188,12 @@ pub(crate) fn density_regions(
         }
     }
 
-    let point_regions = points
-        .iter()
-        .map(|&coordinate| pixel_regions[raster.pixel(coordinate)])
-        .collect();
+    let point_regions = collect_exact(
+        "watershed point regions",
+        points
+            .iter()
+            .map(|&coordinate| pixel_regions[raster.pixel(coordinate)]),
+    )?;
     Ok(RegionMap {
         pixel_regions,
         point_regions,

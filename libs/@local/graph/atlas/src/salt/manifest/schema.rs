@@ -18,7 +18,8 @@ mod representation;
 use super::{ArtifactRole, GenerationManifest};
 use crate::salt::{
     classifier::ClassifierView,
-    hash::ContentHasher,
+    evaluation::quantized_field_content_hash,
+    hash::{ContentHash, ContentHasher},
     storage::mmap::{ArtifactView, ScalarType, SectionId, SectionView},
 };
 
@@ -85,30 +86,35 @@ fn validate_graph(
         .expect("section scalar type should be validated");
     if hash(artifact, 4)? != manifest.semantic_graph.backend_hash.as_bytes()
         || hash(artifact, 5)? != manifest.semantic_graph.configuration_hash.as_bytes()
-        || hash(artifact, 6)? != manifest.semantic_graph.weight_hash.as_bytes()
     {
         return Err("semantic graph provenance differs from the manifest");
     }
 
+    let mut weight_identity = ContentHasher::new(b"hash.graph.atlas.salt.semantic-weights.v1");
     for row in 0..rows {
         let start = row
             .checked_mul(neighbors)
             .ok_or("semantic graph dimensions overflow")?;
         let end = start + neighbors;
         let mut previous = None;
-        for (&neighbor, (&distance, &weight)) in indices[start..end]
+        for (offset, (&neighbor, (&distance, &weight))) in indices[start..end]
             .iter()
             .zip(distances[start..end].iter().zip(&weights[start..end]))
+            .enumerate()
         {
             if neighbor as usize >= rows || neighbor as usize == row {
                 return Err("semantic graph contains an invalid neighbor row");
             }
-            if !distance.is_finite() || !(0.0..=2.0).contains(&distance) {
+            if indices[start..start + offset].contains(&neighbor) {
+                return Err("semantic graph contains a duplicate neighbor row");
+            }
+            if !distance.is_finite() || distance.is_sign_negative() || distance > 2.0 {
                 return Err("semantic graph contains an invalid cosine distance");
             }
-            if !weight.is_finite() || weight <= 0.0 {
+            if !weight.is_finite() || weight <= 0.0 || weight > 1.0 {
                 return Err("semantic graph contains an invalid edge weight");
             }
+            weight_identity.update(&weight.to_bits().to_le_bytes());
             let key = (distance.to_bits(), neighbor);
             if let Some((previous_distance, previous_row)) = previous
                 && (distance
@@ -120,6 +126,12 @@ fn validate_graph(
             }
             previous = Some(key);
         }
+    }
+    let weight_identity = weight_identity.finish();
+    if weight_identity != manifest.semantic_graph.weight_hash
+        || hash(artifact, 6)? != weight_identity.as_bytes()
+    {
+        return Err("semantic graph weights differ from their declared identity");
     }
     Ok(())
 }
@@ -237,6 +249,7 @@ fn validate_base(
     }
 
     let mut seen_rows = vec![false; rows];
+    let mut delivery_position_by_row = vec![usize::MAX; rows];
     let mut seen_priorities = vec![false; rows];
     let mut previous = None;
     let mut bucket_hash = ContentHasher::new(b"hash.graph.atlas.salt.bucket-index.v1");
@@ -248,6 +261,7 @@ fn validate_base(
             return Err("base row or priority columns are not permutations");
         }
         seen_rows[row] = true;
+        delivery_position_by_row[row] = index;
         seen_priorities[priority] = true;
         let key = (
             buckets[index],
@@ -272,6 +286,37 @@ fn validate_base(
     }
     if coordinates.iter().any(|value| !value.is_finite()) {
         return Err("base coordinates are non-finite");
+    }
+    let domain_version = ContentHash::from_bytes(
+        domain_hash
+            .try_into()
+            .expect("validated canonical domain hash should contain 32 bytes"),
+    );
+    let selection_evidence = ContentHash::from_bytes(
+        evidence_hash
+            .try_into()
+            .expect("validated selection evidence hash should contain 32 bytes"),
+    );
+    // The manifest contract reserves exact +0.0 for the unaligned baseline;
+    // every positive ladder condition carries an alignment, even when the
+    // fitted transform happens to be numerically identical.
+    let alignment_present = condition.to_bits() != 0.0_f64.to_bits();
+    let coordinate_field_hash = quantized_field_content_hash(
+        condition,
+        domain_version,
+        selection_evidence,
+        alignment_present,
+        quantization_step,
+        delivery_position_by_row.into_iter().map(|position| {
+            let offset = position * 2;
+            [
+                f64::from(coordinates[offset]),
+                f64::from(coordinates[offset + 1]),
+            ]
+        }),
+    );
+    if field_hash != coordinate_field_hash.as_bytes() {
+        return Err("base coordinates differ from the canonical field hash");
     }
     if bucket_hash.finish() != canonical.bucket_index_hash
         || morton_hash.finish() != canonical.morton_index_hash
@@ -498,6 +543,14 @@ fn validate_analytics(
     {
         return Err("analytic artifact contains an out-of-range index");
     }
+    for (index, (&row, &region)) in label_rows.iter().zip(label_regions).enumerate() {
+        if label_rows[..index].contains(&row) {
+            return Err("analytic artifact repeats a label row");
+        }
+        if point_regions[row as usize] != region {
+            return Err("analytic label row is not assigned to its declared region");
+        }
+    }
     for (region, &representative) in region_representative_rows.iter().enumerate() {
         let mut rows = label_regions
             .iter()
@@ -508,16 +561,23 @@ fn validate_analytics(
             return Err("analytic representative rows differ from region labels");
         }
     }
-    if label_offsets.first().copied() != Some(0)
-        || label_offsets.last().copied() != Some(label_text.len() as u64)
-        || !label_offsets
-            .windows(2)
-            .all(|pair| pair.first() <= pair.last())
-        || core::str::from_utf8(label_text).is_err()
+    validate_label_text(label_offsets, label_text)
+}
+
+fn validate_label_text(offsets: &[u64], bytes: &[u8]) -> Result<(), &'static str> {
+    let text = core::str::from_utf8(bytes).map_err(|_error| "analytic label text is not UTF-8")?;
+    if offsets.first().copied() != Some(0)
+        || offsets.last().copied() != Some(text.len() as u64)
+        || !offsets.windows(2).all(|pair| pair.first() < pair.last())
+        || offsets.iter().any(|&offset| match usize::try_from(offset) {
+            Ok(offset) => !text.is_char_boundary(offset),
+            Err(_error) => true,
+        })
     {
-        return Err("analytic label offsets or UTF-8 are invalid");
+        Err("analytic label offsets or UTF-8 are invalid")
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 #[derive(Copy, Clone)]
@@ -729,4 +789,18 @@ fn unit(value: f64) -> bool {
 #[inline]
 const fn nonnegative(value: f64) -> bool {
     value.is_finite() && !value.is_sign_negative()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_label_text;
+
+    #[test]
+    fn analytic_labels_require_nonempty_utf8_slices() {
+        let text = "éclair".as_bytes();
+
+        assert!(validate_label_text(&[0, 2, 7], text).is_ok());
+        assert!(validate_label_text(&[0, 1, 7], text).is_err());
+        assert!(validate_label_text(&[0, 0, 7], text).is_err());
+    }
 }

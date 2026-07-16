@@ -31,8 +31,8 @@ impl SemanticEdgeWeights {
     ///
     /// # Errors
     ///
-    /// This returns an error for a shape mismatch or a negative/non-finite
-    /// weight.
+    /// This returns an error for a shape mismatch or a weight outside the
+    /// finite fuzzy-membership interval `(0, 1]`.
     pub(crate) fn new(
         table: &KnnTable,
         values: impl Into<Box<[f32]>>,
@@ -47,7 +47,7 @@ impl SemanticEdgeWeights {
         }
         if let Some(index) = values
             .iter()
-            .position(|weight| !weight.is_finite() || *weight <= 0.0)
+            .position(|weight| !weight.is_finite() || *weight <= 0.0 || *weight > 1.0)
         {
             return Err(SemanticWeightError::Invalid {
                 index,
@@ -96,7 +96,7 @@ impl fmt::Display for SemanticWeightError {
             Self::Invalid { index, value } => {
                 write!(
                     formatter,
-                    "semantic weight {index} is not finite and positive: {value}"
+                    "semantic weight {index} is outside the finite interval (0, 1]: {value}"
                 )
             }
         }

@@ -1,7 +1,7 @@
 use core::time::Duration;
 use std::{
     fs::{self, File},
-    io::Read as _,
+    io::{self, Read as _},
 };
 
 use burn::tensor::backend::AutodiffBackend;
@@ -9,12 +9,16 @@ use camino::{Utf8Path, Utf8PathBuf};
 
 use super::{
     CanonicalGenerationConfig, CanonicalGenerationError, CanonicalGenerationOutcome,
-    CanonicalReleaseAuthority, FrozenGenerationInput, GenerationFreezeSource,
+    CanonicalReleaseAuthority, FrozenGenerationInput,
     artifact::copy_model,
-    identity::{generation_id, input_hash, relation_policy_hash, runtime_config_hash},
-    input::freeze_generation_input,
+    identity::{
+        generation_id, input_hash, observed_execution_contract, relation_policy_hash,
+        running_binary_fingerprint, runtime_config_hash,
+    },
     manifest::{CanonicalGateMeasurements, populate_manifest},
 };
+#[cfg(test)]
+use super::{GenerationFreezeSource, input::freeze_generation_input};
 use crate::salt::{
     analytic::publish_persistence_reference,
     evaluation::measure_persisted_relation_loss,
@@ -36,7 +40,8 @@ use crate::salt::{
     manifest::{GenerationManifest, SeedManifest},
     projector::{
         AdaptiveProjectorBatchFactory, AdaptiveProjectorSource, CoordinateSupportRow,
-        fit_conditioned_projector_adaptive, publish_projector_checkpoint,
+        fit_conditioned_projector_adaptive, load_projector_checkpoint,
+        publish_projector_checkpoint,
     },
     relation::{build_relation_indexes, publish_relation_indexes},
     release::{
@@ -81,6 +86,7 @@ struct UnreleasedGeneration {
 /// This returns an error when frozen rows disagree, security-admitted links
 /// lack policy inputs, a numerical stage fails, any immutable file conflicts,
 /// manifest validation fails, or signed gate evidence is incomplete.
+#[cfg(test)]
 pub(crate) fn run_canonical_generation<B>(
     source: GenerationFreezeSource,
     config: &CanonicalGenerationConfig<'_>,
@@ -91,22 +97,63 @@ where
     B: AutodiffBackend,
 {
     let input = freeze_generation_input(source)?;
+    run_frozen_canonical_generation::<B>(input, config, release_authority, device)
+}
+
+/// Generates from the sole opaque frozen-input capability.
+///
+/// Store-backed composition uses this boundary after verifying its extraction
+/// receipt against [`super::identity::input_hash`]. Callers outside the runner
+/// cannot construct [`FrozenGenerationInput`].
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "consuming the opaque frozen-input capability prevents reuse after generation begins"
+)]
+pub(super) fn run_frozen_canonical_generation<B>(
+    input: FrozenGenerationInput,
+    config: &CanonicalGenerationConfig<'_>,
+    release_authority: &CanonicalReleaseAuthority<'_>,
+    device: &B::Device,
+) -> Result<CanonicalGenerationOutcome, CanonicalGenerationError>
+where
+    B: AutodiffBackend,
+{
+    let execution_contract = observed_execution_contract::<B>(device)?;
+    if execution_contract.training_backend != "autodiff<candle<cpu>>" {
+        return Err(CanonicalGenerationError::UnsupportedGenerationBackend {
+            actual: execution_contract.training_backend,
+        });
+    }
+    let binary_fingerprint = running_binary_fingerprint()?;
     let root = config.root;
-    fs::create_dir_all(root)?;
+    ensure_durable_directory(root)?;
     let reproduction_directory = tempfile::Builder::new()
         .prefix(".salt-reproduction-")
         .tempdir_in(root)?;
     let reproduction_root = Utf8Path::from_path(reproduction_directory.path())
         .expect("an ASCII child of a UTF-8 root should remain UTF-8");
     let verifier = release_authority.signer().verifier();
+    // Build the independent reproduction from the already frozen input and in
+    // an isolated root. It receives no candidate marker and disappears when
+    // this function returns.
     let reproduction = build_frozen_canonical_generation::<B>(
         &input,
         config,
         reproduction_root,
         &verifier,
+        binary_fingerprint,
+        &execution_contract,
         device,
     )?;
-    let primary = build_frozen_canonical_generation::<B>(&input, config, root, &verifier, device)?;
+    let primary = build_frozen_canonical_generation::<B>(
+        &input,
+        config,
+        root,
+        &verifier,
+        binary_fingerprint,
+        &execution_contract,
+        device,
+    )?;
     verify_reproduction(&primary, &reproduction)?;
 
     let manifest_hash = primary.manifest.content_hash()?;
@@ -116,6 +163,9 @@ where
         manifest: manifest_hash,
     };
     let output_hash = reproducibility_output_hash(&primary.manifest);
+    // External authorities see only a head whose independently regenerated
+    // outputs have already matched. No signed grant can turn a reproduction
+    // mismatch into a publishable candidate.
     let mut payloads = release_authority.issue_external_grants(head, &primary.manifest)?;
     payloads.extend(primary.payloads);
     payloads.push(GateEvidencePayload::reproducibility(
@@ -155,6 +205,8 @@ fn build_frozen_canonical_generation<B>(
     config: &CanonicalGenerationConfig<'_>,
     root: &Utf8Path,
     verifier: &GateVerifier,
+    binary_fingerprint: crate::salt::hash::ContentHash,
+    execution_contract: &crate::salt::manifest::ExecutionContractManifest,
     device: &B::Device,
 ) -> Result<UnreleasedGeneration, CanonicalGenerationError>
 where
@@ -164,6 +216,11 @@ where
     let representations = input.representations();
     let type_context = input.type_context();
     let mut manifest = input.begin_manifest();
+    manifest.reproducibility.binary_fingerprint = binary_fingerprint;
+    manifest
+        .reproducibility
+        .execution_contract
+        .clone_from(execution_contract);
     verifier
         .authority()
         .clone_into(&mut manifest.serving.gate_evidence_authority);
@@ -204,6 +261,9 @@ where
     manifest.relations.strength_head.model_hash =
         crate::salt::hash::ContentHash::digest(b"hash.graph.atlas.salt.unit-strength.v1");
     manifest.relations.strength_head.materialized_table_hash = None;
+    // Generation identity closes over frozen inputs and the complete recipe,
+    // but not over output artifacts that do not exist yet. Their hashes enter
+    // the separately content-addressed manifest and release head.
     let generation_id = generation_id(
         &manifest,
         input.relation_snapshot_hash,
@@ -214,12 +274,13 @@ where
     );
     manifest.generation_id = generation_id;
     let generations = root.join("generations");
-    fs::create_dir_all(&generations)?;
-    File::open(root)?.sync_all()?;
+    ensure_durable_directory(&generations)?;
     let directory = generations.join(generation_id.to_string());
-    fs::create_dir_all(&directory)?;
-    File::open(&generations)?.sync_all()?;
+    ensure_durable_directory(&directory)?;
 
+    // Persist full and projector representations before building the transient
+    // ANN index. The exact-recall gate runs before projector optimization, so a
+    // low-quality backend cannot influence a checkpoint and fail only later.
     let classifier = copy_model(
         &input.classifier,
         &directory.join(CLASSIFIER_FILE),
@@ -245,6 +306,8 @@ where
     let semantic_artifact =
         publish_semantic_graph(&directory.join(SEMANTIC_FILE), &semantic, &semantic_weights)?;
 
+    // Attraction and no-repel protection are derived together from the same
+    // authorized instances, but remain independent persisted channels.
     let relations = build_relation_indexes(
         input.identities.len(),
         &input.relation_policies,
@@ -262,6 +325,9 @@ where
         &relations,
     )?;
 
+    // Fit the bounded non-parametric skeleton before the parametric model. It
+    // supplies model support and the independent topology reference used by
+    // the persistence gate.
     let selection = select_landmarks(
         &input.landmark_candidates,
         config.landmarks,
@@ -303,6 +369,9 @@ where
         config.landmark_weight,
     );
 
+    // The factory rebuilds condition and negative samples against the current
+    // detached coordinate field. Its evidence hash binds the three immutable
+    // graph inputs that define legal training batches.
     let source = AdaptiveProjectorSource {
         representations,
         roles: &input.roles,
@@ -328,8 +397,19 @@ where
         device,
     )?;
     let checkpoint = publish_projector_checkpoint(&directory.join(PROJECTOR_FILE), &fitted.model)?;
+    // Decode the durable bytes into the declared serving architecture before
+    // any gate is signed or candidate marker is published. Projection also
+    // uses this reopened model, so the measured fields attest the checkpoint
+    // that activation will load rather than only the in-memory training model.
+    let persisted_projector = load_projector_checkpoint::<B::InnerBackend>(
+        &directory.join(PROJECTOR_FILE),
+        config.projector,
+        device,
+    )?;
+    // Ladder fields are disposable experiments. Their external measurements
+    // authorize selection but do not become serving variants.
     let projected = project_condition_ladder(
-        &fitted.model,
+        &persisted_projector,
         representations,
         &input.roles,
         type_context,
@@ -352,6 +432,9 @@ where
     )?;
     let canonical_condition = f64::from(config.canonical_condition);
     let coordinate_bounds = config.materialization.importance.bounds;
+    // Quantize baseline and selected fields before measuring release relation
+    // loss. Gate evidence must describe the exact f32 values readers receive,
+    // not the higher-precision projector output.
     let (baseline, _baseline_quantization) = evaluated
         .select_canonical(0.0)?
         .quantize(
@@ -407,6 +490,8 @@ where
         },
         config.materialization,
     )?;
+    // Compare topology only after canonical analytics exist. The reference
+    // remains the independently fitted landmark tree, never a projector output.
     let persistence_comparison = compare_persistence(
         checkpoint.content_hash,
         &canonical,
@@ -423,6 +508,8 @@ where
         &canonical,
     )?;
 
+    // Output identities are now complete. Populate the manifest once, then
+    // derive runner-owned gate payloads from the same persisted hashes.
     populate_manifest(
         &mut manifest,
         geometry.content_hash(),
@@ -491,6 +578,8 @@ where
         ),
         GateEvidencePayload::snapshot_consistency(
             manifest.input_snapshot.frozen_input_hash,
+            manifest.input_snapshot.store_snapshot_identity,
+            manifest.input_snapshot.extraction_receipt_hash,
             geometry.content_hash(),
             input.identities.content_hash(),
             manifest.storage.row_count,
@@ -503,6 +592,72 @@ where
         training_wall_time: fitted.metrics.wall_time,
         directory,
     })
+}
+
+/// Creates every missing directory component and persists each parent entry.
+///
+/// Syncing only the newly created directory does not make its name durable in
+/// the parent. Creating and syncing each component top-down closes that crash
+/// window even for retries and concurrent directory creators.
+#[expect(
+    clippy::create_dir,
+    reason = "durability requires creating and syncing each directory entry separately"
+)]
+pub(super) fn ensure_durable_directory(path: &Utf8Path) -> io::Result<()> {
+    let mut missing = Vec::new();
+    let mut current = Some(path);
+    while let Some(candidate) = current {
+        match fs::metadata(candidate) {
+            Ok(metadata) if metadata.is_dir() => break,
+            Ok(_metadata) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    format!("{candidate} exists and is not a directory"),
+                ));
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                missing.push(candidate.to_owned());
+                current = candidate
+                    .parent()
+                    .filter(|parent| !parent.as_str().is_empty());
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    let existing_boundary = current.unwrap_or_else(|| Utf8Path::new("."));
+    sync_directory_entry(existing_boundary)?;
+    for directory in missing.iter().rev() {
+        match fs::create_dir(directory) {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                if !fs::metadata(directory)?.is_dir() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::AlreadyExists,
+                        format!("{directory} exists and is not a directory"),
+                    ));
+                }
+            }
+            Err(error) => return Err(error),
+        }
+        sync_directory_entry(directory)?;
+    }
+    Ok(())
+}
+
+fn sync_directory_entry(directory: &Utf8Path) -> io::Result<()> {
+    if !fs::metadata(directory)?.is_dir() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotADirectory,
+            format!("{directory} is not a directory"),
+        ));
+    }
+    File::open(directory)?.sync_all()?;
+    let parent = directory
+        .parent()
+        .filter(|parent| !parent.as_str().is_empty())
+        .unwrap_or_else(|| Utf8Path::new("."));
+    File::open(parent)?.sync_all()
 }
 
 fn verify_reproduction(

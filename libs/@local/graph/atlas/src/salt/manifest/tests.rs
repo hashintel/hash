@@ -10,6 +10,7 @@ use tempfile::tempdir;
 use super::*;
 use crate::salt::{
     card::CARD_FORMAT_VERSION,
+    evaluation::quantized_field_content_hash,
     format::{
         ANALYTIC_FORMAT, BASE_ARTIFACT_FORMAT, CLASSIFIER_FORMAT, LANDMARK_FORMAT,
         PERSISTENCE_REFERENCE_FORMAT, RELATION_FORMAT, REPRESENTATION_FORMAT,
@@ -48,6 +49,20 @@ fn canonical_identity_ignores_unordered_seed_and_wire_collections() {
 }
 
 #[test]
+fn execution_contract_rejects_a_property_not_bound_by_its_hash() {
+    let mut manifest = manifest();
+    manifest.reproducibility.execution_contract.training_backend = "autodiff<other>".to_owned();
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "reproducibility.execution_contract.contract_hash",
+            ..
+        })
+    ));
+}
+
+#[test]
 fn unpinned_companion_cannot_form_a_manifest_identity() {
     let mut manifest = manifest();
     manifest.serving.canvas_companion_version = " \tTbD ".to_owned();
@@ -56,6 +71,30 @@ fn unpinned_companion_cannot_form_a_manifest_identity() {
         manifest.validate(),
         Err(ManifestError::MissingText {
             field: "serving.canvas_companion_version"
+        })
+    ));
+}
+
+#[test]
+fn external_reports_cannot_alias_the_subjects_they_evaluate() {
+    let mut relation = manifest();
+    relation.relations.security_approval_report_hash = relation.relations.security_allow_list_hash;
+    assert!(matches!(
+        relation.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "relations.external_report_hashes",
+            ..
+        })
+    ));
+
+    let mut companion = manifest();
+    companion.serving.companion_compatibility_report_hash =
+        companion.serving.canvas_companion_sha256;
+    assert!(matches!(
+        companion.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "serving.companion_compatibility_report_hash",
+            ..
         })
     ));
 }
@@ -170,6 +209,36 @@ fn initial_generation_has_exactly_one_canonical_variant() {
 }
 
 #[test]
+fn canonical_condition_rejects_negative_zero() {
+    let mut manifest = manifest();
+    manifest.variants.entries[0].global_relation_condition = -0.0;
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "variants.entries.global_relation_condition",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn zero_condition_requires_the_unaligned_identity_transform() {
+    let mut manifest = manifest();
+    let canonical = &mut manifest.variants.entries[0];
+    canonical.global_relation_condition = 0.0;
+    canonical.procrustes_transform[3] = 1.0;
+
+    assert!(matches!(
+        manifest.validate(),
+        Err(ManifestError::InvalidInvariant {
+            field: "variants.entries.procrustes_transform.baseline",
+            ..
+        })
+    ));
+}
+
+#[test]
 fn immutable_manifest_publication_is_idempotent_but_not_replaceable() {
     let directory = tempdir().expect("temporary directory should exist");
     let path = Utf8PathBuf::from_path_buf(directory.path().join("manifest.json"))
@@ -240,6 +309,110 @@ fn manifest_publication_rejects_a_role_incompatible_mmap_schema() {
 }
 
 #[test]
+fn manifest_publication_rejects_coordinates_that_only_copy_the_embedded_field_hash() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
+    let mut manifest = manifest();
+    publish_test_artifacts(root, &mut manifest);
+    let rows =
+        usize::try_from(manifest.storage.row_count).expect("fixture row count should fit usize");
+    let canonical = manifest.variants.entries[0].clone();
+    let artifact_index = manifest
+        .artifacts
+        .iter()
+        .position(|artifact| artifact.role == ArtifactRole::CanonicalBase)
+        .expect("canonical base should exist");
+    let path = root.join(&manifest.artifacts[artifact_index].relative_path);
+    fs::remove_file(&path).expect("valid base fixture should be removable");
+    let mut coordinates = vec![0.0_f32; rows * 2];
+    coordinates[0] = canonical.quantization_step as f32;
+    let published = publish_test_mmap(
+        &path,
+        ArtifactRole::CanonicalBase,
+        BASE_ARTIFACT_FORMAT,
+        rows,
+        manifest.semantic_graph.neighbors,
+        manifest.landmarks.actual_count,
+        &canonical,
+        [
+            manifest.embedding.canonical_corpus_hash,
+            manifest.embedding.projector_corpus_hash,
+        ],
+        [
+            manifest.semantic_graph.backend_hash,
+            manifest.semantic_graph.configuration_hash,
+            manifest.semantic_graph.weight_hash,
+        ],
+        [
+            manifest.relations.policy_hash,
+            manifest.relations.edge_snapshot_hash,
+        ],
+        manifest.storage.identity_directory_hash,
+        manifest.landmarks.persistence_reference_source_hash,
+        Some(&coordinates),
+    );
+    manifest.artifacts[artifact_index] = ArtifactManifest::mmap(
+        ArtifactRole::CanonicalBase,
+        manifest.artifacts[artifact_index].relative_path.clone(),
+        published,
+    );
+
+    assert!(matches!(
+        publish_manifest(&root.join("manifest.json"), &manifest),
+        Err(ManifestPublishError::Artifact(
+            ArtifactVerificationError::Schema {
+                role: ArtifactRole::CanonicalBase,
+                ..
+            }
+        ))
+    ));
+}
+
+#[test]
+fn manifest_publication_rejects_protection_state_hidden_behind_a_stale_snapshot_hash() {
+    let directory = tempdir().expect("temporary directory should exist");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
+    let mut manifest = manifest();
+    publish_test_artifacts(root, &mut manifest);
+    let mut edge_snapshot = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v2");
+    edge_snapshot.update(&0_u64.to_le_bytes());
+    edge_snapshot.update(&1_u64.to_le_bytes());
+    edge_snapshot.update(&0_u32.to_le_bytes());
+    edge_snapshot.update(&1_u32.to_le_bytes());
+    edge_snapshot.update(&0.75_f64.to_bits().to_le_bytes());
+    edge_snapshot.update(&0.5_f64.to_bits().to_le_bytes());
+    edge_snapshot.update(&[0b11]);
+    let stale_edge_snapshot = edge_snapshot.finish();
+    manifest.relations.edge_snapshot_hash = stale_edge_snapshot;
+    let artifact_index = manifest
+        .artifacts
+        .iter()
+        .position(|artifact| artifact.role == ArtifactRole::RelationIndexes)
+        .expect("relation indexes should exist");
+    let path = root.join(&manifest.artifacts[artifact_index].relative_path);
+    fs::remove_file(&path).expect("valid relation fixture should be removable");
+    let published = publish_protection_fixture(
+        &path,
+        manifest.relations.policy_hash,
+        stale_edge_snapshot,
+        0.7,
+    );
+    let relative_path = manifest.artifacts[artifact_index].relative_path.clone();
+    manifest.artifacts[artifact_index] =
+        ArtifactManifest::mmap(ArtifactRole::RelationIndexes, relative_path, published);
+
+    assert!(matches!(
+        publish_manifest(&root.join("manifest.json"), &manifest),
+        Err(ManifestPublishError::Artifact(
+            ArtifactVerificationError::Schema {
+                role: ArtifactRole::RelationIndexes,
+                ..
+            }
+        ))
+    ));
+}
+
+#[test]
 fn manifest_publication_rejects_a_hash_consistent_legacy_layout_mismatch() {
     let directory = tempdir().expect("temporary directory should exist");
     let root = Utf8Path::from_path(directory.path()).expect("temporary directory should be UTF-8");
@@ -293,6 +466,44 @@ fn manifest() -> GenerationManifest {
 
 pub(crate) fn fixture_manifest() -> GenerationManifest {
     let hash = |name: &str| ContentHash::digest(name.as_bytes());
+    let mut execution_contract = ExecutionContractManifest {
+        version: 3,
+        generator_version: "0.0.0".to_owned(),
+        rustc_release: "nightly-fixture".to_owned(),
+        rustc_commit: "fixture-commit".to_owned(),
+        rustc_host: "fixture-host".to_owned(),
+        target: "fixture-target".to_owned(),
+        target_features: "fixture-feature".to_owned(),
+        profile: "test".to_owned(),
+        optimization_level: "0".to_owned(),
+        debug: "true".to_owned(),
+        rustflags_hex: String::new(),
+        dependency_lock_hash: hash("dependency-lock"),
+        training_backend: "autodiff<candle<cpu>>".to_owned(),
+        rayon_threads: 1,
+        operating_system: "fixture-os".to_owned(),
+        math_runtime: "fixture-math".to_owned(),
+        runtime_cpu_features: "fixture-cpu".to_owned(),
+        floating_point_control: "fixture-fp-control".to_owned(),
+        math_library_images: "fixture-math-library".to_owned(),
+        candle_version: "burn-candle-0.21.0/candle-core-0.10.2".to_owned(),
+        candle_cpu_threads: 1,
+        gemm_version: "gemm-0.19.0".to_owned(),
+        gemm_kernel: "fixture-kernel".to_owned(),
+        gemm_cache_configuration: "fixture-cache".to_owned(),
+        gemm_threading_threshold: 1,
+        gemm_lhs_packing_threshold_single_thread: 1,
+        gemm_lhs_packing_threshold_multi_thread: 1,
+        gemm_rhs_packing_threshold: 1,
+        salt_simd_mode: "portable-fma".to_owned(),
+        usearch_version: "2.25.3".to_owned(),
+        usearch_compiled_isa: "fixture-isa".to_owned(),
+        usearch_available_isa: "fixture-isa".to_owned(),
+        usearch_cosine_f32_isa: "fixture-isa".to_owned(),
+        usearch_l2sq_f32_isa: "fixture-isa".to_owned(),
+        contract_hash: ContentHash::from_bytes([0; 32]),
+    };
+    execution_contract.contract_hash = execution_contract.content_hash();
     let representation_rows = 52;
     let semantic_backend = hash("semantic-backend");
     let audit_sample = hash("exact-audit-sample");
@@ -319,11 +530,23 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
     let mut empty_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
     empty_tree.update(&0.0_f64.to_bits().to_le_bytes());
     let empty_tree_hash = empty_tree.finish();
+    let canonical_condition = 0.5;
+    let condition_domain_hash = hash("condition-domain");
+    let selection_evidence_hash = hash("selection-evidence");
+    let quantization_step = 1.0e-3;
+    let canonical_field_hash = quantized_field_content_hash(
+        canonical_condition,
+        condition_domain_hash,
+        selection_evidence_hash,
+        true,
+        quantization_step,
+        core::iter::repeat_n([0.0; 2], representation_rows),
+    );
     let persistence_comparison = PersistenceComparisonReport {
         suite_version: "persistence-quality-v1".to_owned(),
         evaluator_contract_hash: hash("persistence-evaluator"),
         checkpoint_hash: hash("projector"),
-        candidate_field_hash: hash("canonical-field"),
+        candidate_field_hash: canonical_field_hash,
         candidate_tree_hash: empty_tree_hash,
         reference_tree_hash: empty_tree_hash,
         reference_source_hash: hash("landmarks"),
@@ -346,7 +569,7 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
         planted_shape_report_hash: hash("persistence-planted-shapes"),
         noise_report_hash: hash("persistence-noise"),
     };
-    let projected_field = hash("canonical-field");
+    let projected_field = canonical_field_hash;
     let semantic_fidelity_report = hash("semantic-fidelity-report");
     let subgroup_report = hash("subgroup-report");
     let quality = crate::salt::generation::ConditionQuality::new(
@@ -377,7 +600,9 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             },
             ontology_hash: hash("ontology"),
             knowledge_hash: hash("knowledge"),
+            store_snapshot_identity: hash("store-snapshot"),
             authorization_revision: AuthorizationRevision::new(hash("authorization-revision")),
+            extraction_receipt_hash: hash("store-extraction-receipt"),
             frozen_input_hash: hash("frozen-input"),
         },
         embedding: EmbeddingManifest {
@@ -449,6 +674,7 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             policy_hash: relation_policy_hash,
             policy_evaluation_report_hash: hash("policy-evaluation-report"),
             authorization_noninterference_report_hash: hash("authorization-noninterference-report"),
+            security_approval_report_hash: hash("security-approval-report"),
             classifier_version: "diagonal-shrinkage-v1".to_owned(),
             classifier_model_hash: hash("classifier"),
             classifier_temperature: 1.0,
@@ -519,9 +745,9 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             maximum_published_variants: 8,
             entries: vec![VariantEntryManifest {
                 id: VariantId::CANONICAL,
-                global_relation_condition: 0.5,
-                condition_domain_hash: hash("condition-domain"),
-                selection_evidence_hash: hash("selection-evidence"),
+                global_relation_condition: canonical_condition,
+                condition_domain_hash,
+                selection_evidence_hash,
                 quality_suite_version: "fixture-quality-v1".to_owned(),
                 projected_field_hash: projected_field,
                 quality_report_hash: quality.content_hash(),
@@ -535,9 +761,9 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
                 baseline_relation_loss: 1.0,
                 canonical_relation_loss: 0.5,
                 relation_loss_tolerance: 0.0,
-                canonical_field_hash: hash("canonical-field"),
+                canonical_field_hash,
                 procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
-                quantization_step: 1.0e-3,
+                quantization_step,
                 clamp_count: 0,
                 clamp_rate: 0.0,
                 bucket_index_hash: hash("buckets"),
@@ -639,10 +865,13 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
             style_version: "atlas-style-v1".to_owned(),
             canvas_companion_version: "1.4.0".to_owned(),
             canvas_companion_sha256: hash("canvas"),
+            companion_compatibility_report_hash: hash("companion-compatibility-report"),
             shader_contract_version: "shader-v1".to_owned(),
         },
         reproducibility: ReproducibilityManifest {
             code_revision: "0123456789abcdef".to_owned(),
+            binary_fingerprint: hash("generation-binary"),
+            execution_contract,
             config_hash: hash("config"),
             seeds: vec![
                 SeedManifest {
@@ -701,12 +930,14 @@ fn fixture_provenance(rows: usize) -> FixtureProvenance {
     }
     let mut merge_tree = ContentHasher::new(b"hash.graph.atlas.salt.merge-tree.v2");
     merge_tree.update(&0.0_f64.to_bits().to_le_bytes());
+    let mut edge_snapshot = ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v2");
+    edge_snapshot.update(&0_u64.to_le_bytes());
+    edge_snapshot.update(&0_u64.to_le_bytes());
     FixtureProvenance {
         bucket_index: bucket_index.finish(),
         morton_index: morton_index.finish(),
         identity_directory: identity_directory.finish(),
-        edge_snapshot: ContentHasher::new(b"hash.graph.atlas.salt.relation-edge-snapshot.v1")
-            .finish(),
+        edge_snapshot: edge_snapshot.finish(),
         merge_tree: merge_tree.finish(),
     }
 }
@@ -726,6 +957,11 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
     manifest.variants.entries[0].bucket_index_hash = provenance.bucket_index;
     manifest.variants.entries[0].morton_index_hash = provenance.morton_index;
     manifest.variants.entries[0].merge_tree_hash = provenance.merge_tree;
+    let mut semantic_weights = ContentHasher::new(b"hash.graph.atlas.salt.semantic-weights.v1");
+    for _ in 0..rows.saturating_mul(neighbors) {
+        semantic_weights.update(&1.0_f32.to_bits().to_le_bytes());
+    }
+    manifest.semantic_graph.weight_hash = semantic_weights.finish();
     let canonical = manifest.variants.entries[0].clone();
     let semantic_provenance = [
         manifest.semantic_graph.backend_hash,
@@ -765,6 +1001,7 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
                 relation_provenance,
                 provenance.identity_directory,
                 reference_source,
+                None,
             );
             if role == ArtifactRole::LandmarkSkeleton {
                 reference_source = published.content_hash;
@@ -931,6 +1168,7 @@ fn publish_test_mmap(
     relation_provenance: [ContentHash; 2],
     identity_directory_hash: ContentHash,
     reference_source_hash: ContentHash,
+    canonical_coordinates: Option<&[f32]>,
 ) -> PublishedArtifact {
     match role {
         ArtifactRole::Representations => {
@@ -1093,7 +1331,8 @@ fn publish_test_mmap(
             let row_ids = (0..rows)
                 .map(|row| u32::try_from(row).expect("fixture row should fit u32"))
                 .collect::<Vec<_>>();
-            let coordinates = vec![0.0_f32; rows * 2];
+            let coordinates =
+                canonical_coordinates.map_or_else(|| vec![0.0_f32; rows * 2], <[f32]>::to_vec);
             let buckets = vec![0_u32; rows];
             let priorities = row_ids.clone();
             let morton = (0..rows)
@@ -1173,6 +1412,60 @@ fn publish_test_mmap(
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => unreachable!("legacy export is opaque"),
     }
+}
+
+fn publish_protection_fixture(
+    path: &Utf8Path,
+    policy_hash: ContentHash,
+    edge_snapshot_hash: ContentHash,
+    hard_mass: f64,
+) -> PublishedArtifact {
+    let counts = [0_u64, 1];
+    let no_bytes: [u8; 0] = [];
+    let no_ordinals: [u32; 0] = [];
+    let no_scalars: [f64; 0] = [];
+    let policy_offsets = [0_u64];
+    let first = [0_u32];
+    let second = [1_u32];
+    let hard_mass = [hard_mass];
+    let ordinary_mass = [0.5_f64];
+    let flags = [0b11_u8];
+    publish(
+        path,
+        RELATION_FORMAT,
+        vec![
+            section(1, &[32], policy_hash.as_bytes()),
+            section(2, &[2], &counts),
+            section(3, &[0, 16], &no_bytes),
+            section(4, &[0, 16], &no_bytes),
+            section(5, &[0], &no_bytes),
+            section(6, &[0, 16], &no_bytes),
+            section(7, &[0], &no_ordinals),
+            section(8, &[0], &no_ordinals),
+            section(9, &[0], &no_ordinals),
+            section(10, &[0], &no_scalars),
+            section(11, &[0], &no_bytes),
+            section(12, &[0], &no_scalars),
+            section(13, &[0], &no_scalars),
+            section(14, &[0], &no_scalars),
+            section(15, &[0], &no_scalars),
+            section(16, &[1], &first),
+            section(17, &[1], &second),
+            section(18, &[1], &hard_mass),
+            section(19, &[1], &ordinary_mass),
+            section(20, &[1], &flags),
+            section(21, &[32], edge_snapshot_hash.as_bytes()),
+            section(22, &[1], &policy_offsets),
+            section(23, &[0], &no_bytes),
+            section(24, &[0], &no_ordinals),
+            section(25, &[0], &no_bytes),
+            section(26, &[0, 3], &no_scalars),
+            section(27, &[0], &no_scalars),
+            section(28, &[0, 3], &no_scalars),
+            section(29, &[0], &no_scalars),
+            section(30, &[0], &no_bytes),
+        ],
+    )
 }
 
 fn publish(

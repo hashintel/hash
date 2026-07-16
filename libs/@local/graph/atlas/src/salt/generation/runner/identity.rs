@@ -2,17 +2,34 @@
     clippy::little_endian_bytes,
     reason = "generation identities use canonical little-endian scalar encodings"
 )]
+#![expect(
+    clippy::self_named_module_files,
+    reason = "the established identity facade owns narrowly scoped runtime probes"
+)]
 
+use std::env;
+
+use burn::tensor::backend::Backend;
 use serde::Serialize;
 use type_system::knowledge::entity::id::EntityId;
+use usearch::{Index, IndexOptions, MetricKind, ScalarKind};
 use uuid::Uuid;
 
 use crate::salt::{
-    generation::runner::{CanonicalGenerationConfig, FrozenGenerationInput},
+    generation::runner::{
+        CanonicalGenerationConfig, CanonicalGenerationError, FrozenGenerationInput,
+    },
+    graph::SemanticGraphError,
     hash::{ContentHash, ContentHasher},
-    manifest::GenerationManifest,
+    manifest::{ExecutionContractManifest, GenerationManifest},
+    representation::PROJECTOR_DIMENSIONS,
     revision::GenerationId,
 };
+
+mod runtime;
+
+use runtime::observe_arithmetic_runtime;
+pub(super) use runtime::running_binary_fingerprint;
 
 pub(super) fn generation_id(
     manifest: &GenerationManifest,
@@ -22,7 +39,7 @@ pub(super) fn generation_id(
     input: &FrozenGenerationInput,
     config: &CanonicalGenerationConfig<'_>,
 ) -> GenerationId {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v5");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v7");
     hasher.update(manifest_contract_hash(manifest).as_bytes());
     hasher.update(geometry.as_bytes());
     hasher.update(relation_policy.as_bytes());
@@ -34,7 +51,7 @@ pub(super) fn generation_id(
 }
 
 pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v4");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v5");
     hasher.update(&manifest.format_version.to_le_bytes());
     hash_serialized(&mut hasher, &manifest.created_at);
     hash_serialized(&mut hasher, &manifest.input_snapshot);
@@ -66,6 +83,8 @@ pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHa
     );
     hash_serialized(&mut hasher, &manifest.storage.row_id_encoding);
     hasher.update(manifest.reproducibility.code_revision.as_bytes());
+    hasher.update(manifest.reproducibility.binary_fingerprint.as_bytes());
+    hash_serialized(&mut hasher, &manifest.reproducibility.execution_contract);
     let mut seeds = manifest.reproducibility.seeds.iter().collect::<Vec<_>>();
     seeds.sort_unstable_by(|left, right| left.name.cmp(&right.name));
     for seed in seeds {
@@ -78,14 +97,104 @@ pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHa
     hasher.finish()
 }
 
+/// Observes compiler, target, thread-pool, backend, and native ANN arithmetic.
+#[expect(
+    clippy::manual_string_new,
+    reason = "the embedded Rust flags are empty only in this build and may be populated in \
+              release builds"
+)]
+pub(super) fn observed_execution_contract<B>(
+    device: &B::Device,
+) -> Result<ExecutionContractManifest, CanonicalGenerationError>
+where
+    B: Backend,
+{
+    let cosine = usearch_probe(PROJECTOR_DIMENSIONS, MetricKind::Cos)?;
+    let spatial = usearch_probe(2, MetricKind::L2sq)?;
+    let runtime = observe_arithmetic_runtime()?;
+    let mut contract = ExecutionContractManifest {
+        version: 3,
+        generator_version: env!("CARGO_PKG_VERSION").to_owned(),
+        rustc_release: env!("HASH_GRAPH_ATLAS_RUSTC_RELEASE").to_owned(),
+        rustc_commit: env!("HASH_GRAPH_ATLAS_RUSTC_COMMIT").to_owned(),
+        rustc_host: env!("HASH_GRAPH_ATLAS_RUSTC_HOST").to_owned(),
+        target: env!("HASH_GRAPH_ATLAS_TARGET").to_owned(),
+        target_features: canonical_list(env!("HASH_GRAPH_ATLAS_TARGET_FEATURES")),
+        profile: env!("HASH_GRAPH_ATLAS_PROFILE").to_owned(),
+        optimization_level: env!("HASH_GRAPH_ATLAS_OPT_LEVEL").to_owned(),
+        debug: env!("HASH_GRAPH_ATLAS_DEBUG").to_owned(),
+        rustflags_hex: env!("HASH_GRAPH_ATLAS_RUSTFLAGS_HEX").to_owned(),
+        dependency_lock_hash: ContentHash::digest(include_bytes!(
+            "../../../../../../../../Cargo.lock"
+        )),
+        training_backend: B::name(device),
+        rayon_threads: rayon::current_num_threads(),
+        operating_system: runtime.operating_system,
+        math_runtime: runtime.math_runtime,
+        runtime_cpu_features: runtime.cpu_features,
+        floating_point_control: runtime.floating_point_control,
+        math_library_images: runtime.math_library_images,
+        candle_version: "burn-candle-0.21.0/candle-core-0.10.2".to_owned(),
+        candle_cpu_threads: runtime.candle_cpu_threads,
+        gemm_version: "gemm-0.19.0".to_owned(),
+        gemm_kernel: runtime.gemm_kernel,
+        gemm_cache_configuration: runtime.gemm_cache_configuration,
+        gemm_threading_threshold: runtime.gemm_threading_threshold,
+        gemm_lhs_packing_threshold_single_thread: runtime.gemm_lhs_packing_threshold_single_thread,
+        gemm_lhs_packing_threshold_multi_thread: runtime.gemm_lhs_packing_threshold_multi_thread,
+        gemm_rhs_packing_threshold: runtime.gemm_rhs_packing_threshold,
+        salt_simd_mode: if cfg!(any(target_arch = "aarch64", target_feature = "fma")) {
+            "native-fma".to_owned()
+        } else {
+            "portable-fma".to_owned()
+        },
+        usearch_version: usearch::version().to_owned(),
+        usearch_compiled_isa: canonical_list(&usearch::hardware_acceleration_compiled()),
+        usearch_available_isa: canonical_list(&usearch::hardware_acceleration_available()),
+        usearch_cosine_f32_isa: canonical_list(&cosine),
+        usearch_l2sq_f32_isa: canonical_list(&spatial),
+        contract_hash: ContentHash::from_bytes([0; 32]),
+    };
+    contract.contract_hash = contract.content_hash();
+    Ok(contract)
+}
+
+fn usearch_probe(dimensions: usize, metric: MetricKind) -> Result<String, SemanticGraphError> {
+    let index = Index::new(&IndexOptions {
+        dimensions,
+        metric,
+        quantization: ScalarKind::F32,
+        connectivity: 16,
+        expansion_add: 200,
+        expansion_search: 128,
+        multi: false,
+    })?;
+    Ok(index.hardware_acceleration())
+}
+
+fn canonical_list(values: &str) -> String {
+    let mut values = values
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+    values.sort_unstable();
+    values.dedup();
+    values.join(",")
+}
+
 pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v6");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v7");
     hasher.update(input.relation_snapshot_hash.as_bytes());
     hasher.update(input.relation_policy_input_hash.as_bytes());
     hasher.update(input.canonical_embedding_hash.as_bytes());
     hasher.update(input.projector_representation_hash.as_bytes());
     for (_, entity) in input.identities.iter() {
         hash_entity(&mut hasher, entity);
+    }
+    for selected in &input.selected_editions {
+        hash_entity(&mut hasher, &selected.entity_id);
+        hasher.update(selected.edition_id.as_uuid().as_bytes());
     }
     for role in &input.roles {
         hasher.update(&role.index().to_le_bytes());
@@ -316,6 +425,7 @@ fn hash_relation_contract(hasher: &mut ContentHasher, manifest: &GenerationManif
     relations
         .negative_admission
         .ordinary_negative_protection_threshold = 0.0;
+    relations.negative_admission.protect_ordinary_negatives = false;
     hash_serialized(hasher, &relations);
 }
 

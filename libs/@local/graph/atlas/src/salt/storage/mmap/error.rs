@@ -61,9 +61,21 @@ pub(crate) enum ArtifactWriteError {
     Io(io::Error),
     Persist(tempfile::PersistError),
     EmptySections,
-    TooManySections { count: usize, maximum: u32 },
-    InvalidSection { index: usize, error: SectionError },
-    ExistingArtifactMismatch { path: Utf8PathBuf },
+    TooManySections {
+        count: usize,
+        maximum: u32,
+    },
+    Allocation {
+        buffer: &'static str,
+        elements: usize,
+    },
+    InvalidSection {
+        index: usize,
+        error: SectionError,
+    },
+    ExistingArtifactMismatch {
+        path: Utf8PathBuf,
+    },
     Map(ArtifactMapError),
 }
 
@@ -79,6 +91,10 @@ impl fmt::Display for ArtifactWriteError {
                     "artifact has {count} sections; maximum is {maximum}"
                 )
             }
+            Self::Allocation { buffer, elements } => write!(
+                formatter,
+                "unable to allocate {elements} elements for artifact buffer {buffer}"
+            ),
             Self::InvalidSection { index, error } => {
                 write!(
                     formatter,
@@ -102,6 +118,7 @@ impl Error for ArtifactWriteError {
             Self::Map(error) => Some(error),
             Self::EmptySections
             | Self::TooManySections { .. }
+            | Self::Allocation { .. }
             | Self::InvalidSection { .. }
             | Self::ExistingArtifactMismatch { .. } => None,
         }

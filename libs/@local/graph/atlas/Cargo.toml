@@ -36,6 +36,8 @@ ed25519-dalek                            = "3.0.0"
 error-stack.workspace                    = true
 faer                                     = "0.24.4"
 futures.workspace                        = true
+gemm                                     = "=0.19.0"
+gemm-common                              = "=0.19.0"
 hash-graph-authorization.workspace       = true
 hash-graph-postgres-store.workspace      = true
 hash-graph-store.workspace               = true
@@ -43,8 +45,10 @@ hash-graph-temporal-versioning.workspace = true
 hash-graph-types.workspace               = true
 jiff                                     = { version = "0.2.32", features = ["serde"] }
 levenberg-marquardt                      = "0.15.0"
+libc                                     = "0.2.186"
 memmap2                                  = "0.9.11"
 nalgebra                                 = "0.34.1"
+num_cpus                                 = "1.17.0"
 pin-project-lite.workspace               = true
 rand                                     = { workspace = true }
 rand_xoshiro                             = { workspace = true }
@@ -97,10 +101,11 @@ required-features = ["salt-benchmarks"]
 # cudnn = ["cuda"]
 
 # Apple-only backends: always available on macOS, never elsewhere.
-# `metal` implies `wgpu` and compiles kernels via MSL; `candle-metal` puts the
-# burn-candle backend on Metal; `accelerate` uses Apple's BLAS for CPU paths.
+# `metal` implies `wgpu` and compiles kernels via MSL; `candle-metal` keeps the
+# optional serving backend available. M0 generation pins Candle CPU without
+# Accelerate so runtime framework arithmetic is not outside release identity.
 [target.'cfg(target_os = "macos")'.dependencies]
-burn = { version = "0.21.0", features = ["metal", "accelerate", "candle-metal"] }
+burn = { version = "0.21.0", features = ["metal", "candle-metal"] }
 
 # Everywhere else the wgpu backend compiles kernels via SPIR-V/Vulkan.
 # No vendor toolchain needed at build time (unlike CUDA).

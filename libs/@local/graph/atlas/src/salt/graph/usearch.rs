@@ -79,9 +79,10 @@ impl USearchIndex {
         index
             .reserve_capacity_and_threads(embeddings.len(), rayon::current_num_threads().max(1))?;
 
-        let mut hasher = ContentHasher::new(b"salt:ann-backend:usearch-hnsw:v2");
-        hasher.update(b"usearch-2.25.3");
+        let mut hasher = ContentHasher::new(b"salt:ann-backend:usearch-hnsw:v3");
+        hasher.update(usearch::version().as_bytes());
         hasher.update(b"single-threaded-build");
+        hasher.update(index.hardware_acceleration().as_bytes());
         hasher.update(
             &u64::try_from(PROJECTOR_DIMENSIONS)
                 .expect("projector dimensions should fit u64")

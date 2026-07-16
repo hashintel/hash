@@ -82,6 +82,8 @@ pub(crate) fn publish_manifest_with_artifacts(
                     path: path.to_owned(),
                 });
             }
+            File::open(path)?.sync_all()?;
+            File::open(parent)?.sync_all()?;
             true
         }
         Err(error) => return Err(ManifestPublishError::Persist(error)),

@@ -5,6 +5,52 @@
 //! generation that has passed signature, manifest, artifact, and checkpoint
 //! verification. The router uses Axum 0.8 state extractors and wildcard route
 //! syntax and can be nested into a larger application or served directly.
+//!
+//! # Trust configuration
+//!
+//! [`AtlasApiConfiguration`] pins the filesystem root, release authority, and
+//! one independent Ed25519 verifier for every externally owned gate. Keys are
+//! raw 32-byte public keys encoded as 64 lowercase hexadecimal characters.
+//! They must match the authorities embedded in the active generation; this is
+//! not a key-discovery endpoint.
+//!
+//! [`AtlasApiState::new`] eagerly reloads the active pointer. When a pointer is
+//! present, startup fails unless the candidate marker, signed release report,
+//! manifest, every artifact, and the projector checkpoint reverify. An empty
+//! root is valid and serves `404 Not Found` from current-state routes.
+//!
+//! # Routes
+//!
+//! - `GET /healthz` returns `204 No Content` when the process is responsive. It does not assert
+//!   that a generation is active.
+//! - `GET /v1/atlas/current` returns release identity and artifact metadata for the verified active
+//!   generation.
+//! - `GET /v1/atlas/current/manifest` returns its generation manifest.
+//! - `GET /v1/atlas/current/artifacts/{*relative_path}` streams one manifest-listed artifact.
+//!
+//! Artifact responses support one standard byte range, including open-ended
+//! and suffix ranges. Multiple or unsatisfiable ranges return
+//! `416 Range Not Satisfiable`. The content hash is the quoted `ETag`; response
+//! caching is left to a trusted reverse proxy.
+//!
+//! # Reload and streaming
+//!
+//! Each request compares `active.json` with the cached `LoadedGeneration`.
+//! A changed pointer is reopened once under a single-flight mutex on a blocking
+//! worker and replaces the cache only after complete verification. In-flight
+//! requests retain an [`Arc`] to the previous immutable generation and
+//! complete safely.
+//!
+//! Artifacts are streamed from private immutable mappings in 64 KiB chunks.
+//! The stream copies each chunk into an owned HTTP buffer so response lifetime
+//! is independent of mapping borrows.
+//!
+//! # Security
+//!
+//! This router performs no request authentication, tenant authorization, rate
+//! limiting, or TLS termination. Bind it to loopback or a trusted internal
+//! network and add those controls in the surrounding application before
+//! exposing it to untrusted clients.
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt, str::FromStr as _};
@@ -43,7 +89,9 @@ const STREAM_CHUNK_BYTES: usize = 64 * 1024;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerifierConfiguration {
+    /// Stable authority name embedded in signed gate evidence.
     pub authority: String,
+    /// Raw 32-byte Ed25519 public key as 64 lowercase hexadecimal characters.
     pub public_key: String,
 }
 
@@ -51,13 +99,21 @@ pub struct VerifierConfiguration {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ExternalGate {
+    /// Full/prefix representation audit.
     Representation,
+    /// Identity-aware semantic neighborhood and map-quality suite.
     SemanticFidelity,
+    /// Relation policy evaluation and review report.
     RelationPolicy,
+    /// Candidate/reference persistence and synthetic-shape suite.
     MergeTreePersistence,
+    /// Protected subgroup behavior report.
     SubgroupBehavior,
+    /// Authorization noninterference report.
     AuthorizationNoninterference,
+    /// Independent security approval.
     SecurityApproval,
+    /// Client and wire companion compatibility approval.
     CompanionPin,
 }
 
@@ -65,8 +121,11 @@ pub enum ExternalGate {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExternalVerifierConfiguration {
+    /// External gate owned by this authority.
     pub gate: ExternalGate,
+    /// Stable authority name embedded in the external grant.
     pub authority: String,
+    /// Raw 32-byte Ed25519 public key as 64 lowercase hexadecimal characters.
     pub public_key: String,
 }
 
@@ -74,8 +133,11 @@ pub struct ExternalVerifierConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AtlasApiConfiguration {
+    /// UTF-8 filesystem root containing activation and generation records.
     pub root: String,
+    /// Verifier for the authority signing every release gate document.
     pub release_verifier: VerifierConfiguration,
+    /// Complete, unique verifier set for independently owned external gates.
     pub external_verifiers: Vec<ExternalVerifierConfiguration>,
 }
 
@@ -144,22 +206,27 @@ impl<B: Backend> AtlasApiState<B> {
     }
 
     fn current(&self) -> Result<Option<Arc<LoadedGeneration<B>>>, HttpError> {
+        let mut cached = self.cached.lock().unwrap_or_else(PoisonError::into_inner);
+        // Read the pointer under the single-flight lock. A waiter must observe
+        // a transition completed by the previous lock holder instead of
+        // acting on a stale pointer sampled before it entered the queue.
         let pointer = self.store.active_pointer().map_err(internal_error)?;
-        {
-            let cached = self.cached.lock().unwrap_or_else(PoisonError::into_inner);
-            if cached.as_ref().map(|generation| generation.release()) == pointer {
-                return Ok(cached.clone());
-            }
+        if cached.as_ref().map(|generation| generation.release()) == pointer {
+            let current = cached.clone();
+            drop(cached);
+            return Ok(current);
         }
+        // Keep reload single-flight. This method always runs on a blocking
+        // worker, so holding the mutex across artifact copying and checkpoint
+        // decoding serializes one expensive transition without blocking an
+        // async executor thread.
         let loaded = self
             .store
             .load_active()
             .map_err(internal_error)?
             .map(Arc::new);
-        self.cached
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .clone_from(&loaded);
+        cached.clone_from(&loaded);
+        drop(cached);
         Ok(loaded)
     }
 }

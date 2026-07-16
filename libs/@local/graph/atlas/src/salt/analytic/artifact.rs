@@ -55,72 +55,94 @@ pub(crate) fn publish_analytic_artifact(
 ) -> Result<PublishedArtifact, ArtifactWriteError> {
     let (minimum, maximum) = raster.bounds();
     let bounds = [minimum[0], minimum[1], maximum[0], maximum[1]];
-    let leaf_births = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.birth)
-        .collect::<Vec<_>>();
-    let leaf_deaths = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.death)
-        .collect::<Vec<_>>();
-    let leaf_parents = tree
-        .leaves()
-        .iter()
-        .map(|leaf| leaf.parent.unwrap_or(u64::MAX))
-        .collect::<Vec<_>>();
-    let leaf_representative_pixels = tree
-        .leaves()
-        .iter()
-        .map(|leaf| u64::try_from(leaf.representative_pixel).expect("pixel index should fit u64"))
-        .collect::<Vec<_>>();
-    let peak_pixels = regions
-        .peaks()
-        .iter()
-        .map(|peak| u64::try_from(peak.pixel).expect("usize should fit u64"))
-        .collect::<Vec<_>>();
-    let peak_densities = regions
-        .peaks()
-        .iter()
-        .map(|peak| peak.density)
-        .collect::<Vec<_>>();
-    let region_parents = regions
-        .peaks()
-        .iter()
-        .map(|peak| peak.parent_region.unwrap_or(u32::MAX))
-        .collect::<Vec<_>>();
-    let region_persistence = regions
-        .peaks()
-        .iter()
-        .map(|peak| peak.persistence)
-        .collect::<Vec<_>>();
-    let region_leaves = regions
-        .peaks()
-        .iter()
-        .map(|peak| peak.persistence_leaf)
-        .collect::<Vec<_>>();
-    let label_regions = labels.iter().map(|label| label.region).collect::<Vec<_>>();
-    let label_rows = labels
-        .iter()
-        .map(|label| label.row.as_u32())
-        .collect::<Vec<_>>();
-    let mut region_representative_rows = vec![u32::MAX; regions.peaks().len()];
+    let leaf_births = collect_artifact(
+        "analytic leaf births",
+        tree.leaves().iter().map(|leaf| leaf.birth),
+    )?;
+    let leaf_deaths = collect_artifact(
+        "analytic leaf deaths",
+        tree.leaves().iter().map(|leaf| leaf.death),
+    )?;
+    let leaf_parents = collect_artifact(
+        "analytic leaf parents",
+        tree.leaves()
+            .iter()
+            .map(|leaf| leaf.parent.unwrap_or(u64::MAX)),
+    )?;
+    let leaf_representative_pixels = collect_artifact(
+        "analytic leaf representative pixels",
+        tree.leaves().iter().map(|leaf| {
+            u64::try_from(leaf.representative_pixel).expect("pixel index should fit u64")
+        }),
+    )?;
+    let peak_pixels = collect_artifact(
+        "analytic peak pixels",
+        regions
+            .peaks()
+            .iter()
+            .map(|peak| u64::try_from(peak.pixel).expect("usize should fit u64")),
+    )?;
+    let peak_densities = collect_artifact(
+        "analytic peak densities",
+        regions.peaks().iter().map(|peak| peak.density),
+    )?;
+    let region_parents = collect_artifact(
+        "analytic region parents",
+        regions
+            .peaks()
+            .iter()
+            .map(|peak| peak.parent_region.unwrap_or(u32::MAX)),
+    )?;
+    let region_persistence = collect_artifact(
+        "analytic region persistence",
+        regions.peaks().iter().map(|peak| peak.persistence),
+    )?;
+    let region_leaves = collect_artifact(
+        "analytic region leaves",
+        regions.peaks().iter().map(|peak| peak.persistence_leaf),
+    )?;
+    let label_regions = collect_artifact(
+        "analytic label regions",
+        labels.iter().map(|label| label.region),
+    )?;
+    let label_rows = collect_artifact(
+        "analytic label rows",
+        labels.iter().map(|label| label.row.as_u32()),
+    )?;
+    let mut region_representative_rows = filled_artifact(
+        "analytic representative rows",
+        regions.peaks().len(),
+        u32::MAX,
+    )?;
     for label in labels {
         let region = usize::try_from(label.region).expect("region identity should fit usize");
         if region < region_representative_rows.len() {
             region_representative_rows[region] = label.row.as_u32();
         }
     }
-    let mut label_offsets = Vec::with_capacity(labels.len() + 1);
-    let mut label_text = Vec::new();
+    let offset_count = labels
+        .len()
+        .checked_add(1)
+        .ok_or(ArtifactWriteError::Allocation {
+            buffer: "analytic label offsets",
+            elements: usize::MAX,
+        })?;
+    let mut label_offsets = empty_artifact("analytic label offsets", offset_count)?;
+    let text_bytes = labels
+        .iter()
+        .try_fold(0_usize, |total, label| total.checked_add(label.text.len()));
+    let text_bytes = text_bytes.ok_or(ArtifactWriteError::Allocation {
+        buffer: "analytic label text",
+        elements: usize::MAX,
+    })?;
+    let mut label_text = empty_artifact("analytic label text", text_bytes)?;
     label_offsets.push(0_u64);
     for label in labels {
         label_text.extend_from_slice(label.text.as_bytes());
         label_offsets.push(u64::try_from(label_text.len()).expect("usize should fit u64"));
     }
 
-    let mut sections = Vec::with_capacity(20);
+    let mut sections = empty_artifact("analytic artifact sections", 20)?;
     push(
         &mut sections,
         CONFIGURATION_HASH,
@@ -170,6 +192,34 @@ pub(crate) fn publish_analytic_artifact(
         &region_representative_rows,
     )?;
     publish_artifact(path, ANALYTIC_FORMAT, &sections)
+}
+
+fn empty_artifact<T>(buffer: &'static str, elements: usize) -> Result<Vec<T>, ArtifactWriteError> {
+    let mut values = Vec::new();
+    values
+        .try_reserve_exact(elements)
+        .map_err(|_error| ArtifactWriteError::Allocation { buffer, elements })?;
+    Ok(values)
+}
+
+fn filled_artifact<T: Clone>(
+    buffer: &'static str,
+    elements: usize,
+    value: T,
+) -> Result<Vec<T>, ArtifactWriteError> {
+    let mut values = empty_artifact(buffer, elements)?;
+    values.resize(elements, value);
+    Ok(values)
+}
+
+fn collect_artifact<T>(
+    buffer: &'static str,
+    values: impl ExactSizeIterator<Item = T>,
+) -> Result<Vec<T>, ArtifactWriteError> {
+    let elements = values.len();
+    let mut collected = empty_artifact(buffer, elements)?;
+    collected.extend(values);
+    Ok(collected)
 }
 
 #[inline]

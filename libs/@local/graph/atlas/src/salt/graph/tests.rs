@@ -19,6 +19,14 @@ use crate::salt::{
 };
 
 #[test]
+fn semantic_weights_reject_values_above_fuzzy_membership() {
+    let table =
+        KnnTable::new(2, 1, vec![1, 0], vec![0.25, 0.25]).expect("fixture graph should validate");
+
+    assert!(SemanticEdgeWeights::new(&table, vec![1.0, 1.000_001]).is_err());
+}
+
+#[test]
 fn audit_sampling_is_seeded_and_balanced_across_complete_strata() {
     let mut candidates = (0_u32..8)
         .map(|row| LandmarkCandidate {

@@ -1,4 +1,28 @@
-//! Borrowed base, delta, and merged read views.
+//! Borrowed base, delta, and merged read contracts.
+//!
+//! A base is an immutable, deterministically ordered set of keyed records. A
+//! delta is an append-only sequence of upserts and tombstones visible at one
+//! [`DeltaRevision`]. A merged reader presents the revision pair and one
+//! lookup/iteration surface after applying the visible delta to the selected
+//! base.
+//!
+//! Keys, rather than storage ordinals, define replacement and deletion:
+//!
+//! - an upsert shadows the base or any earlier delta value for the same key;
+//! - a tombstone hides that key; and
+//! - records unaffected by the delta retain deterministic base order under the concrete
+//!   merged-reader policy.
+//!
+//! The traits in this module establish that shared vocabulary for incremental
+//! storage. The only concrete reader currently admitted for serving is
+//! [`DisabledMergedReader`]. It requires [`IncrementalMode::Disabled`],
+//! [`BaseRevision::ZERO`], and an [`EmptyDelta`] at
+//! [`DeltaRevision::ZERO`]. Requests for mutation or advanced revisions fail
+//! explicitly; they are never approximated as revision zero.
+//!
+//! All views borrow storage. Lookup and iteration do not allocate, and the
+//! exact-size guarantees let callers pre-size derived indexes without scanning
+//! twice.
 
 use core::{error::Error, fmt, iter, marker::PhantomData};
 

@@ -53,13 +53,34 @@ pub(crate) struct ProjectorBatchSource<'source> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum ProjectorBatchError {
     Empty,
-    RoleCount { rows: usize, roles: usize },
-    LocalScaleCount { rows: usize, scales: usize },
-    InvalidTypeContextDropout { value: f64 },
+    RoleCount {
+        rows: usize,
+        roles: usize,
+    },
+    LocalScaleCount {
+        rows: usize,
+        scales: usize,
+    },
+    InvalidTypeContextDropout {
+        value: f64,
+    },
     UnexpectedTypeContextDropout,
-    UnknownRow { row: u32, rows: usize },
-    InvalidScalar { field: &'static str, value: f64 },
-    NegativeScalar { field: &'static str, value: f64 },
+    UnknownRow {
+        row: u32,
+        rows: usize,
+    },
+    Allocation {
+        buffer: &'static str,
+        elements: usize,
+    },
+    InvalidScalar {
+        field: &'static str,
+        value: f64,
+    },
+    NegativeScalar {
+        field: &'static str,
+        value: f64,
+    },
     Inference(ProjectorInferenceError),
     Training(ProjectorTrainingError),
 }
@@ -93,6 +114,10 @@ impl fmt::Display for ProjectorBatchError {
                     "projector batch row {row} is outside {rows} corpus rows"
                 )
             }
+            Self::Allocation { buffer, elements } => write!(
+                formatter,
+                "projector batch could not reserve {elements} elements for {buffer}"
+            ),
             Self::InvalidScalar { field, value } => {
                 write!(
                     formatter,
@@ -122,6 +147,7 @@ impl Error for ProjectorBatchError {
             | Self::InvalidTypeContextDropout { .. }
             | Self::UnexpectedTypeContextDropout
             | Self::UnknownRow { .. }
+            | Self::Allocation { .. }
             | Self::InvalidScalar { .. }
             | Self::NegativeScalar { .. } => None,
         }
@@ -133,6 +159,24 @@ impl From<ProjectorTrainingError> for ProjectorBatchError {
     fn from(error: ProjectorTrainingError) -> Self {
         Self::Training(error)
     }
+}
+
+fn empty<T>(buffer: &'static str, elements: usize) -> Result<Vec<T>, ProjectorBatchError> {
+    let mut values = Vec::new();
+    values
+        .try_reserve_exact(elements)
+        .map_err(|_error| ProjectorBatchError::Allocation { buffer, elements })?;
+    Ok(values)
+}
+
+fn filled<T: Clone>(
+    buffer: &'static str,
+    elements: usize,
+    value: T,
+) -> Result<Vec<T>, ProjectorBatchError> {
+    let mut values = empty(buffer, elements)?;
+    values.resize(elements, value);
+    Ok(values)
 }
 
 /// Device-resident evidence shared by matched global conditions.
@@ -173,7 +217,10 @@ impl<B: AutodiffBackend> PreparedProjectorBatch<B> {
                 type_context: self.type_context.clone(),
                 roles: self.roles.clone(),
                 condition: Tensor::from_data(
-                    TensorData::new(vec![condition_f32; self.rows.len()], [self.rows.len(), 1]),
+                    TensorData::new(
+                        filled("relation conditions", self.rows.len(), condition_f32)?,
+                        [self.rows.len(), 1],
+                    ),
                     device,
                 ),
             },
@@ -228,7 +275,8 @@ pub(crate) fn prepare_projector_batch<B: AutodiffBackend>(
         .saturating_add(source.hard_negative.len())
         .saturating_add(source.relation.len());
     let support_count = source.anchors.len().saturating_add(source.landmarks.len());
-    let mut rows = Vec::with_capacity(edge_count.saturating_mul(2).saturating_add(support_count));
+    let row_capacity = edge_count.saturating_mul(2).saturating_add(support_count);
+    let mut rows = empty("row occurrences", row_capacity)?;
     for edge in source
         .semantic_positive
         .iter()
@@ -252,14 +300,20 @@ pub(crate) fn prepare_projector_batch<B: AutodiffBackend>(
         validate_row(*row, corpus_rows)?;
     }
 
-    let mut representations = Vec::with_capacity(rows.len() * PROJECTOR_DIMENSIONS);
-    let mut roles = Vec::with_capacity(rows.len());
+    let mut representations = empty(
+        "gathered representations",
+        rows.len().saturating_mul(PROJECTOR_DIMENSIONS),
+    )?;
+    let mut roles = empty("gathered roles", rows.len())?;
     for row in &rows {
         representations.extend_from_slice(source.representations.row(row.as_usize()));
         roles.push(i64::from(source.roles[row.as_usize()].index()));
     }
-    let type_context = source.type_context.map(|context| {
-        let mut values = Vec::with_capacity(rows.len() * context.dimensions());
+    let type_context = if let Some(context) = source.type_context {
+        let mut values = empty(
+            "gathered type context",
+            rows.len().saturating_mul(context.dimensions()),
+        )?;
         for row in &rows {
             let start = row.as_usize() * context.dimensions();
             let scale = source
@@ -271,11 +325,13 @@ pub(crate) fn prepare_projector_batch<B: AutodiffBackend>(
                     .map(|value| value * scale),
             );
         }
-        Tensor::from_data(
+        Some(Tensor::from_data(
             TensorData::new(values, [rows.len(), context.dimensions()]),
             device,
-        )
-    });
+        ))
+    } else {
+        None
+    };
     Ok(PreparedProjectorBatch {
         representation: Tensor::from_data(
             TensorData::new(representations, [rows.len(), PROJECTOR_DIMENSIONS]),
@@ -355,9 +411,9 @@ fn weighted_edges<B: AutodiffBackend>(
     if edges.is_empty() {
         return Ok(None);
     }
-    let mut left = Vec::with_capacity(edges.len());
-    let mut right = Vec::with_capacity(edges.len());
-    let mut weight = Vec::with_capacity(edges.len());
+    let mut left = empty("weighted-edge left rows", edges.len())?;
+    let mut right = empty("weighted-edge right rows", edges.len())?;
+    let mut weight = empty("weighted-edge weights", edges.len())?;
     for edge in edges {
         left.push(local_row(rows, edge.left));
         right.push(local_row(rows, edge.right));
@@ -378,13 +434,14 @@ fn relation_edges<B: AutodiffBackend>(
     if source.relation.is_empty() {
         return Ok(None);
     }
-    let mut left = Vec::with_capacity(source.relation.len());
-    let mut right = Vec::with_capacity(source.relation.len());
-    let mut weight = Vec::with_capacity(source.relation.len());
-    let mut coincident = Vec::with_capacity(source.relation.len());
-    let mut proximal = Vec::with_capacity(source.relation.len());
-    let mut left_scale = Vec::with_capacity(source.relation.len());
-    let mut right_scale = Vec::with_capacity(source.relation.len());
+    let count = source.relation.len();
+    let mut left = empty("relation left rows", count)?;
+    let mut right = empty("relation right rows", count)?;
+    let mut weight = empty("relation weights", count)?;
+    let mut coincident = empty("relation coincident coefficients", count)?;
+    let mut proximal = empty("relation proximal coefficients", count)?;
+    let mut left_scale = empty("relation left scales", count)?;
+    let mut right_scale = empty("relation right scales", count)?;
     for edge in source.relation {
         left.push(local_row(rows, edge.left));
         right.push(local_row(rows, edge.right));
@@ -422,10 +479,10 @@ fn coordinate_support<B: AutodiffBackend>(
     if support.is_empty() {
         return Ok(None);
     }
-    let mut local_rows = Vec::with_capacity(support.len());
-    let mut target = Vec::with_capacity(support.len() * 2);
-    let mut radius = Vec::with_capacity(support.len());
-    let mut weight = Vec::with_capacity(support.len());
+    let mut local_rows = empty("support rows", support.len())?;
+    let mut target = empty("support targets", support.len().saturating_mul(2))?;
+    let mut radius = empty("support radii", support.len())?;
+    let mut weight = empty("support weights", support.len())?;
     for support in support {
         local_rows.push(local_row(rows, support.row));
         target.extend([
@@ -443,7 +500,7 @@ fn coordinate_support<B: AutodiffBackend>(
     }))
 }
 
-fn validate_type_context(
+const fn validate_type_context(
     context: Option<ProjectorTypeContext<'_>>,
     rows: usize,
 ) -> Result<(), ProjectorBatchError> {
@@ -463,7 +520,7 @@ fn validate_type_context(
 }
 
 #[inline]
-fn validate_row(row: GenerationRowId, rows: usize) -> Result<(), ProjectorBatchError> {
+const fn validate_row(row: GenerationRowId, rows: usize) -> Result<(), ProjectorBatchError> {
     if row.as_usize() < rows {
         Ok(())
     } else {

@@ -27,6 +27,9 @@ pub(crate) enum CanonicalGenerationError {
         expected: usize,
         actual: usize,
     },
+    SelectedEditionIdentity {
+        row: usize,
+    },
     RelationType {
         relation_type: VersionedUrl,
     },
@@ -92,6 +95,9 @@ pub(crate) enum CanonicalGenerationError {
     },
     ManifestContractCanonical,
     SnapshotProvenance,
+    UnsupportedGenerationBackend {
+        actual: String,
+    },
     SecurityPolicy,
     ActivationConflict {
         actual: Option<ReleaseHead>,
@@ -140,6 +146,10 @@ impl fmt::Display for CanonicalGenerationError {
             } => write!(
                 formatter,
                 "generation requires {expected} {input} rows, got {actual}"
+            ),
+            Self::SelectedEditionIdentity { row } => write!(
+                formatter,
+                "selected entity edition at generation row {row} names a different entity"
             ),
             Self::RelationType { relation_type } => write!(
                 formatter,
@@ -236,6 +246,10 @@ impl fmt::Display for CanonicalGenerationError {
             Self::SnapshotProvenance => formatter.write_str(
                 "permission queries and generation inputs name different temporal snapshots",
             ),
+            Self::UnsupportedGenerationBackend { actual } => write!(
+                formatter,
+                "M0 generation requires autodiff<candle<cpu>>, got {actual}"
+            ),
             Self::SecurityPolicy => formatter
                 .write_str("manifest relation security metadata differs from enforced admission"),
             Self::ActivationConflict { actual } => match actual {
@@ -307,6 +321,7 @@ impl Error for CanonicalGenerationError {
             Self::Persistence(error) => Some(error),
             Self::Evidence(error) => Some(error),
             Self::InputRows { .. }
+            | Self::SelectedEditionIdentity { .. }
             | Self::RelationType { .. }
             | Self::RelationConfidence { .. }
             | Self::RelationPolicyCount { .. }
@@ -326,6 +341,7 @@ impl Error for CanonicalGenerationError {
             | Self::ManifestContractVariantCount { .. }
             | Self::ManifestContractCanonical
             | Self::SnapshotProvenance
+            | Self::UnsupportedGenerationBackend { .. }
             | Self::SecurityPolicy
             | Self::ActivationConflict { .. }
             | Self::ReloadMissing

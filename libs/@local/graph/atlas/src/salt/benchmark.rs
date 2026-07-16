@@ -308,6 +308,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn projector_prefix_matches_the_scalar_quality_oracle() {
+        let fixture = PrefixFixture::new();
+        let mut output = [0.0; PROJECTOR_WIDTH];
+        let _ = fixture.normalize(&mut output);
+
+        assert!(fixture.maximum_error(&output) <= 1.0e-7);
+    }
+
+    #[test]
     fn semantic_fixture_passes_recall_before_building_the_timed_stage() {
         let fixture = SemanticGraphFixture::new(128);
         let observation = fixture.build_graph();
