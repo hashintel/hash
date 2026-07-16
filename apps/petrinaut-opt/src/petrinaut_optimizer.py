@@ -320,7 +320,8 @@ class PetrinautOptimizer:
                 # Pass error to streamer
                 loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
  
-        threading.Thread(target=run, daemon=True).start()
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
  
         try:
             while True:
@@ -339,9 +340,17 @@ class PetrinautOptimizer:
                     set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
                     break
         finally:
+            # Signal the study to stop, then wait for the worker to actually exit before
+            # closing the CLI — otherwise close() can tear down the subprocess while a
+            # trial is still mid-request. Join off the event loop so other requests keep
+            # serving. stop_flag only takes effect at the next trial boundary, so this
+            # waits out at most one in-flight evaluation.
             stop_flag.set()
-            self.lock.release()
-            self.pn_model.close()
+            try:
+                await loop.run_in_executor(None, worker.join)
+            finally:
+                self.lock.release()
+                self.pn_model.close()
 
     async def stream_best(self, request: Request, n_trials: int):
         """Async generator yielding Server-side event frames, one per finished trial.
@@ -409,7 +418,8 @@ class PetrinautOptimizer:
                 # Pass error to streamer
                 loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
  
-        threading.Thread(target=run, daemon=True).start()
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
  
         try:
             while True:
@@ -428,9 +438,17 @@ class PetrinautOptimizer:
                     set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
                     break
         finally:
+            # Signal the study to stop, then wait for the worker to actually exit before
+            # closing the CLI — otherwise close() can tear down the subprocess while a
+            # trial is still mid-request. Join off the event loop so other requests keep
+            # serving. stop_flag only takes effect at the next trial boundary, so this
+            # waits out at most one in-flight evaluation.
             stop_flag.set()
-            self.lock.release()
-            self.pn_model.close()
+            try:
+                await loop.run_in_executor(None, worker.join)
+            finally:
+                self.lock.release()
+                self.pn_model.close()
     
     # ── run for local testing /printing ─────────────────────────────────────────────────────────────────
     def run_stream(self, study, objective, n_trials):
