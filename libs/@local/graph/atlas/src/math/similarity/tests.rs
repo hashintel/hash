@@ -25,6 +25,88 @@ const FIT_POINTS: [Vec2; 6] = [
     Vec2::new(5.0, 5.0),
 ];
 
+/// Twelve spread-out, non-symmetric sample points for the fit
+/// certificates.
+const CERT_POINTS: [Vec2; 12] = [
+    Vec2::new(0.0, 0.0),
+    Vec2::new(4.0, 1.0),
+    Vec2::new(-2.0, 3.0),
+    Vec2::new(1.5, -2.5),
+    Vec2::new(-3.0, -4.0),
+    Vec2::new(5.0, 5.0),
+    Vec2::new(6.5, -1.75),
+    Vec2::new(-5.25, 2.0),
+    Vec2::new(2.25, 6.0),
+    Vec2::new(-1.0, -6.5),
+    Vec2::new(7.0, 3.5),
+    Vec2::new(-6.0, -0.5),
+];
+
+/// Varied positive weights for the certificate points.
+const CERT_WEIGHTS: [f32; 12] = [
+    1.0, 2.0, 0.5, 1.5, 3.0, 0.25, 1.25, 0.75, 2.5, 0.125, 1.75, 0.375,
+];
+
+/// Small asymmetric offsets keeping the fitted residual nonzero, so the
+/// error surface has a strict minimum away from the exact-recovery case.
+const CERT_NOISE: [Vec2; 12] = [
+    Vec2::new(0.02, -0.03),
+    Vec2::new(-0.04, 0.01),
+    Vec2::new(0.03, 0.05),
+    Vec2::new(-0.01, -0.02),
+    Vec2::new(0.05, 0.02),
+    Vec2::new(-0.03, 0.04),
+    Vec2::new(0.01, -0.05),
+    Vec2::new(-0.05, -0.01),
+    Vec2::new(0.04, 0.03),
+    Vec2::new(-0.02, 0.05),
+    Vec2::new(0.05, -0.04),
+    Vec2::new(0.03, 0.01),
+];
+
+/// The certificate target: a known similarity image of [`CERT_POINTS`]
+/// plus the asymmetric [`CERT_NOISE`].
+fn noisy_certificate_target() -> [Vec2; 12] {
+    let known = Similarity::new(1.75, Rotation::from_radians(0.55), Vec2::new(2.5, -1.25))
+        .expect("scale 1.75 is normal and positive");
+
+    core::array::from_fn(|index| known.apply(CERT_POINTS[index]) + CERT_NOISE[index])
+}
+
+/// Weighted squared alignment error of `similarity` over the pairs.
+///
+/// Computed in plain double precision, independent of the fit's fused
+/// accumulation, so it can referee the optimality certificate.
+#[expect(
+    clippy::suboptimal_flops,
+    reason = "the reference error deliberately uses plain arithmetic, independent of the FMA path \
+              under test"
+)]
+fn weighted_error(
+    similarity: Similarity,
+    source: &[Vec2],
+    target: &[Vec2],
+    weights: &[f32],
+) -> f64 {
+    let [scale, cos, sin, translation_x, translation_y] = similarity.to_array().map(f64::from);
+
+    source
+        .iter()
+        .zip(target)
+        .zip(weights)
+        .map(|((&source, &target), &weight)| {
+            let mapped_x =
+                scale * (cos * f64::from(source.x()) - sin * f64::from(source.y())) + translation_x;
+            let mapped_y =
+                scale * (sin * f64::from(source.x()) + cos * f64::from(source.y())) + translation_y;
+            let error_x = mapped_x - f64::from(target.x());
+            let error_y = mapped_y - f64::from(target.y());
+
+            f64::from(weight) * (error_x * error_x + error_y * error_y)
+        })
+        .sum()
+}
+
 /// Asserts two scalars agree up to a magnitude-scaled tolerance.
 ///
 /// The fit narrows double-precision sums built from `f32`-rounded inputs,
@@ -174,6 +256,129 @@ fn fit_round_trips_an_exact_similarity_image() {
 }
 
 #[test]
+fn fit_is_optimal_against_a_perturbation_grid() {
+    let target = noisy_certificate_target();
+    let fitted = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+    let best = weighted_error(fitted, &CERT_POINTS, &target, &CERT_WEIGHTS);
+
+    let scale = fitted.scale();
+    let rotation = fitted.rotation();
+    let angle = rotation.sin().atan2(rotation.cos());
+    let translation = fitted.translation();
+
+    // The objective is smooth in each of the four parameters (quadratic
+    // in scale and translation, analytic in the angle), so a vanishing
+    // directional derivative along each coordinate axis is exactly a
+    // vanishing gradient: perturbing one parameter at a time certifies
+    // each partial at the returned minimizer.
+    for delta in [-1e-3_f32, 1e-3] {
+        let perturbed = [
+            Similarity::new(scale * (1.0 + delta), rotation, translation)
+                .expect("a relative nudge keeps the scale normal and positive"),
+            Similarity::new(scale, Rotation::from_radians(angle + delta), translation)
+                .expect("the scale is untouched"),
+            Similarity::new(scale, rotation, translation + Vec2::new(delta, 0.0))
+                .expect("the scale is untouched"),
+            Similarity::new(scale, rotation, translation + Vec2::new(0.0, delta))
+                .expect("the scale is untouched"),
+        ];
+
+        for candidate in perturbed {
+            let error = weighted_error(candidate, &CERT_POINTS, &target, &CERT_WEIGHTS);
+            assert!(
+                best <= error,
+                "fit error {best} must not exceed perturbed error {error} at delta {delta}",
+            );
+        }
+    }
+}
+
+#[test]
+fn fit_is_equivariant_under_target_transformation() {
+    let target = noisy_certificate_target();
+    let base = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // Post-transforming the target by a similarity scales every residual
+    // uniformly, so the minimizer moves to the composition with it.
+    let post = Similarity::new(0.5, Rotation::from_radians(-0.9), Vec2::new(-3.0, 7.0))
+        .expect("scale 0.5 is normal and positive");
+    let moved_target = target.map(|point| post.apply(point));
+
+    let refitted = Similarity::fit(&CERT_POINTS, &moved_target, &CERT_WEIGHTS)
+        .expect("a similarity image of a well-determined target stays well-determined");
+    let expected = base.then(post);
+
+    for (actual, reference) in refitted.to_array().into_iter().zip(expected.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_is_invariant_under_uniform_weight_scaling() {
+    let target = noisy_certificate_target();
+    let base = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // Every moment scales by the common factor, which the total-weight
+    // divisions cancel. Multiplying by five rounds each accumulation
+    // differently, so agreement is ulp-level rather than bit-exact.
+    let scaled_weights = CERT_WEIGHTS.map(|weight| weight * 5.0);
+    let scaled = Similarity::fit(&CERT_POINTS, &target, &scaled_weights)
+        .expect("uniform weight scaling keeps the system well-determined");
+
+    for (actual, reference) in scaled.to_array().into_iter().zip(base.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_par_matches_fit_on_large_input() {
+    const PAIRS: usize = 10_000;
+
+    let known = Similarity::new(1.25, Rotation::from_radians(-0.35), Vec2::new(4.0, -2.0))
+        .expect("scale 1.25 is normal and positive");
+
+    // A logistic-map scramble: deterministic, allocation-light, and
+    // chaotic enough to spread points, noise, and weights.
+    let mut value = 0.37_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    let mut weights = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        let noise = Vec2::new(
+            0.1_f32.mul_add(pseudo(), -0.05),
+            0.1_f32.mul_add(pseudo(), -0.05),
+        );
+        source.push(point);
+        target.push(known.apply(point) + noise);
+        weights.push(pseudo() + 0.25);
+    }
+
+    let serial = Similarity::fit(&source, &target, &weights)
+        .expect("ten thousand spread pairs determine the transform");
+    let parallel = Similarity::fit_par(&source, &target, &weights)
+        .expect("the parallel fit shares the serial contract");
+
+    // The parallel reduction combines per-chunk sums in a different
+    // order than the serial fold, so agreement is magnitude-scaled ulps
+    // rather than bit-exact.
+    for (actual, reference) in parallel.to_array().into_iter().zip(serial.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
 fn fit_ignores_zero_weight_pairs() {
     let expected = Similarity::new(1.5, Rotation::from_radians(0.4), Vec2::new(1.0, 2.0))
         .expect("scale 1.5 is normal and positive");
@@ -197,6 +402,14 @@ fn fit_ignores_zero_weight_pairs() {
     assert_eq!(with_outlier.to_array(), without_outlier.to_array());
 }
 
+/// Asserts both fit entry points reject the pairing, certifying their
+/// [`None`] agreement case by case.
+#[track_caller]
+fn assert_fit_rejects(source: &[Vec2], target: &[Vec2], weights: &[f32]) {
+    assert!(Similarity::fit(source, target, weights).is_none());
+    assert!(Similarity::fit_par(source, target, weights).is_none());
+}
+
 #[test]
 fn fit_rejects_degenerate_inputs() {
     let source = [
@@ -212,32 +425,32 @@ fn fit_rejects_degenerate_inputs() {
     let weights = [1.0_f32; 3];
 
     // Mismatched slice lengths.
-    assert!(Similarity::fit(&source[..2], &target, &weights).is_none());
-    assert!(Similarity::fit(&source, &target[..2], &weights).is_none());
-    assert!(Similarity::fit(&source, &target, &weights[..2]).is_none());
+    assert_fit_rejects(&source[..2], &target, &weights);
+    assert_fit_rejects(&source, &target[..2], &weights);
+    assert_fit_rejects(&source, &target, &weights[..2]);
 
     // Fewer than two pairs.
-    assert!(Similarity::fit(&[], &[], &[]).is_none());
-    assert!(Similarity::fit(&source[..1], &target[..1], &weights[..1]).is_none());
+    assert_fit_rejects(&[], &[], &[]);
+    assert_fit_rejects(&source[..1], &target[..1], &weights[..1]);
 
     // Coincident source points carry no scale.
-    assert!(Similarity::fit(&[Vec2::new(1.0, 1.0); 3], &target, &weights).is_none());
+    assert_fit_rejects(&[Vec2::new(1.0, 1.0); 3], &target, &weights);
 
     // Non-finite coordinates on either side.
     let mut nan_source = source;
     nan_source[1] = Vec2::new(f32::NAN, 0.0);
-    assert!(Similarity::fit(&nan_source, &target, &weights).is_none());
+    assert_fit_rejects(&nan_source, &target, &weights);
     let mut nan_target = target;
     nan_target[2] = Vec2::new(0.0, f32::NAN);
-    assert!(Similarity::fit(&source, &nan_target, &weights).is_none());
+    assert_fit_rejects(&source, &nan_target, &weights);
 
     // Invalid weights: negative, non-finite, or summing to zero.
-    assert!(Similarity::fit(&source, &target, &[1.0, -1.0, 1.0]).is_none());
-    assert!(Similarity::fit(&source, &target, &[1.0, f32::NAN, 1.0]).is_none());
-    assert!(Similarity::fit(&source, &target, &[0.0; 3]).is_none());
+    assert_fit_rejects(&source, &target, &[1.0, -1.0, 1.0]);
+    assert_fit_rejects(&source, &target, &[1.0, f32::NAN, 1.0]);
+    assert_fit_rejects(&source, &target, &[0.0; 3]);
 
     // Coincident targets cancel the covariance: no orientation.
-    assert!(Similarity::fit(&source, &[Vec2::new(1.0, 1.0); 3], &weights).is_none());
+    assert_fit_rejects(&source, &[Vec2::new(1.0, 1.0); 3], &weights);
 }
 
 #[test]

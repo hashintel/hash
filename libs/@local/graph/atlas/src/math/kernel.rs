@@ -13,7 +13,7 @@
 // to one libm call per lane on every current target (verified against the
 // emitted assembly), which is why the bodies below call sleef instead.
 
-use core::simd::{f32x4, f32x8, f64x4};
+use core::simd::{f32x4, f32x8, f64x4, f64x8};
 
 /// Fused multiply-add when the target provides native FMA instructions.
 #[inline(always)]
@@ -44,6 +44,22 @@ pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8
 #[inline(always)]
 #[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
 pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
+    lhs * rhs + accumulator
+}
+
+/// Fused multiply-add when the target provides native FMA instructions.
+#[inline(always)]
+#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
+pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
+    use std::simd::StdFloat as _;
+
+    lhs.mul_add(rhs, accumulator)
+}
+
+/// Separate multiplication and addition when native FMA is unavailable.
+#[inline(always)]
+#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
+pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
     lhs * rhs + accumulator
 }
 

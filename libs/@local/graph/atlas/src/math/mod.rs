@@ -18,7 +18,7 @@ mod vecn;
 mod tests;
 
 pub use self::{
-    affinity::AffinityCurve,
+    affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,
     dvecn::DVecN,
     rotation::Rotation,

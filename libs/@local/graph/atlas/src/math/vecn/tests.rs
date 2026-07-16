@@ -9,7 +9,165 @@ use core::{
     simd::{Simd, num::SimdFloat as _},
 };
 
-use crate::math::{AlignedVecN, BoxedVecN, VecN};
+use crate::math::{AlignedVecN, BoxedVecN, DVecN, VecN};
+
+/// Deterministic, sign-varying components crossing several 8-lane chunks.
+fn scattered<const N: usize>(offset: f32) -> [f32; N] {
+    core::array::from_fn(|index| {
+        let value = f32::from(u8::try_from(index % 200).expect("bounded by modulus"));
+
+        (value - 100.0).mul_add(0.125, offset)
+    })
+}
+
+/// Plain-f64 reference for every product-sum kernel under test.
+fn reference_dot(left: &[f32], right: &[f64]) -> f64 {
+    left.iter()
+        .zip(right)
+        .map(|(&narrow, &wide)| f64::from(narrow) * wide)
+        .sum()
+}
+
+#[test]
+fn dot_matches_f64_reference_across_chunk_sizes() {
+    fn check<const N: usize>() {
+        let left: [f32; N] = scattered(0.5);
+        let right: [f32; N] = scattered(-1.25);
+        let expected = reference_dot(&left, &right.map(f64::from));
+
+        let actual = f64::from(VecN::new(left).dot(VecN::from_ref(&right)));
+        assert!(
+            (actual - expected).abs() <= expected.abs().mul_add(1e-6, 1e-6),
+            "dot over {N}: {actual} vs {expected}",
+        );
+    }
+
+    check::<0>();
+    check::<3>();
+    check::<8>();
+    check::<11>();
+    check::<19>();
+    check::<512>();
+}
+
+#[test]
+fn dot_accumulates_in_double_precision() {
+    // A large product followed by many small ones: a naive f32 sum absorbs
+    // the small products entirely (1e8 + 1 == 1e8 in f32), while the f64
+    // accumulator keeps them and rounds once at the end.
+    let mut left = [1.0_f32; 64];
+    let mut right = [1.0_f32; 64];
+    left[0] = 1e4;
+    right[0] = 1e4;
+
+    let naive: f32 = left
+        .iter()
+        .zip(&right)
+        .map(|(&l_value, &r_value)| l_value * r_value)
+        .sum();
+    let exact = 1e8 + 63.0;
+
+    assert_eq!(naive, 1e8, "the naive f32 sum must lose the tail");
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "test computes the reference rounding"
+    )]
+    let expected = exact as f32;
+    assert_eq!(VecN::new(left).dot(VecN::from_ref(&right)), expected);
+}
+
+#[test]
+fn norm_squared_matches_dot_with_self() {
+    let components: [f32; 37] = scattered(2.0);
+    let vec = VecN::new(components);
+
+    assert_eq!(vec.norm_squared(), vec.dot(&vec));
+    assert!(vec.norm_squared() >= 0.0);
+    assert_eq!(VecN::new([0.0_f32; 8]).norm_squared(), 0.0);
+}
+
+#[test]
+fn cosine_distance_matches_known_geometry() {
+    let mut x_axis = [0.0_f32; 16];
+    let mut y_axis = [0.0_f32; 16];
+    x_axis[0] = 2.0;
+    y_axis[1] = 0.5;
+
+    // Orthogonal: one. Parallel (any positive scaling): zero. Opposite: two.
+    assert_eq!(
+        VecN::new(x_axis).cosine_distance(VecN::from_ref(&y_axis)),
+        1.0,
+    );
+    assert_eq!(
+        VecN::new(x_axis).cosine_distance(VecN::from_ref(&x_axis.map(|value| value * 3.0))),
+        0.0,
+    );
+    assert_eq!(
+        VecN::new(x_axis).cosine_distance(VecN::from_ref(&x_axis.map(|value| -value))),
+        2.0,
+    );
+}
+
+#[test]
+fn cosine_distance_of_zero_vectors_follows_the_contract() {
+    let zero = VecN::new([0.0_f32; 11]);
+    let unit = VecN::new(scattered::<11>(1.0));
+
+    assert_eq!(zero.cosine_distance(&zero), 0.0);
+    assert_eq!(zero.cosine_distance(&unit), 1.0);
+    assert_eq!(unit.cosine_distance(&zero), 1.0);
+}
+
+#[test]
+fn cosine_distance_matches_f64_reference() {
+    let left: [f32; 100] = scattered(0.75);
+    let right: [f32; 100] = scattered(-0.5);
+
+    let dot = reference_dot(&left, &right.map(f64::from));
+    let left_norm = reference_dot(&left, &left.map(f64::from));
+    let right_norm = reference_dot(&right, &right.map(f64::from));
+    let expected = (1.0 - dot / (left_norm * right_norm).sqrt()).clamp(0.0, 2.0);
+
+    let actual = f64::from(VecN::new(left).cosine_distance(VecN::from_ref(&right)));
+    assert!(
+        (actual - expected).abs() < 1e-6,
+        "cosine distance: {actual} vs {expected}",
+    );
+}
+
+#[test]
+fn dot_wide_matches_f64_reference() {
+    let narrow: [f32; 45] = scattered(0.25);
+    let wide: [f64; 45] = core::array::from_fn(|index| {
+        f64::from(u8::try_from(index % 100).expect("bounded by modulus")).mul_add(0.01, -0.3)
+    });
+
+    let expected = reference_dot(&narrow, &wide);
+    let actual = VecN::new(narrow).dot_wide(DVecN::from_ref(&wide));
+
+    assert!(
+        (actual - expected).abs() < 1e-12 * expected.abs().max(1.0),
+        "dot_wide: {actual} vs {expected}",
+    );
+}
+
+#[test]
+fn aligned_kernels_agree_with_vecn() {
+    let left: [f32; 24] = scattered(1.5);
+    let right: [f32; 24] = scattered(-2.0);
+    let boxed_left = BoxedVecN::new(VecN::from_ref(&left));
+    let boxed_right = BoxedVecN::new(VecN::from_ref(&right));
+
+    assert_eq!(
+        boxed_left.dot(&boxed_right),
+        VecN::new(left).dot(VecN::from_ref(&right)),
+    );
+    assert_eq!(boxed_left.norm_squared(), VecN::new(left).norm_squared());
+    assert_eq!(
+        boxed_left.cosine_distance(&boxed_right),
+        VecN::new(left).cosine_distance(VecN::from_ref(&right)),
+    );
+}
 
 #[test]
 fn boxed_vecn_is_aligned_and_preserves_contents() {

@@ -37,10 +37,14 @@ import type { ShaderModule } from "@luma.gl/shadertools";
 
 const normalizerSize = 128;
 const normalizationIntervalMilliseconds = 1_000;
+const baseSplatRadius = 7;
+const deliveryBandOffset = 7;
+const maximumFieldLevel = 13;
 
 interface FieldUniformProps {
   baseRadius: number;
-  targetZoom: number;
+  deliveryBandOffset: number;
+  maximumFieldLevel: number;
 }
 
 const fieldUniforms = {
@@ -48,16 +52,19 @@ const fieldUniforms = {
   vs: `\
 layout(std140) uniform atlasFieldUniforms {
   float baseRadius;
-  float targetZoom;
+  float deliveryBandOffset;
+  float maximumFieldLevel;
 } atlasField;
 `,
   uniformTypes: {
     baseRadius: "f32",
-    targetZoom: "f32",
+    deliveryBandOffset: "f32",
+    maximumFieldLevel: "f32",
   },
   defaultUniforms: {
-    baseRadius: 5.5,
-    targetZoom: 2,
+    baseRadius: baseSplatRadius,
+    deliveryBandOffset,
+    maximumFieldLevel,
   },
 } satisfies ShaderModule<FieldUniformProps>;
 
@@ -77,9 +84,11 @@ void main(void) {
   vec3 commonPosition = project_position(vec3(instancePositions, 0.0));
   vec4 clipPosition =
     project_common_position_to_clipspace(vec4(commonPosition, 1.0));
+  float tileBand =
+    instanceTileZooms + atlasField.deliveryBandOffset;
   float radius = clamp(
     atlasField.baseRadius *
-      exp2((atlasField.targetZoom - instanceTileZooms) * 0.5),
+      exp2((atlasField.maximumFieldLevel - tileBand) * 0.5),
     2.0,
     48.0
   );
@@ -202,7 +211,6 @@ export interface AtlasFieldEffectProps {
   readonly activeTiles: readonly WeightedAtlasTile[];
   readonly onError: (message: string) => void;
   readonly renderState: AtlasFieldRenderState;
-  readonly targetZoom: number;
 }
 
 /** Additive total-density pass for the active Atlas frontier. */
@@ -292,8 +300,9 @@ export class AtlasFieldEffect implements Effect {
 
     this.#fieldModel.shaderInputs.setProps({
       atlasField: {
-        baseRadius: 5.5,
-        targetZoom: this.props.targetZoom,
+        baseRadius: baseSplatRadius,
+        deliveryBandOffset,
+        maximumFieldLevel,
       },
       project: {
         autoWrapLongitude: false,

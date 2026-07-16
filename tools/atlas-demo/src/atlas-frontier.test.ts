@@ -165,6 +165,44 @@ describe("AtlasFrontier", () => {
     frontier.dispose();
   });
 
+  it("does not let an unresolved prefetch sibling downgrade visible detail", async () => {
+    const stalledKey = "4/11/10";
+    const fetchTile: AtlasTileFetcher = (_session, coordinate, signal) => {
+      if (atlasTileKey(coordinate) !== stalledKey) {
+        return Promise.resolve(tileFor(coordinate));
+      }
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Aborted", "AbortError")),
+          { once: true },
+        );
+      });
+    };
+    const frontier = new AtlasFrontier(session, {
+      concurrency: 64,
+      fetchTile,
+    });
+
+    frontier.setView({
+      height: 256,
+      targetX: 43_008,
+      targetY: 43_008,
+      width: 256,
+      zoom: -4,
+    });
+
+    await vi.waitFor(() => {
+      expect(
+        frontier
+          .getSnapshot()
+          .activeTiles.map(({ tile }) => atlasTileKey(tile.coordinate)),
+      ).toEqual(["4/10/10"]);
+    });
+    expect(frontier.getSnapshot().phase).toBe("loading");
+    frontier.dispose();
+  });
+
   it("aborts requests that leave the viewport working set", async () => {
     const controlled = controlledFetcher();
     const frontier = new AtlasFrontier(session, {

@@ -145,6 +145,30 @@ fn batch_dot_and_distance_match_scalar_lanes() {
 }
 
 #[test]
+fn batch_perp_dot_matches_scalar_lanes() {
+    let other = [
+        Vec2::new(0.5, -1.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(-4.0, 0.25),
+        Vec2::new(8.0, -2.0),
+    ];
+
+    let lhs = Vec2x4T::from(POINTS);
+    let rhs = Vec2x4T::from(other);
+
+    let perps = lhs.perp_dot(rhs);
+    let reversed = rhs.perp_dot(lhs);
+
+    // The sample values are exact in f32, so FMA contraction changes
+    // nothing and the comparison can be exact.
+    for lane in 0..4 {
+        assert_eq!(perps[lane], POINTS[lane].perp_dot(other[lane]));
+        // The perpendicular product is antisymmetric lane-wise.
+        assert_eq!(reversed[lane], -perps[lane]);
+    }
+}
+
+#[test]
 fn batch_lane_ops_match_known_values() {
     let batch = Vec2x4T::from(POINTS) * 2.0;
 

@@ -126,6 +126,24 @@ fn log_sum_exp_of_empty_is_negative_infinity() {
 }
 
 #[test]
+fn add_scaled_matches_scalar_reference() {
+    // Crosses one full 8-lane chunk plus a remainder.
+    let mut accumulator = DVecN::new(core::array::from_fn::<f64, 11, _>(|index| {
+        f64::from(u8::try_from(index).expect("test sizes are small")) * 0.5
+    }));
+    let direction = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
+        f32::from(u8::try_from(index).expect("test sizes are small")) - 5.0
+    }));
+    let expected: [f64; 11] = core::array::from_fn(|index| {
+        f64::from(direction.as_array()[index]).mul_add(-0.25, accumulator.as_array()[index])
+    });
+
+    accumulator.add_scaled(&direction, -0.25);
+
+    assert_eq!(accumulator.as_array(), &expected);
+}
+
+#[test]
 fn wrapping_is_in_place() {
     let mut components = [1.0_f64; 4];
 

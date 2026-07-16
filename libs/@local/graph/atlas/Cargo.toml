@@ -92,6 +92,10 @@ cuda            = ["burn/cuda"]
 salt-benchmarks = []
 
 [[bench]]
+name    = "math_kernels"
+harness = false
+
+[[bench]]
 name              = "salt"
 harness           = false
 required-features = ["salt-benchmarks"]

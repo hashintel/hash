@@ -440,6 +440,19 @@ impl Vec2x4T {
         mul_add_f32x4(self.xs(), other.xs(), self.ys() * other.ys())
     }
 
+    /// Returns the four pairwise perpendicular dot products as SIMD lanes.
+    ///
+    /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign
+    /// semantics of [`Vec2::perp_dot`]: positive when `other`'s vector is
+    /// counterclockwise from this batch's, negative when clockwise, zero
+    /// when the vectors are parallel. On targets with native FMA the
+    /// multiply-add is fused, rounding once instead of twice.
+    #[inline]
+    #[must_use]
+    pub fn perp_dot(self, other: Self) -> Simd<f32, 4> {
+        mul_add_f32x4(self.xs(), other.ys(), -(self.ys() * other.xs()))
+    }
+
     /// Returns the four pairwise squared Euclidean distances as SIMD lanes.
     ///
     /// Lane `i` holds the squared distance between `self[i]` and

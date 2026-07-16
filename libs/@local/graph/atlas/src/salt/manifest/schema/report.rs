@@ -32,7 +32,10 @@ pub(super) fn validate(
             ArtifactRole::RepresentationReport
             | ArtifactRole::SemanticFidelityReport
             | ArtifactRole::SubgroupBehaviorReport,
-        ) => report.outcome == "deferred" && report.attesting == Some(false),
+        ) => {
+            (report.outcome == "deferred" && report.attesting == Some(false))
+                || (report.outcome == "pass" && report.attesting != Some(false))
+        }
         _ => report.outcome == "pass",
     };
     if report.schema_version != 1

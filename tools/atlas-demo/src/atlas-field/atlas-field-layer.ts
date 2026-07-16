@@ -72,24 +72,27 @@ void main(void) {
     max(atlasComposite.reliefNorm, 1.0e-4);
 
   vec3 voidColor = vec3(0.025, 0.047, 0.055);
-  vec3 terrainColor = vec3(0.16 + 0.55 * clamp(relief, 0.0, 1.0));
+  vec3 lowTerrainColor = vec3(0.10, 0.17, 0.19);
+  vec3 highTerrainColor = vec3(0.58, 0.66, 0.68);
+  float reliefTone = smoothstep(0.0, 1.0, clamp(relief, 0.0, 1.0));
+  vec3 terrainColor = mix(lowTerrainColor, highTerrainColor, reliefTone);
   vec3 color = mix(voidColor, terrainColor, land);
 
-  float coastline = clamp(fwidth(land) * 2.0, 0.0, 0.8);
-  color = mix(color, vec3(0.46, 0.66, 0.74), coastline);
+  float coastline = clamp(fwidth(land) * 1.2, 0.0, 0.55);
+  color = mix(color, vec3(0.40, 0.59, 0.65), coastline);
 
-  vec2 gradient = vec2(dFdx(relief), dFdy(relief)) * 3.4;
+  vec2 gradient = vec2(dFdx(relief), dFdy(relief)) * 1.8;
   vec3 normal = normalize(vec3(-gradient, 1.0));
   vec3 lightDirection = normalize(vec3(-0.45, 0.7, 0.8));
-  float shade = 0.45 + 0.75 * clamp(dot(normal, lightDirection), 0.0, 1.0);
+  float shade = 0.68 + 0.45 * clamp(dot(normal, lightDirection), 0.0, 1.0);
   color *= mix(1.0, shade, land);
 
-  float elevation = relief / 0.115;
+  float elevation = relief / 0.28;
   float lineDistance =
     abs(fract(elevation - 0.5) - 0.5) / max(fwidth(elevation), 1.0e-4);
   float contour = 1.0 - smoothstep(0.55, 1.15, lineDistance);
-  float indexWeight = mix(0.42, 0.7, step(2.0, mod(floor(elevation), 3.0)));
-  color = mix(color, vec3(0.20, 0.34, 0.38), contour * indexWeight * land);
+  float indexWeight = mix(0.24, 0.4, step(2.0, mod(floor(elevation), 3.0)));
+  color = mix(color, vec3(0.17, 0.30, 0.33), contour * indexWeight * land);
 
   fragColor = vec4(color, atlasComposite.opacity);
 }

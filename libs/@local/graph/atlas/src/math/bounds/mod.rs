@@ -1,6 +1,9 @@
 //! Axis-aligned bounding boxes over 2D point sets.
 
-use core::simd::{Simd, num::SimdFloat as _};
+use core::{
+    num::NonZero,
+    simd::{Simd, num::SimdFloat as _},
+};
 
 use rayon::{iter::ParallelIterator as _, slice::ParallelSlice as _};
 
@@ -12,12 +15,6 @@ use super::{
 
 #[cfg(test)]
 mod tests;
-
-/// Points per rayon work item in [`Bounds2::from_slice_par`].
-///
-/// 4096 points are 32 KiB, comfortably inside L1 while large enough that
-/// per-task overhead disappears against the fold.
-const PARALLEL_CHUNK: usize = 4096;
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
@@ -69,6 +66,12 @@ pub struct Bounds2 {
 }
 
 impl Bounds2 {
+    /// Points per rayon work item in [`from_slice_par`](Self::from_slice_par).
+    ///
+    /// 4096 points are 32 KiB, comfortably inside L1 while large enough
+    /// that per-task overhead disappears against the fold.
+    pub const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
+
     /// Creates a bounding box from its corners.
     ///
     /// Returns [`None`] unless both corners are finite and `min <= max`
@@ -158,13 +161,34 @@ impl Bounds2 {
     /// is split into chunks folded with [`from_slice`](Self::from_slice)
     /// on rayon workers, then combined with [`union`](Self::union).
     ///
-    /// The fold is memory-bound, so parallelism pays off from roughly a
-    /// hundred thousand points; below that, [`from_slice`](Self::from_slice)
-    /// is faster.
+    /// The fold is memory-bound: a single core already streams near the
+    /// machine's bandwidth, so the parallel gain is real but modest
+    /// (measured around a third at a million points) and does not grow
+    /// with core count. Below roughly a hundred thousand points,
+    /// [`from_slice`](Self::from_slice) is faster outright.
+    ///
+    /// Work splits into chunks of
+    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points; use
+    /// [`from_slice_par_with`](Self::from_slice_par_with) to tune the
+    /// granularity.
+    #[inline]
     #[must_use]
     pub fn from_slice_par(points: &[Vec2]) -> Option<Self> {
+        Self::from_slice_par_with(points, Self::PARALLEL_CHUNK)
+    }
+
+    /// Computes the tight bounding box in parallel with a caller-chosen
+    /// chunk granularity.
+    ///
+    /// The contract is identical to [`from_slice`](Self::from_slice).
+    /// Each rayon work item folds `chunk` points; smaller chunks balance
+    /// better across uneven core loads, larger chunks amortize task
+    /// overhead. [`from_slice_par`](Self::from_slice_par) uses
+    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
+    #[must_use]
+    pub fn from_slice_par_with(points: &[Vec2], chunk: NonZero<usize>) -> Option<Self> {
         points
-            .par_chunks(PARALLEL_CHUNK)
+            .par_chunks(chunk.get())
             .map(Self::from_slice)
             .reduce_with(|left, right| Some(left?.union(right?)))
             .flatten()

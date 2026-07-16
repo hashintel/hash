@@ -19,7 +19,9 @@ import { ATLAS_WORLD_SIZE, type AtlasSession } from "../atlas-client";
 import {
   AtlasFieldEffect,
   AtlasFieldLayer,
+  atlasFieldBounds,
   createAtlasFieldRenderState,
+  type AtlasFieldBounds,
 } from "../atlas-field";
 import {
   AtlasFrontier,
@@ -52,15 +54,43 @@ const initialCanvasSize = (): CanvasSize => ({
   width: Math.max(window.innerWidth, 1),
 });
 
-const fittedCamera = ({ width, height }: CanvasSize): AtlasCameraState => ({
-  maxZoom: 8,
-  minZoom: -16,
-  target: [ATLAS_WORLD_SIZE / 2, ATLAS_WORLD_SIZE / 2, 0],
-  zoom: atlasFitZoom(width, height),
-});
-
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.min(Math.max(value, minimum), maximum);
+
+const dataFitPadding = 0.12;
+
+const fittedCamera = (
+  { width, height }: CanvasSize,
+  bounds?: AtlasFieldBounds,
+): AtlasCameraState => {
+  if (bounds === undefined) {
+    return {
+      maxZoom: 8,
+      minZoom: -16,
+      target: [ATLAS_WORLD_SIZE / 2, ATLAS_WORLD_SIZE / 2, 0],
+      zoom: atlasFitZoom(width, height),
+    };
+  }
+
+  const spanX = Math.max(bounds.maximumX - bounds.minimumX, 1);
+  const spanY = Math.max(bounds.maximumY - bounds.minimumY, 1);
+  const availableWidth = width * (1 - dataFitPadding * 2);
+  const availableHeight = height * (1 - dataFitPadding * 2);
+  return {
+    maxZoom: 8,
+    minZoom: -16,
+    target: [
+      (bounds.minimumX + bounds.maximumX) / 2,
+      (bounds.minimumY + bounds.maximumY) / 2,
+      0,
+    ],
+    zoom: clamp(
+      Math.log2(Math.min(availableWidth / spanX, availableHeight / spanY)),
+      -16,
+      8,
+    ),
+  };
+};
 
 const firstFailure = (
   snapshot: AtlasFrontierSnapshot,
@@ -73,6 +103,8 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   const [camera, setCamera] = useState<AtlasCameraState>(() =>
     fittedCamera(initialCanvasSize()),
   );
+  const [dataBounds, setDataBounds] = useState<AtlasFieldBounds>();
+  const [autoFitPending, setAutoFitPending] = useState(true);
   const [debugFraming, setDebugFraming] = useState(false);
   const [gpuError, setGpuError] = useState<string>();
 
@@ -109,7 +141,6 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
         activeTiles: [],
         onError: handleGpuError,
         renderState,
-        targetZoom: 0,
       }),
     [handleGpuError, renderState],
   );
@@ -118,15 +149,26 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
       activeTiles: snapshot.activeTiles,
       onError: handleGpuError,
       renderState,
-      targetZoom: snapshot.targetZoom,
     });
-  }, [
-    fieldEffect,
-    handleGpuError,
-    renderState,
-    snapshot.activeTiles,
-    snapshot.targetZoom,
-  ]);
+  }, [fieldEffect, handleGpuError, renderState, snapshot.activeTiles]);
+
+  useEffect(() => {
+    if (!autoFitPending || snapshot.phase !== "ready") {
+      return;
+    }
+    const discoveredBounds = atlasFieldBounds(snapshot.activeTiles);
+    if (discoveredBounds === undefined) {
+      return;
+    }
+    const animationFrame = window.requestAnimationFrame(() => {
+      setDataBounds(discoveredBounds);
+      setCamera(fittedCamera(canvasSize, discoveredBounds));
+      setAutoFitPending(false);
+    });
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [autoFitPending, canvasSize, snapshot.activeTiles, snapshot.phase]);
 
   const view = useMemo(
     () =>
@@ -151,8 +193,8 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   }, [debugFraming, renderState, snapshot.debugTiles]);
 
   const resetView = useCallback(() => {
-    setCamera(fittedCamera(canvasSize));
-  }, [canvasSize]);
+    setCamera(fittedCamera(canvasSize, dataBounds));
+  }, [canvasSize, dataBounds]);
 
   const handleResize = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -173,6 +215,7 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
 
   const handleViewStateChange = useCallback(
     ({ viewState }: ViewStateChangeParameters<OrthographicViewState>) => {
+      setAutoFitPending(false);
       setCamera((currentCamera) => {
         const target = viewState.target ?? currentCamera.target;
         const zoom =

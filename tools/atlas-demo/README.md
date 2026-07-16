@@ -46,10 +46,10 @@ origin.
 
 - Drag to pan and scroll to zoom.
 - Focus the field and use arrow keys to pan, `+`/`-` to zoom, or `Home` to
-  restore the complete Atlas square.
+  restore the fitted generation extent.
 - **Tile frames** overlays scheduler cells. Labels make the states
   color-independent: `A` active, `L` loading, `Q` queued, and `E` failed.
-- **Reset view** fits the native `[0, 65536)` Morton square.
+- **Reset view** fits the delivered generation extent with viewport padding.
 - **Reload** bootstraps the current generation and manifest again.
 - **Retry tiles** appears when a frontier request fails without discarding its
   ready parent.
@@ -74,12 +74,18 @@ cells are disjoint, and each delivered representative receives:
 mass = visible_subtree_count / delivered_count
 ```
 
+The initial complete-square frontier is used once to discover the delivered
+content extent. The camera then fits that extent rather than leaving a compact
+generation tiny inside its 16-bit quantization envelope.
+
 An `Effect.preRender` pass splats that mass additively into a blendable
 `rg16float` target (`rgba16float` fallback). A normal custom layer composites
 sea level, logarithmic relief, coastline, hillshade, and derivative-based
-isolines. A throttled 128 by 128 GPU downsample and float readback supplies
-stable floor and relief percentiles. The UI reports an unsupported-GPU state
-when neither half-float format can be blended.
+isolines. Coarser delivering tiles use wider kernels according to the companion
+field-band formula. A throttled 128 by 128 GPU downsample and float readback
+targets the reference field's 53% void fraction and supplies a stable relief
+scale. The UI reports an unsupported-GPU state when neither half-float format
+can be blended.
 
 ## Deliberate limits
 
@@ -91,8 +97,16 @@ The current API exposes the total field only. This demo does not invent:
 - entity identity lookup;
 - selection or product navigation.
 
-Coordinates remain in native Morton space because the serving endpoints do not
-publish world bounds.
+Coordinates remain in native Morton space. The serving manifest does not
+publish content bounds, so the fitted extent is inferred from the settled
+initial frontier and padded.
+
+`ATLTILE2` also does not carry a per-representative support mass. The demo uses
+the specified tile-wide `visible_subtree_count / delivered_count` weight. A
+server whose importance-first prefix is not spatially representative can still
+show residual tile-shaped density bias; eliminating that requires a wire plane
+for support mass or a representative sampling contract, not a client-side
+color adjustment.
 
 ## Verify
 

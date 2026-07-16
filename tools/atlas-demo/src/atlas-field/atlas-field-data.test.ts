@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  atlasFieldBounds,
   deriveAtlasFieldNormalization,
   packAtlasField,
 } from "./atlas-field-data";
@@ -42,6 +43,23 @@ describe("packAtlasField", () => {
     expect([...packed.tileZooms]).toEqual([2, 2]);
   });
 
+  it("derives a tight extent from center-sampled representatives", () => {
+    expect(
+      atlasFieldBounds([
+        {
+          massPerPoint: 5,
+          tile: tile([10, 11], [100, 400, 300, 200]),
+        },
+      ]),
+    ).toEqual({
+      maximumX: 300.5,
+      maximumY: 400.5,
+      minimumX: 100.5,
+      minimumY: 200.5,
+    });
+    expect(atlasFieldBounds([])).toBeUndefined();
+  });
+
   it("rejects a repeated row across active frontier cells", () => {
     const first = tile([10], [100, 200]);
     const second = {
@@ -59,7 +77,7 @@ describe("packAtlasField", () => {
 });
 
 describe("deriveAtlasFieldNormalization", () => {
-  it("ignores void and non-finite readback samples", () => {
+  it("uses the target void fraction while ignoring non-finite samples", () => {
     const samples = new Float32Array([
       0,
       0,
@@ -84,8 +102,8 @@ describe("deriveAtlasFieldNormalization", () => {
     ]);
 
     expect(deriveAtlasFieldNormalization(samples)).toEqual({
-      floor: 1,
-      reliefNorm: Math.log(8),
+      floor: 2,
+      reliefNorm: Math.log(4),
     });
   });
 

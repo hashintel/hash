@@ -16,7 +16,9 @@ import {
 } from "../atlas-client";
 
 const initialDetailZoom = 2;
-const overscanPixels = 64;
+const minimumOverscanPixels = 64;
+const maximumOverscanPixels = 384;
+const overscanViewportFraction = 0.25;
 
 /** Camera values required to select Atlas tiles. */
 export interface AtlasViewState {
@@ -29,7 +31,10 @@ export interface AtlasViewState {
 
 /** Quadtree requirements derived from one camera state. */
 export interface AtlasViewSelection {
+  /** Exact camera bounds used to choose the active render frontier. */
   readonly bounds: AtlasTileBounds;
+  /** Overscanned bounds used only to prefetch nearby tiles. */
+  readonly requestBounds: AtlasTileBounds;
   readonly required: readonly AtlasTileCoordinate[];
   readonly requiredKeys: ReadonlySet<string>;
   readonly targetZoom: number;
@@ -80,18 +85,34 @@ export const atlasTargetTileZoom = (view: AtlasViewState): number => {
   );
 };
 
-/** Returns overscanned world bounds for the current orthographic camera. */
-export const atlasViewBounds = (view: AtlasViewState): AtlasTileBounds => {
+const viewBounds = (
+  view: AtlasViewState,
+  paddingPixels: number,
+): AtlasTileBounds => {
   validateView(view);
   const pixelsPerWorldUnit = 2 ** view.zoom;
-  const halfWidth = (view.width / 2 + overscanPixels) / pixelsPerWorldUnit;
-  const halfHeight = (view.height / 2 + overscanPixels) / pixelsPerWorldUnit;
+  const halfWidth = (view.width / 2 + paddingPixels) / pixelsPerWorldUnit;
+  const halfHeight = (view.height / 2 + paddingPixels) / pixelsPerWorldUnit;
   return {
     maximumX: clamp(view.targetX + halfWidth, 0, ATLAS_WORLD_SIZE),
     maximumY: clamp(view.targetY + halfHeight, 0, ATLAS_WORLD_SIZE),
     minimumX: clamp(view.targetX - halfWidth, 0, ATLAS_WORLD_SIZE),
     minimumY: clamp(view.targetY - halfHeight, 0, ATLAS_WORLD_SIZE),
   };
+};
+
+/** Returns the exact world bounds visible through the camera. */
+export const atlasVisibleBounds = (view: AtlasViewState): AtlasTileBounds =>
+  viewBounds(view, 0);
+
+/** Returns padded request bounds used to warm tiles before they become visible. */
+export const atlasViewBounds = (view: AtlasViewState): AtlasTileBounds => {
+  const overscanPixels = clamp(
+    Math.min(view.width, view.height) * overscanViewportFraction,
+    minimumOverscanPixels,
+    maximumOverscanPixels,
+  );
+  return viewBounds(view, overscanPixels);
 };
 
 /** Returns whether a tile intersects the selected half-open world bounds. */
@@ -169,12 +190,13 @@ const distanceToTarget = (
 export const selectAtlasViewTiles = (
   view: AtlasViewState,
 ): AtlasViewSelection => {
-  const bounds = atlasViewBounds(view);
+  const bounds = atlasVisibleBounds(view);
+  const requestBounds = atlasViewBounds(view);
   const targetZoom = atlasTargetTileZoom(view);
   const required: AtlasTileCoordinate[] = [{ z: 0, x: 0, y: 0 }];
 
   for (let zoom = 1; zoom <= targetZoom; zoom += 1) {
-    const level = tilesAtZoom(zoom, bounds);
+    const level = tilesAtZoom(zoom, requestBounds);
     level.sort(
       (left, right) =>
         distanceToTarget(left, view) - distanceToTarget(right, view),
@@ -184,6 +206,7 @@ export const selectAtlasViewTiles = (
 
   return {
     bounds,
+    requestBounds,
     required,
     requiredKeys: new Set(
       required.map((coordinate) => atlasTileKey(coordinate)),

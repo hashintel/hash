@@ -8,9 +8,12 @@
 //! goes through [`kernel::exp_f64x4`](super::kernel), which currently
 //! lowers to one libm call per lane.
 
-use core::simd::{Simd, num::SimdFloat as _};
+use core::simd::{Simd, f32x8, f64x8, num::SimdFloat as _};
 
-use super::kernel::exp_f64x4;
+use super::{
+    kernel::{exp_f64x4, mul_add_f64x8},
+    vecn::VecN,
+};
 
 #[cfg(test)]
 mod tests;
@@ -207,6 +210,28 @@ impl<const N: usize> DVecN<N> {
         }
 
         (self, sum)
+    }
+
+    /// Adds `factor` times a working-precision vector, component-wise.
+    ///
+    /// Each `f32` component of `direction` widens to `f64` exactly, so the
+    /// update `self += direction * factor` carries only the rounding of
+    /// the fused multiply-add itself. This is the gradient-accumulation
+    /// kernel of optimizers that keep their state in double precision
+    /// over single-precision data.
+    #[inline]
+    pub fn add_scaled(&mut self, direction: &VecN<N>, factor: f64) {
+        let scale = f64x8::splat(factor);
+        let (chunks, remainder) = self.0.as_chunks_mut::<8>();
+        let (chunks_narrow, remainder_narrow) = direction.as_array().as_chunks::<8>();
+
+        for (chunk, narrow) in chunks.iter_mut().zip(chunks_narrow) {
+            let widened: f64x8 = f32x8::from_array(*narrow).cast();
+            *chunk = mul_add_f64x8(widened, scale, f64x8::from_array(*chunk)).to_array();
+        }
+        for (component, &narrow) in remainder.iter_mut().zip(remainder_narrow) {
+            *component = f64::from(narrow).mul_add(factor, *component);
+        }
     }
 
     /// Multiplies every component by `factor`, four lanes at a time.

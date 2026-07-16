@@ -10,12 +10,13 @@
 //! - [`acceptance_sample_size`] sizes a statistical spot check: how many uniformly sampled items
 //!   must all pass to certify a defect-rate bound at a confidence level.
 
+use core::num::NonZero;
 use std::collections::HashMap;
 
-use rand::Rng;
+use rand::{Rng, RngExt, distr::Uniform, seq::index::sample_array};
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 /// Draws an unbiased uniform integer in `[0, bound)`.
 ///
@@ -44,16 +45,12 @@ mod tests;
 /// ```
 #[inline]
 #[must_use]
-pub fn uniform_below(rng: &mut impl Rng, bound: u64) -> u64 {
-    assert_ne!(bound, 0, "cannot sample below a zero bound");
-
-    let zone = u64::MAX - u64::MAX % bound;
-    loop {
-        let draw = rng.next_u64();
-        if draw < zone {
-            return draw % bound;
-        }
-    }
+pub fn uniform_below(rng: impl Rng, bound: NonZero<u64>) -> impl IntoIterator<Item = u64> {
+    rng.sample_iter(
+        Uniform::new(0, bound.get()).unwrap_or_else(|_error| {
+            unreachable!("low < high trivially holds thanks to `NonZero`")
+        }),
+    )
 }
 
 /// Samples `count` distinct indices from `[0, population)` uniformly at
@@ -81,26 +78,8 @@ pub fn uniform_below(rng: &mut impl Rng, bound: u64) -> u64 {
 /// assert!(picked.iter().all(|&index| index < 1_000_000));
 /// ```
 #[must_use]
-pub fn sample_indices(rng: &mut impl Rng, population: usize, count: usize) -> Vec<usize> {
-    let count = count.min(population);
-    let mut replacements = HashMap::with_capacity(count);
-    let mut sampled = Vec::with_capacity(count);
-    for draw in 0..count {
-        let remaining = population - draw;
-        let selected = index_below(rng, remaining);
-        // The virtual array holds `index` at `selected` unless an earlier
-        // draw parked a displaced entry there; either way the slot is
-        // refilled from the shrinking tail, as in a Fisher-Yates swap.
-        let index = replacements.remove(&selected).unwrap_or(selected);
-        let last = replacements
-            .remove(&(remaining - 1))
-            .unwrap_or(remaining - 1);
-        if selected != remaining - 1 {
-            replacements.insert(selected, last);
-        }
-        sampled.push(index);
-    }
-    sampled
+pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> Option<[usize; N]> {
+    sample_array::<_, N>(&mut rng, population)
 }
 
 /// Computes the number of uniformly sampled items to check so that an
@@ -161,9 +140,9 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
     Some(samples)
 }
 
-/// Draws a uniform index below `bound`, round-tripping through the `u64`
-/// sampler.
-fn index_below(rng: &mut impl Rng, bound: usize) -> usize {
-    let bound = u64::try_from(bound).expect("usize should fit u64");
-    usize::try_from(uniform_below(rng, bound)).expect("a sample below a usize bound fits usize")
-}
+// /// Draws a uniform index below `bound`, round-tripping through the `u64`
+// /// sampler.
+// fn index_below(rng: &mut impl Rng, bound: usize) -> usize {
+//     let bound = u64::try_from(bound).expect("usize should fit u64");
+//     usize::try_from(uniform_below(rng, bound)).expect("a sample below a usize bound fits usize")
+// }

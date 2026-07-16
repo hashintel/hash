@@ -5,6 +5,7 @@ import {
   atlasFitZoom,
   atlasTargetTileZoom,
   atlasTileIntersectsBounds,
+  atlasVisibleBounds,
   atlasViewBounds,
   selectAtlasViewTiles,
   type AtlasViewState,
@@ -41,10 +42,39 @@ describe("Atlas view tile selection", () => {
     };
 
     expect(atlasViewBounds(view)).toEqual({
-      maximumX: 36_864,
+      maximumX: 49_152,
       maximumY: ATLAS_WORLD_SIZE,
       minimumX: 0,
-      minimumY: 28_672,
+      minimumY: 16_384,
+    });
+    expect(atlasVisibleBounds(view)).toEqual({
+      maximumX: 32_768,
+      maximumY: ATLAS_WORLD_SIZE,
+      minimumX: 0,
+      minimumY: 32_768,
+    });
+  });
+
+  it("keeps prefetch padding out of the active render bounds", () => {
+    const selection = selectAtlasViewTiles({
+      height: 256,
+      targetX: 43_008,
+      targetY: 43_008,
+      width: 256,
+      zoom: -4,
+    });
+
+    expect(selection.bounds).toEqual({
+      maximumX: 45_056,
+      maximumY: 45_056,
+      minimumX: 40_960,
+      minimumY: 40_960,
+    });
+    expect(selection.requestBounds).toEqual({
+      maximumX: 46_080,
+      maximumY: 46_080,
+      minimumX: 39_936,
+      minimumY: 39_936,
     });
   });
 
