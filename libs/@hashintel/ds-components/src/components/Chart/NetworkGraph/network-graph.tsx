@@ -108,6 +108,17 @@ export interface NetworkGraphProps {
   points: NetworkGraphPoint[];
   /** The connections between nodes. Only rendered while a node is hovered. */
   edges: NetworkGraphEdge[];
+  /**
+   * The graph's spatial extent: the span between the smallest and largest
+   * coordinates across the data — `width` is `maxX − minX` and `height` is
+   * `maxY − minY`. Accepted but not yet consumed by the component.
+   */
+  graphArea: { width: number; height: number };
+  /**
+   * The number of nodes the graph represents. Accepted but not yet consumed by
+   * the component.
+   */
+  numberOfNodes: number;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -223,12 +234,33 @@ const ARROW_SIZE_PX = 10;
 const ARROW_ICON_TEXTURE = 64;
 
 /**
- * Clamp an orthographic pan `target` so the viewport never shows more than
- * {@link PAN_PADDING_PX} beyond the network's bounding box. `scale` is the
- * world→pixel factor (`2 ** zoom`); `viewport{Width,Height}` are in CSS pixels.
- * Works both when the viewport is smaller than the network (pan within it) and
- * when it is larger (pan the network around inside it) — in either case the
- * network can be nudged until only the padding remains on the trailing side.
+ * The inclusive range a pan `center` may take on one axis so the viewport shows
+ * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is
+ * the world→pixel factor (`2 ** zoom`). Zoomed in (viewport narrower than the
+ * network) the two per-side limits order naturally as `[lo, hi]`; zoomed out
+ * they swap — sorting covers both, so panning is always allowed right up to the
+ * padding in either regime.
+ */
+const panAxisLimits = (
+  min: number,
+  max: number,
+  viewportPx: number,
+  scale: number,
+): [number, number] => {
+  const pad = PAN_PADDING_PX / scale;
+  const half = viewportPx / (2 * scale);
+  const a = min - pad + half;
+  const b = max + pad - half;
+  return [Math.min(a, b), Math.max(a, b)];
+};
+
+/**
+ * Hard-clamp an orthographic pan `target` so the viewport never shows more than
+ * {@link PAN_PADDING_PX} beyond the network's bounding box, snapping the target
+ * to the nearest in-range value. Used where the target is computed afresh
+ * ({@link NetworkGraphHandle.revealPoint}) and so must land inside the limits
+ * regardless of where the view previously sat. `viewport{Width,Height}` are in
+ * CSS pixels.
  */
 const clampPanTarget = (
   target: number[],
@@ -237,26 +269,75 @@ const clampPanTarget = (
   viewportHeight: number,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
 ): [number, number, number] => {
-  const pad = PAN_PADDING_PX / scale;
+  const [loX, hiX] = panAxisLimits(
+    bounds.minX,
+    bounds.maxX,
+    viewportWidth,
+    scale,
+  );
+  const [loY, hiY] = panAxisLimits(
+    bounds.minY,
+    bounds.maxY,
+    viewportHeight,
+    scale,
+  );
+  return [
+    Math.min(hiX, Math.max(loX, target[0] ?? 0)),
+    Math.min(hiY, Math.max(loY, target[1] ?? 0)),
+    target[2] ?? 0,
+  ];
+};
+
+/**
+ * Constrain a pan during a live interaction *relative to where the view already
+ * is*, so the clamp only ever resists the user's own panning and never pans the
+ * view on its own. `previous` is the current (already-committed) pan target;
+ * `target` is the interaction's proposed one. On each axis the target may move
+ * freely back toward the network, but is blocked from moving *further* beyond
+ * the padding than `previous` already sits.
+ *
+ * This matters when a zoom shrinks the pan limits (zooming in brings the
+ * network's edge closer to the viewport border): a target parked at the edge
+ * would then fall outside the new limits and {@link clampPanTarget} would snap
+ * it inward, jerking the view sideways as the user merely zoomed. Relaxing each
+ * bound to include `previous` leaves the view exactly where it is and only stops
+ * the user from continuing to pan outward.
+ */
+const clampPanTargetBlocking = (
+  target: number[],
+  previous: number[],
+  scale: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+): [number, number, number] => {
   const clampAxis = (
     center: number,
+    prev: number,
     min: number,
     max: number,
     viewportPx: number,
   ) => {
-    const half = viewportPx / (2 * scale);
-    // The two per-side limits (viewport may show at most `pad` beyond each
-    // edge). Zoomed in they order as [lo, hi]; zoomed out they swap — sorting
-    // covers both, so panning is always allowed right up to the padding.
-    const a = min - pad + half;
-    const b = max + pad - half;
-    const lo = Math.min(a, b);
-    const hi = Math.max(a, b);
-    return Math.min(hi, Math.max(lo, center));
+    const [lo, hi] = panAxisLimits(min, max, viewportPx, scale);
+    // Relax whichever bound `prev` already sits beyond, so the view is never
+    // pulled inward — only kept from drifting further out than it already is.
+    return Math.min(Math.max(hi, prev), Math.max(Math.min(lo, prev), center));
   };
   return [
-    clampAxis(target[0] ?? 0, bounds.minX, bounds.maxX, viewportWidth),
-    clampAxis(target[1] ?? 0, bounds.minY, bounds.maxY, viewportHeight),
+    clampAxis(
+      target[0] ?? 0,
+      previous[0] ?? 0,
+      bounds.minX,
+      bounds.maxX,
+      viewportWidth,
+    ),
+    clampAxis(
+      target[1] ?? 0,
+      previous[1] ?? 0,
+      bounds.minY,
+      bounds.maxY,
+      viewportHeight,
+    ),
     target[2] ?? 0,
   ];
 };
@@ -583,6 +664,10 @@ const labelCanvasStyles = css({
 export const NetworkGraph = ({
   points,
   edges,
+  // Destructured (with the `_` unused-binding convention) so they're part of the
+  // accepted props but not yet consumed — see their docs on `NetworkGraphProps`.
+  graphArea: _graphArea,
+  numberOfNodes: _numberOfNodes,
   className,
   selected,
   onSelectedPositionChange,
@@ -1081,6 +1166,11 @@ export const NetworkGraph = ({
         y,
         radius: CLICK_PICK_RADIUS_PX,
       });
+      // Arrows are pickable (compact) only to intercept picks in the edge's arrow
+      // gap; a click landing on one is a no-op (it isn't the edge or a node).
+      if (info?.layer?.id === "edge-arrows") {
+        return;
+      }
       const object =
         (info?.object as
           | NetworkGraphPoint
@@ -1128,49 +1218,35 @@ export const NetworkGraph = ({
 
   /**
    * Nudge the zoom by `delta` levels about the viewport centre, clamped to the
-   * view's own `minZoom`/`maxZoom`, and re-clamp the pan target so zooming out
-   * can't reveal more than the padding beyond the network — exactly as a wheel
-   * zoom does via `onViewStateChange`. The `target` is otherwise left untouched,
-   * so the view zooms about its centre. Backs the imperative
-   * {@link NetworkGraphHandle}, letting a consumer drive the zoom without the
-   * view state becoming controlled.
+   * view's own `minZoom`/`maxZoom`. The pan `target` is left untouched, so the
+   * view zooms about its centre without shifting sideways: pan clamping now only
+   * resists the user's own panning (see {@link clampPanTargetBlocking}), so a
+   * button zoom no longer yanks the view inward as the network's edge nears the
+   * viewport border. Backs the imperative {@link NetworkGraphHandle}, letting a
+   * consumer drive the zoom without the view state becoming controlled.
    */
-  const applyZoomDelta = useCallback(
-    (delta: number) => {
-      if (!delta) {
-        return;
+  const applyZoomDelta = useCallback((delta: number) => {
+    if (!delta) {
+      return;
+    }
+    setViewState((previous) => {
+      if (!previous) {
+        return previous;
       }
-      setViewState((previous) => {
-        if (!previous) {
-          return previous;
-        }
-        const current = Array.isArray(previous.zoom)
-          ? previous.zoom[0]
-          : (previous.zoom ?? 0);
-        const next = Math.max(
-          previous.minZoom ?? -Infinity,
-          Math.min(previous.maxZoom ?? Infinity, current + delta),
-        );
-        if (next === current) {
-          // Already at the limit — nothing to do (avoids a needless re-render).
-          return previous;
-        }
-        const rect = containerRef.current?.getBoundingClientRect();
-        const target =
-          rect && previous.target
-            ? clampPanTarget(
-                previous.target as number[],
-                2 ** next,
-                rect.width,
-                rect.height,
-                bounds,
-              )
-            : previous.target;
-        return { ...previous, zoom: next, target };
-      });
-    },
-    [bounds],
-  );
+      const current = Array.isArray(previous.zoom)
+        ? previous.zoom[0]
+        : (previous.zoom ?? 0);
+      const next = Math.max(
+        previous.minZoom ?? -Infinity,
+        Math.min(previous.maxZoom ?? Infinity, current + delta),
+      );
+      if (next === current) {
+        // Already at the limit — nothing to do (avoids a needless re-render).
+        return previous;
+      }
+      return { ...previous, zoom: next };
+    });
+  }, []);
 
   /**
    * Bring `point` into view alongside the current viewport centre: if `point` is
@@ -1700,11 +1776,15 @@ export const NetworkGraph = ({
     // The bundled background edges are always hoverable in the detail view; the
     // active node's straight incident lines are hoverable in detail (so all of a
     // selected node's edges are reachable, not just those that survived the
-    // bundled cap) and in compact only while a node is selected.
+    // bundled cap) and in compact only while the highlight edges are the
+    // *selection's own* — i.e. a node is selected and no different node is hovered
+    // (`dimmedSelectedNode == null`). While another node is hovered the highlight
+    // follows that node, and a hovered node's edges must not be hoverable: only the
+    // selected node's edges (and other nodes) are.
     const backgroundEdgesPickable = isDetailZoom;
     const highlightEdgesPickable = isDetailZoom
       ? activeNode != null
-      : selected != null;
+      : selected != null && dimmedSelectedNode == null;
     const hoveredEdgeId = edgesHoverable ? (hoveredEdge?.edgeId ?? null) : null;
 
     const compact = new CompactNodeLayer({
@@ -1789,35 +1869,21 @@ export const NetworkGraph = ({
       );
     }
 
-    // The active (hovered/selected) node, redrawn above the highlighted edges so it
-    // is never occluded by an edge (its own edges stop at its rim; a hovered edge
-    // may cross it). Its edge-hover ring stays in the layer below — the highlighted
-    // edges are trimmed at their endpoints, so they never cover a ringed node.
-    // NB: the id must not be `detailed-nodes-active`, or its `-outline-pill`
-    // sublayer would collide with the main layer's `-active-outline-pill` sublayer
-    // (both would be `detailed-nodes-active-outline-pill`).
-    if (isDetailZoom && activeNode) {
-      nodeLayers.push(
-        new DetailedNodeLayer({
-          id: "detailed-nodes-front",
-          pickable: true,
-          data: [activeNode],
-          activeNode,
-          colorByHex: colorByHexWithOverlay,
-          iconAtlas,
-          edgeHoverNodes: [],
-        }),
-      );
-    }
-
-    // Direction arrows on the highlighted edges, drawn on top of everything (they
-    // sit off the node edge, so depth vs. the nodes doesn't matter). Non-pickable.
+    // Direction arrows on the highlighted edges. Drawn *below* the active node's
+    // redraw (next) so a selected/hovered node sits above the arrows on its own
+    // edges rather than being covered by them. `depthWriteEnabled: false` (like the
+    // highlight edges above) means the node redrawn afterwards can paint over them.
     const arrowAtlas = arrowIconAtlas();
     if (arrowAtlas && arrows.length > 0) {
       nodeLayers.push(
         new IconLayer<EdgeArrow>({
           id: "edge-arrows",
           data: arrows,
+          // Pickable in the compact view only, purely to intercept picks in the
+          // edge's arrow gap so hovering/clicking the gap doesn't hit the edge
+          // (the pointer handlers ignore arrow picks). The detail view keeps its
+          // rim-to-rim edge pick target, so arrows stay non-pickable there.
+          pickable: !isDetailZoom,
           iconAtlas: arrowAtlas.url,
           iconMapping: arrowAtlas.mapping,
           getIcon: () => "arrow",
@@ -1827,8 +1893,59 @@ export const NetworkGraph = ({
           getSize: ARROW_SIZE_PX,
           sizeUnits: "pixels",
           getColor: [...EDGE_COLOR, 255],
-          // Always draw (drawn last, sits off the node edge) — no depth clipping.
-          parameters: { depthCompare: "always" },
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+
+    // The active (hovered/selected) node — and the backgrounded selection, if any —
+    // redrawn above the highlighted edges *and* the arrows, so a selected/hovered
+    // node is never covered by an edge or arrow crossing it. Redrawing the selection
+    // here too keeps it drawn twice (main + this layer) whether or not it's the
+    // active node, so its translucent fill doesn't visibly brighten when the active
+    // highlight moves to a hover.
+    // NB: the id must not be `detailed-nodes-active`, or its `-outline-pill`
+    // sublayer would collide with the main layer's `-active-outline-pill` sublayer
+    // (both would be `detailed-nodes-active-outline-pill`).
+    if (isDetailZoom && activeNode) {
+      nodeLayers.push(
+        new DetailedNodeLayer({
+          id: "detailed-nodes-front",
+          pickable: true,
+          data: dimmedSelectedNode
+            ? [activeNode, dimmedSelectedNode]
+            : [activeNode],
+          activeNode,
+          enlargedSelection: dimmedSelectedNode,
+          colorByHex: colorByHexWithOverlay,
+          iconAtlas,
+          edgeHoverNodes: [],
+        }),
+      );
+    } else if (activeNode) {
+      // Compact view: redraw just the active node's grow ring above the arrows
+      // (the crowd, edges, neighbours and dimmed selection stay below). Its fill is
+      // opaque, so the extra draw over the base layer's ring is visually identical.
+      nodeLayers.push(
+        new CompactNodeLayer({
+          id: "compact-nodes-front",
+          pickable: false,
+          data: [],
+          edges: [],
+          backgroundEdgePaths: [],
+          hoveredEdgeId: null,
+          highlightEdgesPickable: false,
+          backgroundEdgesPickable: false,
+          edgeHoverNodes: [],
+          neighbours: [],
+          activeNode,
+          dimmedSelectedNode: null,
+          colorByHex: colorByHexWithOverlay,
+          radiusScale,
+          pointOpacity,
+          dimmed: false,
+          showGrowHighlights: true,
+          showPoints: false,
         }),
       );
     }
@@ -1871,6 +1988,12 @@ export const NetworkGraph = ({
           // perfect aim; nodes still win where they overlap, being drawn on top.
           pickingRadius={EDGE_PICK_RADIUS_PX}
           onHover={(info: PickingInfo) => {
+            // Arrows are pickable (compact) only to intercept picks in the edge's
+            // arrow gap; ignore them so hovering the gap leaves the hover unchanged
+            // rather than hovering the edge behind.
+            if (info.layer?.id === "edge-arrows") {
+              return;
+            }
             const object =
               (info.object as
                 | NetworkGraphPoint
@@ -1940,11 +2063,18 @@ export const NetworkGraph = ({
               // (buttons, `revealPoint`) produce out-of-range values that deck's
               // controller silently ignores — leaving the camera stuck.
               const base = previous ?? raw;
-              // Constrain panning so the view stays within the network + padding.
+              // Constrain panning so the view stays within the network + padding,
+              // but relative to where it already sits: the clamp blocks the user
+              // from panning further out, yet never pans the view on its own. So
+              // zooming — which moves the network's edge toward the viewport
+              // border and would otherwise force the parked target back inside
+              // the shrinking limits — leaves the view put instead of drifting.
               const target =
                 rect && zoom !== undefined && raw.target
-                  ? clampPanTarget(
+                  ? clampPanTargetBlocking(
                       raw.target as number[],
+                      (previous?.target as number[] | undefined) ??
+                        (raw.target as number[]),
                       2 ** zoom,
                       rect.width,
                       rect.height,

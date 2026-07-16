@@ -158,6 +158,17 @@ const jitter = (magnitude: number): number =>
   (Math.random() - 0.5) * 2 * magnitude;
 
 /**
+ * Order two node ids into an edge's `fromId`/`toId` a random way round, so the
+ * demo's fabricated edges point in both directions rather than always leading
+ * away from the selected node.
+ */
+const randomEdgeDirection = (
+  a: number,
+  b: number,
+): { fromId: number; toId: number } =>
+  Math.random() < 0.5 ? { fromId: a, toId: b } : { fromId: b, toId: a };
+
+/**
  * Shared render for the NetworkGraph stories: fetches the fixture data (trimmed
  * to `nodeLimit` when given), wires up node/edge selection, and anchors tooltips
  * to the hovered/clicked target.
@@ -209,12 +220,16 @@ const NetworkGraphStory = ({
     return map;
   }, [data]);
 
-  /** A small offset (2% of the graph's extent) for scattering overlay nodes. */
-  const spread = useMemo(() => {
+  /** The number of nodes in the graph, passed through to the chart. */
+  const numberOfNodes = data?.points.length ?? 0;
+
+  /**
+   * The graph's spatial extent — the span between the smallest and largest x/y
+   * across the nodes (`width` = maxX − minX, `height` = maxY − minY) — passed
+   * through to the chart. Also the basis for `spread` below.
+   */
+  const graphArea = useMemo(() => {
     const points = data?.points ?? [];
-    if (points.length === 0) {
-      return 100;
-    }
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
@@ -225,8 +240,19 @@ const NetworkGraphStory = ({
       minY = Math.min(minY, point.y);
       maxY = Math.max(maxY, point.y);
     }
-    return (Math.hypot(maxX - minX, maxY - minY) || 100) * 0.02;
+    if (!Number.isFinite(minX)) {
+      return { width: 0, height: 0 };
+    }
+    return { width: maxX - minX, height: maxY - minY };
   }, [data]);
+
+  /** A small offset (2% of the graph's extent) for scattering overlay nodes. */
+  const spread = useMemo(() => {
+    if (numberOfNodes === 0) {
+      return 100;
+    }
+    return (Math.hypot(graphArea.width, graphArea.height) || 100) * 0.02;
+  }, [numberOfNodes, graphArea]);
 
   /** A brand-new node at `(x, y)`, borrowing a random colour/icon from the graph. */
   const createNewPoint = useCallback(
@@ -266,8 +292,7 @@ const NetworkGraphStory = ({
       neighbours.push(neighbour);
       edges.push({
         id: nextIdRef.current++,
-        fromId: point.id,
-        toId: neighbour.id,
+        ...randomEdgeDirection(point.id, neighbour.id),
       });
     }
     setSelected({ point, edges, neighbours });
@@ -368,6 +393,8 @@ const NetworkGraphStory = ({
             ref={graphRef}
             points={data.points}
             edges={data.edges}
+            graphArea={graphArea}
+            numberOfNodes={numberOfNodes}
             selected={selected}
             onNodeClick={handleClick}
             onEdgeClick={handleEdgeClick}

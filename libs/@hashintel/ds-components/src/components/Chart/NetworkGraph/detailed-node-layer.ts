@@ -129,9 +129,11 @@ type _DetailedNodeLayerProps = {
   /** The hovered/selected node — jumps to the front with a bolder, accented style. */
   activeNode: NetworkGraphPoint | null;
   /**
-   * The selected node while a different node is hovered — kept enlarged (and
-   * promoted to the front) so the selection stays visible, though the active node
-   * owns the bolder label + edges. Null unless the selection has been backgrounded.
+   * The selected node while a different node is hovered — kept in its full selected
+   * styling (enlarged, bold label, promoted to the front) so hovering another node
+   * doesn't change the selection's own appearance. Only its edges are dropped (they
+   * follow {@link activeNode}, handled by the parent). Null unless the selection has
+   * been backgrounded by a hover.
    */
   enlargedSelection: NetworkGraphPoint | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
@@ -209,8 +211,9 @@ export class DetailedNodeLayer extends CompositeLayer<
     const { labelPoints, iconPoints } = this.state as DetailedNodeLayerState;
 
     const activeId = activeNode?.id ?? null;
-    // The backgrounded selection also stays enlarged (but without the active node's
-    // bolder label): both it and the active node grow by the accent width.
+    // The backgrounded selection keeps the *full* active styling (enlarged circle,
+    // bold label, promoted) so the selection's own appearance is unchanged while
+    // another node is hovered — only its edges are dropped (by the parent).
     const selectedId = enlargedSelection?.id ?? null;
     const isEnlarged = (pointId: number): boolean =>
       pointId === activeId || pointId === selectedId;
@@ -253,8 +256,11 @@ export class DetailedNodeLayer extends CompositeLayer<
       .join(",")}`;
     const rgbFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
-    const activePoint =
-      activeId != null ? [activeNode as NetworkGraphPoint] : [];
+    // Both the active node and the backgrounded selection get the bold label, so a
+    // selected node keeps its full styling while a different node is hovered.
+    const boldLabelNodes = [activeNode, enlargedSelection].filter(
+      (node): node is NetworkGraphPoint => Boolean(node?.label),
+    );
 
     return [
       // The white outline around the circle: a stroked ring (hollow) rather than a
@@ -315,11 +321,11 @@ export class DetailedNodeLayer extends CompositeLayer<
       // The active label's outline backdrop — bold-sized so its white ring matches
       // the bold label text. Same width as idle (the outline only thickens around
       // the circle, not the label). Active (labelled) node only.
-      ...(activeNode?.label
+      ...(boldLabelNodes.length > 0
         ? [
             new TextLayer<NetworkGraphPoint>({
               id: `${id}-active-outline-pill`,
-              data: activePoint,
+              data: boldLabelNodes,
               getPosition: (point) => [
                 point.x,
                 point.y,
@@ -447,11 +453,11 @@ export class DetailedNodeLayer extends CompositeLayer<
         updateTriggers: { getPosition: stackTrigger },
       }),
       // The active node's label, redrawn bold on top of its normal-weight copy.
-      ...(activeNode?.label
+      ...(boldLabelNodes.length > 0
         ? [
             new TextLayer<NetworkGraphPoint>({
               id: `${id}-active-label`,
-              data: activePoint,
+              data: boldLabelNodes,
               getPosition: (point) => [
                 point.x,
                 point.y,
