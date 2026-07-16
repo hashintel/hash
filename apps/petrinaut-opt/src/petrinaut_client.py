@@ -165,6 +165,11 @@ class PetrinautModel:
             FileNotFoundError: The CLI bundle or model file does not exist.
             RuntimeError: The CLI's stderr is unavailable or it fails to signal readiness.
         """
+        # Reclaim any existing child before spawning a new one, so a second start()
+        # can never orphan a running CLI we no longer have a handle to.
+        if self._process is not None:
+            self.close()
+            
         if not self.cli.is_file():
             raise FileNotFoundError(
                 f"Petrinaut CLI not found at {self.cli}. Build it first."
