@@ -11,10 +11,12 @@ import {
   formatCost,
   formatNumber,
 } from "../shared/cost";
+import { fetchProductionSchedule } from "../shared/data";
 import {
   AnalysisSettingsPanel,
   HeaderActionButtons,
 } from "../shared/header-actions";
+import { ErrorState, LoadingState } from "../shared/load-state";
 import { MaterialTag } from "../shared/material-tag";
 import { MEASURE_LABELS, useBaseMeasure } from "../shared/measure-context";
 import { useProcurementBasis } from "../shared/procurement-basis-context";
@@ -27,22 +29,27 @@ import { StatChip } from "../shared/stat-chip";
 import { statusKey } from "../shared/status";
 import { StatusDialog } from "../shared/status-dialog";
 import { StepDetailPanel } from "../shared/step-detail-panel";
-import { trackSupplyChainInteraction } from "../shared/telemetry";
+import {
+  trackSupplyChainError,
+  trackSupplyChainInteraction,
+} from "../shared/telemetry";
 import { cutoffForRange, timeRangeLongLabel } from "../shared/time-range";
 import { useTimeRange } from "../shared/time-range-context";
 import { useSearchParams } from "../shared/use-search-params";
 import { CategoryView } from "./product/category-view";
 import { E2EWhatIf } from "./product/e2e-what-if";
 import { ProcessGraph } from "./product/process-graph";
+import { ProductionScheduleView } from "./product/production-schedule";
 import { recomputeBatchTimelines } from "./product/recompute-batch-timelines";
 import { PipelineHeader } from "./product/shared/pipeline-header";
 import { PipelineWaterfall } from "./product/shared/pipeline-waterfall";
 import { ALL_SEGMENTS, type SegmentId } from "./product/whatif";
 import { useSupplyChainStatusState } from "./site/use-supply-chain-status-state";
 
+import type { ProductionSchedule } from "../shared/production-schedule-types";
 import type { GraphData, GraphNode, SiteNode } from "../shared/types";
 
-type ViewMode = "category" | "canvas";
+type ViewMode = "category" | "canvas" | "schedule";
 
 const DEFAULT_ACTIVE_SEGMENTS = ALL_SEGMENTS.filter(
   (id) => id !== "procurement",
@@ -109,6 +116,7 @@ const overflowHidden = css({ overflow: "hidden" });
 const overflowAuto = css({ overflow: "auto" });
 const paneShow = css({ h: "full", minH: "0" });
 const hidden = css({ display: "none" });
+const scheduleLoadState = css({ h: "full", minH: "56", p: "6" });
 const pipelineWrap = css({
   flexShrink: 0,
   borderTopWidth: "1px",
@@ -259,7 +267,6 @@ export const Overview = ({
   selectedStepId,
   onStepSelect,
 }: OverviewProps) => {
-  const [viewMode, setViewMode] = useState<ViewMode>("category");
   const { timeRange } = useTimeRange();
   const { currency, setAnalysisSettings, waccRate, storageCost } =
     useCostParams();
@@ -271,8 +278,32 @@ export const Overview = ({
       products.find((product) => product.id === productId)?.material ?? null,
     [products, productId],
   );
+  const productionStepByMaterial = useMemo(
+    () =>
+      new Map(
+        graph.nodes
+          .filter(
+            (
+              node,
+            ): node is GraphNode & {
+              material: string;
+            } => node.type === "production" && Boolean(node.material),
+          )
+          .map((node) => [node.material, node.id]),
+      ),
+    [graph.nodes],
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const viewMode: ViewMode =
+    requestedView === "canvas" || requestedView === "schedule"
+      ? requestedView
+      : "category";
+  const [productionSchedule, setProductionSchedule] =
+    useState<ProductionSchedule | null>(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusTarget, setStatusTarget] = useState<SiteNode | null>(null);
 
@@ -281,6 +312,43 @@ export const Overview = ({
   useEffect(() => {
     setAnalysisSettings(graph.analysis_settings);
   }, [graph.analysis_settings, setAnalysisSettings]);
+
+  useEffect(() => {
+    if (viewMode !== "schedule") {
+      return;
+    }
+    let cancelled = false;
+    setScheduleLoading(true);
+    setScheduleError(null);
+    fetchProductionSchedule(productId)
+      .then((nextSchedule) => {
+        if (!cancelled) {
+          setProductionSchedule(nextSchedule);
+        }
+      })
+      .catch((caught) => {
+        if (!cancelled) {
+          trackSupplyChainError({
+            interaction: "production_schedule_fetch_failed",
+            productId,
+            source: "production_schedule",
+          });
+          setScheduleError(
+            caught instanceof Error
+              ? caught.message
+              : "Production schedule is unavailable for this product.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setScheduleLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, viewMode]);
 
   const setPipelineExpanded = useCallback(
     (expanded: boolean) => {
@@ -379,7 +447,12 @@ export const Overview = ({
       trackSupplyChainInteraction({
         interaction: "product_step_selected",
         productId,
-        source: viewMode === "canvas" ? "product_graph" : "category_view",
+        source:
+          viewMode === "canvas"
+            ? "product_graph"
+            : viewMode === "schedule"
+              ? "production_schedule"
+              : "category_view",
         stepId,
       });
       onStepSelect(stepId);
@@ -581,11 +654,23 @@ export const Overview = ({
                     productId,
                     source: "product_page",
                   });
-                  setViewMode(nextViewMode);
+                  setSearchParams(
+                    (previous) => {
+                      const next = new URLSearchParams(previous);
+                      if (nextViewMode === "category") {
+                        next.delete("view");
+                      } else {
+                        next.set("view", nextViewMode);
+                      }
+                      return next;
+                    },
+                    { replace: true },
+                  );
                 }}
                 options={[
                   { value: "category", label: "Category" },
                   { value: "canvas", label: "Canvas" },
+                  { value: "schedule", label: "Schedule" },
                 ]}
               />
 
@@ -615,7 +700,7 @@ export const Overview = ({
       <div
         className={cx(
           contentBase,
-          viewMode === "canvas" ? overflowHidden : overflowAuto,
+          viewMode === "category" ? overflowAuto : overflowHidden,
         )}
       >
         <div className={viewMode === "canvas" ? paneShow : hidden}>
@@ -632,11 +717,36 @@ export const Overview = ({
             timeRange={timeRange}
           />
         </div>
+        <div className={viewMode === "schedule" ? paneShow : hidden}>
+          {scheduleLoading ? (
+            <LoadingState
+              message="Loading production schedule…"
+              className={scheduleLoadState}
+            />
+          ) : scheduleError ? (
+            <div className={scheduleLoadState}>
+              <ErrorState
+                message={`Production schedule unavailable. ${scheduleError}`}
+              />
+            </div>
+          ) : productionSchedule ? (
+            <ProductionScheduleView
+              schedule={productionSchedule}
+              onStepSelect={handleStepClick}
+              stepIdByMaterial={productionStepByMaterial}
+            />
+          ) : (
+            <div className={scheduleLoadState}>
+              Production schedule data is not available.
+            </div>
+          )}
+        </div>
       </div>
 
       <div
         className={cx(
           pipelineWrap,
+          viewMode === "schedule" && hidden,
           pipelineExpanded ? pipelineExpandedH : pipelineAutoH,
         )}
       >
