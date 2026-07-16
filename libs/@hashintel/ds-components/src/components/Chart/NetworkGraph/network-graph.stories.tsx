@@ -272,6 +272,9 @@ const NetworkGraphStory = ({
     }
     setSelected({ point, edges, neighbours });
     setSelectedEdge(null);
+    // Reveal the new node if it landed outside the current viewport, keeping the
+    // previous centre in view too.
+    graphRef.current?.revealPoint([point.x, point.y]);
   }, [data, spread, createNewPoint]);
 
   /**

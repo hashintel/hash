@@ -92,6 +92,14 @@ export interface NetworkGraphHandle {
    * the on-screen scale and `-1` halves it. Positive zooms in, negative zooms out.
    */
   zoomBy: (delta: number) => void;
+  /**
+   * Bring a world-space point into view alongside the current viewport centre:
+   * zoom out and pan so both sit at least {@link FOCUS_MARGIN} of the viewport in
+   * from every edge. A no-op if the point is already within the viewport. Clamped
+   * to the view's zoom-out and pan limits, so it does its best when the two can't
+   * both fit with the full margin.
+   */
+  revealPoint: (point: [number, number]) => void;
 }
 
 export interface NetworkGraphProps {
@@ -171,6 +179,12 @@ const MIN_ZOOM_OFFSET = -2;
 const MAX_ZOOM_OFFSET = 9;
 /** Default zoom levels moved per {@link NetworkGraphHandle.zoomIn}/`zoomOut` call. */
 const DEFAULT_ZOOM_STEP = 1;
+/**
+ * Fraction of the viewport kept clear on each side when {@link
+ * NetworkGraphHandle.revealPoint} frames a point with the current centre — so both
+ * land within the central `1 − 2·FOCUS_MARGIN` of the view.
+ */
+const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
@@ -1184,6 +1198,82 @@ export const NetworkGraph = ({
     [bounds, onZoom],
   );
 
+  /**
+   * Bring `point` into view alongside the current viewport centre: if `point` is
+   * already visible, do nothing; otherwise centre on the midpoint of the two and
+   * zoom out (never in) just enough that both sit {@link FOCUS_MARGIN} in from the
+   * edges. The zoom is clamped to the view's `minZoom` and the pan to the network
+   * bounds, so it does its best when they can't both fit with the full margin.
+   */
+  const revealPoint = useCallback(
+    (point: [number, number]) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect || !rect.width || !rect.height) {
+        return;
+      }
+      const { width, height } = rect;
+      setViewState((previous) => {
+        if (!previous?.target) {
+          return previous;
+        }
+        const viewport = view.makeViewport({
+          width,
+          height,
+          viewState: previous,
+        });
+        if (!viewport) {
+          return previous;
+        }
+        // Already within the viewport → leave the view untouched.
+        const [screenX = 0, screenY = 0] = viewport.project([
+          point[0],
+          point[1],
+        ]);
+        if (
+          screenX >= 0 &&
+          screenX <= width &&
+          screenY >= 0 &&
+          screenY <= height
+        ) {
+          return previous;
+        }
+        const current = Array.isArray(previous.zoom)
+          ? previous.zoom[0]
+          : (previous.zoom ?? 0);
+        const target = previous.target as number[];
+        const centreX = target[0] ?? 0;
+        const centreY = target[1] ?? 0;
+        // Zoom so the span between the point and the centre fits the central
+        // `1 − 2·margin` of the viewport (each axis), then only zoom out from the
+        // current level — never in.
+        const usable = 1 - 2 * FOCUS_MARGIN;
+        const spanX = Math.abs(point[0] - centreX);
+        const spanY = Math.abs(point[1] - centreY);
+        const fitZoom = Math.min(
+          spanX > 0 ? Math.log2((usable * width) / spanX) : Infinity,
+          spanY > 0 ? Math.log2((usable * height) / spanY) : Infinity,
+        );
+        const next = Math.max(
+          previous.minZoom ?? -Infinity,
+          Math.min(previous.maxZoom ?? Infinity, Math.min(current, fitZoom)),
+        );
+        const nextTarget = clampPanTarget(
+          [(point[0] + centreX) / 2, (point[1] + centreY) / 2, 0],
+          2 ** next,
+          width,
+          height,
+          bounds,
+        );
+        if (next !== lastZoomRef.current) {
+          lastZoomRef.current = next;
+          onZoom?.(next);
+        }
+        return { ...previous, zoom: next, target: nextTarget };
+      });
+    },
+    [view, bounds, onZoom],
+  );
+
   useImperativeHandle(
     ref,
     () => ({
@@ -1192,8 +1282,9 @@ export const NetworkGraph = ({
       zoomIn: () => applyZoomDelta(Math.abs(zoomStep)),
       zoomOut: () => applyZoomDelta(-Math.abs(zoomStep)),
       zoomBy: applyZoomDelta,
+      revealPoint,
     }),
-    [applyZoomDelta, zoomStep],
+    [applyZoomDelta, zoomStep, revealPoint],
   );
 
   /**
