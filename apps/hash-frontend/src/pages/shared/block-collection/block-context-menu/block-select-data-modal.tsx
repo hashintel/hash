@@ -104,9 +104,11 @@ export const BlockSelectDataModal: FunctionComponent<
       return [{ linkEntity, targetEntity }];
     });
 
+    const [existingQueryPair] = existingQueries;
+
     return {
-      existingQueryLinkEntity: existingQueries[0]?.linkEntity,
-      existingQuery: existingQueries[0]?.targetEntity,
+      existingQueryLinkEntity: existingQueryPair?.linkEntity,
+      existingQuery: existingQueryPair?.targetEntity,
     };
   }, [blockSubgraph, blockDataEntity]);
 
