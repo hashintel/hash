@@ -126,7 +126,7 @@ curl -N -X GET "http://localhost:4004/optimize/all" \
 # data: {}
 ```
 
-Here `selling_price` and `RawInventory` are **fixed** at the given values, and
+Here `demand_multiplier`, `RawInventory`, `FinishedGoods`, `CustomerDemand`, `SoldOrders`, `LostSales` are **fixed** at the given values, and
 every other input in the search space is **optimized** — see
 [Configuring a run](#configuring-a-run). `state` is the Optuna trial state
 (`COMPLETE`, `PRUNED`, `FAIL`); `metric` is `null` for a pruned trial.
