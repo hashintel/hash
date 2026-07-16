@@ -1,7 +1,14 @@
 import { OrthographicView } from "@deck.gl/core";
 import { IconLayer, PathLayer } from "@deck.gl/layers";
 import { DeckGL, type DeckGLRef } from "@deck.gl/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -70,6 +77,23 @@ export interface NetworkGraphSelection {
   neighbours: NetworkGraphPoint[];
 }
 
+/**
+ * The imperative API exposed via {@link NetworkGraphProps.ref}, letting a consumer
+ * drive the zoom without lifting the view state out of the component. Zoom stays
+ * internally owned; these just nudge it, clamped to the graph's own zoom limits.
+ */
+export interface NetworkGraphHandle {
+  /** Zoom in one step (see {@link NetworkGraphProps.zoomStep}). */
+  zoomIn: () => void;
+  /** Zoom out one step. */
+  zoomOut: () => void;
+  /**
+   * Change the zoom by `delta` levels. Orthographic zoom is log2, so `+1` doubles
+   * the on-screen scale and `-1` halves it. Positive zooms in, negative zooms out.
+   */
+  zoomBy: (delta: number) => void;
+}
+
 export interface NetworkGraphProps {
   /** The nodes to plot. */
   points: NetworkGraphPoint[];
@@ -122,6 +146,18 @@ export interface NetworkGraphProps {
    * (orthographic zoom is log2 scale). Not called for pure panning.
    */
   onZoom?: (zoom: number) => void;
+  /**
+   * How many zoom levels {@link NetworkGraphHandle.zoomIn}/`zoomOut` move per call.
+   * Orthographic zoom is log2, so the default `1` doubles/halves the on-screen
+   * scale each step. Ignored by `zoomBy`, which takes an explicit delta.
+   */
+  zoomStep?: number;
+  /**
+   * Imperative handle for driving the zoom from outside — e.g. custom zoom
+   * buttons or keyboard shortcuts — without making the view state controlled. See
+   * {@link NetworkGraphHandle}.
+   */
+  ref?: React.Ref<NetworkGraphHandle>;
 }
 
 /**
@@ -133,6 +169,8 @@ const ZOOM_RADIUS_RATE = 1;
 /** Zoom range relative to the initial framing — how far out/in the user can zoom. */
 const MIN_ZOOM_OFFSET = -2;
 const MAX_ZOOM_OFFSET = 9;
+/** Default zoom levels moved per {@link NetworkGraphHandle.zoomIn}/`zoomOut` call. */
+const DEFAULT_ZOOM_STEP = 1;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.2;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
@@ -589,6 +627,8 @@ export const NetworkGraph = ({
   onEdgeHover,
   onEdgeClick,
   onZoom,
+  zoomStep = DEFAULT_ZOOM_STEP,
+  ref,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef>(null);
@@ -1090,6 +1130,71 @@ export const NetworkGraph = ({
     }
     return Array.isArray(zoom) ? zoom[0] : zoom;
   }, [viewState?.zoom]);
+
+  /**
+   * Nudge the zoom by `delta` levels about the viewport centre, clamped to the
+   * view's own `minZoom`/`maxZoom`, and re-clamp the pan target so zooming out
+   * can't reveal more than the padding beyond the network — exactly as a wheel
+   * zoom does via `onViewStateChange`. The `target` is otherwise left untouched,
+   * so the view zooms about its centre. Backs the imperative
+   * {@link NetworkGraphHandle}, letting a consumer drive the zoom without the
+   * view state becoming controlled.
+   */
+  const applyZoomDelta = useCallback(
+    (delta: number) => {
+      if (!delta) {
+        return;
+      }
+      setViewState((previous) => {
+        if (!previous) {
+          return previous;
+        }
+        const current = Array.isArray(previous.zoom)
+          ? previous.zoom[0]
+          : (previous.zoom ?? 0);
+        const next = Math.max(
+          previous.minZoom ?? -Infinity,
+          Math.min(previous.maxZoom ?? Infinity, current + delta),
+        );
+        if (next === current) {
+          // Already at the limit — nothing to do (avoids a needless re-render).
+          return previous;
+        }
+        const rect = containerRef.current?.getBoundingClientRect();
+        const target =
+          rect && previous.target
+            ? clampPanTarget(
+                previous.target as number[],
+                2 ** next,
+                rect.width,
+                rect.height,
+                bounds,
+              )
+            : previous.target;
+        // Report the change like `onViewStateChange` does, deduped through the
+        // same ref. The guard makes this idempotent, so React re-invoking the
+        // updater (e.g. under StrictMode) can't double-fire `onZoom`.
+        if (next !== lastZoomRef.current) {
+          lastZoomRef.current = next;
+          onZoom?.(next);
+        }
+        return { ...previous, zoom: next, target };
+      });
+    },
+    [bounds, onZoom],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      // `Math.abs` so the direction is fixed regardless of the sign a consumer
+      // happened to pass for `zoomStep`.
+      zoomIn: () => applyZoomDelta(Math.abs(zoomStep)),
+      zoomOut: () => applyZoomDelta(-Math.abs(zoomStep)),
+      zoomBy: applyZoomDelta,
+    }),
+    [applyZoomDelta, zoomStep],
+  );
 
   /**
    * Multiplier applied to every point radius so it grows as the user zooms in.

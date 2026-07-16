@@ -12,6 +12,7 @@ import {
   NetworkGraph,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
+  type NetworkGraphHandle,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
@@ -132,6 +133,17 @@ const buttonStyles = css({
   cursor: "pointer",
 });
 
+// A small monospace readout of the current zoom, next to the zoom buttons.
+const zoomReadoutStyles = css({
+  display: "flex",
+  alignItems: "center",
+  paddingX: "2",
+  color: "neutral.s60",
+  fontFamily: "mono",
+  fontSize: "xs",
+  fontVariantNumeric: "tabular-nums",
+});
+
 /** Pick a random element; throws on an empty array (callers guard). */
 const randomChoice = <T,>(items: readonly T[]): T => {
   const item = items[Math.floor(Math.random() * items.length)];
@@ -161,6 +173,11 @@ const NetworkGraphStory = ({
   // The frame is the popover's trigger; `positionFromPoint` then anchors the
   // tooltip at a point measured from the frame's top-left.
   const frameRef = useRef<HTMLDivElement>(null);
+  // Imperative handle for driving the zoom from the demo's own +/- buttons,
+  // without lifting the view state out of the chart.
+  const graphRef = useRef<NetworkGraphHandle>(null);
+  // Latest zoom reported by the chart, shown as a readout next to the buttons.
+  const [zoom, setZoom] = useState<number | null>(null);
   // The selection driving the chart: a node id (existing node) or an explicit
   // `{ point, edges, neighbours }` neighbourhood to overlay.
   const [selected, setSelected] = useState<
@@ -356,6 +373,7 @@ const NetworkGraphStory = ({
       {data ? (
         <>
           <NetworkGraph
+            ref={graphRef}
             points={data.points}
             edges={data.edges}
             selected={selected}
@@ -363,6 +381,7 @@ const NetworkGraphStory = ({
             onNodeHover={handleNodeHover}
             onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
+            onZoom={setZoom}
           />
           <div className={controlsStyles}>
             <button
@@ -379,6 +398,26 @@ const NetworkGraphStory = ({
             >
               Select existing + mix
             </button>
+            {/* Drive the chart's internal zoom via its imperative handle. */}
+            <button
+              type="button"
+              className={buttonStyles}
+              onClick={() => graphRef.current?.zoomOut()}
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className={buttonStyles}
+              onClick={() => graphRef.current?.zoomIn()}
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+            {zoom !== null ? (
+              <span className={zoomReadoutStyles}>{zoom.toFixed(2)}</span>
+            ) : null}
           </div>
           {selectedPoint && tooltipPos ? (
             <Popover
