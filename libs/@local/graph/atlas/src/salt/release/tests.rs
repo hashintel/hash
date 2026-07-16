@@ -1,3 +1,8 @@
+#![expect(
+    deprecated,
+    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
+)]
+
 use burn::backend::{Candle, candle::CandleDevice};
 use camino::Utf8PathBuf;
 use tempfile::tempdir;
@@ -214,7 +219,7 @@ fn external_quality_grant_must_name_the_measured_report() {
             .expect("fixture manifest should serialize"),
     };
     let canonical = &manifest.variants.entries[0];
-    let external_signer = test_support::external_signer();
+    let external_signer = test_support::external_signer(GateId::SemanticFidelity);
     let wrong_grant = ExternalGateGrant::sign(
         head,
         GateId::SemanticFidelity,
@@ -266,7 +271,6 @@ fn policy_and_authorization_grants_reject_subject_hashes_in_place_of_reports() {
             .content_hash()
             .expect("fixture manifest should serialize"),
     };
-    let external_signer = test_support::external_signer();
     for (gate, suite_version, subject_hash) in [
         (
             GateId::RelationPolicy,
@@ -279,15 +283,32 @@ fn policy_and_authorization_grants_reject_subject_hashes_in_place_of_reports() {
             manifest.relations.security_geometry_hash,
         ),
     ] {
-        let grant =
-            ExternalGateGrant::sign(head, gate, suite_version, subject_hash, &external_signer)
-                .expect("subject-bound grant should still be internally valid");
+        let grant = ExternalGateGrant::sign(
+            head,
+            gate,
+            suite_version,
+            subject_hash,
+            &test_support::external_signer(gate),
+        )
+        .expect("subject-bound grant should still be internally valid");
         let replacement = match gate {
             GateId::RelationPolicy => GateEvidencePayload::RelationPolicy(grant),
             GateId::AuthorizationNoninterference => {
                 GateEvidencePayload::AuthorizationNoninterference(grant)
             }
-            _ => unreachable!("fixture includes only report-bound gates"),
+            GateId::Representation
+            | GateId::AnnRecall
+            | GateId::SemanticFidelity
+            | GateId::RelationSatisfaction
+            | GateId::MergeTreePersistence
+            | GateId::TemporalDrift
+            | GateId::SubgroupBehavior
+            | GateId::SnapshotConsistency
+            | GateId::Reproducibility
+            | GateId::SecurityApproval
+            | GateId::CompanionPin => {
+                unreachable!("fixture includes only report-bound gates")
+            }
         };
         let mut payloads = test_support::passing_payloads_without_ann(&manifest);
         payloads.retain(|payload| payload.gate() != gate);
@@ -399,6 +420,90 @@ fn external_authority_pins_cannot_reuse_the_release_key() {
 }
 
 #[test]
+fn external_authority_pins_must_use_pairwise_distinct_keys() {
+    let release = test_support::signer().verifier();
+    let shared = GateSigner::new("shared-external-authority", [0xA4; 32])
+        .expect("test authority should validate")
+        .verifier();
+    let gates = [
+        GateId::Representation,
+        GateId::SemanticFidelity,
+        GateId::RelationPolicy,
+        GateId::MergeTreePersistence,
+        GateId::SubgroupBehavior,
+        GateId::AuthorizationNoninterference,
+        GateId::SecurityApproval,
+        GateId::CompanionPin,
+    ];
+    let entries = gates
+        .into_iter()
+        .enumerate()
+        .map(|(index, gate)| {
+            let verifier = if index < 2 {
+                shared.clone()
+            } else {
+                GateSigner::new(
+                    format!("external-authority-{index}"),
+                    [u8::try_from(index + 1).expect("gate index should fit u8"); 32],
+                )
+                .expect("test authority should validate")
+                .verifier()
+            };
+            (gate, verifier)
+        })
+        .collect();
+
+    assert!(matches!(
+        ExternalGateVerifierSet::new(&release, entries),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::SemanticFidelity,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn external_authority_pins_must_use_pairwise_distinct_names() {
+    let release = test_support::signer().verifier();
+    let gates = [
+        GateId::Representation,
+        GateId::SemanticFidelity,
+        GateId::RelationPolicy,
+        GateId::MergeTreePersistence,
+        GateId::SubgroupBehavior,
+        GateId::AuthorizationNoninterference,
+        GateId::SecurityApproval,
+        GateId::CompanionPin,
+    ];
+    let entries = gates
+        .into_iter()
+        .enumerate()
+        .map(|(index, gate)| {
+            let authority = if index < 2 {
+                "shared-external-authority".to_owned()
+            } else {
+                format!("external-authority-{index}")
+            };
+            let verifier = GateSigner::new(
+                authority,
+                [u8::try_from(index + 1).expect("gate index should fit u8"); 32],
+            )
+            .expect("test authority should validate")
+            .verifier();
+            (gate, verifier)
+        })
+        .collect();
+
+    assert!(matches!(
+        ExternalGateVerifierSet::new(&release, entries),
+        Err(GateEvidenceError::Failed {
+            gate: GateId::SemanticFidelity,
+            ..
+        })
+    ));
+}
+
+#[test]
 fn external_issuer_cannot_substitute_an_untrusted_key() {
     let manifest = fixture_manifest();
     let head = ReleaseHead {
@@ -463,8 +568,6 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
         Some(release.into())
     );
 
-    let unpinned = GateSigner::new("unpinned-restart-authority", [0xA7; 32])
-        .expect("test authority should validate");
     let unpinned_verifiers = ExternalGateVerifierSet::new(
         &test_support::signer().verifier(),
         [
@@ -478,7 +581,18 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
             GateId::CompanionPin,
         ]
         .into_iter()
-        .map(|gate| (gate, unpinned.verifier()))
+        .enumerate()
+        .map(|(index, gate)| {
+            (
+                gate,
+                GateSigner::new(
+                    format!("unpinned-restart-authority-{index}"),
+                    [0xA7 + u8::try_from(index).expect("gate index should fit u8"); 32],
+                )
+                .expect("test authority should validate")
+                .verifier(),
+            )
+        })
         .collect(),
     )
     .expect("independent but unpinned restart authorities should form a set");
@@ -510,7 +624,7 @@ fn passing_outcomes() -> Vec<GateOutcome> {
         .enumerate()
         .map(|(index, gate)| GateOutcome {
             gate,
-            evidence: ContentHash::digest(&index.to_le_bytes()),
+            evidence: ContentHash::digest(format!("required-gate-{index}").as_bytes()),
         })
         .collect()
 }

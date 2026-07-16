@@ -184,7 +184,7 @@ fn canonical_list(values: &str) -> String {
 }
 
 pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v7");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.canonical-input.v8");
     hasher.update(input.relation_snapshot_hash.as_bytes());
     hasher.update(input.relation_policy_input_hash.as_bytes());
     hasher.update(input.canonical_embedding_hash.as_bytes());
@@ -270,6 +270,18 @@ pub(super) fn input_hash(input: &FrozenGenerationInput) -> ContentHash {
         if let Some(label) = label {
             hasher.update(label.as_bytes());
         }
+    }
+    for report in [
+        input.external_gate_reports.representation.as_ref(),
+        input.external_gate_reports.relation_policy.as_ref(),
+        input.external_gate_reports.security_approval.as_ref(),
+        input.external_gate_reports.companion_pin.as_ref(),
+        input
+            .external_gate_reports
+            .authorization_noninterference
+            .as_ref(),
+    ] {
+        hasher.update(ContentHash::digest(report).as_bytes());
     }
     hasher.finish()
 }

@@ -21,12 +21,13 @@ burn-core    = { version = "0.21.0", default-features = false, public = true }
 burn-tensor  = { version = "0.21.0", default-features = false, public = true }
 burn-train   = { version = "0.21.0", default-features = false, public = true }
 bytes        = { workspace = true, public = true }
-camino       = { workspace = true, public = true }
+camino       = { workspace = true, features = ["serde1"], public = true }
 # Error sources surfaced through public error enums.
 cxx            = { version = "1.0.194", public = true }
 tempfile       = { version = "3.27.0", public = true }
 tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal"], public = true }
 tokio-postgres = { workspace = true, public = true }
+uuid           = { workspace = true, public = true }
 
 # Private workspace dependencies
 
@@ -54,6 +55,7 @@ rand                                     = { workspace = true }
 rand_xoshiro                             = { workspace = true }
 rayon                                    = { workspace = true }
 regex                                    = { workspace = true }
+schemars                                 = { workspace = true, features = ["derive", "std", "uuid1"] }
 serde                                    = { workspace = true, features = ["derive"] }
 serde_json                               = { workspace = true, features = ["float_roundtrip"] }
 sha2                                     = { workspace = true }
@@ -63,7 +65,6 @@ tiktoken-rs                              = "0.12.0"
 tokio-util.workspace                     = true
 tracing                                  = { workspace = true }
 usearch                                  = "2.25.3"
-uuid.workspace                           = true
 zerocopy                                 = "0.8.54"
 
 [dev-dependencies]

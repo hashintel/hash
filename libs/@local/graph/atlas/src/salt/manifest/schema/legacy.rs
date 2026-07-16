@@ -65,7 +65,15 @@ pub(super) fn validate(
         | ArtifactRole::LandmarkSkeleton
         | ArtifactRole::LandmarkReferencePersistence
         | ArtifactRole::CanonicalBase
-        | ArtifactRole::CanonicalAnalytics => {
+        | ArtifactRole::CanonicalAnalytics
+        | ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport => {
             Err("mapped artifact was routed through the opaque legacy validator")
         }
     }

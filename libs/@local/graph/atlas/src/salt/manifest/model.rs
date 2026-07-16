@@ -9,7 +9,7 @@ use crate::salt::{
     revision::{AuthorizationRevision, BaseRevision, DeltaRevision, GenerationId, VariantId},
 };
 
-pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 18;
+pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 19;
 
 /// Complete immutable inputs and artifacts for one atlas generation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -390,6 +390,14 @@ pub(crate) enum ArtifactRole {
     ProjectorCheckpoint,
     CanonicalBase,
     CanonicalAnalytics,
+    RepresentationReport,
+    SemanticFidelityReport,
+    RelationPolicyReport,
+    MergeTreePersistenceReport,
+    SubgroupBehaviorReport,
+    AuthorizationNoninterferenceReport,
+    SecurityApprovalReport,
+    CompanionPinReport,
     LegacyLayout,
     LegacyIdentities,
     LegacyExportManifest,
@@ -408,6 +416,14 @@ impl fmt::Display for ArtifactRole {
             Self::ProjectorCheckpoint => "projector checkpoint",
             Self::CanonicalBase => "canonical base",
             Self::CanonicalAnalytics => "canonical analytics",
+            Self::RepresentationReport => "representation report",
+            Self::SemanticFidelityReport => "semantic fidelity report",
+            Self::RelationPolicyReport => "relation policy report",
+            Self::MergeTreePersistenceReport => "merge-tree persistence report",
+            Self::SubgroupBehaviorReport => "subgroup behavior report",
+            Self::AuthorizationNoninterferenceReport => "authorization noninterference report",
+            Self::SecurityApprovalReport => "security approval report",
+            Self::CompanionPinReport => "companion compatibility report",
             Self::LegacyLayout => "legacy layout",
             Self::LegacyIdentities => "legacy identities",
             Self::LegacyExportManifest => "legacy export manifest",

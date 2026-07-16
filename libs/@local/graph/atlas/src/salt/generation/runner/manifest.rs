@@ -3,7 +3,7 @@
     reason = "manifest index identities use canonical little-endian scalar encodings"
 )]
 
-use super::CanonicalGenerationError;
+use super::{CanonicalGenerationError, reports::PublishedGateReports};
 use crate::salt::{
     evaluation::{CanonicalQuantization, QuantizedCanonicalField},
     generation::{
@@ -77,6 +77,7 @@ pub(super) fn populate_manifest(
     landmark_config: LandmarkConfig,
     attraction_config: AttractionConfig,
     protection_config: ProtectionConfig,
+    gate_reports: PublishedGateReports,
 ) -> Result<(), CanonicalGenerationError> {
     manifest.embedding.canonical_corpus_hash = representations.canonical_hash;
     manifest.embedding.projector_corpus_hash = representations.projector_hash;
@@ -267,6 +268,38 @@ pub(super) fn populate_manifest(
             super::run::ANALYTIC_FILE,
             analytics,
         ),
+        report_artifact(
+            ArtifactRole::RepresentationReport,
+            &gate_reports.representation,
+        ),
+        report_artifact(
+            ArtifactRole::SemanticFidelityReport,
+            &gate_reports.semantic_fidelity,
+        ),
+        report_artifact(
+            ArtifactRole::RelationPolicyReport,
+            &gate_reports.relation_policy,
+        ),
+        report_artifact(
+            ArtifactRole::MergeTreePersistenceReport,
+            &gate_reports.merge_tree_persistence,
+        ),
+        report_artifact(
+            ArtifactRole::SubgroupBehaviorReport,
+            &gate_reports.subgroup_behavior,
+        ),
+        report_artifact(
+            ArtifactRole::AuthorizationNoninterferenceReport,
+            &gate_reports.authorization_noninterference,
+        ),
+        report_artifact(
+            ArtifactRole::SecurityApprovalReport,
+            &gate_reports.security_approval,
+        ),
+        report_artifact(
+            ArtifactRole::CompanionPinReport,
+            &gate_reports.companion_pin,
+        ),
         ArtifactManifest::opaque(
             ArtifactRole::LegacyLayout,
             legacy
@@ -299,7 +332,82 @@ pub(super) fn populate_manifest(
         ),
     ]);
     manifest.artifacts = artifacts;
+    bind_derived_gate_subjects(manifest);
     Ok(())
+}
+
+fn report_artifact(
+    role: ArtifactRole,
+    report: &crate::salt::generation::LegacyExportFile,
+) -> ArtifactManifest {
+    ArtifactManifest::opaque(
+        role,
+        report
+            .path
+            .file_name()
+            .expect("gate report should have a file name"),
+        report.content_hash,
+        report.byte_length,
+    )
+}
+
+/// Extends caller-supplied report identities with the outputs they approve.
+///
+/// Input preparation verifies the report bytes and their declared inputs. The
+/// resolved policy, admitted geometry, and edge snapshot only exist after
+/// freezing and generation, so the release gate signs these derived envelopes
+/// rather than a replayable input-report hash.
+fn bind_derived_gate_subjects(manifest: &mut GenerationManifest) {
+    let mut policy = ContentHasher::new(b"hash.graph.atlas.salt.relation-policy-gate-subject.v1");
+    policy.update(manifest.relations.policy_evaluation_report_hash.as_bytes());
+    update_text(&mut policy, &manifest.relations.policy_precedence_version);
+    policy.update(manifest.relations.classifier_model_hash.as_bytes());
+    policy.update(manifest.relations.policy_input_hash.as_bytes());
+    policy.update(manifest.relations.policy_hash.as_bytes());
+    manifest.relations.policy_evaluation_report_hash = policy.finish();
+
+    let mut authorization =
+        ContentHasher::new(b"hash.graph.atlas.salt.authorization-gate-subject.v1");
+    authorization.update(
+        manifest
+            .relations
+            .authorization_noninterference_report_hash
+            .as_bytes(),
+    );
+    update_text(
+        &mut authorization,
+        &manifest.serving.authorization_adapter_version,
+    );
+    authorization.update(
+        manifest
+            .input_snapshot
+            .authorization_revision
+            .content_hash()
+            .as_bytes(),
+    );
+    authorization.update(manifest.relations.security_geometry_hash.as_bytes());
+    authorization.update(manifest.relations.edge_snapshot_hash.as_bytes());
+    manifest.relations.authorization_noninterference_report_hash = authorization.finish();
+
+    let mut security = ContentHasher::new(b"hash.graph.atlas.salt.security-gate-subject.v1");
+    security.update(manifest.relations.security_approval_report_hash.as_bytes());
+    update_text(
+        &mut security,
+        &manifest.serving.authorization_adapter_version,
+    );
+    security.update(manifest.relations.security_allow_list_hash.as_bytes());
+    security.update(manifest.relations.security_geometry_hash.as_bytes());
+    security.update(manifest.relations.edge_snapshot_hash.as_bytes());
+    manifest.relations.security_approval_report_hash = security.finish();
+}
+
+fn update_text(hasher: &mut ContentHasher, value: &str) {
+    hasher.update(
+        &u64::try_from(value.len())
+            .expect("manifest text length should fit u64")
+            .to_le_bytes(),
+    );
+    hasher.update(value.as_bytes());
 }
 
 fn ranked_hash(
@@ -313,4 +421,45 @@ fn ranked_hash(
         update(point, &mut hasher);
     }
     hasher.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::salt::manifest::fixture_manifest;
+
+    #[test]
+    fn external_gate_subjects_bind_resolved_policy_and_security_outputs() {
+        let fixture = fixture_manifest();
+        let mut baseline = fixture.clone();
+        let raw_policy_report = baseline.relations.policy_evaluation_report_hash;
+        let raw_security_report = baseline.relations.security_approval_report_hash;
+        bind_derived_gate_subjects(&mut baseline);
+
+        assert_ne!(
+            baseline.relations.policy_evaluation_report_hash,
+            raw_policy_report
+        );
+        assert_ne!(
+            baseline.relations.security_approval_report_hash,
+            raw_security_report
+        );
+
+        let mut changed_policy = fixture.clone();
+        changed_policy.relations.policy_hash = ContentHash::digest(b"changed resolved policy");
+        bind_derived_gate_subjects(&mut changed_policy);
+        assert_ne!(
+            baseline.relations.policy_evaluation_report_hash,
+            changed_policy.relations.policy_evaluation_report_hash
+        );
+
+        let mut changed_security = fixture;
+        changed_security.relations.security_geometry_hash =
+            ContentHash::digest(b"changed admitted geometry");
+        bind_derived_gate_subjects(&mut changed_security);
+        assert_ne!(
+            baseline.relations.security_approval_report_hash,
+            changed_security.relations.security_approval_report_hash
+        );
+    }
 }

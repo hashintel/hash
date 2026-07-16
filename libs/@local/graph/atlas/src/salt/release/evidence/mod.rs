@@ -20,7 +20,7 @@ pub(crate) use self::{
     error::GateEvidenceError,
     external::{
         ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport, ExternalGateVerifierSet,
-        SignedExternalGateGrantIssuer, TrustedExternalGateAuthority,
+        TrustedExternalGateAuthority,
     },
     model::{GateEvidence, GateEvidencePayload, GateEvidenceSet, reproducibility_output_hash},
     store::load_gate_evidence,

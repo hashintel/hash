@@ -837,6 +837,54 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
                 Some(ANALYTIC_FORMAT),
             ),
             artifact(
+                ArtifactRole::RepresentationReport,
+                "representation-report.json",
+                hash("representation-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::SemanticFidelityReport,
+                "semantic-fidelity-report.json",
+                hash("semantic-fidelity-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::RelationPolicyReport,
+                "relation-policy-report.json",
+                hash("relation-policy-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::MergeTreePersistenceReport,
+                "merge-tree-persistence-report.json",
+                hash("merge-tree-persistence-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::SubgroupBehaviorReport,
+                "subgroup-behavior-report.json",
+                hash("subgroup-behavior-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::AuthorizationNoninterferenceReport,
+                "authorization-noninterference-report.json",
+                hash("authorization-noninterference-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::SecurityApprovalReport,
+                "security-approval-report.json",
+                hash("security-approval-report-artifact"),
+                None,
+            ),
+            artifact(
+                ArtifactRole::CompanionPinReport,
+                "companion-pin-report.json",
+                hash("companion-pin-report-artifact"),
+                None,
+            ),
+            artifact(
                 ArtifactRole::LegacyLayout,
                 "layout-a000.f32",
                 hash("legacy-layout"),
@@ -1022,12 +1070,21 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
         } else {
             debug_assert!(matches!(
                 artifact.role,
-                ArtifactRole::LegacyLayout
+                ArtifactRole::RepresentationReport
+                    | ArtifactRole::SemanticFidelityReport
+                    | ArtifactRole::RelationPolicyReport
+                    | ArtifactRole::MergeTreePersistenceReport
+                    | ArtifactRole::SubgroupBehaviorReport
+                    | ArtifactRole::AuthorizationNoninterferenceReport
+                    | ArtifactRole::SecurityApprovalReport
+                    | ArtifactRole::CompanionPinReport
+                    | ArtifactRole::LegacyLayout
                     | ArtifactRole::LegacyIdentities
                     | ArtifactRole::LegacyExportManifest
             ));
         }
     }
+    publish_report_fixtures(directory, manifest);
     publish_legacy_fixture(directory, manifest);
     manifest.relations.classifier_model_hash =
         artifact_hash(manifest, ArtifactRole::RelationClassifier);
@@ -1041,6 +1098,49 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
     manifest.variants.entries[0]
         .persistence_comparison
         .checkpoint_hash = manifest.projector.checkpoint_hash;
+}
+
+fn publish_report_fixtures(directory: &Utf8Path, manifest: &mut GenerationManifest) {
+    for role in [
+        ArtifactRole::RepresentationReport,
+        ArtifactRole::SemanticFidelityReport,
+        ArtifactRole::RelationPolicyReport,
+        ArtifactRole::MergeTreePersistenceReport,
+        ArtifactRole::SubgroupBehaviorReport,
+        ArtifactRole::AuthorizationNoninterferenceReport,
+        ArtifactRole::SecurityApprovalReport,
+        ArtifactRole::CompanionPinReport,
+    ] {
+        let suite_version = match role {
+            ArtifactRole::RepresentationReport => {
+                &manifest.embedding.representation_audit.suite_version
+            }
+            ArtifactRole::SemanticFidelityReport | ArtifactRole::SubgroupBehaviorReport => {
+                &manifest.variants.entries[0].quality_suite_version
+            }
+            ArtifactRole::RelationPolicyReport => &manifest.relations.policy_precedence_version,
+            ArtifactRole::MergeTreePersistenceReport => {
+                &manifest.variants.entries[0]
+                    .persistence_comparison
+                    .suite_version
+            }
+            ArtifactRole::AuthorizationNoninterferenceReport
+            | ArtifactRole::SecurityApprovalReport => {
+                &manifest.serving.authorization_adapter_version
+            }
+            ArtifactRole::CompanionPinReport => &manifest.serving.canvas_companion_version,
+            _ => unreachable!("fixture report list contains only report roles"),
+        };
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "schemaVersion": 1,
+            "suiteVersion": suite_version,
+            "outcome": "pass",
+            "subjects": {"fixture": "fixture-subject"},
+            "measurements": {}
+        }))
+        .expect("fixture report should serialize");
+        publish_opaque_fixture(directory, manifest, role, &bytes);
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -1407,7 +1507,15 @@ fn publish_test_mmap(
                 ],
             )
         }
-        ArtifactRole::ProjectorCheckpoint => unreachable!("checkpoint is opaque"),
+        ArtifactRole::ProjectorCheckpoint
+        | ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport => unreachable!("artifact is opaque"),
         ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => unreachable!("legacy export is opaque"),

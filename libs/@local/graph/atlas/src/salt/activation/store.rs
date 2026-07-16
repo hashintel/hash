@@ -152,10 +152,10 @@ impl<B: Backend> FileActivationStore<B> {
 
     /// Activates a gated candidate if `expected` still names the active head.
     ///
-    /// The candidate marker is verified before taking the activation lock.
-    /// Under the lock, an already-active desired head succeeds idempotently;
-    /// otherwise a mismatched expected head reports a conflict without writing.
-    /// The replacement pointer is synced before an atomic rename.
+    /// The candidate marker is verified while holding the activation lock. An
+    /// already-active desired head succeeds idempotently; otherwise a
+    /// mismatched expected head reports a conflict without writing. The
+    /// replacement pointer is synced before an atomic rename.
     ///
     /// # Errors
     ///
@@ -168,13 +168,6 @@ impl<B: Backend> FileActivationStore<B> {
         desired: GatedRelease,
     ) -> Result<ActivationOutcome, ActivationError> {
         let desired = ActiveRelease::from(desired);
-        let _prepared = verify_candidate::<B>(
-            &self.root,
-            desired,
-            &self.verifier,
-            &self.external_verifiers,
-            &self.device,
-        )?;
         fs::create_dir_all(&self.root)?;
         let lock = OpenOptions::new()
             .create(true)
@@ -184,6 +177,13 @@ impl<B: Backend> FileActivationStore<B> {
             .open(self.root.join(LOCK_FILE))?;
         lock.lock()?;
 
+        let _prepared = verify_candidate::<B>(
+            &self.root,
+            desired,
+            &self.verifier,
+            &self.external_verifiers,
+            &self.device,
+        )?;
         let actual = self.current()?;
         if actual == Some(desired) {
             return Ok(ActivationOutcome::AlreadyActive(desired));
@@ -193,6 +193,46 @@ impl<B: Backend> FileActivationStore<B> {
         }
         publish_json(&self.root.join(ACTIVE_FILE), &desired)?;
         Ok(ActivationOutcome::Activated(desired))
+    }
+
+    /// Restores a previous pointer only while `current` is still active.
+    ///
+    /// This is the compensating operation for a failure immediately after a
+    /// successful activation. A concurrent replacement wins: this method then
+    /// returns `false` without changing the newer pointer.
+    pub(crate) fn restore_if_current(
+        &self,
+        current: ActiveRelease,
+        previous: Option<ActiveRelease>,
+    ) -> Result<bool, ActivationError> {
+        fs::create_dir_all(&self.root)?;
+        let lock = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(self.root.join(LOCK_FILE))?;
+        lock.lock()?;
+        if self.active_pointer()? != Some(current) {
+            return Ok(false);
+        }
+        if let Some(previous) = previous {
+            let _prepared = verify_candidate::<B>(
+                &self.root,
+                previous,
+                &self.verifier,
+                &self.external_verifiers,
+                &self.device,
+            )?;
+            publish_json(&self.root.join(ACTIVE_FILE), &previous)?;
+        } else {
+            match fs::remove_file(self.root.join(ACTIVE_FILE)) {
+                Ok(()) => File::open(&self.root)?.sync_all()?,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+        Ok(true)
     }
 }
 
@@ -243,6 +283,54 @@ pub(crate) fn publish_candidate_marker(
         }
         Err(error) => Err(ActivationError::Persist(error)),
     }
+}
+
+/// Removes an inactive candidate's discoverability marker under the activation lock.
+///
+/// This is the compensating operation used when a lower-assurance local
+/// authorization check changes after publication but before activation. The
+/// immutable diagnostic artifacts remain available, but the release cannot be
+/// selected by [`FileActivationStore::compare_exchange`].
+///
+/// # Errors
+///
+/// Returns an error when the candidate has already become active, names
+/// different bytes, or cannot be removed and durably synced.
+pub(crate) fn withdraw_candidate_marker(
+    root: &Utf8Path,
+    release: GatedRelease,
+) -> Result<(), ActivationError> {
+    let release = ActiveRelease::from(release);
+    fs::create_dir_all(root)?;
+    let lock = OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(root.join(LOCK_FILE))?;
+    lock.lock()?;
+    if read_optional_json(&root.join(ACTIVE_FILE))? == Some(release) {
+        return Err(ActivationError::CandidateMismatch {
+            generation: release.head.generation,
+        });
+    }
+    let path = candidate_path(root, release.head);
+    match read_optional_json::<ActiveRelease>(&path)? {
+        Some(candidate) if candidate != release => {
+            return Err(ActivationError::CandidateMismatch {
+                generation: release.head.generation,
+            });
+        }
+        None => return Ok(()),
+        Some(_) => {}
+    }
+    fs::remove_file(&path)?;
+    File::open(
+        path.parent()
+            .expect("candidate marker should have a generation directory"),
+    )?
+    .sync_all()?;
+    Ok(())
 }
 
 fn verify_candidate<B: Backend>(

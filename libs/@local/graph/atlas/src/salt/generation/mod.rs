@@ -22,11 +22,14 @@ mod runner;
 pub(crate) use self::{
     adapters::{ConditionQualitySuiteAdapter, PersistenceQualitySuiteAdapter},
     error::GenerationError,
-    export::{LegacyCanvasExport, LegacyExportFile, LegacyLayoutTag, export_legacy_canvas},
+    export::{
+        LegacyCanvasExport, LegacyExportFile, LegacyLayoutTag, export_legacy_canvas,
+        publish_opaque_file,
+    },
     ladder::{
         ConditionQuality, ConditionQualityEvaluationError, ConditionQualityEvaluator,
-        ConditionQualityPolicy, EvaluatedGeneration, PersistedCondition, ProjectedCondition,
-        ProjectedLadder, evaluate_persisted_quality, project_condition_ladder,
+        ConditionQualityPolicy, EvaluatedGeneration, PersistedCondition, PersistedConditionQuality,
+        ProjectedCondition, ProjectedLadder, evaluate_persisted_quality, project_condition_ladder,
     },
     materialize::{
         CanonicalArtifacts, CanonicalMaterializationConfig, CanonicalSignals, materialize_canonical,
@@ -40,11 +43,12 @@ pub(crate) use self::{
     publish::{PublishedCandidate, activate_generation, publish_generation_candidate},
     runner::{
         CanonicalGenerationConfig, CanonicalGenerationError, CanonicalGenerationOutcome,
-        CanonicalReleaseAuthority, CompletedCanonicalGeneration, FrozenCanonicalSignals,
-        FrozenProjectorTypeContext, GenerationFreezeSource, GenerationManifestContract,
-        RelationModelSources, RelationPolicyInput, RelationPolicyRecords,
-        StoreBackedCanonicalGenerationRequest, StoreBackedGenerationSource,
-        StoreBackedSnapshotRequest, run_store_backed_canonical_generation,
+        CanonicalReleaseAuthority, CompletedCanonicalGeneration, ExternalGateReportDocuments,
+        FrozenCanonicalSignals, FrozenProjectorTypeContext, GenerationFreezeSource,
+        GenerationManifestContract, RelationModelSources, RelationPolicyInput,
+        RelationPolicyRecords, StoreBackedCanonicalGenerationRequest, StoreBackedGenerationSource,
+        StoreBackedSnapshotRequest, representation_stratification_hash,
+        run_local_m0_canonical_generation, run_store_backed_canonical_generation,
     },
 };
 

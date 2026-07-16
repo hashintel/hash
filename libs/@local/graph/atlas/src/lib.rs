@@ -45,13 +45,13 @@
 //!
 //! The `hash-graph-atlas` binary exposes two commands:
 //!
-//! - `fit --request <json>` passes a bounded JSON request to the configured [`cli::AtlasTrainer`].
+//! - `fit --config <worker.json> --request <request.json>` runs the concrete
+//!   [`fit::ProductionAtlasTrainer`] over a bounded direct-PostgreSQL snapshot.
 //! - `serve --config <json> --bind <address>` starts the Axum 0.8 [`api::router`] over the verified
 //!   active generation.
 //!
-//! The standalone binary provides serving immediately. Its fitting adapter is
-//! intentionally unconfigured; an embedding application supplies an
-//! [`cli::AtlasTrainer`] through [`cli::run_with`].
+//! Applications can still inject another [`cli::AtlasTrainer`] through
+//! [`cli::run_with`].
 //!
 //! The repository's `libs/@local/graph/atlas/COOKBOOK.md` contains the complete
 //! operational walkthrough: runner composition, trust configuration,
@@ -87,6 +87,7 @@ extern crate alloc;
 
 pub mod api;
 pub mod cli;
+pub mod fit;
 pub mod float;
 pub(crate) mod macros;
 pub mod projection;

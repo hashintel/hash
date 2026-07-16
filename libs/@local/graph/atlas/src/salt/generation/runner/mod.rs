@@ -64,6 +64,7 @@ mod input;
 mod manifest;
 mod model;
 mod production;
+mod reports;
 mod run;
 
 pub(super) use self::input::FrozenGenerationInput;
@@ -72,14 +73,16 @@ pub(crate) use self::run::run_canonical_generation;
 pub(crate) use self::{
     error::CanonicalGenerationError,
     input::{
-        FrozenCanonicalSignals, FrozenProjectorTypeContext, GenerationFreezeSource,
-        GenerationManifestContract, RelationModelSources, RelationPolicyInput,
-        RelationPolicyRecords, StoreBackedGenerationSource,
+        ExternalGateReportDocuments, FrozenCanonicalSignals, FrozenProjectorTypeContext,
+        GenerationFreezeSource, GenerationManifestContract, RelationModelSources,
+        RelationPolicyInput, RelationPolicyRecords, StoreBackedGenerationSource,
+        representation_stratification_hash,
     },
     model::{CanonicalGenerationConfig, CanonicalGenerationOutcome, CanonicalReleaseAuthority},
     production::{
         CompletedCanonicalGeneration, StoreBackedCanonicalGenerationRequest,
-        StoreBackedSnapshotRequest, run_store_backed_canonical_generation,
+        StoreBackedSnapshotRequest, run_local_m0_canonical_generation,
+        run_store_backed_canonical_generation,
     },
 };
 

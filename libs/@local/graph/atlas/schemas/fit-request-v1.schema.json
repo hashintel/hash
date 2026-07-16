@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FitRequestV1",
+  "description": "One current-snapshot generation requested from PostgreSQL.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "requestId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "webIds": {
+      "description": "Explicit web scope. The M0 profile rejects an empty list because\nauthorization-aware cross-web sampling is not yet implemented.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "minItems": 1,
+      "maxItems": 1024
+    },
+    "sample": {
+      "$ref": "#/$defs/FitSampleV1"
+    },
+    "limits": {
+      "$ref": "#/$defs/FitResourceLimitsV1"
+    },
+    "inputBundle": {
+      "$ref": "#/$defs/FitInputReferenceV1"
+    },
+    "assurance": {
+      "$ref": "#/$defs/FitAssuranceMode"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "webIds",
+    "sample",
+    "limits",
+    "inputBundle",
+    "assurance"
+  ],
+  "$defs": {
+    "FitSampleV1": {
+      "description": "Deterministic corpus selection parameters.",
+      "type": "object",
+      "properties": {
+        "targetEntities": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 51,
+          "maximum": 100000
+        },
+        "seed": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": ["targetEntities", "seed"]
+    },
+    "FitResourceLimitsV1": {
+      "description": "Hard resource limits checked before large extraction allocations.",
+      "type": "object",
+      "properties": {
+        "maximumEntities": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "maximumLinks": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "maximumRelationTypes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "maximumRequiredTypesPerLink": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "maximumLabelBytes": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 1,
+          "maximum": 1048576
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "maximumEntities",
+        "maximumLinks",
+        "maximumRelationTypes",
+        "maximumRequiredTypesPerLink",
+        "maximumLabelBytes"
+      ]
+    },
+    "FitInputReferenceV1": {
+      "description": "Content-addressed path beneath the configured input root.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["path", "sha256"]
+    },
+    "FitAssuranceMode": {
+      "description": "Explicit assurance level of the first operational fitter.",
+      "oneOf": [
+        {
+          "description": "Locally signed evidence with documented authorization/snapshot gaps.",
+          "type": "string",
+          "const": "m0_local_attestation"
+        }
+      ]
+    }
+  }
+}

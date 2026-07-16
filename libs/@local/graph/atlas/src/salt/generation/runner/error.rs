@@ -36,6 +36,9 @@ pub(crate) enum CanonicalGenerationError {
     RelationConfidence {
         link: EntityId,
     },
+    DuplicateRelationLink {
+        link: EntityId,
+    },
     RelationPolicyCount {
         expected: usize,
         actual: usize,
@@ -78,6 +81,10 @@ pub(crate) enum CanonicalGenerationError {
         value: f64,
     },
     StrengthHeadUnsupported,
+    ClassifierContract {
+        expected: crate::salt::hash::ContentHash,
+        actual: crate::salt::hash::ContentHash,
+    },
     NonUnitStrengthWithoutHead {
         relation: ArtifactOrdinal,
         strength: f64,
@@ -99,11 +106,16 @@ pub(crate) enum CanonicalGenerationError {
         actual: String,
     },
     SecurityPolicy,
+    GateReport {
+        gate: &'static str,
+        reason: &'static str,
+    },
     ActivationConflict {
         actual: Option<ReleaseHead>,
     },
     ReloadMissing,
     ReloadMismatch,
+    WorkerPanic,
     ReproductionManifest,
     ReproductionEvidence,
     ReproductionArtifact {
@@ -161,6 +173,10 @@ impl fmt::Display for CanonicalGenerationError {
                     "security-admitted link {link} has no frozen confidence"
                 )
             }
+            Self::DuplicateRelationLink { link } => write!(
+                formatter,
+                "security-admitted link {link} resolves to multiple relation instances"
+            ),
             Self::RelationPolicyCount { expected, actual } => write!(
                 formatter,
                 "generation requires {expected} dense relation policies, got {actual}"
@@ -217,6 +233,10 @@ impl fmt::Display for CanonicalGenerationError {
             ),
             Self::StrengthHeadUnsupported => formatter
                 .write_str("the initial M0 profile requires the neutral relation-strength control"),
+            Self::ClassifierContract { expected, actual } => write!(
+                formatter,
+                "frozen classifier hash {actual} differs from manifest contract {expected}"
+            ),
             Self::NonUnitStrengthWithoutHead { relation, strength } => write!(
                 formatter,
                 "relation {relation} has free strength {strength} without a derived strength head",
@@ -252,10 +272,15 @@ impl fmt::Display for CanonicalGenerationError {
             ),
             Self::SecurityPolicy => formatter
                 .write_str("manifest relation security metadata differs from enforced admission"),
+            Self::GateReport { gate, reason } => {
+                write!(formatter, "{gate} gate report is invalid: {reason}")
+            }
             Self::ActivationConflict { actual } => match actual {
                 Some(actual) => write!(
                     formatter,
-                    "atlas activation compare-and-swap conflicted with active head {actual:?}"
+                    "atlas activation compare-and-swap conflicted with generation {} and manifest \
+                     {}",
+                    actual.generation, actual.manifest
                 ),
                 None => formatter
                     .write_str("atlas activation compare-and-swap expected an active generation"),
@@ -265,6 +290,9 @@ impl fmt::Display for CanonicalGenerationError {
             Self::ReloadMismatch => formatter.write_str(
                 "restart loading returned an atlas generation other than the activated release",
             ),
+            Self::WorkerPanic => {
+                formatter.write_str("the dedicated numerical generation worker panicked")
+            }
             Self::ReproductionManifest => {
                 formatter.write_str("independent generation runs produced different manifests")
             }
@@ -324,6 +352,7 @@ impl Error for CanonicalGenerationError {
             | Self::SelectedEditionIdentity { .. }
             | Self::RelationType { .. }
             | Self::RelationConfidence { .. }
+            | Self::DuplicateRelationLink { .. }
             | Self::RelationPolicyCount { .. }
             | Self::RelationOrdinal { .. }
             | Self::DuplicateRelationOrdinal { .. }
@@ -335,6 +364,7 @@ impl Error for CanonicalGenerationError {
             | Self::AnchorRow { .. }
             | Self::AnchorScalar { .. }
             | Self::StrengthHeadUnsupported
+            | Self::ClassifierContract { .. }
             | Self::NonUnitStrengthWithoutHead { .. }
             | Self::ManifestContractArtifacts { .. }
             | Self::ManifestContractVersion { .. }
@@ -343,9 +373,11 @@ impl Error for CanonicalGenerationError {
             | Self::SnapshotProvenance
             | Self::UnsupportedGenerationBackend { .. }
             | Self::SecurityPolicy
+            | Self::GateReport { .. }
             | Self::ActivationConflict { .. }
             | Self::ReloadMissing
             | Self::ReloadMismatch
+            | Self::WorkerPanic
             | Self::ReproductionManifest
             | Self::ReproductionEvidence
             | Self::ReproductionArtifact { .. }

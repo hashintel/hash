@@ -13,6 +13,7 @@
 mod legacy;
 mod persistence;
 mod relation;
+mod report;
 mod representation;
 
 use super::{ArtifactRole, GenerationManifest};
@@ -48,9 +49,19 @@ pub(super) fn validate_role_schema(
         ArtifactRole::ProjectorCheckpoint => Err("projector checkpoint is not an mmap artifact"),
         ArtifactRole::CanonicalBase => validate_base(artifact, manifest),
         ArtifactRole::CanonicalAnalytics => validate_analytics(artifact, manifest),
-        ArtifactRole::LegacyLayout
+        ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport
+        | ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
-        | ArtifactRole::LegacyExportManifest => Err("legacy exports are not mmap artifacts"),
+        | ArtifactRole::LegacyExportManifest => {
+            Err("opaque artifact was routed as an mmap artifact")
+        }
     }
 }
 
@@ -59,7 +70,17 @@ pub(super) fn validate_opaque_role(
     bytes: &[u8],
     manifest: &GenerationManifest,
 ) -> Result<(), &'static str> {
-    legacy::validate(role, bytes, manifest)
+    match role {
+        ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport => report::validate(role, bytes, manifest),
+        _ => legacy::validate(role, bytes, manifest),
+    }
 }
 
 pub(super) fn validate_legacy_layout_coordinates(

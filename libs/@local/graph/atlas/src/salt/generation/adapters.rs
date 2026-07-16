@@ -20,8 +20,9 @@ use core::fmt;
 
 use super::{
     ConditionQuality, ConditionQualityEvaluationError, ConditionQualityEvaluator,
-    PersistedCondition, PersistenceDiagnostics, PersistenceEvaluationError,
-    PersistenceEvaluationSubject, PersistenceQualityEvaluator, ProjectedCondition,
+    PersistedCondition, PersistedConditionQuality, PersistenceDiagnostics,
+    PersistenceEvaluationError, PersistenceEvaluationSubject, PersistenceQualityEvaluator,
+    ProjectedCondition,
 };
 use crate::salt::hash::ContentHash;
 
@@ -80,7 +81,8 @@ where
         + Sync,
     Persisted: for<'field> Fn(
             PersistedCondition<'field>,
-        ) -> Result<ConditionQuality, ConditionQualityEvaluationError>
+        )
+            -> Result<PersistedConditionQuality, ConditionQualityEvaluationError>
         + Sync,
 {
     fn suite_version(&self) -> &str {
@@ -101,7 +103,7 @@ where
     fn evaluate_persisted(
         &self,
         field: PersistedCondition<'_>,
-    ) -> Result<ConditionQuality, ConditionQualityEvaluationError> {
+    ) -> Result<PersistedConditionQuality, ConditionQualityEvaluationError> {
         (self.evaluate_persisted)(field)
     }
 }

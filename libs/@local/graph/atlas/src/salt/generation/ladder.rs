@@ -153,6 +153,66 @@ impl ConditionQuality {
     }
 }
 
+/// Exact persisted-field measurement and the report bytes behind its identities.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PersistedConditionQuality {
+    measurement: ConditionQuality,
+    semantic_fidelity_report: Box<[u8]>,
+    subgroup_report: Box<[u8]>,
+}
+
+impl PersistedConditionQuality {
+    /// Binds one measurement to the exact report documents it references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when either report is empty or its SHA-256 identity
+    /// differs from the corresponding measurement field.
+    pub(crate) fn new(
+        measurement: ConditionQuality,
+        semantic_fidelity_report: impl Into<Box<[u8]>>,
+        subgroup_report: impl Into<Box<[u8]>>,
+    ) -> Result<Self, ConditionQualityEvaluationError> {
+        let semantic_fidelity_report = semantic_fidelity_report.into();
+        let subgroup_report = subgroup_report.into();
+        if semantic_fidelity_report.is_empty()
+            || ContentHash::digest(&semantic_fidelity_report)
+                != measurement.semantic_fidelity_report()
+        {
+            return Err(ConditionQualityEvaluationError::new(
+                "semantic-fidelity report bytes do not match their measurement identity",
+            ));
+        }
+        if subgroup_report.is_empty()
+            || ContentHash::digest(&subgroup_report) != measurement.subgroup_report()
+        {
+            return Err(ConditionQualityEvaluationError::new(
+                "subgroup report bytes do not match their measurement identity",
+            ));
+        }
+        Ok(Self {
+            measurement,
+            semantic_fidelity_report,
+            subgroup_report,
+        })
+    }
+
+    #[must_use]
+    pub(crate) const fn measurement(&self) -> ConditionQuality {
+        self.measurement
+    }
+
+    #[must_use]
+    pub(crate) fn semantic_fidelity_report(&self) -> &[u8] {
+        &self.semantic_fidelity_report
+    }
+
+    #[must_use]
+    pub(crate) fn subgroup_report(&self) -> &[u8] {
+        &self.subgroup_report
+    }
+}
+
 /// Release thresholds applied independently of the quality evaluator.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ConditionQualityPolicy {
@@ -212,7 +272,7 @@ pub(crate) fn evaluate_persisted_quality(
     condition: f32,
     field: &QuantizedCanonicalField,
     policy: ConditionQualityPolicy,
-) -> Result<ConditionQuality, GenerationError> {
+) -> Result<PersistedConditionQuality, GenerationError> {
     let persisted = PersistedCondition {
         condition,
         coordinates: field.coordinates(),
@@ -220,7 +280,12 @@ pub(crate) fn evaluate_persisted_quality(
     };
     let measurement = evaluator.evaluate_persisted(persisted)?;
     policy.validate()?;
-    validate_quality_measurement(0, persisted.content_hash(), measurement, policy)?;
+    validate_quality_measurement(
+        0,
+        persisted.content_hash(),
+        measurement.measurement(),
+        policy,
+    )?;
     Ok(measurement)
 }
 
@@ -254,7 +319,7 @@ pub(crate) trait ConditionQualityEvaluator: fmt::Debug + Sync {
     fn evaluate_persisted(
         &self,
         field: PersistedCondition<'_>,
-    ) -> Result<ConditionQuality, ConditionQualityEvaluationError>;
+    ) -> Result<PersistedConditionQuality, ConditionQualityEvaluationError>;
 }
 
 /// Failure reported by an external condition-quality suite.

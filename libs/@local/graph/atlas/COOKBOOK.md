@@ -30,7 +30,7 @@ artifacts or treat SALT's legacy layout file as its complete serving contract.
 
 The implemented SALT generation core can:
 
-- bind extraction provenance to one bitemporal authorization snapshot;
+- bind extraction provenance and bitemporal authorization axes into frozen input;
 - consume full 3,072-component embeddings and a normalized 512-component
   projector prefix;
 - fit or consume relation-policy models;
@@ -49,15 +49,21 @@ The implemented SALT generation core can:
 
 The current process envelope has deliberate seams:
 
-- The standalone `fit` command has no graph-specific request schema and uses
-  `UnconfiguredAtlasTrainer`, which always returns an error. An embedding
-  application must inject an `AtlasTrainer`.
+- The standalone `fit` command is concrete. It accepts checked-in version-1
+  worker/request schemas, extracts a bounded current snapshot directly from
+  HASH Graph PostgreSQL, runs SALT with Candle CPU, activates by compare-and-
+  swap, and writes the serving trust configuration.
 - The standalone `serve` command is complete and uses modern Axum with the
   Candle CPU checkpoint backend.
 - The HTTP API is read-only and performs no request authorization, TLS
   termination, or rate limiting.
-- SALT's typed generation runner is crate-internal. A direct adapter currently
-  lives inside this crate, or an application exposes its own public wrapper.
+- `m0_local_attestation` is intentionally lower assurance than the strict
+  store-backed runner: PostgreSQL snapshot and WAL identities are application
+  attestations, and the final activation interval has no authorization-owned
+  lease. See
+  [`docs/authorization-consistency.md`](docs/authorization-consistency.md).
+- SALT's stage graph remains crate-internal; `fit::ProductionAtlasTrainer` is
+  the narrow public operational façade.
 - Concrete serving accepts only `BaseRevision(0)` with `DeltaRevision(0)`.
   Base-plus-delta traits exist, but incremental mutation is not enabled.
 - A release generation is built twice from the same frozen input. The isolated
@@ -109,6 +115,13 @@ source extraction
   -> explicit compare-and-swap activation
   -> independent active-generation reload
 ```
+
+That diagram is the strict production contract. The checked-in
+`m0_local_attestation` worker uses the same artifact, gate, candidate, CAS, and
+restart path, but substitutes a repeatable-read PostgreSQL snapshot identity,
+live WAL revision checks, and a locally bound extraction receipt. It checks the
+WAL revision immediately before activation but cannot exclude a policy mutation
+between that read and the pointer replacement.
 
 The distinction between candidate and active state is important:
 
@@ -233,6 +246,28 @@ substitute for a report hash. Report identities are domain-separated: a report
 cannot reuse a policy, geometry, allow-list, companion-binary, extraction, or
 other report identity.
 
+The fit worker loads only the release private key. Each external authority is
+configured with an executable and a pinned public key; its private key must not
+be readable by the fit-worker account. After immutable output exists, the
+worker starts that executable directly, writes one version-1 JSON request to
+standard input, and accepts one signed `ExternalGateGrant` from standard
+output. The request contains `version`, absolute `atlasRoot`, exact `head`,
+`gate`, `suiteVersion`, and `report`. Issuers have five minutes and 4 MiB per
+output stream. A nonzero exit, timeout, malformed output, wrong report, wrong
+scope, wrong key, or invalid signature fails the release.
+
+The issuer is an independent approval boundary, not a signing oracle. It must
+open the immutable generation named by `head`, rerun or validate its owned
+suite and report, and sign only after that check succeeds. It must not trust
+the requested report hash merely because the fit worker supplied it.
+
+For relation-policy, authorization, and security gates, the signed report
+identity is a derived envelope. It commits to the validated external report
+hash and to the resolved policy or admitted geometry, edge snapshot, allow
+list, and observed authorization revision as applicable. Changing a threshold
+or admitted relation therefore requires new gate evidence even when the input
+report file is unchanged.
+
 ### Account for reproducibility cost
 
 The store-backed runner first builds an isolated reproduction under a temporary
@@ -255,6 +290,11 @@ Plan for approximately two projector fits and two complete artifact builds per
 release attempt. The reported `training_wall_time` is the primary projector
 fit, not total process wall time.
 
+Direct PostgreSQL extraction additionally enforces fixed aggregate ceilings of
+4,000,000 type references, 256 MiB of type URL text, and 256 MiB of ontology
+schema text. These process safety ceilings supplement the request's per-corpus
+and per-link limits.
+
 Projector schedules are rejected before training when their aggregate sampled
 edge count or conservative host/device/autodiff working-set estimate exceeds
 the M0 envelope (256 MiB per assembled batch). Optimizer schedules are capped
@@ -263,58 +303,175 @@ allocation failure is reported rather than relying on the allocator abort path.
 
 ## Connect the `fit` CLI
 
-The CLI treats request JSON as application-owned bytes. It enforces a 16 MiB
-limit and validates JSON syntax, but it does not assign semantics to fields.
-This lets an embedding application evolve extraction and deployment settings
-without putting credentials or graph-specific policy in the generic command
-module.
+The standalone binary uses `fit::ProductionAtlasTrainer`. Both documents are
+bounded to 16 MiB, reject unknown fields, and are described by:
 
-Inject an `AtlasTrainer` into `cli::run_with`. A callback-backed binary has this
-shape:
+- `schemas/fit-worker-v1.schema.json`
+- `schemas/fit-request-v1.schema.json`
+- `schemas/fit-input-bundle-v1.schema.json`
 
-```rust,ignore
-use hash_graph_atlas::cli::{
-    AtlasCliError, AtlasFitError, CallbackAtlasTrainer, FitRequest, FitReceipt,
-    run_with,
-};
+Start a worker directory from the checked-in documents:
 
-#[tokio::main]
-async fn main() -> Result<(), AtlasCliError> {
-    let trainer = CallbackAtlasTrainer::new(|request: FitRequest| async move {
-        // Decode an application-owned request schema, construct the store-backed
-        // SALT composition, and return only after activation and restart reload.
-        application::fit_atlas(request.source(), request.bytes())
-            .await
-            .map_err(|error| AtlasFitError::new(error.to_string()))
-    });
-
-    run_with(std::env::args_os(), &trainer).await
-}
+```sh
+mkdir -p ./atlas-worker/{inputs,issuers,secrets,var}
+cp libs/@local/graph/atlas/config/m0-local-worker.default.json \
+  ./atlas-worker/worker.json
+cp libs/@local/graph/atlas/config/m0-local-request.default.json \
+  ./atlas-worker/request.json
+cp libs/@local/graph/atlas/config/m0-local-input-bundle.default.json \
+  ./atlas-worker/inputs/m0-local-input-bundle.json
 ```
 
-The adapter's success value is:
+Then make these required edits:
+
+1. Set a non-nil `actorId` and `requestId`.
+2. Set PostgreSQL host, port, user, database, and write only the password plus
+   one newline to `secrets/postgres.password`.
+3. Create one 32-byte Ed25519 release seed. Its key file contains exactly 64
+   lowercase hexadecimal characters plus an optional final newline and has
+   mode `0600` (or `0400`). Configure eight separately operated issuer
+   executables through `issuerCommand`; each command must be a regular
+   executable file beneath the worker directory. Put only each issuer's raw
+   32-byte public key in `expectedPublicKey`. The eight issuer secrets must be
+   unavailable to the fit worker. Reusing any release/external authority name
+   or public key is rejected.
+4. Place every input-bundle asset under `inputs/`; symlink and `..` escapes are
+   rejected. Replace every `sha256` with the lowercase SHA-256 of the exact
+   file bytes, then put the completed bundle's SHA-256 in
+   `request.json` at `inputBundle.sha256`. Replace the five zero manifest
+   provenance hashes with the identities issued by the embedding and relation
+   evaluation pipelines.
+5. Choose the web scope, sample target, deterministic seed, and hard limits in
+   `request.json`. M0 requires at least one explicit `webIds` entry; it does not
+   yet perform authorization-aware sampling across every database web.
+
+The worker accepts loopback PostgreSQL only. Relative worker paths resolve
+against the directory containing `worker.json`; generated serving
+configuration records the resulting absolute Atlas root.
+
+Command documents and the bundle document are limited to 16 MiB. Individual
+content-addressed assets are limited to 512 MiB so a full relation-policy
+matrix can cover the configured relation-type ceiling. Request limits cannot
+raise the fixed process ceilings: 100,000 entities, 1,000,000 links, 4,096
+relation types, 1,024 required types per link, 1 MiB of labels, 1,024 web IDs,
+and 128 Rayon threads.
+
+Run the worker from a dedicated OS account and do not allow another process to
+rename or replace directories beneath the worker configuration or input roots
+during a fit. M0 opens final files with no-follow semantics and verifies every
+input content hash, but it does not yet traverse parent directories through a
+persistent `openat`-style capability.
+
+The input bundle must contain:
+
+- an inline non-generated manifest contract naming the embedding producer,
+  relation/annotation corpora, classifier/applicability versions, and serving
+  wire/companion versions;
+- a complete `classifier.salt` SALT classifier artifact;
+- one full 3,072-component relation-card embedding and unit strength for every
+  extracted relation type;
+- passing relation-policy and security reports bound to both the classifier
+  and relation-policy-input SHA-256 values;
+- a canvas companion; and
+- a passing companion report bound to the companion SHA-256.
+
+External reports use this strict envelope:
 
 ```json
 {
-  "generation": "<sha256-generation-id>",
-  "manifest_hash": "<sha256-manifest-hash>",
-  "release_report_hash": "<sha256-release-report-hash>",
-  "activation": "activated"
+  "schemaVersion": 1,
+  "suiteVersion": "your-suite-v1",
+  "outcome": "pass",
+  "subjects": {
+    "classifier": "<classifier-sha256>",
+    "relationPolicyInputs": "<policy-input-sha256>"
+  }
 }
 ```
 
-`activation` can also be `already_active` for an idempotent repeat.
+The companion report uses one `companion` subject instead. Report files are
+content-addressed independently; a subject artifact cannot masquerade as its
+report. `suiteVersion` is not a free label: the relation-policy report must
+equal `manifest.relations.policyPrecedenceVersion`, the security report must
+equal `manifest.serving.authorizationAdapterVersion`, and the companion report
+must equal `manifest.serving.canvasCompanionVersion`.
 
-Running `fit` with the repository's standalone binary demonstrates the
-unconfigured boundary and is expected to fail:
+The public bundle contract cannot supply a generation ID, artifact hash,
+release head, execution contract, or gate result. SALT creates those claims
+from measured output. All five provenance hashes in the inline contract must
+be nonzero, and class priors and volume fractions are validated as
+probabilities.
+
+Relation-policy inputs use:
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "relations": {
+    "https://example.com/types/entity-type/related-to/v/1": {
+      "embedding": [0.1, -0.2 /* exactly 3,072 finite f32 values */],
+      "strength": 1.0,
+      "humanOverride": null,
+      "humanReviewed": null,
+      "synthetic": {
+        "coincident": 0.0,
+        "proximal": 1.0,
+        "overlay": 0.0,
+      },
+    },
+  },
+}
+```
+
+`m0-local-v1` rejects a strength-head input and any non-unit strength. The
+classifier remains authoritative unless a higher-precedence posterior is
+present. Multi-direct-type link selection is documented in
+[`docs/relation-type-selection.md`](docs/relation-type-selection.md).
+
+The immutable recommended numerical profile uses five conditions from zero to
+one and publishes the fully relation-conditioned `V = 1` field, 30 semantic
+graph neighbors, up to 4,096 landmarks, 200 landmark epochs, the 512-wide
+four-block projector, 2,000 optimizer steps, a 512-square analytic raster,
+exact representation-prefix auditing through 50 neighbors, bounded semantic
+probes, web-scoped subgroup probes, and a two-sided persistence envelope with
+three planted-shape checks. At least 51 complete embedding rows and one induced
+relation are required. A single-web fit has only the whole web as an eligible
+subgroup, so its subgroup gate is reported as `partially_measured`.
+
+Run a fit:
 
 ```sh
 cargo run -p hash-graph-atlas --bin hash-graph-atlas -- \
-  fit --request ./atlas-fit-request.json
+  fit --config ./atlas-worker/worker.json \
+  --request ./atlas-worker/request.json
 ```
 
-Use the application binary that injects your trainer for an actual fit. There
-is currently no REST training or activation endpoint.
+Success prints one versioned JSON receipt containing exact request, worker
+configuration, input-bundle, and resolved numerical-profile hashes;
+request/actor/snapshot identities; distinct extraction-time and
+permission-time authorization revisions; entity/link/relation counts;
+multi-type ambiguity count; generation, manifest, and release-report hashes; a
+provenance class for every mandatory gate; measured phase timings; the
+explicit activation result; restart verification; and the generated
+serving-configuration path. `activation` is `activated` or `already_active`.
+
+The receipt classifies numerical, recall, relation-satisfaction, persistence,
+and reproducibility gates as `runner_measured`; relation-policy, security, and
+companion reports as `externally_measured`; the reduced M0 subgroup audit as
+`partially_measured`; and authorization/snapshot claims as
+`local_attestation`. These labels describe evidence provenance and do not
+upgrade the documented authorization consistency envelope.
+
+The local semantic suite uses up to 256 deterministic anchors. For each anchor
+it chooses the expected neighbor from 32 deterministic candidates using the
+cosine distance over the full 3,072-component canonical embedding, then
+measures that neighbor's rank in the projected field. This is a bounded sampled
+gate, not a claim of exhaustive full-corpus map-neighbor recall.
+
+The fit captures and authenticates the existing active head before numerical
+work. A replacement activates only if that exact head is still current; a
+concurrent activation fails closed. On success the worker atomically writes
+`servingConfigOutput` with public verification keys only.
 
 ## Inspect the published files
 
@@ -573,6 +730,21 @@ Run only SALT tests while iterating:
 cargo test -p hash-graph-atlas --lib salt::
 ```
 
+Exercise the direct current-snapshot SQL against a migrated development
+database with `pgvector` (the test uses temporary shadow tables and does not
+touch graph rows):
+
+```sh
+HASH_GRAPH_PG_HOST=127.0.0.1 \
+HASH_GRAPH_PG_PORT=5432 \
+HASH_GRAPH_PG_USER=graph \
+HASH_GRAPH_PG_PASSWORD=graph \
+HASH_GRAPH_PG_DATABASE=graph \
+cargo test -p hash-graph-atlas --lib \
+  live_repeatable_read_extracts_one_complete_current_snapshot \
+  -- --ignored --nocapture
+```
+
 Check formatting, Clippy, documentation, and whitespace:
 
 ```sh
@@ -616,10 +788,11 @@ region assertions pass.
 
 ## Diagnose common failures
 
-### `no Atlas fitting adapter is configured for this binary`
+### Fit fails before connecting to PostgreSQL
 
-You ran the repository's standalone binary with `fit`. Build or run the
-application binary that injects an `AtlasTrainer`.
+Check non-nil identities, file-relative paths, content hashes, key-file modes,
+distinct authority names/keys, and expected public keys. Configuration and
+input-bundle validation intentionally completes before opening the database.
 
 ### `no Atlas generation is active`
 
@@ -701,9 +874,12 @@ Before exposing a serving process:
 The current envelope is intentionally small. The next integration work normally
 belongs at these boundaries:
 
-- define an application-owned typed fit request;
-- expose a stable public wrapper around the crate-internal store-backed runner;
-- choose and configure a production Burn training/inference backend;
+- replace the local WAL revision with an authorization-owned revision and
+  activation lease;
+- replace application snapshot identities with a store-issued extraction
+  receipt;
+- add additional versioned numerical profiles or a production accelerator
+  backend;
 - add authenticated and authorized HTTP middleware;
 - add operational key rotation;
 - implement enabled base-plus-delta readers, replay, and compaction; and

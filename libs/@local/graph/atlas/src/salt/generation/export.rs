@@ -185,6 +185,17 @@ pub(crate) fn export_legacy_canvas(
     })
 }
 
+/// Publishes one immutable opaque artifact with no-clobber idempotency.
+pub(crate) fn publish_opaque_file(
+    path: &Utf8Path,
+    bytes: &[u8],
+) -> Result<LegacyExportFile, GenerationError> {
+    publish_file(path, |writer| {
+        writer.write_all(bytes)?;
+        Ok(())
+    })
+}
+
 fn publish_file(
     path: &Utf8Path,
     encode: impl FnOnce(&mut dyn std::io::Write) -> Result<(), GenerationError>,

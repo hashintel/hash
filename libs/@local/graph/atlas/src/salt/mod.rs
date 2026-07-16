@@ -125,6 +125,7 @@ mod card;
 mod classifier;
 mod embedding;
 mod evaluation;
+pub(crate) mod fit_boundary;
 mod format;
 mod generation;
 mod graph;
@@ -146,7 +147,11 @@ mod strength;
 
 pub(crate) use self::{
     activation::{FileActivationStore, LoadedGeneration},
-    hash::ContentHash,
+    hash::{ContentHash, ContentHasher},
     manifest::{ArtifactManifest, ArtifactRole},
+    policy::Probability,
+    relation::RelationConfidence,
     release::{ExternalGateVerifierSet, GateId, GateVerifier},
+    representation::CANONICAL_DIMENSIONS,
+    snapshot::EntityAtEdition,
 };

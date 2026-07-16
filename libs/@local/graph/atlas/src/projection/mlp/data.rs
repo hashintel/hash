@@ -11,7 +11,7 @@ use crate::float::{FloatBytes, Sample};
 /// A single training example: one entity's feature row and its target map
 /// coordinates in standardized space.
 #[derive(Debug, Clone)]
-pub struct ProjectionItem {
+pub(crate) struct ProjectionItem {
     /// The entity's feature row, [`FloatBytes::dim`] values wide.
     pub embedding: Sample,
     /// The standardized map coordinates the encoder learns to reproduce.
@@ -70,7 +70,7 @@ impl Dataset<ProjectionItem> for ProjectionDataset {
 
 /// Collates [`ProjectionItem`]s into one [`ProjectionBatch`] on the device.
 #[derive(Debug, Clone, Default)]
-pub struct ProjectionBatcher;
+pub(crate) struct ProjectionBatcher;
 
 impl<B: Backend> Batcher<B, ProjectionItem, ProjectionBatch<B>> for ProjectionBatcher {
     fn batch(&self, items: Vec<ProjectionItem>, device: &B::Device) -> ProjectionBatch<B> {

@@ -41,11 +41,7 @@ mod error;
 mod load;
 mod store;
 
-pub(super) use self::store::publish_candidate_marker;
-#[allow(
-    unused_imports,
-    reason = "the verified active loader forms the external serving adapter surface"
-)]
+pub(super) use self::store::{publish_candidate_marker, withdraw_candidate_marker};
 pub(crate) use self::{
     error::ActivationError,
     load::LoadedGeneration,

@@ -88,9 +88,11 @@ async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, Sample
             &format!(
                 "SELECT COUNT(*)
                  FROM {entity_embeddings}
-                 WHERE {property} IS NULL",
+                 WHERE {property} IS NULL
+                   AND {draft_id} IS NULL",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
+                draft_id = EntityEmbeddings::DraftId.name().as_str(),
             ),
             &[],
         )
@@ -102,10 +104,8 @@ async fn query_count(client: &(impl GenericClient + Sync)) -> Result<i64, Sample
 /// Draws the Bernoulli sample into the sampled-identity table and assigns
 /// contiguous sample indices.
 ///
-/// Only whole-entity embedding rows (`property IS NULL`) participate. The
-/// schema's unique index over `(web_id, entity_uuid, property)` with
-/// `NULLS NOT DISTINCT` guarantees one such row per entity, so draft state
-/// needs no filtering here.
+/// Only live whole-entity embedding rows (`property IS NULL AND draft_id IS
+/// NULL`) participate.
 #[expect(
     clippy::cast_precision_loss,
     reason = "PostgreSQL's TABLESAMPLE percentage and seed are double precision"
@@ -138,9 +138,11 @@ async fn materialize_sample(
                  FROM {entity_embeddings} embeddings
                  TABLESAMPLE BERNOULLI($1::DOUBLE PRECISION)
                  REPEATABLE ($2::DOUBLE PRECISION)
-                 WHERE embeddings.{property} IS NULL",
+                 WHERE embeddings.{property} IS NULL
+                   AND embeddings.{draft_id} IS NULL",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
+                draft_id = EntityEmbeddings::DraftId.name().as_str(),
             ),
             &[&pct as &(dyn ToSql + Sync), &seed as &(dyn ToSql + Sync)],
         )
@@ -211,9 +213,11 @@ where
                    ON sample.web_id = embedding.web_id
                   AND sample.entity_uuid = embedding.entity_uuid
                  WHERE embedding.{property} IS NULL
+                   AND embedding.{draft_id} IS NULL
                  ORDER BY sample.sample_index",
                 entity_embeddings = Table::EntityEmbeddings.as_str(),
                 property = EntityEmbeddings::Property.name().as_str(),
+                draft_id = EntityEmbeddings::DraftId.name().as_str(),
                 dim = options.dim,
             ),
             iter::empty::<&(dyn ToSql + Sync)>(),

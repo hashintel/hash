@@ -1,3 +1,9 @@
+#![allow(
+    clippy::allow_attributes,
+    clippy::field_scoped_visibility_modifiers,
+    reason = "Burn's derive emits scoped fields outside the attributed source item"
+)]
+
 use burn::{
     module::{Initializer, Module, Param, ParamId},
     nn::{Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig, Linear, LinearConfig},
@@ -262,10 +268,6 @@ impl<B: Backend> ResidualBlock<B> {
 /// input. The condition is global to a complete coordinate field; no
 /// relation-type identity enters this model.
 #[derive(Module, Debug)]
-#[expect(
-    clippy::field_scoped_visibility_modifiers,
-    reason = "Burn's Module derive emits scoped field visibility"
-)]
 pub(crate) struct ConditionedProjector<B: Backend> {
     input: Linear<B>,
     input_normalization: LayerNorm<B>,

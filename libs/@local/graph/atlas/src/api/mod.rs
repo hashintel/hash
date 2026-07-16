@@ -526,6 +526,14 @@ const fn role_name(role: ArtifactRole) -> &'static str {
         ArtifactRole::ProjectorCheckpoint => "projector-checkpoint",
         ArtifactRole::CanonicalBase => "canonical-base",
         ArtifactRole::CanonicalAnalytics => "canonical-analytics",
+        ArtifactRole::RepresentationReport => "representation-report",
+        ArtifactRole::SemanticFidelityReport => "semantic-fidelity-report",
+        ArtifactRole::RelationPolicyReport => "relation-policy-report",
+        ArtifactRole::MergeTreePersistenceReport => "merge-tree-persistence-report",
+        ArtifactRole::SubgroupBehaviorReport => "subgroup-behavior-report",
+        ArtifactRole::AuthorizationNoninterferenceReport => "authorization-noninterference-report",
+        ArtifactRole::SecurityApprovalReport => "security-approval-report",
+        ArtifactRole::CompanionPinReport => "companion-pin-report",
         ArtifactRole::LegacyLayout => "legacy-layout",
         ArtifactRole::LegacyIdentities => "legacy-identities",
         ArtifactRole::LegacyExportManifest => "legacy-export-manifest",
@@ -534,7 +542,16 @@ const fn role_name(role: ArtifactRole) -> &'static str {
 
 const fn content_type(role: ArtifactRole) -> &'static str {
     match role {
-        ArtifactRole::LegacyIdentities | ArtifactRole::LegacyExportManifest => "application/json",
+        ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport
+        | ArtifactRole::LegacyIdentities
+        | ArtifactRole::LegacyExportManifest => "application/json",
         ArtifactRole::Representations
         | ArtifactRole::RelationClassifier
         | ArtifactRole::StrengthHead

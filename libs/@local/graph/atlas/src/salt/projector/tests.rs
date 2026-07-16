@@ -81,10 +81,6 @@ fn film_is_identity_for_every_condition_at_initialization() {
 }
 
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "deterministic initialization requires bit-identical concurrent outputs"
-)]
 fn seeded_initialization_is_deterministic_under_concurrency() {
     let handles = (0..8)
         .map(|_| {

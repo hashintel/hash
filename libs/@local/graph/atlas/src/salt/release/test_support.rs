@@ -1,7 +1,6 @@
 use crate::salt::{
     graph::audit::RecallAudit,
-    hash::ContentHash,
-    manifest::GenerationManifest,
+    manifest::{ArtifactRole, GenerationManifest},
     release::{
         ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateVerifierSet, GateEvidence,
         GateEvidenceError, GateEvidencePayload, GateEvidenceSet, GateId, GateSigner, ReleaseHead,
@@ -63,7 +62,6 @@ pub(crate) fn recall_audit(manifest: &GenerationManifest) -> RecallAudit {
 pub(crate) fn passing_payloads_without_ann(
     manifest: &GenerationManifest,
 ) -> Vec<GateEvidencePayload> {
-    let external_signer = external_signer();
     let head = release_head(manifest);
     let canonical = manifest
         .variants
@@ -72,49 +70,56 @@ pub(crate) fn passing_payloads_without_ann(
         .find(|variant| variant.id == manifest.variants.canonical_variant)
         .expect("fixture manifest should contain its canonical variant");
     let attested = |gate: GateId| {
-        let (suite_version, report) = match gate {
+        let (suite_version, role) = match gate {
             GateId::Representation => (
                 manifest
                     .embedding
                     .representation_audit
                     .suite_version
                     .as_str(),
-                manifest.embedding.representation_audit.content_hash(),
+                ArtifactRole::RepresentationReport,
             ),
             GateId::SemanticFidelity => (
                 canonical.quality_suite_version.as_str(),
-                canonical.semantic_fidelity_report_hash,
+                ArtifactRole::SemanticFidelityReport,
             ),
             GateId::SubgroupBehavior => (
                 canonical.quality_suite_version.as_str(),
-                canonical.subgroup_report_hash,
+                ArtifactRole::SubgroupBehaviorReport,
             ),
             GateId::MergeTreePersistence => (
                 canonical.persistence_comparison.suite_version.as_str(),
-                canonical.persistence_comparison.content_hash(),
+                ArtifactRole::MergeTreePersistenceReport,
             ),
             GateId::RelationPolicy => (
                 manifest.relations.policy_precedence_version.as_str(),
-                manifest.relations.policy_evaluation_report_hash,
+                ArtifactRole::RelationPolicyReport,
             ),
             GateId::AuthorizationNoninterference => (
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.authorization_noninterference_report_hash,
+                ArtifactRole::AuthorizationNoninterferenceReport,
             ),
             GateId::SecurityApproval => (
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.security_approval_report_hash,
+                ArtifactRole::SecurityApprovalReport,
             ),
             GateId::CompanionPin => (
                 manifest.serving.canvas_companion_version.as_str(),
-                manifest.serving.companion_compatibility_report_hash,
+                ArtifactRole::CompanionPinReport,
             ),
-            _ => (
-                "test-suite-v1",
-                ContentHash::digest(gate.to_string().as_bytes()),
-            ),
+            GateId::AnnRecall
+            | GateId::RelationSatisfaction
+            | GateId::TemporalDrift
+            | GateId::SnapshotConsistency
+            | GateId::Reproducibility => unreachable!("runner-owned gate cannot be attested"),
         };
-        ExternalGateGrant::sign(head, gate, suite_version, report, &external_signer)
+        let report = manifest
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.role == role)
+            .expect("fixture manifest should contain every report artifact")
+            .content_hash;
+        ExternalGateGrant::sign(head, gate, suite_version, report, &external_signer(gate))
             .expect("test suite version should validate")
     };
     vec![
@@ -157,16 +162,12 @@ pub(crate) fn passing_payloads_without_ann(
 }
 
 #[derive(Debug)]
-pub(crate) struct TestExternalGateGrantIssuer {
-    signer: GateSigner,
-}
+pub(crate) struct TestExternalGateGrantIssuer;
 
 impl TestExternalGateGrantIssuer {
     #[must_use]
     pub(crate) fn new() -> Self {
-        Self {
-            signer: external_signer(),
-        }
+        Self
     }
 }
 
@@ -177,6 +178,7 @@ impl ExternalGateGrantIssuer for TestExternalGateGrantIssuer {
         manifest: &GenerationManifest,
         gate: GateId,
     ) -> Result<ExternalGateGrant, GateEvidenceError> {
+        let signer = external_signer(gate);
         let canonical = manifest
             .variants
             .entries
@@ -190,47 +192,57 @@ impl ExternalGateGrantIssuer for TestExternalGateGrantIssuer {
                     .representation_audit
                     .suite_version
                     .as_str(),
-                manifest.embedding.representation_audit.content_hash(),
+                ArtifactRole::RepresentationReport,
             )),
             GateId::SemanticFidelity => Some((
                 canonical.quality_suite_version.as_str(),
-                canonical.semantic_fidelity_report_hash,
+                ArtifactRole::SemanticFidelityReport,
             )),
             GateId::SubgroupBehavior => Some((
                 canonical.quality_suite_version.as_str(),
-                canonical.subgroup_report_hash,
+                ArtifactRole::SubgroupBehaviorReport,
             )),
             GateId::MergeTreePersistence => Some((
                 canonical.persistence_comparison.suite_version.as_str(),
-                canonical.persistence_comparison.content_hash(),
+                ArtifactRole::MergeTreePersistenceReport,
             )),
             GateId::RelationPolicy => Some((
                 manifest.relations.policy_precedence_version.as_str(),
-                manifest.relations.policy_evaluation_report_hash,
+                ArtifactRole::RelationPolicyReport,
             )),
             GateId::AuthorizationNoninterference => Some((
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.authorization_noninterference_report_hash,
+                ArtifactRole::AuthorizationNoninterferenceReport,
             )),
             GateId::SecurityApproval => Some((
                 manifest.serving.authorization_adapter_version.as_str(),
-                manifest.relations.security_approval_report_hash,
+                ArtifactRole::SecurityApprovalReport,
             )),
             GateId::CompanionPin => Some((
                 manifest.serving.canvas_companion_version.as_str(),
-                manifest.serving.companion_compatibility_report_hash,
+                ArtifactRole::CompanionPinReport,
             )),
-            _ => None,
+            GateId::AnnRecall
+            | GateId::RelationSatisfaction
+            | GateId::TemporalDrift
+            | GateId::SnapshotConsistency
+            | GateId::Reproducibility => None,
         };
-        if let Some((suite_version, report)) = scoped_grant {
-            return ExternalGateGrant::sign(head, gate, suite_version, report, &self.signer);
+        if let Some((suite_version, role)) = scoped_grant {
+            let report = manifest
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.role == role)
+                .expect("test manifest should contain every external gate report")
+                .content_hash;
+            return ExternalGateGrant::sign(head, gate, suite_version, report, &signer);
         }
         let mut report =
             crate::salt::hash::ContentHasher::new(b"hash.graph.atlas.salt.test-external-report.v1");
         report.update(gate.to_string().as_bytes());
         report.update(head.manifest.as_bytes());
         report.update(manifest.reproducibility.config_hash.as_bytes());
-        ExternalGateGrant::sign(head, gate, "test-suite-v1", report.finish(), &self.signer)
+        ExternalGateGrant::sign(head, gate, "test-suite-v1", report.finish(), &signer)
     }
 }
 
@@ -249,7 +261,7 @@ pub(crate) fn external_authorities(
     ]
     .into_iter()
     .map(|gate| {
-        TrustedExternalGateAuthority::new(gate, issuer, issuer.signer.verifier())
+        TrustedExternalGateAuthority::new(gate, issuer, external_signer(gate).verifier())
             .expect("test external gate should validate")
     })
     .collect()
@@ -269,7 +281,7 @@ pub(crate) fn external_verifiers() -> ExternalGateVerifierSet {
             GateId::CompanionPin,
         ]
         .into_iter()
-        .map(|gate| (gate, external_signer().verifier()))
+        .map(|gate| (gate, external_signer(gate).verifier()))
         .collect(),
     )
     .expect("test external authorities should be independent and complete")
@@ -288,7 +300,25 @@ fn release_head(manifest: &GenerationManifest) -> ReleaseHead {
     }
 }
 
-pub(crate) fn external_signer() -> GateSigner {
-    GateSigner::new("test-external-authority", [0x6B; 32])
-        .expect("fixed external authority should validate")
+pub(crate) fn external_signer(gate: GateId) -> GateSigner {
+    let discriminator = match gate {
+        GateId::Representation => 1,
+        GateId::SemanticFidelity => 2,
+        GateId::RelationPolicy => 3,
+        GateId::MergeTreePersistence => 4,
+        GateId::SubgroupBehavior => 5,
+        GateId::AuthorizationNoninterference => 6,
+        GateId::SecurityApproval => 7,
+        GateId::CompanionPin => 8,
+        gate @ (GateId::AnnRecall
+        | GateId::RelationSatisfaction
+        | GateId::TemporalDrift
+        | GateId::SnapshotConsistency
+        | GateId::Reproducibility) => panic!("{gate} is not an external test gate"),
+    };
+    GateSigner::new(
+        format!("test-external-authority-{discriminator}"),
+        [0x6B + discriminator; 32],
+    )
+    .expect("fixed external authority should validate")
 }

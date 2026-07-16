@@ -1,3 +1,8 @@
+#![expect(
+    deprecated,
+    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
+)]
+
 use burn::backend::{Candle, candle::CandleDevice};
 use camino::Utf8Path;
 
@@ -66,6 +71,47 @@ fn activation_is_idempotent_and_rejects_a_stale_expected_head() {
 }
 
 #[test]
+fn compensating_restore_is_conditional_and_can_restore_no_active_head() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let first = publish_release(root, "restore-first");
+    let second = publish_release(root, "restore-second");
+    let store = activation_store(root);
+    let first_active = ActiveRelease::from(first);
+    let second_active = ActiveRelease::from(second);
+
+    store
+        .compare_exchange(None, first)
+        .expect("first release should activate");
+    store
+        .compare_exchange(Some(first_active), second)
+        .expect("second release should activate");
+    assert!(
+        store
+            .restore_if_current(second_active, Some(first_active))
+            .expect("matching current release should restore")
+    );
+    assert_eq!(
+        store.current().expect("restored release should load"),
+        Some(first_active)
+    );
+    assert!(
+        !store
+            .restore_if_current(second_active, None)
+            .expect("stale compensation should not mutate")
+    );
+    assert!(
+        store
+            .restore_if_current(first_active, None)
+            .expect("matching current release should deactivate")
+    );
+    assert_eq!(
+        store.current().expect("deactivated state should load"),
+        None
+    );
+}
+
+#[test]
 fn activation_requires_the_exact_published_candidate_marker() {
     let directory = tempfile::tempdir().expect("activation directory should open");
     let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
@@ -77,6 +123,28 @@ fn activation_requires_the_exact_published_candidate_marker() {
         Err(ActivationError::MissingCandidate { generation })
             if generation == release.head().generation
     ));
+}
+
+#[test]
+fn withdrawn_candidate_cannot_be_activated_but_keeps_diagnostics() {
+    let directory = tempfile::tempdir().expect("activation directory should open");
+    let root = Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let release = publish_release(root, "withdrawn");
+
+    withdraw_candidate_marker(root, release).expect("inactive candidate should be withdrawn");
+
+    assert!(matches!(
+        activation_store(root).compare_exchange(None, release),
+        Err(ActivationError::MissingCandidate { generation })
+            if generation == release.head().generation
+    ));
+    assert!(
+        root.join("generations")
+            .join(release.head().generation.to_string())
+            .join("release-report.json")
+            .is_file(),
+        "withdrawal should preserve immutable diagnostics"
+    );
 }
 
 #[test]

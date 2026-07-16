@@ -17,7 +17,7 @@ use crate::salt::{
     storage::mmap::{ArtifactFormat, ArtifactView, MappedArtifact, MappedFile, PublishedArtifact},
 };
 
-const REQUIRED_ARTIFACTS: [ArtifactRole; 12] = [
+const REQUIRED_ARTIFACTS: [ArtifactRole; 20] = [
     ArtifactRole::Representations,
     ArtifactRole::RelationClassifier,
     ArtifactRole::SemanticGraph,
@@ -27,6 +27,14 @@ const REQUIRED_ARTIFACTS: [ArtifactRole; 12] = [
     ArtifactRole::ProjectorCheckpoint,
     ArtifactRole::CanonicalBase,
     ArtifactRole::CanonicalAnalytics,
+    ArtifactRole::RepresentationReport,
+    ArtifactRole::SemanticFidelityReport,
+    ArtifactRole::RelationPolicyReport,
+    ArtifactRole::MergeTreePersistenceReport,
+    ArtifactRole::SubgroupBehaviorReport,
+    ArtifactRole::AuthorizationNoninterferenceReport,
+    ArtifactRole::SecurityApprovalReport,
+    ArtifactRole::CompanionPinReport,
     ArtifactRole::LegacyLayout,
     ArtifactRole::LegacyIdentities,
     ArtifactRole::LegacyExportManifest,
@@ -421,6 +429,14 @@ const fn expected_format(role: ArtifactRole) -> Option<ArtifactFormat> {
         ArtifactRole::CanonicalBase => Some(BASE_ARTIFACT_FORMAT),
         ArtifactRole::CanonicalAnalytics => Some(ANALYTIC_FORMAT),
         ArtifactRole::ProjectorCheckpoint
+        | ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport
         | ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => None,
@@ -440,6 +456,14 @@ const fn expected_section_count(role: ArtifactRole) -> Option<u32> {
         ArtifactRole::CanonicalBase => Some(17),
         ArtifactRole::CanonicalAnalytics => Some(20),
         ArtifactRole::ProjectorCheckpoint
+        | ArtifactRole::RepresentationReport
+        | ArtifactRole::SemanticFidelityReport
+        | ArtifactRole::RelationPolicyReport
+        | ArtifactRole::MergeTreePersistenceReport
+        | ArtifactRole::SubgroupBehaviorReport
+        | ArtifactRole::AuthorizationNoninterferenceReport
+        | ArtifactRole::SecurityApprovalReport
+        | ArtifactRole::CompanionPinReport
         | ArtifactRole::LegacyLayout
         | ArtifactRole::LegacyIdentities
         | ArtifactRole::LegacyExportManifest => None,

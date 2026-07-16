@@ -1,3 +1,8 @@
+#![expect(
+    deprecated,
+    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
+)]
+
 use core::{num::NonZeroUsize, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
@@ -19,10 +24,10 @@ use crate::salt::{
     generation::{
         CanonicalMaterializationConfig, ConditionQuality, ConditionQualityEvaluationError,
         ConditionQualityEvaluator, FrozenCanonicalSignals, GenerationFreezeSource,
-        GenerationManifestContract, PersistedCondition, PersistenceDiagnostics,
-        PersistenceEvaluationError, PersistenceEvaluationSubject, PersistenceGatePolicy,
-        PersistenceQualityEvaluator, ProjectedCondition, RelationModelSources, RelationPolicyInput,
-        RelationPolicyRecords, activate_generation,
+        GenerationManifestContract, PersistedCondition, PersistedConditionQuality,
+        PersistenceDiagnostics, PersistenceEvaluationError, PersistenceEvaluationSubject,
+        PersistenceGatePolicy, PersistenceQualityEvaluator, ProjectedCondition,
+        RelationModelSources, RelationPolicyInput, RelationPolicyRecords, activate_generation,
     },
     graph::{SemanticGraphConfig, USearchConfig},
     hash::ContentHash,
@@ -124,24 +129,22 @@ impl ConditionQualityEvaluator for FixtureConditionQualityEvaluator {
     fn evaluate_persisted(
         &self,
         field: PersistedCondition<'_>,
-    ) -> Result<ConditionQuality, ConditionQualityEvaluationError> {
+    ) -> Result<PersistedConditionQuality, ConditionQualityEvaluationError> {
         if field.coordinates().len() != ROWS || !field.condition().is_finite() {
             return Err(ConditionQualityEvaluationError::new(
                 "fixture received an invalid persisted field",
             ));
         }
-        let mut semantic =
-            crate::salt::hash::ContentHasher::new(b"fixture-semantic-fidelity-report-v1");
-        semantic.update(field.content_hash().as_bytes());
-        let mut task = crate::salt::hash::ContentHasher::new(b"fixture-task-report-v1");
-        task.update(field.content_hash().as_bytes());
-        Ok(ConditionQuality::new(
+        let semantic = gate_report(self.suite_version());
+        let subgroup = gate_report(self.suite_version());
+        let measurement = ConditionQuality::new(
             field.content_hash(),
-            semantic.finish(),
-            task.finish(),
+            ContentHash::digest(&semantic),
+            ContentHash::digest(&subgroup),
             0.99,
             1.0,
-        ))
+        );
+        PersistedConditionQuality::new(measurement, semantic, subgroup)
     }
 }
 
@@ -358,22 +361,49 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         HashSet::new(),
     );
     let ordinal = ArtifactOrdinal::try_from(0_u32).expect("zero ordinal should validate");
-    let relation_ordinals = HashMap::from([(relation_type.clone(), ordinal)]);
-    let relation_policy_inputs = [RelationPolicyInput::new(
-        ordinal,
-        RelationPolicyRecords::new(
-            Some(
-                PlacementPosterior::new(0.0, 1.0, 0.0).expect("proximal posterior should validate"),
+    let unauthorized_relation_type =
+        VersionedUrl::from_str("https://hash.ai/@secret/types/entity-type/private-link/v/1")
+            .expect("unauthorized relation type should parse");
+    let unauthorized_ordinal =
+        ArtifactOrdinal::try_from(1_u32).expect("one ordinal should validate");
+    let relation_ordinals = HashMap::from([
+        (relation_type.clone(), ordinal),
+        (unauthorized_relation_type.clone(), unauthorized_ordinal),
+    ]);
+    let relation_policy_inputs = [
+        RelationPolicyInput::new(
+            ordinal,
+            RelationPolicyRecords::new(
+                Some(
+                    PlacementPosterior::new(0.0, 1.0, 0.0)
+                        .expect("proximal posterior should validate"),
+                ),
+                None,
+                None,
             ),
-            None,
-            None,
+            OwnedCanonicalEmbedding::from_vec(
+                canonical_embeddings[..crate::salt::representation::CANONICAL_DIMENSIONS].to_vec(),
+            )
+            .expect("relation-card embedding should validate"),
+            RelationStrength::UNIT,
         ),
-        OwnedCanonicalEmbedding::from_vec(
-            canonical_embeddings[..crate::salt::representation::CANONICAL_DIMENSIONS].to_vec(),
-        )
-        .expect("relation-card embedding should validate"),
-        RelationStrength::UNIT,
-    )];
+        RelationPolicyInput::new(
+            unauthorized_ordinal,
+            RelationPolicyRecords::new(
+                Some(
+                    PlacementPosterior::new(0.0, 0.0, 1.0)
+                        .expect("overlay posterior should validate"),
+                ),
+                None,
+                None,
+            ),
+            OwnedCanonicalEmbedding::from_vec(
+                canonical_embeddings[..crate::salt::representation::CANONICAL_DIMENSIONS].to_vec(),
+            )
+            .expect("private relation-card embedding should validate"),
+            RelationStrength::UNIT,
+        ),
+    ];
     let relation_confidence = HashMap::from([(link_entity, RelationConfidence::default())]);
     let landmark_candidates = landmark_candidates();
     let importance = vec![1.0; ROWS];
@@ -384,6 +414,10 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     publish_classifier_fixture(&classifier);
 
     let mut manifest = fixture_manifest();
+    manifest.relations.classifier_model_hash =
+        super::artifact::inspect_model(&classifier, CLASSIFIER_FORMAT)
+            .expect("classifier fixture should freeze")
+            .content_hash;
     let mut projector_values = Vec::with_capacity(ROWS * PROJECTOR_DIMENSIONS);
     for row in canonical_embeddings.chunks_exact(crate::salt::representation::CANONICAL_DIMENSIONS)
     {
@@ -419,11 +453,15 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
     manifest.relations.security_mode = RelationSecurityMode::AllSnapshotLinks;
     manifest.relations.strength_head.enabled = false;
     manifest.artifacts.clear();
+    let representation_report = gate_report(&manifest.embedding.representation_audit.suite_version);
+    let relation_report = gate_report(&manifest.relations.policy_precedence_version);
+    let security_report = gate_report(&manifest.serving.authorization_adapter_version);
+    let companion_report = gate_report(&manifest.serving.canvas_companion_version);
     let gate_signer = signer();
     let external_issuer = crate::salt::release::test_support::TestExternalGateGrantIssuer::new();
     let conditions = [0.0_f32, 0.1];
     let grid_depths = [2_u8, 4, 8];
-    let source = GenerationFreezeSource {
+    let mut source = GenerationFreezeSource {
         manifest_contract: GenerationManifestContract::new(manifest)
             .expect("fixture contract should not contain generated artifacts"),
         geometry: authorize_relation_geometry(&snapshot, &relation_security),
@@ -448,7 +486,14 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             classifier,
             strength_head: None,
         },
+        external_gate_reports: ExternalGateReportDocuments::new(
+            representation_report,
+            relation_report,
+            security_report,
+            companion_report,
+        ),
     };
+    source.bind_local_authorization_attestation(snapshot.rejection_counts());
     let mut reproduction_source = source.clone();
     let placeholder = &mut reproduction_source
         .manifest_contract
@@ -469,6 +514,15 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         &CandleDevice::Cpu,
     )
     .expect("complete canonical generation should publish");
+    let relation_artifact = std::fs::read(outcome.directory.join("relations.salt"))
+        .expect("relation artifact should be readable");
+    let unauthorized_relation_type = unauthorized_relation_type.to_string();
+    assert!(
+        !relation_artifact
+            .windows(unauthorized_relation_type.len())
+            .any(|window| window == unauthorized_relation_type.as_bytes()),
+        "authorization-rejected relation types must not enter published policy artifacts"
+    );
     let stored_manifest = std::fs::read(outcome.directory.join("manifest.json"))
         .expect("manifest should be readable");
     let decoded: crate::salt::manifest::GenerationManifest =
@@ -643,6 +697,16 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         .is_err(),
         "restart loading must verify opaque legacy exports"
     );
+}
+
+fn gate_report(suite_version: &str) -> Vec<u8> {
+    serde_json::to_vec(&serde_json::json!({
+        "schemaVersion": 1,
+        "suiteVersion": suite_version,
+        "outcome": "pass",
+        "subjects": {"fixture": "fixture-subject"}
+    }))
+    .expect("fixture gate report should serialize")
 }
 
 fn generation_config<'config>(

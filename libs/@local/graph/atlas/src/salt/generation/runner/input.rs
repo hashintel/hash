@@ -7,9 +7,18 @@
 //! therefore consumes one owned value rather than a bag of independently
 //! mutable borrows.
 
+#![expect(
+    clippy::field_scoped_visibility_modifiers,
+    clippy::little_endian_bytes,
+    reason = "runner records are shared only with sibling stages and hashes use canonical \
+              little-endian scalars"
+)]
+
+use alloc::collections::BTreeSet;
 use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
+use serde::Serialize;
 use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 
 use super::{
@@ -31,7 +40,7 @@ use crate::salt::{
         RepresentationError, canonical_corpus_hash, projector_corpus_hash,
     },
     revision::{MAX_PUBLISHED_VARIANTS, VariantId},
-    snapshot::{GeometrySnapshot, SnapshotTemporalAxes},
+    snapshot::{GeometrySnapshot, LinkRejectionCounts, SnapshotTemporalAxes},
 };
 
 /// Source paths for classifier artifacts pinned while inputs are frozen.
@@ -39,6 +48,34 @@ use crate::salt::{
 pub(crate) struct RelationModelSources {
     pub classifier: Utf8PathBuf,
     pub strength_head: Option<Utf8PathBuf>,
+}
+
+/// Exact external report documents carried into immutable generation output.
+#[derive(Debug, Clone)]
+pub(crate) struct ExternalGateReportDocuments {
+    pub representation: Box<[u8]>,
+    pub relation_policy: Box<[u8]>,
+    pub security_approval: Box<[u8]>,
+    pub companion_pin: Box<[u8]>,
+    pub(super) authorization_noninterference: Box<[u8]>,
+}
+
+impl ExternalGateReportDocuments {
+    #[must_use]
+    pub(crate) fn new(
+        representation: impl Into<Box<[u8]>>,
+        relation_policy: impl Into<Box<[u8]>>,
+        security_approval: impl Into<Box<[u8]>>,
+        companion_pin: impl Into<Box<[u8]>>,
+    ) -> Self {
+        Self {
+            representation: representation.into(),
+            relation_policy: relation_policy.into(),
+            security_approval: security_approval.into(),
+            companion_pin: companion_pin.into(),
+            authorization_noninterference: Box::new([]),
+        }
+    }
 }
 
 /// Owned optional type-context matrix in generation-row order.
@@ -185,7 +222,10 @@ impl RelationPolicyRecords {
     }
 
     #[inline]
-    fn with_prediction(self, policy: crate::salt::classifier::ClassifierOutput) -> PolicyEvidence {
+    const fn with_prediction(
+        self,
+        policy: crate::salt::classifier::ClassifierOutput,
+    ) -> PolicyEvidence {
         PolicyEvidence {
             human_override: self.human_override,
             human_reviewed: self.human_reviewed,
@@ -247,6 +287,98 @@ pub(crate) struct GenerationFreezeSource {
     pub anchors: Box<[CoordinateSupportRow]>,
     pub signals: FrozenCanonicalSignals,
     pub models: RelationModelSources,
+    pub external_gate_reports: ExternalGateReportDocuments,
+}
+
+impl GenerationFreezeSource {
+    /// Binds the permission result to the local authorization attestation.
+    ///
+    /// The supplied report identity already commits to the actor and extracted
+    /// candidates. This second domain binds the revision actually observed by
+    /// permission checks, the admitted geometry, and aggregate fail-closed
+    /// exclusions before the local authority signs the gate evidence.
+    pub(super) fn bind_local_authorization_attestation(
+        &mut self,
+        rejection_counts: LinkRejectionCounts,
+    ) {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct AuthorizationReport<'suite> {
+            schema_version: u32,
+            suite_version: &'suite str,
+            outcome: &'static str,
+            subjects: AuthorizationSubjects,
+            measurements: AuthorizationMeasurements,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct AuthorizationSubjects {
+            geometry: ContentHash,
+            allow_list: ContentHash,
+            authorization_revision: ContentHash,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct AuthorizationMeasurements {
+            rejected_link_entities: usize,
+            rejected_left_endpoints: usize,
+            rejected_right_endpoints: usize,
+            rejected_entity_types: usize,
+        }
+
+        let mut hasher =
+            ContentHasher::new(b"hash.graph.atlas.fit.local-authorization-attestation.v1");
+        hasher.update(
+            self.manifest_contract
+                .0
+                .relations
+                .authorization_noninterference_report_hash
+                .as_bytes(),
+        );
+        hasher.update(self.geometry.content_hash().as_bytes());
+        for count in [
+            rejection_counts.link_entity,
+            rejection_counts.left_endpoint,
+            rejection_counts.right_endpoint,
+            rejection_counts.entity_type,
+        ] {
+            hasher.update(
+                &u64::try_from(count)
+                    .expect("authorization rejection count should fit u64")
+                    .to_le_bytes(),
+            );
+        }
+        let attestation_hash = hasher.finish();
+        let report = AuthorizationReport {
+            schema_version: 1,
+            suite_version: &self
+                .manifest_contract
+                .0
+                .serving
+                .authorization_adapter_version,
+            outcome: "pass",
+            subjects: AuthorizationSubjects {
+                geometry: self.geometry.content_hash(),
+                allow_list: self.geometry.allow_list_hash(),
+                authorization_revision: self.geometry.authorization_revision().content_hash(),
+            },
+            measurements: AuthorizationMeasurements {
+                rejected_link_entities: rejection_counts.link_entity,
+                rejected_left_endpoints: rejection_counts.left_endpoint,
+                rejected_right_endpoints: rejection_counts.right_endpoint,
+                rejected_entity_types: rejection_counts.entity_type,
+            },
+        };
+        self.external_gate_reports.authorization_noninterference = serde_json::to_vec(&report)
+            .expect("the authorization report contains only JSON-compatible primitives")
+            .into_boxed_slice();
+        self.manifest_contract
+            .0
+            .relations
+            .authorization_noninterference_report_hash = attestation_hash;
+    }
 }
 
 /// Extracted generation data awaiting permission and relation-security admission.
@@ -266,6 +398,7 @@ pub(crate) struct StoreBackedGenerationSource {
     pub anchors: Box<[CoordinateSupportRow]>,
     pub signals: FrozenCanonicalSignals,
     pub models: RelationModelSources,
+    pub external_gate_reports: ExternalGateReportDocuments,
 }
 
 impl StoreBackedGenerationSource {
@@ -291,6 +424,7 @@ impl StoreBackedGenerationSource {
             anchors: self.anchors,
             signals: self.signals,
             models: self.models,
+            external_gate_reports: self.external_gate_reports,
         }
     }
 }
@@ -319,6 +453,7 @@ pub(crate) struct FrozenGenerationInput {
     pub(super) anchors: Box<[CoordinateSupportRow]>,
     pub(super) signals: FrozenCanonicalSignals,
     pub(super) classifier: ModelArtifact,
+    pub(super) external_gate_reports: ExternalGateReportDocuments,
 }
 
 impl FrozenGenerationInput {
@@ -341,7 +476,7 @@ impl FrozenGenerationInput {
     }
 
     /// Binds the verified store receipt before generation identity is derived.
-    pub(super) fn bind_extraction_receipt(&mut self, receipt_hash: ContentHash) {
+    pub(super) const fn bind_extraction_receipt(&mut self, receipt_hash: ContentHash) {
         self.manifest_contract
             .0
             .input_snapshot
@@ -382,8 +517,16 @@ pub(crate) fn freeze_generation_input(
         );
     }
     let rows = source.identities.len();
+    validate_external_gate_reports(&source.external_gate_reports)?;
     validate_and_sort_anchors(&mut source.anchors, rows)?;
     let classifier = inspect_model(&source.models.classifier, CLASSIFIER_FORMAT)?;
+    let expected_classifier = source.manifest_contract.0.relations.classifier_model_hash;
+    if classifier.content_hash != expected_classifier {
+        return Err(CanonicalGenerationError::ClassifierContract {
+            expected: expected_classifier,
+            actual: classifier.content_hash,
+        });
+    }
     if source.manifest_contract.0.relations.security_mode != source.geometry.mode() {
         return Err(CanonicalGenerationError::SecurityPolicy);
     }
@@ -442,6 +585,7 @@ pub(crate) fn freeze_generation_input(
     )?;
     require_rows("density mass", rows, source.signals.density_mass.len())?;
     require_rows("labels", rows, source.signals.labels.len())?;
+    retain_authorized_relation_domain(&mut source)?;
     let coincident_gate = coincident_gate(&source.manifest_contract.0)?;
     let (relation_policies, relation_policy_input_hash) = derive_relation_policies(
         &source.relation_policy_inputs,
@@ -452,11 +596,17 @@ pub(crate) fn freeze_generation_input(
     validate_strength_control(&source.models, &relation_policies)?;
 
     let mut relation_confidence = HashMap::with_capacity(source.geometry.links().len());
+    let mut relation_links = HashSet::with_capacity(source.geometry.links().len());
     let relation_instances = source
         .geometry
         .links()
         .iter()
         .map(|link| {
+            if !relation_links.insert(link.link_entity()) {
+                return Err(CanonicalGenerationError::DuplicateRelationLink {
+                    link: link.link_entity(),
+                });
+            }
             let relation_type = link.relation_type();
             let relation = source
                 .relation_ordinals
@@ -512,7 +662,32 @@ pub(crate) fn freeze_generation_input(
         anchors: source.anchors,
         signals: source.signals,
         classifier,
+        external_gate_reports: source.external_gate_reports,
     })
+}
+
+fn validate_external_gate_reports(
+    reports: &ExternalGateReportDocuments,
+) -> Result<(), CanonicalGenerationError> {
+    const MAXIMUM_REPORT_BYTES: usize = 16 * 1_024 * 1_024;
+    for (gate, document) in [
+        ("representation", reports.representation.as_ref()),
+        ("relation-policy", reports.relation_policy.as_ref()),
+        ("security-approval", reports.security_approval.as_ref()),
+        ("companion-pin", reports.companion_pin.as_ref()),
+        (
+            "authorization-noninterference",
+            reports.authorization_noninterference.as_ref(),
+        ),
+    ] {
+        if document.is_empty() || document.len() > MAXIMUM_REPORT_BYTES {
+            return Err(CanonicalGenerationError::GateReport {
+                gate,
+                reason: "report size is outside the supported envelope",
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_and_sort_anchors(
@@ -616,6 +791,88 @@ fn derive_relation_policies(
     Ok((policies, input_hash.finish()))
 }
 
+fn retain_authorized_relation_domain(
+    source: &mut GenerationFreezeSource,
+) -> Result<(), CanonicalGenerationError> {
+    validate_relation_input_domain(&source.relation_ordinals, &source.relation_policy_inputs)?;
+    let authorized_types = source
+        .geometry
+        .links()
+        .iter()
+        .map(|link| link.relation_type().clone())
+        .collect::<BTreeSet<_>>();
+    let mut ordinals = HashMap::with_capacity(authorized_types.len());
+    let mut inputs = Vec::with_capacity(authorized_types.len());
+    for (index, relation_type) in authorized_types.into_iter().enumerate() {
+        let old_ordinal = source
+            .relation_ordinals
+            .get(&relation_type)
+            .copied()
+            .ok_or_else(|| CanonicalGenerationError::RelationType {
+                relation_type: relation_type.clone(),
+            })?;
+        let new_ordinal = ArtifactOrdinal::try_from(index).map_err(|_error| {
+            CanonicalGenerationError::RelationPolicyCapacity {
+                count: source.relation_policy_inputs.len(),
+            }
+        })?;
+        let mut input = source
+            .relation_policy_inputs
+            .get(old_ordinal.as_usize())
+            .cloned()
+            .ok_or_else(|| CanonicalGenerationError::RelationOrdinal {
+                relation_type: relation_type.clone(),
+                ordinal: old_ordinal,
+                policies: source.relation_policy_inputs.len(),
+            })?;
+        input.relation = new_ordinal;
+        ordinals.insert(relation_type, new_ordinal);
+        inputs.push(input);
+    }
+    source.relation_ordinals = ordinals;
+    source.relation_policy_inputs = inputs.into_boxed_slice();
+    Ok(())
+}
+
+fn validate_relation_input_domain(
+    ordinals: &HashMap<VersionedUrl, ArtifactOrdinal>,
+    inputs: &[RelationPolicyInput],
+) -> Result<(), CanonicalGenerationError> {
+    if inputs.len() != ordinals.len() {
+        return Err(CanonicalGenerationError::RelationPolicyCount {
+            expected: ordinals.len(),
+            actual: inputs.len(),
+        });
+    }
+    let mut seen = HashSet::with_capacity(ordinals.len());
+    for (relation_type, &ordinal) in ordinals {
+        if ordinal.as_usize() >= inputs.len() {
+            return Err(CanonicalGenerationError::RelationOrdinal {
+                relation_type: relation_type.clone(),
+                ordinal,
+                policies: inputs.len(),
+            });
+        }
+        if !seen.insert(ordinal) {
+            return Err(CanonicalGenerationError::DuplicateRelationOrdinal { ordinal });
+        }
+    }
+    for (index, input) in inputs.iter().enumerate() {
+        let expected = ArtifactOrdinal::try_from(index).map_err(|_error| {
+            CanonicalGenerationError::RelationPolicyCapacity {
+                count: inputs.len(),
+            }
+        })?;
+        if input.relation != expected {
+            return Err(CanonicalGenerationError::RelationPolicyOrdinal {
+                index,
+                actual: input.relation,
+            });
+        }
+    }
+    Ok(())
+}
+
 fn coincident_gate(
     manifest: &GenerationManifest,
 ) -> Result<CoincidentGate, CanonicalGenerationError> {
@@ -645,7 +902,7 @@ fn coincident_gate(
     clippy::little_endian_bytes,
     reason = "persistent cross-platform stratification identities require little-endian scalars"
 )]
-pub(super) fn representation_stratification_hash(
+pub(crate) fn representation_stratification_hash(
     candidates: &[LandmarkCandidate],
     roles: &[EntityRole],
 ) -> Result<ContentHash, CanonicalGenerationError> {

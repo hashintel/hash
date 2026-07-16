@@ -32,8 +32,8 @@ use core::{
 
 pub(crate) use artifact::{PublishedRepresentations, publish_representations};
 pub(crate) use audit::{
-    AUDITED_PREFIX_DIMENSIONS, RepresentationAuditError, RepresentationAuditReport,
-    prefix_corpus_hash,
+    AUDITED_NEIGHBORS, AUDITED_PREFIX_DIMENSIONS, RepresentationAuditError,
+    RepresentationAuditReport, prefix_corpus_hash,
 };
 
 use crate::salt::hash::{ContentHash, ContentHasher};

@@ -18,11 +18,19 @@ The generation runner still:
 - samples an `AuthorizationRevisionProvider` before and after those permission calls;
 - binds the observed revision and extraction receipt identity into the frozen input;
 - publishes a candidate before activation; and
+- withdraws that candidate's discoverability marker under the activation lock
+  when the final optimistic revision read has changed; and
 - verifies artifacts, signatures, and the projector checkpoint when reopening the
   active generation.
 
 These checks detect some authorization changes. They do not make permission
 evaluation and filesystem activation one atomic operation.
+
+The local fitter records two distinct WAL-derived values in its receipt:
+`extractionAuthorizationRevision` is sampled inside the repeatable-read
+extraction transaction, while `authorizationRevision` is sampled around the
+later permission reads and is the revision bound into the generated manifest.
+They are intentionally not presented as one linearized revision.
 
 ## Accepted gap
 
@@ -37,9 +45,10 @@ An interim provider may:
 2. compare it with the revision frozen by the runner; and
 3. return a no-op lease when they match.
 
-That is an optimistic recheck only. A mutation can commit after the recheck and
-before activation. A stale generation could therefore become active until the
-next fit or operational correction.
+That is an optimistic recheck only. The current local path removes the candidate
+marker if that recheck detects drift, but a mutation can still commit after the
+recheck and before activation. A stale generation could therefore become active
+until the next fit or operational correction.
 
 Extraction snapshot provenance has the same limitation. An application-issued
 receipt can bind the actor, temporal axes, payload hashes, and frozen-input hash,

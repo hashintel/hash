@@ -1,28 +1,21 @@
 //! Command-line envelope for fitting and serving Atlas generations.
 //!
-//! `fit` delegates to an injected [`AtlasTrainer`], keeping extraction and
-//! deployment policy outside the crate-level CLI. `serve` is complete: it
-//! starts the Axum 0.8 router over cryptographically verified active state.
+//! `fit` loads one versioned worker configuration and one versioned request,
+//! then delegates their bounded bytes to an [`AtlasTrainer`]. `serve` starts
+//! the Axum 0.8 router over cryptographically verified active state.
 //!
 //! # Fitting boundary
 //!
-//! The command intentionally does not standardize a source-extraction JSON
-//! schema. `fit --request <path>` reads at most 16 MiB, requires syntactically
-//! valid JSON, and gives the exact bytes plus source path to [`AtlasTrainer`].
-//! An embedding application owns deserialization, credentials, graph-store
-//! composition, quality-suite adapters, release authorities, and backend
-//! selection.
+//! `fit --config <worker.json> --request <request.json>` reads each document
+//! at most 16 MiB and gives the exact bytes plus source paths to the trainer.
+//! [`crate::fit::ProductionAtlasTrainer`] implements the checked-in v1 schemas,
+//! direct current-snapshot PostgreSQL extraction, local M0 evidence, explicit
+//! activation, and independent restart loading.
 //!
 //! A successful trainer is expected to freeze authorized inputs, generate and
 //! verify every artifact, publish an inactive candidate, explicitly activate
 //! it, and reopen it through restart verification before returning
 //! [`FitReceipt`]. The CLI prints only that stable receipt as one JSON line.
-//!
-//! [`UnconfiguredAtlasTrainer`] always rejects `fit`; it is used by the
-//! standalone binary so serving can ship without pretending that a production
-//! extractor has been configured. Applications normally inject
-//! [`CallbackAtlasTrainer`] or their own trait implementation through
-//! [`run_with`].
 //!
 //! # Serving boundary
 //!
@@ -54,6 +47,8 @@ use serde::Serialize;
 use crate::api::{AtlasApiConfiguration, AtlasApiState, router};
 
 const MAX_COMMAND_JSON_BYTES: u64 = 16 * 1024 * 1024;
+/// Version of the stable JSON document emitted by `fit`.
+pub const FIT_RECEIPT_SCHEMA_VERSION: u32 = 1;
 
 /// Top-level HASH Graph Atlas command.
 #[derive(Debug, Parser)]
@@ -74,11 +69,25 @@ enum AtlasSubcommand {
 
 /// Input to an injected production fitting adapter.
 pub struct FitRequest {
+    configuration_source: Utf8PathBuf,
+    configuration_bytes: Bytes,
     source: Utf8PathBuf,
     bytes: Bytes,
 }
 
 impl FitRequest {
+    /// Returns the path from which the worker configuration was loaded.
+    #[must_use]
+    pub fn configuration_source(&self) -> &Utf8Path {
+        &self.configuration_source
+    }
+
+    /// Borrows the bounded worker-configuration JSON bytes.
+    #[must_use]
+    pub fn configuration_bytes(&self) -> &[u8] {
+        &self.configuration_bytes
+    }
+
     /// Returns the path from which the request was loaded.
     #[must_use]
     pub fn source(&self) -> &Utf8Path {
@@ -92,9 +101,126 @@ impl FitRequest {
     }
 }
 
+/// Provenance class for one mandatory release gate.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FitGateAssuranceClass {
+    /// The SALT runner measured the immutable generated output.
+    RunnerMeasured,
+    /// A content-addressed external report supplied the measurement.
+    ExternallyMeasured,
+    /// The local worker measured a deliberately reduced M0 cohort.
+    PartiallyMeasured,
+    /// The worker attested a documented local operational claim.
+    LocalAttestation,
+}
+
+/// Stable public name of one M0 release gate.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FitGate {
+    /// Full-to-prefix representation quality.
+    Representation,
+    /// Approximate-neighbor recall against the exact oracle.
+    AnnRecall,
+    /// Semantic-neighbor preservation in the selected field.
+    SemanticFidelity,
+    /// Classifier and relation-policy governance.
+    RelationPolicy,
+    /// Relation-energy improvement over the baseline field.
+    RelationSatisfaction,
+    /// Two-sided merge-tree persistence diagnostics.
+    MergeTreePersistence,
+    /// Eligible-cohort behavior relative to the complete corpus.
+    SubgroupBehavior,
+    /// Coordinate influence after visibility filtering.
+    AuthorizationNoninterference,
+    /// Extraction and permission-snapshot consistency.
+    SnapshotConsistency,
+    /// Independent reproduction of the generated output.
+    Reproducibility,
+    /// Operator-owned security review.
+    SecurityApproval,
+    /// Compatibility of the pinned canvas companion.
+    CompanionPin,
+}
+
+/// Assurance classification attached to one release gate.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FitGateAssurance {
+    /// Gate receiving this classification.
+    pub gate: FitGate,
+    /// Origin and strength of the gate's evidence.
+    pub assurance: FitGateAssuranceClass,
+}
+
+/// Monotonic wall-clock timings for one fit attempt.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[expect(
+    clippy::struct_field_names,
+    reason = "the public receipt keeps every timing unit explicit"
+)]
+pub struct FitTiming {
+    /// Worker, request, secrets, and input-bundle loading time.
+    pub configuration_milliseconds: u64,
+    /// PostgreSQL connection and repeatable-read extraction time.
+    pub extraction_milliseconds: u64,
+    /// SALT source, evaluator, signer, and profile preparation time.
+    pub preparation_milliseconds: u64,
+    /// Permission, generation, publication, activation, and reload time.
+    pub generation_milliseconds: u64,
+    /// Projector training subset of generation time.
+    pub projector_training_milliseconds: u64,
+    /// Complete trainer wall time.
+    pub total_milliseconds: u64,
+}
+
 /// Stable command output from one completed fit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct FitReceipt {
+    /// Version of this receipt document.
+    pub schema_version: u32,
+    /// Caller identity of the fit request.
+    pub request_id: uuid::Uuid,
+    /// Exact bounded request-document identity.
+    pub request_hash: String,
+    /// Exact bounded worker-configuration identity, excluding loaded secrets.
+    pub worker_configuration_hash: String,
+    /// Verified content identity of the input-bundle document.
+    pub input_bundle_hash: String,
+    /// Identity of the resolved immutable numerical recipe.
+    pub profile_hash: String,
+    /// Explicit assurance profile used by the worker.
+    pub assurance: String,
+    /// Provenance class of every mandatory M0 release gate.
+    pub gate_assurance: Vec<FitGateAssurance>,
+    /// Actor whose visibility defined the atlas.
+    pub actor_id: uuid::Uuid,
+    /// Canonical hash of the sorted requested web scope.
+    pub web_scope_hash: String,
+    /// Application-derived repeatable-read snapshot identity.
+    pub store_snapshot_identity: String,
+    /// WAL-derived authorization revision sampled inside extraction.
+    pub extraction_authorization_revision: String,
+    /// WAL-derived authorization revision sampled around permission reads.
+    pub authorization_revision: String,
+    /// Exact streamed ontology provenance identity.
+    pub ontology_hash: String,
+    /// Exact streamed knowledge provenance identity.
+    pub knowledge_hash: String,
+    /// Exact extraction payload and link-type-selection identity.
+    pub extraction_provenance_hash: String,
+    /// Number of complete 3,072-dimensional entity rows.
+    pub entity_count: usize,
+    /// Number of admitted extraction-time relation candidates.
+    pub link_count: usize,
+    /// Number of selected relation types.
+    pub relation_type_count: usize,
+    /// Links for which deterministic first-link-type selection was required.
+    pub ambiguous_link_type_count: usize,
     /// Content-addressed generation identity.
     pub generation: String,
     /// Canonical generation-manifest content hash.
@@ -103,6 +229,12 @@ pub struct FitReceipt {
     pub release_report_hash: String,
     /// Explicit compare-and-swap activation result.
     pub activation: FitActivation,
+    /// Whether a fresh serving reader reverified the activated release.
+    pub restart_verified: bool,
+    /// Measured phase timings for the completed attempt.
+    pub timing: FitTiming,
+    /// Generated trust configuration for the read-only REST server.
+    pub serving_configuration: String,
 }
 
 /// Explicit activation result reported by a fitting adapter.
@@ -174,10 +306,9 @@ impl fmt::Display for AtlasFitError {
 
 impl Error for AtlasFitError {}
 
-/// Default fitting adapter used by the standalone serving binary.
+/// Explicitly disabled fitting adapter for applications that only embed serving.
 ///
-/// Applications should replace this with [`CallbackAtlasTrainer`] or their
-/// own typed [`AtlasTrainer`] implementation.
+/// The standalone binary uses [`crate::fit::ProductionAtlasTrainer`].
 #[derive(Debug, Default, Copy, Clone)]
 pub struct UnconfiguredAtlasTrainer;
 
@@ -244,7 +375,10 @@ where
 
 #[derive(Debug, clap::Args)]
 struct FitCommand {
-    /// JSON request consumed by the configured fitting adapter.
+    /// Versioned JSON configuration for the dedicated fitting worker.
+    #[arg(long)]
+    config: Utf8PathBuf,
+    /// Versioned JSON request for one current-snapshot fit.
     #[arg(long)]
     request: Utf8PathBuf,
 }
@@ -263,11 +397,17 @@ async fn run_fit<Trainer>(command: FitCommand, trainer: &Trainer) -> Result<(), 
 where
     Trainer: AtlasTrainer + ?Sized,
 {
+    let configuration_bytes = read_bounded(&command.config, MAX_COMMAND_JSON_BYTES)?;
+    serde_json::from_slice::<serde_json::Value>(&configuration_bytes).map_err(|error| {
+        AtlasCliError::new("Atlas fit worker configuration is not valid JSON", error)
+    })?;
     let bytes = read_bounded(&command.request, MAX_COMMAND_JSON_BYTES)?;
     serde_json::from_slice::<serde_json::Value>(&bytes)
         .map_err(|error| AtlasCliError::new("Atlas fit request is not valid JSON", error))?;
     let receipt = trainer
         .fit(FitRequest {
+            configuration_source: command.config,
+            configuration_bytes: Bytes::from(configuration_bytes),
             source: command.request,
             bytes: Bytes::from(bytes),
         })
@@ -397,15 +537,88 @@ impl Error for AtlasCliError {
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
+    use std::sync::Mutex;
+
     use super::*;
 
     #[test]
     fn command_schema_accepts_fit_and_serve() {
-        assert!(
-            AtlasCommand::try_parse_from(["atlas", "fit", "--request", "request.json"]).is_ok()
+        AtlasCommand::try_parse_from([
+            "atlas",
+            "fit",
+            "--config",
+            "worker.json",
+            "--request",
+            "request.json",
+        ])
+        .expect("fit command should parse");
+        AtlasCommand::try_parse_from(["atlas", "serve", "--config", "server.json"])
+            .expect("serve command should parse");
+    }
+
+    #[tokio::test]
+    async fn fit_forwards_exact_bounded_documents_to_the_trainer() {
+        let temporary = tempfile::tempdir().expect("temporary directory should be created");
+        let configuration = temporary.path().join("worker.json");
+        let request = temporary.path().join("request.json");
+        let configuration_bytes = br#"{"schemaVersion":1,"worker":"exact"}"#;
+        let request_bytes = br#"{"schemaVersion":1,"request":"exact"}"#;
+        std::fs::write(&configuration, configuration_bytes)
+            .expect("configuration fixture should be written");
+        std::fs::write(&request, request_bytes).expect("request fixture should be written");
+
+        let observed = Arc::new(Mutex::new(None));
+        let callback_observed = Arc::clone(&observed);
+        let trainer = CallbackAtlasTrainer::new(move |fit_request: FitRequest| {
+            let callback_observed = Arc::clone(&callback_observed);
+            async move {
+                *callback_observed
+                    .lock()
+                    .expect("observation lock should not be poisoned") = Some((
+                    fit_request.configuration_source().to_owned(),
+                    fit_request.configuration_bytes().to_vec(),
+                    fit_request.source().to_owned(),
+                    fit_request.bytes().to_vec(),
+                ));
+                Err::<FitReceipt, _>(AtlasFitError::new("trainer sentinel"))
+            }
+        });
+
+        let error = run_with(
+            [
+                "atlas",
+                "fit",
+                "--config",
+                configuration
+                    .to_str()
+                    .expect("temporary configuration path should be UTF-8"),
+                "--request",
+                request
+                    .to_str()
+                    .expect("temporary request path should be UTF-8"),
+            ],
+            &trainer,
+        )
+        .await
+        .expect_err("the sentinel trainer should fail");
+        assert!(error.to_string().contains("trainer sentinel"));
+
+        let observed = observed
+            .lock()
+            .expect("observation lock should not be poisoned")
+            .take()
+            .expect("trainer should observe the request");
+        assert_eq!(
+            observed.0,
+            Utf8PathBuf::from_path_buf(configuration)
+                .expect("temporary configuration path should be UTF-8")
         );
-        assert!(
-            AtlasCommand::try_parse_from(["atlas", "serve", "--config", "server.json"]).is_ok()
+        assert_eq!(observed.1, configuration_bytes);
+        assert_eq!(
+            observed.2,
+            Utf8PathBuf::from_path_buf(request).expect("temporary request path should be UTF-8")
         );
+        assert_eq!(observed.3, request_bytes);
     }
 }

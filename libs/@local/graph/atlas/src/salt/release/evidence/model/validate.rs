@@ -9,6 +9,7 @@ use super::{
     ExternalGateVerifierSet, GateEvidenceError, GateEvidencePayload, GenerationManifest,
     MINIMUM_RECALL, RecallAudit, ReleaseHead, reproducibility_output_hash,
 };
+use crate::salt::manifest::ArtifactRole;
 
 #[expect(
     clippy::too_many_lines,
@@ -25,7 +26,8 @@ pub(super) fn payload(
         GateEvidencePayload::Representation(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.embedding.representation_audit.suite_version
-                || grant.report() != manifest.embedding.representation_audit.content_hash()
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::RepresentationReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -111,7 +113,8 @@ pub(super) fn payload(
             let comparison = &canonical.persistence_comparison;
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != comparison.suite_version
-                || grant.report() != comparison.content_hash()
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::MergeTreePersistenceReport, gate)?
                 || *report != comparison.content_hash()
                 || *candidate_tree != comparison.candidate_tree_hash
                 || *reference_tree != comparison.reference_tree_hash
@@ -167,7 +170,8 @@ pub(super) fn payload(
             grant.verify_pinned(head, gate, external_verifiers)?;
             let canonical = canonical_variant(manifest);
             if grant.suite_version() != canonical.quality_suite_version
-                || grant.report() != canonical.semantic_fidelity_report_hash
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::SemanticFidelityReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -179,7 +183,8 @@ pub(super) fn payload(
             grant.verify_pinned(head, gate, external_verifiers)?;
             let canonical = canonical_variant(manifest);
             if grant.suite_version() != canonical.quality_suite_version
-                || grant.report() != canonical.subgroup_report_hash
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::SubgroupBehaviorReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -190,7 +195,8 @@ pub(super) fn payload(
         GateEvidencePayload::CompanionPin(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.serving.canvas_companion_version
-                || grant.report() != manifest.serving.companion_compatibility_report_hash
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::CompanionPinReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -201,7 +207,8 @@ pub(super) fn payload(
         GateEvidencePayload::RelationPolicy(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.relations.policy_precedence_version
-                || grant.report() != manifest.relations.policy_evaluation_report_hash
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::RelationPolicyReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -212,7 +219,12 @@ pub(super) fn payload(
         GateEvidencePayload::AuthorizationNoninterference(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.serving.authorization_adapter_version
-                || grant.report() != manifest.relations.authorization_noninterference_report_hash
+                || grant.report()
+                    != report_artifact(
+                        manifest,
+                        ArtifactRole::AuthorizationNoninterferenceReport,
+                        gate,
+                    )?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -223,7 +235,8 @@ pub(super) fn payload(
         GateEvidencePayload::SecurityApproval(grant) => {
             grant.verify_pinned(head, gate, external_verifiers)?;
             if grant.suite_version() != manifest.serving.authorization_adapter_version
-                || grant.report() != manifest.relations.security_approval_report_hash
+                || grant.report()
+                    != report_artifact(manifest, ArtifactRole::SecurityApprovalReport, gate)?
             {
                 return Err(GateEvidenceError::Failed {
                     gate,
@@ -236,6 +249,22 @@ pub(super) fn payload(
         }
     }
     Ok(())
+}
+
+fn report_artifact(
+    manifest: &GenerationManifest,
+    role: ArtifactRole,
+    gate: crate::salt::release::GateId,
+) -> Result<crate::salt::hash::ContentHash, GateEvidenceError> {
+    manifest
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.role == role)
+        .map(|artifact| artifact.content_hash)
+        .ok_or(GateEvidenceError::Failed {
+            gate,
+            reason: "persisted external gate report artifact is absent",
+        })
 }
 
 fn canonical_variant(

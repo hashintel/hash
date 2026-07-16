@@ -1,5 +1,10 @@
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "release identities use canonical little-endian scalar encodings"
+)]
+
+use alloc::collections::BTreeSet;
 use core::fmt;
-use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
@@ -80,6 +85,17 @@ pub(crate) struct ReleaseHead {
     pub generation: GenerationId,
     pub data: DataRevision,
     pub manifest: ContentHash,
+}
+
+#[cfg(test)]
+impl ReleaseHead {
+    pub(crate) fn for_test() -> Self {
+        Self {
+            generation: GenerationId::new(ContentHash::digest(b"fixture-generation")),
+            data: DataRevision::ZERO,
+            manifest: ContentHash::digest(b"fixture-manifest"),
+        }
+    }
 }
 
 /// Result and evidence identity for one release gate.

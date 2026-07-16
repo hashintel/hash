@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "requestId": "00000000-0000-0000-0000-000000000000",
+  "webIds": ["00000000-0000-0000-0000-000000000001"],
+  "sample": {
+    "targetEntities": 100000,
+    "seed": 0
+  },
+  "limits": {
+    "maximumEntities": 100000,
+    "maximumLinks": 1000000,
+    "maximumRelationTypes": 4096,
+    "maximumRequiredTypesPerLink": 1024,
+    "maximumLabelBytes": 1048576
+  },
+  "inputBundle": {
+    "path": "m0-local-input-bundle.json",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "assurance": "m0_local_attestation"
+}

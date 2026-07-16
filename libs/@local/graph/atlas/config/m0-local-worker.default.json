@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "atlasRoot": "var/atlas",
+  "inputRoot": "inputs",
+  "servingConfigOutput": "var/atlas-api.json",
+  "postgres": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "user": "graph",
+    "database": "graph",
+    "passwordFile": "secrets/postgres.password"
+  },
+  "actorId": "00000000-0000-0000-0000-000000000000",
+  "cpuThreads": 8,
+  "profile": "m0-local-v1",
+  "authorities": {
+    "release": {
+      "authority": "local-m0-release-v1",
+      "secretKeyFile": "secrets/release.key",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "representation": {
+      "authority": "local-m0-representation-v1",
+      "issuerCommand": "issuers/representation",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "semanticFidelity": {
+      "authority": "local-m0-semantic-fidelity-v1",
+      "issuerCommand": "issuers/semantic-fidelity",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "relationPolicy": {
+      "authority": "local-m0-relation-policy-v1",
+      "issuerCommand": "issuers/relation-policy",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "mergeTreePersistence": {
+      "authority": "local-m0-merge-tree-persistence-v1",
+      "issuerCommand": "issuers/merge-tree-persistence",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "subgroupBehavior": {
+      "authority": "local-m0-subgroup-behavior-v1",
+      "issuerCommand": "issuers/subgroup-behavior",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "authorizationNoninterference": {
+      "authority": "local-m0-authorization-noninterference-v1",
+      "issuerCommand": "issuers/authorization-noninterference",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "securityApproval": {
+      "authority": "local-m0-security-approval-v1",
+      "issuerCommand": "issuers/security-approval",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "companionPin": {
+      "authority": "local-m0-companion-pin-v1",
+      "issuerCommand": "issuers/companion-pin",
+      "expectedPublicKey": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}

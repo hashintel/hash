@@ -64,8 +64,8 @@ pub(crate) use self::{
     evidence::{
         ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport, ExternalGateVerifierSet,
         GateEvidence, GateEvidenceError, GateEvidencePayload, GateEvidenceSet, GateSigner,
-        GateVerifier, SignedExternalGateGrantIssuer, TrustedExternalGateAuthority,
-        load_gate_evidence, reproducibility_output_hash,
+        GateVerifier, TrustedExternalGateAuthority, load_gate_evidence,
+        reproducibility_output_hash,
     },
     gate::{GateId, GateOutcome, GateReport, GatedRelease, ReleaseHead},
 };

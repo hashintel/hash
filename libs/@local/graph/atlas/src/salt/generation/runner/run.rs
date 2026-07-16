@@ -16,6 +16,7 @@ use super::{
         running_binary_fingerprint, runtime_config_hash,
     },
     manifest::{CanonicalGateMeasurements, populate_manifest},
+    reports::publish_gate_reports,
 };
 #[cfg(test)]
 use super::{GenerationFreezeSource, input::freeze_generation_input};
@@ -216,6 +217,7 @@ where
     let representations = input.representations();
     let type_context = input.type_context();
     let mut manifest = input.begin_manifest();
+    manifest.reproducibility.code_revision = format!("binary-sha256:{binary_fingerprint}");
     manifest.reproducibility.binary_fingerprint = binary_fingerprint;
     manifest
         .reproducibility
@@ -501,6 +503,13 @@ where
         config.persistence_policy,
         config.persistence_evaluator,
     )?;
+    let gate_reports = publish_gate_reports(
+        &directory,
+        input,
+        &canonical,
+        &canonical_quality,
+        &persistence_comparison,
+    )?;
     let legacy = export_legacy_canvas(
         &directory,
         LegacyLayoutTag::new(config.legacy_tag)?,
@@ -521,7 +530,7 @@ where
         persistence_reference_source,
         &canonical,
         config.condition_quality_evaluator.suite_version(),
-        canonical_quality,
+        canonical_quality.measurement(),
         config.condition_quality_policy,
         quantization,
         &canonical_artifacts.base.ranked,
@@ -559,6 +568,7 @@ where
         config.landmarks,
         config.attraction,
         config.protection,
+        gate_reports,
     )?;
     let canonical_manifest = manifest
         .variants

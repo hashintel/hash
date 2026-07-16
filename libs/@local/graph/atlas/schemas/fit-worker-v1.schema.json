@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FitWorkerConfigurationV1",
+  "description": "Complete process configuration for one dedicated fit worker.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "atlasRoot": {
+      "type": "string"
+    },
+    "inputRoot": {
+      "type": "string"
+    },
+    "servingConfigOutput": {
+      "type": "string"
+    },
+    "postgres": {
+      "$ref": "#/$defs/FitPostgresConfigurationV1"
+    },
+    "actorId": {
+      "description": "Actor whose visibility defines this atlas.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "cpuThreads": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 1,
+      "maximum": 128
+    },
+    "profile": {
+      "$ref": "#/$defs/FitNumericalProfile"
+    },
+    "authorities": {
+      "$ref": "#/$defs/FitAuthoritiesV1"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "atlasRoot",
+    "inputRoot",
+    "servingConfigOutput",
+    "postgres",
+    "actorId",
+    "cpuThreads",
+    "profile",
+    "authorities"
+  ],
+  "$defs": {
+    "FitPostgresConfigurationV1": {
+      "description": "PostgreSQL connection settings for the dedicated fit worker.",
+      "type": "object",
+      "properties": {
+        "host": {
+          "description": "PostgreSQL host. M0 permits loopback hosts only.",
+          "type": "string"
+        },
+        "port": {
+          "description": "PostgreSQL TCP port.",
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "user": {
+          "description": "PostgreSQL role used by extraction and permission reads.",
+          "type": "string"
+        },
+        "database": {
+          "description": "HASH Graph database name.",
+          "type": "string"
+        },
+        "passwordFile": {
+          "description": "UTF-8 file containing only the PostgreSQL password.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["host", "port", "user", "database", "passwordFile"]
+    },
+    "FitNumericalProfile": {
+      "description": "Immutable numerical profile selected by a fit request.",
+      "oneOf": [
+        {
+          "description": "Recommended current-snapshot M0 profile.",
+          "type": "string",
+          "const": "m0-local-v1"
+        }
+      ]
+    },
+    "FitAuthoritiesV1": {
+      "description": "Local release signer and eight out-of-process gate authorities.",
+      "type": "object",
+      "properties": {
+        "release": {
+          "$ref": "#/$defs/FitSigningAuthorityV1"
+        },
+        "representation": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "semanticFidelity": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "relationPolicy": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "mergeTreePersistence": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "subgroupBehavior": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "authorizationNoninterference": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "securityApproval": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        },
+        "companionPin": {
+          "$ref": "#/$defs/FitExternalAuthorityV1"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "representation",
+        "semanticFidelity",
+        "relationPolicy",
+        "mergeTreePersistence",
+        "subgroupBehavior",
+        "authorizationNoninterference",
+        "securityApproval",
+        "companionPin"
+      ]
+    },
+    "FitSigningAuthorityV1": {
+      "description": "Release authority whose private key is loaded by the fit worker.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "description": "Stable non-placeholder authority name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "secretKeyFile": {
+          "description": "File containing a 32-byte secret as 64 lowercase hexadecimal characters.",
+          "type": "string"
+        },
+        "expectedPublicKey": {
+          "description": "Expected 32-byte public key as 64 lowercase hexadecimal characters.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["authority", "secretKeyFile", "expectedPublicKey"]
+    },
+    "FitExternalAuthorityV1": {
+      "description": "Independent gate authority invoked as a separate process.",
+      "type": "object",
+      "properties": {
+        "authority": {
+          "description": "Stable non-placeholder authority name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "issuerCommand": {
+          "description": "Executable implementing the version-1 external grant protocol.",
+          "type": "string"
+        },
+        "expectedPublicKey": {
+          "description": "Pinned 32-byte public key as 64 lowercase hexadecimal characters.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["authority", "issuerCommand", "expectedPublicKey"]
+    }
+  }
+}

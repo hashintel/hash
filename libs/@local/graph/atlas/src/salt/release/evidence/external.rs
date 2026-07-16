@@ -7,8 +7,8 @@
 //! specialist authority approves its scoped subject, and the release authority
 //! certifies that the approved subject is the candidate being published.
 
+use alloc::collections::{BTreeMap, BTreeSet};
 use core::fmt;
-use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -120,13 +120,13 @@ impl ExternalGateGrant {
 
     #[must_use]
     #[inline]
-    pub(super) fn suite_version(&self) -> &str {
+    pub(crate) fn suite_version(&self) -> &str {
         &self.suite_version
     }
 
     #[must_use]
     #[inline]
-    pub(super) const fn report(&self) -> ContentHash {
+    pub(crate) const fn report(&self) -> ContentHash {
         self.report
     }
 
@@ -185,54 +185,17 @@ impl ExternalGateReport {
             content_hash,
         })
     }
-}
 
-/// Signs the immutable report produced by a production suite callback.
-pub(crate) struct SignedExternalGateGrantIssuer<'issuer, Evaluate> {
-    signer: &'issuer GateSigner,
-    evaluate: Evaluate,
-}
-
-impl<'issuer, Evaluate> SignedExternalGateGrantIssuer<'issuer, Evaluate> {
-    /// Binds an independent signing authority to one report-producing callback.
+    /// Returns the suite identity that produced this report.
     #[must_use]
-    pub(crate) const fn new(signer: &'issuer GateSigner, evaluate: Evaluate) -> Self {
-        Self { signer, evaluate }
+    pub(crate) fn suite_version(&self) -> &str {
+        &self.suite_version
     }
-}
 
-impl<Evaluate> fmt::Debug for SignedExternalGateGrantIssuer<'_, Evaluate> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("SignedExternalGateGrantIssuer")
-            .field("authority", &self.signer.verifier().authority())
-            .finish_non_exhaustive()
-    }
-}
-
-impl<Evaluate> ExternalGateGrantIssuer for SignedExternalGateGrantIssuer<'_, Evaluate>
-where
-    Evaluate: Fn(
-            ReleaseHead,
-            &GenerationManifest,
-            GateId,
-        ) -> Result<ExternalGateReport, GateEvidenceError>
-        + Sync,
-{
-    fn issue(
-        &self,
-        head: ReleaseHead,
-        manifest: &GenerationManifest,
-        gate: GateId,
-    ) -> Result<ExternalGateGrant, GateEvidenceError> {
-        let report = (self.evaluate)(head, manifest, gate)?;
-        ExternalGateGrant::sign(
-            head,
-            gate,
-            report.suite_version,
-            report.content_hash,
-            self.signer,
-        )
+    /// Returns the immutable report content identity.
+    #[must_use]
+    pub(crate) const fn content_hash(&self) -> ContentHash {
+        self.content_hash
     }
 }
 
@@ -323,13 +286,15 @@ impl ExternalGateVerifierSet {
     ///
     /// # Errors
     ///
-    /// Returns an error for a missing, duplicate, unexpected, or release-key
-    /// verifier.
+    /// Returns an error for a missing or duplicate gate, unexpected gate,
+    /// release-key reuse, or key reuse between external authorities.
     pub(crate) fn new(
         release: &GateVerifier,
         entries: Vec<(GateId, GateVerifier)>,
     ) -> Result<Self, GateEvidenceError> {
         let mut verifiers = BTreeMap::new();
+        let mut authorities = BTreeSet::from([release.authority().to_owned()]);
+        let mut public_keys = BTreeSet::new();
         for (gate, verifier) in entries {
             if !M0_EXTERNAL_GATES.contains(&gate) {
                 return Err(GateEvidenceError::Unexpected { gate });
@@ -338,6 +303,18 @@ impl ExternalGateVerifierSet {
                 return Err(GateEvidenceError::Failed {
                     gate,
                     reason: "external approval key must differ from the release key",
+                });
+            }
+            if !public_keys.insert(verifier.public_key()) {
+                return Err(GateEvidenceError::Failed {
+                    gate,
+                    reason: "external approval keys must be pairwise distinct",
+                });
+            }
+            if !authorities.insert(verifier.authority().to_owned()) {
+                return Err(GateEvidenceError::Failed {
+                    gate,
+                    reason: "release and external authority names must be pairwise distinct",
                 });
             }
             if verifiers.insert(gate, verifier).is_some() {
