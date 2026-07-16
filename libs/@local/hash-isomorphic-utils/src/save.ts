@@ -551,14 +551,35 @@ export const save = async ({
             rightEntity: rightEntityRevisions,
           }) => {
             const contentLinkEntity = linkEntityRevisions[0];
+
+            if (
+              !contentLinkEntity?.metadata.entityTypeIds.includes(
+                systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+              )
+            ) {
+              return [];
+            }
+
             const blockEntity = rightEntityRevisions?.[0];
 
-            return contentLinkEntity?.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-            ) &&
-              blockEntity?.metadata.entityTypeIds.includes(
-                systemEntityTypes.block.entityTypeId,
-              )
+            /**
+             * A content link whose block cannot be resolved must fail the
+             * save: `calculateSaveActions` treats blocks that are in the
+             * ProseMirror document but absent from this list as new, so
+             * silently skipping the link would emit a duplicate
+             * `insertBlock` action for a block that already exists in the
+             * collection. A failed save is recoverable; a corrupted
+             * collection is not.
+             */
+            if (!blockEntity) {
+              throw new Error(
+                `Invariant violation: could not get block entity ${contentLinkEntity.linkData.rightEntityId} linked to by content link ${contentLinkEntity.metadata.recordId.entityId} in the block collection subgraph`,
+              );
+            }
+
+            return blockEntity.metadata.entityTypeIds.includes(
+              systemEntityTypes.block.entityTypeId,
+            )
               ? [{ blockEntity, contentLinkEntity }]
               : [];
           },
