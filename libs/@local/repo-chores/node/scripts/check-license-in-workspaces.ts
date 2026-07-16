@@ -13,7 +13,7 @@ const script = async () => {
   const yarnWorkspaceDirPaths = [
     monorepoRootDirPath,
     ...Object.entries(yarnWorkspaceInfoLookup).map(([, yarnWorkspaceInfo]) =>
-      path.resolve(monorepoRootDirPath, yarnWorkspaceInfo.location),
+      path.resolve(monorepoRootDirPath, yarnWorkspaceInfo.location)
     ),
   ];
 
@@ -48,7 +48,7 @@ const script = async () => {
   for (const yarnWorkspaceDirPath of yarnWorkspaceDirPaths) {
     const canonicalLicenseFilePath = path.resolve(
       yarnWorkspaceDirPath,
-      "LICENSE.md",
+      "LICENSE.md"
     );
 
     const currentLicenseFilePaths = licenseFilePaths.filter(
@@ -56,7 +56,7 @@ const script = async () => {
         licenseFilePath.startsWith(yarnWorkspaceDirPath) &&
         !licenseFilePath
           .slice(yarnWorkspaceDirPath.length + 1)
-          .includes(path.sep),
+          .includes(path.sep)
     );
 
     let canonicalLicenseFilePathIsPresent = false;
@@ -71,12 +71,12 @@ const script = async () => {
       checkFailed = true;
       console.log(
         chalk.red("[MISSING]"),
-        path.relative(monorepoRootDirPath, canonicalLicenseFilePath),
+        path.relative(monorepoRootDirPath, canonicalLicenseFilePath)
       );
     } else {
       console.log(
         chalk.green("[FOUND]  "),
-        path.relative(monorepoRootDirPath, canonicalLicenseFilePath),
+        path.relative(monorepoRootDirPath, canonicalLicenseFilePath)
       );
     }
 
@@ -89,19 +89,19 @@ const script = async () => {
         checkFailed = true;
         console.log(
           chalk.red("[NAMING] "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
+          path.relative(monorepoRootDirPath, licenseFilePath)
         );
       } else {
         console.log(
           chalk.yellow("         "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
+          path.relative(monorepoRootDirPath, licenseFilePath)
         );
       }
     }
   }
 
   const unusedLicenseFilePaths = licenseFilePaths.filter(
-    (licenseFilePath) => !usedLicenseFileSet.has(licenseFilePath),
+    (licenseFilePath) => !usedLicenseFileSet.has(licenseFilePath)
   );
 
   let extraLicenseFilesArePresent = false;
@@ -111,13 +111,13 @@ const script = async () => {
         checkFailed = true;
         console.log(
           chalk.red("[NAMING] "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
+          path.relative(monorepoRootDirPath, licenseFilePath)
         );
       } else {
         extraLicenseFilesArePresent = true;
         console.log(
           chalk.yellow("[EXTRA]  "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
+          path.relative(monorepoRootDirPath, licenseFilePath)
         );
       }
     }
@@ -130,16 +130,16 @@ const script = async () => {
   if (checkFailed) {
     console.log(
       chalk.red(
-        "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
-      ),
+        "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)"
+      )
     );
   }
 
   if (extraLicenseFilesArePresent) {
     console.log(
       chalk.yellow(
-        "You may want to delete or relocate extra license files which are not located in Yarn workspaces",
-      ),
+        "You may want to delete or relocate extra license files which are not located in Yarn workspaces"
+      )
     );
   }
 
