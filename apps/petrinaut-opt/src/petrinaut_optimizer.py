@@ -391,7 +391,7 @@ class PetrinautOptimizer:
             # waits out at most one in-flight evaluation.
             stop_flag.set()
             try:
-                await loop.run_in_executor(None, worker.join)
+                await loop.run_in_executor(None, worker.join(self.pn_model.eval_timeout))
             finally:
                 self.lock.release()
                 self.pn_model.close()
@@ -491,7 +491,7 @@ class PetrinautOptimizer:
             # waits out at most one in-flight evaluation.
             stop_flag.set()
             try:
-                await loop.run_in_executor(None, worker.join)
+                await loop.run_in_executor(None, worker.join(self.pn_model.eval_timeout))
             finally:
                 self.lock.release()
                 self.pn_model.close()

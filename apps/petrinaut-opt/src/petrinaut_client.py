@@ -15,11 +15,12 @@ import logging
 import re
 import json
 import subprocess
+import threading
 
 from pathlib import Path
 
 from typing import Any, Dict, Union, Sequence
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveFloat
 
 log = logging.getLogger("pn_client")
 
@@ -54,8 +55,7 @@ class PetrinautModelSpec(BaseModel):
     store: Sequence[str] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
     outpath: str = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
     command: str = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
-    eval_timeout: float | None = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
-
+    eval_timeout: PositiveFloat | None = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Petrinaut CLI Python wrapper
@@ -85,13 +85,13 @@ class PetrinautModel:
         self.steps = pn_spec.steps
         self.dt = pn_spec.dt
         self.seed = pn_spec.seed
+        self.eval_timeout = pn_spec.eval_timeout
 
         # The following are currently unused
         # they are left here for future releases
         self.outpath = pn_spec.outpath
         self.store = pn_spec.store
         self.command = pn_spec.command
-        self.eval_timeout = pn_spec.eval_timeout
         
         # Subprocess for calling petrinaut CLI
         self._process: subprocess.Popen[str] | None = None
@@ -206,15 +206,26 @@ class PetrinautModel:
 
         self._process.stdin.write(json.dumps(request) + "\n")
         self._process.stdin.flush()
-        line = self._process.stdout.readline()
+
+        timer = None
+        if self.eval_timeout is not None:
+            # Unblock a hung readline by killing the CLI after eval_timeout seconds.
+            timer = threading.Timer(self.eval_timeout, self._process.kill)
+            timer.start()
+        try:
+            line = self._process.stdout.readline()
+        finally:
+            if timer is not None:
+                timer.cancel()
+
         if not line:
             stderr = (
                 self._process.stderr.read() if self._process.stderr is not None else ""
             )
             raise RuntimeError(
-                f"Petrinaut exited without a response:\n{stderr.strip()}"
+                f"Petrinaut timed out or exited without a response:\n{stderr.strip()}"
             )
-
+        
         response = json.loads(line)
         if not isinstance(response, dict):
             raise RuntimeError("Petrinaut returned a non-object response")

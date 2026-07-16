@@ -196,8 +196,9 @@ configures the execution sent to the CLI:
   (default `Profit`); must match a metric defined in the loaded model.
 - `steps` — number of steps per run (sent as `maxSteps`; default `100`).
 - `dt` — timestep for the dynamics (default `0.1`).
-- `seed` — RNG seed (default `1234`; fixed → deterministic runs).
-- `store`, `outpath`, `command`, `eval_timeout` — accepted but currently unused.
+- `seed` — RNG seed (default `1234`; fixed → deterministic runs and optimisation steps).
+- `eval_timeout` - per-trial CLI execution timeout in seconds; a trial that exceeds it is pruned so a hung run can't block the optimization (default `None`; no timeout).
+- `store`, `outpath`, `command` — accepted but currently unused.
 
 ## Notes
 
