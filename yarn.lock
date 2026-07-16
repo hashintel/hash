@@ -882,6 +882,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@apps/petrinaut-opt@workspace:apps/petrinaut-opt":
+  version: 0.0.0-use.local
+  resolution: "@apps/petrinaut-opt@workspace:apps/petrinaut-opt"
+  languageName: unknown
+  linkType: soft
+
 "@apps/petrinaut-website@workspace:apps/petrinaut-website":
   version: 0.0.0-use.local
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
