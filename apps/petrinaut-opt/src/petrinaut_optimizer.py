@@ -214,7 +214,7 @@ class PetrinautOptimizer:
         self.params = opt_spec.parameters
         self.init_state = opt_spec.initial_state
         self.study_name = f"{opt_spec.study_name}_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
-        self.sampler = SAMPLERS[opt_spec.sampler.lower()](**kwargs)
+        self.sampler = SAMPLERS[opt_spec.sampler.lower()](seed=pn_model.seed,**kwargs)
         self.direction = opt_spec.direction
         self.n_trials = opt_spec.n_trials
         self.study = optuna.create_study(
