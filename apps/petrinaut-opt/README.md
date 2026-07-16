@@ -10,18 +10,30 @@ so a UI can watch the optimization live.
 The search space is **continuous and discrete**, and evaluations are treated as
 expensive, so a sample-efficient sampler (TPE by default) is used.
 
+> [!IMPORTANT]
+> **Demo model is hard-coded.** For demo purposes,
+> [petrinaut_optimizer.py](src/petrinaut_optimizer.py) is hard-coded to the
+> [`supply-chain-profit-model.json`](../../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json)
+> Petri net. Its search space (`BOUNDS`) and the `Parameters` / `InitialStates`
+> shapes are all specific to that model — serve that same model from the CLI, or
+> the optimizer's inputs will not line up with the Petri net. Switching models
+> means editing these definitions in `petrinaut_optimizer.py` by hand.
+
 ## How it connects to Petrinaut
 
 This package does **not** run the Petri net itself — it drives the
 [`petrinaut-cli`](../petrinaut-cli) socket server. Follow the instructions
-on [there](../petrinaut-cli/README.md) first.
+on [there](../petrinaut-cli/README.md) first. For demo purposes the optimizer is
+hard-coded to the CLI's
+[`supply-chain-profit-model.json`](../../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json)
+example (see the note above), so serve that model.
 
 ## Components
 
 | File                                                 | Role                                                                                                                                                                                                                                   |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [petrinaut_client.py](src/petrinaut_client.py)       | `PetrinautModel` — connects to the Petrinaut CLI socket, builds each `run` request, and returns the metric. `PetrinautModelSpec` configures the execution.                                                                             |
-| [petrinaut_optimizer.py](src/petrinaut_optimizer.py) | `PetrinautOptimizer` — drives the Optuna study: proposes inputs, runs the model, and streams evaluations (`stream_all` / `stream_best`) as Server-Sent Events. `OptimizationSpec` configures a run; `BOUNDS` defines the search space. |
+| [petrinaut_optimizer.py](src/petrinaut_optimizer.py) | `PetrinautOptimizer` — drives the Optuna study: proposes inputs, runs the model, and streams evaluations (`stream_all` / `stream_best`) as Server-Sent Events. `OptimizationSpec` configures a run; `BOUNDS` defines the search space. **Hard-coded for demo purposes to the `supply-chain-profit-model.json` Petri net** (`BOUNDS`, `Parameters`, `InitialStates`). |
 | [optimization_api.py](src/optimization_api.py)       | FastAPI service exposing `/init`, the two streaming endpoints, `/status`, and `/`.                                                                                                                                                     |
 
 ## Setup
@@ -114,21 +126,34 @@ completed.
 ## Configuring a run
 
 **Search space** — the universe of optimizable inputs is defined once in `BOUNDS`
-at the top of [petrinaut_optimizer.py](src/petrinaut_optimizer.py):
+at the top of [petrinaut_optimizer.py](src/petrinaut_optimizer.py). It is
+hard-coded for demo purposes to the `supply-chain-profit-model.json` Petri net,
+so its keys mirror that model's parameters and places:
 
 ```python
 BOUNDS = {
     "parameters": {
-        "infection_rate": Bounds(0.01, 10.0),
-        "recovery_rate":  Bounds(0.01, 10.0),
+        "production_rate":   FloatBounds(20.0, 250.0),
+        "reorder_threshold": IntBounds(100, 1000),
+        "batch_size":        IntBounds(50, 800),
+        "selling_price":     FloatBounds(22.0, 60.0),
+        "expedite_fraction": FloatBounds(0.0, 1.0),
+        "marketing_spend":   FloatBounds(0.0, 100.0),
+        "demand_multiplier": FloatBounds(0.5, 2.0),
     },
-    "initial_states": {
-        "Susceptible": Bounds(0.0, 1000),
-        "Infected":    Bounds(0.0, 1000),
-        "Recovered":   Bounds(0.0, 1000),
+    "initial_state": {
+        "RawInventory":   IntBounds(0, 400),
+        "FinishedGoods":  IntBounds(0, 400),
+        "CustomerDemand": IntBounds(0, 400),
+        "SoldOrders":     IntBounds(0, 400),
+        "LostSales":      IntBounds(0, 400),
     },
 }
 ```
+
+Changing the target Petri net means editing these `BOUNDS` and the matching
+`Parameters` / `InitialStates` models in
+[petrinaut_optimizer.py](src/petrinaut_optimizer.py) by hand.
 
 **`OptimizationSpec`** ([petrinaut_optimizer.py](src/petrinaut_optimizer.py))
 partitions those inputs per run:
