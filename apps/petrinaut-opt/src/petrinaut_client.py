@@ -71,8 +71,8 @@ class PetrinautModel:
         **kwargs
     ) -> None:
         # Specification params
-        self.model = pn_spec.model_path.resolve()
-        self.cli = pn_spec.cli_path.resolve()
+        self.model = Path(pn_spec.model_path).resolve()
+        self.cli = Path(pn_spec.cli_path).resolve()
         self.node = node
         self.metric = pn_spec.metric
         self.steps = pn_spec.steps
