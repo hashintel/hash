@@ -66,9 +66,12 @@ snapshot identity, manifest identity, release-report identity, counts, flags,
 and point bounds. Empty tiles are valid cached responses.
 
 The scheduler requests the root first and then visible levels with bounded
-concurrency. An active parent remains visible until all relevant direct
-children are ready, at which point the children replace it atomically. Active
-cells are disjoint, and each delivered representative receives:
+concurrency. Exact visible bounds and padded request bounds are tracked
+separately: overscan warms the cache for an approaching pan but cannot force a
+visible cell back to a coarser ancestor. An active parent remains visible until
+its relevant direct children are ready, at which point they replace it
+atomically. Active cells are disjoint, and each delivered representative
+receives:
 
 ```text
 mass = visible_subtree_count / delivered_count
@@ -78,20 +81,35 @@ The initial complete-square frontier is used once to discover the delivered
 content extent. The camera then fits that extent rather than leaving a compact
 generation tiny inside its 16-bit quantization envelope.
 
-An `Effect.preRender` pass splats that mass additively into a blendable
-`rg16float` target (`rgba16float` fallback). A normal custom layer composites
-sea level, logarithmic relief, coastline, hillshade, and derivative-based
-isolines. Coarser delivering tiles use wider kernels according to the companion
-field-band formula. A throttled 128 by 128 GPU downsample and float readback
-targets the reference field's 53% void fraction and supplies a stable relief
-scale. The UI reports an unsupported-GPU state when neither half-float format
-can be blended.
+Rendering separates context from identity. An `Effect.preRender` pass splats
+mass additively into a blendable `rg16float` target (`rgba16float` fallback),
+with total density in R and G reserved for a future matched-density field.
+Coarser delivering tiles use wider kernels, but these kernels appear only in a
+restrained neutral glow. A threshold-free, log-exposed fullscreen composite
+keeps low density continuous instead of cutting tile-shaped coastlines into the
+image. A throttled 128 by 128 GPU downsample and float readback derives exposure
+from the positive-density 95th percentile.
+
+A binary `ScatterplotLayer` then draws small antialiased screen-space marks
+above the glow. Because the server caps every tile independently, rendering
+every delivered record would make all saturated tiles look equally dense.
+Packing instead chooses a deterministic prefix from each tile against the
+largest active representative mass, so mark counts remain proportional to
+`visible_subtree_count` while preserving the server's spatial first-occupant
+order. The particle frontier stays four tile levels coarser than the density
+frontier, keeping independently capped tile edges several viewports away
+instead of exposing them as rectangles in the overview. Generation row IDs and
+a fixed neutral RGB remain attached to the selected marks. Parent
+representatives that survive in a refined child union therefore keep the same
+mark identity and radius while new child-only rows can appear. The UI reports
+an unsupported-GPU state when neither half-float format can be blended.
 
 ## Deliberate limits
 
 The current API exposes the total field only. This demo does not invent:
 
 - filter or comparison fields;
+- per-point colors;
 - alpha/rung transitions;
 - region or class labels;
 - entity identity lookup;
@@ -108,6 +126,11 @@ show residual tile-shaped density bias; eliminating that requires a wire plane
 for support mass or a representative sampling contract, not a client-side
 color adjustment.
 
+The scalar density texture is deliberately color-agnostic. When the wire format
+adds designated point colors, they can populate the packed mark RGB plane while
+retaining mass-derived alpha; the neutral density glow remains beneath those
+marks and does not wash out their hue.
+
 ## Verify
 
 ```sh
@@ -120,5 +143,5 @@ yarn build
 
 `yarn verify` runs all of the checks above. The unit fixtures mirror the Rust
 wire layout and cover bootstrap validation, binary corruption, coordinates,
-viewport selection, request cancellation, atomic replacement, LRU behavior,
-and mass preservation.
+visible/prefetch isolation, request cancellation, atomic replacement, LRU
+behavior, row continuity, mark attributes, exposure, and mass preservation.

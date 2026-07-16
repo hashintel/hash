@@ -9,6 +9,8 @@
               independent of the FMA path under test"
 )]
 
+use proptest::prelude::*;
+
 use super::{
     AffinityFitConfig,
     fit::{SampleGrid, fit_curve},
@@ -418,4 +420,133 @@ fn gradients_stay_finite_at_extreme_distances() {
 
     let batch = curve.attraction_x4(Vec2x4T::from([far; 4]), Vec2x4T::from([Vec2::ZERO; 4]));
     assert!(batch.get(0).is_finite());
+}
+
+/// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
+/// range; extreme-distance behavior is pinned by the example-based tests
+/// above.
+fn point_strategy() -> impl Strategy<Value = Vec2> {
+    (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
+}
+
+/// Four arbitrary in-range points, one per batch lane.
+fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
+    prop::array::uniform4(point_strategy())
+}
+
+/// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`,
+/// where `a * d^(2b)` stays finite over the strategy's distances.
+fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
+    (1e-3_f32..1e3, 0.1_f32..5.0).prop_map(|(curve_a, curve_b)| {
+        AffinityCurve::new(curve_a, curve_b).expect("the strategy's ranges are positive and finite")
+    })
+}
+
+/// Asserts a batch lane agrees with its scalar twin within a relative
+/// tolerance of `1e-3` (with a matching absolute floor for near-zero
+/// gradients).
+///
+/// The bound covers the batch kernels' vectorized `d^(2b)` power, which
+/// composes sleef's 3.5-ulp `exp2`/`log2` stages: the exponent's
+/// absolute error grows with `|log2(d^2)|`, so the power's relative
+/// error reaches a few times `1e-5` over the strategy's distance range,
+/// well inside `1e-3`, against the scalar path's 0.5-ulp libm `powf`.
+#[track_caller]
+fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
+    let tolerance = |reference: f32| 1e-3 * reference.abs().max(1e-3);
+
+    assert!(
+        (actual.x() - expected.x()).abs() <= tolerance(expected.x())
+            && (actual.y() - expected.y()).abs() <= tolerance(expected.y()),
+        "{context}: expected {expected:?}, got {actual:?}",
+    );
+}
+
+proptest! {
+    /// The affinity lies in `(0, 1]` and is monotone non-increasing in
+    /// the squared distance, up to a few ulps of libm `powf` rounding.
+    /// Squared distances are bounded to `0..1e6`, where `a * d^(2b)`
+    /// stays finite for every curve in the strategy.
+    #[test]
+    fn affinity_is_a_monotone_probability(
+        curve in curve_strategy(),
+        first in 0.0_f32..1e6,
+        second in 0.0_f32..1e6,
+    ) {
+        let (near, far) = if first <= second { (first, second) } else { (second, first) };
+
+        for distance_squared in [near, far] {
+            let affinity = curve.affinity(distance_squared);
+            prop_assert!(affinity > 0.0);
+            prop_assert!(affinity <= 1.0);
+        }
+
+        // `powf` is accurate to a fraction of an ulp but not proven
+        // monotone; the slack admits a few ulps of the result without
+        // accepting a real ordering violation.
+        let slack = 8.0 * f32::EPSILON * curve.affinity(near);
+        prop_assert!(
+            curve.affinity(near) >= curve.affinity(far) - slack,
+            "affinity({}) = {} below affinity({}) = {}",
+            near, curve.affinity(near), far, curve.affinity(far),
+        );
+    }
+
+    /// For distinct points, the attraction gradient is anti-parallel to
+    /// the difference vector (it pulls `from` toward `to`) and the
+    /// repulsion gradient is parallel (it pushes `from` away). The
+    /// separation floor keeps the coefficients away from underflow.
+    #[test]
+    fn gradients_align_with_the_difference_vector(
+        from in point_strategy(),
+        to in point_strategy(),
+    ) {
+        prop_assume!(from.distance_squared(to) >= 1e-6);
+        let curve = curve();
+        let difference = from - to;
+
+        prop_assert!(curve.attraction(from, to).dot(difference) < 0.0);
+        prop_assert!(curve.repulsion(from, to, 1.0).dot(difference) > 0.0);
+    }
+
+    /// The batch attraction kernel agrees with the scalar kernel in every
+    /// lane. This crosses the sleef `exp2`/`log2` pow path against the
+    /// scalar libm `powf` path over the whole in-range input space; the
+    /// tolerance follows the kernel's documented 3.5-ulp-stage bound.
+    #[test]
+    fn attraction_x4_matches_scalar_attraction_per_lane(
+        from in point_array_strategy(),
+        to in point_array_strategy(),
+    ) {
+        let curve = curve();
+
+        let batch = curve.attraction_x4(Vec2x4T::from(from), Vec2x4T::from(to));
+        for (index, (from, to)) in from.into_iter().zip(to).enumerate() {
+            assert_lane_close(
+                batch.get(index),
+                curve.attraction(from, to),
+                "batched attraction",
+            );
+        }
+    }
+
+    /// The batch repulsion kernel agrees with the scalar kernel in every
+    /// lane, under the same pow-path bound as attraction.
+    #[test]
+    fn repulsion_x4_matches_scalar_repulsion_per_lane(
+        from in point_array_strategy(),
+        to in point_array_strategy(),
+        strength in 1e-2_f32..1e2,
+    ) {
+        let curve = curve();
+
+        let batch = curve.repulsion_x4(Vec2x4T::from(from), Vec2x4T::from(to), strength);
+        for (index, (from, to)) in from.into_iter().zip(to).enumerate() {
+            assert_lane_close(
+                batch.get(index),
+                curve.repulsion(from, to, strength),
+                "batched repulsion",
+            );
+        }
+    }
 }

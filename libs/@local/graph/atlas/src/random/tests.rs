@@ -1,250 +1,216 @@
-use core::iter;
-use std::collections::HashSet;
+use core::num::NonZero;
 
+use proptest::prelude::*;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{acceptance_sample_size, sample_indices, uniform_below};
+use super::{acceptance_sample_size, sample_indices, sample_indices_vec, uniform_below};
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
 
-/// Probability that `count` independent uniform samples all pass when the
-/// true defect fraction is `defect_rate`.
-fn all_pass_probability(defect_rate: f64, count: usize) -> f64 {
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "every sample size in the test grid is far below 2^53"
-    )]
-    (1.0 - defect_rate).powf(count as f64)
-}
-
 #[test]
-fn uniform_below_stays_in_range() {
-    let mut rng = rng(2);
+fn uniform_below_one_is_always_zero() {
+    let mut rng = rng(7);
+    let bound = NonZero::new(1).expect("one is not zero");
 
-    for bound in [2, 3, 7, 10, 1 << 33, u64::MAX] {
-        for _ in 0..1_000 {
-            assert!(uniform_below(&mut rng, bound) < bound);
-        }
-    }
-}
-
-#[test]
-fn uniform_below_one_always_returns_zero() {
-    let mut rng = rng(1);
-
-    for _ in 0..256 {
-        assert_eq!(uniform_below(&mut rng, 1), 0);
+    for _ in 0..64 {
+        assert_eq!(uniform_below(&mut rng, bound), 0);
     }
 }
 
 #[test]
 fn uniform_below_covers_every_residue_evenly() {
-    const DRAWS: usize = 100_000;
-    const RESIDUES: usize = 7;
+    let mut rng = rng(42);
+    let bound = NonZero::new(7).expect("seven is not zero");
 
-    let mut rng = rng(7);
-    let mut counts = [0_usize; RESIDUES];
-    for _ in 0..DRAWS {
-        let residue = usize::try_from(uniform_below(&mut rng, RESIDUES as u64))
-            .expect("residue below 7 fits usize");
-        counts[residue] += 1;
+    let mut counts = [0_u32; 7];
+    let draws = 70_000;
+    for _ in 0..draws {
+        let value = uniform_below(&mut rng, bound);
+        counts[usize::try_from(value).expect("a value below seven fits usize")] += 1;
     }
 
-    // Chi-square-lite: +-20% around the exact expectation is far wider
-    // than the ~1% standard deviation of a binomial with these counts.
-    let expected = DRAWS / RESIDUES;
+    // Expected 10_000 per residue; +-10% is ~26 standard deviations, so a
+    // failure indicates bias rather than bad luck with the fixed seed.
     for (residue, &count) in counts.iter().enumerate() {
         assert!(
-            count >= expected * 4 / 5 && count <= expected * 6 / 5,
-            "residue {residue} appeared {count} times, expected about {expected}",
+            (9_000..=11_000).contains(&count),
+            "residue {residue} drawn {count} times",
         );
     }
 }
 
 #[test]
 fn uniform_below_is_deterministic_per_seed() {
-    let mut first = rng(42);
-    let mut second = rng(42);
-    let mut other = rng(43);
+    let bound = NonZero::new(1_000_003).expect("a prime is not zero");
 
-    let replay: Vec<u64> = iter::repeat_with(|| uniform_below(&mut first, 1_000))
+    // One generator per sequence, advanced across draws: the comparison
+    // covers the whole stream, not a repeated first draw.
+    let mut first_rng = rng(9);
+    let mut second_rng = rng(9);
+    let first: Vec<u64> = core::iter::repeat_with(|| uniform_below(&mut first_rng, bound))
         .take(32)
         .collect();
-    let expected: Vec<u64> = iter::repeat_with(|| uniform_below(&mut second, 1_000))
-        .take(32)
-        .collect();
-    let diverged: Vec<u64> = iter::repeat_with(|| uniform_below(&mut other, 1_000))
+    let second: Vec<u64> = core::iter::repeat_with(|| uniform_below(&mut second_rng, bound))
         .take(32)
         .collect();
 
-    assert_eq!(replay, expected, "same seed must replay the same sequence");
-    assert_ne!(replay, diverged, "different seeds must diverge");
-}
-
-#[test]
-#[should_panic(expected = "cannot sample below a zero bound")]
-fn uniform_below_rejects_a_zero_bound() {
-    let mut rng = rng(0);
-    let _: u64 = uniform_below(&mut rng, 0);
-}
-
-#[test]
-fn sample_indices_are_distinct_and_in_range() {
-    let mut rng = rng(5);
-
-    let sampled = sample_indices(&mut rng, 1_000, 64);
-
-    assert_eq!(sampled.len(), 64);
-    assert!(sampled.iter().all(|&index| index < 1_000));
-    let unique: HashSet<usize> = sampled.iter().copied().collect();
-    assert_eq!(unique.len(), 64, "sampled indices must be distinct");
-}
-
-#[test]
-fn sample_indices_covering_the_population_is_a_permutation() {
-    let mut rng = rng(3);
-    let identity: Vec<usize> = (0..10).collect();
-
-    for count in [10, 25] {
-        let mut sampled = sample_indices(&mut rng, 10, count);
-        assert_ne!(sampled, identity, "the permutation must be shuffled");
-        sampled.sort_unstable();
-        assert_eq!(sampled, identity);
-    }
-}
-
-#[test]
-fn sample_indices_with_zero_count_is_empty() {
-    let mut rng = rng(4);
-
-    assert!(sample_indices(&mut rng, 100, 0).is_empty());
-    assert!(sample_indices(&mut rng, 0, 10).is_empty());
-}
-
-#[test]
-fn sample_indices_hits_every_index_evenly() {
-    const ROUNDS: usize = 50_000;
-
-    let mut rng = rng(11);
-    let mut counts = [0_usize; 5];
-    for _ in 0..ROUNDS {
-        for index in sample_indices(&mut rng, 5, 2) {
-            counts[index] += 1;
-        }
-    }
-
-    // Each index is picked with probability 2/5 per round; +-20% around
-    // the expectation is a generous, non-flaky band for a fixed seed.
-    let expected = ROUNDS * 2 / 5;
-    for (index, &count) in counts.iter().enumerate() {
-        assert!(
-            count >= expected * 4 / 5 && count <= expected * 6 / 5,
-            "index {index} appeared {count} times, expected about {expected}",
-        );
-    }
-}
-
-#[test]
-fn sample_indices_is_deterministic_per_seed() {
-    let mut first = rng(21);
-    let mut second = rng(21);
-
-    assert_eq!(
-        sample_indices(&mut first, 500, 50),
-        sample_indices(&mut second, 500, 50),
-        "same seed must replay the same sample",
+    assert_eq!(first, second);
+    // The stream must actually vary; a constant stream would make the
+    // equality above vacuous.
+    assert!(
+        first
+            .array_windows::<2>()
+            .any(|[left, right]| left != right)
     );
 }
 
 #[test]
+fn sample_indices_returns_distinct_in_range_indices() {
+    let mut rng = rng(1);
+
+    let picked = sample_indices::<16>(&mut rng, 1_000).expect("the population covers the sample");
+
+    let mut seen = picked;
+    seen.sort_unstable();
+    for [left, right] in seen.array_windows::<2>() {
+        assert!(left < right, "indices must be distinct");
+    }
+    assert!(picked.iter().all(|&index| index < 1_000));
+}
+
+#[test]
+fn sample_indices_rejects_undersized_populations() {
+    let mut rng = rng(2);
+
+    assert!(sample_indices::<4>(&mut rng, 3).is_none());
+    assert!(sample_indices::<4>(&mut rng, 4).is_some());
+    assert_eq!(sample_indices::<0>(&mut rng, 0), Some([]));
+}
+
+#[test]
+fn sample_indices_hits_every_index_over_repetitions() {
+    let mut rng = rng(3);
+
+    // Sampling 2 of 5 repeatedly must eventually pick every index; with
+    // 400 draws the expected count per index is 160 and the chance of an
+    // index staying below 100 is negligible.
+    let mut counts = [0_u32; 5];
+    for _ in 0..400 {
+        let picked = sample_indices::<2>(&mut rng, 5).expect("the population covers the sample");
+        for index in picked {
+            counts[index] += 1;
+        }
+    }
+
+    for (index, &count) in counts.iter().enumerate() {
+        assert!(count > 100, "index {index} picked {count} times");
+    }
+}
+
+#[test]
+fn sample_indices_vec_matches_the_array_contract() {
+    let mut rng = rng(4);
+
+    let picked = sample_indices_vec(&mut rng, 100_000, 688);
+    assert_eq!(picked.len(), 688);
+
+    let mut seen: Vec<usize> = picked.into_iter().collect();
+    seen.sort_unstable();
+    seen.dedup();
+    assert_eq!(seen.len(), 688, "indices must be distinct");
+    assert!(seen.iter().all(|&index| index < 100_000));
+}
+
+#[test]
 fn acceptance_sample_size_matches_hand_checked_values() {
-    // The "rule of three" neighborhood: ln(0.05) / ln(0.99) = 298.07 -> 299.
+    // ln(0.05) / ln(0.99) = 298.07...; the rule-of-three neighborhood.
     assert_eq!(acceptance_sample_size(0.01, 0.95), Some(299));
-    // ln(1e-6) / ln(0.999) = 13808.6 -> 13809.
-    assert_eq!(acceptance_sample_size(0.001, 0.999_999), Some(13_809));
-    // The doc example: 1% defects certified at 99.9% confidence.
+    // The doc example: one-in-a-hundred defects at 99.9% confidence.
     assert_eq!(acceptance_sample_size(0.01, 0.999), Some(688));
+    assert_eq!(acceptance_sample_size(0.001, 0.999_999), Some(13_809));
 }
 
 #[test]
-fn acceptance_sample_size_grows_with_stricter_requirements() {
-    // Both grids are ordered from lax to strict.
-    let confidences = [0.5, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999_999];
-    let defect_rates = [0.5, 0.25, 0.1, 0.05, 0.01, 0.005, 0.001];
-
-    for defect_rate in defect_rates {
-        let mut previous = 0;
-        for confidence in confidences {
-            let size = acceptance_sample_size(defect_rate, confidence)
-                .expect("grid parameters are in range");
-            assert!(
-                size >= previous,
-                "raising confidence to {confidence} at defect rate {defect_rate} shrank the \
-                 sample from {previous} to {size}",
-            );
-            previous = size;
-        }
-    }
-
-    for confidence in confidences {
-        let mut previous = 0;
-        for defect_rate in defect_rates {
-            let size = acceptance_sample_size(defect_rate, confidence)
-                .expect("grid parameters are in range");
-            assert!(
-                size >= previous,
-                "tightening defect rate to {defect_rate} at confidence {confidence} shrank the \
-                 sample from {previous} to {size}",
-            );
-            previous = size;
-        }
+fn acceptance_sample_size_rejects_degenerate_parameters() {
+    for value in [0.0, 1.0, -0.5, 1.5, f64::NAN, f64::INFINITY] {
+        assert_eq!(acceptance_sample_size(value, 0.95), None, "defect {value}");
+        assert_eq!(
+            acceptance_sample_size(0.01, value),
+            None,
+            "confidence {value}"
+        );
     }
 }
 
-#[test]
-fn acceptance_sample_size_rejects_parameters_outside_the_open_interval() {
-    for invalid in [
-        0.0,
-        1.0,
-        -0.5,
-        1.5,
-        f64::NAN,
-        f64::INFINITY,
-        f64::NEG_INFINITY,
-    ] {
-        assert_eq!(acceptance_sample_size(invalid, 0.95), None);
-        assert_eq!(acceptance_sample_size(0.01, invalid), None);
-    }
-}
+proptest! {
+    /// The returned count is sufficient and minimal: `n` all-pass samples
+    /// push the false-acceptance probability to the target or below, and
+    /// `n - 1` samples do not. This is the function's entire contract,
+    /// certified over the whole meaningful parameter space.
+    #[test]
+    fn acceptance_sample_size_is_sufficient_and_minimal(
+        defect_rate in 1e-6_f64..0.5,
+        confidence in 0.5_f64..(1.0 - 1e-9),
+    ) {
+        let samples = acceptance_sample_size(defect_rate, confidence)
+            .expect("parameters lie in the open unit interval");
+        let all_pass = |count: usize| {
+            (1.0 - defect_rate).powi(i32::try_from(count).expect("sample sizes fit i32"))
+        };
 
-#[test]
-fn acceptance_sample_size_is_the_minimal_count_meeting_the_bound() {
-    let defect_rates = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5];
-    let confidences = [0.5, 0.8, 0.9, 0.95, 0.99, 0.999, 0.999_999];
-
-    for defect_rate in defect_rates {
-        for confidence in confidences {
-            let size = acceptance_sample_size(defect_rate, confidence)
-                .expect("grid parameters are in range");
-            let failure_budget = 1.0 - confidence;
-
-            // The contract: `size` all-pass samples are unlikely enough
-            // under a defect fraction of `defect_rate`...
-            assert!(
-                all_pass_probability(defect_rate, size) <= failure_budget,
-                "{size} samples do not certify defect rate {defect_rate} at confidence \
-                 {confidence}",
-            );
-            // ...and no smaller count is (minimality; `size` is at least
-            // 1, so the exponent never underflows).
-            assert!(
-                all_pass_probability(defect_rate, size - 1) > failure_budget,
-                "{size} samples are not minimal for defect rate {defect_rate} at confidence \
-                 {confidence}",
-            );
+        prop_assert!(all_pass(samples) <= 1.0 - confidence + 1e-12);
+        if samples > 0 {
+            prop_assert!(all_pass(samples - 1) > 1.0 - confidence - 1e-12);
         }
+    }
+
+    /// Stricter requirements never shrink the sample.
+    #[test]
+    fn acceptance_sample_size_is_monotone(
+        defect_rate in 1e-5_f64..0.4,
+        confidence in 0.5_f64..0.999,
+    ) {
+        let base = acceptance_sample_size(defect_rate, confidence)
+            .expect("parameters lie in the open unit interval");
+        let stricter_confidence = acceptance_sample_size(defect_rate, confidence + 5e-4)
+            .expect("parameters lie in the open unit interval");
+        let looser_defect = acceptance_sample_size(defect_rate * 1.5, confidence)
+            .expect("parameters lie in the open unit interval");
+
+        prop_assert!(stricter_confidence >= base);
+        prop_assert!(looser_defect <= base);
+    }
+
+    /// Draws respect any bound, including awkward ones near overflow.
+    #[test]
+    fn uniform_below_stays_in_range(seed in any::<u64>(), bound in 1_u64..) {
+        let bound = NonZero::new(bound).expect("the strategy starts at one");
+        let value = uniform_below(
+            &mut Xoshiro256PlusPlus::seed_from_u64(seed),
+            bound,
+        );
+
+        prop_assert!(value < bound.get());
+    }
+
+    /// Samples are always distinct, in range, and exactly `N` long for any
+    /// covering population.
+    #[test]
+    fn sample_indices_is_a_valid_subset(seed in any::<u64>(), population in 8_usize..10_000) {
+        let picked = sample_indices::<8>(
+            &mut Xoshiro256PlusPlus::seed_from_u64(seed),
+            population,
+        )
+        .expect("the population covers the sample");
+
+        let mut seen = picked;
+        seen.sort_unstable();
+        for [left, right] in seen.array_windows::<2>() {
+            prop_assert!(left < right);
+        }
+        prop_assert!(picked.iter().all(|&index| index < population));
     }
 }

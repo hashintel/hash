@@ -1,4 +1,4 @@
-/** Fullscreen terrain composite for the field texture produced before screen rendering. */
+/** Fullscreen neutral glow for the scalar field produced before screen rendering. */
 
 import { Layer, type LayerProps } from "@deck.gl/core";
 import { Geometry, Model } from "@luma.gl/engine";
@@ -9,9 +9,8 @@ import type { ShaderModule } from "@luma.gl/shadertools";
 
 interface CompositeUniformProps {
   fieldSize: [number, number];
-  floor: number;
+  densityScale: number;
   opacity: number;
-  reliefNorm: number;
 }
 
 const compositeUniforms = {
@@ -19,21 +18,18 @@ const compositeUniforms = {
   fs: `\
 layout(std140) uniform atlasCompositeUniforms {
   vec2 fieldSize;
-  float floor;
-  float reliefNorm;
+  float densityScale;
   float opacity;
 } atlasComposite;
 `,
   uniformTypes: {
     fieldSize: "vec2<f32>",
-    floor: "f32",
-    reliefNorm: "f32",
+    densityScale: "f32",
     opacity: "f32",
   },
   defaultUniforms: {
     fieldSize: [1, 1],
-    floor: 0.001,
-    reliefNorm: 1,
+    densityScale: 1,
     opacity: 1,
   },
 } satisfies ShaderModule<CompositeUniformProps>;
@@ -59,40 +55,19 @@ out vec4 fragColor;
 
 void main(void) {
   vec2 uv = gl_FragCoord.xy / atlasComposite.fieldSize;
-  float total = texture(fieldTexture, uv).r;
-
-  float land = smoothstep(
-    atlasComposite.floor * 0.8,
-    atlasComposite.floor * 1.2,
-    total
+  float totalDensity = max(texture(fieldTexture, uv).r, 0.0);
+  float exposedDensity = log(
+    1.0 + totalDensity * atlasComposite.densityScale
   );
-  float relief =
-    land *
-    max(log(max(total, atlasComposite.floor) / atlasComposite.floor), 0.0) /
-    max(atlasComposite.reliefNorm, 1.0e-4);
+  float glow = 1.0 - exp(-exposedDensity * 0.65);
+  float veil = pow(glow, 0.85);
+  float core = glow * glow;
 
-  vec3 voidColor = vec3(0.025, 0.047, 0.055);
-  vec3 lowTerrainColor = vec3(0.10, 0.17, 0.19);
-  vec3 highTerrainColor = vec3(0.58, 0.66, 0.68);
-  float reliefTone = smoothstep(0.0, 1.0, clamp(relief, 0.0, 1.0));
-  vec3 terrainColor = mix(lowTerrainColor, highTerrainColor, reliefTone);
-  vec3 color = mix(voidColor, terrainColor, land);
-
-  float coastline = clamp(fwidth(land) * 1.2, 0.0, 0.55);
-  color = mix(color, vec3(0.40, 0.59, 0.65), coastline);
-
-  vec2 gradient = vec2(dFdx(relief), dFdy(relief)) * 1.8;
-  vec3 normal = normalize(vec3(-gradient, 1.0));
-  vec3 lightDirection = normalize(vec3(-0.45, 0.7, 0.8));
-  float shade = 0.68 + 0.45 * clamp(dot(normal, lightDirection), 0.0, 1.0);
-  color *= mix(1.0, shade, land);
-
-  float elevation = relief / 0.28;
-  float lineDistance =
-    abs(fract(elevation - 0.5) - 0.5) / max(fwidth(elevation), 1.0e-4);
-  float contour = 1.0 - smoothstep(0.55, 1.15, lineDistance);
-  float indexWeight = mix(0.24, 0.4, step(2.0, mod(floor(elevation), 3.0)));
-  color = mix(color, vec3(0.17, 0.30, 0.33), contour * indexWeight * land);
+  vec3 backgroundColor = vec3(0.012, 0.022, 0.029);
+  vec3 neutralGlowColor = vec3(0.34, 0.36, 0.37);
+  vec3 color =
+    backgroundColor +
+    neutralGlowColor * (veil * 0.28 + core * 0.12);
 
   fragColor = vec4(color, atlasComposite.opacity);
 }
@@ -111,7 +86,7 @@ const defaultProps = {
   opacity: { type: "number" as const, value: 1, min: 0, max: 1 },
 };
 
-/** Draws sea level, hillshade, coastline, and isolines from live field mass. */
+/** Draws a subtle log-exposed density glow beneath the crisp mark pass. */
 export class AtlasFieldLayer extends Layer<AtlasFieldLayerProps> {
   static layerName = "AtlasFieldLayer";
   static defaultProps = defaultProps;
@@ -164,10 +139,9 @@ export class AtlasFieldLayer extends Layer<AtlasFieldLayerProps> {
     model.setBindings({ fieldTexture: renderState.texture });
     model.shaderInputs.setProps({
       atlasComposite: {
+        densityScale: renderState.exposure.densityScale,
         fieldSize: [renderState.width, renderState.height],
-        floor: renderState.normalization.floor,
         opacity: this.props.opacity ?? 1,
-        reliefNorm: renderState.normalization.reliefNorm,
       },
     });
     model.draw(renderPass);

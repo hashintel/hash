@@ -158,6 +158,9 @@ describe("AtlasFrontier", () => {
 
     const snapshot = frontier.getSnapshot();
     expect(snapshot.activeTiles).toHaveLength(4);
+    expect(
+      snapshot.markTiles.map(({ tile }) => atlasTileKey(tile.coordinate)),
+    ).toEqual(["0/0/0"]);
     expect(snapshot.visibleMass).toBe(100);
     expect(
       snapshot.activeTiles.every(({ massPerPoint }) => massPerPoint === 12.5),

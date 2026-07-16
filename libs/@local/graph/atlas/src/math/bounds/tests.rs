@@ -4,6 +4,8 @@
               exactly-representable values are bit-precise contracts"
 )]
 
+use proptest::prelude::*;
+
 use crate::math::{
     Bounds2, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
@@ -189,4 +191,99 @@ fn fit_rejects_degenerate_extents_until_widened() {
 
     assert!(collinear.fit(target).is_none());
     assert!(collinear.with_minimum_extent(1.0).fit(target).is_some());
+}
+
+/// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
+/// range; the bounding-box laws are about corner algebra, not overflow.
+fn point_strategy() -> impl Strategy<Value = Vec2> {
+    (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
+}
+
+/// A point vector short enough to keep case counts sane while crossing
+/// the SIMD fold's chunk boundary in both directions.
+fn points_strategy() -> impl Strategy<Value = Vec<Vec2>> {
+    prop::collection::vec(point_strategy(), 0..64)
+}
+
+/// A well-conditioned box: a corner bounded to `-1e3..1e3` and per-axis
+/// extents in `1..1e3`, bounded away from the degenerate scales `fit`
+/// rejects.
+fn bounds_strategy() -> impl Strategy<Value = Bounds2> {
+    (point_strategy(), 1.0_f32..1e3, 1.0_f32..1e3).prop_map(|(min, width, height)| {
+        Bounds2::new(min, min + Vec2::new(width, height))
+            .expect("a finite corner plus positive extents is a valid box")
+    })
+}
+
+proptest! {
+    /// The box computed from a point set contains every input point: the
+    /// min/max folds are exact, so containment is boundary-inclusive with
+    /// no tolerance.
+    #[test]
+    fn from_points_contains_every_input_point(points in points_strategy()) {
+        prop_assume!(!points.is_empty());
+
+        let bounds = Bounds2::from_points(points.iter().copied())
+            .expect("in-range points are finite and non-empty");
+
+        for point in points {
+            prop_assert!(bounds.contains(point), "{:?} outside {:?}", point, bounds);
+        }
+    }
+
+    /// The union contains both operands' corners, exactly: union folds
+    /// min/max, which never rounds.
+    #[test]
+    fn union_contains_both_operands_corners(
+        left in bounds_strategy(),
+        right in bounds_strategy(),
+    ) {
+        let union = left.union(right);
+
+        for bounds in [left, right] {
+            prop_assert!(union.contains(bounds.min()));
+            prop_assert!(union.contains(bounds.max()));
+        }
+    }
+
+    /// The SIMD fold agrees with the scalar fold on arbitrary point
+    /// vectors, including the empty one: both compute the same exact
+    /// min/max corners (or the same rejection).
+    #[test]
+    fn from_slice_equals_from_points_on_arbitrary_points(points in points_strategy()) {
+        prop_assert_eq!(
+            Bounds2::from_slice(&points),
+            Bounds2::from_points(points.iter().copied()),
+        );
+    }
+
+    /// The fitted transform maps source corners onto target corners, up
+    /// to rounding scaled by the target box's magnitude: extents are
+    /// bounded to `1..1e3` (well-conditioned scale factors), and the
+    /// cancellation in `point - min` is amplified by at most the extent
+    /// ratio.
+    #[test]
+    fn fit_maps_source_corners_onto_target_corners(
+        source in bounds_strategy(),
+        target in bounds_strategy(),
+    ) {
+        let transform = source.fit(target).expect("extents in 1..1e3 are normal");
+
+        // The composed transform's intermediates reach `scale * |corner|`
+        // with `scale <= target extent / 1` and `|corner| / source extent
+        // <= 1e3`, so a handful of roundings amplify to a few times
+        // `1e-4` of the target box's magnitude.
+        let magnitude = target.min().length() + target.size().length();
+        let tolerance = 4e-3 * magnitude.max(1.0);
+        for (mapped, expected) in [
+            (transform.apply(source.min()), target.min()),
+            (transform.apply(source.max()), target.max()),
+        ] {
+            prop_assert!(
+                (mapped.x() - expected.x()).abs() <= tolerance
+                    && (mapped.y() - expected.y()).abs() <= tolerance,
+                "expected {:?}, got {:?}", expected, mapped,
+            );
+        }
+    }
 }

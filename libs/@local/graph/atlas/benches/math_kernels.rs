@@ -3,6 +3,25 @@
 //! Every benchmark pairs a SIMD kernel with the scalar formulation it
 //! replaces, so the vectorization claims in the module docs stay tied to
 //! measured numbers rather than emitted-assembly inspection alone.
+//!
+//! The hardware event defaults to retired instructions and is selected
+//! with `MATH_BENCH_EVENT`: `instructions`, `cycles`,
+//! `branch-mispredictions`, or `l1d-cache-misses`. Each event saves its
+//! own criterion baseline, so run-over-run change reports compare like
+//! with like. Instruction counts are stable across runs but blind to
+//! instruction-level parallelism; confirm a winner in `cycles` before
+//! acting on close calls, and weigh instruction counts higher for kernels
+//! that run fused inside larger loops, where issue slots are the shared
+//! resource.
+//!
+//! Counters attribute to the calling thread only: rayon-parallel
+//! benchmarks under-report every event because the workers' counts are
+//! invisible. Read parallel entries as coordination overhead, not as the
+//! work itself.
+//!
+//! ```text
+//! sudo MATH_BENCH_EVENT=cycles cargo bench -p hash-graph-atlas --bench math_kernels
+//! ```
 #![feature(portable_simd)]
 #![expect(
     clippy::float_arithmetic,
@@ -148,6 +167,51 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
         });
     });
 
+    // The fused variants embed each strategy in the attraction-coefficient
+    // arithmetic, measuring what the isolated calls cannot: whether the
+    // instruction-count gap converts to cycles once the pow competes with
+    // surrounding vector work for issue slots.
+    let curve_a = 1.577_f32;
+    let curve_b = 0.895_f32;
+    let coefficient = |power: f32x4, distance_squared: f32x4| {
+        (Simd::splat(-2.0 * curve_a * curve_b) * power)
+            / (Simd::splat(curve_a) * power * distance_squared + Simd::splat(1.0))
+    };
+
+    group.bench_function("fused_sleef_exp2_log2_u35", |bencher| {
+        bencher.iter(|| {
+            let distance_squared = black_box(base);
+            let power = sleef::f32x::exp2_u35(
+                Simd::splat(black_box(exponent)) * sleef::f32x::log2_u35(distance_squared),
+            );
+
+            coefficient(power, distance_squared)
+        });
+    });
+    group.bench_function("fused_scalar_libm_powf", |bencher| {
+        bencher.iter(|| {
+            let distance_squared = black_box(base);
+            let lanes = distance_squared.to_array();
+            let exponent = black_box(exponent);
+            let power = f32x4::from_array([
+                lanes[0].powf(exponent),
+                lanes[1].powf(exponent),
+                lanes[2].powf(exponent),
+                lanes[3].powf(exponent),
+            ]);
+
+            coefficient(power, distance_squared)
+        });
+    });
+    group.bench_function("fused_sleef_pow_u10", |bencher| {
+        bencher.iter(|| {
+            let distance_squared = black_box(base);
+            let power = sleef::f32x::pow_u10(distance_squared, Simd::splat(black_box(exponent)));
+
+            coefficient(power, distance_squared)
+        });
+    });
+
     group.finish();
 }
 
@@ -237,11 +301,33 @@ fn bench_dvecn<M: Measurement + 'static>(criterion: &mut Criterion<M>) {
 }
 
 fn hardware_counter() -> Criterion<darwin_kperf_criterion::HardwareCounter> {
+    use darwin_kperf_criterion::HardwareCounter;
+
+    let event = std::env::var("MATH_BENCH_EVENT");
+    let event = match event.as_deref() {
+        Ok(name @ ("instructions" | "cycles" | "branch-mispredictions" | "l1d-cache-misses")) => {
+            name
+        }
+        Err(_) => "instructions",
+        Ok(other) => panic!(
+            "unknown MATH_BENCH_EVENT `{other}`; expected `instructions`, `cycles`, \
+             `branch-mispredictions`, or `l1d-cache-misses`"
+        ),
+    };
+    let counter = match event {
+        "cycles" => HardwareCounter::cycles(),
+        "branch-mispredictions" => HardwareCounter::branch_mispredictions(),
+        "l1d-cache-misses" => HardwareCounter::l1d_cache_misses(),
+        _ => HardwareCounter::instructions(),
+    };
+
     Criterion::default()
         .with_measurement(
-            darwin_kperf_criterion::HardwareCounter::instructions()
-                .expect("instruction counting requires root on Apple Silicon (run under sudo)"),
+            counter.expect("hardware counters require root on Apple Silicon (run under sudo)"),
         )
+        // Per-event baselines keep the change report meaningful: comparing
+        // a cycles run against an instructions baseline is unit nonsense.
+        .save_baseline(event.to_owned())
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(1))
         .sample_size(20)

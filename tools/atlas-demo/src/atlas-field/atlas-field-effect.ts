@@ -27,16 +27,16 @@ import {
 import { Geometry, Model } from "@luma.gl/engine";
 
 import {
-  deriveAtlasFieldNormalization,
+  deriveAtlasFieldExposure,
   packAtlasField,
-  type AtlasFieldNormalization,
+  type AtlasFieldExposure,
 } from "./atlas-field-data";
 
 import type { WeightedAtlasTile } from "../atlas-frontier";
 import type { ShaderModule } from "@luma.gl/shadertools";
 
 const normalizerSize = 128;
-const normalizationIntervalMilliseconds = 1_000;
+const exposureIntervalMilliseconds = 1_000;
 const baseSplatRadius = 7;
 const deliveryBandOffset = 7;
 const maximumFieldLevel = 13;
@@ -116,7 +116,8 @@ void main(void) {
   if (distanceSquared > 1.0) {
     discard;
   }
-  float kernel = exp(-distanceSquared * 3.0);
+  float edge = 1.0 - smoothstep(0.82, 1.0, distanceSquared);
+  float kernel = exp(-distanceSquared * 3.0) * edge;
   fragColor = vec4(vMass * kernel, 0.0, 0.0, 0.0);
 }
 `;
@@ -190,19 +191,19 @@ const fullscreenGeometry = (): Geometry =>
 /** Mutable texture publication shared with the screen composite layer. */
 export interface AtlasFieldRenderState {
   error?: string;
+  exposure: AtlasFieldExposure;
   fieldRevision: number;
   format?: TextureFormatColor;
   height: number;
-  normalization: AtlasFieldNormalization;
   texture: LumaTexture | null;
   width: number;
 }
 
 /** Creates the stable state object shared by one effect and screen layer. */
 export const createAtlasFieldRenderState = (): AtlasFieldRenderState => ({
+  exposure: { densityScale: 1 },
   fieldRevision: 0,
   height: 0,
-  normalization: { floor: 0.001, reliefNorm: 1 },
   texture: null,
   width: 0,
 });
@@ -229,8 +230,8 @@ export class AtlasFieldEffect implements Effect {
   #fieldModel?: Model;
   #fieldTexture?: LumaTexture;
   #lastDataKey = "";
-  #lastNormalizationKey = "";
-  #lastNormalizationTime = Number.NEGATIVE_INFINITY;
+  #lastExposureKey = "";
+  #lastExposureTime = Number.NEGATIVE_INFINITY;
   #massBuffer?: LumaBuffer;
   #positionBuffer?: LumaBuffer;
   #tileZoomBuffer?: LumaBuffer;
@@ -329,7 +330,7 @@ export class AtlasFieldEffect implements Effect {
     renderState.width = width;
     renderState.height = height;
     renderState.fieldRevision += 1;
-    this.#updateNormalization(viewport);
+    this.#updateExposure(viewport);
   }
 
   cleanup(): void {
@@ -546,7 +547,7 @@ export class AtlasFieldEffect implements Effect {
     this.#tileZoomBuffer = undefined;
   }
 
-  #updateNormalization(viewport: Viewport): void {
+  #updateExposure(viewport: Viewport): void {
     if (
       this.#device === undefined ||
       this.#fieldTexture === undefined ||
@@ -556,12 +557,11 @@ export class AtlasFieldEffect implements Effect {
       return;
     }
 
-    const normalizationKey = `${this.#lastDataKey}:${viewport.zoom}:${viewport.center.join(",")}:${this.props.renderState.width}x${this.props.renderState.height}`;
+    const exposureKey = `${this.#lastDataKey}:${viewport.zoom}:${viewport.center.join(",")}:${this.props.renderState.width}x${this.props.renderState.height}`;
     const currentTime = performance.now();
     if (
-      normalizationKey === this.#lastNormalizationKey ||
-      currentTime - this.#lastNormalizationTime <
-        normalizationIntervalMilliseconds
+      exposureKey === this.#lastExposureKey ||
+      currentTime - this.#lastExposureTime < exposureIntervalMilliseconds
     ) {
       return;
     }
@@ -604,16 +604,15 @@ export class AtlasFieldEffect implements Effect {
         },
       );
       if (samples instanceof Float32Array) {
-        this.props.renderState.normalization =
-          deriveAtlasFieldNormalization(samples);
+        this.props.renderState.exposure = deriveAtlasFieldExposure(samples);
       }
-      this.#lastNormalizationKey = normalizationKey;
-      this.#lastNormalizationTime = currentTime;
+      this.#lastExposureKey = exposureKey;
+      this.#lastExposureTime = currentTime;
     } catch {
       // The field remains usable with conservative defaults when synchronous
       // float readback is unavailable on an otherwise renderable device.
-      this.#lastNormalizationKey = normalizationKey;
-      this.#lastNormalizationTime = currentTime;
+      this.#lastExposureKey = exposureKey;
+      this.#lastExposureTime = currentTime;
     }
   }
 

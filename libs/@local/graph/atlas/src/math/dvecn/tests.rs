@@ -4,6 +4,8 @@
               identities are exact contracts"
 )]
 
+use proptest::prelude::*;
+
 use crate::math::DVecN;
 
 #[test]
@@ -155,4 +157,83 @@ fn wrapping_is_in_place() {
         core::ptr::from_mut(DVecN::from_mut(&mut components)).addr(),
         components.as_mut_ptr().addr(),
     );
+}
+
+// The fixed dimension 11 crosses the reductions' 4-lane chunk boundary
+// (two full chunks plus a remainder of three) and `add_scaled`'s 8-lane
+// boundary (one chunk plus three).
+
+/// Logits bounded to `-50..50`, where `exp` is well-conditioned; the
+/// stability of the shifted form under huge logits is pinned by the
+/// example-based tests above.
+fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
+    prop::array::uniform11(-50.0_f64..50.0)
+}
+
+proptest! {
+    /// Softmax outputs are probabilities: each lies in `[0, 1]` and they
+    /// sum to one up to rounding.
+    #[test]
+    fn softmax_outputs_form_a_distribution(logits in logits_strategy()) {
+        let probabilities = DVecN::new(logits).softmax();
+
+        for &probability in probabilities.as_array() {
+            prop_assert!((0.0..=1.0).contains(&probability));
+        }
+        let total: f64 = probabilities.as_array().iter().sum();
+        prop_assert!((total - 1.0).abs() < 1e-12, "total {}", total);
+    }
+
+    /// Softmax is shift-invariant: adding a common constant to every
+    /// logit leaves the distribution unchanged up to rounding. The shift
+    /// is bounded to `-1e2..1e2` so the shifted logits stay
+    /// well-conditioned.
+    #[test]
+    fn softmax_is_shift_invariant_on_arbitrary_logits(
+        logits in logits_strategy(),
+        shift in -1e2_f64..1e2,
+    ) {
+        let base = DVecN::new(logits).softmax();
+        let moved = DVecN::new(logits.map(|logit| logit + shift)).softmax();
+
+        for (base, moved) in base.as_array().iter().zip(moved.as_array()) {
+            prop_assert!((base - moved).abs() < 1e-10, "{} vs {}", base, moved);
+        }
+    }
+
+    /// Log-sum-exp is bracketed by its algebraic bounds:
+    /// `max <= log_sum_exp <= max + ln(N)`, up to rounding.
+    #[test]
+    fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(logits in logits_strategy()) {
+        let vec = DVecN::new(logits);
+
+        let result = vec.log_sum_exp();
+        let maximum = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+
+        prop_assert!(result >= maximum - 1e-9, "{} below max {}", result, maximum);
+        prop_assert!(
+            result <= maximum + 11.0_f64.ln() + 1e-9,
+            "{} above max {} + ln(11)", result, maximum,
+        );
+    }
+
+    /// `add_scaled` matches the scalar fused reference loop bit for bit
+    /// in every component: the SIMD path widens, multiplies, and adds
+    /// with the same single rounding as scalar `mul_add`. Components and
+    /// the factor are bounded to `-1e3..1e3`.
+    #[test]
+    fn add_scaled_matches_a_scalar_reference_loop(
+        accumulator in prop::array::uniform11(-1e3_f64..1e3),
+        direction in prop::array::uniform11(-1e3_f32..1e3),
+        factor in -1e3_f64..1e3,
+    ) {
+        let expected: [f64; 11] = core::array::from_fn(|index| {
+            f64::from(direction[index]).mul_add(factor, accumulator[index])
+        });
+
+        let mut actual = DVecN::new(accumulator);
+        actual.add_scaled(&crate::math::VecN::new(direction), factor);
+
+        prop_assert_eq!(actual.as_array(), &expected);
+    }
 }

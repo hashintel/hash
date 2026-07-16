@@ -3,7 +3,9 @@
  *
  * The active set is always spatially disjoint. A cached parent remains active
  * until every visible direct child is ready, then those children replace it in
- * one publication. Each representative carries `visible / delivered` mass.
+ * one publication. Each representative carries `visible / delivered` mass on
+ * average; how that mass is distributed across a possibly budget-truncated
+ * delivery is the renderer's concern (see `atlas-field/atlas-field-data.ts`).
  */
 
 import {
@@ -32,6 +34,7 @@ export type { AtlasViewState };
 
 const defaultCacheByteBudget = 96 * 1024 * 1024;
 const defaultConcurrency = 6;
+const particleZoomOffset = 4;
 
 /** One active tile and the mass assigned to each delivered representative. */
 export interface WeightedAtlasTile {
@@ -68,6 +71,7 @@ export interface AtlasFrontierSnapshot {
   readonly deliveredPointCount: number;
   readonly failures: readonly AtlasFrontierFailure[];
   readonly inflightCount: number;
+  readonly markTiles: readonly WeightedAtlasTile[];
   readonly phase: AtlasFrontierPhase;
   readonly queuedCount: number;
   readonly revision: number;
@@ -104,6 +108,7 @@ const emptySnapshot: AtlasFrontierSnapshot = {
   deliveredPointCount: 0,
   failures: [],
   inflightCount: 0,
+  markTiles: [],
   phase: "loading",
   queuedCount: 0,
   revision: 0,
@@ -279,6 +284,25 @@ export class AtlasFrontier {
       return [];
     }
 
+    return this.#tilesAtMaximumZoom(selection.targetZoom);
+  }
+
+  #markTiles(): WeightedAtlasTile[] {
+    const selection = this.#selection;
+    if (selection === undefined) {
+      return [];
+    }
+    return this.#tilesAtMaximumZoom(
+      Math.max(selection.targetZoom - particleZoomOffset, 0),
+    );
+  }
+
+  #tilesAtMaximumZoom(maximumZoom: number): WeightedAtlasTile[] {
+    const selection = this.#selection;
+    if (selection === undefined) {
+      return [];
+    }
+
     const resolve = (coordinate: AtlasTileCoordinate): WeightedAtlasTile[] => {
       if (!atlasTileIntersectsBounds(coordinate, selection.bounds)) {
         return [];
@@ -288,7 +312,7 @@ export class AtlasFrontier {
       if (tile === undefined) {
         return [];
       }
-      if (coordinate.z >= selection.targetZoom) {
+      if (coordinate.z >= maximumZoom) {
         return [this.#weightedTile(tile)];
       }
 
@@ -324,6 +348,7 @@ export class AtlasFrontier {
     }
 
     const activeTiles = this.#activeTiles();
+    const markTiles = this.#markTiles();
     const activeKeys = new Set(
       activeTiles.map(({ tile }) => atlasTileKey(tile.coordinate)),
     );
@@ -371,6 +396,7 @@ export class AtlasFrontier {
       deliveredPointCount,
       failures,
       inflightCount: this.#inflight.size,
+      markTiles,
       phase:
         failures.length > 0
           ? "error"

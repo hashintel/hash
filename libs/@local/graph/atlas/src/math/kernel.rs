@@ -3,12 +3,13 @@
 //! The fused multiply-add dispatchers select between native FMA and
 //! separate multiply-add per target. The transcendentals are vectorized
 //! through [`sleef`], a dependency-free pure-Rust port of the SLEEF
-//! vector math library; its `u10` variants are accurate to 1.0 unit in
-//! the last place, the same bound a quality system libm provides, so
-//! results may differ from scalar libm calls by up to one ulp in either
-//! direction. The wrappers are the crate's single seam onto the library:
-//! every consumer routes through here, and the `math::kernel` tests bound
-//! the error against scalar libm.
+//! vector math library. Each wrapper documents its own accuracy bound:
+//! the variant is chosen per kernel by measuring the consumers'
+//! requirements against instruction counts, from the 1.0-ulp `u10` tier
+//! down to compositions of the cheaper 3.5-ulp `u35` tier. The wrappers
+//! are the crate's single seam onto the library: every consumer routes
+//! through here, and the `math::kernel` tests bound each wrapper's error
+//! against scalar libm.
 // `StdFloat` also exposes vector `exp`/`ln`, but the compiler lowers them
 // to one libm call per lane on every current target (verified against the
 // emitted assembly), which is why the bodies below call sleef instead.
@@ -74,16 +75,46 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
     sleef::f64x::exp_u10(values)
 }
 
-/// Raises each lane of `base` to the matching lane of `exponent`,
-/// accurate to 1.0 unit in the last place.
+/// Raises each lane of `base` to the matching lane of `exponent`, for
+/// strictly positive bases.
+///
+/// The power is evaluated as `exp2(exponent * log2(base))` from sleef's
+/// 3.5-ulp stages. The relative error grows with the magnitude of the
+/// result's binary exponent: a few units in the last place for results
+/// near one, on the order of `1e-4` at the edges of the normal range.
+/// Gradient kernels tolerate far more; callers needing 1-ulp powers
+/// should take the scalar [`f32::powf`] per lane instead.
+///
+/// A `base` of zero yields zero for positive exponents, infinity for
+/// negative exponents, and NaN when the exponent is also zero; negative
+/// bases yield NaN.
+// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf):
+// this composition 87 instructions / 31 cycles, four scalar libm `powf`
+// calls 311 / 36, sleef's 1.0-ulp `pow_u10` 474 / 125. The scalar
+// near-tie in standalone cycles vanishes under load: embedded in the
+// attraction-coefficient arithmetic the composition holds 33 cycles
+// (the extra work rides its idle issue slots) while the scalar option
+// grows to 44. The tie also does not generalize across machines: it
+// needs an out-of-order engine wide and deep enough to overlap four
+// independent libm bodies (IPC ~8.6 here) and Apple's branch-free
+// `powf`; production Linux targets have neither, and glibc's `powf` is
+// a different, branchier function with different rounding. The composition's cost travels with
+// the binary - same sleef code, same 87 instructions, bit-identical
+// results on every platform - which also keeps content-hashed fits
+// reproducible across dev and prod. Inside the fused gradient kernels
+// the instruction count is additionally the shared resource: the
+// composition leaves three quarters of the issue slots to the
+// surrounding batch arithmetic and stays in vector registers.
+// `StdFloat` offers no vector `pow`, and its `exp2`/`log2` scalarize to
+// one libm call per lane.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
-              transparent so only sleef's own call remains"
+              transparent so only sleef's own calls remain"
 )]
 #[inline(always)]
 pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
-    sleef::f32x::pow_u10(base, exponent)
+    sleef::f32x::exp2_u35(exponent * sleef::f32x::log2_u35(base))
 }
 
 #[cfg(test)]
@@ -144,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn pow_stays_within_one_ulp_of_libm() {
+    fn pow_stays_within_the_documented_relative_bound() {
         let bases = [1e-6_f32, 0.25, 1.0, 2.5, 117.0, 3.4e37];
         let exponents = [-2.0_f32, -0.895, -0.105, 0.0, 0.895, 2.0];
 
@@ -153,8 +184,9 @@ mod tests {
                 let vectorized = pow_f32x4(Simd::splat(base), Simd::splat(exponent)).to_array()[0];
                 let reference = base.powf(exponent);
 
-                // Overflowing cases must agree exactly on the infinity; the
-                // ulp distance is only meaningful between finite values.
+                // Overflowing cases must agree exactly on the infinity; a
+                // relative distance is only meaningful between finite
+                // values.
                 if !reference.is_finite() {
                     assert_eq!(
                         vectorized, reference,
@@ -163,22 +195,22 @@ mod tests {
                     continue;
                 }
 
-                let ulp = ulp_f32(reference);
+                // The composed error scales with the result's binary
+                // exponent; 2e-4 relative covers the extreme corner of the
+                // sample grid (3.4e37 squared) with margin, and results
+                // near one land far inside it.
                 assert!(
-                    (vectorized - reference).abs() <= ulp,
+                    (vectorized - reference).abs() <= reference.abs() * 2e-4,
                     "pow({base}, {exponent}): sleef {vectorized} vs libm {reference}",
                 );
             }
         }
 
-        // Exact special points.
+        // A zero exponent is exact for any positive base: the exponent
+        // product is zero and exp2(0) is one.
         assert_eq!(
             pow_f32x4(Simd::splat(7.5), Simd::splat(0.0)).to_array(),
             [1.0; 4]
-        );
-        assert_eq!(
-            pow_f32x4(Simd::splat(7.5), Simd::splat(1.0)).to_array(),
-            [7.5; 4]
         );
     }
 

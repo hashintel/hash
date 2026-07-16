@@ -21,6 +21,7 @@ import {
   AtlasFieldLayer,
   atlasFieldBounds,
   createAtlasFieldRenderState,
+  createAtlasParticleLayer,
   type AtlasFieldBounds,
 } from "../atlas-field";
 import {
@@ -186,11 +187,16 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
       opacity: 1,
       renderState,
     });
+    const particleLayer = createAtlasParticleLayer(snapshot.markTiles);
     if (!debugFraming) {
-      return [fieldLayer];
+      return [fieldLayer, particleLayer];
     }
-    return [fieldLayer, ...createAtlasDebugLayers(snapshot.debugTiles)];
-  }, [debugFraming, renderState, snapshot.debugTiles]);
+    return [
+      fieldLayer,
+      particleLayer,
+      ...createAtlasDebugLayers(snapshot.debugTiles),
+    ];
+  }, [debugFraming, renderState, snapshot.debugTiles, snapshot.markTiles]);
 
   const resetView = useCallback(() => {
     setCamera(fittedCamera(canvasSize, dataBounds));

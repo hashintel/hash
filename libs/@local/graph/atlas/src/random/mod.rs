@@ -11,59 +11,51 @@
 //!   must all pass to certify a defect-rate bound at a confidence level.
 
 use core::num::NonZero;
-use std::collections::HashMap;
 
-use rand::{Rng, RngExt, distr::Uniform, seq::index::sample_array};
+use rand::{
+    Rng, RngExt as _,
+    seq::index::{IndexVec, sample, sample_array},
+};
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 /// Draws an unbiased uniform integer in `[0, bound)`.
 ///
-/// Rejection sampling over the zone `[0, N)`, where `N` is the largest
-/// multiple of `bound` that fits in `u64`: draws inside the zone cover
-/// every residue class the same number of times, so reducing them modulo
-/// `bound` is exactly uniform, and draws outside the zone are rejected.
-/// The zone always covers at least half of the `u64` range, so fewer than
-/// two draws are consumed on average.
-///
-/// # Panics
-///
-/// Panics when `bound` is zero: an empty range cannot be sampled, and a
-/// zero bound is a caller bug rather than a runtime condition.
+/// Every value below the bound is exactly equally likely; the draw
+/// consumes a small bounded expected number of generator words. The
+/// non-zero bound makes the empty range unrepresentable, so the draw
+/// always succeeds.
 ///
 /// # Examples
 ///
 /// ```
+/// use core::num::NonZero;
+///
 /// use hash_graph_atlas::random::uniform_below;
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
 /// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
-/// let roll = uniform_below(&mut rng, 6) + 1;
+/// let sides = NonZero::new(6).expect("a die has sides");
+/// let roll = uniform_below(&mut rng, sides) + 1;
 /// assert!((1..=6).contains(&roll));
 /// ```
 #[inline]
 #[must_use]
-pub fn uniform_below(rng: impl Rng, bound: NonZero<u64>) -> impl IntoIterator<Item = u64> {
-    rng.sample_iter(
-        Uniform::new(0, bound.get()).unwrap_or_else(|_error| {
-            unreachable!("low < high trivially holds thanks to `NonZero`")
-        }),
-    )
+pub fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
+    rng.random_range(0..bound.get())
 }
 
-/// Samples `count` distinct indices from `[0, population)` uniformly at
-/// random, without replacement.
+/// Samples `N` distinct indices from `[0, population)` uniformly at
+/// random, without replacement, into a fixed-size array.
 ///
-/// Every `count`-element subset of the population is equally likely, and
-/// the returned order is itself uniformly random. When
-/// `count >= population` the result is a uniform random permutation of
-/// the whole range (empty when the population is empty).
+/// Every `N`-element subset of the population is equally likely, and the
+/// returned order is itself uniformly random. Memory is proportional to
+/// the sample, never to the population, and nothing is heap-allocated.
 ///
-/// The partial Fisher-Yates shuffle records displaced entries in a sparse
-/// replacement map instead of materializing the population, so memory is
-/// proportional to `count`, never to `population`.
+/// Returns [`None`] when the population holds fewer than `N` indices:
+/// there is no `N`-element sample to draw.
 ///
 /// # Examples
 ///
@@ -73,13 +65,45 @@ pub fn uniform_below(rng: impl Rng, bound: NonZero<u64>) -> impl IntoIterator<It
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
 /// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
-/// let picked = sample_indices(&mut rng, 1_000_000, 3);
-/// assert_eq!(picked.len(), 3);
+/// let picked = sample_indices::<3>(&mut rng, 1_000_000).expect("the population covers a sample");
 /// assert!(picked.iter().all(|&index| index < 1_000_000));
+/// assert_ne!(picked[0], picked[1]);
 /// ```
+#[inline]
 #[must_use]
 pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> Option<[usize; N]> {
     sample_array::<_, N>(&mut rng, population)
+}
+
+/// Samples `count` distinct indices from `[0, population)` uniformly at
+/// random, without replacement, for sample sizes chosen at runtime.
+///
+/// Every `count`-element subset of the population is equally likely, and
+/// the returned order is itself uniformly random. Memory is proportional
+/// to the sample. Prefer [`sample_indices`] when the sample size is a
+/// compile-time constant; it skips the heap entirely.
+///
+/// # Panics
+///
+/// Panics when `count` exceeds `population`: there is no `count`-element
+/// sample to draw, and an oversized request is a caller bug rather than
+/// a runtime condition.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::random::sample_indices_vec;
+/// use rand::SeedableRng as _;
+/// use rand_xoshiro::Xoshiro256PlusPlus;
+///
+/// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
+/// let picked = sample_indices_vec(&mut rng, 1_000_000, 688);
+/// assert_eq!(picked.len(), 688);
+/// ```
+#[inline]
+#[must_use]
+pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) -> IndexVec {
+    sample(&mut rng, population, count)
 }
 
 /// Computes the number of uniformly sampled items to check so that an
@@ -139,10 +163,3 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 
     Some(samples)
 }
-
-// /// Draws a uniform index below `bound`, round-tripping through the `u64`
-// /// sampler.
-// fn index_below(rng: &mut impl Rng, bound: usize) -> usize {
-//     let bound = u64::try_from(bound).expect("usize should fit u64");
-//     usize::try_from(uniform_below(rng, bound)).expect("a sample below a usize bound fits usize")
-// }

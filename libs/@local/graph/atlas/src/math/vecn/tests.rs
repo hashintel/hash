@@ -9,6 +9,8 @@ use core::{
     simd::{Simd, num::SimdFloat as _},
 };
 
+use proptest::prelude::*;
+
 use crate::math::{AlignedVecN, BoxedVecN, DVecN, VecN};
 
 /// Deterministic, sign-varying components crossing several 8-lane chunks.
@@ -341,4 +343,64 @@ fn try_as_aligned_agrees_between_shared_and_mutable() {
     aligned.as_array_mut()[0] = 7.0;
 
     assert_eq!(boxed.as_array()[0], 7.0);
+}
+
+/// Components bounded to the well-conditioned `-1e3..1e3` range, in the
+/// fixed dimension 19: two full 8-lane chunks plus a remainder of three,
+/// crossing the SIMD chunk boundary in both the batched body and the
+/// scalar tail.
+fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
+    prop::array::uniform19(-1e3_f32..1e3)
+}
+
+proptest! {
+    /// The dot product commutes bit for bit: both orders accumulate the
+    /// same products in the same order.
+    #[test]
+    fn dot_is_commutative(left in components_strategy(), right in components_strategy()) {
+        prop_assert_eq!(
+            VecN::new(left).dot(VecN::from_ref(&right)),
+            VecN::new(right).dot(VecN::from_ref(&left)),
+        );
+    }
+
+    /// The squared norm is non-negative: it accumulates squares.
+    #[test]
+    fn norm_squared_is_non_negative(components in components_strategy()) {
+        prop_assert!(VecN::new(components).norm_squared() >= 0.0);
+    }
+
+    /// Cosine distance lies in `[0, 2]`, and the distance from a non-zero
+    /// vector to itself is zero up to rounding.
+    #[test]
+    fn cosine_distance_stays_in_range_and_vanishes_on_self(
+        left in components_strategy(),
+        right in components_strategy(),
+    ) {
+        let left = VecN::new(left);
+        let right = VecN::new(right);
+
+        let distance = left.cosine_distance(&right);
+        prop_assert!((0.0..=2.0).contains(&distance));
+
+        prop_assume!(left.norm_squared() > 0.0);
+        prop_assert!(left.cosine_distance(&left) < 1e-6);
+    }
+
+    /// The fused SIMD dot product matches a plain-f64 reference loop
+    /// within a relative tolerance plus a small absolute floor for
+    /// cancelled sums.
+    #[test]
+    fn dot_matches_a_plain_f64_reference(
+        left in components_strategy(),
+        right in components_strategy(),
+    ) {
+        let expected = reference_dot(&left, &right.map(f64::from));
+
+        let actual = f64::from(VecN::new(left).dot(VecN::from_ref(&right)));
+        prop_assert!(
+            (actual - expected).abs() <= expected.abs().mul_add(1e-6, 1e-3),
+            "dot {} vs reference {}", actual, expected,
+        );
+    }
 }

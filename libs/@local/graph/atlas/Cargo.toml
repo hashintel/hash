@@ -55,6 +55,7 @@ memmap2                                  = "0.9.11"
 nalgebra                                 = "0.34.1"
 pin-project-lite.workspace               = true
 rand                                     = { workspace = true, public = true }
+rand_core                                = { workspace = true, public = true }
 rand_xoshiro                             = { workspace = true }
 rayon                                    = { workspace = true }
 regex                                    = { workspace = true }
@@ -80,6 +81,7 @@ darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 futures                   = { workspace = true }
 hash-graph-embeddings     = { workspace = true }
 npyz                      = "0.9.1"
+proptest.workspace        = true
 tempfile                  = "3.27.0"
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-postgres            = { workspace = true }

@@ -74,6 +74,7 @@
     never_type,
 
     // Library Features
+    array_windows,
     const_convert,
     const_ops,
     const_index,

@@ -67,14 +67,29 @@ establishes a new rule, add it here.
   without, so the dispatcher selects by `cfg`.
 - Transcendentals go through the `math::kernel` wrappers, which call
   [sleef](https://docs.rs/sleef) (a dependency-free pure-Rust port of the
-  SLEEF vector math library, no `unsafe`, no build script). Its `u10`
-  variants are accurate to 1.0 unit in the last place - the same bound a
-  quality system libm provides - and the kernel tests verify that bound
-  against scalar libm, including exact special points and overflow
-  agreement. Do not call sleef directly outside `math::kernel`: the
-  wrappers are the single seam for swapping or evicting the dependency.
-  (Exception: benchmarks may call candidate lowerings directly when
-  comparing strategies for a kernel decision.)
+  SLEEF vector math library, no `unsafe`, no build script). The accuracy
+  tier is chosen per wrapper by measurement, not by default: `exp` uses
+  the 1.0-ulp `u10` tier, while `pow` composes the 3.5-ulp `exp2`/`log2`
+  stages because gradients tolerate the relaxed bound and the composition
+  measured 87 retired instructions per 4-lane call against 311 for four
+  scalar libm calls and 474 for `pow_u10` (M5 Max; 31 / 36 / 125 cycles
+  standalone). Judge fused kernels by instruction count (issue slots are
+  the shared resource) and standalone calls by cycles; a wide core can
+  hide a large instruction gap behind independent chains.
+- Single-machine cycle counts do not generalize. Apple's unusually wide
+  and deep out-of-order engines (and its branch-free libm) flatter
+  scalar-call strategies that narrower production cores and glibc will
+  not; instruction counts and pure-Rust lowerings travel with the binary,
+  cycle near-ties measured on an M-series desk do not. Prefer the
+  strategy that is robust across the deployment matrix, and treat
+  cross-platform bit-reproducibility as a tiebreaker wherever outputs
+  are content-hashed. Every wrapper
+  documents its own bound, and the kernel tests verify each against
+  scalar libm, including exact special points and overflow agreement. Do
+  not call sleef directly outside `math::kernel`: the wrappers are the
+  single seam for swapping or evicting the dependency. (Exception:
+  benchmarks may call candidate lowerings directly when comparing
+  strategies for a kernel decision.)
 - [`StdFloat`](https://doc.rust-lang.org/std/simd/trait.StdFloat.html)
   also exposes vector transcendentals (`exp`, `exp2`, `ln`, `log2`,
   `sin`, `cos` - there is no `powf`), but the compiler lowers them to one

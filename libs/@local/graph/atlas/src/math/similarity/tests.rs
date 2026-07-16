@@ -3,6 +3,8 @@
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]
 
+use proptest::prelude::*;
+
 use super::Similarity;
 use crate::math::{
     Rotation, Transform, Vec2, Vec2x4T,
@@ -474,5 +476,78 @@ fn invalid_scales_are_rejected() {
             Similarity::from_array([scale, 1.0, 0.0, 0.0, 0.0]).is_none(),
             "from_array must reject scale {scale}",
         );
+    }
+}
+
+/// An arbitrary well-conditioned similarity: scale in `0.1..10`, an
+/// arbitrary rotation angle, and a translation bounded to `-1e2..1e2`.
+fn similarity_strategy() -> impl Strategy<Value = Similarity> {
+    (0.1_f32..10.0, -16.0_f32..16.0, -1e2_f32..1e2, -1e2_f32..1e2).prop_map(
+        |(scale, radians, translate_x, translate_y)| {
+            Similarity::new(
+                scale,
+                Rotation::from_radians(radians),
+                Vec2::new(translate_x, translate_y),
+            )
+            .expect("the strategy's scale range is normal and positive")
+        },
+    )
+}
+
+proptest! {
+    /// A similarity scales all distances uniformly: for any two points
+    /// separated by at least one unit, the distance ratio equals the
+    /// scale up to a relative tolerance. Coordinates are bounded to
+    /// `-1e3..1e3` and the separation floor keeps the subtraction's
+    /// cancellation error small relative to the distance.
+    #[test]
+    fn apply_scales_distances_uniformly(
+        similarity in similarity_strategy(),
+        (left_x, left_y) in (-1e3_f32..1e3, -1e3_f32..1e3),
+        (right_x, right_y) in (-1e3_f32..1e3, -1e3_f32..1e3),
+    ) {
+        let left = Vec2::new(left_x, left_y);
+        let right = Vec2::new(right_x, right_y);
+        prop_assume!(left.distance(right) >= 1.0);
+
+        let ratio = similarity.apply(left).distance(similarity.apply(right))
+            / left.distance(right);
+
+        prop_assert!(
+            (ratio - similarity.scale()).abs() <= 1e-3 * similarity.scale(),
+            "distance ratio {} vs scale {}", ratio, similarity.scale(),
+        );
+    }
+
+    /// Fitting an exact similarity image of non-collinear points recovers
+    /// the similarity's coefficients. The sources are four well-spread
+    /// base points jittered by at most `0.5`, far less than the base
+    /// triangle's extent, so the points can never become collinear.
+    #[test]
+    fn fit_recovers_a_random_similarity(
+        similarity in similarity_strategy(),
+        jitter in prop::array::uniform8(-0.5_f32..0.5),
+    ) {
+        let source = [
+            Vec2::new(jitter[0], jitter[1]),
+            Vec2::new(8.0 + jitter[2], jitter[3]),
+            Vec2::new(jitter[4], 8.0 + jitter[5]),
+            Vec2::new(-8.0 + jitter[6], -8.0 + jitter[7]),
+        ];
+        let target = source.map(|point| similarity.apply(point));
+
+        let fitted = Similarity::fit(&source, &target, &[1.0; 4])
+            .expect("well-spread points with an exact image are well-conditioned");
+
+        // The target coordinates are f32-rounded images, so the recovered
+        // coefficients carry working-precision error scaled by their
+        // magnitude.
+        let expected = similarity.to_array();
+        for (index, (actual, expected)) in fitted.to_array().into_iter().zip(expected).enumerate() {
+            prop_assert!(
+                (actual - expected).abs() <= 1e-3 * expected.abs().max(1.0),
+                "coefficient {}: expected {}, got {}", index, expected, actual,
+            );
+        }
     }
 }
