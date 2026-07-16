@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { petrinautOptimizationInputSchema } from "./optimization";
+import { petrinautOptimizationManifestSchema } from "./optimization";
 
-const model = {
+const scenario = {
+  id: "baseline",
+  name: "Baseline",
+  scenarioParameters: [
+    { identifier: "rate", type: "real" as const, default: 0.5 },
+    { identifier: "count", type: "integer" as const, default: 10 },
+    { identifier: "enabled", type: "boolean" as const, default: 1 },
+    { identifier: "share", type: "ratio" as const, default: 0.25 },
+  ],
+  parameterOverrides: {},
+  initialState: { type: "per_place" as const, content: {} },
+};
+
+const definition = {
   places: [],
   transitions: [],
   types: [],
@@ -10,35 +23,20 @@ const model = {
   parameters: [],
   subnets: [],
   componentInstances: [],
-  scenarios: [
-    {
-      id: "baseline",
-      name: "Baseline",
-      scenarioParameters: [
-        { identifier: "rate", type: "real" as const, default: 0.5 },
-        { identifier: "count", type: "integer" as const, default: 10 },
-        { identifier: "enabled", type: "boolean" as const, default: 1 },
-        { identifier: "share", type: "ratio" as const, default: 0.25 },
-      ],
-      parameterOverrides: {},
-      initialState: { type: "per_place" as const, content: {} },
-    },
-  ],
+  scenarios: [scenario],
   metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
 };
 
-const validInput = {
+const validManifest = {
+  kind: "petrinaut-optimization" as const,
+  version: 1 as const,
   name: "Find the best rate",
-  model: { title: "Example", definition: model },
+  model: { title: "Example", definition },
   scenario: {
     id: "baseline",
-    parameterValues: { rate: 0.5, count: 10, enabled: true, share: 0.25 },
-  },
-  searchSpace: {
-    version: 1 as const,
-    variables: [
-      {
-        identifier: "rate",
+    parameterBindings: {
+      rate: {
+        kind: "optimize" as const,
         domain: {
           kind: "continuous" as const,
           minimum: 0.1,
@@ -46,75 +44,142 @@ const validInput = {
           scale: "linear" as const,
         },
       },
-    ],
+      count: { kind: "fixed" as const, value: 10 },
+      enabled: {
+        kind: "optimize" as const,
+        domain: { kind: "boolean" as const },
+      },
+      share: { kind: "fixed" as const, value: 0.25 },
+    },
   },
   objective: { metricId: "profit", direction: "maximize" as const },
   execution: { seed: 42, dt: 0.1, maxTime: 100 },
-  optimization: { trials: 20, sampler: "tpe" as const },
+  study: { trials: 20, sampler: "tpe" as const },
 };
 
-describe("petrinautOptimizationInputSchema", () => {
-  it("accepts a flat scenario-parameter search space", () => {
-    expect(petrinautOptimizationInputSchema.parse(validInput)).toEqual(
-      validInput,
+describe("petrinautOptimizationManifestSchema", () => {
+  it("accepts an exhaustive flat scenario-parameter manifest", () => {
+    expect(petrinautOptimizationManifestSchema.parse(validManifest)).toEqual(
+      validManifest,
     );
   });
 
-  it("rejects a missing scenario", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      scenario: { ...validInput.scenario, id: "missing" },
+  it("requires exactly one selected scenario and objective metric", () => {
+    const extraScenario = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      model: {
+        ...validManifest.model,
+        definition: {
+          ...definition,
+          scenarios: [scenario, { ...scenario, id: "other" }],
+        },
+      },
     });
-
-    expect(parsed.success).toBe(false);
-  });
-
-  it("requires a value for every scenario parameter", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      scenario: {
-        ...validInput.scenario,
-        parameterValues: { rate: 0.5 },
+    const missingMetric = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      model: {
+        ...validManifest.model,
+        definition: { ...definition, metrics: [] },
       },
     });
 
-    expect(parsed.success).toBe(false);
+    expect(extraScenario.success).toBe(false);
+    expect(missingMetric.success).toBe(false);
   });
 
-  it("rejects incompatible and duplicate search variables", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      searchSpace: {
-        version: 1,
-        variables: [
-          {
-            identifier: "count",
+  it("requires custom expression code on the objective metric", () => {
+    const blankCode = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      model: {
+        ...validManifest.model,
+        definition: {
+          ...definition,
+          metrics: [{ id: "profit", name: "Profit", code: "   " }],
+        },
+      },
+    });
+    const missingCode = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      model: {
+        ...validManifest.model,
+        definition: {
+          ...definition,
+          metrics: [{ id: "profit", name: "Profit" }],
+        },
+      },
+    });
+
+    expect(blankCode.success).toBe(false);
+    expect(missingCode.success).toBe(false);
+    if (!blankCode.success) {
+      expect(blankCode.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ["model", "definition", "metrics", 0, "code"],
+        }),
+      );
+    }
+  });
+
+  it("requires a binding for every and only scenario parameter", () => {
+    const missing = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          count: undefined,
+        },
+      },
+    });
+    const unknown = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          unknown: { kind: "fixed", value: 1 },
+        },
+      },
+    });
+
+    expect(missing.success).toBe(false);
+    expect(unknown.success).toBe(false);
+  });
+
+  it("matches fixed values and optimization domains to parameter types", () => {
+    const invalid = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          count: { kind: "fixed", value: 1.5 },
+          enabled: {
+            kind: "optimize",
             domain: {
               kind: "continuous",
-              minimum: 1,
-              maximum: 20,
+              minimum: 0,
+              maximum: 1,
               scale: "linear",
             },
           },
-          {
-            identifier: "count",
-            domain: { kind: "integer", minimum: 1, maximum: 20, step: 1 },
-          },
-        ],
+          share: { kind: "fixed", value: 2 },
+        },
       },
     });
 
-    expect(parsed.success).toBe(false);
+    expect(invalid.success).toBe(false);
   });
 
-  it("constrains ratio and boolean domains", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      searchSpace: {
-        version: 1,
-        variables: [
-          {
-            identifier: "share",
+  it("constrains ratio domains and logarithmic ranges", () => {
+    const ratio = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          share: {
+            kind: "optimize",
             domain: {
               kind: "continuous",
               minimum: -1,
@@ -122,28 +187,44 @@ describe("petrinautOptimizationInputSchema", () => {
               scale: "linear",
             },
           },
-          {
-            identifier: "enabled",
-            domain: { kind: "categorical", values: [false, 2] },
+        },
+      },
+    });
+    const logarithmic = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          rate: {
+            kind: "optimize",
+            domain: {
+              kind: "continuous",
+              minimum: 0,
+              maximum: 2,
+              scale: "log",
+            },
           },
-        ],
+        },
       },
     });
 
-    expect(parsed.success).toBe(false);
+    expect(ratio.success).toBe(false);
+    expect(logarithmic.success).toBe(false);
   });
 
   it("requires an integer step to land exactly on the maximum", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      searchSpace: {
-        version: 1,
-        variables: [
-          {
-            identifier: "count",
+    const parsed = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          count: {
+            kind: "optimize",
             domain: { kind: "integer", minimum: 2, maximum: 10, step: 3 },
           },
-        ],
+        },
       },
     });
 
@@ -151,7 +232,7 @@ describe("petrinautOptimizationInputSchema", () => {
     if (!parsed.success) {
       expect(parsed.error.issues).toContainEqual(
         expect.objectContaining({
-          path: ["searchSpace", "variables", 0, "domain", "step"],
+          path: ["scenario", "parameterBindings", "count", "domain", "step"],
           message:
             "Step must divide the range exactly so the maximum is reachable",
         }),
@@ -159,14 +240,16 @@ describe("petrinautOptimizationInputSchema", () => {
     }
   });
 
-  it("rejects a boolean value for a real parameter", () => {
-    const parsed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
+  it("requires at least one optimized parameter", () => {
+    const parsed = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
       scenario: {
-        ...validInput.scenario,
-        parameterValues: {
-          ...validInput.scenario.parameterValues,
-          rate: true,
+        ...validManifest.scenario,
+        parameterBindings: {
+          rate: { kind: "fixed", value: 0.5 },
+          count: { kind: "fixed", value: 10 },
+          enabled: { kind: "fixed", value: true },
+          share: { kind: "fixed", value: 0.25 },
         },
       },
     });
@@ -175,18 +258,18 @@ describe("petrinautOptimizationInputSchema", () => {
   });
 
   it("bounds seeds and total simulation work", () => {
-    const invalidSeed = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      execution: { ...validInput.execution, seed: -1 },
+    const invalidSeed = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, seed: -1 },
     });
-    const tooManySteps = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      execution: { ...validInput.execution, dt: 0.000_001, maxTime: 100 },
+    const tooManySteps = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, dt: 0.000_001, maxTime: 100 },
     });
-    const tooMuchTotalWork = petrinautOptimizationInputSchema.safeParse({
-      ...validInput,
-      execution: { ...validInput.execution, dt: 0.001, maxTime: 10 },
-      optimization: { ...validInput.optimization, trials: 1_000 },
+    const tooMuchTotalWork = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, dt: 0.001, maxTime: 10 },
+      study: { ...validManifest.study, trials: 1_000 },
     });
 
     expect(invalidSeed.success).toBe(false);

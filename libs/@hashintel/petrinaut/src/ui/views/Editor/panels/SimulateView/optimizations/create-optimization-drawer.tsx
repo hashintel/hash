@@ -1,3 +1,4 @@
+import { useStore } from "@tanstack/react-form";
 import { use, useState } from "react";
 
 import {
@@ -15,13 +16,24 @@ import {
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
+  metricSchema,
   petrinautOptimizationInputSchema,
 } from "@hashintel/petrinaut-core";
 
+import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../components/section";
 import { SegmentGroup } from "../../../../../components/segment-group";
+import {
+  MetricFormBody,
+  type MetricFormInstance,
+  useMetricForm,
+  useMetricLspSession,
+} from "../metrics/metric-form";
+import { EMPTY_METRIC_FORM_STATE } from "../metrics/metric-form-defaults";
+import { validateMetricCompiles } from "../metrics/metric-lsp";
+import { buildMetricFromFormState } from "../metrics/metric-mapping";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
@@ -29,8 +41,9 @@ import {
 } from "./optimization-parameter-row";
 
 import type {
+  Metric,
   PetrinautOptimizationInput,
-  PetrinautOptimizationVariable,
+  PetrinautOptimizationParameterBinding,
   Scenario,
   ScenarioParameter,
   SDCPN,
@@ -120,12 +133,31 @@ const errorStyle = css({
 
 type Stage = "scenario" | "configure";
 type Direction = "maximize" | "minimize";
+type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
 
 const directionOptions = [
   { value: "maximize", label: "Maximize" },
   { value: "minimize", label: "Minimize" },
 ];
+
+const metricSourceOptions = [
+  { value: "saved", label: "Saved metric" },
+  { value: "custom", label: "Custom metric" },
+];
+
+const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
+  const values = useStore(form.store, (state) => state.values);
+  const metricSessionId = useMetricLspSession(values.code);
+
+  return (
+    <MetricFormBody
+      form={form}
+      idPrefix="optimization-objective-"
+      metricSessionId={metricSessionId}
+    />
+  );
+};
 
 function createParameterDrafts(scenario: Scenario): ParameterDrafts {
   return Object.fromEntries(
@@ -213,7 +245,8 @@ function getConfigurationError({
   name,
   scenario,
   drafts,
-  metricId,
+  objectiveMetricReady,
+  missingObjectiveMessage,
   direction,
   trials,
   seed,
@@ -223,7 +256,8 @@ function getConfigurationError({
   name: string;
   scenario: Scenario;
   drafts: ParameterDrafts;
-  metricId: string | null;
+  objectiveMetricReady: boolean;
+  missingObjectiveMessage: string;
   direction: Direction | null;
   trials: number | null;
   seed: number | null;
@@ -252,8 +286,8 @@ function getConfigurationError({
       return error;
     }
   }
-  if (!metricId) {
-    return "Select an objective metric";
+  if (!objectiveMetricReady) {
+    return missingObjectiveMessage;
   }
   if (!direction) {
     return "Choose whether to maximize or minimize the objective";
@@ -300,7 +334,7 @@ export function buildPetrinautOptimizationInput({
   definition,
   scenario,
   drafts,
-  metricId,
+  metric,
   direction,
   trials,
   seed,
@@ -313,7 +347,7 @@ export function buildPetrinautOptimizationInput({
   definition: SDCPN;
   scenario: Scenario;
   drafts: ParameterDrafts;
-  metricId: string;
+  metric: Metric;
   direction: Direction;
   trials: number;
   seed: number;
@@ -321,54 +355,63 @@ export function buildPetrinautOptimizationInput({
   maxTime: number;
   sampler: "tpe" | "random";
 }): PetrinautOptimizationInput {
-  const parameterValues = Object.fromEntries(
-    scenario.scenarioParameters.map((parameter) => {
-      const value = drafts[parameter.identifier]!.fixedValue!;
-      return [parameter.identifier, value];
-    }),
-  );
-  const variables: PetrinautOptimizationVariable[] = [];
+  const parameterBindings: Record<
+    string,
+    PetrinautOptimizationParameterBinding
+  > = {};
   for (const parameter of scenario.scenarioParameters) {
     const draft = drafts[parameter.identifier]!;
-    if (draft.mode !== "optimize") {
+    if (draft.mode === "fixed") {
+      parameterBindings[parameter.identifier] = {
+        kind: "fixed",
+        value: draft.fixedValue!,
+      };
       continue;
     }
     if (parameter.type === "boolean") {
-      variables.push({
-        identifier: parameter.identifier,
-        domain: { kind: "categorical", values: [false, true] },
-      });
+      parameterBindings[parameter.identifier] = {
+        kind: "optimize",
+        domain: { kind: "boolean" },
+      };
     } else if (parameter.type === "integer") {
-      variables.push({
-        identifier: parameter.identifier,
+      parameterBindings[parameter.identifier] = {
+        kind: "optimize",
         domain: {
           kind: "integer",
           minimum: draft.minimum!,
           maximum: draft.maximum!,
           step: draft.step!,
         },
-      });
+      };
     } else {
-      variables.push({
-        identifier: parameter.identifier,
+      parameterBindings[parameter.identifier] = {
+        kind: "optimize",
         domain: {
           kind: "continuous",
           minimum: draft.minimum!,
           maximum: draft.maximum!,
           scale: draft.scale,
         },
-      });
+      };
     }
   }
 
   return petrinautOptimizationInputSchema.parse({
+    kind: "petrinaut-optimization",
+    version: 1,
     name,
-    model: { title, definition },
-    scenario: { id: scenario.id, parameterValues },
-    searchSpace: { version: 1, variables },
-    objective: { metricId, direction },
+    model: {
+      title,
+      definition: {
+        ...definition,
+        scenarios: [scenario],
+        metrics: [metric],
+      },
+    },
+    scenario: { id: scenario.id, parameterBindings },
+    objective: { metricId: metric.id, direction },
     execution: { seed, dt, maxTime },
-    optimization: { trials, sampler },
+    study: { trials, sampler },
   });
 }
 
@@ -381,7 +424,8 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
   onCreated?: (optimizationId: string) => void;
 }) => {
-  const { petriNetDefinition, title } = use(SDCPNContext);
+  const { extensions, petriNetDefinition, title } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { createOptimization } = use(OptimizationsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
@@ -391,7 +435,11 @@ export const CreateOptimizationDrawer = ({
   );
   const [name, setName] = useState("Optimization");
   const [drafts, setDrafts] = useState<ParameterDrafts>({});
-  const [metricId, setMetricId] = useState<string | null>(null);
+  const [metricSource, setMetricSource] = useState<MetricSource>("saved");
+  const [savedMetricId, setSavedMetricId] = useState<string | null>(null);
+  const [customMetricId, setCustomMetricId] = useState(() =>
+    crypto.randomUUID(),
+  );
   const [direction, setDirection] = useState<Direction | null>(null);
   const [trials, setTrials] = useState<number | null>(100);
   const [seed, setSeed] = useState<number | null>(1);
@@ -404,6 +452,9 @@ export const CreateOptimizationDrawer = ({
   const selectedScenario = scenarios.find(
     (scenario) => scenario.id === selectedScenarioId,
   );
+  const selectedSavedMetric = metrics.find(
+    (metric) => metric.id === savedMetricId,
+  );
   const scenarioOptions = scenarios.map((scenario) => ({
     value: scenario.id,
     text: scenario.name,
@@ -412,26 +463,15 @@ export const CreateOptimizationDrawer = ({
     value: metric.id,
     text: metric.name,
   }));
-  const configurationError = selectedScenario
-    ? getConfigurationError({
-        name,
-        scenario: selectedScenario,
-        drafts,
-        metricId,
-        direction,
-        trials,
-        seed,
-        dt,
-        maxTime,
-      })
-    : "Select a scenario";
 
-  const reset = () => {
+  const resetState = () => {
     setStage("scenario");
     setSelectedScenarioId(null);
     setName("Optimization");
     setDrafts({});
-    setMetricId(null);
+    setMetricSource("saved");
+    setSavedMetricId(null);
+    setCustomMetricId(crypto.randomUUID());
     setDirection(null);
     setTrials(100);
     setSeed(1);
@@ -442,29 +482,29 @@ export const CreateOptimizationDrawer = ({
     setIsSubmitting(false);
   };
 
-  const handleClose = () => {
-    if (isSubmitting) {
-      return;
-    }
-    reset();
-    onClose();
-  };
-
-  const handleContinue = () => {
-    if (!selectedScenario || selectedScenario.scenarioParameters.length === 0) {
-      return;
-    }
-    setDrafts(createParameterDrafts(selectedScenario));
-    setStage("configure");
-    setError(null);
-  };
-
-  const handleSubmit = async () => {
+  const submitOptimization = async (
+    metric: Metric,
+    resetMetricForm: () => void,
+    metricAlreadyValidated = false,
+  ) => {
+    const validationError = selectedScenario
+      ? getConfigurationError({
+          name,
+          scenario: selectedScenario,
+          drafts,
+          objectiveMetricReady: true,
+          missingObjectiveMessage: "Select an objective metric",
+          direction,
+          trials,
+          seed,
+          dt,
+          maxTime,
+        })
+      : "Select a scenario";
     if (
       isSubmitting ||
       !selectedScenario ||
-      configurationError ||
-      metricId === null ||
+      validationError ||
       direction === null ||
       trials === null ||
       seed === null ||
@@ -478,13 +518,30 @@ export const CreateOptimizationDrawer = ({
     setError(null);
 
     try {
+      if (!metricAlreadyValidated) {
+        const metricError = await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: {
+            ...petriNetDefinition,
+            scenarios: [selectedScenario],
+          },
+          extensions,
+          metric,
+        });
+        if (metricError) {
+          setIsSubmitting(false);
+          setError(metricError);
+          return;
+        }
+      }
+
       const input = buildPetrinautOptimizationInput({
         name,
         title,
         definition: petriNetDefinition,
         scenario: selectedScenario,
         drafts,
-        metricId,
+        metric,
         direction,
         trials,
         seed,
@@ -493,7 +550,8 @@ export const CreateOptimizationDrawer = ({
         sampler,
       });
       const optimizationId = await createOptimization(input);
-      reset();
+      resetState();
+      resetMetricForm();
       onCreated?.(optimizationId);
     } catch (submitError) {
       setIsSubmitting(false);
@@ -501,6 +559,106 @@ export const CreateOptimizationDrawer = ({
         submitError instanceof Error
           ? submitError.message
           : String(submitError),
+      );
+    }
+  };
+
+  const customMetricForm = useMetricForm(
+    EMPTY_METRIC_FORM_STATE,
+    async (value, context) => {
+      const parsedMetric = metricSchema.safeParse(
+        buildMetricFromFormState(value, customMetricId),
+      );
+      if (!parsedMetric.success) {
+        setError(parsedMetric.error.issues[0]?.message ?? "Invalid metric");
+        return;
+      }
+      await submitOptimization(parsedMetric.data, context.reset, true);
+    },
+    {
+      validateOnSubmit: async (value) => {
+        if (!selectedScenario) {
+          return "Select a scenario";
+        }
+        return await validateMetricCompiles({
+          requestHirArtifacts,
+          sdcpn: {
+            ...petriNetDefinition,
+            scenarios: [selectedScenario],
+          },
+          extensions,
+          metric: buildMetricFromFormState(value, customMetricId),
+        });
+      },
+    },
+  );
+  const customMetricValues = useStore(
+    customMetricForm.store,
+    (state) => state.values,
+  );
+  const customMetricErrors = useStore(
+    customMetricForm.store,
+    (state) => state.errors,
+  );
+  const customMetricIsSubmitting = useStore(
+    customMetricForm.store,
+    (state) => state.isSubmitting,
+  );
+  const submissionInProgress = isSubmitting || customMetricIsSubmitting;
+  const customMetricFormError = customMetricErrors.find(
+    (formError) => typeof formError === "string",
+  ) as string | undefined;
+  const customMetricReady =
+    customMetricValues.name.trim() !== "" &&
+    customMetricValues.code.trim() !== "";
+  const objectiveMetricReady =
+    metricSource === "saved"
+      ? selectedSavedMetric !== undefined
+      : customMetricReady;
+  const visibleCustomMetricError =
+    metricSource === "custom" ? customMetricFormError : undefined;
+  const configurationError = selectedScenario
+    ? getConfigurationError({
+        name,
+        scenario: selectedScenario,
+        drafts,
+        objectiveMetricReady,
+        missingObjectiveMessage:
+          metricSource === "saved"
+            ? "Select an objective metric"
+            : "Define the custom objective metric",
+        direction,
+        trials,
+        seed,
+        dt,
+        maxTime,
+      })
+    : "Select a scenario";
+
+  const handleClose = () => {
+    if (submissionInProgress) {
+      return;
+    }
+    resetState();
+    customMetricForm.reset();
+    onClose();
+  };
+
+  const handleContinue = () => {
+    if (!selectedScenario || selectedScenario.scenarioParameters.length === 0) {
+      return;
+    }
+    setDrafts(createParameterDrafts(selectedScenario));
+    setStage("configure");
+    setError(null);
+  };
+
+  const handleSubmit = () => {
+    if (metricSource === "custom") {
+      void customMetricForm.handleSubmit();
+    } else if (selectedSavedMetric) {
+      void submitOptimization(selectedSavedMetric, () =>
+        customMetricForm.reset(),
       );
     }
   };
@@ -602,7 +760,7 @@ export const CreateOptimizationDrawer = ({
   return (
     <Drawer
       size="xl"
-      shouldCloseOn={isSubmitting ? "none" : undefined}
+      shouldCloseOn={submissionInProgress ? "none" : undefined}
       showBackdrop={false}
       onClose={handleClose}
     >
@@ -627,7 +785,7 @@ export const CreateOptimizationDrawer = ({
                 variant="subtle"
                 tone="neutral"
                 size="sm"
-                disabled={isSubmitting}
+                disabled={submissionInProgress}
                 onClick={() => {
                   setStage("scenario");
                   setDrafts({});
@@ -733,19 +891,20 @@ export const CreateOptimizationDrawer = ({
 
           <Section title="Objective" collapsible defaultOpen>
             <span className={hintStyle}>
-              Choose one saved model metric. Its value at the final simulation
-              frame is the Optuna objective.
+              Choose a saved metric or define a custom metric for this run. Its
+              value at the final simulation frame is the Optuna objective.
             </span>
             <div className={gridStyle}>
               <div className={fieldStyle}>
-                <span className={labelStyle}>Metric</span>
-                <Select
-                  placeholder="Select a metric"
-                  value={metricId}
-                  onChange={(value) => setMetricId(value ?? null)}
-                  items={metricOptions}
-                  emptyState="Create a model metric before running an optimization."
+                <span className={labelStyle}>Metric source</span>
+                <SegmentGroup
                   size="sm"
+                  value={metricSource}
+                  options={metricSourceOptions}
+                  onChange={(value) => {
+                    setMetricSource(value as MetricSource);
+                    setError(null);
+                  }}
                 />
               </div>
               <div className={fieldStyle}>
@@ -758,13 +917,30 @@ export const CreateOptimizationDrawer = ({
                 />
               </div>
             </div>
+            {metricSource === "saved" ? (
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Metric</span>
+                <Select
+                  placeholder="Select a metric"
+                  value={savedMetricId}
+                  onChange={(value) => setSavedMetricId(value ?? null)}
+                  items={metricOptions}
+                  emptyState="This model has no saved metrics. Define a custom metric instead."
+                  size="sm"
+                />
+              </div>
+            ) : (
+              <InlineObjectiveMetricForm form={customMetricForm} />
+            )}
           </Section>
         </SectionList>
       </Drawer.Body>
       <Drawer.Footer
         secondaryActions={
-          error || configurationError ? (
-            <span className={errorStyle}>{error ?? configurationError}</span>
+          error || configurationError || visibleCustomMetricError ? (
+            <span className={errorStyle}>
+              {error ?? configurationError ?? visibleCustomMetricError}
+            </span>
           ) : undefined
         }
         actions={
@@ -773,7 +949,7 @@ export const CreateOptimizationDrawer = ({
               variant="subtle"
               tone="neutral"
               size="sm"
-              disabled={isSubmitting}
+              disabled={submissionInProgress}
               onClick={handleClose}
             >
               Cancel
@@ -782,18 +958,22 @@ export const CreateOptimizationDrawer = ({
               variant="solid"
               tone="neutral"
               size="sm"
-              disabled={isSubmitting || configurationError !== null}
-              tooltip={configurationError ?? undefined}
+              disabled={
+                submissionInProgress ||
+                configurationError !== null ||
+                visibleCustomMetricError !== undefined
+              }
+              tooltip={configurationError ?? visibleCustomMetricError}
               prefix={
-                isSubmitting ? (
+                submissionInProgress ? (
                   <LoadingSpinner size="sm" variant="bars" />
                 ) : (
                   <Icon name="play" size="sm" />
                 )
               }
-              onClick={() => void handleSubmit()}
+              onClick={handleSubmit}
             >
-              {isSubmitting ? "Starting" : "Run"}
+              {submissionInProgress ? "Starting" : "Run"}
             </Button>
           </>
         }

@@ -1,230 +1,206 @@
 # Driving scenario optimization from Python
 
-This document describes the boundary Yannis's Python optimizer should use when
-the HASH Optimization form drives Petrinaut CLI. The CLI evaluates simulations;
-it does not own the Optuna search space or decide whether a metric is maximized
-or minimized.
+Petrinaut CLI owns the Petrinaut-specific part of an optimization: validating
+the selected scenario and metric, materializing fixed and suggested scenario
+parameters, running a trial, and returning its scalar objective. Python only
+needs to translate the CLI's flat parameter description into Optuna calls.
 
-## Responsibility split
+## Start the CLI
 
-The Optimization form provides:
+An optimization manifest is an immutable, versioned JSON document containing a
+complete model snapshot with exactly one scenario and exactly one metric. Start
+one CLI process per study:
 
-- the current Petrinaut model snapshot;
-- one selected scenario;
-- a complete flat value map for that scenario's parameters;
-- the non-empty subset of those parameters that Optuna may change;
-- one selected metric ID and `maximize` or `minimize` direction; and
-- the simulation horizon, time step, seed, sampler, and trial count.
-
-The Python service:
-
-- starts one CLI process for the immutable model snapshot;
-- creates the Optuna study with the selected direction;
-- suggests values only for the selected flat parameter subset;
-- overlays those suggestions on the complete scenario value map; and
-- sends the merged values and selected metric ID to the CLI for every trial.
-
-The CLI:
-
-- validates and compiles the model once at startup;
-- validates and materializes the selected scenario for every trial;
-- runs the simulation; and
-- returns the requested final-frame metric as a scalar.
-
-The CLI never receives search-space bounds or optimization direction. Those are
-Optuna concerns.
-
-## Start one process per model snapshot
-
-Start the packaged executable with model bootstrap over stdio:
-
-```python
-process = subprocess.Popen(
-    ["petrinaut", "serve", "--model-stdin", "--stdio"],
-    stdin=subprocess.PIPE,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    text=True,
-    bufsize=1,
-)
+```sh
+petrinaut serve --optimization optimize.json --stdio
 ```
 
-The first stdin line must be the complete legacy model object:
+For containers with a read-only filesystem, bootstrap the same manifest as the
+first JSON line on stdin:
 
-```python
-legacy_model = {**model["definition"], "title": model["title"]}
-process.stdin.write(json.dumps(legacy_model) + "\n")
-process.stdin.flush()
+```sh
+petrinaut serve --optimization-stdin --stdio
 ```
 
-Wait for `Petrinaut stdio ready` on stderr before sending protocol requests.
-Keep this process alive for all trials of the study. Start a new process if the
-model changes.
+Keep the process alive for all trials. Subsequent stdin lines and all stdout
+lines use the request/response JSON-lines protocol. Diagnostics and the ready
+message are written to stderr.
 
-This includes metrics: when the Optimization form creates a metric, that metric
-must be present in `model.definition.metrics` before the bootstrap line is sent.
-The running CLI process cannot acquire a metric added to a later model snapshot.
-
-## Concrete scenario example
-
-The bundled `supply-chain-profit-model.json` contains the Baseline scenario:
-
-```text
-scenario_baseline_supply_chain
-```
-
-Its complete default parameter snapshot is:
-
-| Scenario parameter  | Type  | Baseline value | Example role             |
-| ------------------- | ----- | -------------: | ------------------------ |
-| `production_rate`   | real  |          `100` | optimize, e.g. `80..140` |
-| `selling_price`     | real  |           `34` | optimize, e.g. `25..50`  |
-| `marketing_spend`   | real  |           `20` | optimize, e.g. `0..50`   |
-| `reorder_threshold` | real  |          `160` | fixed                    |
-| `batch_size`        | real  |          `180` | fixed                    |
-| `expedite_fraction` | ratio |         `0.25` | fixed                    |
-
-The ranges above are illustrative. The Optimization form is authoritative for
-which parameters are optimized and for their domains. Parameters omitted from
-the search space remain fixed at the complete scenario snapshot value.
-
-For example, if Optuna suggests:
-
-```python
-suggested = {
-    "production_rate": 112.5,
-    "selling_price": 38.0,
-    "marketing_spend": 27.0,
-}
-```
-
-Python sends all six scenario parameters, not only the three suggestions:
-
-```python
-parameter_values = {
-    "production_rate": 100.0,
-    "reorder_threshold": 160.0,
-    "batch_size": 180.0,
-    "selling_price": 34.0,
-    "expedite_fraction": 0.25,
-    "marketing_spend": 20.0,
-    **suggested,
-}
-```
-
-This makes the optimized-versus-fixed split explicit in Python while keeping
-the CLI request independent of Optuna.
-
-## Run one trial
-
-Select the stable scenario and metric IDs. To maximize the model's Profit
-metric, send this JSON line:
+## Manifest
 
 ```json
 {
-  "id": 1,
-  "method": "run",
-  "params": {
-    "scenario": {
-      "id": "scenario_baseline_supply_chain",
-      "parameterValues": {
-        "production_rate": 112.5,
-        "reorder_threshold": 160,
-        "batch_size": 180,
-        "selling_price": 38,
-        "expedite_fraction": 0.25,
-        "marketing_spend": 27
+  "kind": "petrinaut-optimization",
+  "version": 1,
+  "name": "Maximize profit",
+  "model": {
+    "title": "Supply chain",
+    "definition": {
+      "places": [],
+      "transitions": [],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": [],
+      "subnets": [],
+      "componentInstances": [],
+      "scenarios": ["exactly one complete scenario object"],
+      "metrics": ["exactly one saved or transient metric object"]
+    }
+  },
+  "scenario": {
+    "id": "scenario_baseline",
+    "parameterBindings": {
+      "production_rate": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 80,
+          "maximum": 140,
+          "scale": "linear"
+        }
+      },
+      "batch_size": { "kind": "fixed", "value": 180 },
+      "worker_count": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "step": 1
+        }
+      },
+      "enabled": {
+        "kind": "optimize",
+        "domain": { "kind": "boolean" }
       }
-    },
-    "metrics": ["metric_profit"],
-    "maxTime": 100,
-    "dt": 0.1,
-    "seed": 42
-  }
+    }
+  },
+  "objective": { "metricId": "metric_profit", "direction": "maximize" },
+  "execution": { "seed": 42, "dt": 0.1, "maxTime": 100 },
+  "study": { "trials": 100, "sampler": "tpe" }
 }
 ```
 
-The response uses the same metric selector as its key:
+`parameterBindings` must contain every scenario parameter exactly once. Bounds,
+integer steps, and float scales are transient study configuration; the
+scenario parameter's type and default continue to come from the embedded model.
+Ratio domains must stay inside `[0, 1]`.
+
+The metric may be copied from the saved model or created inline by the
+Optimization form. In both cases it is simply the manifest snapshot's sole
+metric; the CLI does not persist it.
+
+## Describe the Optuna study
+
+Request:
+
+```json
+{ "id": 1, "method": "optimization.describe" }
+```
+
+Response:
 
 ```json
 {
   "id": 1,
   "result": {
-    "status": "complete",
-    "metrics": { "metric_profit": 1234.5 }
+    "direction": "maximize",
+    "study": { "trials": 100, "sampler": "tpe", "seed": 42 },
+    "parameters": [
+      {
+        "identifier": "production_rate",
+        "type": "float",
+        "default": 100,
+        "minimum": 80,
+        "maximum": 140,
+        "scale": "linear"
+      },
+      {
+        "identifier": "worker_count",
+        "type": "int",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20,
+        "step": 1
+      },
+      { "identifier": "enabled", "type": "boolean", "default": true }
+    ]
   }
 }
 ```
 
-Read `result.metrics.metric_profit` and return it from the Optuna objective.
-The actual result also contains completion, timing, seed, and final-marking
-summary fields.
+Only optimized parameters are returned. Python can map `float` to
+`trial.suggest_float` (`scale: "log"` means `log=True`), `int` to
+`trial.suggest_int`, and `boolean` to `trial.suggest_categorical([false, true])`.
+The described seed is the manifest execution seed; use it for the Optuna
+sampler as well as the deterministic Petrinaut trials.
 
-## Maximize or minimize
+## Evaluate one trial
 
-Direction belongs in study creation, not the CLI request:
+Send values for every and only the parameters returned by
+`optimization.describe`:
 
-```python
-study = optuna.create_study(direction="maximize")
-```
-
-Use `maximize` for `metric_profit`. The example model also contains the
-loss-style `metric_negative_profit`; use `minimize` when that metric is selected:
-
-```python
-study = optuna.create_study(direction="minimize")
-```
-
-The selected metric ID and direction must come from the same Optimization form
-submission so Python cannot accidentally optimize one metric using another
-metric's direction.
-
-## Optuna objective shape
-
-```python
-scenario_values = {
-    "production_rate": 100.0,
-    "reorder_threshold": 160.0,
-    "batch_size": 180.0,
-    "selling_price": 34.0,
-    "expedite_fraction": 0.25,
-    "marketing_spend": 20.0,
+```json
+{
+  "id": 2,
+  "method": "optimization.evaluate",
+  "params": {
+    "parameterValues": {
+      "production_rate": 112.5,
+      "worker_count": 8,
+      "enabled": true
+    }
+  }
 }
+```
+
+The CLI validates the suggestions against their domains, injects fixed values,
+compiles the scenario into the trial's initial state and net parameters, runs
+the sole metric, and returns only its scalar value:
+
+```json
+{ "id": 2, "result": { "objective": 1234.5 } }
+```
+
+One process handles requests serially. Use one process with `n_jobs=1`, or an
+independently bootstrapped CLI process per parallel worker.
+
+## Minimal Optuna loop
+
+```python
+description = cli_request("optimization.describe")
+study = optuna.create_study(
+    direction=description["direction"],
+    sampler=create_sampler(
+        description["study"]["sampler"],
+        seed=description["study"]["seed"],
+    ),
+)
 
 def objective(trial):
-    suggested = {
-        "production_rate": trial.suggest_float("production_rate", 80, 140),
-        "selling_price": trial.suggest_float("selling_price", 25, 50),
-        "marketing_spend": trial.suggest_float("marketing_spend", 0, 50),
-    }
-    result = cli_request(
-        method="run",
-        params={
-            "scenario": {
-                "id": "scenario_baseline_supply_chain",
-                "parameterValues": {**scenario_values, **suggested},
-            },
-            "metrics": ["metric_profit"],
-            "maxTime": 100,
-            "dt": 0.1,
-            "seed": 42,
-        },
-    )
-    return result["metrics"]["metric_profit"]
+    values = {}
+    for parameter in description["parameters"]:
+        name = parameter["identifier"]
+        if parameter["type"] == "float":
+            values[name] = trial.suggest_float(
+                name,
+                parameter["minimum"],
+                parameter["maximum"],
+                log=parameter["scale"] == "log",
+            )
+        elif parameter["type"] == "int":
+            values[name] = trial.suggest_int(
+                name,
+                parameter["minimum"],
+                parameter["maximum"],
+                step=parameter["step"],
+            )
+        else:
+            values[name] = trial.suggest_categorical(name, [False, True])
+
+    return cli_request(
+        "optimization.evaluate", {"parameterValues": values}
+    )["objective"]
+
+study.optimize(objective, n_trials=description["study"]["trials"])
 ```
-
-One CLI process handles requests serially. Use `n_jobs=1` for one process, or
-create one independently bootstrapped CLI process per parallel Optuna worker.
-
-## Validation rules to mirror in Python
-
-- Require a scenario before optimization starts.
-- Keep the search space flat: identifiers must reference scenario parameters.
-- Send a complete value map for the selected scenario on every trial.
-- Use numbers for real/ratio parameters, integers for integer parameters, and
-  JSON booleans for boolean parameters.
-- Keep ratio values and ranges inside `[0, 1]`.
-- Request the metric by stable ID and expect the result under that same ID.
-- Treat a CLI error response as a failed trial; treat malformed output, timeout,
-  or process exit as a broken CLI transport.
-- Close the CLI process when the study completes or its caller disconnects.

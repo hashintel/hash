@@ -5,20 +5,47 @@ import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model"
 
 import { loadSdcpnModel, parseSdcpnModel } from "../runtime/load-model";
 import {
+  createOptimizationProtocol,
+  loadOptimizationManifest,
+  parseOptimizationManifest,
+} from "../runtime/optimization";
+import {
   handleProtocolLine,
   MAX_REQUEST_LINE_BYTES,
 } from "../runtime/protocol";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  PetrinautOptimizationManifest,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 import type { Readable, Writable } from "node:stream";
 
 export const MAX_STDIN_MODEL_LINE_BYTES = 8 * 1024 * 1024;
 
 type ServeStdioOptions = (
-  | { modelPath: string; modelStdin?: false }
+  | {
+      modelPath: string;
+      modelStdin?: false;
+      optimizationPath?: undefined;
+      optimizationStdin?: false;
+    }
   | {
       modelPath?: undefined;
       modelStdin: true;
+      optimizationPath?: undefined;
+      optimizationStdin?: false;
+    }
+  | {
+      modelPath?: undefined;
+      modelStdin?: false;
+      optimizationPath: string;
+      optimizationStdin?: false;
+    }
+  | {
+      modelPath?: undefined;
+      modelStdin?: false;
+      optimizationPath?: undefined;
+      optimizationStdin: true;
     }
 ) & {
   input?: Readable;
@@ -39,10 +66,15 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
 
   let modelLabel: string;
   let sdcpn: SDCPN;
-  if (options.modelStdin) {
+  let optimizationManifest: PetrinautOptimizationManifest | undefined;
+  if (options.modelStdin || options.optimizationStdin) {
     const bootstrap = await iterator.next();
     if (bootstrap.done) {
-      throw new Error("Missing model JSON on stdin");
+      throw new Error(
+        options.optimizationStdin
+          ? "Missing optimization manifest JSON on stdin"
+          : "Missing model JSON on stdin",
+      );
     }
     if (
       Buffer.byteLength(bootstrap.value, "utf8") > MAX_STDIN_MODEL_LINE_BYTES
@@ -54,19 +86,40 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
     try {
       data = JSON.parse(bootstrap.value);
     } catch {
-      throw new Error("Model stdin line must be valid JSON");
+      throw new Error(
+        options.optimizationStdin
+          ? "Optimization manifest stdin line must be valid JSON"
+          : "Model stdin line must be valid JSON",
+      );
     }
-    sdcpn = parseSdcpnModel(data);
+    if (options.optimizationStdin) {
+      optimizationManifest = parseOptimizationManifest(data);
+      sdcpn = optimizationManifest.model.definition;
+    } else {
+      sdcpn = parseSdcpnModel(data);
+    }
     modelLabel = "<stdin>";
-  } else {
+  } else if (options.optimizationPath) {
+    const optimizationPath = resolve(options.optimizationPath);
+    optimizationManifest = await loadOptimizationManifest(optimizationPath);
+    sdcpn = optimizationManifest.model.definition;
+    modelLabel = optimizationPath;
+  } else if (options.modelPath) {
     const modelPath = resolve(options.modelPath);
     sdcpn = await loadSdcpnModel(modelPath);
     modelLabel = modelPath;
+  } else {
+    throw new Error("Missing Petrinaut model source");
   }
 
   const model = compilePetrinautModel({ sdcpn });
+  const optimization = optimizationManifest
+    ? createOptimizationProtocol({ manifest: optimizationManifest, model })
+    : undefined;
 
-  errorOutput.write(`Petrinaut stdio ready for model ${modelLabel}\n`);
+  errorOutput.write(
+    `Petrinaut stdio ready for ${optimization ? "optimization manifest" : "model"} ${modelLabel}\n`,
+  );
 
   while (true) {
     const next = await iterator.next();
@@ -86,6 +139,7 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
       line,
       (value) => writeResponse(output, value),
       sdcpn,
+      optimization,
     );
   }
 }

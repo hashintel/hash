@@ -18,21 +18,34 @@ import {
 } from "./context";
 import { OptimizationsProvider } from "./provider";
 
+const scenario = sirModel.petriNetDefinition.scenarios?.find(
+  (candidate) => candidate.id === "scenario__seasonal_flu",
+);
+const metric = sirModel.petriNetDefinition.metrics?.find(
+  (candidate) => candidate.id === "metric__infected_fraction",
+);
+if (!scenario || !metric) {
+  throw new Error("The SIR optimization fixtures are incomplete");
+}
+
 const input = petrinautOptimizationInputSchema.parse({
+  kind: "petrinaut-optimization",
+  version: 1,
   name: "SIR optimization",
   model: {
     title: sirModel.title,
-    definition: sirModel.petriNetDefinition,
+    definition: {
+      ...sirModel.petriNetDefinition,
+      scenarios: [scenario],
+      metrics: [metric],
+    },
   },
   scenario: {
-    id: "scenario__seasonal_flu",
-    parameterValues: { population: 1_000, infected_ratio: 0.01 },
-  },
-  searchSpace: {
-    version: 1,
-    variables: [
-      {
-        identifier: "infected_ratio",
+    id: scenario.id,
+    parameterBindings: {
+      population: { kind: "fixed", value: 1_000 },
+      infected_ratio: {
+        kind: "optimize",
         domain: {
           kind: "continuous",
           minimum: 0.001,
@@ -40,14 +53,14 @@ const input = petrinautOptimizationInputSchema.parse({
           scale: "log",
         },
       },
-    ],
+    },
   },
   objective: {
     metricId: "metric__infected_fraction",
     direction: "minimize",
   },
   execution: { seed: 1, dt: 1, maxTime: 180 },
-  optimization: { trials: 2, sampler: "tpe" },
+  study: { trials: 2, sampler: "tpe" },
 });
 
 const CaptureContext = ({
@@ -114,7 +127,7 @@ describe("OptimizationsProvider", () => {
         };
         yield {
           type: "complete",
-          requestedTrials: request.optimization.trials,
+          requestedTrials: request.study.trials,
           completedTrials: 2,
           prunedTrials: 0,
           failedTrials: 0,

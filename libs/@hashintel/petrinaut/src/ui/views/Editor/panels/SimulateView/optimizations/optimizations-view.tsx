@@ -72,7 +72,7 @@ const optimizationColumns = [
     header: "Scenario",
     width: 180,
     render: (optimization) => {
-      const scenario = optimization.input.model.definition.scenarios.find(
+      const scenario = optimization.input.model.definition.scenarios?.find(
         (candidate) => candidate.id === optimization.input.scenario.id,
       );
       return scenario?.name ?? optimization.input.scenario.id;
@@ -83,7 +83,7 @@ const optimizationColumns = [
     header: "Objective",
     width: 200,
     render: (optimization) => {
-      const metric = optimization.input.model.definition.metrics.find(
+      const metric = optimization.input.model.definition.metrics?.find(
         (candidate) => candidate.id === optimization.input.objective.metricId,
       );
       const direction =

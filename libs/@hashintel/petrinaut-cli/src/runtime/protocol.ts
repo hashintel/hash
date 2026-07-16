@@ -4,6 +4,7 @@ import {
   toPetrinautRunConfig,
 } from "./run-request";
 
+import type { OptimizationProtocol } from "./optimization";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -24,6 +25,7 @@ export function handleProtocolLine(
   line: string,
   writeResponse: (value: unknown) => void,
   sdcpn?: SDCPN,
+  optimization?: OptimizationProtocol,
 ): void {
   if (line.trim() === "") {
     return;
@@ -58,6 +60,25 @@ export function handleProtocolLine(
         writeResponse({ id, result });
         return;
       }
+      case "optimization.describe":
+        if (!optimization) {
+          throw new Error(
+            "optimization.describe requires an optimization manifest",
+          );
+        }
+        writeResponse({ id, result: optimization.describe() });
+        return;
+      case "optimization.evaluate":
+        if (!optimization) {
+          throw new Error(
+            "optimization.evaluate requires an optimization manifest",
+          );
+        }
+        writeResponse({
+          id,
+          result: optimization.evaluate(request.params ?? {}),
+        });
+        return;
       default:
         throw new Error(`Unknown method "${request.method}"`);
     }

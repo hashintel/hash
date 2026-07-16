@@ -4,7 +4,27 @@
  */
 
 export interface paths {
-  "/optimize": {
+  "/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Root
+     * @description Return a welcome message for the API root.
+     */
+    get: operations["root__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/optimize/all": {
     parameters: {
       query?: never;
       header?: never;
@@ -14,10 +34,30 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Optimize
-     * @description Optimize flat parameters of one selected scenario.
+     * Post Optimize All
+     * @description Stream one SSE data frame for every completed Optuna trial.
      */
-    post: operations["optimize_optimize_post"];
+    post: operations["post_optimize_all_optimize_all_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/optimize/best": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Optimize Best
+     * @description Stream the best-so-far SSE data frame after every completed trial.
+     */
+    post: operations["post_optimize_best_optimize_best_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -33,9 +73,29 @@ export interface paths {
     };
     /**
      * Get Status
-     * @description Return process-level status for container and infrastructure checks.
+     * @description Return a snapshot of every optimization run's status.
      */
     get: operations["get_status_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/status/{run_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Run Status
+     * @description Return the status of one optimization run.
+     */
+    get: operations["get_run_status_status__run_id__get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -48,218 +108,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /** AppStatus */
-    AppStatus: {
-      /** Detail */
-      detail?: string | null;
-      /** @default idle */
-      phase?: components["schemas"]["Phase"];
-      /** Updated At */
-      updated_at?: string | null;
-    };
-    /** CategoricalDomain */
-    CategoricalDomain: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: "categorical";
-      /** Values */
-      values: (number | boolean)[];
-    };
-    /** ContinuousDomain */
-    ContinuousDomain: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: "continuous";
-      /** Maximum */
-      maximum: number;
-      /** Minimum */
-      minimum: number;
-      /**
-       * Scale
-       * @enum {string}
-       */
-      scale: "linear" | "log";
-    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
-    };
-    /** IntegerDomain */
-    IntegerDomain: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: "integer";
-      /** Maximum */
-      maximum: number;
-      /** Minimum */
-      minimum: number;
-      /** Step */
-      step: number;
-    };
-    /** OptimizationBest */
-    OptimizationBest: {
-      /** Objective */
-      objective: number;
-      /** Parameters */
-      parameters: {
-        [key: string]: number | boolean;
-      };
-      /** Trial */
-      trial: number;
-    };
-    /** OptimizationCompleteEvent */
-    OptimizationCompleteEvent: {
-      best: components["schemas"]["OptimizationBest"] | null;
-      /** Completedtrials */
-      completedTrials: number;
-      /** Failedtrials */
-      failedTrials: number;
-      /** Prunedtrials */
-      prunedTrials: number;
-      /** Requestedtrials */
-      requestedTrials: number;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: "complete";
-    };
-    /** OptimizationErrorEvent */
-    OptimizationErrorEvent: {
-      /** Code */
-      code: string;
-      /** Message */
-      message: string;
-      /** Retryable */
-      retryable: boolean;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: "error";
-    };
-    /** OptimizationExecution */
-    OptimizationExecution: {
-      /** Dt */
-      dt: number;
-      /** Maxtime */
-      maxTime: number;
-      /** Seed */
-      seed: number;
-    };
-    /** OptimizationInput */
-    OptimizationInput: {
-      execution: components["schemas"]["OptimizationExecution"];
-      model: components["schemas"]["OptimizationModel"];
-      /** Name */
-      name: string;
-      objective: components["schemas"]["OptimizationObjective"];
-      optimization: components["schemas"]["OptimizationOptions"];
-      scenario: components["schemas"]["OptimizationScenario"];
-      searchSpace: components["schemas"]["OptimizationSearchSpace"];
-    };
-    /** OptimizationModel */
-    OptimizationModel: {
-      /** Definition */
-      definition: {
-        [key: string]: unknown;
-      };
-      /** Title */
-      title: string;
-    };
-    /** OptimizationObjective */
-    OptimizationObjective: {
-      /**
-       * Direction
-       * @enum {string}
-       */
-      direction: "maximize" | "minimize";
-      /** Metricid */
-      metricId: string;
-    };
-    /** OptimizationOptions */
-    OptimizationOptions: {
-      /**
-       * Sampler
-       * @enum {string}
-       */
-      sampler: "tpe" | "random";
-      /** Trials */
-      trials: number;
-    };
-    /** OptimizationScenario */
-    OptimizationScenario: {
-      /** Id */
-      id: string;
-      /** Parametervalues */
-      parameterValues: {
-        [key: string]: number | boolean;
-      };
-    };
-    /** OptimizationSearchSpace */
-    OptimizationSearchSpace: {
-      /** Variables */
-      variables: components["schemas"]["OptimizationVariable"][];
-      /**
-       * Version
-       * @constant
-       */
-      version: 1;
-    };
-    /** OptimizationStartedEvent */
-    OptimizationStartedEvent: {
-      /** Requestedtrials */
-      requestedTrials: number;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: "started";
-    };
-    /** OptimizationTrialEvent */
-    OptimizationTrialEvent: {
-      best: components["schemas"]["OptimizationBest"] | null;
-      /** Objective */
-      objective: number | null;
-      /** Parameters */
-      parameters: {
-        [key: string]: number | boolean;
-      };
-      /**
-       * State
-       * @enum {string}
-       */
-      state: "complete" | "pruned" | "failed";
-      /** Trial */
-      trial: number;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: "trial";
-    };
-    /** OptimizationVariable */
-    OptimizationVariable: {
-      /** Domain */
-      domain:
-        | components["schemas"]["ContinuousDomain"]
-        | components["schemas"]["IntegerDomain"]
-        | components["schemas"]["CategoricalDomain"];
-      /** Identifier */
-      identifier: string;
     };
     /**
      * Phase
      * @enum {string}
      */
     Phase: "idle" | "running" | "done" | "error";
+    /** RunStatus */
+    RunStatus: {
+      /** Detail */
+      detail?: string | null;
+      /** @default idle */
+      phase?: components["schemas"]["Phase"];
+      /** Run Id */
+      run_id: string;
+      /** Updated At */
+      updated_at?: string | null;
+    };
     /** ValidationError */
     ValidationError: {
       /** Context */
@@ -282,7 +151,29 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  optimize_optimize_post: {
+  root__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
+        };
+      };
+    };
+  };
+  post_optimize_all_optimize_all_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -291,24 +182,22 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["OptimizationInput"];
+        "application/json": {
+          [key: string]: unknown;
+        };
       };
     };
     responses: {
-      /** @description One OptimizationEvent per NDJSON line */
+      /** @description Server-Sent Events optimization stream */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/x-ndjson":
-            | components["schemas"]["OptimizationStartedEvent"]
-            | components["schemas"]["OptimizationTrialEvent"]
-            | components["schemas"]["OptimizationCompleteEvent"]
-            | components["schemas"]["OptimizationErrorEvent"];
+          "text/event-stream": string;
         };
       };
-      /** @description The request body exceeds 8 MiB */
+      /** @description The optimization manifest exceeds 8 MiB */
       413: {
         headers: {
           [name: string]: unknown;
@@ -331,6 +220,69 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description The CLI or optimization study could not initialize */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  post_optimize_best_optimize_best_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Server-Sent Events optimization stream */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": string;
+        };
+      };
+      /** @description The optimization manifest exceeds 8 MiB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description The service is already at its study limit */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The CLI or optimization study could not initialize */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   get_status_status_get: {
@@ -348,7 +300,38 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["AppStatus"];
+          "application/json": components["schemas"]["RunStatus"][];
+        };
+      };
+    };
+  };
+  get_run_status_status__run_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

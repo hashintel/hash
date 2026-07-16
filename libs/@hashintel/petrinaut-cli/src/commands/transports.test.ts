@@ -136,6 +136,108 @@ describe("CLI transports", () => {
     ]);
   });
 
+  it("bootstraps an optimization manifest and evaluates suggested values", async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const errorOutput = new PassThrough();
+    let stdout = "";
+    let stderr = "";
+    output.setEncoding("utf8");
+    output.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    errorOutput.setEncoding("utf8");
+    errorOutput.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+
+    const legacyModel = JSON.parse(await readFile(modelPath, "utf8")) as {
+      title: string;
+      scenarios: { id: string }[];
+      metrics: { id: string }[];
+      [key: string]: unknown;
+    };
+    const { title, ...definition } = legacyModel;
+    const manifest = {
+      kind: "petrinaut-optimization",
+      version: 1,
+      name: "Minimize infected fraction",
+      model: {
+        title,
+        definition: {
+          ...definition,
+          scenarios: [legacyModel.scenarios[0]],
+          metrics: [legacyModel.metrics[0]],
+        },
+      },
+      scenario: {
+        id: "scenario__seasonal_flu",
+        parameterBindings: {
+          population: { kind: "fixed", value: 200 },
+          infected_ratio: {
+            kind: "optimize",
+            domain: {
+              kind: "continuous",
+              minimum: 0.01,
+              maximum: 0.5,
+              scale: "log",
+            },
+          },
+        },
+      },
+      objective: {
+        metricId: "metric__infected_fraction",
+        direction: "minimize",
+      },
+      execution: { seed: 42, dt: 1, maxTime: Number.MIN_VALUE },
+      study: { trials: 20, sampler: "tpe" },
+    };
+
+    const serving = serveStdio({
+      optimizationStdin: true,
+      input,
+      output,
+      errorOutput,
+    });
+    input.end(
+      [
+        JSON.stringify(manifest),
+        JSON.stringify({ id: 1, method: "optimization.describe" }),
+        JSON.stringify({
+          id: 2,
+          method: "optimization.evaluate",
+          params: { parameterValues: { infected_ratio: 0.1 } },
+        }),
+        "",
+      ].join("\n"),
+    );
+    await serving;
+
+    expect(stderr).toContain(
+      "Petrinaut stdio ready for optimization manifest <stdin>",
+    );
+    expect(parseResponses(stdout)).toEqual([
+      {
+        id: 1,
+        result: {
+          direction: "minimize",
+          study: { trials: 20, sampler: "tpe", seed: 42 },
+          parameters: [
+            {
+              identifier: "infected_ratio",
+              type: "float",
+              default: 0.01,
+              minimum: 0.01,
+              maximum: 0.5,
+              scale: "log",
+            },
+          ],
+        },
+      },
+      { id: 2, result: { objective: 0.1 } },
+    ]);
+  });
+
   it("rejects an oversized stdin model before parsing it", async () => {
     const input = new PassThrough();
     const serving = serveStdio({

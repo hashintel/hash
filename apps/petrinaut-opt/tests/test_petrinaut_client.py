@@ -2,32 +2,31 @@ from __future__ import annotations
 
 import io
 import json
+import signal
+import subprocess
 import sys
+import threading
 import time
 from typing import Any
 
 import pytest
 
-from src.optimization_models import OptimizationInput
 from src import petrinaut_client
 from src.petrinaut_client import (
-    PetrinautClient,
     PetrinautClientError,
+    PetrinautModel,
     PetrinautProtocolError,
     PetrinautRunError,
 )
 
 
 class FakeProcess:
-    def __init__(
-        self, response: dict[str, Any] | list[dict[str, Any]]
-    ) -> None:
-        responses = response if isinstance(response, list) else [response]
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
         self.stdin = io.BytesIO()
         self.stdout = io.BytesIO(
-            b"".join((json.dumps(item) + "\n").encode() for item in responses)
+            "".join(json.dumps(response) + "\n" for response in responses).encode()
         )
-        self.stderr = io.BytesIO(b"Petrinaut stdio ready for stdin model\n")
+        self.stderr = io.BytesIO(b"Petrinaut stdio ready for optimization\n")
         self.returncode: int | None = None
         self.terminated = False
         self.killed = False
@@ -48,17 +47,19 @@ class FakeProcess:
         self.returncode = -9
 
 
-def test_bootstraps_model_stdin_and_sends_a_scenario_run(
-    optimization_payload: dict, monkeypatch: pytest.MonkeyPatch
+def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
+    optimization_manifest: dict,
+    optimization_description: dict,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "must-not-leak")
-    monkeypatch.setenv("HASH_GRAPH_OPENAI_API_KEY", "must-not-leak")
-    monkeypatch.setenv("OTEL_EXPORTER_OTLP_HEADERS", "must-not-leak")
-    monkeypatch.setenv(
-        "PETRINAUT_CLI_NODE_OPTIONS", "--permission --max-old-space-size=768"
+    monkeypatch.setenv("PETRINAUT_CLI_NODE_OPTIONS", "--max-old-space-size=768")
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": {"objective": 12.5}},
+        ]
     )
-    parsed = OptimizationInput.model_validate(optimization_payload)
-    process = FakeProcess({"id": 1, "result": {"metrics": {"profit": 12.5}}})
     invocation: dict[str, Any] = {}
 
     def popen_factory(command: list[str], **kwargs: Any) -> FakeProcess:
@@ -66,187 +67,232 @@ def test_bootstraps_model_stdin_and_sends_a_scenario_run(
         invocation["kwargs"] = kwargs
         return process
 
-    client = PetrinautClient(
-        parsed.model,
+    model = PetrinautModel(
+        optimization_manifest,
         command=("node", "/cli.js"),
         popen_factory=popen_factory,
     )
-    client.start()
-    objective = client.run_scenario(
-        scenario_id=parsed.scenario.id,
-        parameter_values=parsed.scenario.parameter_values,
-        metric_id=parsed.objective.metric_id,
-        max_time=parsed.execution.max_time,
-        dt=parsed.execution.dt,
-        seed=parsed.execution.seed,
-    )
+    model.start()
+
+    assert model.describe_optimization() == optimization_description
+    assert model.objective({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
+    lines = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
 
     assert invocation["command"] == [
         "node",
         "/cli.js",
         "serve",
-        "--model-stdin",
+        "--optimization-stdin",
         "--stdio",
     ]
     assert invocation["kwargs"]["close_fds"] is True
     assert invocation["kwargs"]["start_new_session"] is True
-    assert invocation["kwargs"]["umask"] == 0o077
-    child_environment = invocation["kwargs"]["env"]
-    assert child_environment["NODE_OPTIONS"] == (
-        "--permission --max-old-space-size=768"
-    )
-    assert "AWS_SECRET_ACCESS_KEY" not in child_environment
-    assert "HASH_GRAPH_OPENAI_API_KEY" not in child_environment
-    assert "OTEL_EXPORTER_OTLP_HEADERS" not in child_environment
-    bootstrap, request = [
-        json.loads(line) for line in process.stdin.getvalue().splitlines()
-    ]
-    assert bootstrap == {
-        **optimization_payload["model"]["definition"],
-        "title": "Example",
-    }
-    assert request == {
-        "id": 1,
-        "method": "run",
-        "params": {
-            "scenario": {
-                "id": "baseline",
-                "parameterValues": optimization_payload["scenario"]["parameterValues"],
+    assert invocation["kwargs"]["env"]["NODE_OPTIONS"] == ("--max-old-space-size=768")
+    assert "AWS_SECRET_ACCESS_KEY" not in invocation["kwargs"]["env"]
+    assert lines == [
+        optimization_manifest,
+        {"id": 1, "method": "optimization.describe"},
+        {
+            "id": 2,
+            "method": "optimization.evaluate",
+            "params": {
+                "parameterValues": {
+                    "rate": 1.25,
+                    "count": 6,
+                    "enabled": False,
+                }
             },
-            "metrics": ["profit"],
-            "maxTime": 100,
-            "dt": 0.1,
-            "seed": 42,
         },
-    }
-    assert objective == 12.5
+    ]
 
-    client.close()
+    model.close()
     assert process.returncode == 0
 
 
-def test_distinguishes_a_recoverable_run_error(optimization_payload: dict) -> None:
-    parsed = OptimizationInput.model_validate(optimization_payload)
-    process = FakeProcess(
-        [
-            {
-                "id": 1,
-                "error": {
-                    "code": "run_failed",
-                    "message": "scenario failed",
-                },
-            },
-            {"id": 2, "result": {"metrics": {"profit": 12.5}}},
-        ]
-    )
-    client = PetrinautClient(parsed.model, popen_factory=lambda *_args, **_kwargs: process)
-    client.start()
-
-    with pytest.raises(PetrinautRunError, match="scenario failed"):
-        client.run_scenario(
-            scenario_id="baseline",
-            parameter_values=parsed.scenario.parameter_values,
-            metric_id="profit",
-            max_time=100,
-            dt=0.1,
-            seed=42,
-        )
-
-    assert process.poll() is None
-    assert client.run_scenario(
-        scenario_id="baseline",
-        parameter_values=parsed.scenario.parameter_values,
-        metric_id="profit",
-        max_time=100,
-        dt=0.1,
-        seed=42,
-    ) == 12.5
-    client.close()
-
-
-def test_treats_a_non_finite_objective_as_a_recoverable_run_error(
-    optimization_payload: dict,
+def test_bootstrap_and_protocol_reads_use_bounded_defaults(
+    optimization_manifest: dict,
 ) -> None:
-    parsed = OptimizationInput.model_validate(optimization_payload)
-    process = FakeProcess(
-        [
-            {"id": 1, "result": {"metrics": {"profit": None}}},
-            {"id": 2, "result": {"metrics": {"profit": 12.5}}},
-        ]
-    )
-    client = PetrinautClient(parsed.model, popen_factory=lambda *_args, **_kwargs: process)
-    client.start()
+    model = PetrinautModel(optimization_manifest)
 
-    with pytest.raises(PetrinautRunError, match="not a finite number"):
-        client.run_scenario(
-            scenario_id="baseline",
-            parameter_values=parsed.scenario.parameter_values,
-            metric_id="profit",
-            max_time=100,
-            dt=0.1,
-            seed=42,
-        )
-
-    assert client.run_scenario(
-        scenario_id="baseline",
-        parameter_values=parsed.scenario.parameter_values,
-        metric_id="profit",
-        max_time=100,
-        dt=0.1,
-        seed=42,
-    ) == 12.5
-    client.close()
+    assert model._bootstrap_timeout_seconds == 25
+    assert model._request_timeout_seconds == 240
 
 
-def test_rejects_a_mismatched_protocol_response(optimization_payload: dict) -> None:
-    parsed = OptimizationInput.model_validate(optimization_payload)
-    process = FakeProcess({"id": 99, "result": {"metrics": {"profit": 12.5}}})
-    client = PetrinautClient(parsed.model, popen_factory=lambda *_args, **_kwargs: process)
-    client.start()
-
-    with pytest.raises(PetrinautProtocolError, match="mismatched response id"):
-        client.run_scenario(
-            scenario_id="baseline",
-            parameter_values=parsed.scenario.parameter_values,
-            metric_id="profit",
-            max_time=100,
-            dt=0.1,
-            seed=42,
-        )
-
-    client.close()
-
-
-def test_times_out_and_terminates_a_stuck_cli(
-    optimization_payload: dict, monkeypatch: pytest.MonkeyPatch
+def test_bootstrap_timeout_terminates_a_stuck_process(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    parsed = OptimizationInput.model_validate(optimization_payload)
-    monkeypatch.setattr(petrinaut_client, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.1)
+    monkeypatch.setattr(petrinaut_client, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    script = "import sys, time; sys.stdin.readline(); time.sleep(60)"
+    model = PetrinautModel(
+        optimization_manifest,
+        command=(sys.executable, "-c", script),
+        bootstrap_timeout_seconds=0.05,
+    )
+
+    started_at = time.monotonic()
+    with pytest.raises(PetrinautClientError, match="failed to bootstrap"):
+        model.start()
+
+    assert time.monotonic() - started_at < 2
+
+
+def test_protocol_timeout_terminates_a_stuck_process(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(petrinaut_client, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = """
 import sys
 import time
 sys.stdin.readline()
-sys.stderr.write("Petrinaut stdio ready for stdin model\\n")
+sys.stderr.write("Petrinaut stdio ready for optimization\\n")
 sys.stderr.flush()
 sys.stdin.readline()
 time.sleep(60)
 """
-    client = PetrinautClient(
-        parsed.model,
+    model = PetrinautModel(
+        optimization_manifest,
         command=(sys.executable, "-c", script),
         request_timeout_seconds=0.05,
     )
-    client.start()
+    model.start()
 
     started_at = time.monotonic()
     with pytest.raises(PetrinautClientError, match="failed to communicate"):
-        client.run_scenario(
-            scenario_id="baseline",
-            parameter_values=parsed.scenario.parameter_values,
-            metric_id="profit",
-            max_time=100,
-            dt=0.1,
-            seed=42,
-        )
+        model.describe_optimization()
 
     assert time.monotonic() - started_at < 2
+
+
+def test_rejects_an_oversized_protocol_line(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess([])
+    process.stdout = io.BytesIO(b'{"id":1,"result":{}}\n')
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+    monkeypatch.setattr(petrinaut_client, "MAX_PROTOCOL_LINE_BYTES", 8)
+
+    with pytest.raises(PetrinautProtocolError, match="line limit"):
+        model.describe_optimization()
+
+    assert process.returncode == 0
+    model.close()
+
+
+def test_drains_stderr_after_the_ready_line(
+    optimization_manifest: dict,
+) -> None:
+    drained = threading.Event()
+
+    class TrackingStream(io.BytesIO):
+        def read(self, size: int = -1) -> bytes:
+            drained.set()
+            return super().read(size)
+
+    process = FakeProcess([])
+    process.stderr = TrackingStream(
+        b"Petrinaut stdio ready for optimization\ndiagnostic\n"
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    model.start()
+
+    assert drained.wait(timeout=1)
+    model.close()
+
+
+def test_close_signals_the_isolated_process_group(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess([])
+    process.pid = 12345
+
+    def wait(*, timeout: float | None = None) -> int:
+        raise subprocess.TimeoutExpired("petrinaut", timeout)
+
+    process.wait = wait  # type: ignore[method-assign]
+    signals: list[tuple[int, signal.Signals]] = []
+    monkeypatch.setattr(
+        petrinaut_client.os,
+        "killpg",
+        lambda pid, sent_signal: signals.append((pid, sent_signal)),
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    model.close()
+
+    assert signals == [
+        (process.pid, signal.SIGTERM),
+        (process.pid, signal.SIGKILL),
+    ]
+
+
+def test_cli_error_during_evaluation_is_recoverable(
+    optimization_manifest: dict,
+) -> None:
+    process = FakeProcess(
+        [
+            {"id": 1, "error": {"message": "scenario failed"}},
+            {"id": 2, "result": {"objective": 7}},
+        ]
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautRunError, match="scenario failed"):
+        model.objective({"rate": 1})
+
+    assert model.objective({"rate": 2}) == 7.0
+    model.close()
+
+
+@pytest.mark.parametrize("objective", [True, None, float("inf")])
+def test_rejects_a_non_finite_numeric_objective(
+    optimization_manifest: dict,
+    objective: Any,
+) -> None:
+    process = FakeProcess([{"id": 1, "result": {"objective": objective}}])
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautRunError, match="not a finite number"):
+        model.objective({"rate": 1})
+
+    model.close()
+
+
+def test_rejects_a_mismatched_protocol_response(
+    optimization_manifest: dict,
+) -> None:
+    process = FakeProcess([{"id": 99, "result": {"objective": 12.5}}])
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautProtocolError, match="mismatched response id"):
+        model.objective({"rate": 1})
+
+    assert process.returncode == 0
+    model.close()

@@ -16,6 +16,8 @@ import type { Express, Request, Response as ExpressResponse } from "express";
 const logger = { warn: () => undefined };
 
 const validOptimizationInput = {
+  kind: "petrinaut-optimization",
+  version: 1,
   name: "Optimize rate",
   model: {
     title: "Example",
@@ -41,12 +43,11 @@ const validOptimizationInput = {
       metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
     },
   },
-  scenario: { id: "baseline", parameterValues: { rate: 0.5 } },
-  searchSpace: {
-    version: 1,
-    variables: [
-      {
-        identifier: "rate",
+  scenario: {
+    id: "baseline",
+    parameterBindings: {
+      rate: {
+        kind: "optimize",
         domain: {
           kind: "continuous",
           minimum: 0.1,
@@ -54,11 +55,11 @@ const validOptimizationInput = {
           scale: "linear",
         },
       },
-    ],
+    },
   },
   objective: { metricId: "profit", direction: "maximize" },
   execution: { seed: 42, dt: 0.1, maxTime: 10 },
-  optimization: { trials: 2, sampler: "tpe" },
+  study: { trials: 2, sampler: "tpe" },
 };
 
 type Handler = (request: Request, response: ExpressResponse) => Promise<void>;
@@ -283,11 +284,13 @@ describe(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, () => {
     expect(result.body).toEqual({ error: "Invalid optimization request" });
   });
 
-  it("proxies a valid request and streams canonical NDJSON", async () => {
+  it("proxies a valid request and adapts optimizer SSE to canonical NDJSON", async () => {
     const requests: Array<{ body: string | undefined; url: string }> = [];
     const upstream = [
-      '{"type":"started","requestedTrials":2}\n',
-      '{"type":"complete","requestedTrials":2,"completedTrials":2,"prunedTrials":0,"failedTrials":0,"best":{"trial":1,"parameters":{"rate":0.8},"objective":4}}\n',
+      'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+      ": heartbeat\n\n",
+      'data: {"step":1,"params":{"rate":0.8},"init_state":{},"metric":4,"state":"COMPLETE"}\n\n',
+      "event: done\ndata: {}\n\n",
     ].join("");
 
     const result = await callOptimizationHandler({
@@ -298,7 +301,7 @@ describe(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, () => {
           url: input.toString(),
         });
         return new Response(upstream, {
-          headers: { "content-type": "application/x-ndjson" },
+          headers: { "content-type": "text/event-stream" },
         });
       },
     });
@@ -308,10 +311,15 @@ describe(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, () => {
       "Content-Type": "application/x-ndjson; charset=utf-8",
       "X-Accel-Buffering": "no",
     });
-    expect(result.output.join("")).toBe(upstream);
+    expect(result.output).toEqual([
+      '{"type":"started","requestedTrials":2}\n',
+      '{"type":"trial","trial":0,"parameters":{"rate":0.4},"objective":2,"state":"complete","best":{"trial":0,"parameters":{"rate":0.4},"objective":2}}\n',
+      '{"type":"trial","trial":1,"parameters":{"rate":0.8},"objective":4,"state":"complete","best":{"trial":1,"parameters":{"rate":0.8},"objective":4}}\n',
+      '{"type":"complete","requestedTrials":2,"completedTrials":2,"prunedTrials":0,"failedTrials":0,"best":{"trial":1,"parameters":{"rate":0.8},"objective":4}}\n',
+    ]);
     expect(requests).toHaveLength(1);
     const [request] = requests;
-    expect(request?.url).toBe("http://petrinaut-opt:4004/optimize");
+    expect(request?.url).toBe("http://petrinaut-opt:4004/optimize/all");
     expect(JSON.parse(request?.body ?? "null")).toEqual(validOptimizationInput);
   });
 
@@ -344,22 +352,22 @@ describe(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, () => {
     const second = await callOptimizationHandler({
       body: validOptimizationInput,
       fetchImpl: async () =>
-        new Response(
-          '{"type":"error","code":"failed","message":"failed","retryable":false}\n',
-        ),
+        new Response('event: error\ndata: {"message":"failed"}\n\n', {
+          headers: { "content-type": "text/event-stream" },
+        }),
     });
     expect(second.statusCode).toBe(200);
-    expect(second.output).toHaveLength(1);
+    expect(second.output).toHaveLength(2);
   });
 });
 
 describe("forwardPetrinautOptimizationStream", () => {
-  it("handles arbitrary chunk boundaries and forwards canonical NDJSON", async () => {
+  it("handles arbitrary SSE chunk boundaries and emits canonical NDJSON", async () => {
     const encoder = new TextEncoder();
     const chunks = [
-      '{"type":"started","requested',
-      'Trials":2}\n{"type":"complete","requestedTrials":2,',
-      '"completedTrials":0,"prunedTrials":2,"failedTrials":0,"best":null}\n',
+      'data: {"step":0,"params":{"rate":0.4},',
+      '"init_state":{},"metric":null,"state":"PRUNED"}\n\n',
+      "event: done\ndata: {}\n\n",
     ];
     const upstream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -377,18 +385,111 @@ describe("forwardPetrinautOptimizationStream", () => {
       },
     } as unknown as ExpressResponse;
 
-    await forwardPetrinautOptimizationStream(upstream, response);
+    await forwardPetrinautOptimizationStream(upstream, response, {
+      requestedTrials: 2,
+    });
 
     expect(output).toEqual([
       '{"type":"started","requestedTrials":2}\n',
-      '{"type":"complete","requestedTrials":2,"completedTrials":0,"prunedTrials":2,"failedTrials":0,"best":null}\n',
+      '{"type":"trial","trial":0,"parameters":{"rate":0.4},"objective":null,"state":"pruned","best":null}\n',
+      '{"type":"complete","requestedTrials":2,"completedTrials":0,"prunedTrials":1,"failedTrials":0,"best":null}\n',
     ]);
+  });
+
+  it("selects the lowest completed objective for a minimization", async () => {
+    const upstream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode(
+            'data: {"step":0,"params":{"rate":0.8},"metric":4,"state":"COMPLETE"}\n\n' +
+              'data: {"step":1,"params":{"rate":0.4},"metric":2,"state":"COMPLETE"}\n\n' +
+              "event: done\ndata: {}\n\n",
+          ),
+        );
+        controller.close();
+      },
+    });
+    const output: string[] = [];
+    const response = {
+      write: (chunk: string) => {
+        output.push(chunk);
+        return true;
+      },
+    } as unknown as ExpressResponse;
+
+    await forwardPetrinautOptimizationStream(upstream, response, {
+      direction: "minimize",
+      requestedTrials: 2,
+    });
+
+    expect(output).toEqual([
+      '{"type":"started","requestedTrials":2}\n',
+      '{"type":"trial","trial":0,"parameters":{"rate":0.8},"objective":4,"state":"complete","best":{"trial":0,"parameters":{"rate":0.8},"objective":4}}\n',
+      '{"type":"trial","trial":1,"parameters":{"rate":0.4},"objective":2,"state":"complete","best":{"trial":1,"parameters":{"rate":0.4},"objective":2}}\n',
+      '{"type":"complete","requestedTrials":2,"completedTrials":2,"prunedTrials":0,"failedTrials":0,"best":{"trial":1,"parameters":{"rate":0.4},"objective":2}}\n',
+    ]);
+  });
+
+  it("accepts Python's error state as terminal without a done event", async () => {
+    const upstream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode(
+            'data: {"state":"ERROR","message":"scenario failed"}\n\n',
+          ),
+        );
+        controller.close();
+      },
+    });
+    const output: string[] = [];
+    const response = {
+      write: (chunk: string) => {
+        output.push(chunk);
+        return true;
+      },
+    } as unknown as ExpressResponse;
+
+    await forwardPetrinautOptimizationStream(upstream, response, {
+      requestedTrials: 2,
+    });
+
+    expect(output).toEqual([
+      '{"type":"started","requestedTrials":2}\n',
+      '{"type":"error","code":"optimization_failed","message":"scenario failed","retryable":false}\n',
+    ]);
+  });
+
+  it("treats heartbeat chunks as upstream activity", async () => {
+    const encoder = new TextEncoder();
+    const upstream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        controller.enqueue(encoder.encode("event: done\ndata: {}\n\n"));
+        controller.close();
+      },
+    });
+    const response = {
+      write: () => true,
+    } as unknown as ExpressResponse;
+    let activityCount = 0;
+
+    await forwardPetrinautOptimizationStream(upstream, response, {
+      onActivity: () => {
+        activityCount += 1;
+      },
+    });
+
+    expect(activityCount).toBe(2);
   });
 
   it("rejects invalid upstream events", async () => {
     const upstream = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode('{"type":"unknown"}\n'));
+        controller.enqueue(
+          new TextEncoder().encode(
+            'data: {"step":0,"params":{},"metric":1,"state":"UNKNOWN"}\n\n',
+          ),
+        );
         controller.close();
       },
     });
@@ -398,14 +499,16 @@ describe("forwardPetrinautOptimizationStream", () => {
 
     await expect(
       forwardPetrinautOptimizationStream(upstream, response),
-    ).rejects.toThrow("invalid event");
+    ).rejects.toThrow("invalid trial state");
   });
 
   it("rejects a stream that ends without a terminal event", async () => {
     const upstream = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(
-          new TextEncoder().encode('{"type":"started","requestedTrials":2}\n'),
+          new TextEncoder().encode(
+            'data: {"step":0,"params":{},"metric":1,"state":"COMPLETE"}\n\n',
+          ),
         );
         controller.close();
       },
@@ -424,8 +527,8 @@ describe("forwardPetrinautOptimizationStream", () => {
       start(controller) {
         controller.enqueue(
           new TextEncoder().encode(
-            '{"type":"error","code":"failed","message":"nope","retryable":false}\n' +
-              '{"type":"started","requestedTrials":2}\n',
+            "event: done\ndata: {}\n\n" +
+              'data: {"step":0,"params":{},"metric":1,"state":"COMPLETE"}\n\n',
           ),
         );
         controller.close();
@@ -462,18 +565,48 @@ describe(PETRINAUT_OPTIMIZER_STATUS_PATH, () => {
     });
   });
 
-  it("forwards the optimizer status", async () => {
+  it("returns a sanitized idle status when there are no runs", async () => {
+    const result = await callHandler({
+      origin: new URL("http://petrinaut-opt:4004"),
+      fetchImpl: async () => Response.json([]),
+    });
+
+    expect(result).toEqual({
+      body: { phase: "idle", detail: null, updated_at: null },
+      registeredPath: PETRINAUT_OPTIMIZER_STATUS_PATH,
+      statusCode: 200,
+    });
+  });
+
+  it("summarizes optimizer status without exposing another run's details", async () => {
     const requestedUrls: string[] = [];
     const result = await callHandler({
       origin: new URL("http://petrinaut-opt:4004"),
       fetchImpl: async (input) => {
         requestedUrls.push(input.toString());
-        return Response.json({ phase: "idle", detail: null });
+        return Response.json([
+          {
+            run_id: "run-1",
+            phase: "error",
+            detail: "private failure details",
+            updated_at: "2026-07-16T10:00:00Z",
+          },
+          {
+            run_id: "run-2",
+            phase: "running",
+            detail: "private model name",
+            updated_at: "2026-07-16T10:01:00Z",
+          },
+        ]);
       },
     });
 
     expect(result).toEqual({
-      body: { phase: "idle", detail: null },
+      body: {
+        phase: "running",
+        detail: null,
+        updated_at: "2026-07-16T10:01:00Z",
+      },
       registeredPath: PETRINAUT_OPTIMIZER_STATUS_PATH,
       statusCode: 200,
     });
@@ -483,7 +616,8 @@ describe(PETRINAUT_OPTIMIZER_STATUS_PATH, () => {
   it("rejects an invalid optimizer status", async () => {
     const result = await callHandler({
       origin: new URL("http://petrinaut-opt:4004"),
-      fetchImpl: async () => Response.json({ phase: "unknown" }),
+      fetchImpl: async () =>
+        Response.json([{ run_id: "run-1", phase: "unknown" }]),
     });
 
     expect(result).toEqual({

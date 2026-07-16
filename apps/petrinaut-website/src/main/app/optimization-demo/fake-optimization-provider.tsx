@@ -4,7 +4,7 @@ import type {
   AbortSignalLike,
   PetrinautOptimization,
   PetrinautOptimizationEvent,
-  PetrinautOptimizationVariable,
+  PetrinautOptimizationParameterBinding,
 } from "@hashintel/petrinaut-core";
 import type { FC, PropsWithChildren } from "react";
 
@@ -29,42 +29,42 @@ const wait = (durationMs: number, signal?: AbortSignalLike) =>
     signal?.addEventListener("abort", handleAbort, { once: true });
   });
 
-function sampleVariable(
-  variable: PetrinautOptimizationVariable,
+function sampleBinding(
+  binding: Extract<PetrinautOptimizationParameterBinding, { kind: "optimize" }>,
   trial: number,
   requestedTrials: number,
 ): number | boolean {
   const fraction = requestedTrials <= 1 ? 0.5 : trial / (requestedTrials - 1);
-  switch (variable.domain.kind) {
+  switch (binding.domain.kind) {
     case "continuous":
-      if (variable.domain.scale === "log") {
-        const lower = Math.log(variable.domain.minimum);
-        const upper = Math.log(variable.domain.maximum);
+      if (binding.domain.scale === "log") {
+        const lower = Math.log(binding.domain.minimum);
+        const upper = Math.log(binding.domain.maximum);
         return Math.exp(lower + (upper - lower) * fraction);
       }
       return (
-        variable.domain.minimum +
-        (variable.domain.maximum - variable.domain.minimum) * fraction
+        binding.domain.minimum +
+        (binding.domain.maximum - binding.domain.minimum) * fraction
       );
     case "integer": {
       const slots =
         Math.floor(
-          (variable.domain.maximum - variable.domain.minimum) /
-            variable.domain.step,
+          (binding.domain.maximum - binding.domain.minimum) /
+            binding.domain.step,
         ) + 1;
       return (
-        variable.domain.minimum +
-        (trial % Math.max(1, slots)) * variable.domain.step
+        binding.domain.minimum +
+        (trial % Math.max(1, slots)) * binding.domain.step
       );
     }
-    case "categorical":
-      return variable.domain.values[trial % variable.domain.values.length]!;
+    case "boolean":
+      return trial % 2 === 0;
   }
 }
 
 const fakeOptimization: PetrinautOptimization = {
   async *optimize(input, options) {
-    const requestedTrials = input.optimization.trials;
+    const requestedTrials = input.study.trials;
     let best: NonNullable<
       Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"]
     > | null = null;
@@ -78,10 +78,17 @@ const fakeOptimization: PetrinautOptimization = {
       }
 
       const parameters = Object.fromEntries(
-        input.searchSpace.variables.map((variable) => [
-          variable.identifier,
-          sampleVariable(variable, trial, requestedTrials),
-        ]),
+        Object.entries(input.scenario.parameterBindings).flatMap(
+          ([identifier, binding]) =>
+            binding.kind === "optimize"
+              ? [
+                  [
+                    identifier,
+                    sampleBinding(binding, trial, requestedTrials),
+                  ] as const,
+                ]
+              : [],
+        ),
       );
       const objective =
         input.objective.direction === "maximize"

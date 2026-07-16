@@ -147,10 +147,10 @@ const OptimizationSummary = ({
     optimization.requestedTrials > 0
       ? Math.min(100, (finishedTrials / optimization.requestedTrials) * 100)
       : 0;
-  const scenario = optimization.input.model.definition.scenarios.find(
+  const scenario = optimization.input.model.definition.scenarios?.find(
     (candidate) => candidate.id === optimization.input.scenario.id,
   );
-  const metric = optimization.input.model.definition.metrics.find(
+  const metric = optimization.input.model.definition.metrics?.find(
     (candidate) => candidate.id === optimization.input.objective.metricId,
   );
 

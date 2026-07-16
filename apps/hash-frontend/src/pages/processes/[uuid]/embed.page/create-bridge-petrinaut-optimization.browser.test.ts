@@ -2,15 +2,63 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
+
 import { createBridgePetrinautOptimization } from "./create-bridge-petrinaut-optimization";
 
-import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
-
-const input = { name: "Bridge test" } as PetrinautOptimizationInput;
+const input = petrinautOptimizationInputSchema.parse({
+  kind: "petrinaut-optimization",
+  version: 1,
+  name: "Bridge test",
+  model: {
+    title: "Bridge model",
+    definition: {
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      subnets: [],
+      componentInstances: [],
+      scenarios: [
+        {
+          id: "baseline",
+          name: "Baseline",
+          scenarioParameters: [
+            { identifier: "rate", type: "real", default: 0.5 },
+          ],
+          parameterOverrides: {},
+          initialState: { type: "per_place", content: {} },
+        },
+      ],
+      metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
+    },
+  },
+  scenario: {
+    id: "baseline",
+    parameterBindings: {
+      rate: {
+        kind: "optimize",
+        domain: {
+          kind: "continuous",
+          minimum: 0.1,
+          maximum: 1,
+          scale: "linear",
+        },
+      },
+    },
+  },
+  objective: { metricId: "profit", direction: "maximize" },
+  execution: { seed: 42, dt: 0.1, maxTime: 10 },
+  study: { trials: 1, sampler: "tpe" },
+});
 
 const getOptimizationRequest = (calls: readonly (readonly unknown[])[]) =>
   calls
-    .map(([message]) => message as { kind?: string; requestId?: string })
+    .map(
+      ([message]) =>
+        message as { kind?: string; requestId?: string; input?: unknown },
+    )
     .find(({ kind }) => kind === "optimizationRequest");
 
 const sendFromHost = (data: unknown) => {
@@ -36,8 +84,10 @@ describe("createBridgePetrinautOptimization", () => {
     await vi.waitFor(() => {
       expect(getOptimizationRequest(postMessage.mock.calls)).toBeDefined();
     });
-    const requestId = getOptimizationRequest(postMessage.mock.calls)?.requestId;
+    const optimizationRequest = getOptimizationRequest(postMessage.mock.calls);
+    const requestId = optimizationRequest?.requestId;
     expect(requestId).toBeDefined();
+    expect(optimizationRequest?.input).toEqual(input);
 
     sendFromHost({
       kind: "optimizationResponseStart",

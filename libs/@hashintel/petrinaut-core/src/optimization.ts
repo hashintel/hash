@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { parseSDCPNFile } from "./file-format/parse-sdcpn-file";
 import { sdcpnSchema } from "./file-format/types";
 
 import type { AbortSignalLike } from "./environment";
@@ -10,11 +11,6 @@ export const PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL = 100_000;
 export const PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS = 5_000_000;
 
 const optimizationScalarSchema = z.union([z.number(), z.boolean()]);
-
-const parameterIdentifierSchema = z
-  .string()
-  .min(1)
-  .meta({ description: "Identifier of a parameter on the selected scenario." });
 
 export const petrinautContinuousOptimizationDomainSchema = z
   .strictObject({
@@ -39,7 +35,9 @@ export const petrinautContinuousOptimizationDomainSchema = z
       });
     }
   })
-  .meta({ description: "A continuous numeric Optuna search domain." });
+  .meta({
+    description: "A continuous Optuna domain for real and ratio parameters.",
+  });
 
 export const petrinautIntegerOptimizationDomainSchema = z
   .strictObject({
@@ -64,83 +62,46 @@ export const petrinautIntegerOptimizationDomainSchema = z
       });
     }
   })
-  .meta({ description: "An integer Optuna search domain." });
+  .meta({ description: "An integer Optuna domain." });
 
-export const petrinautCategoricalOptimizationDomainSchema = z
-  .strictObject({
-    kind: z.literal("categorical"),
-    values: z.array(optimizationScalarSchema).min(2),
-  })
-  .superRefine((domain, context) => {
-    if (new Set(domain.values).size !== domain.values.length) {
-      context.addIssue({
-        code: "custom",
-        path: ["values"],
-        message: "Categorical values must be unique",
-      });
-    }
-  })
-  .meta({ description: "A flat scalar categorical Optuna search domain." });
+export const petrinautBooleanOptimizationDomainSchema = z
+  .strictObject({ kind: z.literal("boolean") })
+  .meta({
+    description: "The complete false/true domain of a boolean parameter.",
+  });
 
 export const petrinautOptimizationDomainSchema = z
   .discriminatedUnion("kind", [
     petrinautContinuousOptimizationDomainSchema,
     petrinautIntegerOptimizationDomainSchema,
-    petrinautCategoricalOptimizationDomainSchema,
+    petrinautBooleanOptimizationDomainSchema,
   ])
-  .meta({ description: "The values Optuna may propose for one parameter." });
+  .meta({
+    description: "A transient Optuna domain for one scenario parameter.",
+  });
 
-export const petrinautOptimizationVariableSchema = z
+export const petrinautOptimizationFixedBindingSchema = z
   .strictObject({
-    identifier: parameterIdentifierSchema,
+    kind: z.literal("fixed"),
+    value: optimizationScalarSchema,
+  })
+  .meta({ description: "A scenario parameter held constant for every trial." });
+
+export const petrinautOptimizationVariableBindingSchema = z
+  .strictObject({
+    kind: z.literal("optimize"),
     domain: petrinautOptimizationDomainSchema,
   })
   .meta({
-    description:
-      "One flat scenario parameter and the domain Optuna may search for it.",
+    description: "A scenario parameter whose value Optuna may suggest.",
   });
 
-export const petrinautOptimizationSearchSpaceSchema = z
-  .strictObject({
-    version: z.literal(1),
-    variables: z.array(petrinautOptimizationVariableSchema).min(1),
-  })
-  .superRefine((searchSpace, context) => {
-    const identifiers = new Set<string>();
-    for (const [index, variable] of searchSpace.variables.entries()) {
-      if (identifiers.has(variable.identifier)) {
-        context.addIssue({
-          code: "custom",
-          path: ["variables", index, "identifier"],
-          message: `Parameter "${variable.identifier}" is duplicated`,
-        });
-      }
-      identifiers.add(variable.identifier);
-    }
-  })
-  .meta({
-    description:
-      "A versioned, flat collection of scenario parameters Optuna may change.",
-  });
-
-const optimizationModelSchema = z
-  .strictObject({
-    title: z.string(),
-    definition: sdcpnSchema,
-  })
-  .meta({
-    description: "The immutable Petrinaut model snapshot for this run.",
-  });
-
-const optimizationScenarioSchema = z
-  .strictObject({
-    id: z.string().min(1),
-    parameterValues: z.record(z.string(), optimizationScalarSchema),
-  })
-  .meta({
-    description:
-      "The selected scenario and a complete flat snapshot of its parameter values.",
-  });
+export const petrinautOptimizationParameterBindingSchema = z
+  .discriminatedUnion("kind", [
+    petrinautOptimizationFixedBindingSchema,
+    petrinautOptimizationVariableBindingSchema,
+  ])
+  .meta({ description: "The per-study treatment of one scenario parameter." });
 
 export const petrinautOptimizationObjectiveSchema = z
   .strictObject({
@@ -148,11 +109,10 @@ export const petrinautOptimizationObjectiveSchema = z
     direction: z.enum(["maximize", "minimize"]),
   })
   .meta({
-    description:
-      "The saved model metric whose final-frame value should be optimized.",
+    description: "The sole metric and direction optimized by the study.",
   });
 
-const optimizationExecutionSchema = z
+export const petrinautOptimizationExecutionSchema = z
   .strictObject({
     seed: z.number().int().min(0).max(PETRINAUT_OPTIMIZATION_MAX_SEED),
     dt: z.number().positive(),
@@ -160,45 +120,144 @@ const optimizationExecutionSchema = z
   })
   .meta({ description: "Simulation settings shared by every trial." });
 
-const optimizationOptionsSchema = z
+export const petrinautOptimizationStudySchema = z
   .strictObject({
     trials: z.number().int().min(1).max(PETRINAUT_OPTIMIZATION_MAX_TRIALS),
     sampler: z.enum(["tpe", "random"]),
   })
   .meta({ description: "Optuna study settings." });
 
-export const petrinautOptimizationInputSchema = z
+const optimizationModelSchema = z
   .strictObject({
+    title: z.string(),
+    definition: sdcpnSchema,
+  })
+  .transform((model, context) => {
+    const parsed = parseSDCPNFile({ ...model.definition, title: model.title });
+    if (!parsed.ok) {
+      context.addIssue({ code: "custom", message: parsed.error });
+      return z.NEVER;
+    }
+    const { title: _title, ...definition } = parsed.sdcpn;
+    return { title: model.title, definition };
+  })
+  .meta({
+    description: "An immutable, self-contained Petrinaut model snapshot.",
+  });
+
+const optimizationScenarioSchema = z
+  .strictObject({
+    id: z.string().min(1),
+    parameterBindings: z.record(
+      z.string(),
+      petrinautOptimizationParameterBindingSchema,
+    ),
+  })
+  .meta({
+    description:
+      "The sole scenario and the exhaustive, transient treatment of its parameters.",
+  });
+
+function addIssue(
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+  message: string,
+): void {
+  context.addIssue({ code: "custom", path, message });
+}
+
+function validateScenarioParameterDefault(
+  parameter: {
+    identifier: string;
+    type: "real" | "integer" | "boolean" | "ratio";
+    default: number;
+  },
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+): void {
+  if (parameter.type === "integer" && !Number.isInteger(parameter.default)) {
+    addIssue(
+      context,
+      path,
+      `Integer scenario parameter "${parameter.identifier}" requires an integer default`,
+    );
+  } else if (
+    parameter.type === "ratio" &&
+    (parameter.default < 0 || parameter.default > 1)
+  ) {
+    addIssue(
+      context,
+      path,
+      `Ratio scenario parameter "${parameter.identifier}" requires a default between 0 and 1`,
+    );
+  } else if (
+    parameter.type === "boolean" &&
+    parameter.default !== 0 &&
+    parameter.default !== 1
+  ) {
+    addIssue(
+      context,
+      path,
+      `Boolean scenario parameter "${parameter.identifier}" requires a default of 0 or 1`,
+    );
+  }
+}
+
+export const petrinautOptimizationManifestSchema = z
+  .strictObject({
+    kind: z.literal("petrinaut-optimization"),
+    version: z.literal(1),
     name: z.string().trim().min(1),
     model: optimizationModelSchema,
     scenario: optimizationScenarioSchema,
-    searchSpace: petrinautOptimizationSearchSpaceSchema,
     objective: petrinautOptimizationObjectiveSchema,
-    execution: optimizationExecutionSchema,
-    optimization: optimizationOptionsSchema,
+    execution: petrinautOptimizationExecutionSchema,
+    study: petrinautOptimizationStudySchema,
   })
-  .superRefine((input, context) => {
-    const scenario = input.model.definition.scenarios.find(
-      (candidate) => candidate.id === input.scenario.id,
-    );
-    if (!scenario) {
-      context.addIssue({
-        code: "custom",
-        path: ["scenario", "id"],
-        message: "The selected scenario does not exist in the model",
-      });
-      return;
+  .superRefine((manifest, context) => {
+    const scenarios = manifest.model.definition.scenarios ?? [];
+    const metrics = manifest.model.definition.metrics ?? [];
+    if (scenarios.length !== 1) {
+      addIssue(
+        context,
+        ["model", "definition", "scenarios"],
+        "An optimization manifest must contain exactly one scenario",
+      );
+    }
+    if (metrics.length !== 1) {
+      addIssue(
+        context,
+        ["model", "definition", "metrics"],
+        "An optimization manifest must contain exactly one metric",
+      );
     }
 
-    const metricExists = input.model.definition.metrics.some(
-      (metric) => metric.id === input.objective.metricId,
-    );
-    if (!metricExists) {
-      context.addIssue({
-        code: "custom",
-        path: ["objective", "metricId"],
-        message: "The objective metric does not exist in the model",
-      });
+    const scenario = scenarios[0];
+    if (!scenario || scenario.id !== manifest.scenario.id) {
+      addIssue(
+        context,
+        ["scenario", "id"],
+        "The selected scenario must be the sole scenario in the model snapshot",
+      );
+      return;
+    }
+    const objectiveMetric = metrics[0];
+    if (
+      !objectiveMetric ||
+      objectiveMetric.id !== manifest.objective.metricId
+    ) {
+      addIssue(
+        context,
+        ["objective", "metricId"],
+        "The objective metric must be the sole metric in the model snapshot",
+      );
+    }
+    if (objectiveMetric && objectiveMetric.code.trim() === "") {
+      addIssue(
+        context,
+        ["model", "definition", "metrics", 0, "code"],
+        "The objective metric must contain custom expression code",
+      );
     }
 
     const parametersByIdentifier = new Map(
@@ -207,148 +266,203 @@ export const petrinautOptimizationInputSchema = z
         parameter,
       ]),
     );
-
-    for (const parameter of scenario.scenarioParameters) {
-      const value = input.scenario.parameterValues[parameter.identifier];
-      if (value === undefined) {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", parameter.identifier],
-          message: "A value is required for every scenario parameter",
-        });
-        continue;
-      }
-      if (parameter.type === "real" && typeof value !== "number") {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", parameter.identifier],
-          message: "Real scenario parameters require a numeric value",
-        });
-      }
-      if (
-        parameter.type === "integer" &&
-        (typeof value !== "number" || !Number.isInteger(value))
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", parameter.identifier],
-          message: "Integer scenario parameters require an integer value",
-        });
-      }
-      if (
-        parameter.type === "ratio" &&
-        (typeof value !== "number" || value < 0 || value > 1)
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", parameter.identifier],
-          message: "Ratio scenario parameters must be between 0 and 1",
-        });
-      }
-      if (parameter.type === "boolean" && typeof value !== "boolean") {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", parameter.identifier],
-          message: "Boolean scenario parameters require a boolean value",
-        });
-      }
+    if (parametersByIdentifier.size !== scenario.scenarioParameters.length) {
+      addIssue(
+        context,
+        ["model", "definition", "scenarios", 0, "scenarioParameters"],
+        "Scenario parameter identifiers must be unique",
+      );
     }
 
-    for (const identifier of Object.keys(input.scenario.parameterValues)) {
-      if (!parametersByIdentifier.has(identifier)) {
-        context.addIssue({
-          code: "custom",
-          path: ["scenario", "parameterValues", identifier],
-          message: "Unknown scenario parameter",
-        });
-      }
-    }
+    let optimizedParameterCount = 0;
+    for (const [index, parameter] of scenario.scenarioParameters.entries()) {
+      const path: PropertyKey[] = [
+        "scenario",
+        "parameterBindings",
+        parameter.identifier,
+      ];
+      validateScenarioParameterDefault(parameter, context, [
+        "model",
+        "definition",
+        "scenarios",
+        0,
+        "scenarioParameters",
+        index,
+        "default",
+      ]);
 
-    for (const [index, variable] of input.searchSpace.variables.entries()) {
-      const parameter = parametersByIdentifier.get(variable.identifier);
-      const path: PropertyKey[] = ["searchSpace", "variables", index, "domain"];
-      if (!parameter) {
-        context.addIssue({
-          code: "custom",
-          path: ["searchSpace", "variables", index, "identifier"],
-          message: "Unknown scenario parameter",
-        });
+      const binding = manifest.scenario.parameterBindings[parameter.identifier];
+      if (!binding) {
+        addIssue(context, path, "Every scenario parameter requires a binding");
         continue;
       }
 
+      if (binding.kind === "fixed") {
+        const value = binding.value;
+        if (parameter.type === "boolean" && typeof value !== "boolean") {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Boolean scenario parameters require a boolean fixed value",
+          );
+        } else if (parameter.type !== "boolean" && typeof value !== "number") {
+          addIssue(
+            context,
+            [...path, "value"],
+            `${parameter.type} scenario parameters require a numeric fixed value`,
+          );
+        } else if (
+          parameter.type === "integer" &&
+          typeof value === "number" &&
+          !Number.isInteger(value)
+        ) {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Integer scenario parameters require an integer fixed value",
+          );
+        } else if (
+          parameter.type === "ratio" &&
+          typeof value === "number" &&
+          (value < 0 || value > 1)
+        ) {
+          addIssue(
+            context,
+            [...path, "value"],
+            "Ratio scenario parameters require a fixed value between 0 and 1",
+          );
+        }
+        continue;
+      }
+
+      optimizedParameterCount++;
+      const domain = binding.domain;
       if (
         (parameter.type === "real" || parameter.type === "ratio") &&
-        variable.domain.kind !== "continuous"
+        domain.kind !== "continuous"
       ) {
-        context.addIssue({
-          code: "custom",
-          path: [...path, "kind"],
-          message: `${parameter.type} parameters require a continuous domain`,
-        });
-      } else if (
-        parameter.type === "integer" &&
-        variable.domain.kind !== "integer"
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: [...path, "kind"],
-          message: "Integer parameters require an integer domain",
-        });
-      } else if (
-        parameter.type === "boolean" &&
-        (variable.domain.kind !== "categorical" ||
-          variable.domain.values.length !== 2 ||
-          !variable.domain.values.includes(false) ||
-          !variable.domain.values.includes(true))
-      ) {
-        context.addIssue({
-          code: "custom",
-          path,
-          message:
-            "Boolean parameters must search the categorical values false and true",
-        });
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          `${parameter.type} scenario parameters require a continuous domain`,
+        );
+      } else if (parameter.type === "integer" && domain.kind !== "integer") {
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          "Integer scenario parameters require an integer domain",
+        );
+      } else if (parameter.type === "boolean" && domain.kind !== "boolean") {
+        addIssue(
+          context,
+          [...path, "domain", "kind"],
+          "Boolean scenario parameters require a boolean domain",
+        );
       }
-
       if (
         parameter.type === "ratio" &&
-        variable.domain.kind === "continuous" &&
-        (variable.domain.minimum < 0 || variable.domain.maximum > 1)
+        domain.kind === "continuous" &&
+        (domain.minimum < 0 || domain.maximum > 1)
       ) {
-        context.addIssue({
-          code: "custom",
-          path,
-          message: "A ratio search domain must stay between 0 and 1",
-        });
+        addIssue(
+          context,
+          [...path, "domain"],
+          "A ratio optimization domain must stay between 0 and 1",
+        );
       }
+    }
+
+    for (const identifier of Object.keys(manifest.scenario.parameterBindings)) {
+      if (!parametersByIdentifier.has(identifier)) {
+        addIssue(
+          context,
+          ["scenario", "parameterBindings", identifier],
+          "Unknown scenario parameter",
+        );
+      }
+    }
+    if (optimizedParameterCount === 0) {
+      addIssue(
+        context,
+        ["scenario", "parameterBindings"],
+        "At least one scenario parameter must be optimized",
+      );
     }
 
     const stepsPerTrial = Math.ceil(
-      input.execution.maxTime / input.execution.dt,
+      manifest.execution.maxTime / manifest.execution.dt,
     );
     if (
       !Number.isSafeInteger(stepsPerTrial) ||
       stepsPerTrial > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
     ) {
-      context.addIssue({
-        code: "custom",
-        path: ["execution"],
-        message: `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per trial`,
-      });
+      addIssue(
+        context,
+        ["execution"],
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per trial`,
+      );
     } else if (
-      stepsPerTrial * input.optimization.trials >
+      stepsPerTrial * manifest.study.trials >
       PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
     ) {
-      context.addIssue({
-        code: "custom",
-        path: ["optimization", "trials"],
-        message: `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`,
-      });
+      addIssue(
+        context,
+        ["study", "trials"],
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`,
+      );
     }
   })
   .meta({
     description:
-      "A complete request for optimizing flat parameters of one selected scenario.",
+      "A versioned, self-contained study over a flat set of scenario parameters.",
   });
+
+/** The application optimization request is the immutable CLI manifest. */
+export const petrinautOptimizationInputSchema =
+  petrinautOptimizationManifestSchema;
+
+export const petrinautOptimizationEvaluateParamsSchema = z
+  .strictObject({
+    parameterValues: z.record(z.string(), optimizationScalarSchema),
+  })
+  .meta({
+    description: "Values suggested for every and only optimized parameter.",
+  });
+
+export type PetrinautOptimizationDescribeParameter =
+  | {
+      identifier: string;
+      type: "float";
+      default: number;
+      minimum: number;
+      maximum: number;
+      scale: "linear" | "log";
+    }
+  | {
+      identifier: string;
+      type: "int";
+      default: number;
+      minimum: number;
+      maximum: number;
+      step: number;
+    }
+  | {
+      identifier: string;
+      type: "boolean";
+      default: boolean;
+    };
+
+export type PetrinautOptimizationDescribeResult = {
+  direction: "maximize" | "minimize";
+  study: PetrinautOptimizationStudy & { seed: number };
+  parameters: PetrinautOptimizationDescribeParameter[];
+};
+
+export type PetrinautOptimizationEvaluateParams = z.infer<
+  typeof petrinautOptimizationEvaluateParamsSchema
+>;
+
+export type PetrinautOptimizationEvaluateResult = { objective: number };
 
 const optimizationBestSchema = z
   .strictObject({
@@ -403,23 +517,36 @@ export const petrinautOptimizationEventSchema = z
     petrinautOptimizationCompleteEventSchema,
     petrinautOptimizationErrorEventSchema,
   ])
-  .meta({ description: "One line in the optimizer NDJSON response stream." });
+  .meta({ description: "One event in the optimizer response stream." });
 
+export type PetrinautContinuousOptimizationDomain = z.infer<
+  typeof petrinautContinuousOptimizationDomainSchema
+>;
+export type PetrinautIntegerOptimizationDomain = z.infer<
+  typeof petrinautIntegerOptimizationDomainSchema
+>;
+export type PetrinautBooleanOptimizationDomain = z.infer<
+  typeof petrinautBooleanOptimizationDomainSchema
+>;
 export type PetrinautOptimizationDomain = z.infer<
   typeof petrinautOptimizationDomainSchema
 >;
-export type PetrinautOptimizationVariable = z.infer<
-  typeof petrinautOptimizationVariableSchema
->;
-export type PetrinautOptimizationSearchSpace = z.infer<
-  typeof petrinautOptimizationSearchSpaceSchema
+export type PetrinautOptimizationParameterBinding = z.infer<
+  typeof petrinautOptimizationParameterBindingSchema
 >;
 export type PetrinautOptimizationObjective = z.infer<
   typeof petrinautOptimizationObjectiveSchema
 >;
-export type PetrinautOptimizationInput = z.infer<
-  typeof petrinautOptimizationInputSchema
+export type PetrinautOptimizationExecution = z.infer<
+  typeof petrinautOptimizationExecutionSchema
 >;
+export type PetrinautOptimizationStudy = z.infer<
+  typeof petrinautOptimizationStudySchema
+>;
+export type PetrinautOptimizationManifest = z.infer<
+  typeof petrinautOptimizationManifestSchema
+>;
+export type PetrinautOptimizationInput = PetrinautOptimizationManifest;
 export type PetrinautOptimizationEvent = z.infer<
   typeof petrinautOptimizationEventSchema
 >;

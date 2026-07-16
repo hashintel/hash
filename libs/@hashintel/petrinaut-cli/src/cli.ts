@@ -5,20 +5,24 @@ import { serveStdio } from "./commands/stdio";
 
 function printUsage(): void {
   process.stderr.write(`Usage:
-  petrinaut serve (--model <path> | --model-stdin) [--stdio | --socket <path>]
+  petrinaut serve (--model <path> | --model-stdin | --optimization <path> | --optimization-stdin) [--stdio | --socket <path>]
 
 Transports:
   --stdio          JSON lines over stdin/stdout (default)
   --socket <path>  JSON lines over a Unix socket
 
 Model sources:
-  --model <path>   Load the model from a JSON file
-  --model-stdin    Read a legacy model JSON object from the first stdin line
+  --model <path>          Load the model from a JSON file
+  --model-stdin           Read a legacy model JSON object from the first stdin line
+  --optimization <path>  Load an optimization manifest from a JSON file (stdio only)
+  --optimization-stdin   Read an optimization manifest from the first stdin line (stdio only)
 
 Methods:
   healthz
   metadata
   run
+  optimization.describe
+  optimization.evaluate
 `);
 }
 
@@ -35,6 +39,8 @@ async function main(): Promise<void> {
     options: {
       model: { type: "string" },
       "model-stdin": { type: "boolean" },
+      optimization: { type: "string" },
+      "optimization-stdin": { type: "boolean" },
       socket: { type: "string" },
       stdio: { type: "boolean" },
       help: { type: "boolean", short: "h" },
@@ -51,14 +57,31 @@ async function main(): Promise<void> {
   }
   const modelPath = parsed.values.model;
   const modelStdin = parsed.values["model-stdin"] ?? false;
-  if (modelPath && modelStdin) {
-    throw new Error("--model and --model-stdin cannot be used together");
+  const optimizationPath = parsed.values.optimization;
+  const optimizationStdin = parsed.values["optimization-stdin"] ?? false;
+  const sourceCount = [
+    modelPath !== undefined,
+    modelStdin,
+    optimizationPath !== undefined,
+    optimizationStdin,
+  ].filter(Boolean).length;
+  if (sourceCount > 1) {
+    throw new Error(
+      "--model, --model-stdin, --optimization, and --optimization-stdin cannot be combined",
+    );
   }
-  if (!modelPath && !modelStdin) {
-    throw new Error("Missing required --model <path> or --model-stdin");
+  if (sourceCount === 0) {
+    throw new Error(
+      "Missing required --model <path>, --model-stdin, --optimization <path>, or --optimization-stdin",
+    );
   }
-  if (modelStdin && parsed.values.socket !== undefined) {
-    throw new Error("--model-stdin is only available with the stdio transport");
+  if (
+    parsed.values.socket !== undefined &&
+    (modelStdin || optimizationPath !== undefined || optimizationStdin)
+  ) {
+    throw new Error(
+      "--model-stdin, --optimization, and --optimization-stdin are only available with the stdio transport",
+    );
   }
 
   if (parsed.values.socket !== undefined) {
@@ -76,6 +99,10 @@ async function main(): Promise<void> {
     await serveStdio({ modelStdin: true });
   } else if (modelPath) {
     await serveStdio({ modelPath });
+  } else if (optimizationStdin) {
+    await serveStdio({ optimizationStdin: true });
+  } else if (optimizationPath) {
+    await serveStdio({ optimizationPath });
   }
 }
 

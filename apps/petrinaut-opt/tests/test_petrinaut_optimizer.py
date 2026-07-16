@@ -1,269 +1,360 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import threading
+import time
 from typing import Any
 
+import optuna
 import pytest
+from fastapi import FastAPI
 
-from src.optimization_models import (
-    OptimizationCompleteEvent,
-    OptimizationErrorEvent,
-    OptimizationInput,
-    OptimizationStartedEvent,
-    OptimizationTrialEvent,
-)
-from src.petrinaut_client import (
-    PetrinautClientError,
-    PetrinautProtocolError,
-    PetrinautRunError,
-)
+from src import petrinaut_optimizer
+from src.petrinaut_client import PetrinautClientError, PetrinautRunError
 from src.petrinaut_optimizer import PetrinautOptimizer
+from src.utils import Phase, StatusStore
+
+
+class FakeModel:
+    eval_timeout = None
+
+    def __init__(self, description: dict[str, Any]) -> None:
+        self.description = description
+        self.evaluations: list[dict[str, Any]] = []
+        self.closed = False
+
+    def describe_optimization(self) -> dict[str, Any]:
+        return self.description
+
+    def objective(self, parameter_values: dict[str, Any]) -> float:
+        self.evaluations.append(parameter_values)
+        return float(
+            parameter_values["rate"]
+            + parameter_values["count"]
+            + int(parameter_values["enabled"])
+        )
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class SlowModel(FakeModel):
+    def objective(self, parameter_values: dict[str, Any]) -> float:
+        time.sleep(0.04)
+        return super().objective(parameter_values)
+
+
+class FailingModel(FakeModel):
+    def __init__(self, description: dict[str, Any], error: Exception) -> None:
+        super().__init__(description)
+        self.error = error
+
+    def objective(self, parameter_values: dict[str, Any]) -> float:
+        self.evaluations.append(parameter_values)
+        raise self.error
+
+
+class StubbornModel(FakeModel):
+    def __init__(self, description: dict[str, Any]) -> None:
+        super().__init__(description)
+        self.entered = threading.Event()
+        self.release = threading.Event()
+
+    def objective(self, parameter_values: dict[str, Any]) -> float:
+        self.entered.set()
+        self.release.wait()
+        raise PetrinautClientError("CLI closed")
 
 
 class ConnectedRequest:
+    def __init__(self) -> None:
+        self.app = FastAPI()
+        self.app.state.statuses = StatusStore()
+
     async def is_disconnected(self) -> bool:
         return False
 
 
-class DisconnectedRequest:
+class DisconnectedAfterWorkerStarts(ConnectedRequest):
+    def __init__(self, model: StubbornModel) -> None:
+        super().__init__()
+        self.model = model
+
     async def is_disconnected(self) -> bool:
+        await asyncio.to_thread(self.model.entered.wait, 1)
         return True
 
 
-class FakeClient:
-    def __init__(self) -> None:
-        self.started = False
-        self.closed = False
-        self.runs: list[dict[str, Any]] = []
-
-    def start(self) -> None:
-        self.started = True
-
-    def run_scenario(self, **request: Any) -> float:
-        self.runs.append(request)
-        return float(request["parameter_values"]["rate"])
-
-    def close(self) -> None:
-        self.closed = True
+def _run_id(request: ConnectedRequest) -> str:
+    return request.app.state.statuses.create().run_id
 
 
-class BlockingClient(FakeClient):
-    def __init__(self) -> None:
-        super().__init__()
-        self.released = threading.Event()
-
-    def run_scenario(self, **request: Any) -> float:
-        self.released.wait(timeout=5)
-        raise PetrinautClientError("closed")
-
-    def close(self) -> None:
-        self.closed = True
-        self.released.set()
-
-
-class MixedDomainClient(FakeClient):
-    def run_scenario(self, **request: Any) -> float:
-        self.runs.append(request)
-        values = request["parameter_values"]
-        return float(values["count"] + int(values["enabled"]))
-
-
-class StartFailingClient(FakeClient):
-    def start(self) -> None:
-        raise PetrinautClientError("could not compile model")
-
-
-class RecoverableTrialFailingClient(FakeClient):
-    def __init__(self, failures: int = 1) -> None:
-        super().__init__()
-        self.failures = failures
-
-    def run_scenario(self, **request: Any) -> float:
-        self.runs.append(request)
-        if len(self.runs) <= self.failures:
-            raise PetrinautRunError("scenario execution failed")
-        return float(request["parameter_values"]["rate"])
-
-
-class FatalTrialFailingClient(FakeClient):
-    def __init__(self, error: PetrinautClientError) -> None:
-        super().__init__()
-        self.error = error
-
-    def run_scenario(self, **request: Any) -> float:
-        self.runs.append(request)
-        raise self.error
-
-
-def test_streams_trials_and_a_final_summary(optimization_payload: dict) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = FakeClient()
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
-
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
-
-    events = asyncio.run(collect())
-
-    assert isinstance(events[0], OptimizationStartedEvent)
-    trial_events = [event for event in events if isinstance(event, OptimizationTrialEvent)]
-    assert len(trial_events) == 3
-    assert all(set(event.parameters) == {"rate"} for event in trial_events)
-    assert all(event.state == "complete" for event in trial_events)
-    assert isinstance(events[-1], OptimizationCompleteEvent)
-    assert events[-1].completed_trials == 3
-    assert events[-1].best is not None
-    assert client.started is True
-    assert client.closed is True
-    assert all(
-        set(run["parameter_values"]) == {"rate", "count", "enabled", "share"}
-        for run in client.runs
-    )
-
-
-def test_disconnect_closes_the_cli_and_stops_the_study(optimization_payload: dict) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = BlockingClient()
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
-
-    async def collect():
-        return [event async for event in optimizer.stream(DisconnectedRequest())]
-
-    events = asyncio.run(collect())
-
-    assert len(events) == 1
-    assert isinstance(events[0], OptimizationStartedEvent)
-    assert client.closed is True
-
-
-def test_materializes_integer_and_boolean_domains(optimization_payload: dict) -> None:
-    optimization_payload["searchSpace"]["variables"] = [
-        {
-            "identifier": "count",
-            "domain": {"kind": "integer", "minimum": 2, "maximum": 6, "step": 2},
-        },
-        {
-            "identifier": "enabled",
-            "domain": {"kind": "categorical", "values": [False, True]},
-        },
-    ]
-    optimization_payload["optimization"]["trials"] = 4
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = MixedDomainClient()
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
-
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
-
-    events = asyncio.run(collect())
-    trial_events = [event for event in events if isinstance(event, OptimizationTrialEvent)]
-
-    assert len(trial_events) == 4
-    assert all(event.parameters["count"] in {2, 4, 6} for event in trial_events)
-    assert all(isinstance(event.parameters["enabled"], bool) for event in trial_events)
-    assert all(
-        set(run["parameter_values"]) == {"rate", "count", "enabled", "share"}
-        for run in client.runs
-    )
-
-
-def test_reports_a_typed_startup_error(optimization_payload: dict) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = StartFailingClient()
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
-
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
-
-    events = asyncio.run(collect())
-
-    assert events == [
-        OptimizationErrorEvent(
-            type="error",
-            code="petrinaut_start_failed",
-            message="could not compile model",
-            retryable=False,
-        )
-    ]
-    assert client.closed is True
-
-
-def test_continues_after_a_recoverable_trial_failure(
-    optimization_payload: dict,
+def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
+    optimization_description: dict,
 ) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = RecoverableTrialFailingClient()
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 0.5, "count": 6, "enabled": False})
 
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
-
-    events = asyncio.run(collect())
-    trial_events = [event for event in events if isinstance(event, OptimizationTrialEvent)]
-
-    assert [event.state for event in trial_events] == ["failed", "complete", "complete"]
-    assert trial_events[0].objective is None
-    assert trial_events[0].best is None
-    assert isinstance(events[-1], OptimizationCompleteEvent)
-    assert events[-1].completed_trials == 2
-    assert events[-1].failed_trials == 1
-    assert events[-1].best is not None
-    assert len(client.runs) == 3
-
-
-def test_completes_without_a_best_when_every_trial_fails(
-    optimization_payload: dict,
-) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = RecoverableTrialFailingClient(
-        failures=optimization_input.optimization.trials
+    assert optimizer.suggest(trial) == {
+        "rate": 0.5,
+        "count": 6,
+        "enabled": False,
+    }
+    distributions = trial.distributions
+    assert isinstance(distributions["rate"], optuna.distributions.FloatDistribution)
+    assert distributions["rate"].log is True
+    assert isinstance(distributions["count"], optuna.distributions.IntDistribution)
+    assert distributions["count"].step == 2
+    assert isinstance(
+        distributions["enabled"], optuna.distributions.CategoricalDistribution
     )
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
+    assert distributions["enabled"].choices == (False, True)
 
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
 
-    events = asyncio.run(collect())
-    trial_events = [
-        event for event in events if isinstance(event, OptimizationTrialEvent)
-    ]
+def test_objective_sends_only_flat_suggested_values(
+    optimization_description: dict,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 
-    assert len(trial_events) == optimization_input.optimization.trials
-    assert all(event.state == "failed" for event in trial_events)
-    assert isinstance(events[-1], OptimizationCompleteEvent)
-    assert events[-1].completed_trials == 0
-    assert events[-1].failed_trials == optimization_input.optimization.trials
-    assert events[-1].best is None
-    assert len(client.runs) == optimization_input.optimization.trials
+    assert optimizer.objective(trial) == 10.25
+    assert model.evaluations == [{"rate": 1.25, "count": 8, "enabled": True}]
+
+
+def test_objective_prunes_only_evaluation_errors(
+    optimization_description: dict,
+) -> None:
+    model = FailingModel(optimization_description, PetrinautRunError("scenario failed"))
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
+
+    with pytest.raises(optuna.TrialPruned):
+        optimizer.objective(trial)
+
+
+def test_objective_propagates_transport_errors(
+    optimization_description: dict,
+) -> None:
+    model = FailingModel(
+        optimization_description, PetrinautClientError("transport failed")
+    )
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
+
+    with pytest.raises(PetrinautClientError, match="transport failed"):
+        optimizer.objective(trial)
+
+
+def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
+    optimization_description: dict,
+) -> None:
+    first = PetrinautOptimizer(  # type: ignore[arg-type]
+        FakeModel(optimization_description)
+    )
+    second = PetrinautOptimizer(  # type: ignore[arg-type]
+        FakeModel(optimization_description)
+    )
+
+    assert first.suggest(first.study.ask()) == second.suggest(second.study.ask())
 
 
 @pytest.mark.parametrize(
-    ("error", "expected_code"),
+    "change",
     [
-        (PetrinautClientError("CLI exited"), "petrinaut_transport_failed"),
-        (
-            PetrinautProtocolError("invalid response"),
-            "petrinaut_protocol_failed",
-        ),
+        {"direction": "up"},
+        {"study": {"trials": 0, "sampler": "random", "seed": 42}},
+        {"study": {"trials": 1, "sampler": "unknown", "seed": 42}},
+        {"study": {"trials": 1, "sampler": "random", "seed": -1}},
+        {
+            "parameters": [
+                {
+                    "identifier": "rate",
+                    "type": "float",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "scale": "log",
+                }
+            ]
+        },
     ],
 )
-def test_stops_immediately_after_a_fatal_cli_failure(
-    optimization_payload: dict,
-    error: PetrinautClientError,
-    expected_code: str,
+def test_rejects_invalid_cli_descriptions(
+    optimization_description: dict,
+    change: dict[str, Any],
 ) -> None:
-    optimization_input = OptimizationInput.model_validate(optimization_payload)
-    client = FatalTrialFailingClient(error)
-    optimizer = PetrinautOptimizer(optimization_input, client)  # type: ignore[arg-type]
+    optimization_description.update(change)
 
-    async def collect():
-        return [event async for event in optimizer.stream(ConnectedRequest())]
+    with pytest.raises(ValueError):
+        PetrinautOptimizer(  # type: ignore[arg-type]
+            FakeModel(optimization_description)
+        )
 
-    events = asyncio.run(collect())
-    trial_events = [event for event in events if isinstance(event, OptimizationTrialEvent)]
 
-    assert trial_events == []
-    assert isinstance(events[-1], OptimizationErrorEvent)
-    assert events[-1].code == expected_code
-    assert len(client.runs) == 1
+def test_stream_all_preserves_the_existing_sse_frame_shape(
+    optimization_description: dict,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = ConnectedRequest()
+
+    async def collect() -> list[str]:
+        return [
+            frame
+            async for frame in optimizer.stream_all(
+                request,
+                _run_id(request),
+                optimizer.n_trials,  # type: ignore[arg-type]
+            )
+        ]
+
+    frames = asyncio.run(collect())
+    data = [
+        json.loads(frame.removeprefix("data: "))
+        for frame in frames
+        if frame.startswith("data: ")
+    ]
+
+    assert frames[-1] == "event: done\ndata: {}\n\n"
+    assert len(data) == 3
+    assert all(
+        set(payload) == {"step", "params", "init_state", "metric", "state"}
+        for payload in data
+    )
+    assert all(payload["init_state"] == {} for payload in data)
+    assert all(
+        set(payload["params"]) == {"rate", "count", "enabled"} for payload in data
+    )
+    assert model.closed is True
+
+
+def test_stream_best_preserves_the_existing_sse_frame_shape(
+    optimization_description: dict,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = ConnectedRequest()
+
+    async def collect() -> list[str]:
+        return [
+            frame
+            async for frame in optimizer.stream_best(
+                request,
+                _run_id(request),
+                optimizer.n_trials,  # type: ignore[arg-type]
+            )
+        ]
+
+    frames = asyncio.run(collect())
+    data = [
+        json.loads(frame.removeprefix("data: "))
+        for frame in frames
+        if frame.startswith("data: ")
+    ]
+
+    assert frames[-1] == "event: done\ndata: {}\n\n"
+    assert len(data) == 3
+    assert all(payload["state"] == "COMPLETE" for payload in data)
+    assert all(payload["init_state"] == {} for payload in data)
+    assert model.closed is True
+
+
+def test_stream_sends_comment_heartbeats_while_a_trial_is_running(
+    optimization_description: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    optimization_description["study"]["trials"] = 1
+    monkeypatch.setattr(petrinaut_optimizer, "SSE_HEARTBEAT_SECONDS", 0.01)
+    model = SlowModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = ConnectedRequest()
+
+    async def collect() -> list[str]:
+        return [
+            frame
+            async for frame in optimizer.stream_all(
+                request,
+                _run_id(request),
+                optimizer.n_trials,  # type: ignore[arg-type]
+            )
+        ]
+
+    frames = asyncio.run(collect())
+
+    assert ": heartbeat\n\n" in frames
+    assert frames[-1] == "event: done\ndata: {}\n\n"
+
+
+@pytest.mark.parametrize("stream_name", ["stream_all", "stream_best"])
+def test_stream_error_is_terminal_and_is_not_followed_by_done(
+    optimization_description: dict,
+    stream_name: str,
+) -> None:
+    model = FailingModel(
+        optimization_description, PetrinautClientError("transport failed")
+    )
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = ConnectedRequest()
+    run_id = _run_id(request)
+
+    async def collect() -> list[str]:
+        stream = getattr(optimizer, stream_name)
+        return [
+            frame
+            async for frame in stream(
+                request,
+                run_id,
+                optimizer.n_trials,  # type: ignore[arg-type]
+            )
+        ]
+
+    frames = asyncio.run(collect())
+    status = request.app.state.statuses.get(run_id)
+
+    assert any(
+        json.loads(frame.removeprefix("data: "))
+        == {"state": "ERROR", "message": "transport failed"}
+        for frame in frames
+        if frame.startswith("data: ")
+    )
+    assert "event: done\ndata: {}\n\n" not in frames
+    assert status is not None
+    assert status.phase is Phase.error
+    assert model.closed is True
+
+
+def test_disconnect_closes_cli_before_a_bounded_worker_join(
+    optimization_description: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    optimization_description["study"]["trials"] = 1
+    monkeypatch.setattr(petrinaut_optimizer, "_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 0.01)
+    model = StubbornModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = DisconnectedAfterWorkerStarts(model)
+    run_id = _run_id(request)
+
+    async def collect() -> list[str]:
+        started_at = time.monotonic()
+        frames = [
+            frame
+            async for frame in optimizer.stream_all(
+                request,
+                run_id,
+                optimizer.n_trials,  # type: ignore[arg-type]
+            )
+        ]
+        assert time.monotonic() - started_at < 0.5
+        model.release.set()
+        await asyncio.sleep(0.05)
+        return frames
+
+    frames = asyncio.run(collect())
+    status = request.app.state.statuses.get(run_id)
+
+    assert frames == []
+    assert model.closed is True
+    assert status is not None
+    assert status.phase is Phase.idle

@@ -1,8 +1,10 @@
 # Optimization
 
 An **optimization** asks Optuna to search for scenario parameter values that
-maximize or minimize one saved model metric. Use it when you know the outcome
-you want and want Petrinaut to explore a bounded set of scenario inputs.
+maximize or minimize one metric. The objective can be a saved model metric or
+a custom metric defined only for that optimization. Use it when you know the
+outcome you want and want Petrinaut to explore a bounded set of scenario
+inputs.
 
 Optimizations live under the **Simulate** global mode. The **Optimizations** tab
 is available only when the host application reports that an optimization
@@ -14,7 +16,8 @@ attempted during the outage instead reports an error in its result drawer.
 An optimization requires:
 
 - A saved [scenario](scenarios.md) with at least one scenario parameter.
-- A saved model metric that returns the numeric objective.
+- A numeric objective, either from a saved metric or custom metric code entered
+  while creating the optimization.
 
 Only scenario parameters can be optimized. Petrinaut does not expose arbitrary
 model fields or nested paths to Optuna.
@@ -30,13 +33,17 @@ model fields or nested paths to Optuna.
 5. In **Scenario parameters**, leave a parameter **Fixed** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
-6. Choose exactly one saved metric and whether to **Maximize** or **Minimize**
-   its value.
+6. Choose exactly one objective and whether to **Maximize** or **Minimize** it:
+   - Choose **Saved metric** to use an existing model metric.
+   - Choose **Custom metric** to enter a name, optional description, and metric
+     code for this optimization. The editor checks the code in the same way as
+     a saved metric, but does not add it to the model.
 7. Click **Run**.
 
 The metric is evaluated on the final frame of each trial's simulation. The
-current model and scenario values are snapshotted when the optimization starts;
-later edits do not change an in-flight run.
+current model is reduced to an immutable snapshot containing the selected
+scenario and objective metric when the optimization starts. Later edits do not
+change an in-flight run.
 
 ## Search domains
 

@@ -37,6 +37,18 @@ petrinaut serve --model-stdin --stdio
 The bootstrap line is capped at 8 MiB. This mode avoids a temporary model file
 and is available only with the stdio transport.
 
+Optimization studies use a self-contained manifest instead of a bare model:
+
+```bash
+petrinaut serve --optimization ./optimize.json --stdio
+# or write the manifest as the first stdin line:
+petrinaut serve --optimization-stdin --stdio
+```
+
+See [Driving scenario optimization from Python](./OPTIMIZATION_INTEGRATION.md)
+for the manifest and protocol contract. Both optimization sources are stdio
+only.
+
 The explicit equivalent is `--stdio`. To use a Unix socket instead, pass
 `--socket <path>`:
 
@@ -144,6 +156,11 @@ Methods:
 - `healthz`: returns `{ "ok": true }`.
 - `metadata`: returns parameters, places and metrics.
 - `run`: runs one simulation. Pass the run config in `params`.
+- `optimization.describe`: returns the Optuna direction, study configuration,
+  and flat descriptors for only the parameters Optuna should suggest.
+- `optimization.evaluate`: evaluates one complete set of suggested parameter
+  values and returns `{ "objective": number }`. These two methods require an
+  optimization manifest source.
 
 ## Run Request
 

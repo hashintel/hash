@@ -18,7 +18,8 @@ A quick map of the things you'll encounter:
 - **Scenario** -- a saved, named configuration for running the net (initial markings, scenario parameters, parameter overrides). Optional.
 - **Metric** -- a built-in or user-authored function over simulation state that returns a number to plot on the Timeline.
 - **Experiment** -- a Monte Carlo batch: many independent simulation runs of the current net, optionally against one scenario, aggregated as distributions over time.
-- **Optimization** -- an Optuna search over a flat set of scenario parameters, targeting one saved metric.
+- **Optimization** -- an Optuna search over a flat set of scenario parameters,
+  targeting one saved or run-local custom metric.
 
 Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
 

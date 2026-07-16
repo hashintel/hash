@@ -70,7 +70,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         createdAt: Date.now(),
         status: "initializing",
         error: null,
-        requestedTrials: input.optimization.trials,
+        requestedTrials: input.study.trials,
         completedTrials: 0,
         prunedTrials: 0,
         failedTrials: 0,

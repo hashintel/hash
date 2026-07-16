@@ -115,7 +115,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   experiments:
     "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
   optimization:
-    "Optuna search over a selected scenario's flat parameters: explicit scenario selection, fixed vs optimized parameters and typed domains, one saved metric with maximize/minimize direction, streamed trials, cancellation, and results.",
+    "Optuna search over a selected scenario's flat parameters: explicit scenario selection, fixed vs optimized parameters and typed domains, one saved or run-local custom-code metric with maximize/minimize direction (not Experiment metric shortcuts), streamed trials, cancellation, and results.",
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   "ai-assistant":
