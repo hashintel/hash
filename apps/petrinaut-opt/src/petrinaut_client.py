@@ -209,26 +209,52 @@ class PetrinautModel:
         ):
             raise RuntimeError("PetrinautClient has not been started")
 
-        self._process.stdin.write(json.dumps(request) + "\n")
-        self._process.stdin.flush()
+        process = self._process
+        process.stdin.write(json.dumps(request) + "\n")
+        process.stdin.flush()
 
         timer = None
+        timed_out = threading.Event()
         if self.eval_timeout is not None:
             # Unblock a hung readline by killing the CLI after eval_timeout seconds.
-            timer = threading.Timer(self.eval_timeout, self._process.kill)
+            # Capture this specific process so a late timer can never kill a
+            # replacement started during timeout recovery.
+            def kill_on_timeout() -> None:
+                timed_out.set()
+                if process.poll() is None:
+                    process.kill()
+
+            timer = threading.Timer(self.eval_timeout, kill_on_timeout)
             timer.start()
         try:
-            line = self._process.stdout.readline()
+            line = process.stdout.readline()
         finally:
             if timer is not None:
                 timer.cancel()
+                # If the callback started concurrently with cancel(), wait for it
+                # to finish before deciding whether this exchange timed out.
+                timer.join()
+
+        if timed_out.is_set():
+            stderr = process.stderr.read() if process.stderr is not None else ""
+            try:
+                self.close()
+                self.start()
+            except Exception as exc:
+                raise RuntimeError(
+                    "Petrinaut timed out and the CLI could not be restarted: "
+                    f"{exc}"
+                ) from exc
+            raise RuntimeError(
+                f"Petrinaut timed out without a response:\n{stderr.strip()}"
+            )
 
         if not line:
             stderr = (
-                self._process.stderr.read() if self._process.stderr is not None else ""
+                process.stderr.read() if process.stderr is not None else ""
             )
             raise RuntimeError(
-                f"Petrinaut timed out or exited without a response:\n{stderr.strip()}"
+                f"Petrinaut exited without a response:\n{stderr.strip()}"
             )
         
         response = json.loads(line)

@@ -207,7 +207,8 @@ configures the execution sent to the CLI:
 ## Notes
 
 - **Failures/timeouts**: any error returned by the CLI (or other exception during
-  a trial) marks that trial pruned; the study continues.
+  a trial) marks that trial pruned; after a timeout the CLI process is restarted
+  before the study continues with the next trial.
 - **Streaming model**: evaluations run in a background thread and are pushed to
   the SSE client through an `asyncio.Queue`. Each optimizer instance holds a lock,
   so it can't be driven by two concurrent streams — a second stream on the same
