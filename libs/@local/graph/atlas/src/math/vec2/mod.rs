@@ -20,7 +20,12 @@
 //! conversions compile to a single full-width vector load or store, with no
 //! intermediate copy and no split-load penalty.
 
-use core::{ops::Index, simd::Simd};
+use core::{
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
+    simd::Simd,
+};
+
+use super::kernel::mul_add_f32x4;
 
 /// A vector in 2D space with `f32` components.
 ///
@@ -58,32 +63,246 @@ use core::{ops::Index, simd::Simd};
 pub struct Vec2([f32; 2]);
 
 impl Vec2 {
+    /// The vector with both components zero.
+    pub const ZERO: Self = Self::splat(0.0);
+
     /// Creates a vector from its `x` and `y` components.
     #[must_use]
+    #[inline]
     pub const fn new(x: f32, y: f32) -> Self {
         Self([x, y])
     }
 
+    /// Creates a vector with both components set to `value`.
+    #[must_use]
+    #[inline]
+    pub const fn splat(value: f32) -> Self {
+        Self([value, value])
+    }
+
     /// Returns the `x` component.
     #[must_use]
+    #[inline]
     pub const fn x(self) -> f32 {
         self.0[0]
     }
 
     /// Returns the `y` component.
     #[must_use]
+    #[inline]
     pub const fn y(self) -> f32 {
         self.0[1]
+    }
+
+    /// Returns the dot product of the two vectors.
+    #[must_use]
+    #[inline]
+    pub const fn dot(self, other: Self) -> f32 {
+        self.x() * other.x() + self.y() * other.y()
+    }
+
+    /// Returns the perpendicular dot product, the `z` component of the 3D
+    /// cross product.
+    ///
+    /// The sign tells which side of `self` the other vector lies on:
+    /// positive when `other` is counterclockwise from `self`, negative when
+    /// clockwise, zero when the vectors are parallel.
+    #[must_use]
+    #[inline]
+    pub const fn perp_dot(self, other: Self) -> f32 {
+        self.x() * other.y() - self.y() * other.x()
+    }
+
+    /// Returns the squared length of the vector.
+    ///
+    /// Prefer this over [`length`](Self::length) when comparing magnitudes
+    /// or feeding a squared metric; it avoids the square root.
+    #[must_use]
+    #[inline]
+    pub const fn length_squared(self) -> f32 {
+        self.dot(self)
+    }
+
+    /// Returns the length of the vector.
+    #[must_use]
+    #[inline]
+    pub fn length(self) -> f32 {
+        self.length_squared().sqrt()
+    }
+
+    /// Returns the squared Euclidean distance to `other`.
+    #[must_use]
+    #[inline]
+    pub const fn distance_squared(self, other: Self) -> f32 {
+        let dx = self.x() - other.x();
+        let dy = self.y() - other.y();
+
+        dx * dx + dy * dy
+    }
+
+    /// Returns the Euclidean distance to `other`.
+    #[must_use]
+    #[inline]
+    pub fn distance(self, other: Self) -> f32 {
+        self.distance_squared(other).sqrt()
+    }
+
+    /// Linearly interpolates from `self` toward `other`.
+    ///
+    /// At `factor == 0.0` the result is `self`, at `factor == 1.0` it is
+    /// `other`; values outside `[0, 1]` extrapolate along the same line.
+    #[must_use]
+    #[inline]
+    pub fn lerp(self, other: Self, factor: f32) -> Self {
+        self + (other - self) * factor
+    }
+
+    /// Returns the component-wise minimum of the two vectors.
+    ///
+    /// NaN components lose: when exactly one operand is NaN in a component,
+    /// the other operand's component is returned, following [`f32::min`].
+    #[must_use]
+    #[inline]
+    pub const fn min(self, other: Self) -> Self {
+        Self::new(self.x().min(other.x()), self.y().min(other.y()))
+    }
+
+    /// Returns the component-wise maximum of the two vectors.
+    ///
+    /// NaN components lose: when exactly one operand is NaN in a component,
+    /// the other operand's component is returned, following [`f32::max`].
+    #[must_use]
+    #[inline]
+    pub const fn max(self, other: Self) -> Self {
+        Self::new(self.x().max(other.x()), self.y().max(other.y()))
+    }
+
+    /// Clamps each component into the range spanned by `low` and `high`.
+    ///
+    /// # Panics
+    ///
+    /// Panics in debug builds when a component of `low` exceeds the
+    /// matching component of `high`, or when a bound is NaN, following
+    /// [`f32::clamp`].
+    #[must_use]
+    #[inline]
+    pub const fn clamp(self, low: Self, high: Self) -> Self {
+        Self::new(
+            self.x().clamp(low.x(), high.x()),
+            self.y().clamp(low.y(), high.y()),
+        )
+    }
+
+    /// Returns whether both components are finite.
+    #[must_use]
+    #[inline]
+    pub const fn is_finite(self) -> bool {
+        self.x().is_finite() && self.y().is_finite()
+    }
+}
+
+impl Add for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.x() + rhs.x(), self.y() + rhs.y())
+    }
+}
+
+impl AddAssign for Vec2 {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl Sub for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        Self::new(self.x() - rhs.x(), self.y() - rhs.y())
+    }
+}
+
+impl SubAssign for Vec2 {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl Neg for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        Self::new(-self.x(), -self.y())
+    }
+}
+
+/// Component-wise (Hadamard) product; use [`Vec2::dot`] for the scalar
+/// product.
+impl Mul for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: Self) -> Self {
+        Self::new(self.x() * rhs.x(), self.y() * rhs.y())
+    }
+}
+
+impl Mul<f32> for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: f32) -> Self {
+        Self::new(self.x() * rhs, self.y() * rhs)
+    }
+}
+
+impl Mul<Vec2> for f32 {
+    type Output = Vec2;
+
+    #[inline]
+    fn mul(self, rhs: Vec2) -> Vec2 {
+        rhs * self
+    }
+}
+
+impl MulAssign<f32> for Vec2 {
+    #[inline]
+    fn mul_assign(&mut self, rhs: f32) {
+        *self = *self * rhs;
+    }
+}
+
+impl Div<f32> for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: f32) -> Self {
+        Self::new(self.x() / rhs, self.y() / rhs)
+    }
+}
+
+impl DivAssign<f32> for Vec2 {
+    #[inline]
+    fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
     }
 }
 
 impl From<[f32; 2]> for Vec2 {
+    #[inline]
     fn from(components: [f32; 2]) -> Self {
         Self(components)
     }
 }
 
 impl From<Vec2> for [f32; 2] {
+    #[inline]
     fn from(vec: Vec2) -> Self {
         vec.0
     }
@@ -97,6 +316,7 @@ impl Index<usize> for Vec2 {
     /// # Panics
     ///
     /// Panics if `index >= 2`.
+    #[inline]
     fn index(&self, index: usize) -> &f32 {
         &self.0[index]
     }
@@ -155,6 +375,7 @@ impl Vec2x4T {
     ///
     /// Lane `i` holds the `x` component of vector `i`.
     #[must_use]
+    #[inline]
     pub fn xs(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[..4])
     }
@@ -163,6 +384,7 @@ impl Vec2x4T {
     ///
     /// Lane `i` holds the `y` component of vector `i`.
     #[must_use]
+    #[inline]
     pub fn ys(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[4..])
     }
@@ -172,6 +394,7 @@ impl Vec2x4T {
     /// Lane `i` of `xs` and `ys` becomes vector `i`. This is the natural
     /// way to store results back after per-axis arithmetic.
     #[must_use]
+    #[inline]
     pub const fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {
         let [x0, x1, x2, x3] = xs.to_array();
         let [y0, y1, y2, y3] = ys.to_array();
@@ -189,6 +412,7 @@ impl Vec2x4T {
     ///
     /// Panics if `index >= 4`.
     #[must_use]
+    #[inline]
     pub const fn get(self, index: usize) -> Vec2 {
         Vec2::new(self.0[index], self.0[index + 4])
     }
@@ -198,13 +422,88 @@ impl Vec2x4T {
     /// The lane order is the memory order: `x0 x1 x2 x3 y0 y1 y2 y3`. This
     /// compiles to a single full-width vector load.
     #[must_use]
+    #[inline]
     pub const fn to_simd(self) -> Simd<f32, 8> {
         Simd::from_array(self.0)
+    }
+
+    /// Returns the four pairwise dot products as SIMD lanes.
+    ///
+    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the
+    /// multiply-add is fused, rounding once instead of twice.
+    #[must_use]
+    #[inline]
+    pub fn dot(self, other: Self) -> Simd<f32, 4> {
+        mul_add_f32x4(self.xs(), other.xs(), self.ys() * other.ys())
+    }
+
+    /// Returns the four pairwise squared Euclidean distances as SIMD lanes.
+    ///
+    /// Lane `i` holds the squared distance between `self[i]` and
+    /// `other[i]`. On targets with native FMA the multiply-add is fused,
+    /// rounding once instead of twice.
+    #[must_use]
+    #[inline]
+    pub fn distance_squared(self, other: Self) -> Simd<f32, 4> {
+        let dx = self.xs() - other.xs();
+        let dy = self.ys() - other.ys();
+
+        mul_add_f32x4(dx, dx, dy * dy)
+    }
+
+    /// Returns the four squared lengths as SIMD lanes.
+    #[must_use]
+    #[inline]
+    pub fn length_squared(self) -> Simd<f32, 4> {
+        self.dot(self)
+    }
+}
+
+/// Adds the batches vector-wise: entry `i` of the result is
+/// `self[i] + other[i]`.
+impl Add for Vec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        Self::from(self.to_simd() + rhs.to_simd())
+    }
+}
+
+/// Subtracts the batches vector-wise: entry `i` of the result is
+/// `self[i] - other[i]`.
+impl Sub for Vec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        Self::from(self.to_simd() - rhs.to_simd())
+    }
+}
+
+/// Negates every vector in the batch.
+impl Neg for Vec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        Self::from(-self.to_simd())
+    }
+}
+
+/// Scales every vector in the batch uniformly.
+impl Mul<f32> for Vec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: f32) -> Self {
+        Self::from(self.to_simd() * Simd::splat(rhs))
     }
 }
 
 impl From<[Vec2; 4]> for Vec2x4T {
     /// Deinterleaves four vectors into structure-of-arrays order.
+    #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
         let [
             Vec2([x0, y0]),
@@ -219,12 +518,14 @@ impl From<[Vec2; 4]> for Vec2x4T {
 
 impl From<Simd<f32, 8>> for Vec2x4T {
     /// Reinterprets eight lanes in `x0 x1 x2 x3 y0 y1 y2 y3` order.
+    #[inline]
     fn from(lanes: Simd<f32, 8>) -> Self {
         Self(lanes.to_array())
     }
 }
 
 impl From<Vec2x4T> for Simd<f32, 8> {
+    #[inline]
     fn from(batch: Vec2x4T) -> Self {
         batch.to_simd()
     }
@@ -274,6 +575,7 @@ impl Vec2x4 {
     ///
     /// Panics if `index >= 4`.
     #[must_use]
+    #[inline]
     pub const fn get(self, index: usize) -> Vec2 {
         self.0[index]
     }
@@ -283,6 +585,7 @@ impl Vec2x4 {
     /// The lane order is the memory order: `x0 y0 x1 y1 x2 y2 x3 y3`. This
     /// compiles to a single full-width vector load.
     #[must_use]
+    #[inline]
     pub const fn to_simd(self) -> Simd<f32, 8> {
         let [
             Vec2([x0, y0]),
@@ -297,12 +600,14 @@ impl Vec2x4 {
 
 impl From<[Vec2; 4]> for Vec2x4 {
     /// Packs four vectors in their natural interleaved order.
+    #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
         Self(vecs)
     }
 }
 
 impl From<Vec2x4> for [Vec2; 4] {
+    #[inline]
     fn from(batch: Vec2x4) -> Self {
         batch.0
     }
@@ -310,6 +615,7 @@ impl From<Vec2x4> for [Vec2; 4] {
 
 impl From<Simd<f32, 8>> for Vec2x4 {
     /// Reinterprets eight lanes in `x0 y0 x1 y1 x2 y2 x3 y3` order.
+    #[inline]
     fn from(lanes: Simd<f32, 8>) -> Self {
         let [x0, y0, x1, y1, x2, y2, x3, y3] = lanes.to_array();
 
@@ -323,6 +629,7 @@ impl From<Simd<f32, 8>> for Vec2x4 {
 }
 
 impl From<Vec2x4> for Simd<f32, 8> {
+    #[inline]
     fn from(batch: Vec2x4) -> Self {
         batch.to_simd()
     }
@@ -330,6 +637,7 @@ impl From<Vec2x4> for Simd<f32, 8> {
 
 impl From<Vec2x4> for Vec2x4T {
     /// Deinterleaves an array-of-structures batch by axis.
+    #[inline]
     fn from(batch: Vec2x4) -> Self {
         Self::from(batch.0)
     }
@@ -337,6 +645,7 @@ impl From<Vec2x4> for Vec2x4T {
 
 impl From<Vec2x4T> for Vec2x4 {
     /// Interleaves a structure-of-arrays batch back into whole vectors.
+    #[inline]
     fn from(batch: Vec2x4T) -> Self {
         let [x0, x1, x2, x3, y0, y1, y2, y3] = batch.0;
 
@@ -357,6 +666,7 @@ impl Index<usize> for Vec2x4 {
     /// # Panics
     ///
     /// Panics if `index >= 4`.
+    #[inline]
     fn index(&self, index: usize) -> &Vec2 {
         &self.0[index]
     }
@@ -370,3 +680,6 @@ const _: () = assert!(size_of::<Vec2x4T>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(size_of::<Vec2x4>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(align_of::<Vec2x4T>() >= align_of::<Simd<f32, 8>>());
 const _: () = assert!(align_of::<Vec2x4>() >= align_of::<Simd<f32, 8>>());
+
+#[cfg(test)]
+mod tests;

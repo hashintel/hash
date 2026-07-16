@@ -63,6 +63,7 @@ impl Rotation {
     /// This is the only constructor that calls into trigonometry; the
     /// resulting cosine and sine are reused by every later operation.
     #[must_use]
+    #[inline]
     pub fn from_radians(radians: f32) -> Self {
         let (sin, cos) = radians.sin_cos();
 
@@ -76,24 +77,28 @@ impl Rotation {
     /// for example from normalizing a direction vector, and avoids
     /// round-tripping through an angle.
     #[must_use]
+    #[inline]
     pub const fn from_cos_sin(cos: f32, sin: f32) -> Self {
         Self(Vec2::new(cos, sin))
     }
 
     /// Returns the cosine of the rotation angle.
     #[must_use]
+    #[inline]
     pub const fn cos(self) -> f32 {
         self.0.x()
     }
 
     /// Returns the sine of the rotation angle.
     #[must_use]
+    #[inline]
     pub const fn sin(self) -> f32 {
         self.0.y()
     }
 
     /// Returns the rotation angle in radians, in `(-pi, pi]`.
     #[must_use]
+    #[inline]
     pub fn radians(self) -> f32 {
         self.sin().atan2(self.cos())
     }
@@ -105,6 +110,7 @@ impl Rotation {
     /// the other transform types. The composition adds the two angles by
     /// multiplying the stored unit vectors; no trigonometric calls occur.
     #[must_use]
+    #[inline]
     pub const fn then(self, next: Self) -> Self {
         Self(Vec2::new(
             self.cos() * next.cos() - self.sin() * next.sin(),
@@ -122,6 +128,7 @@ impl Rotation {
     /// once every few hundred compositions keeps the error invisible in
     /// `f32`.
     #[must_use]
+    #[inline]
     pub fn renormalize(self) -> Self {
         let scale = self
             .sin()
@@ -138,12 +145,14 @@ impl Rotation {
     /// and then its inverse reproduces the rounding of the forward and
     /// backward applications only, never of the inversion itself.
     #[must_use]
+    #[inline]
     pub const fn inverse(self) -> Self {
         Self(Vec2::new(self.cos(), -self.sin()))
     }
 
     /// Rotates a single vector about the origin.
     #[must_use]
+    #[inline]
     pub const fn apply(self, vec: Vec2) -> Vec2 {
         Vec2::new(
             self.cos() * vec.x() - self.sin() * vec.y(),
@@ -157,6 +166,7 @@ impl Rotation {
     /// [`apply`](Self::apply) by up to one unit in the last place, because
     /// the fused operations round once instead of twice.
     #[must_use]
+    #[inline]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
         let xs = batch.xs();
         let ys = batch.ys();
@@ -167,3 +177,6 @@ impl Rotation {
         )
     }
 }
+
+#[cfg(test)]
+mod tests;

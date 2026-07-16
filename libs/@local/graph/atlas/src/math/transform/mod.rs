@@ -83,6 +83,7 @@ impl Transform {
     /// The resulting transform maps `p` to
     /// `x_axis * p.x + y_axis * p.y + translation`.
     #[must_use]
+    #[inline]
     pub const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
         Self {
             x_axis,
@@ -94,6 +95,7 @@ impl Transform {
     /// Creates a transform that scales each axis independently around the
     /// origin.
     #[must_use]
+    #[inline]
     pub const fn from_scale(scale: Vec2) -> Self {
         Self::from_cols(
             Vec2::new(scale.x(), 0.0),
@@ -104,6 +106,7 @@ impl Transform {
 
     /// Creates a transform that rotates around the origin.
     #[must_use]
+    #[inline]
     pub const fn from_rotation(rotation: Rotation) -> Self {
         Self::from_cols(
             Vec2::new(rotation.cos(), rotation.sin()),
@@ -114,6 +117,7 @@ impl Transform {
 
     /// Creates a transform that moves every vector by `translation`.
     #[must_use]
+    #[inline]
     pub const fn from_translation(translation: Vec2) -> Self {
         Self::from_cols(Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0), translation)
     }
@@ -143,6 +147,7 @@ impl Transform {
     /// assert!((moved.y() - -8.0).abs() < 1e-5);
     /// ```
     #[must_use]
+    #[inline]
     pub const fn then(self, next: impl [const] Into<Self>) -> Self {
         let next = next.into();
 
@@ -155,6 +160,7 @@ impl Transform {
 
     /// Transforms a single vector.
     #[must_use]
+    #[inline]
     pub const fn apply(self, vec: Vec2) -> Vec2 {
         let linear = self.apply_linear(vec);
 
@@ -286,6 +292,7 @@ impl Transform {
     }
 
     /// Applies only the 2x2 linear part, ignoring translation.
+    #[inline]
     const fn apply_linear(self, vec: Vec2) -> Vec2 {
         Vec2::new(
             self.x_axis.x() * vec.x() + self.y_axis.x() * vec.y(),
@@ -295,13 +302,18 @@ impl Transform {
 }
 
 const impl From<Rotation> for Transform {
+    #[inline]
     fn from(rotation: Rotation) -> Self {
         Self::from_rotation(rotation)
     }
 }
 
 const impl From<Translation> for Transform {
+    #[inline]
     fn from(translation: Translation) -> Self {
         Self::from_translation(translation.vector())
     }
 }
+
+#[cfg(test)]
+mod tests;

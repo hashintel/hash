@@ -50,12 +50,14 @@ impl Translation {
 
     /// Creates a translation from its `x` and `y` offsets.
     #[must_use]
+    #[inline]
     pub const fn new(x: f32, y: f32) -> Self {
         Self(Vec2::new(x, y))
     }
 
     /// Returns the offset as a vector.
     #[must_use]
+    #[inline]
     pub const fn vector(self) -> Vec2 {
         self.0
     }
@@ -66,6 +68,7 @@ impl Translation {
     /// Translations commute, so the order only matters for consistency
     /// with the other transform types. The offsets are added.
     #[must_use]
+    #[inline]
     pub const fn then(self, next: Self) -> Self {
         Self(Vec2::new(self.0.x() + next.0.x(), self.0.y() + next.0.y()))
     }
@@ -76,18 +79,21 @@ impl Translation {
     /// reproduces the input bit for bit whenever the intermediate sum is
     /// exactly representable.
     #[must_use]
+    #[inline]
     pub const fn inverse(self) -> Self {
         Self(Vec2::new(-self.0.x(), -self.0.y()))
     }
 
     /// Moves a single vector by the offset.
     #[must_use]
+    #[inline]
     pub const fn apply(self, vec: Vec2) -> Vec2 {
         Vec2::new(vec.x() + self.0.x(), vec.y() + self.0.y())
     }
 
     /// Moves four vectors at once, entirely in SIMD registers.
     #[must_use]
+    #[inline]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
         Vec2x4T::from_lanes(
             batch.xs() + Simd::splat(self.0.x()),
@@ -97,13 +103,18 @@ impl Translation {
 }
 
 impl From<Vec2> for Translation {
+    #[inline]
     fn from(offset: Vec2) -> Self {
         Self(offset)
     }
 }
 
 impl From<Translation> for Vec2 {
+    #[inline]
     fn from(translation: Translation) -> Self {
         translation.vector()
     }
 }
+
+#[cfg(test)]
+mod tests;

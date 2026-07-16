@@ -1,5 +1,6 @@
 //! Small math primitives shared across atlas layout and projection code.
 
+mod bounds;
 mod kernel;
 mod rotation;
 mod transform;
@@ -8,9 +9,10 @@ mod vec2;
 mod vecn;
 
 #[cfg(test)]
-mod tests;
+mod test_util;
 
 pub use self::{
+    bounds::Bounds2,
     rotation::Rotation,
     transform::Transform,
     translation::Translation,

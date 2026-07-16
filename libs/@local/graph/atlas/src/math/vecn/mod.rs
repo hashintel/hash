@@ -44,18 +44,21 @@ pub struct VecN<const N: usize>([f32; N]);
 impl<const N: usize> VecN<N> {
     /// Creates a vector that owns its components.
     #[must_use]
+    #[inline]
     pub const fn new(components: [f32; N]) -> Self {
         Self(components)
     }
 
     /// Wraps a borrowed array in place, without copying.
     #[must_use]
+    #[inline]
     pub const fn from_ref(value: &[f32; N]) -> &Self {
         zerocopy::transmute_ref!(value)
     }
 
     /// Wraps a mutably borrowed array in place, without copying.
     #[must_use]
+    #[inline]
     pub const fn from_mut(value: &mut [f32; N]) -> &mut Self {
         let ptr = (&raw mut *value).cast::<Self>();
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the
@@ -66,6 +69,7 @@ impl<const N: usize> VecN<N> {
 
     /// Returns the components as an array reference.
     #[must_use]
+    #[inline]
     pub const fn as_array(&self) -> &[f32; N] {
         &self.0
     }
@@ -76,6 +80,7 @@ impl<const N: usize> VecN<N> {
     /// address aligned to `align_of::<f32x8>()` bytes. For storage that is
     /// aligned by construction rather than by luck, use [`BoxedVecN`].
     #[must_use]
+    #[inline]
     pub fn try_as_aligned(&self) -> Option<&AlignedVecN<N>> {
         AlignedVecN::from_ref(&self.0)
     }
@@ -87,6 +92,7 @@ impl<const N: usize> VecN<N> {
     /// address aligned to `align_of::<f32x8>()` bytes. For storage that is
     /// aligned by construction rather than by luck, use [`BoxedVecN`].
     #[must_use]
+    #[inline]
     pub fn try_as_aligned_mut(&mut self) -> Option<&mut AlignedVecN<N>> {
         AlignedVecN::from_mut(&mut self.0)
     }
@@ -130,6 +136,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// `value` must be aligned to `align_of::<f32x8>()` bytes. Consumers of
     /// the wrapper are allowed to rely on that alignment for aligned loads.
     #[must_use]
+    #[inline]
     pub const unsafe fn from_ref_unchecked(value: &[f32; N]) -> &Self {
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the
         // alignment invariant is the caller's contract.
@@ -144,6 +151,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// the wrapper are allowed to rely on that alignment for aligned loads
     /// and stores.
     #[must_use]
+    #[inline]
     pub const unsafe fn from_mut_unchecked(value: &mut [f32; N]) -> &mut Self {
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, and the
         // alignment invariant is the caller's contract.
@@ -182,12 +190,14 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Returns the components as an array reference.
     #[must_use]
+    #[inline]
     pub const fn as_array(&self) -> &[f32; N] {
         &self.0
     }
 
     /// Returns the components as a mutable array reference.
     #[must_use]
+    #[inline]
     pub const fn as_array_mut(&mut self) -> &mut [f32; N] {
         &mut self.0
     }
@@ -203,6 +213,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// practice are. The type's alignment invariant guarantees no
     /// misaligned prefix exists, so no components precede the groups.
     #[must_use]
+    #[inline]
     pub fn lanes(&self) -> (&[f32x8], &[f32]) {
         let (prefix, lanes, suffix) = self.0.as_simd();
         debug_assert_eq!(
@@ -221,6 +232,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// either slice update the vector in place, so SIMD kernels can
     /// transform embeddings without a staging copy.
     #[must_use]
+    #[inline]
     pub fn lanes_mut(&mut self) -> (&mut [f32x8], &mut [f32]) {
         let (prefix, lanes, suffix) = self.0.as_simd_mut();
         debug_assert_eq!(
@@ -265,6 +277,7 @@ impl<const N: usize> BoxedVecN<N> {
     /// Copies the vector into a new aligned allocation in the global
     /// allocator.
     #[must_use]
+    #[inline]
     pub fn new(value: &VecN<N>) -> Self {
         Self::new_in(value, Global)
     }
@@ -340,6 +353,7 @@ impl<const N: usize, A: Allocator> DerefMut for BoxedVecN<N, A> {
 }
 
 impl<const N: usize, A: Allocator + Clone> Clone for BoxedVecN<N, A> {
+    #[inline]
     fn clone(&self) -> Self {
         Self::new_in(VecN::from_ref(self.as_array()), self.alloc.clone())
     }
@@ -357,42 +371,49 @@ impl<const N: usize, A: Allocator + Clone> Clone for BoxedVecN<N, A> {
 }
 
 impl<const N: usize> From<&VecN<N>> for BoxedVecN<N> {
+    #[inline]
     fn from(value: &VecN<N>) -> Self {
         Self::new(value)
     }
 }
 
 impl<const N: usize> From<[f32; N]> for BoxedVecN<N> {
+    #[inline]
     fn from(components: [f32; N]) -> Self {
         Self::new(VecN::from_ref(&components))
     }
 }
 
 impl<const N: usize, A: Allocator> AsRef<AlignedVecN<N>> for BoxedVecN<N, A> {
+    #[inline]
     fn as_ref(&self) -> &AlignedVecN<N> {
         self
     }
 }
 
 impl<const N: usize, A: Allocator> core::hash::Hash for BoxedVecN<N, A> {
+    #[inline]
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         (**self).hash(state);
     }
 }
 
 impl<const N: usize, A: Allocator> core::fmt::Debug for BoxedVecN<N, A> {
+    #[inline]
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(&**self, fmt)
     }
 }
 
 impl<const N: usize, A: Allocator> PartialEq for BoxedVecN<N, A> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         **self == **other
     }
 }
 
 impl<const N: usize, A: Allocator> Drop for BoxedVecN<N, A> {
+    #[inline]
     fn drop(&mut self) {
         // SAFETY: `ptr` was allocated by `alloc` in `new_in` with the same
         // layout and has not been deallocated since.
@@ -409,3 +430,6 @@ unsafe impl<const N: usize, A: Allocator + Send> Send for BoxedVecN<N, A> {}
 // SAFETY: shared access only exposes `&[f32; N]`, which is `Sync`; the
 // allocator's own thread-safety carries the bound.
 unsafe impl<const N: usize, A: Allocator + Sync> Sync for BoxedVecN<N, A> {}
+
+#[cfg(test)]
+mod tests;
