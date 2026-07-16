@@ -451,11 +451,11 @@ const NetworkGraphStory = ({
               // bigger).
               gapX={
                 tooltipPos.nodeRadius +
-                (tooltipPos.variant === "compact" ? 7 : 8)
+                (tooltipPos.variant === "compact" ? 8 : 8)
               }
               gapY={
                 tooltipPos.nodeRadius +
-                (tooltipPos.variant === "compact" ? 4 : 12)
+                (tooltipPos.variant === "compact" ? 5 : 12)
               }
             >
               <div className={tooltipStyles}>

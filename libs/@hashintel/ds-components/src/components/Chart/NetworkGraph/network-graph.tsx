@@ -1297,35 +1297,52 @@ export const NetworkGraph = ({
 
   /**
    * Nudge the zoom by `delta` levels about the viewport centre, clamped to the
-   * view's own `minZoom`/`maxZoom`. The pan `target` is left untouched, so the
-   * view zooms about its centre without shifting sideways: pan clamping now only
-   * resists the user's own panning (see {@link clampPanTargetBlocking}), so a
-   * button zoom no longer yanks the view inward as the network's edge nears the
-   * viewport border. Backs the imperative {@link NetworkGraphHandle}, letting a
-   * consumer drive the zoom without the view state becoming controlled.
+   * view's own `minZoom`/`maxZoom`. A zoom-in leaves the pan `target` untouched
+   * (zoom about the centre, no clamp), so it never yanks the view sideways as the
+   * network's edge nears the viewport border. A zoom-out hard-clamps the target
+   * on every edge (see {@link clampPanTarget}) so the network stays framed within
+   * the padding — matching the wheel path. Backs the imperative
+   * {@link NetworkGraphHandle}, letting a consumer drive the zoom without the
+   * view state becoming controlled.
    */
-  const applyZoomDelta = useCallback((delta: number) => {
-    if (!delta) {
-      return;
-    }
-    setViewState((previous) => {
-      if (!previous) {
-        return previous;
+  const applyZoomDelta = useCallback(
+    (delta: number) => {
+      if (!delta) {
+        return;
       }
-      const current = Array.isArray(previous.zoom)
-        ? previous.zoom[0]
-        : (previous.zoom ?? 0);
-      const next = Math.max(
-        previous.minZoom ?? -Infinity,
-        Math.min(previous.maxZoom ?? Infinity, current + delta),
-      );
-      if (next === current) {
-        // Already at the limit — nothing to do (avoids a needless re-render).
-        return previous;
-      }
-      return { ...previous, zoom: next };
-    });
-  }, []);
+      setViewState((previous) => {
+        if (!previous) {
+          return previous;
+        }
+        const current = Array.isArray(previous.zoom)
+          ? previous.zoom[0]
+          : (previous.zoom ?? 0);
+        const next = Math.max(
+          previous.minZoom ?? -Infinity,
+          Math.min(previous.maxZoom ?? Infinity, current + delta),
+        );
+        if (next === current) {
+          // Already at the limit — nothing to do (avoids a needless re-render).
+          return previous;
+        }
+        // Zooming in leaves the target alone; zooming out re-clamps it so the
+        // network stays framed within the padding on every edge.
+        const rect = containerRef.current?.getBoundingClientRect();
+        const target =
+          next < current && rect && previous.target
+            ? clampPanTarget(
+                previous.target as number[],
+                2 ** next,
+                rect.width,
+                rect.height,
+                bounds,
+              )
+            : previous.target;
+        return { ...previous, zoom: next, target };
+      });
+    },
+    [bounds],
+  );
 
   /**
    * Bring `point` into view alongside the current viewport centre: if `point` is
@@ -2135,6 +2152,10 @@ export const NetworkGraph = ({
           onViewStateChange={(params) => {
             const raw = params.viewState as OrthographicViewState;
             const zoom = Array.isArray(raw.zoom) ? raw.zoom[0] : raw.zoom;
+            // deck flags whether this change came from a zoom gesture; the sign of
+            // the zoom delta (computed against our committed state below) tells us
+            // which way.
+            const isZooming = params.interactionState.isZooming ?? false;
             const rect = containerRef.current?.getBoundingClientRect();
             setViewState((previous) => {
               // deck's interaction viewState carries only target/zoom, so merge it
@@ -2143,23 +2164,46 @@ export const NetworkGraph = ({
               // (buttons, `revealPoint`) produce out-of-range values that deck's
               // controller silently ignores — leaving the camera stuck.
               const base = previous ?? raw;
-              // Constrain panning so the view stays within the network + padding,
-              // but relative to where it already sits: the clamp blocks the user
-              // from panning further out, yet never pans the view on its own. So
-              // zooming — which moves the network's edge toward the viewport
-              // border and would otherwise force the parked target back inside
-              // the shrinking limits — leaves the view put instead of drifting.
+              const previousZoom = Array.isArray(base.zoom)
+                ? base.zoom[0]
+                : base.zoom;
+              const zoomDelta =
+                isZooming && zoom !== undefined && previousZoom !== undefined
+                  ? zoom - previousZoom
+                  : 0;
+              // A zoom-in re-anchors the view on the point under the cursor, which
+              // legitimately drags the target toward the network's far edge. Any
+              // pan clamp here would fight that anchoring and jerk the view, so a
+              // zoom-in is left to pan freely — its limits only widen as it zooms,
+              // so it can never reveal more than the padding regardless.
+              const zoomingIn = zoomDelta > 0;
+              // A zoom-out instead hard-clamps the target on every edge (see
+              // `clampPanTarget`), keeping the whole network within the padding —
+              // reframing the view inward if need be rather than exposing empty
+              // space beyond the shrinking network.
+              const zoomingOut = zoomDelta < 0;
+              // Any other change (a pan, or a zoom pinned at a limit) constrains
+              // panning relative to where the view already sits: it blocks the
+              // user from panning further out, yet never pans the view on its own.
               const target =
-                rect && zoom !== undefined && raw.target
-                  ? clampPanTargetBlocking(
-                      raw.target as number[],
-                      (previous?.target as number[] | undefined) ??
-                        (raw.target as number[]),
-                      2 ** zoom,
-                      rect.width,
-                      rect.height,
-                      bounds,
-                    )
+                rect && zoom !== undefined && raw.target && !zoomingIn
+                  ? zoomingOut
+                    ? clampPanTarget(
+                        raw.target as number[],
+                        2 ** zoom,
+                        rect.width,
+                        rect.height,
+                        bounds,
+                      )
+                    : clampPanTargetBlocking(
+                        raw.target as number[],
+                        (previous?.target as number[] | undefined) ??
+                          (raw.target as number[]),
+                        2 ** zoom,
+                        rect.width,
+                        rect.height,
+                        bounds,
+                      )
                   : (raw.target ?? base.target);
               const next: OrthographicViewState = {
                 ...base,
