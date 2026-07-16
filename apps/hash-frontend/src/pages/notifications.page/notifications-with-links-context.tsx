@@ -247,9 +247,12 @@ export const useNotificationsWithLinksContextValue =
               !occurredInText ||
               !triggeredByUserEntity
             ) {
-              throw new Error(
-                `Mention notification "${entityId}" is missing required links`,
-              );
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({
@@ -323,9 +326,12 @@ export const useNotificationsWithLinksContextValue =
               !triggeredByComment ||
               !triggeredByUserEntity
             ) {
-              throw new Error(
-                `Comment notification "${entityId}" is missing required links`,
-              );
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({

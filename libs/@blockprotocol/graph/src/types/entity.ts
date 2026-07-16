@@ -39,7 +39,8 @@ export type LinkEntityAndRightEntity<
   /**
    * The revisions of the link's target entity, or `undefined` if the link's
    * `has-right-entity` edge was not resolved into the subgraph (e.g. because
-   * of resolve depths, or because the subgraph is only partially consistent).
+   * of resolve depths, or because the requester cannot view the target
+   * entity).
    */
   rightEntity?: EntityImpl[];
 };
@@ -52,7 +53,8 @@ export type LinkEntityAndLeftEntity<
   /**
    * The revisions of the link's source entity, or `undefined` if the link's
    * `has-left-entity` edge was not resolved into the subgraph (e.g. because
-   * of resolve depths, or because the subgraph is only partially consistent).
+   * of resolve depths, or because the requester cannot view the source
+   * entity).
    */
   leftEntity?: EntityImpl[];
 };

@@ -80,16 +80,20 @@ export const BlockSelectDataModal: FunctionComponent<
     const existingQueries = getOutgoingLinkAndTargetEntities(
       blockSubgraph,
       blockDataEntity.metadata.recordId.entityId,
-    )
-      .filter(
-        ({ linkEntity: linkEntityRevisions, rightEntity }) =>
-          linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
-            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-          ) &&
-          // the target entity may be missing from the subgraph – skip the link
-          !!rightEntity?.[0],
-      )
-      .map(({ rightEntity }) => rightEntity![0] as HashEntity<Query>);
+    ).flatMap(({ linkEntity: linkEntityRevisions, rightEntity }) => {
+      if (
+        !linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
+          blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+        )
+      ) {
+        return [];
+      }
+
+      // the target entity may be missing from the subgraph – skip the link
+      const targetEntity = rightEntity?.[0];
+
+      return targetEntity ? [targetEntity as HashEntity<Query>] : [];
+    });
 
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);

@@ -73,7 +73,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
    * type is a link type.
    */
   const fetchEntityTypes = useCallback(async () => {
-    const { data: subgraph } = await queryEntityTypes({
+    const { data: subgraph, errors } = await queryEntityTypes({
       data: {
         latestOnly: true,
         includeArchived: true,
@@ -87,6 +87,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     });
 
     if (!subgraph) {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Error fetching entity types:", errors);
       return;
     }
 
@@ -117,7 +119,10 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   }, [queryEntityTypes]);
 
   useEffect(() => {
-    void fetchEntityTypes();
+    fetchEntityTypes().catch((error) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Error fetching entity types:", error);
+    });
   }, [fetchEntityTypes]);
 
   const latestNonLinkEntityTypes = latestEntityTypesByKind?.nonLink;

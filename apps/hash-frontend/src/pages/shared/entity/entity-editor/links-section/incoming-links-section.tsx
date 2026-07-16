@@ -135,13 +135,14 @@ export const IncomingLinksSection = ({
         editorSubgraph.temporalAxes.resolved.variable.axis
       ],
     ).filter((incomingLinkAndSource) => {
+      const linkEntityRevision = incomingLinkAndSource.linkEntity[0];
+      const leftEntityRevision = incomingLinkAndSource.leftEntity?.[0];
+
       return (
-        incomingLinkAndSource.linkEntity[0] &&
-        !draftLinksToArchive.includes(
-          incomingLinkAndSource.linkEntity[0].entityId,
-        ) &&
-        incomingLinkAndSource.leftEntity?.[0] &&
-        !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(
+        linkEntityRevision &&
+        !draftLinksToArchive.includes(linkEntityRevision.entityId) &&
+        leftEntityRevision &&
+        !leftEntityRevision.metadata.entityTypeIds.includes(
           systemEntityTypes.claim.entityTypeId,
         )
       );
