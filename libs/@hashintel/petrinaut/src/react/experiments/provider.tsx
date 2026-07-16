@@ -16,6 +16,7 @@ import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
@@ -56,10 +57,6 @@ function mapExperimentStatus(
     case "Cancelled":
       return "cancelled";
   }
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
 }
 
 function parseScenarioParameterValue(
@@ -163,6 +160,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   workerFactory,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { requestHirArtifacts } = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -360,22 +358,77 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     pendingRegistrationsRef.current.set(experimentId, { abortController });
 
     const initializeExperiment = async () => {
-      const experimentConfigBase = {
-        sdcpn: experimentSdcpn,
-        extensions: extensionsRef.current,
-        initialMarking,
-        parameterValues,
-        seed: input.seed,
-        dt: input.dt,
-        maxTime: input.maxTime,
-        runCount: input.runCount,
-      };
-
+      const experimentExtensions = extensionsRef.current;
       try {
+        // Compile the net's user code to HIR artifacts in the language
+        // worker — the simulation engine has no compiler of its own. The
+        // experiment's expression metrics are compiled alongside by
+        // substituting them for the model's metrics.
+        const expressionSpecs = input.metricSpecs.filter(
+          (spec) => spec.kind === "expression",
+        );
+        const compiledExperimentSdcpn = {
+          ...experimentSdcpn,
+          metrics: expressionSpecs.map((spec) => ({
+            id: spec.id,
+            name: spec.label,
+            code: spec.code,
+          })),
+        };
+        const { artifacts, failures } = await requestHirArtifacts(
+          compiledExperimentSdcpn,
+          experimentExtensions,
+        );
+
+        // Compilation cannot currently be aborted. A cancelled or removed
+        // experiment must stop here rather than turning a late compile result
+        // (or failure below) into a worker or an error notification.
+        if (!pendingRegistrationsRef.current.has(experimentId)) {
+          return;
+        }
+
+        const metricSpecs = input.metricSpecs.map((spec) => {
+          if (spec.kind !== "expression") {
+            return spec;
+          }
+          const artifact = artifacts.metrics[spec.id];
+          if (!artifact) {
+            const diagnostics = failures
+              .filter(
+                (failure) =>
+                  failure.itemType === "metric" && failure.itemId === spec.id,
+              )
+              .flatMap((failure) =>
+                failure.diagnostics.map((diagnostic) => diagnostic.message),
+              );
+            throw new Error(
+              `Metric "${spec.label}" did not compile${
+                diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
+              }`,
+            );
+          }
+          return { ...spec, artifact };
+        });
+
+        const experimentConfigBase = {
+          // Artifact fingerprints cover the complete sanitized SDCPN, including
+          // its metric definitions. Run the worker against the exact snapshot
+          // used above rather than the pre-substitution model.
+          sdcpn: compiledExperimentSdcpn,
+          extensions: experimentExtensions,
+          initialMarking,
+          parameterValues,
+          seed: input.seed,
+          dt: input.dt,
+          maxTime: input.maxTime,
+          hirArtifacts: artifacts,
+          runCount: input.runCount,
+        };
+
         const handle = await createMonteCarloExperiment({
           ...experimentConfigBase,
           createWorker: workerFactoryRef.current,
-          metricSpecs: input.metricSpecs,
+          metricSpecs,
           signal: abortController.signal,
         });
 
@@ -390,7 +443,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       } catch (error) {
         const wasPending = pendingRegistrationsRef.current.delete(experimentId);
 
-        if (!wasPending && isAbortError(error)) {
+        if (!wasPending) {
           return;
         }
 

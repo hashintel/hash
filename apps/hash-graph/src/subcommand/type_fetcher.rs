@@ -1,20 +1,17 @@
-use core::time::Duration;
-use std::collections::HashMap;
+use core::{net::SocketAddr, time::Duration};
+use std::{collections::HashMap, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, future};
-use hash_graph_type_fetcher::{
-    fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
-    fetcher_server::FetchServer,
+use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
+use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
+use reqwest::Client;
+use tokio::{
+    net::TcpListener,
+    signal,
+    time::{sleep, timeout},
 };
-use tarpc::{
-    serde_transport::Transport,
-    server::{self, Channel as _},
-};
-use tokio::{signal, time::timeout};
 use tokio_util::sync::CancellationToken;
-use tracing::Instrument as _;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -61,78 +58,35 @@ pub struct TypeFetcherArgs {
 }
 
 /// Runs the type fetcher server, shutting down when `shutdown` is cancelled.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
 pub(crate) async fn run_type_fetcher(
     config: TypeFetcherConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let mut listener = tarpc::serde_transport::tcp::listen(
-        (
-            config.address.type_fetcher_host,
-            config.address.type_fetcher_port,
-        ),
-        tarpc::tokio_serde::formats::Json::default,
-    )
+    let listener = TcpListener::bind((
+        &*config.address.type_fetcher_host,
+        config.address.type_fetcher_port,
+    ))
     .await
     .change_context(GraphError)?;
 
-    tracing::info!("Listening on port {}", listener.local_addr().port());
+    tracing::info!(
+        "Listening on port {}",
+        listener.local_addr().change_context(GraphError)?.port()
+    );
 
-    listener.config_mut().max_frame_length(usize::MAX);
+    let router = router(FetchServer {
+        buffer_size: 10,
+        predefined_types: HashMap::new(),
+    })
+    .layer(HttpTracingLayer);
 
-    let shutdown_ref = &shutdown;
-
-    // Allow listener to accept up to 255 connections at a time.
-    let server_task = async move {
-        listener
-            .filter_map(|result| {
-                future::ready(match result {
-                    Ok(conn) => Some(conn),
-                    Err(error) => {
-                        tracing::warn!("Failed to accept type fetcher connection: {error}");
-                        None
-                    }
-                })
-            })
-            .map(server::BaseChannel::with_defaults)
-            .map(|channel| {
-                channel
-                    .execute(
-                        FetchServer {
-                            buffer_size: 10,
-                            predefined_types: HashMap::new(),
-                        }
-                        .serve(),
-                    )
-                    .for_each(async move |response| {
-                        let shutdown = shutdown_ref.clone();
-                        tokio::spawn(
-                            async move {
-                                tokio::select! {
-                                    () = response => {}
-                                    () = shutdown.cancelled() => {
-                                        tracing::debug!("Type fetcher response task cancelled");
-                                    }
-                                }
-                            }
-                            .in_current_span(),
-                        );
-                    })
-            })
-            .buffer_unordered(255)
-            .for_each(|()| async {})
-            .await;
-    };
-
-    tokio::select! {
-        () = server_task => {
-            tracing::info!("Type fetcher server task completed");
-        }
-        () = shutdown.cancelled() => {}
-    }
+    axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown.cancelled_owned())
+    .await
+    .change_context(GraphError)?;
 
     Ok(())
 }
@@ -143,6 +97,46 @@ pub(crate) fn start_type_fetcher(config: TypeFetcherConfig, lifecycle: &ServerLi
     lifecycle.spawn("Type fetcher", async move {
         run_type_fetcher(config, shutdown).await
     });
+}
+
+/// Total window to wait for an external type fetcher to become reachable at startup.
+///
+/// On a fresh ECS task the type fetcher is reached through its Service Connect (Envoy) sidecar,
+/// which takes a few seconds to accept connections. Failing immediately would crash-loop the
+/// task, so the probe retries with backoff until this window is exhausted.
+pub(crate) const REACHABILITY_WINDOW: Duration = Duration::from_secs(30);
+
+/// Waits for the type fetcher at `address` to respond to its `/health` endpoint.
+///
+/// Probes with exponential backoff until `window` has elapsed.
+///
+/// # Errors
+///
+/// Returns [`HealthcheckError::Timeout`] if the type fetcher did not respond within `window`.
+pub(crate) async fn wait_for_type_fetcher(
+    address: &TypeFetcherAddress,
+    window: Duration,
+) -> Result<(), Report<HealthcheckError>> {
+    let deadline = Instant::now() + window;
+    let mut delay = Duration::from_millis(500);
+
+    loop {
+        let Err(report) = healthcheck(address.clone()).await else {
+            return Ok(());
+        };
+        if Instant::now() + delay > deadline {
+            return Err(report.change_context(HealthcheckError::Timeout));
+        }
+        tracing::warn!(
+            error = ?report,
+            type_fetcher_host = address.type_fetcher_host,
+            type_fetcher_port = address.type_fetcher_port,
+            remaining = ?deadline.saturating_duration_since(Instant::now()),
+            "Type fetcher is not reachable yet, retrying in {delay:?}"
+        );
+        sleep(delay).await;
+        delay = (delay * 2).min(Duration::from_secs(5));
+    }
 }
 
 /// Standalone `type-fetcher` subcommand entrypoint.
@@ -206,16 +200,76 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
 }
 
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {
-    let transport = tarpc::serde_transport::tcp::connect(
-        (address.type_fetcher_host, address.type_fetcher_port),
-        tarpc::tokio_serde::formats::Json::default,
+    let request_url = format!(
+        "http://{}:{}/health",
+        address.type_fetcher_host, address.type_fetcher_port
     );
 
-    let _: Transport<_, FetcherRequest, FetcherResponse, _> =
-        timeout(Duration::from_secs(10), transport)
-            .await
-            .change_context(HealthcheckError::Timeout)?
-            .change_context(HealthcheckError::NotHealthy)?;
+    timeout(
+        Duration::from_secs(10),
+        Client::new().head(&request_url).send(),
+    )
+    .await
+    .change_context(HealthcheckError::Timeout)?
+    .change_context(HealthcheckError::NotHealthy)?
+    .error_for_status()
+    .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn reachability_gate_passes_for_running_type_fetcher() {
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        let app = router(FetchServer {
+            buffer_size: 10,
+            predefined_types: HashMap::new(),
+        });
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let address = TypeFetcherAddress {
+            type_fetcher_host: "127.0.0.1".to_owned(),
+            type_fetcher_port: port,
+        };
+        wait_for_type_fetcher(&address, Duration::from_secs(5))
+            .await
+            .expect("running type fetcher should be reachable");
+    }
+
+    #[tokio::test]
+    async fn reachability_gate_times_out_for_dead_port() {
+        // Bind to an ephemeral port and drop the listener so the port is closed.
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        drop(listener);
+
+        let address = TypeFetcherAddress {
+            type_fetcher_host: "127.0.0.1".to_owned(),
+            type_fetcher_port: port,
+        };
+        let report = wait_for_type_fetcher(&address, Duration::from_millis(100))
+            .await
+            .expect_err("dead port should not be reachable");
+        assert!(matches!(
+            report.current_context(),
+            HealthcheckError::Timeout
+        ));
+    }
 }

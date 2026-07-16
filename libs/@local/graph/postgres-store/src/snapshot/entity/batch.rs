@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::{
-    entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
+    entity::{EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
     query::Read,
 };
@@ -23,7 +23,7 @@ use crate::{
     store::{
         StoreCache, StoreProvider,
         postgres::{
-            AsClient, PostgresStore,
+            AsClient, InTransaction, PostgresStore,
             query::{
                 OnConflict,
                 rows::{
@@ -49,7 +49,9 @@ impl<C> WriteBatch<C> for EntityRowBatch
 where
     C: AsClient,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, InTransaction>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -99,7 +101,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -207,7 +209,7 @@ where
 
     #[expect(clippy::too_many_lines)]
     async fn commit(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
         ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -247,7 +249,7 @@ where
             .change_context(InsertionError)?;
 
         postgres_client
-            .reindex_entity_cache()
+            .reindex_entity_cache_impl()
             .await
             .change_context(InsertionError)?;
 
@@ -385,7 +387,7 @@ where
         // values written above would otherwise leave stale label entries behind.
         if !edition_ids_updates.is_empty() {
             postgres_client
-                .reindex_entity_cache()
+                .reindex_entity_cache_impl()
                 .await
                 .change_context(InsertionError)?;
         }

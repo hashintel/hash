@@ -27,29 +27,22 @@ hash-temporal-client      = { workspace = true }
 type-system               = { workspace = true }
 
 # Third party dependencies
-axum = { workspace = true }
-clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = { workspace = true }
-futures = { workspace = true }
-jsonwebtoken = { workspace = true }
-mimalloc = { workspace = true }
-multiaddr = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls"] }
+axum           = { workspace = true }
+clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete  = { workspace = true }
+futures        = { workspace = true }
+jsonwebtoken   = { workspace = true }
+mimalloc       = { workspace = true }
+multiaddr      = { workspace = true }
+rayon          = { workspace = true }
+regex          = { workspace = true }
+reqwest        = { workspace = true, features = ["rustls"] }
 simple-mermaid = { workspace = true }
-tarpc = { workspace = true, features = [
-    "serde1",
-    "tokio1",
-    "serde-transport",
-    "serde-transport-json",
-    "tcp",
-] }
-time = { workspace = true }
-tokio = { workspace = true, features = ["signal", "io-std"] }
+time           = { workspace = true }
+tokio          = { workspace = true, features = ["signal", "io-std"] }
 tokio-postgres = { workspace = true }
-tokio-util = { workspace = true, features = ["codec"] }
-tracing = { workspace = true }
+tokio-util     = { workspace = true, features = ["codec"] }
+tracing        = { workspace = true }
 
 [lints]
 workspace = true

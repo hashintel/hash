@@ -1,3 +1,4 @@
+import { parseParameterValue } from "../../../parameter-values";
 import { coerceTokenRecord } from "../../engine/token-values";
 import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
@@ -60,7 +61,9 @@ export interface CompileScenarioOptions {
  * Severs the prototype chain so `obj.constructor.constructor("return globalThis")()`
  * cannot escape to globals.
  */
-function createSafeObject(obj: Record<string, number>): Record<string, number> {
+type NetParameterValues = Record<string, number | boolean>;
+
+function createSafeObject<T extends NetParameterValues>(obj: T): T {
   return Object.freeze(Object.assign(Object.create(null), obj));
 }
 
@@ -77,15 +80,15 @@ function createSafeObject(obj: Record<string, number>): Record<string, number> {
  */
 function evaluateExpression(
   expression: string,
-  parameters: Record<string, number>,
-  scenario: Record<string, number>,
+  parameters: NetParameterValues,
+  scenario: NetParameterValues,
 ): unknown {
   // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions
   const fn = new Function(
     "parameters",
     "scenario",
     `"use strict"; var ${SHADOWED_GLOBALS}; return (${expression});`,
-  ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
+  ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
   return runSandboxed(() =>
     fn(createSafeObject(parameters), createSafeObject(scenario)),
   );
@@ -177,7 +180,7 @@ export function compileScenario(
 
   // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
 
-  const scenarioObj: Record<string, number> = {};
+  const scenarioObj: NetParameterValues = {};
   for (const sp of scenario.scenarioParameters) {
     if (sp.identifier.trim() === "") {
       continue;
@@ -191,11 +194,12 @@ export function compileScenario(
         itemId: sp.identifier,
         message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
       });
-      scenarioObj[sp.identifier] = sp.default;
+      scenarioObj[sp.identifier] =
+        sp.type === "boolean" ? sp.default !== 0 : sp.default;
       continue;
     }
 
-    scenarioObj[sp.identifier] = value;
+    scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
   }
 
   // ── Step 2: Evaluate parameter overrides ──
@@ -203,9 +207,20 @@ export function compileScenario(
   // Start with net-level defaults, then apply each override expression.
   // Expressions have access to the base `parameters` and `scenario`.
 
-  const parametersObj: Record<string, number> = {};
+  const parametersObj: NetParameterValues = {};
   for (const param of netParameters) {
-    parametersObj[param.variableName] = Number(param.defaultValue) || 0;
+    try {
+      parametersObj[param.variableName] = parseParameterValue(
+        param,
+        param.defaultValue,
+      );
+    } catch (error) {
+      errors.push({
+        source: "parameterOverride",
+        itemId: param.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   // Build a lookup: paramId → Parameter
@@ -225,15 +240,35 @@ export function compileScenario(
     }
     try {
       const value = evaluateExpression(trimmed, parametersObj, scenarioObj);
-      if (typeof value !== "number" || Number.isNaN(value)) {
-        errors.push({
-          source: "parameterOverride",
-          itemId: paramId,
-          message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a number.`,
-        });
-        continue;
+      if (param.type === "boolean") {
+        if (typeof value !== "boolean") {
+          errors.push({
+            source: "parameterOverride",
+            itemId: paramId,
+            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a boolean.`,
+          });
+          continue;
+        }
+        parametersObj[param.variableName] = value;
+      } else {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          errors.push({
+            source: "parameterOverride",
+            itemId: paramId,
+            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a number.`,
+          });
+          continue;
+        }
+        if (param.type === "integer" && !Number.isInteger(value)) {
+          errors.push({
+            source: "parameterOverride",
+            itemId: paramId,
+            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected an integer.`,
+          });
+          continue;
+        }
+        parametersObj[param.variableName] = value;
       }
-      parametersObj[param.variableName] = value;
     } catch (err) {
       errors.push({
         source: "parameterOverride",
@@ -261,7 +296,7 @@ export function compileScenario(
           "parameters",
           "scenario",
           `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
-        ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
+        ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
         const result = runSandboxed(() =>
           fn(createSafeObject(parametersObj), createSafeObject(scenarioObj)),
         );

@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
-use hash_graph_postgres_store::store::{AsClient as _, PostgresStore};
+use hash_graph_postgres_store::store::{AsClient as _, Context as _, InTransaction, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{CreateDataTypeParams, DataTypeStore as _},
@@ -57,7 +57,7 @@ use type_system::{
 pub use crate::common::DatabaseTestWrapper;
 
 pub struct DatabaseApi<'pool> {
-    pub store: PostgresStore<Transaction<'pool>>,
+    pub store: PostgresStore<Transaction<'pool>, InTransaction>,
     pub account_id: ActorEntityUuid,
 }
 

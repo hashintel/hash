@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getParameterValueError } from "../parameter-values";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
@@ -80,11 +81,25 @@ const differentialEquationSchema = z.object({
   colorId: z.string().nullable(),
 });
 
-const parameterSchema = z.object({
-  ...currentParameterSchema.shape,
-  id: z.string(),
-  name: z.string(),
-});
+const parameterSchema = z
+  .object({
+    ...currentParameterSchema.shape,
+    id: z.string(),
+    name: z.string(),
+  })
+  .superRefine((parameter, context) => {
+    const error = getParameterValueError(
+      parameter.type,
+      parameter.defaultValue,
+    );
+    if (error) {
+      context.addIssue({
+        code: "custom",
+        path: ["defaultValue"],
+        message: `Default value ${error}`,
+      });
+    }
+  });
 
 const scenarioParameterSchema = z.object({
   ...currentScenarioParameterSchema.shape,

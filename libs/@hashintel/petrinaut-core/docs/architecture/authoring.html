@@ -17,10 +17,9 @@
 
     <h1 style="color: var(--authoring)">Compilation (Authoring)</h1>
     <p class="subtitle">
-      <code>authoring/</code> — turns user-authored strings (TypeScript modules,
-      expressions, function bodies) into plain JS functions the engine can call.
-      Nothing here is a real security boundary: user code runs in the same
-      realm, hardened against <em>accidents</em>, not attackers.
+      The HIR pipeline turns user-authored TypeScript into checked,
+      source-spanned buffer programs. Scenario code retains a separate
+      same-realm compiler hardened against <em>accidents</em>, not attackers.
     </p>
 
     <dl class="glance">
@@ -31,8 +30,8 @@
       </dd>
       <dt>Outputs</dt>
       <dd>
-        Plain JS closures + typed results (<code>InitialMarking</code> for
-        scenarios, <code>fn(state)</code> for metrics)
+        Versioned HIR artifacts for runtime code; <code>InitialMarking</code>
+        for scenarios
       </dd>
       <dt>Errors</dt>
       <dd>
@@ -42,17 +41,16 @@
       </dd>
       <dt>Runs on</dt>
       <dd>
-        Worker (lambda/kernel/dynamics, at <code>init</code>) · Main thread
-        (scenario, quick-sim metrics) · MC worker (experiment metrics)
+        LSP worker (HIR compilation) · simulation workers (buffer programs) ·
+        main thread (scenarios and timeline metric evaluation)
       </dd>
     </dl>
 
     <h2>The compilation pipeline (module-style code)</h2>
     <p>
-      <code>user-code/compile-user-code.ts</code> handles the three engine
-      surfaces that are authored as modules (<code
-        >export default Wrapper(fn)</code
-      >):
+      Dynamics, lambdas, kernels, and metrics all compile through the HIR. The
+      first three are authored as <code>export default Wrapper(fn)</code>
+      modules; metrics are authored as function bodies.
     </p>
 
     <div class="hflow">
@@ -65,34 +63,33 @@
       </div>
       <span class="arr">→</span>
       <div class="box b-authoring">
-        <strong>Babel</strong>
+        <strong>Lower to HIR</strong>
         <small
-          ><code>@babel/standalone</code> strips type annotations (browser-safe,
-          no tsc)</small
+          >Parse the supported TypeScript subset with exact source spans</small
         >
       </div>
       <span class="arr">→</span>
       <div class="box b-authoring">
-        <strong>Validate</strong>
+        <strong>Check + analyze</strong>
         <small
-          >Regex checks: has <code>export default</code>, uses the expected
-          wrapper name (<code>Lambda</code> / <code>TransitionKernel</code> /
-          <code>Dynamics</code>)</small
+          >Validate against places, token layouts, parameters, and output
+          shapes</small
         >
       </div>
       <span class="arr">→</span>
       <div class="box b-authoring">
-        <strong>Assemble</strong>
+        <strong>Emit artifact</strong>
         <small
-          >Injects the <code>Distribution</code> runtime (unless disabled) + a
-          mock wrapper that just returns the inner fn; rewrites
-          <code>export default</code> to an assignment</small
+          >Generate buffer-native JS with offsets and strides baked in</small
         >
       </div>
       <span class="arr">→</span>
       <div class="box b-engine">
-        <strong><code>new Function(...)()</code></strong>
-        <small>Same-realm plain JS closure, handed to the engine</small>
+        <strong>Instantiate in runtime</strong>
+        <small
+          >Validate v4 fingerprint, then bind parameters, pool, and ABI
+          views</small
+        >
       </div>
     </div>
 
@@ -103,7 +100,8 @@
       this pipeline: they generate the <code>Color_*</code>,
       <code>Parameters</code>, <code>Dynamics</code>,
       <code>TransitionKernel</code>… declarations that Monaco checks against, so
-      editor diagnostics and runtime behaviour must be kept in sync by hand.
+      editor diagnostics and runtime artifacts are produced from the same HIR
+      checks and emitters.
     </div>
 
     <h2>What gets compiled, where it runs</h2>
@@ -121,46 +119,40 @@
         <tr>
           <td><strong>Transition lambda</strong></td>
           <td>module, <code>Lambda(fn)</code></td>
-          <td><code>buildSimulation</code> → <code>compileUserCode</code></td>
+          <td><code>compileHirArtifacts</code> in the LSP worker</td>
           <td>Worker, per enablement check</td>
           <td>
-            <code
-              >(input: {PlaceName: TokenRecord[]}, params) → boolean |
-              rate</code
-            >
+            <code>(f64, u64, u8, placeBases, indices) → boolean | rate</code>
           </td>
         </tr>
         <tr>
           <td><strong>Transition kernel</strong></td>
           <td>module, <code>TransitionKernel(fn)</code></td>
-          <td><code>buildSimulation</code></td>
+          <td><code>compileHirArtifacts</code> in the LSP worker</td>
           <td>Worker, per firing</td>
           <td>
-            <code>(input, params) → {OutputPlace: token[]}</code> — values may
-            be <code>Distribution</code> objects, sampled later by the engine
+            <code>(views, placeBases, indices, outputViews, sink) → void</code>
           </td>
         </tr>
         <tr>
           <td><strong>Dynamics</strong></td>
           <td>module, <code>Dynamics(fn)</code></td>
           <td>
-            <code>buildSimulation</code> (only for colours with a real element)
+            <code>compileHirArtifacts</code> (colours with a real element)
           </td>
           <td>Worker, per step per place</td>
           <td>
-            <code>(tokens: TokenRecord[], params) → derivative[]</code> (real
-            elements only; others zeroed)
+            <code>(placeBytes, tokenCount) → Float64Array</code>
           </td>
         </tr>
         <tr>
           <td><strong>Metric</strong></td>
           <td>plain function body (no module)</td>
-          <td><code>authoring/metric/compile-metric.ts</code></td>
+          <td><code>compileHirArtifacts</code> in the LSP worker</td>
           <td>Main thread (timeline) · MC worker (experiments)</td>
           <td>
             <code
-              >(state: {places: {[name]: {count, tokens}}}) → finite
-              number</code
+              >(f64, u64, u8, placeCounts, placeOffsets) → finite number</code
             >
             — NaN/∞ throw
           </td>
@@ -230,19 +222,16 @@
     <h2>Metric compilation and evaluation</h2>
     <div class="hflow">
       <div class="box b-authoring">
-        <strong>compileMetric(metric)</strong>
+        <strong>compileHirArtifacts</strong>
         <small
-          >Wraps the body in <code>new Function("state", body)</code> with
-          shadowed globals; validates the result is a finite number.</small
+          >Lower, typecheck, and emit a buffer-native metric program.</small
         >
       </div>
       <span class="arr">→</span>
       <div class="box b-engine">
-        <strong>buildMetricState(reader, places, types)</strong>
+        <strong>createHirMetricEvaluator</strong>
         <small
-          >Reshapes a <code>SimulationFrameReader</code> into
-          <code>state.places[name] = {count, tokens}</code> (keyed by place
-          name, tokens decoded).</small
+          >Bind referenced place ordinals and the per-run string pool.</small
         >
       </div>
       <span class="arr">→</span>
@@ -256,10 +245,10 @@
       </div>
     </div>
 
-    <h2>Sandboxing (<code>authoring/sandbox.ts</code>)</h2>
+    <h2>Scenario sandboxing (<code>authoring/sandbox.ts</code>)</h2>
     <ul>
       <li>
-        <strong>Shadowed globals:</strong> expression/metric bodies declare
+        <strong>Shadowed globals:</strong> scenario expressions declare
         <code
           >var window, document, globalThis, self, fetch, XMLHttpRequest,
           importScripts, Function, setTimeout, setInterval, queueMicrotask</code
@@ -281,26 +270,19 @@
 
     <h2>Distributions (deferred sampling)</h2>
     <p>
-      <code>user-code/distribution.ts</code> injects a tiny runtime providing
-      <code>Distribution.Gaussian / Uniform / Lognormal</code>. Kernels don’t
-      sample — they return distribution <em>objects</em>; the engine samples
-      each one once per token with the seeded RNG
-      (<code>sample-distribution.ts</code>), so chained
-      <code>.map(fn)</code> transforms share a single draw and runs stay
+      HIR-emitted kernels construct small runtime values for
+      <code>Distribution.Gaussian / Uniform / Lognormal</code>. Kernels defer
+      sampling through the ABI sink; the engine samples each value once per
+      token with the seeded RNG (<code>sample-distribution.ts</code>), so
+      chained <code>.map(fn)</code> transforms share a single draw and runs stay
       reproducible. When stochasticity is disabled, the runtime isn’t injected
       and plain values are required.
     </p>
 
     <div class="note refactor">
-      <strong>Refactoring seams.</strong>
-      (1) Validation is regex-based (<code>export default Wrapper(…)</code>) —
-      an AST check via the already-present Babel pass would be stricter. (2)
-      Compiled functions receive decoded <code>TokenRecord</code> objects;
-      compiling to buffer-level accessors (the “IR” idea in the Monte Carlo
-      README) would remove per-firing object churn. (3) The runtime/LSP contract
-      (shapes, availability rules) is duplicated between
-      <code>generate-virtual-files.ts</code>, <code>ai.ts</code> prose, and the
-      compilers — a single source of truth would prevent drift.
+      <strong>Compatibility seam.</strong> HIR artifacts contain a version and
+      fingerprint of their sanitized compilation input. Any schema, code, or
+      extension change requires recompilation before the engine will run them.
     </div>
   </body>
 </html>

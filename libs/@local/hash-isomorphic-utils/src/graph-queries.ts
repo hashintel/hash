@@ -43,6 +43,15 @@ export const almostFullOntologyResolveDepths: GraphResolveDepths = {
   isOfType: true,
 };
 
+export const zeroedOntologyResolveDepths: GraphResolveDepths = {
+  constrainsValuesOn: 0,
+  constrainsPropertiesOn: 0,
+  constrainsLinksOn: 0,
+  constrainsLinkDestinationsOn: 0,
+  inheritsFrom: 0,
+  isOfType: false,
+};
+
 /**
  * Slices the datastore across this instant of time.
  *
@@ -242,6 +251,8 @@ export const noisySystemBaseUrls = [
   ...usageRecordTypesToIgnore,
   ...pageTypesToIgnore,
   systemEntityTypes.user.entityTypeBaseUrl,
+  systemEntityTypes.dashboard.entityTypeBaseUrl,
+  systemEntityTypes.dashboardItem.entityTypeBaseUrl,
   systemEntityTypes.machine.entityTypeBaseUrl,
   systemEntityTypes.organization.entityTypeBaseUrl,
   systemLinkEntityTypes.isMemberOf.linkEntityTypeBaseUrl,

@@ -302,6 +302,31 @@ export const overlayPartsStyles = sva({
           _closed: { animationDuration: "fastest" },
         },
       },
+      popover: {
+        body: {
+          border: "none",
+          borderRadius: "lg",
+          boxShadow:
+            "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04)]",
+          marginX: "1",
+          marginBottom: "1",
+          paddingX: "3",
+          paddingTop: "2.5",
+          paddingBottom: "2.5",
+          "&:first-child": { marginTop: "1" },
+        },
+        footer: {
+          paddingX: "3",
+          paddingTop: "1",
+          paddingBottom: "2",
+        },
+        footerActions: {
+          gapY: "1",
+        },
+        footerSecondaryActions: {
+          gapY: "1",
+        },
+      },
     },
     hasIcon: {
       true: {

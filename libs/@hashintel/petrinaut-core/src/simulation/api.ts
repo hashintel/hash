@@ -1,8 +1,9 @@
 import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
+import type { HirArtifacts } from "../hir-runtime";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
-import type { Place, SDCPN, TokenRecord } from "../types/sdcpn";
+import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 
 export type SimulationState =
   | "Initializing"
@@ -67,6 +68,13 @@ export type SimulationConfig = {
   dt: number;
   /** Maximum simulation time. Null = no limit. */
   maxTime: number | null;
+  /**
+   * Precompiled HIR artifacts for the net's user code, produced by
+   * `compileHirArtifacts` (or `LanguageClient.requestHirArtifacts`). The
+   * engine has no compiler of its own: items with user code and no artifact
+   * fail to build.
+   */
+  hirArtifacts?: HirArtifacts;
   backpressure?: BackpressureConfig;
   /** Optional cancellation. Aborting tears down the simulation. */
   signal?: AbortSignalLike;
@@ -103,6 +111,26 @@ export type SimulationFrameState = {
   };
 };
 
+/**
+ * Raw (buffer-level) view over one frame's packed token data, consumed by
+ * HIR-compiled expression metrics. Internal: the arrays alias the frame's
+ * live buffers and are only valid while the reader itself is.
+ */
+export type SimulationFrameRawView = {
+  /** Shared views over the frame's token byte region (format v2). */
+  f64: Float64Array;
+  u64: BigUint64Array;
+  u8: Uint8Array;
+  /** Dense per-place token counts, indexed by frame place index. */
+  placeCounts: Uint32Array;
+  /** Dense per-place byte offsets into the token region. */
+  placeOffsets: Uint32Array;
+  /** Place id → frame place index (stable across frames of one run). */
+  placeIndexById: ReadonlyMap<string, number>;
+  /** Resolves interned `string` token attributes. */
+  stringPool?: { get(id: number): string };
+};
+
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
@@ -110,8 +138,14 @@ export interface SimulationFrameReader {
   readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
+  /**
+   * Raw buffer access for compiled expression metrics. Optional — readers
+   * over non-buffer sources may omit it, in which case expression metrics
+   * cannot evaluate against their frames.
+   */
+  getRawView?(): SimulationFrameRawView;
   /** Typed token records for a coloured place; `[]` for uncoloured places. */
-  getPlaceTokens(place: Place): TokenRecord[];
+  getPlaceTokens(place: Place, color?: Color | null): TokenRecord[];
   getTransitionState(transitionId: string): {
     /**
      * Time elapsed since this transition last fired, in milliseconds.

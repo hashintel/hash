@@ -1,4 +1,5 @@
 import type { PetrinautExtensionSettings } from "../../../extensions";
+import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
 import type {
@@ -16,6 +17,9 @@ export type MonteCarloInitMessage = {
   seed: number;
   dt: number;
   maxTime: number;
+  /** Precompiled HIR artifacts (`compileHirArtifacts`) — required for any
+   * dynamics/lambda/kernel user code in the net. */
+  hirArtifacts?: HirArtifacts;
   runCount: number;
   batchSize?: number;
   metricSpecs?: readonly MonteCarloMetricSpec[];

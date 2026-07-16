@@ -89,8 +89,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     toggleAiAssistant,
   } = use(EditorContext);
 
-  const { totalDiagnosticsCount } = use(LanguageClientContext);
-  const hasDiagnostics = totalDiagnosticsCount > 0;
+  // Only error-severity diagnostics block simulation — warnings and hints
+  // (e.g. HIR semantic lints) are informational.
+  const { errorDiagnosticsCount } = use(LanguageClientContext);
+  const hasDiagnostics = errorDiagnosticsCount > 0;
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
 

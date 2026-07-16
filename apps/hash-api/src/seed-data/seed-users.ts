@@ -1,7 +1,8 @@
+import { enabledFeatureFlagsPropertyBaseUrl } from "@local/hash-graph-sdk/user-entity-restrictions";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { createUser } from "../graph/knowledge/system-types/user";
+import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
@@ -9,6 +10,7 @@ import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { EnabledFeatureFlagsPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AxiosError } from "axios";
 
 type SeededUser = {
@@ -123,6 +125,56 @@ export const ensureUsersAreSeeded = async ({
       });
 
       createdUsers.push(user);
+    } else if (enabledFeatureFlags) {
+      /**
+       * The user already exists (seeded on an earlier boot) — sync their
+       * feature flags with the seed definition, so flags added to the seed
+       * later reach existing dev users.
+       *
+       * The patch is made as the user themself, directly via the SDK (the
+       * Node API's instance-admin check on feature-flag changes is a
+       * runtime authorization concern that doesn't apply to dev seeding —
+       * `createUser` sets the same flags without it on first boot).
+       */
+      const existingUser = await getUser(context, authentication, {
+        shortname,
+      });
+
+      const currentFlags = existingUser?.enabledFeatureFlags ?? [];
+      if (
+        existingUser &&
+        [...currentFlags].sort().join(",") !==
+          [...enabledFeatureFlags].sort().join(",")
+      ) {
+        await existingUser.entity.patch(
+          context.graphApi,
+          { actorId: existingUser.accountId },
+          {
+            propertyPatches: [
+              {
+                op: "add",
+                path: [enabledFeatureFlagsPropertyBaseUrl],
+                property: {
+                  value: enabledFeatureFlags.map((flag) => ({
+                    value: flag,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  })),
+                } satisfies EnabledFeatureFlagsPropertyValueWithMetadata,
+              },
+            ],
+            provenance: context.provenance,
+            additionalAllowedPropertyBaseUrls: new Set([
+              enabledFeatureFlagsPropertyBaseUrl,
+            ]),
+          },
+        );
+        logger.info(
+          `Updated feature flags for existing seeded user "${shortname}": [${enabledFeatureFlags.join(", ")}]`,
+        );
+      }
     }
 
     logger.info(`Seeded User available, email = "${email}".`);

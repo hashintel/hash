@@ -229,8 +229,17 @@ jobs:
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
-        working-directory: infra/compose
-        run: docker compose --profile dev up -d
+        # Retried because BuildKit occasionally fails with transient rpc errors on
+        # individual runners (e.g. "failed to receive status: rpc error: code =
+        # Unavailable desc = error reading from server: EOF"), failing the job
+        # before any test runs. See https://linear.app/hash/issue/SRE-803
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 15
+          shell: bash
+          command: cd infra/compose && docker compose --profile dev up -d
 
       - name: Start background tasks
         if: github.event_name == 'pull_request'
@@ -259,6 +268,18 @@ jobs:
         if: always() && github.event_name == 'pull_request'
         run: |
           kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
+          # `kill` only signals the `turbo` wrapper; the spawned Graph server
+          # survives it and keeps its ports (REST API and type fetcher) bound,
+          # so the head-branch server would fail to bind while the healthcheck
+          # is still answered by the stale base server and the head benches
+          # silently talk to the base binary. Terminate the server itself and
+          # wait for it to exit before the head run starts.
+          pkill -TERM -x hash-graph || true
+          for _ in $(seq 1 30); do
+            pgrep -x hash-graph >/dev/null || break
+            sleep 1
+          done
+          pkill -KILL -x hash-graph || true
           cat var/logs/base-background-task.log
 
       - name: Tear down external services
@@ -304,8 +325,17 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Launch external services
-        working-directory: infra/compose
-        run: docker compose --profile dev up -d
+        # Retried because BuildKit occasionally fails with transient rpc errors on
+        # individual runners (e.g. "failed to receive status: rpc error: code =
+        # Unavailable desc = error reading from server: EOF"), failing the job
+        # before any test runs. See https://linear.app/hash/issue/SRE-803
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 15
+          shell: bash
+          command: cd infra/compose && docker compose --profile dev up -d
 
       - name: Start background tasks
         id: head-background-tasks

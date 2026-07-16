@@ -19,6 +19,7 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
@@ -99,7 +100,7 @@ use crate::store::{
     AsClient, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
-        TraversalContext,
+        BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
             provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
@@ -182,9 +183,10 @@ impl fmt::Display for JoinError {
 
 impl core::error::Error for JoinError {}
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     /// Resolves `is-of-type` edges from entities to their entity types.
     ///
@@ -555,7 +557,7 @@ where
 
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    async fn query_entities_impl(
+    async fn read_entities_impl(
         &self,
         params: &QueryEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
@@ -709,9 +711,465 @@ where
     }
 }
 
-impl<C> EntityStore for PostgresStore<C>
+/// Read implementations which run inside the snapshot-consistent read transaction begun by
+/// [`BeginReadOnlyTransaction::begin_read_only_transaction`].
+impl<C> PostgresStore<C, InTransaction>
 where
     C: AsClient,
+{
+    #[tracing::instrument(level = "info", skip(self, params))]
+    async fn query_entities_impl(
+        &self,
+        actor_id: ActorEntityUuid,
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
+
+        params
+            .filter
+            .convert_parameters(&provider)
+            .await
+            .change_context(QueryError)?;
+
+        let temporal_axes = params.temporal_axes.resolve();
+
+        let mut response = self
+            .read_entities_impl(&params, &temporal_axes, &policy_components)
+            .await?;
+
+        if !params.conversions.is_empty() {
+            for entity in &mut response.entities {
+                self.convert_entity(&provider, entity, &params.conversions)
+                    .await
+                    .change_context(QueryError)?;
+            }
+        }
+
+        if params.include_permissions {
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect::<Vec<_>>();
+
+            let update_permissions = self
+                .has_permission_for_entities_impl(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
+        }
+
+        Ok(response)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
+    async fn query_entity_subgraph_impl(
+        &self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        let actions = params.view_actions();
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_actions(actions, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+        let actor = policy_components.actor_id();
+
+        let provider = StoreProvider::new(self, &policy_components);
+
+        let (mut request, traversal_params) = params.into_parts();
+        request
+            .filter
+            .convert_parameters(&provider)
+            .await
+            .change_context(QueryError)?;
+
+        let temporal_axes = request.temporal_axes.resolve();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let QueryEntitiesResponse {
+            entities: root_entities,
+            cursor,
+            closed_multi_entity_types: _,
+            definitions: _,
+            permissions,
+        } = self
+            .read_entities_impl(&request, &temporal_axes, &policy_components)
+            .await?;
+
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
+
+        async move {
+            subgraph.roots.extend(
+                root_entities
+                    .iter()
+                    .map(|entity| entity.vertex_id(time_axis).into()),
+            );
+            subgraph.vertices.entities = root_entities
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect();
+
+            let mut traversal_context = TraversalContext::default();
+
+            // Iterate over each traversal path and call traverse_entities separately
+            match &traversal_params {
+                SubgraphTraversalParams::Paths { traversal_paths } => {
+                    for path in traversal_paths {
+                        let (entity_traversal_path, ontology_traversal_path) =
+                            path.split_entity_path();
+                        self.traverse_entities_with_path(
+                            &entity_traversal_path,
+                            ontology_traversal_path,
+                            &mut traversal_context,
+                            &provider,
+                            &mut subgraph,
+                        )
+                        .await?;
+                    }
+                }
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                } => {
+                    if traversal_paths.is_empty() {
+                        if graph_resolve_depths.is_of_type {
+                            // If no entity traversal paths are specified, still initialize
+                            // the traversal with ontology resolve depths to enable
+                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
+                            self.traverse_entities_with_resolve_depths(
+                                &[],
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        for path in traversal_paths {
+                            self.traverse_entities_with_resolve_depths(
+                                &path.edges,
+                                *graph_resolve_depths,
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    }
+                }
+            }
+
+            traversal_context
+                .read_traversed_vertices(
+                    self,
+                    &mut subgraph,
+                    request.include_drafts,
+                    provider
+                        .policy_components
+                        .as_ref()
+                        .expect("Policy components should be set"),
+                )
+                .await?;
+
+            if !request.conversions.is_empty() {
+                for entity in subgraph.vertices.entities.values_mut() {
+                    self.convert_entity(&provider, entity, &request.conversions)
+                        .await
+                        .change_context(QueryError)?;
+                }
+            }
+
+            Ok(QueryEntitySubgraphResponse {
+                closed_multi_entity_types: if request.include_entity_types.is_some() {
+                    Some(
+                        self.get_closed_multi_entity_types(
+                            actor_id,
+                            subgraph
+                                .vertices
+                                .entities
+                                .values()
+                                .map(|entity| entity.metadata.entity_type_ids.clone()),
+                            QueryTemporalAxesUnresolved::live_only(),
+                            None,
+                        )
+                        .await?
+                        .entity_types,
+                    )
+                } else {
+                    None
+                },
+                definitions: match request.include_entity_types {
+                    Some(
+                        IncludeEntityTypeOption::Resolved
+                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
+                    ) => {
+                        let entity_type_uuids = subgraph
+                            .vertices
+                            .entities
+                            .values()
+                            .flat_map(|entity| {
+                                entity
+                                    .metadata
+                                    .entity_type_ids
+                                    .iter()
+                                    .map(EntityTypeUuid::from_url)
+                            })
+                            .collect::<HashSet<_>>()
+                            .into_iter()
+                            .collect::<Vec<_>>();
+                        Some(
+                            self.get_entity_type_resolve_definitions(
+                                actor_id,
+                                &entity_type_uuids,
+                                request.include_entity_types
+                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
+                            )
+                            .await?,
+                        )
+                    }
+                    None | Some(IncludeEntityTypeOption::Closed) => None,
+                },
+                cursor,
+                entity_permissions: if request.include_permissions {
+                    debug_assert!(permissions.is_none(), "Should not be populated yet");
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities_impl(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
+                } else {
+                    None
+                },
+                subgraph,
+            })
+        }
+        .instrument(tracing::trace_span!("construct_subgraph"))
+        .await
+    }
+}
+
+impl<C, S> PostgresStore<C, S>
+where
+    C: AsClient,
+    S: TransactionState,
+{
+    /// Rebuilds the entity edition cache and the inherited `entity_is_of_type` rows.
+    ///
+    /// This is inherent rather than only an [`EntityStore`] method so that code paths already
+    /// operating inside an enclosing transaction — snapshot restore and entity-type reindexing —
+    /// can rebuild the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent
+    /// reads are only available where [`BeginReadOnlyTransaction`] is implemented.
+    ///
+    /// # Errors
+    ///
+    /// - if the database rejects one of the rebuild statements
+    #[tracing::instrument(level = "info", skip(self))]
+    pub(crate) async fn reindex_entity_cache_impl(&mut self) -> Result<(), Report<UpdateError>> {
+        tracing::info!("Reindexing entity cache");
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
+
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    )
+                    SELECT entity_edition_id,
+                           target_entity_type_ontology_id AS entity_type_ontology_id,
+                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
+                      FROM entity_is_of_type
+                      JOIN entity_type_inherits_from
+                        ON entity_type_ontology_id = source_entity_type_ontology_id
+                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
+
+                    DELETE FROM entity_edition_cache;
+                ",
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .as_client()
+            .query(&insert_entity_edition_cache_statement(false), &[])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        Ok(())
+    }
+
+    /// Returns the entity editions among `params.entity_ids` on which `authenticated_actor` may
+    /// perform `params.action`.
+    ///
+    /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
+    /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
+    /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
+    ///
+    /// # Errors
+    ///
+    /// - if the permission filter cannot be compiled or the underlying query fails
+    #[tracing::instrument(skip(self, params))]
+    pub(crate) async fn has_permission_for_entities_impl(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        let temporal_axes = params.temporal_axes.resolve();
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+
+        let entity_uuids = params
+            .entity_ids
+            .iter()
+            .map(|id| id.entity_uuid)
+            .collect::<Vec<_>>();
+
+        let entity_filter = Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            },
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityUuids(&entity_uuids),
+            },
+        );
+        compiler
+            .add_filter(&entity_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+        let policy_filter = Filter::<Entity>::for_policies(
+            policy_components.extract_filter_policies(params.action),
+            policy_components.actor_id(),
+            policy_components.optimization_data(params.action),
+        );
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
+        let uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
+        let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
+        let edition_id_idx = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
+            Distinctness::Distinct,
+            None,
+        );
+
+        let mut permitted_ids = HashMap::<EntityId, Vec<EntityEditionId>>::new();
+
+        let (statement, parameters) = compiler.compile();
+        let () = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
+            .await
+            .change_context(CheckPermissionError::StoreError)?
+            .map_ok(|row| {
+                permitted_ids
+                    .entry(EntityId {
+                        web_id: row.get(web_id_idx),
+                        entity_uuid: row.get(uuid_idx),
+                        draft_id: row.get(draft_id_idx),
+                    })
+                    .or_default()
+                    .push(row.get(edition_id_idx));
+            })
+            .try_collect()
+            .await
+            .change_context(CheckPermissionError::StoreError)?;
+
+        Ok(permitted_ids)
+    }
+}
+
+impl<C, S> EntityStore for PostgresStore<C, S>
+where
+    C: AsClient,
+    S: TransactionState,
+    Self: BeginReadOnlyTransaction,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
@@ -737,7 +1195,10 @@ where
         //       multi-type entity types. We need a way to speed this up.
         let mut validation_params = Vec::with_capacity(params.len());
 
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self
+            .begin_transaction()
+            .await
+            .change_context(InsertionError)?;
 
         let actor_id = transaction
             .determine_actor(actor_uuid)
@@ -1331,78 +1792,31 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
-        mut params: QueryEntitiesParams<'_>,
+        params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
+        // An entity query consists of multiple statements: the entity read itself, the optional
+        // entity-type resolution, and the permission checks on the returned entities. Under
+        // `READ COMMITTED` each statement uses its own MVCC snapshot, so a write committing
+        // mid-read can yield entities, entity types, and permissions reflecting different
+        // states of the store. Running the whole read in a single `REPEATABLE READ, READ ONLY`
+        // transaction gives all statements one shared snapshot.
+        let transaction = self
+            .begin_read_only_transaction()
             .await
             .change_context(QueryError)?;
 
-        let provider = StoreProvider::new(self, &policy_components);
+        let response = transaction.query_entities_impl(actor_id, params).await?;
 
-        params
-            .filter
-            .convert_parameters(&provider)
-            .await
-            .change_context(QueryError)?;
-
-        let temporal_axes = params.temporal_axes.resolve();
-
-        let mut response = self
-            .query_entities_impl(&params, &temporal_axes, &policy_components)
-            .await?;
-
-        if !params.conversions.is_empty() {
-            for entity in &mut response.entities {
-                self.convert_entity(&provider, entity, &params.conversions)
-                    .await
-                    .change_context(QueryError)?;
-            }
-        }
-
-        if params.include_permissions {
-            let entity_ids = response
-                .entities
-                .iter()
-                .map(|entity| entity.metadata.record_id.entity_id)
-                .collect::<Vec<_>>();
-
-            let update_permissions = self
-                .has_permission_for_entities(
-                    policy_components.actor_id().into(),
-                    HasPermissionForEntitiesParams {
-                        action: ActionName::UpdateEntity,
-                        entity_ids: Cow::Borrowed(&entity_ids),
-                        temporal_axes: params.temporal_axes,
-                        include_drafts: params.include_drafts,
-                    },
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let mut permissions: HashMap<EntityId, EntityPermissions> =
-                HashMap::with_capacity(update_permissions.len());
-
-            for (entity_id, editions) in update_permissions {
-                permissions.entry(entity_id).or_default().update = editions;
-            }
-
-            debug_assert!(
-                response.permissions.is_none(),
-                "Should not be populated yet"
-            );
-            response.permissions = Some(permissions);
-        }
+        transaction.commit().await.change_context(QueryError)?;
 
         Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn search_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
@@ -1498,217 +1912,30 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let actions = params.view_actions();
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
-            .with_actions(actions, MergePolicies::Yes)
-            .await
-            .change_context(QueryError)?;
-        let actor = policy_components.actor_id();
-
-        let provider = StoreProvider::new(self, &policy_components);
-
-        let (mut request, traversal_params) = params.into_parts();
-        request
-            .filter
-            .convert_parameters(&provider)
+        // A subgraph read consists of multiple statements: the roots query, one recursive CTE
+        // per traversal path, the permission filtering of the traversed edges, and the final
+        // vertex read. Under `READ COMMITTED` each statement uses its own MVCC snapshot, so a
+        // write committing mid-read can retroactively evict an edge endpoint's edition at the
+        // pinned timestamp, yielding a subgraph containing a link vertex without the edge to
+        // its endpoint. Running the whole read in a single `REPEATABLE READ, READ ONLY`
+        // transaction gives all statements one shared snapshot.
+        let transaction = self
+            .begin_read_only_transaction()
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
-        let time_axis = temporal_axes.variable_time_axis();
-
-        let QueryEntitiesResponse {
-            entities: root_entities,
-            cursor,
-            closed_multi_entity_types: _,
-            definitions: _,
-            permissions,
-        } = self
-            .query_entities_impl(&request, &temporal_axes, &policy_components)
+        let response = transaction
+            .query_entity_subgraph_impl(actor_id, params)
             .await?;
 
-        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
+        transaction.commit().await.change_context(QueryError)?;
 
-        async move {
-            subgraph.roots.extend(
-                root_entities
-                    .iter()
-                    .map(|entity| entity.vertex_id(time_axis).into()),
-            );
-            subgraph.vertices.entities = root_entities
-                .into_iter()
-                .map(|entity| (entity.vertex_id(time_axis), entity))
-                .collect();
-
-            let mut traversal_context = TraversalContext::default();
-
-            // Iterate over each traversal path and call traverse_entities separately
-            match &traversal_params {
-                SubgraphTraversalParams::Paths { traversal_paths } => {
-                    for path in traversal_paths {
-                        let (entity_traversal_path, ontology_traversal_path) =
-                            path.split_entity_path();
-                        self.traverse_entities_with_path(
-                            &entity_traversal_path,
-                            ontology_traversal_path,
-                            &mut traversal_context,
-                            &provider,
-                            &mut subgraph,
-                        )
-                        .await?;
-                    }
-                }
-                SubgraphTraversalParams::ResolveDepths {
-                    traversal_paths,
-                    graph_resolve_depths,
-                } => {
-                    if traversal_paths.is_empty() {
-                        if graph_resolve_depths.is_of_type {
-                            // If no entity traversal paths are specified, still initialize
-                            // the traversal with ontology resolve depths to enable
-                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
-                            self.traverse_entities_with_resolve_depths(
-                                &[],
-                                *graph_resolve_depths,
-                                &mut traversal_context,
-                                &provider,
-                                &mut subgraph,
-                            )
-                            .await?;
-                        }
-                    } else {
-                        for path in traversal_paths {
-                            self.traverse_entities_with_resolve_depths(
-                                &path.edges,
-                                *graph_resolve_depths,
-                                &mut traversal_context,
-                                &provider,
-                                &mut subgraph,
-                            )
-                            .await?;
-                        }
-                    }
-                }
-            }
-
-            traversal_context
-                .read_traversed_vertices(
-                    self,
-                    &mut subgraph,
-                    request.include_drafts,
-                    provider
-                        .policy_components
-                        .as_ref()
-                        .expect("Policy components should be set"),
-                )
-                .await?;
-
-            if !request.conversions.is_empty() {
-                for entity in subgraph.vertices.entities.values_mut() {
-                    self.convert_entity(&provider, entity, &request.conversions)
-                        .await
-                        .change_context(QueryError)?;
-                }
-            }
-
-            Ok(QueryEntitySubgraphResponse {
-                closed_multi_entity_types: if request.include_entity_types.is_some() {
-                    Some(
-                        self.get_closed_multi_entity_types(
-                            actor_id,
-                            subgraph
-                                .vertices
-                                .entities
-                                .values()
-                                .map(|entity| entity.metadata.entity_type_ids.clone()),
-                            QueryTemporalAxesUnresolved::live_only(),
-                            None,
-                        )
-                        .await?
-                        .entity_types,
-                    )
-                } else {
-                    None
-                },
-                definitions: match request.include_entity_types {
-                    Some(
-                        IncludeEntityTypeOption::Resolved
-                        | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
-                    ) => {
-                        let entity_type_uuids = subgraph
-                            .vertices
-                            .entities
-                            .values()
-                            .flat_map(|entity| {
-                                entity
-                                    .metadata
-                                    .entity_type_ids
-                                    .iter()
-                                    .map(EntityTypeUuid::from_url)
-                            })
-                            .collect::<HashSet<_>>()
-                            .into_iter()
-                            .collect::<Vec<_>>();
-                        Some(
-                            self.get_entity_type_resolve_definitions(
-                                actor_id,
-                                &entity_type_uuids,
-                                request.include_entity_types
-                                    == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
-                            )
-                            .await?,
-                        )
-                    }
-                    None | Some(IncludeEntityTypeOption::Closed) => None,
-                },
-                cursor,
-                entity_permissions: if request.include_permissions {
-                    debug_assert!(permissions.is_none(), "Should not be populated yet");
-
-                    let entity_ids = subgraph
-                        .vertices
-                        .entities
-                        .keys()
-                        .map(|vertex_id| vertex_id.base_id)
-                        .collect::<Vec<_>>();
-
-                    let update_permissions = self
-                        .has_permission_for_entities(
-                            actor.into(),
-                            HasPermissionForEntitiesParams {
-                                action: ActionName::UpdateEntity,
-                                entity_ids: Cow::Borrowed(&entity_ids),
-                                temporal_axes: request.temporal_axes,
-                                include_drafts: request.include_drafts,
-                            },
-                        )
-                        .await
-                        .change_context(QueryError)?;
-
-                    let mut permissions: HashMap<EntityId, EntityPermissions> =
-                        HashMap::with_capacity(update_permissions.len());
-
-                    for (entity_id, editions) in update_permissions {
-                        permissions.entry(entity_id).or_default().update = editions;
-                    }
-
-                    Some(permissions)
-                } else {
-                    None
-                },
-                subgraph,
-            })
-        }
-        .instrument(tracing::trace_span!("construct_subgraph"))
-        .await
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip_all)]
@@ -1870,7 +2097,7 @@ where
             .decision_time
             .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
-        let transaction = self.transaction().await.change_context(UpdateError)?;
+        let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
         let locked_row = transaction
             .lock_entity_edition(params.entity_id, transaction_time, decision_time)
@@ -2377,7 +2604,7 @@ where
         // TODO: Authorization — check delete permission via PolicyComponents
 
         let mut transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(DeletionError::Store)?;
         let summary = transaction
@@ -2537,140 +2764,23 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
-        tracing::info!("Reindexing entity cache");
-        let transaction = self.transaction().await.change_context(UpdateError)?;
-
-        // We remove the data from the reference tables first
-        transaction
-            .as_client()
-            .simple_query(
-                "
-                    DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
-
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    )
-                    SELECT entity_edition_id,
-                           target_entity_type_ontology_id AS entity_type_ontology_id,
-                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                      FROM entity_is_of_type
-                      JOIN entity_type_inherits_from
-                        ON entity_type_ontology_id = source_entity_type_ontology_id
-                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
-
-                    DELETE FROM entity_edition_cache;
-                ",
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .as_client()
-            .query(&insert_entity_edition_cache_statement(false), &[])
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        transaction.commit().await.change_context(UpdateError)?;
-
-        Ok(())
+        // Delegates to the inherent method on `PostgresStore<C, S>`, so the rebuild is also
+        // reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` — is
+        // unavailable.
+        self.reindex_entity_cache_impl().await
     }
 
-    #[tracing::instrument(skip(self, params))]
     async fn has_permission_for_entities(
         &self,
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
-        let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
-
-        let entity_uuids = params
-            .entity_ids
-            .iter()
-            .map(|id| id.entity_uuid)
-            .collect::<Vec<_>>();
-
-        let entity_filter = Filter::In(
-            FilterExpression::Path {
-                path: EntityQueryPath::Uuid,
-            },
-            FilterExpressionList::ParameterList {
-                parameters: ParameterList::EntityUuids(&entity_uuids),
-            },
-        );
-        compiler
-            .add_filter(&entity_filter)
-            .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
+        // Delegates to the inherent method on `PostgresStore<C, S>`, so the permission check is
+        // also reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` —
+        // is unavailable.
+        self.has_permission_for_entities_impl(authenticated_actor, params)
             .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(params.action),
-            policy_components.actor_id(),
-            policy_components.optimization_data(params.action),
-        );
-        compiler
-            .add_filter(&policy_filter)
-            .change_context(CheckPermissionError::CompileFilter)?;
-
-        let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
-        let uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-        let edition_id_idx = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
-            Distinctness::Distinct,
-            None,
-        );
-
-        let mut permitted_ids = HashMap::<EntityId, Vec<EntityEditionId>>::new();
-
-        let (statement, parameters) = compiler.compile();
-        let () = self
-            .as_client()
-            .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::info_span!(
-                "SELECT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-                db.query.text = statement,
-            ))
-            .await
-            .change_context(CheckPermissionError::StoreError)?
-            .map_ok(|row| {
-                permitted_ids
-                    .entry(EntityId {
-                        web_id: row.get(web_id_idx),
-                        entity_uuid: row.get(uuid_idx),
-                        draft_id: row.get(draft_id_idx),
-                    })
-                    .or_default()
-                    .push(row.get(edition_id_idx));
-            })
-            .try_collect()
-            .await
-            .change_context(CheckPermissionError::StoreError)?;
-
-        Ok(permitted_ids)
     }
 
     #[expect(clippy::too_many_lines)]
@@ -2711,7 +2821,7 @@ where
 
         // Filter to entities the actor is allowed to view.
         let permitted = self
-            .has_permission_for_entities(
+            .has_permission_for_entities_impl(
                 AuthenticatedActor::from(actor_id),
                 HasPermissionForEntitiesParams {
                     action: ActionName::ViewEntity,
@@ -2889,7 +2999,7 @@ struct LockedEntityEdition {
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
 /// The write paths pass `scoped` to restrict it to the just-written editions
-/// (`$1: UUID[]`), `reindex_entity_cache` runs it unscoped over all editions. Must run
+/// (`$1: UUID[]`), `reindex_entity_cache_impl` runs it unscoped over all editions. Must run
 /// after the editions' `entity_is_of_type` rows (including the inherited ones) have been
 /// written.
 fn insert_entity_edition_cache_statement(scoped: bool) -> String {
@@ -2987,7 +3097,10 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     )
 }
 
-impl PostgresStore<tokio_postgres::Transaction<'_>> {
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
@@ -3538,7 +3651,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(UpdateError)?;
 
-        self.client
+        self.as_client()
             .query(
                 "
                     UPDATE entity_editions SET

@@ -97,6 +97,6 @@ export function serializeDiagnostic(
     ),
     message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
     code: diag.code,
-    source: "ts",
+    source: diag.source ?? "ts",
   };
 }

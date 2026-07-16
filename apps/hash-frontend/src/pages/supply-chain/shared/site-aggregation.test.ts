@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeNodePeriodCost,
-  countBadPlanningParams,
   deduplicateNodes,
   topDwellCosts,
   topPlanningMismatches,
@@ -470,11 +469,5 @@ describe("site rollups", () => {
     expect(topMismatch).toBeDefined();
     expect(topMismatch!.id).toBe("o");
     expect(topMismatch!.deviationPct).toBeCloseTo(200, 6);
-  });
-
-  it("counts nodes whose median exceeds plan by >20%", () => {
-    const bad = siteNode({ id: "b", stats: stats(5, 13), plan: 10 }); // 1.3x
-    const ok = siteNode({ id: "k", stats: stats(5, 11), plan: 10 }); // 1.1x
-    expect(countBadPlanningParams([bad, ok])).toBe(1);
   });
 });

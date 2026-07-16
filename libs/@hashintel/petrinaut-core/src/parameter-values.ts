@@ -5,6 +5,48 @@ import type { Parameter } from "./types/sdcpn";
  */
 export type DefaultParameterValues = Record<string, number | boolean>;
 
+export function getParameterValueError(
+  type: Parameter["type"],
+  value: string,
+): string | null {
+  if (type === "boolean") {
+    return value === "true" || value === "false"
+      ? null
+      : 'must be "true" or "false"';
+  }
+
+  if (value.trim() === "") {
+    return type === "integer"
+      ? "must be an integer"
+      : "must be a finite number";
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return type === "integer"
+      ? "must be an integer"
+      : "must be a finite number";
+  }
+  if (type === "integer" && !Number.isInteger(numericValue)) {
+    return "must be an integer";
+  }
+  return null;
+}
+
+export function parseParameterValue(
+  parameter: Pick<Parameter, "type" | "variableName">,
+  value: string,
+): number | boolean {
+  const error = getParameterValueError(parameter.type, value);
+  if (error) {
+    const prefix =
+      parameter.type === "boolean" ? "Boolean parameter" : "Parameter";
+    throw new Error(`${prefix} "${parameter.variableName}" ${error}`);
+  }
+
+  return parameter.type === "boolean" ? value === "true" : Number(value);
+}
+
 /**
  * Pure function to derive default parameter values from a list of parameters.
  * This can be used in non-React contexts or for testing.
@@ -18,16 +60,10 @@ export function deriveDefaultParameterValues(
   const parameterValues: DefaultParameterValues = {};
 
   for (const param of parameters) {
-    const value = param.defaultValue;
-
-    if (param.type === "real") {
-      parameterValues[param.variableName] = Number.parseFloat(value);
-    } else if (param.type === "integer") {
-      parameterValues[param.variableName] = Number.parseInt(value, 10);
-    } else {
-      // boolean
-      parameterValues[param.variableName] = value === "true";
-    }
+    parameterValues[param.variableName] = parseParameterValue(
+      param,
+      param.defaultValue,
+    );
   }
 
   return parameterValues;
@@ -44,13 +80,21 @@ export function deriveDefaultParameterValues(
 export function mergeParameterValues(
   simulationStoreValues: Record<string, string>,
   defaultValues: DefaultParameterValues,
+  parameters: readonly Parameter[] = [],
 ): DefaultParameterValues {
   const merged: DefaultParameterValues = { ...defaultValues };
+  const parameterTypes = new Map(
+    parameters.map((parameter) => [parameter.variableName, parameter.type]),
+  );
 
   // Override with SimulationStore values where they exist
   for (const [key, value] of Object.entries(simulationStoreValues)) {
     if (value !== "") {
-      merged[key] = Number(value);
+      const defaultValue = defaultValues[key];
+      const type =
+        parameterTypes.get(key) ??
+        (typeof defaultValue === "boolean" ? "boolean" : "real");
+      merged[key] = parseParameterValue({ type, variableName: key }, value);
     }
   }
 

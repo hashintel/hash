@@ -1,4 +1,4 @@
-use core::{iter::repeat_n, str::FromStr as _};
+use core::{cell::RefCell, iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
@@ -6,6 +6,7 @@ use criterion_macro::criterion;
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
+use hash_graph_postgres_store::store::{Context as _, Transaction as _};
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
     filter::Filter,
@@ -155,10 +156,15 @@ async fn seed_db(
     entity_list
 }
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &RefCell<&mut Store>,
     actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
 ) {
@@ -174,6 +180,7 @@ pub fn bench_get_entity_by_id(
         },
         |entity_record_id| async move {
             store
+                .borrow_mut()
                 .query_entities(
                     actor_id,
                     QueryEntitiesParams {
@@ -211,7 +218,9 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
-        let store = &store_wrapper.store;
+        // `query_entities` takes `&mut self` to run the read in a single transaction; the
+        // `RefCell` provides the mutable borrow from within the benchmark closures.
+        let store = RefCell::new(&mut *store_wrapper.store);
 
         let function_id = "entity_by_id";
         let parameter = format!("{size} entities");
@@ -220,7 +229,7 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
             &(account_id, entity_uuids),
             |bencher, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                bench_get_entity_by_id(bencher, &runtime, store, account_id, entity_list);
+                bench_get_entity_by_id(bencher, &runtime, &store, account_id, entity_list);
             },
         );
     }

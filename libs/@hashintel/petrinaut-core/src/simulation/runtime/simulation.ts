@@ -99,7 +99,11 @@ export function createSimulation(
     sanitizedSdcpn.parameters,
   );
   const rootParameterValues = extensions.parameters
-    ? mergeParameterValues(config.parameterValues, defaultParameterValues)
+    ? mergeParameterValues(
+        config.parameterValues,
+        defaultParameterValues,
+        sanitizedSdcpn.parameters,
+      )
     : {};
   const { sdcpn: flattenedSdcpn } = flattenComponentInstancesForSimulation({
     sdcpn: sanitizedSdcpn,
@@ -261,6 +265,7 @@ export function createSimulation(
       seed: config.seed,
       dt: config.dt,
       maxTime: config.maxTime,
+      hirArtifacts: config.hirArtifacts,
       maxFramesAhead: config.backpressure?.maxFramesAhead,
       batchSize: config.backpressure?.batchSize,
     });

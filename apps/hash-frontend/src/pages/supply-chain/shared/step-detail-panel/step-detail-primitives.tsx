@@ -144,6 +144,11 @@ const dashText = css({
 // the dashed underline on `obsNoun` so it reads as a strike-through. Restoring a
 // normal line box on the wrapper keeps the underline beneath the text.
 const obsTrigger = css({ display: "inline-flex", lineHeight: "normal" });
+const obsLines = css({
+  display: "inline-flex",
+  flexDirection: "column",
+  gap: "0.5",
+});
 const obsWrap = css({
   display: "inline-flex",
   flexShrink: "0",
@@ -225,13 +230,13 @@ export const PeriodLabel = ({
 export const PlanningAssumptionCell = ({
   plan,
   hasPlan,
-  medianMeetsPlan,
+  measureMeetsPlan,
   planLabel,
   noteRaw,
 }: {
   plan: number | null;
   hasPlan: boolean;
-  medianMeetsPlan: boolean;
+  measureMeetsPlan: boolean;
   planLabel: string | null;
   noteRaw: string | null;
 }) => {
@@ -247,7 +252,7 @@ export const PlanningAssumptionCell = ({
           <span
             className={cx(
               badgeBase,
-              medianMeetsPlan ? badgeSuccess : badgeDanger,
+              measureMeetsPlan ? badgeSuccess : badgeDanger,
             )}
           >
             <ClockIcon />
@@ -450,6 +455,7 @@ export const ObservationCount = ({
   timeRange,
   selectedComponent,
   countOverride,
+  previousCount,
 }: {
   step: StepDetailType;
   stats: StepStats | null;
@@ -457,14 +463,11 @@ export const ObservationCount = ({
   timeRange: TimeRange;
   selectedComponent: boolean;
   countOverride?: number | null;
+  previousCount?: number | null;
 }) => {
   const count = countOverride ?? stats?.n ?? step.stats.n;
-  const periodLabel =
-    timeRange === "3m"
-      ? "last 3 months"
-      : timeRange === "6m"
-        ? "last 6 months"
-        : "last 12 months";
+  const periodMonths = timeRange === "3m" ? 3 : timeRange === "6m" ? 6 : 12;
+  const periodLabel = `last ${periodMonths} months`;
   const noun = countNoun({
     id: step.id,
     label: step.label,
@@ -489,11 +492,21 @@ export const ObservationCount = ({
         nMovements: step.n_movements,
       })}
     >
-      <span className={obsWrap}>
-        <span className={obsCount}>{formatNumber(count)}</span>
-        <span className={obsNoun}>
-          {noun} ({periodLabel})
+      <span className={obsLines}>
+        <span className={obsWrap}>
+          <span className={obsCount}>{formatNumber(count)}</span>
+          <span className={obsNoun}>
+            {noun} ({periodLabel})
+          </span>
         </span>
+        {previousCount != null && (
+          <span className={obsWrap}>
+            <span className={obsCount}>{formatNumber(previousCount)}</span>
+            <span className={obsNoun}>
+              {noun} (previous {periodMonths} months)
+            </span>
+          </span>
+        )}
       </span>
     </Tooltip>
   );

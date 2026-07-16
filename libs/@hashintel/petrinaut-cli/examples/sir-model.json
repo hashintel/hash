@@ -1,0 +1,229 @@
+{
+  "title": "SIR Epidemic Model",
+  "places": [
+    {
+      "id": "place__susceptible",
+      "name": "Susceptible",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -435,
+      "y": 150
+    },
+    {
+      "id": "place__infected",
+      "name": "Infected",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -195,
+      "y": 285
+    },
+    {
+      "id": "place__recovered",
+      "name": "Recovered",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 375,
+      "y": 195
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__infection",
+      "name": "Infection",
+      "inputArcs": [
+        {
+          "placeId": "place__susceptible",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__infected",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__infected",
+          "weight": 2
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "// Mass-action infection: fires at the configured infection rate whenever a\n// Susceptible and an Infected are both present (the two standard input arcs).\nexport default Lambda((tokens, parameters) => parameters.infection_rate)",
+      "transitionKernelCode": "// Consumes 1 Susceptible + 1 Infected and produces 2 Infected (the output\n// arc has weight 2), encoding the S + I -> 2I reaction: the susceptible has\n// become newly infected. Places are untyped, so tokens carry no attributes.\nexport default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
+      "x": -150,
+      "y": 75
+    },
+    {
+      "id": "transition__recovery",
+      "name": "Recovery",
+      "inputArcs": [
+        {
+          "placeId": "place__infected",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__recovered",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "// Each Infected recovers at the configured recovery rate. The ratio of\n// infection_rate to recovery_rate sets the basic reproduction number R0.\nexport default Lambda((tokens, parameters) => parameters.recovery_rate)",
+      "transitionKernelCode": "// Move one Infected to Recovered (1-to-1). Recovered individuals are immune,\n// so they never re-enter the Susceptible or Infected places.\nexport default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
+      "x": 90,
+      "y": 240
+    }
+  ],
+  "types": [],
+  "differentialEquations": [],
+  "parameters": [
+    {
+      "id": "param__infection_rate",
+      "name": "Infection Rate",
+      "variableName": "infection_rate",
+      "type": "real",
+      "defaultValue": "3"
+    },
+    {
+      "id": "param__recovery_rate",
+      "name": "Recovery Rate",
+      "variableName": "recovery_rate",
+      "type": "real",
+      "defaultValue": "1"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__seasonal_flu",
+      "name": "Seasonal Flu",
+      "description": "Moderate outbreak with R₀ ≈ 1.5. Models a typical seasonal influenza wave in a small community.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "population",
+          "default": 1000
+        },
+        {
+          "type": "ratio",
+          "identifier": "infected_ratio",
+          "default": 0.01
+        }
+      ],
+      "parameterOverrides": {
+        "param__infection_rate": "1.5",
+        "param__recovery_rate": "0.8"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place__susceptible": "scenario.population * (1 - scenario.infected_ratio)",
+          "place__infected": "scenario.population * scenario.infected_ratio",
+          "place__recovered": "0"
+        }
+      }
+    },
+    {
+      "id": "scenario__high_virulence",
+      "name": "High Virulence Outbreak",
+      "description": "Aggressive pathogen with R₀ ≈ 6 and slow recovery, modelling rapid spread before interventions.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "population",
+          "default": 10000
+        },
+        {
+          "type": "ratio",
+          "identifier": "infected_ratio",
+          "default": 0.0001
+        }
+      ],
+      "parameterOverrides": {
+        "param__infection_rate": "6",
+        "param__recovery_rate": "0.5"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place__susceptible": "scenario.population * (1 - scenario.infected_ratio)",
+          "place__infected": "scenario.population * scenario.infected_ratio",
+          "place__recovered": "0"
+        }
+      }
+    },
+    {
+      "id": "scenario__contained_outbreak",
+      "name": "Contained Outbreak",
+      "description": "Sub-threshold spread with R₀ < 1 (recovery outpaces infection), so the outbreak fizzles out instead of taking off.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "population",
+          "default": 1000
+        },
+        {
+          "type": "ratio",
+          "identifier": "infected_ratio",
+          "default": 0.05
+        }
+      ],
+      "parameterOverrides": {
+        "param__infection_rate": "0.6",
+        "param__recovery_rate": "1.2"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place__susceptible": "scenario.population * (1 - scenario.infected_ratio)",
+          "place__infected": "scenario.population * scenario.infected_ratio",
+          "place__recovered": "0"
+        }
+      }
+    },
+    {
+      "id": "scenario__pandemic_wave",
+      "name": "Pandemic Wave",
+      "description": "A large, mostly-susceptible population seeded with a few cases and R₀ ≈ 5 — useful for watching the classic epidemic curve build and burn out at scale.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "population",
+          "default": 100000
+        },
+        {
+          "type": "ratio",
+          "identifier": "infected_ratio",
+          "default": 0.00005
+        }
+      ],
+      "parameterOverrides": {
+        "param__infection_rate": "2.5",
+        "param__recovery_rate": "0.5"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place__susceptible": "scenario.population * (1 - scenario.infected_ratio)",
+          "place__infected": "scenario.population * scenario.infected_ratio",
+          "place__recovered": "0"
+        }
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__infected_fraction",
+      "name": "Infected Fraction",
+      "description": "Share of the population currently infected.",
+      "code": "const s = state.places.Susceptible.count;\nconst i = state.places.Infected.count;\nconst r = state.places.Recovered.count;\nconst total = s + i + r;\nreturn total === 0 ? 0 : i / total;"
+    }
+  ]
+}

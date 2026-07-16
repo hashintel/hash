@@ -7,6 +7,7 @@ use hash_graph_authorization::policies::{
     action::ActionName,
     store::{RoleAssignmentStatus, RoleUnassignmentStatus},
 };
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::account::{AccountStore as _, GetActorError};
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
@@ -18,14 +19,15 @@ use type_system::principal::{
 };
 use uuid::Uuid;
 
-use crate::store::{AsClient, PostgresStore};
+use crate::store::{AsClient, PostgresStore, TransactionState};
 
 mod error;
 pub use self::error::{ActionError, PolicyError, PrincipalError};
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     async fn is_principal(
         &self,
@@ -939,7 +941,7 @@ where
     /// [`StoreError`]: ActionError::StoreError
     pub async fn register_action(&mut self, action: ActionName) -> Result<(), Report<ActionError>> {
         let transaction = self
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(ActionError::StoreError)?;
 

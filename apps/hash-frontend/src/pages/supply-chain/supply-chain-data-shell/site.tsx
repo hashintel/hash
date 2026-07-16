@@ -36,6 +36,7 @@ import { TrendTable } from "./site/trend-table";
 import { useSiteOverviewRows } from "./site/use-site-overview-rows";
 import { VendorDetailPanel } from "./site/vendor-detail-panel";
 
+import type { BaseMeasure } from "../shared/measure-context";
 import type { StatusActionLabel, StatusStore } from "../shared/status";
 import type { Product, SiteNode, StepType } from "../shared/types";
 import type {
@@ -200,6 +201,7 @@ export const SiteOverview = ({
     title: string;
     siteContext: { products: Array<{ id: string; name: string }> };
     briefHref: string;
+    measureOverride?: BaseMeasure;
   } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{
     node: SiteNode;
@@ -282,6 +284,10 @@ export const SiteOverview = ({
   const [oppStatusHidden, setOppStatusHidden] = useState<
     Set<StatusActionLabel>
   >(() => new Set());
+  const [oppSectionRevealRequest, setOppSectionRevealRequest] = useState<{
+    kind: OpportunityKind;
+    requestId: number;
+  } | null>(null);
 
   const {
     loading,
@@ -324,8 +330,17 @@ export const SiteOverview = ({
       buildBriefHref,
     ],
   );
+
+  const overPlanCount = useMemo(
+    () =>
+      opportunities.filter(
+        (opportunity) => opportunity.kind === "planning_over",
+      ).length,
+    [opportunities],
+  );
+
   const handleStepClick = useCallback(
-    (node: SiteNode) => {
+    (node: SiteNode, opportunityKind?: OpportunityKind) => {
       const firstProduct = node.products[0];
       if (!firstProduct) {
         return;
@@ -345,11 +360,32 @@ export const SiteOverview = ({
         briefHref: buildBriefHref(
           isDwellType(node.type) ? "dwell" : "planning",
           node,
+          opportunityKind,
         ),
+        measureOverride:
+          opportunityKind === "planning_over" ||
+          opportunityKind === "planning_under"
+            ? "p95"
+            : undefined,
       });
     },
     [buildBriefHref, siteId],
   );
+
+  const revealOverPlanOpportunities = useCallback(() => {
+    setOppTypeHidden((hiddenKinds) => {
+      if (!hiddenKinds.has("planning_over")) {
+        return hiddenKinds;
+      }
+      const nextHiddenKinds = new Set(hiddenKinds);
+      nextHiddenKinds.delete("planning_over");
+      return nextHiddenKinds;
+    });
+    setOppSectionRevealRequest((previousRequest) => ({
+      kind: "planning_over",
+      requestId: (previousRequest?.requestId ?? 0) + 1,
+    }));
+  }, []);
 
   const handlePanelClose = useCallback(() => {
     trackSupplyChainInteraction({
@@ -394,11 +430,12 @@ export const SiteOverview = ({
                   isHighlight
                 />
               )}
-              {summaryStats.badParams > 0 && (
+              {overPlanCount > 0 && (
                 <StatChip
-                  value={String(summaryStats.badParams)}
-                  label="steps exceeding plan"
+                  value={String(overPlanCount)}
+                  label="steps over plan"
                   isHighlight
+                  onClick={revealOverPlanOpportunities}
                 />
               )}
             </div>
@@ -443,7 +480,9 @@ export const SiteOverview = ({
           opportunities={opportunities}
           siteId={siteSlug}
           statusHistory={opportunityStatusHistory}
-          onRowClick={handleStepClick}
+          onRowClick={(opportunity) =>
+            handleStepClick(opportunity.node, opportunity.kind)
+          }
           onStatus={openStatus}
           sort={oppSort}
           onSort={setOppSort}
@@ -453,6 +492,7 @@ export const SiteOverview = ({
           onProductHiddenChange={setOppProductHidden}
           statusHidden={oppStatusHidden}
           onStatusHiddenChange={setOppStatusHidden}
+          revealSectionRequest={oppSectionRevealRequest}
         />
 
         <div className={chartShrink}>
@@ -602,6 +642,7 @@ export const SiteOverview = ({
           siteContext={selectedStep.siteContext}
           stepMaterial={selectedStep.node.material}
           briefHref={selectedStep.briefHref}
+          measureOverride={selectedStep.measureOverride}
           statusEntries={
             opportunityStatusHistory[statusKey(siteSlug, selectedStep.node)] ??
             []

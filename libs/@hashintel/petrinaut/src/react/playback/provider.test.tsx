@@ -497,6 +497,38 @@ describe("PlaybackProvider", () => {
       expect(getPlaybackValue().playbackState).toBe("Playing");
     });
 
+    it("coalesces repeated play requests while initialization is pending", async () => {
+      let resolveInitialization: () => void = () => {};
+      const initializeFn = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveInitialization = resolve;
+          }),
+      );
+      const runFn = vi.fn();
+      const simulationContext = createMockSimulationContext({
+        initialize: initializeFn,
+        run: runFn,
+      });
+      const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
+
+      let firstPlay: Promise<void>;
+      let secondPlay: Promise<void>;
+      act(() => {
+        firstPlay = getPlaybackValue().play();
+        secondPlay = getPlaybackValue().play();
+      });
+
+      expect(initializeFn).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        resolveInitialization();
+        await Promise.all([firstPlay!, secondPlay!]);
+      });
+
+      expect(runFn).toHaveBeenCalledTimes(1);
+      expect(getPlaybackValue().playbackState).toBe("Playing");
+    });
+
     it("should do nothing when simulation has no frames", () => {
       const simulationContext = createMockSimulationContext(
         {

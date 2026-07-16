@@ -2,15 +2,14 @@
 
 //! Postgres implementation to compile queries.
 
+mod ast;
 mod compile;
 mod data_type;
 mod entity;
 mod entity_type;
-mod expression;
 pub mod postgres_type;
 mod property_type;
 pub(crate) mod rows;
-mod statement;
 pub mod table;
 
 use core::{
@@ -30,18 +29,16 @@ use tokio_postgres::Row;
 use type_system::knowledge::{Entity, PropertyValue};
 
 pub use self::{
+    ast::{
+        BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, Distinctness,
+        EqualityOperator, Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByExpression, Identifier,
+        JoinType, OnConflict, OrderByExpression, SelectExpression, SelectStatement, Statement,
+        TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
+        VariadicOperator, WhereExpression, WindowStatement, WithExpression, bulk_insert,
+    },
     compile::{SelectCompiler, SelectCompilerError},
-    expression::{
-        BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, EqualityOperator,
-        Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
-        FromItemSubqueryBuilder, FromItemTableBuilder, Function, Identifier, JoinType,
-        SelectExpression, TableName, TableReference, UnaryExpression, UnaryOperator,
-        VariadicExpression, VariadicOperator, WhereExpression, WithExpression,
-    },
     postgres_type::PostgresType,
-    statement::{
-        Distinctness, OnConflict, SelectStatement, Statement, WindowStatement, bulk_insert,
-    },
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
 use crate::store::postgres::crud::QueryRecordDecode;

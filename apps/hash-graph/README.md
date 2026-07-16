@@ -11,7 +11,7 @@ This crate creates a CLI interface to the graph libraries defined in [`libs/@loc
 The Graph service consists of several key components:
 
 - **REST API Server** - Main HTTP interface with OpenAPI specification
-- **Type Fetcher Service** - Manages and validates type definitions via tarpc
+- **Type Fetcher Service** - Manages and validates type definitions via HTTP/JSON
 - **PostgreSQL Store** - Persistent storage layer with full transaction support
 - **Authorization Layer** - Permission-based access control
 - **Telemetry Integration** - Distributed tracing, metrics, and structured logging
@@ -146,7 +146,7 @@ The Graph service includes comprehensive telemetry integration with the observab
 ### Distributed Tracing
 
 - **Automatic instrumentation** for all HTTP requests and database queries
-- **Context propagation** across service boundaries (Type Fetcher communication via tarpc)
+- **Context propagation** across service boundaries (Type Fetcher communication via HTTP with W3C `traceparent` headers)
 - **Custom spans** for complex operations and business logic
 - **Database query tracing** with proper OpenTelemetry semantic conventions
 
@@ -162,7 +162,7 @@ Set environment variables for enhanced logging:
 
 ```shell
 # Enhanced Graph logging (reduce noisy dependencies)
-HASH_GRAPH_LOG_LEVEL=trace,h2=info,tokio_util=debug,tower=info,tonic=info,hyper=info,tokio_postgres=info,rustls=info,tarpc=trace,libp2p_noise=info,libp2p_ping=info
+HASH_GRAPH_LOG_LEVEL=trace,h2=info,tokio_util=debug,tower=info,tonic=info,hyper=info,tokio_postgres=info,rustls=info,libp2p_noise=info,libp2p_ping=info
 
 # OpenTelemetry endpoint (automatically configured in development)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
@@ -217,8 +217,8 @@ psql -h localhost -p 5432 -U postgres
 **Type Fetcher Communication**:
 
 ```shell
-# Check Type Fetcher is running on tarpc port
-telnet localhost 4455
+# Check Type Fetcher is healthy
+curl http://localhost:4455/health
 ```
 
 **Build Issues**:

@@ -110,8 +110,7 @@ export function decodeTokenAttributeValue(
  * the two-lane writer in `token-layout.ts`).
  *
  * `string` elements are not encodable without a `StringPool` and throw here —
- * callers with string fields intern first (`encodeTokenToBytes` /
- * `encodeKernelOutputToken`).
+ * callers with string fields intern first (`encodeTokenToBytes`).
  */
 export function encodeTokenAttributeValue(
   element: ColorElement,

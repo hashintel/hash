@@ -429,8 +429,16 @@ const main = async () => {
 
   // Connect to Redis
   const redis = await createRedisClient({ url: redisUrl, logger }).connect();
-  const keyv = new Keyv({ store: new KeyvRedis(redis) });
   shutdown.addCleanup("Redis", async () => redis.close());
+
+  /**
+   * `@keyv/redis` bundles its own `@redis/client` whose types are
+   * incompatible with our RESP3-configured client, so let it manage its own
+   * connection from the URL.
+   */
+  const keyvRedisStore = new KeyvRedis(redisUrl);
+  const keyv = new Keyv({ store: keyvRedisStore });
+  shutdown.addCleanup("Keyv Redis", async () => keyvRedisStore.disconnect());
 
   // Connect to the Graph API
   const graphApi = createGraphClient(logger, {

@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "paths": {
+      "@hashintel/petrinaut-core": ["../petrinaut-core/src/index.ts"],
+      "@hashintel/petrinaut-core/compiled-model": [
+        "../petrinaut-core/src/compiled-model.ts"
+      ]
+    }
+  },
+  "include": ["src", "vite.config.ts", "../petrinaut-core/src/vite-types.d.ts"]
+}

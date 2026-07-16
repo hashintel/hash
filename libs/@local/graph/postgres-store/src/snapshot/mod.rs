@@ -30,6 +30,7 @@ use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
     channel::mpsc, stream,
 };
+use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{error::InsertionError, filter::QueryRecord, pool::StorePool, query::Read};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
@@ -57,7 +58,7 @@ use uuid::Uuid;
 use crate::{
     snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
     store::postgres::{
-        AsClient, PolicyParts, PostgresStore, PostgresStorePool,
+        AsClient, InTransaction, PolicyParts, PostgresStore, PostgresStorePool,
         query::{OnConflict, TableName, bulk_insert, rows::PostgresRow},
     },
 };
@@ -255,14 +256,14 @@ impl SnapshotEntry {
 
 trait WriteBatch<C> {
     fn begin(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn write(
         self,
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn commit(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
         ignore_validation_errors: bool,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
 }
@@ -1172,7 +1173,7 @@ where
 
         let mut client = self
             .0
-            .transaction()
+            .begin_transaction()
             .await
             .change_context(SnapshotRestoreError::Write)?;
 

@@ -1,4 +1,10 @@
-import type { RoleName, WebId } from "@blockprotocol/type-system";
+import type { GraphApi } from "../../graph/context-types";
+import type {
+  ActorEntityUuid,
+  RoleName,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 
 /**
  * Reference to a stored artifact that a named analysis resolves to. The gateway
@@ -20,6 +26,8 @@ export interface AnalysisResolutionContext {
    * analysis resolves must live under this web's storage prefix.
    */
   webId: WebId;
+  /** The (authenticated, web-authorised) actor making the request. */
+  actorId: ActorEntityUuid;
   /** Validated-as-an-object analysis arguments (may be empty). */
   args: Record<string, unknown>;
   /**
@@ -27,6 +35,16 @@ export interface AnalysisResolutionContext {
    * or manifest during resolution. Returns `null` if the object is missing.
    */
   loadArtifact: (key: string) => Promise<Buffer | null>;
+  /**
+   * Get a stored artifact's last-modified time without downloading it, e.g.
+   * to decide whether a cached computation is stale. Returns `null` if the
+   * object is missing.
+   */
+  getArtifactLastModified: (key: string) => Promise<Date | null>;
+  /** Graph API client, for analyses that resolve against graph entities. */
+  graphApi: GraphApi;
+  /** Temporal client, for analyses that trigger background (re)computation. */
+  temporalClient: TemporalClient;
 }
 
 /** The outcome of resolving a single invocation. */

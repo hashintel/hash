@@ -4,6 +4,7 @@ import { logger } from "../../logger";
 import { getAnalysisMetadata } from "../shared/analysis-registry";
 import {
   AnalysisArgError,
+  AnalysisExecutionError,
   AnalysisNotFoundError,
   DatasetUnavailableError,
 } from "../shared/errors";
@@ -12,6 +13,7 @@ import { isWebScopedKeyForWeb } from "../shared/storage-key";
 import type { GraphApi } from "../../graph/context-types";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AnalysisInvocation,
   AnalysisResult,
@@ -50,6 +52,7 @@ export interface ResolveInvocationParams {
   invocation: AnalysisInvocation;
   actorId: ActorEntityUuid;
   graphApi: GraphApi;
+  temporalClient: TemporalClient;
   uploadProvider: FileStorageProvider;
   cache: Keyv;
 }
@@ -58,6 +61,7 @@ export const resolveInvocation = async ({
   invocation,
   actorId,
   graphApi,
+  temporalClient,
   uploadProvider,
   cache,
 }: ResolveInvocationParams): Promise<AnalysisResult> => {
@@ -134,10 +138,17 @@ export const resolveInvocation = async ({
       }
     };
 
+    const getArtifactLastModified = (key: string): Promise<Date | null> =>
+      uploadProvider.getObjectLastModified({ key });
+
     const resolution = await analysis.resolve({
       webId,
+      actorId,
       args,
       loadArtifact,
+      getArtifactLastModified,
+      graphApi,
+      temporalClient,
     });
 
     if (resolution.status === "computing") {
@@ -205,6 +216,7 @@ export const resolveInvocation = async ({
   } catch (error) {
     if (
       error instanceof WebAuthorisationError ||
+      error instanceof AnalysisExecutionError ||
       error instanceof AnalysisArgError ||
       error instanceof AnalysisNotFoundError ||
       error instanceof DatasetUnavailableError

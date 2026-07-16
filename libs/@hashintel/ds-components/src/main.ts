@@ -20,6 +20,7 @@ export type {
   ItemOrGroup,
 } from "./components/Menu/SelectableList/selectable-list";
 export { NumberInput } from "./components/NumberInput/number-input";
+export { Popover, type PopoverProps } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
 export { RadioGroup } from "./components/RadioGroup/radio-group";
 export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";

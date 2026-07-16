@@ -1,7 +1,7 @@
 import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 const buttonStyle = cva({
   base: {
@@ -62,6 +62,8 @@ interface ToolbarButtonProps {
   draggable?: boolean;
   /** Drag start handler */
   onDragStart?: (event: React.DragEvent) => void;
+  /** Forwarded to the underlying `<button>` (e.g. to anchor a popover) */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -78,6 +80,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   ariaExpanded,
   draggable = false,
   onDragStart,
+  ref,
 }) => {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.key === "Enter" || event.key === " ") && onClick) {
@@ -89,6 +92,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   return (
     <Tooltip content={tooltip}>
       <button
+        ref={ref}
         type="button"
         onClick={onClick}
         onKeyDown={handleKeyDown}

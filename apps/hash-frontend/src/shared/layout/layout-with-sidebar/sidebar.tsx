@@ -1,4 +1,8 @@
-import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChartColumn,
+  faHome,
+  faTruckFast,
+} from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -161,6 +165,17 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
         activeIfPathMatches: /^\/processes(\/|$)/,
       },
+      ...(enabledFeatureFlags.dashboards
+        ? [
+            {
+              title: "Dashboards",
+              path: "/dashboards",
+              icon: <FontAwesomeIcon icon={faChartColumn} />,
+              activeIfPathMatches: /^\/dashboards?(\/|$)/,
+              tooltipTitle: "",
+            },
+          ]
+        : []),
       {
         title: "Inbox",
         path: getInboxHref({
@@ -209,6 +224,7 @@ export const PageSidebar: FunctionComponent = () => {
     workersSection,
     numberOfUnreadNotifications,
     pendingInvites.length,
+    enabledFeatureFlags.dashboards,
     enabledFeatureFlags.notes,
   ]);
 

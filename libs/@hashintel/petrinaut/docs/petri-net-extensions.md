@@ -15,7 +15,7 @@ Each dimension has one of five value types, chosen with the dropdown next to the
 - **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
 - **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
 - **Boolean** -- `true` or `false`.
-- **UUID** -- a 128-bit identifier, useful for tracking individual entities across places. In code a UUID dimension is a `bigint`. In transition kernel outputs a UUID dimension is optional: leave it out and the engine generates a fresh UUID automatically (deterministically per simulation seed), or set it explicitly with `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or an input token's UUID (to carry an identity through the transition). Any non-UUID value you supply (a number, or free text like `order-1`) is converted deterministically to a UUID, so the same input always yields the same identifier.
+- **UUID** -- a 128-bit identifier, useful for tracking individual entities across places. In code a UUID dimension is a `bigint`. In transition kernel outputs a UUID dimension is optional: leave it out and the engine generates a fresh UUID automatically (deterministically per simulation seed), or set it explicitly with `Uuid.generate()`, a UUID string, or an input token's UUID (to carry an identity through the transition). To derive an identifier from a number or free text such as `order-1`, wrap the value in `Uuid.from(value)`; supplying the non-UUID value directly is a type error.
 - **String** -- free-form text, such as a status label or a category name. In code a String dimension is a plain JavaScript string, and strings are compared by value (`token.status === "shipped"` works as expected). Strings are stored efficiently: each distinct value is kept once per simulation run, no matter how many tokens carry it. Kernels and initial markings write String values; dynamics can read them but never change them.
 
 Integer, Boolean, UUID, and String dimensions are **discrete**: their values only change when a transition fires (via a transition kernel), never through dynamics.
@@ -221,8 +221,23 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 
 ## Diagnostics
 
-The **Diagnostics** tab in the bottom panel shows TypeScript errors in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the error in context.
+The **Diagnostics** tab in the bottom panel shows problems in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the problem in context.
 
 Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
-Diagnostics must be resolved before running a simulation -- pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation.
+Diagnostics come in two flavours:
+
+- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain.
+- **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
+
+### Supported code subset
+
+Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinaut's own compiler, which accepts a focused expression subset of TypeScript rather than arbitrary programs:
+
+- `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
+- Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
+- Token access (`input.Place[0].attr`, `.length`) and `Distribution.*` constructors (with `.map` transforms).
+- Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`.
+- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number).
+
+Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.

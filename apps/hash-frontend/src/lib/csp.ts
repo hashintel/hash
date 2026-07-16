@@ -24,7 +24,7 @@ export const buildCspHeader = (nonce: string): string => {
       `'nonce-${nonce}'`,
       // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
       "'wasm-unsafe-eval'",
-      // Next.js dev mode uses eval() for Fast Refresh / HMR
+      // Next.js dev mode uses eval() for Fast Refresh / HMR.
       ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
       // Google Identity Services (OAuth sign-in)
       "https://accounts.google.com",

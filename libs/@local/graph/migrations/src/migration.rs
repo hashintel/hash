@@ -2,7 +2,7 @@ use core::error::Error;
 
 use error_stack::Report;
 
-use crate::context::Context;
+use crate::context::{Context, ContextTransaction};
 
 pub trait Migration {
     type Context: Context;
@@ -11,11 +11,11 @@ pub trait Migration {
 
     async fn up(
         self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
+        context: &mut ContextTransaction<'_, Self::Context>,
     ) -> Result<(), Report<Self::Error>>;
 
     async fn down(
         self,
-        context: &mut <Self::Context as Context>::Transaction<'_>,
+        context: &mut ContextTransaction<'_, Self::Context>,
     ) -> Result<(), Report<Self::Error>>;
 }

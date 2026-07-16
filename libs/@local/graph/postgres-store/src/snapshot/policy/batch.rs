@@ -6,7 +6,7 @@ use tracing::Instrument as _;
 use super::table::{PolicyActionRow, PolicyEditionRow, PolicyRow};
 use crate::{
     snapshot::{SnapshotInsertOptions, WriteBatch, insert_rows_batch},
-    store::{AsClient, PostgresStore, postgres::query::OnConflict},
+    store::{AsClient, InTransaction, PostgresStore, postgres::query::OnConflict},
 };
 
 pub enum PolicyRowBatch {
@@ -19,7 +19,9 @@ impl<C> WriteBatch<C> for PolicyRowBatch
 where
     C: AsClient,
 {
-    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
+    async fn begin(
+        postgres_client: &mut PostgresStore<C, InTransaction>,
+    ) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -52,7 +54,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -103,7 +105,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C>,
+        postgres_client: &mut PostgresStore<C, InTransaction>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client

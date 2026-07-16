@@ -1,5 +1,8 @@
+import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
+import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
 import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity.js";
+import { generateStructuralQueryAction } from "./flow-activities/generate-structural-query-action.js";
 import { generateWebQueriesAction } from "./flow-activities/generate-web-queries-action.js";
 import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action.js";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action.js";
@@ -20,18 +23,21 @@ import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flow
 export const createFlowActionActivities: CreateFlowActivities<
   AiFlowActionDefinitionId
 > = ({ vaultClient }: { vaultClient: VaultClient }) => ({
+  analyzeEntityDataAction,
+  generateStructuralQueryAction,
+  answerQuestionAction,
+  generateChartConfigAction,
   generateWebQueriesAction,
-  webSearchAction,
+  getFileFromUrlAction,
   getWebPageByUrlAction,
-  processAutomaticBrowsingSettingsAction,
+  getWebPageSummaryAction,
   inferEntitiesFromContentAction,
   inferMetadataFromDocumentAction,
-  persistEntityAction,
   persistEntitiesAction,
-  getFileFromUrlAction,
+  persistEntityAction,
+  processAutomaticBrowsingSettingsAction,
   researchEntitiesAction,
-  getWebPageSummaryAction,
-  answerQuestionAction,
+  webSearchAction,
   writeGoogleSheetAction(
     params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
   ) {

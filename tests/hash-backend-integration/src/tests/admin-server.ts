@@ -6,6 +6,18 @@ import { StatusCode } from "@local/status";
 
 import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 
+/**
+ * Throw unless running in the snapshot group (`vitest.snapshot.config.ts`),
+ * the only group allowed to wipe the shared system graph.
+ */
+const assertRunningInSnapshotGroup = (operation: string) => {
+  if (process.env.HASH_TEST_GROUP !== "snapshot") {
+    throw new Error(
+      `\`${operation}\` wipes the graph seeded by \`globalSetup\`, so it may only run in the snapshot group (\`vitest.snapshot.config.ts\`). To make a test file destructive, place it under \`src/tests/subgraph/\`.`,
+    );
+  }
+};
+
 // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";
 
@@ -96,8 +108,12 @@ export const deleteEntities = async () => {
 
 /**
  * Restore a snapshot from a file.
+ *
+ * Destructive – may only run in the snapshot group.
  */
 export const restoreSnapshot = async (snapshotPath: string) => {
+  assertRunningInSnapshotGroup("restoreSnapshot");
+
   await fetch(`http://127.0.0.1:${port}/snapshot`, {
     method: "POST",
     body: createReadStream(snapshotPath),
@@ -137,8 +153,12 @@ export const deleteUser = async (
  * Reset the Graph.
  *
  * This is a convenience function for deleting all entities, entity types, property types, data types, and accounts.
+ *
+ * Destructive – may only run in the snapshot group.
  */
 export const resetGraph = async () => {
+  assertRunningInSnapshotGroup("resetGraph");
+
   await deleteEntities();
   await deleteEntityTypes();
   await deletePropertyTypes();

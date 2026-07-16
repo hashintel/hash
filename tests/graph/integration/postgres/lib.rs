@@ -20,6 +20,7 @@ mod property_metadata;
 mod property_type;
 mod read_only;
 mod sorting;
+mod transaction;
 
 use std::collections::{HashMap, HashSet};
 
@@ -31,8 +32,8 @@ use hash_graph_authorization::policies::{
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
-        PostgresStoreSettings,
+        Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, InTransaction,
+        PostgresStore, PostgresStorePool, PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
@@ -99,7 +100,7 @@ pub struct DatabaseTestWrapper {
 }
 
 pub struct DatabaseApi<'pool> {
-    store: PostgresStore<Transaction<'pool>>,
+    store: PostgresStore<Transaction<'pool>, InTransaction>,
     account_id: ActorEntityUuid,
 }
 
@@ -820,7 +821,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn query_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
@@ -828,7 +829,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn search_entities(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
@@ -836,7 +837,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn query_entity_subgraph(
-        &self,
+        &mut self,
         actor_id: ActorEntityUuid,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {

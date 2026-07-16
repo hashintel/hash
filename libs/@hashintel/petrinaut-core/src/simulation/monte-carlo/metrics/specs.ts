@@ -1,7 +1,6 @@
-import { compileMetric } from "../../authoring/metric/compile-metric";
-import { buildMetricState } from "../../frames/metric-state";
+import { createHirMetricEvaluator } from "../../frames/hir-metric";
 
-import type { Metric, SDCPN } from "../../../types/sdcpn";
+import type { SDCPN } from "../../../types/sdcpn";
 import type {
   MonteCarloMetricSpec,
   MonteCarloMetricSpecBase,
@@ -31,20 +30,21 @@ function createExpressionMetricConfig(
   spec: Extract<MonteCarloMetricSpec, { kind: "expression" }>,
   sdcpn: SDCPN,
 ): MonteCarloUserDefinedMetricConfig {
-  const metric: Metric = {
-    id: spec.id,
-    name: spec.label,
-    code: spec.code,
-  };
-  const compiled = compileMetric(metric);
-
-  if (!compiled.ok) {
-    throw new Error(compiled.error);
+  // Expression metrics run exclusively as HIR-compiled buffer programs.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- guards specs built before artifact threading (e.g. persisted configs)
+  if (!spec.artifact) {
+    throw new Error(
+      `Metric "${spec.label}" has no compiled artifact — expression metrics must be compiled through the HIR before starting an experiment.`,
+    );
   }
 
-  return applyMetricSpecBase(spec, ({ frame }) =>
-    compiled.fn(buildMetricState(frame, sdcpn.places)),
-  );
+  const evaluate = createHirMetricEvaluator({
+    metricName: spec.label,
+    artifact: spec.artifact,
+    places: sdcpn.places,
+  });
+
+  return applyMetricSpecBase(spec, ({ frame }) => evaluate(frame));
 }
 
 export function createMonteCarloUserDefinedMetricConfigsFromSpecs(

@@ -7,20 +7,21 @@
 
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type {
+  HirArtifacts,
+  HirCompiledBufferKernel,
+  HirCompiledBufferLambda,
+} from "../../hir-runtime";
+import type {
   Color,
   InputArcType,
   Place,
   SDCPN,
-  TokenAttributeValue,
-  TokenRecord,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
-import type { RuntimeDistribution } from "../authoring/user-code/distribution";
-import type { UuidSentinel } from "../authoring/user-code/uuid-runtime";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 import type { StringPool } from "./string-pool";
-import type { TokenSlotLayout } from "./token-layout";
+import type { TokenRegionViews, TokenSlotLayout } from "./token-layout";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -45,40 +46,6 @@ export type DifferentialEquationFn = (
   numberOfTokens: number,
 ) => Float64Array;
 
-export type TransitionTokenValues = Record<string, TokenRecord[]>;
-/**
- * Kernel output tokens keyed by output place name. `uuid` attributes may be
- * omitted (`undefined` — the engine auto-generates a UUID from the seeded
- * RNG) or produced via the `Uuid.generate()` / `Uuid.from(value)` sentinels.
- */
-export type TransitionKernelOutput = Record<
-  string,
-  Record<
-    string,
-    TokenAttributeValue | RuntimeDistribution | UuidSentinel | undefined
-  >[]
->;
-
-/**
- * Engine-facing lambda function for transition firing probability.
- *
- * Runtime parameter values are already bound by `buildSimulation`.
- *
- * Returns a rate (number) for stochastic transitions or a boolean for predicate transitions.
- */
-export type LambdaFn = (tokenValues: TransitionTokenValues) => number | boolean;
-
-/**
- * Engine-facing transition kernel function for token generation.
- *
- * Runtime parameter values are already bound by `buildSimulation`.
- *
- * Computes the output tokens to create when a transition fires.
- */
-export type TransitionKernelFn = (
-  tokenValues: TransitionTokenValues,
-) => TransitionKernelOutput;
-
 export type CompiledTransitionPlace = {
   placeId: string;
   placeName: string;
@@ -93,13 +60,33 @@ export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
   arcType: InputArcType;
 };
 
+/**
+ * One transition, compiled to buffer-ABI HIR programs plus reusable scratch.
+ * The scratch arrays are shared across evaluations — the engine is
+ * single-threaded per simulation instance.
+ */
 export type CompiledTransition = {
   id: string;
   name: string;
   inputPlaces: readonly CompiledTransitionInputPlace[];
   outputPlaces: readonly CompiledTransitionPlace[];
-  lambdaFn: LambdaFn;
-  transitionKernelFn: TransitionKernelFn;
+  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
+   * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
+  lambdaFn: HirCompiledBufferLambda;
+  /** Buffer-ABI kernel writing into `kernelStaging`, or null when the
+   * transition has no colored output places. */
+  kernelFn: HirCompiledBufferKernel | null;
+  /** Reusable scratch (single-threaded per instance): one base BYTE offset
+   * per colored non-inhibitor input arc, in arc order. */
+  placeBases: Int32Array;
+  /** Reusable scratch: one selected token index per input token slot (sum of
+   * those arcs' weights — see `hir/surface-context.ts` slot layout). */
+  indices: Int32Array;
+  /** Reusable kernel output staging: colored output arcs place-major, tokens
+   * back-to-back (`strideBytes` each). */
+  kernelStaging: Uint8Array;
+  /** f64/u64/u8 views over `kernelStaging` (see `createTokenRegionViews`). */
+  kernelStagingViews: TokenRegionViews;
 };
 
 /**
@@ -120,6 +107,13 @@ export type SimulationInput = {
   dt: number;
   /** Maximum simulation time (immutable once set). Null means no limit. */
   maxTime: number | null;
+  /**
+   * Optional precompiled HIR artifacts (see `compileHirArtifacts`). When an
+   * item has an artifact it is instantiated directly. Items with required user
+   * code and no artifact fail to build. Artifacts must be produced from the
+   * same SDCPN snapshot.
+   */
+  hirArtifacts?: HirArtifacts;
 };
 
 /**

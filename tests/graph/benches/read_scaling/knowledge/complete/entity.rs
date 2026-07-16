@@ -1,4 +1,4 @@
-use core::{iter::repeat_n, str::FromStr as _};
+use core::{cell::RefCell, iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
@@ -6,6 +6,7 @@ use criterion_macro::criterion;
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
+use hash_graph_postgres_store::store::{Context as _, Transaction as _};
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams,
@@ -217,10 +218,15 @@ async fn seed_db(
     }
 }
 
+#[expect(
+    clippy::await_holding_refcell_ref,
+    reason = "criterion drives one benchmark future at a time to completion on a single thread, \
+              so the `RefCell` borrow is never contended"
+)]
 pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store,
+    store: &RefCell<&mut Store>,
     actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
     traversal_params: &SubgraphTraversalParams,
@@ -239,6 +245,7 @@ pub fn bench_get_entity_by_id(
             let traversal_params = traversal_params.clone();
             async move {
                 store
+                    .borrow_mut()
                     .query_entity_subgraph(
                         actor_id,
                         QueryEntitySubgraphParams::from_parts(
@@ -288,7 +295,9 @@ fn bench_scaling_read_entity(
             entity_list: entity_metadata_list,
             ..
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
-        let store = &store_wrapper.store;
+        // `query_entity_subgraph` takes `&mut self` to run the read in a single transaction;
+        // the `RefCell` provides the mutable borrow from within the benchmark closures.
+        let store = RefCell::new(&mut *store_wrapper.store);
 
         let function_id = format!("entity_by_id;{name}");
         let parameter = format!("{size} entities");
@@ -300,7 +309,7 @@ fn bench_scaling_read_entity(
                 bench_get_entity_by_id(
                     bencher,
                     &runtime,
-                    store,
+                    &store,
                     account_id,
                     entity_list,
                     traversal_params,

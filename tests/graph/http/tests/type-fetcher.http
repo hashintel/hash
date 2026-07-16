@@ -1,0 +1,119 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+#
+# The type fetcher is addressed as `localhost` (not `127.0.0.1`) on purpose: the embedded type
+# fetcher binds the host configured via `HASH_GRAPH_TYPE_FETCHER_HOST`, which is `localhost` in CI
+# and in `.env`. On IPv6-capable hosts `localhost` resolves to `::1` first, so the listener may
+# only be reachable via `::1` and not via `127.0.0.1`.
+
+### Health check (GET)
+GET http://localhost:4455/health
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Health check (HEAD, used by the healthcheck probes)
+HEAD http://localhost:4455/health
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Fetch a bundled built-in data type
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+[
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+]
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.test("body", function() {
+        client.assert(response.body.length === 1, "Expected exactly one fetched type");
+        client.assert(response.body[0].length === 2, "Expected a [type, timestamp] pair");
+        client.assert(response.body[0][0].kind === "dataType", "Expected a data type");
+        client.assert(
+            response.body[0][0]["$id"] === "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "Expected the requested $id"
+        );
+        client.assert(response.body[0][1] !== undefined, "Expected a fetch timestamp");
+    });
+%}
+
+### Fetch multiple bundled built-in data types
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+[
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+]
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.test("body", function() {
+        client.assert(response.body.length === 2, "Expected exactly two fetched types");
+        // Results are fetched concurrently, so the order is not guaranteed
+        const ids = response.body.map(function(pair) { return pair[0]["$id"]; });
+        client.assert(
+            ids.includes("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"),
+            "Expected the text data type"
+        );
+        client.assert(
+            ids.includes("https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"),
+            "Expected the number data type"
+        );
+    });
+%}
+
+### Fetch an unresolvable URL
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+[
+  "https://hash.invalid/@example/types/data-type/unresolvable/v/1"
+]
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Expected 500 for an unresolvable URL");
+    });
+    client.test("body", function() {
+        client.assert(response.body.Network !== undefined, "Expected a `Network` fetcher error");
+    });
+%}
+
+### Well-formed JSON which is not a list of versioned URLs
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+{
+  "urls": []
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 422, "Expected 422 for a mistyped request body");
+    });
+%}
+
+### Malformed JSON body
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+not-json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Expected 400 for a malformed JSON body");
+    });
+%}

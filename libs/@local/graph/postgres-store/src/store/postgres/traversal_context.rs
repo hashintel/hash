@@ -30,14 +30,15 @@ use type_system::{
 };
 
 use crate::store::postgres::{
-    AsClient, PostgresStore,
+    AsClient, PostgresStore, TransactionState,
     crud::QueryRecordDecode as _,
     query::{PostgresRecord as _, SelectCompiler},
 };
 
-impl<C> PostgresStore<C>
+impl<C, S> PostgresStore<C, S>
 where
     C: AsClient,
+    S: TransactionState,
 {
     #[tracing::instrument(level = "info", skip(self, data_type_ids, subgraph))]
     async fn read_data_types_by_ids(
@@ -281,9 +282,9 @@ impl<'edges> TraversalContext<'edges> {
     /// Returns an error if any of the database read operations fail or if there are issues
     /// inserting vertices into the subgraph.
     #[tracing::instrument(level = "info", skip(self, store, subgraph))]
-    pub async fn read_traversed_vertices<C: AsClient>(
+    pub async fn read_traversed_vertices<C: AsClient, S: TransactionState>(
         self,
-        store: &PostgresStore<C>,
+        store: &PostgresStore<C, S>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
         policy_components: &PolicyComponents,

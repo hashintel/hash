@@ -13,8 +13,15 @@ export default defineConfig(({ command }) => ({
       entry: {
         index: resolve(packageRoot, "src/index.ts"),
         // Dedicated edge-safe entry exposing only the AI prompt + tool schemas.
-        // Needed to avoid pulling in heavy and edge-incompatible deps (e.g. @babel/standalone)
         ai: resolve(packageRoot, "src/ai.ts"),
+        // Node/tooling-only reusable model compiler. This depends on the
+        // TypeScript-powered HIR compiler and must stay out of the main entry.
+        "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
+        // HIR compiler (bundles the TypeScript frontend — heavy; used by the
+        // LSP worker internally and by tooling/playgrounds).
+        hir: resolve(packageRoot, "src/hir.ts"),
+        // Dependency-free instantiation of compiled HIR artifacts.
+        "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
@@ -28,7 +35,8 @@ export default defineConfig(({ command }) => ({
     },
     rolldownOptions: {
       external: [
-        "@babel/standalone",
+        // Peer (optional): only the ./hir compiler entry needs it.
+        "typescript",
         "elkjs",
         "immer",
         "uuid",

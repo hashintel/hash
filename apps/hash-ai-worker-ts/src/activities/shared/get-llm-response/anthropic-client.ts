@@ -20,6 +20,7 @@ export const anthropic = new Anthropic({
 const permittedAnthropicModels = [
   "claude-sonnet-4-6",
   "claude-opus-4-6",
+  "claude-opus-4-8",
   "claude-haiku-4-5-20251001",
 ] satisfies MessageCreateParamsBase["model"][];
 
@@ -37,6 +38,7 @@ export const anthropicMessageModelToContextWindow: Record<
 > = {
   "claude-haiku-4-5-20251001": 200_000,
   "claude-opus-4-6": 200_000,
+  "claude-opus-4-8": 200_000,
   "claude-sonnet-4-6": 200_000,
 };
 
@@ -49,6 +51,8 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-haiku-4-5-20251001": 12_000,
   // actually 128k, but we should implement streaming mode to handle higher.
   "claude-opus-4-6": 12_000,
+  // actually 128k, but we should implement streaming mode to handle higher.
+  "claude-opus-4-8": 12_000,
   // actually 64k, but we should implement streaming mode to handle higher.
   "claude-sonnet-4-6": 12_000,
 };
@@ -87,6 +91,7 @@ const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
 type AnthropicBedrockModel =
   | "anthropic.claude-haiku-4-5-20251001-v1:0"
   | "anthropic.claude-opus-4-6-v1"
+  | "anthropic.claude-opus-4-8-v1"
   | "anthropic.claude-sonnet-4-6";
 
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
@@ -96,18 +101,59 @@ export const anthropicModelToBedrockModel: Record<
 > = {
   "claude-haiku-4-5-20251001": "anthropic.claude-haiku-4-5-20251001-v1:0",
   "claude-opus-4-6": "anthropic.claude-opus-4-6-v1",
+  "claude-opus-4-8": "anthropic.claude-opus-4-8-v1",
   "claude-sonnet-4-6": "anthropic.claude-sonnet-4-6",
 };
 
 export type AnthropicApiProvider = "anthropic" | "amazon-bedrock";
 
+/**
+ * Claude Opus 4.8 rejects non-default sampling parameters (`temperature`,
+ * `top_p`, `top_k`) with a 400 error, and replaces manual thinking budgets
+ * with adaptive thinking controlled by an `effort` parameter.
+ *
+ * @see https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8
+ */
+const normalizePayloadForModel = (
+  payload: AnthropicMessagesCreateParams,
+): AnthropicMessagesCreateParams => {
+  if (payload.model !== "claude-opus-4-8") {
+    return payload;
+  }
+
+  const {
+    temperature: _temperature,
+    top_p: _topP,
+    top_k: _topK,
+    ...rest
+  } = payload;
+
+  /**
+   * Thinking is incompatible with forced tool use (`tool_choice` of `any` or
+   * `tool`), so only enable adaptive thinking when the model is free to choose.
+   */
+  const toolChoiceForcesToolUse =
+    rest.tool_choice?.type === "any" || rest.tool_choice?.type === "tool";
+
+  return {
+    ...rest,
+    ...(toolChoiceForcesToolUse
+      ? {}
+      : {
+          thinking: rest.thinking ?? { type: "adaptive" },
+          output_config: rest.output_config ?? { effort: "medium" },
+        }),
+  };
+};
+
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
   provider: AnthropicApiProvider;
 }): Promise<AnthropicMessagesCreateResponse> => {
-  const { payload, provider } = params;
+  const { provider } = params;
+  const payload = normalizePayloadForModel(params.payload);
 
-  let response: Message & { _request_id?: string | null | undefined };
+  let response: Message;
 
   /**
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
@@ -117,7 +163,7 @@ export const createAnthropicMessagesWithTools = async (params: {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (false) {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
-    response = await anthropicBedrockClient.messages.create(
+    const stream = anthropicBedrockClient.messages.stream(
       {
         ...payload,
         model: bedrockModel,
@@ -126,10 +172,12 @@ export const createAnthropicMessagesWithTools = async (params: {
         signal: Context.current().cancellationSignal,
       },
     );
+    response = await stream.finalMessage();
   } else {
-    response = await anthropic.messages.create(payload, {
+    const stream = anthropic.messages.stream(payload, {
       signal: Context.current().cancellationSignal,
     });
+    response = await stream.finalMessage();
   }
 
   return { ...response, provider };

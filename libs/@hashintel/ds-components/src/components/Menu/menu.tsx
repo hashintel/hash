@@ -74,11 +74,8 @@ export const Menu = ({
           <>
             <ArkMenu.Trigger asChild>
               {cloneElement(
-                trigger as React.ReactElement<{
-                  pressed?: boolean;
-                  "aria-pressed"?: boolean;
-                }>,
-                { pressed: menu.open, "aria-pressed": false },
+                trigger as React.ReactElement<{ "aria-expanded"?: boolean }>,
+                { "aria-expanded": menu.open },
               )}
             </ArkMenu.Trigger>
             <Portal container={portalContainerRef}>

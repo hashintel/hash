@@ -17,7 +17,9 @@ export const getActualModePlaceMarkingTokenCount = (
 
   return isActualModeTokenColourArray(markingValue)
     ? markingValue.length
-    : markingValue;
+    : Number.isFinite(markingValue)
+      ? Math.max(0, Math.floor(markingValue))
+      : 0;
 };
 
 const cloneTokenColour = (
@@ -40,7 +42,10 @@ const cloneMarking = (marking: ActualModeMarking): ActualModeMarking =>
   );
 
 const emptyTokens = (count: number): ActualModeTokenColour[] =>
-  Array.from({ length: Math.max(0, Math.floor(count)) }, () => ({}));
+  Array.from(
+    { length: getActualModePlaceMarkingTokenCount(count) },
+    () => ({}),
+  );
 
 const toTokenArray = (
   markingValue: number | ActualModeTokenColour[] | undefined,

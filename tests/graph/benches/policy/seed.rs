@@ -15,7 +15,9 @@ use hash_graph_authorization::policies::{
     principal::PrincipalConstraint,
     store::{CreateWebParameter, PolicyCreationParams, PrincipalStore as _},
 };
-use hash_graph_postgres_store::store::{AsClient, PostgresStore};
+use hash_graph_postgres_store::store::{
+    AsClient, PostgresStore, Transaction as _, TransactionState,
+};
 use type_system::principal::{
     actor::ActorId,
     actor_group::{ActorGroupId, TeamId, WebId},
@@ -110,7 +112,7 @@ pub async fn seed_benchmark_data(
     system_actor_id: ActorId,
     config: &SeedConfig,
 ) -> Result<BenchmarkData, Box<dyn Error>> {
-    let mut transaction = store.transaction().await?;
+    let mut transaction = store.begin_transaction().await?;
 
     let mut data = BenchmarkData::default();
 
@@ -341,7 +343,7 @@ pub async fn seed_benchmark_data(
 /// Creates nested team hierarchy that triggers recursive CTE performance issues.
 /// Returns (`all_teams`, `leaf_teams`) where `leaf_teams` are the deepest level teams.
 async fn create_team_hierarchy(
-    store: &mut PostgresStore<impl AsClient>,
+    store: &mut PostgresStore<impl AsClient, impl TransactionState>,
     web_id: WebId,
     root_teams: usize,
     max_depth: usize,

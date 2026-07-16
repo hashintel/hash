@@ -1,6 +1,6 @@
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +8,6 @@ import {
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
-import { Popover } from "../../../../components/popover";
 import { TableStatusBadge } from "../../../../components/table";
 
 const contentWidthStyle = css({
@@ -26,6 +25,7 @@ const listStyle = css({
   flexDirection: "column",
   maxHeight: "[280px]",
   overflowY: "auto",
+  borderRadius: "[inherit]",
 });
 
 const rowStyle = css({
@@ -42,6 +42,7 @@ const rowStyle = css({
   borderTop: "[none]",
   borderLeft: "[none]",
   borderRight: "[none]",
+  borderRadius: "[inherit]",
   textAlign: "left",
   width: "full",
   _hover: {
@@ -133,6 +134,7 @@ type RunningExperimentsPopoverProps = {
 export const RunningExperimentsPopover = ({
   onExperimentClick,
 }: RunningExperimentsPopoverProps) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const { experiments } = use(ExperimentsContext);
   const activeExperiments = experiments.filter(isExperimentActive);
@@ -144,78 +146,79 @@ export const RunningExperimentsPopover = ({
   const countLabel = `${activeExperiments.length} active`;
 
   return (
-    <Popover.Root
-      open={open}
-      onOpenChange={({ open: isOpen }) => setOpen(isOpen)}
-      positioning={{ placement: "bottom-end", gutter: 8 }}
-      lazyMount
-      unmountOnExit
-    >
-      <Popover.Trigger asChild>
-        <Button
-          size="md"
-          variant="ghost"
-          aria-label={`Show ${countLabel} Monte Carlo simulations`}
-          tooltip="Active Experiments"
-          prefix={<Icon name="flask" size="sm" />}
+    <>
+      <Button
+        ref={triggerRef}
+        size="md"
+        variant="ghost"
+        aria-label={`Show ${countLabel} Monte Carlo simulations`}
+        tooltip="Active Experiments"
+        prefix={<Icon name="flask" size="sm" />}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+      >
+        <span className={triggerCountStyle}>{countLabel}</span>
+      </Button>
+      {open && (
+        <Popover
+          triggerRef={triggerRef}
+          position="bottom-end"
+          onClose={() => setOpen(false)}
         >
-          <span className={triggerCountStyle}>{countLabel}</span>
-        </Button>
-      </Popover.Trigger>
-
-      <Popover.Content className={contentWidthStyle}>
-        <Popover.Header>Active Experiments</Popover.Header>
-        <Popover.Section>
-          <Popover.SectionCard>
-            <div className={listStyle}>
-              {activeExperiments.map((experiment) => {
-                const rowContent = (
-                  <>
-                    <div className={rowMainStyle}>
-                      <span className={experimentNameStyle}>
-                        {experiment.name}
-                      </span>
-                      <span className={experimentMetaStyle}>
-                        {experiment.scenarioName ?? "Default"} -{" "}
-                        {formatProgress(experiment)}
-                      </span>
-                    </div>
-                    <ExperimentStatusBadge status={experiment.status} />
-                    <div className={progressBarStyle}>
-                      <div
-                        className={progressFillStyle}
-                        style={{ width: `${getProgressPercent(experiment)}%` }}
-                      />
-                    </div>
-                  </>
-                );
-
-                if (onExperimentClick) {
-                  return (
-                    <button
-                      key={experiment.id}
-                      type="button"
-                      className={cx(rowStyle, clickableRowStyle)}
-                      onClick={() => {
-                        setOpen(false);
-                        onExperimentClick(experiment);
-                      }}
-                    >
-                      {rowContent}
-                    </button>
+          <Popover.Container className={contentWidthStyle}>
+            <Popover.Header title="Active Experiments" />
+            <Popover.Body withPadding={false}>
+              <div className={listStyle}>
+                {activeExperiments.map((experiment) => {
+                  const rowContent = (
+                    <>
+                      <div className={rowMainStyle}>
+                        <span className={experimentNameStyle}>
+                          {experiment.name}
+                        </span>
+                        <span className={experimentMetaStyle}>
+                          {experiment.scenarioName ?? "Default"} -{" "}
+                          {formatProgress(experiment)}
+                        </span>
+                      </div>
+                      <ExperimentStatusBadge status={experiment.status} />
+                      <div className={progressBarStyle}>
+                        <div
+                          className={progressFillStyle}
+                          style={{
+                            width: `${getProgressPercent(experiment)}%`,
+                          }}
+                        />
+                      </div>
+                    </>
                   );
-                }
 
-                return (
-                  <div key={experiment.id} className={rowStyle}>
-                    {rowContent}
-                  </div>
-                );
-              })}
-            </div>
-          </Popover.SectionCard>
-        </Popover.Section>
-      </Popover.Content>
-    </Popover.Root>
+                  if (onExperimentClick) {
+                    return (
+                      <button
+                        key={experiment.id}
+                        type="button"
+                        className={cx(rowStyle, clickableRowStyle)}
+                        onClick={() => {
+                          setOpen(false);
+                          onExperimentClick(experiment);
+                        }}
+                      >
+                        {rowContent}
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <div key={experiment.id} className={rowStyle}>
+                      {rowContent}
+                    </div>
+                  );
+                })}
+              </div>
+            </Popover.Body>
+          </Popover.Container>
+        </Popover>
+      )}
+    </>
   );
 };

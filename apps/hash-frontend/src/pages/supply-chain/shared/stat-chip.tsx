@@ -16,6 +16,29 @@ const chip = css({
   borderColor: "bd.subtle",
   _last: { borderRightWidth: "0", pr: "0", mr: "0" },
 });
+const chipButton = css({
+  appearance: "none",
+  bg: "[transparent]",
+  borderTopWidth: "0",
+  borderBottomWidth: "0",
+  borderLeftWidth: "0",
+  pt: "0",
+  pb: "0",
+  pl: "0",
+  mt: "0",
+  mb: "0",
+  ml: "0",
+  color: "[inherit]",
+  cursor: "pointer",
+  font: "inherit",
+  textAlign: "left",
+  _hover: { textDecoration: "underline" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "[currentColor]",
+    outlineOffset: "[2px]",
+  },
+});
 const valueBase = css({
   fontWeight: "medium",
   textStyle: "sm",
@@ -35,19 +58,31 @@ export const StatChip = ({
   value,
   label,
   isHighlight,
+  onClick,
 }: {
   value: string;
   label: string;
   isHighlight?: boolean;
+  onClick?: () => void;
 }) => {
-  return (
-    <div className={chip}>
+  const content = (
+    <>
       <span
         className={cx(valueBase, isHighlight ? valueHighlight : valuePlain)}
       >
         {value}
       </span>
       <span className={labelText}>{label}</span>
-    </div>
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" className={cx(chip, chipButton)} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={chip}>{content}</div>;
 };
