@@ -1,5 +1,6 @@
 import { createHirMetricEvaluator } from "../../frames/hir-metric";
 
+import type { DefaultParameterValues } from "../../../parameter-values";
 import type { SDCPN } from "../../../types/sdcpn";
 import type {
   MonteCarloMetricSpec,
@@ -29,6 +30,7 @@ function applyMetricSpecBase(
 function createExpressionMetricConfig(
   spec: Extract<MonteCarloMetricSpec, { kind: "expression" }>,
   sdcpn: SDCPN,
+  parameterValues: DefaultParameterValues,
 ): MonteCarloUserDefinedMetricConfig {
   // Expression metrics run exclusively as HIR-compiled buffer programs.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- guards specs built before artifact threading (e.g. persisted configs)
@@ -42,19 +44,26 @@ function createExpressionMetricConfig(
     metricName: spec.label,
     artifact: spec.artifact,
     places: sdcpn.places,
+    parameterValues,
   });
 
   return applyMetricSpecBase(spec, ({ frame }) => evaluate(frame));
 }
 
+/**
+ * Builds executable Monte-Carlo metric configs from persisted specs.
+ * `parameterValues` are the run's resolved net parameter values, bound to
+ * ambient `parameters.<name>` reads in expression metrics (defaults to none).
+ */
 export function createMonteCarloUserDefinedMetricConfigsFromSpecs(
   specs: readonly MonteCarloMetricSpec[],
   sdcpn: SDCPN,
+  parameterValues: DefaultParameterValues = {},
 ): MonteCarloUserDefinedMetricConfig[] {
   return specs.flatMap((spec) => {
     switch (spec.kind) {
       case "expression":
-        return [createExpressionMetricConfig(spec, sdcpn)];
+        return [createExpressionMetricConfig(spec, sdcpn, parameterValues)];
       case "placeTokenCountMean":
         return [
           applyMetricSpecBase(spec, ({ frame }) =>

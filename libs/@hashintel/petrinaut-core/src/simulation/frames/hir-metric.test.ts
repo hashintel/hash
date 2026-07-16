@@ -54,4 +54,18 @@ describe("createHirMetricEvaluator", () => {
 
     expect(evaluate(makeFrame())).toBe(42);
   });
+
+  it("binds ambient net parameter values into the program", () => {
+    const evaluate = createHirMetricEvaluator({
+      metricName: "Weighted",
+      artifact: {
+        source: "() => __params.weight * 2",
+        placeNames: [],
+      } satisfies HirMetricArtifact,
+      places: [],
+      parameterValues: { weight: 21 },
+    });
+
+    expect(evaluate(makeFrame())).toBe(42);
+  });
 });

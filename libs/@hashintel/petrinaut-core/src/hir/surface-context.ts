@@ -124,7 +124,9 @@ export type HirMetricPlaceInfo = {
 
 export type HirMetricContext = {
   surface: "metric";
-  /** Metrics have no parameters object — always empty. */
+  /** Root-net parameters, read ambiently in metric code as
+   * `parameters.<name>`. Empty when the parameters extension is disabled.
+   * Scenario parameters are deliberately not exposed to metrics. */
   parameters: HirParameterInfo[];
   /** ALL places of the root net, keyed by display name (last name wins for
    * duplicates, matching the runtime object-key overwrite). */
@@ -319,7 +321,9 @@ export function buildLambdaContext(
 /**
  * Builds the context for a metric: every place of the root net by display
  * name. Uncolored places (and places whose color has no elements) expose
- * `count` plus an empty-record `tokens` array.
+ * `count` plus an empty-record `tokens` array. Root-net parameters are
+ * exposed as ambient `parameters.<name>` reads (gated by the parameters
+ * extension); scenario parameters are not available to metrics.
  */
 export function buildMetricContext(
   sdcpn: SDCPN,
@@ -339,7 +343,7 @@ export function buildMetricContext(
   }
   return {
     surface: "metric",
-    parameters: [],
+    parameters: toParameterInfos(extensions.parameters ? sdcpn.parameters : []),
     places: [...placesByName.values()],
   };
 }

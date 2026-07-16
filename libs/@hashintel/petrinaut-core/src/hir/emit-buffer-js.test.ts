@@ -468,13 +468,20 @@ function compileMetric(
   code: string,
   pool: StringPool,
   placeIndexByName: Record<string, number>,
+  context: HirMetricContext = metricContext,
+  parameterValues: Record<string, number | boolean> = {},
 ) {
-  const program = emitBufferMetricJs(lower(code, "metric"), metricContext);
+  const program = emitBufferMetricJs(lower(code, "metric"), context);
   expect(program).not.toBeNull();
   const placeIndices = new Int32Array(
     program!.placeNames.map((name) => placeIndexByName[name]!),
   );
-  return instantiateHirMetric(program!.source, placeIndices, pool);
+  return instantiateHirMetric(
+    program!.source,
+    parameterValues,
+    placeIndices,
+    pool,
+  );
 }
 
 describe("emitBufferMetricJs (Monte-Carlo frame buffers)", () => {
@@ -495,6 +502,37 @@ describe("emitBufferMetricJs (Monte-Carlo frame buffers)", () => {
         frame.placeOffsets,
       ),
     ).toBe(5 + 30);
+  });
+
+  it("reads ambient net parameters bound at instantiation", () => {
+    const pool = new StringPool();
+    const frame = makeMetricFrame(pool);
+    const contextWithParams: HirMetricContext = {
+      ...metricContext,
+      parameters: [
+        { name: "weight", type: "real" },
+        { name: "enabled", type: "boolean" },
+      ],
+    };
+    // Pool has 3 tokens in the shared metric frame fixture.
+    const fn = compileMetric(
+      `const { weight } = parameters;
+if (!parameters.enabled) return 0;
+return state.places.Pool.count * weight;`,
+      pool,
+      frame.placeIndexByName,
+      contextWithParams,
+      { weight: 4, enabled: true },
+    );
+    expect(
+      fn(
+        frame.views.f64,
+        frame.views.u64,
+        frame.views.u8,
+        frame.placeCounts,
+        frame.placeOffsets,
+      ),
+    ).toBe(3 * 4);
   });
 
   it("compiles reduce over place tokens to a loop", () => {

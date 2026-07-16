@@ -2,6 +2,7 @@ import {
   instantiateHirMetric,
   type HirCompiledMetric,
   type HirMetricArtifact,
+  type HirParameterValues,
 } from "../../hir/instantiate";
 
 import type { Place } from "../../types/sdcpn";
@@ -24,8 +25,11 @@ export function createHirMetricEvaluator(args: {
   artifact: HirMetricArtifact;
   /** Root-net places, used to resolve place display names to ids. */
   places: readonly Pick<Place, "id" | "name">[];
+  /** Resolved net parameter values bound to ambient `parameters.<name>`
+   * reads. Defaults to `{}` (no parameters / parameters extension off). */
+  parameterValues?: HirParameterValues;
 }): (frame: SimulationFrameReader) => number {
-  const { metricName, artifact, places } = args;
+  const { metricName, artifact, places, parameterValues = {} } = args;
   // Last place wins for duplicate names, matching the HIR metric context.
   const placeIdByName = new Map(places.map((place) => [place.name, place.id]));
 
@@ -67,6 +71,7 @@ export function createHirMetricEvaluator(args: {
       }
       program = instantiateHirMetric(
         artifact.source,
+        parameterValues,
         placeIndices,
         poolAdapter,
       );
