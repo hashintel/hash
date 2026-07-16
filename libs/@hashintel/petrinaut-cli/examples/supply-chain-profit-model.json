@@ -400,19 +400,7 @@
           "place_customer_demand": "0",
           "place_sold_orders": "0",
           "place_lost_sales": "0",
-          "place_supply_score": [
-            [
-              0,
-              0,
-              0,
-              1,
-              0,
-              100,
-              34,
-              20,
-              0.25
-            ]
-          ]
+          "place_supply_score": [[0, 0, 0, 1, 0, 100, 34, 20, 0.25]]
         }
       }
     },
@@ -466,19 +454,7 @@
           "place_customer_demand": "0",
           "place_sold_orders": "0",
           "place_lost_sales": "0",
-          "place_supply_score": [
-            [
-              0,
-              0,
-              0,
-              1.35,
-              0,
-              125,
-              37,
-              32,
-              0.33
-            ]
-          ]
+          "place_supply_score": [[0, 0, 0, 1.35, 0, 125, 37, 32, 0.33]]
         }
       }
     }
