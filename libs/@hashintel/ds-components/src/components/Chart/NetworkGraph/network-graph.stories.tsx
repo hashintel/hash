@@ -30,7 +30,12 @@ interface GraphData {
   edges: NetworkGraphEdge[];
 }
 
-const useGraphData = (): GraphData | null => {
+/**
+ * Loads the fixture data, optionally trimmed to the first `nodeLimit` points.
+ * When trimmed, edges are filtered to those whose endpoints are both among the
+ * loaded points, so the graph never references a node that isn't present.
+ */
+const useGraphData = (nodeLimit?: number): GraphData | null => {
   const [data, setData] = useState<GraphData | null>(null);
 
   useEffect(() => {
@@ -46,14 +51,24 @@ const useGraphData = (): GraphData | null => {
           (response) => response.json() as Promise<NetworkGraphEdge[]>,
         ),
       ]);
-      if (status.active) {
-        setData({ points, edges });
+      if (!status.active) {
+        return;
       }
+      if (nodeLimit === undefined) {
+        setData({ points, edges });
+        return;
+      }
+      const limitedPoints = points.slice(0, nodeLimit);
+      const loadedIds = new Set(limitedPoints.map((point) => point.id));
+      const limitedEdges = edges.filter(
+        (edge) => loadedIds.has(edge.fromId) && loadedIds.has(edge.toId),
+      );
+      setData({ points: limitedPoints, edges: limitedEdges });
     })();
     return () => {
       status.active = false;
     };
-  }, []);
+  }, [nodeLimit]);
 
   return data;
 };
@@ -94,12 +109,18 @@ const tooltipStyles = css({
 });
 
 /**
- * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
- * by default; hover a node to reveal its connections and neighbours, and click a
- * node to inspect it. Scroll to zoom and drag to pan.
+ * Shared render for the NetworkGraph stories: fetches the fixture data (trimmed
+ * to `nodeLimit` when given), wires up node/edge selection, and anchors tooltips
+ * to the hovered/clicked target.
  */
-export const Default: Story<NetworkGraphProps> = () => {
-  const data = useGraphData();
+const NetworkGraphStory = ({
+  nodeLimit,
+  loadingLabel,
+}: {
+  nodeLimit?: number;
+  loadingLabel: string;
+}) => {
+  const data = useGraphData(nodeLimit);
   // The frame is the popover's trigger; `positionFromPoint` then anchors the
   // tooltip at a point measured from the frame's top-left.
   const frameRef = useRef<HTMLDivElement>(null);
@@ -197,9 +218,35 @@ export const Default: Story<NetworkGraphProps> = () => {
       ) : (
         <span className={centreStyles}>
           <LoadingSpinner size="md" />
-          Loading ~200k nodes…
+          {loadingLabel}
         </span>
       )}
     </div>
   );
 };
+
+/**
+ * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
+ * by default; hover a node to reveal its connections and neighbours, and click a
+ * node to inspect it. Scroll to zoom and drag to pan.
+ */
+export const Default: Story<NetworkGraphProps> = () => (
+  <NetworkGraphStory loadingLabel="Loading ~200k nodes…" />
+);
+
+/**
+ * The same graph trimmed to the first 10 nodes, with edges filtered to those
+ * connecting two loaded nodes. A tiny subset for inspecting individual nodes.
+ */
+export const TenNodes: Story<NetworkGraphProps> = () => (
+  <NetworkGraphStory nodeLimit={10} loadingLabel="Loading 10 nodes…" />
+);
+
+/**
+ * The same graph trimmed to the first 1,000 nodes, with edges filtered to those
+ * connecting two loaded nodes. A mid-sized subset between {@link TenNodes} and
+ * {@link Default}.
+ */
+export const OneThousandNodes: Story<NetworkGraphProps> = () => (
+  <NetworkGraphStory nodeLimit={1000} loadingLabel="Loading 1,000 nodes…" />
+);

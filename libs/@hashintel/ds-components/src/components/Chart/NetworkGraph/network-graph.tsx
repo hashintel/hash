@@ -194,6 +194,12 @@ const EDGE_LABEL_BORDER_WIDTH = 1;
  */
 const ARROW_SIZE_PX = 10;
 const ARROW_GAP_PX = 6;
+/**
+ * How the arrow gap grows as the user zooms in: the base gap is multiplied by this
+ * per zoom level past the initial framing (`gap = ARROW_GAP_PX · rate^(zoom −
+ * referenceZoom)`), so the gap widens slightly the further you zoom in.
+ */
+const ARROW_GAP_ZOOM_RATE = 1.1;
 /** Resolution (px) the arrow triangle sprite is rasterised at. */
 const ARROW_ICON_TEXTURE = 64;
 
@@ -945,6 +951,19 @@ export const NetworkGraph = ({
   }, [currentZoom, referenceZoom]);
 
   /**
+   * The arrow gap (px), grown slightly as the user zooms in: {@link ARROW_GAP_PX}
+   * scaled by {@link ARROW_GAP_ZOOM_RATE} per zoom level past the initial framing.
+   * Shared by the arrow offset and the edge trim so the trimmed edge end stays
+   * coincident with the arrow tip.
+   */
+  const arrowGapPx = useMemo(() => {
+    if (currentZoom === null || referenceZoom === null) {
+      return ARROW_GAP_PX;
+    }
+    return ARROW_GAP_PX * ARROW_GAP_ZOOM_RATE ** (currentZoom - referenceZoom);
+  }, [currentZoom, referenceZoom]);
+
+  /**
    * Point opacity as a function of zoom, as a three-part curve:
    * 1. fade in from {@link POINT_MIN_OPACITY} (fully zoomed out) to full opacity
    *    by {@link OPACITY_FULL_OFFSET},
@@ -1239,7 +1258,7 @@ export const NetworkGraph = ({
         : targetIsActive
           ? HOVERED_MIN_RADIUS
           : NEIGHBOUR_MIN_RADIUS;
-      const back = targetRadius + ARROW_GAP_PX;
+      const back = targetRadius + arrowGapPx;
       list.push({
         position: target,
         // The view's `flipY` makes world y match screen y (down), so the world
@@ -1280,6 +1299,7 @@ export const NetworkGraph = ({
     highlight,
     edgeById,
     activeNode,
+    arrowGapPx,
   ]);
 
   /**
@@ -1296,7 +1316,7 @@ export const NetworkGraph = ({
     const scale = currentZoom == null ? null : 2 ** currentZoom;
     const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
     const targetTrim =
-      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + ARROW_GAP_PX) / scale;
+      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx) / scale;
     const clip = (path: [number, number][]) =>
       trimPathBothEnds(path, sourceTrim, targetTrim);
     const list: BundledEdge[] = [];
@@ -1313,7 +1333,13 @@ export const NetworkGraph = ({
       });
     }
     return list;
-  }, [isDetailZoom, highlightEdgePaths, hoveredFullEdge, currentZoom]);
+  }, [
+    isDetailZoom,
+    highlightEdgePaths,
+    hoveredFullEdge,
+    currentZoom,
+    arrowGapPx,
+  ]);
 
   /**
    * The compact view's prominent (arrowed) edges — the active node's straight
@@ -1333,7 +1359,7 @@ export const NetworkGraph = ({
       const toId = edgeById.get(line.id)?.toId;
       const targetRadius =
         toId === activeNode?.id ? HOVERED_MIN_RADIUS : NEIGHBOUR_MIN_RADIUS;
-      const worldTrim = (targetRadius + ARROW_GAP_PX) / scale;
+      const worldTrim = (targetRadius + arrowGapPx) / scale;
       const dx = line.target[0] - line.source[0];
       const dy = line.target[1] - line.source[1];
       const length = Math.hypot(dx, dy);
@@ -1347,7 +1373,7 @@ export const NetworkGraph = ({
         ],
       };
     });
-  }, [isDetailZoom, highlight, currentZoom, edgeById, activeNode]);
+  }, [isDetailZoom, highlight, currentZoom, edgeById, activeNode, arrowGapPx]);
 
   /**
    * The faint background bundled edges, minus the prominent (arrowed) ones and each
