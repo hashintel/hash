@@ -407,6 +407,127 @@ impl Expression {
     }
 }
 
+/// Expression-tree traversal.
+///
+/// Both visitors run in pre-order (the expression itself before its children) and do not
+/// descend into [`Expression::Select`] subqueries: statement-level structures own their
+/// traversal. Callers that care about subqueries match on the variant themselves.
+impl Expression {
+    /// Calls `visitor` for this expression and every nested sub-expression.
+    pub fn visit(&self, visitor: &mut impl FnMut(&Self)) {
+        visitor(self);
+        self.for_each_child(&mut |child| child.visit(visitor));
+    }
+
+    /// Calls `visitor` mutably for this expression and every nested sub-expression.
+    pub fn visit_mut(&mut self, visitor: &mut impl FnMut(&mut Self)) {
+        visitor(self);
+        self.for_each_child_mut(&mut |child| child.visit_mut(visitor));
+    }
+
+    fn for_each_child(&self, visitor: &mut dyn FnMut(&Self)) {
+        match self {
+            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+            }
+            Self::Function(function) => function.for_each_child(visitor),
+            Self::Window(expr, window) => {
+                visitor(expr);
+                for partition in &*window.partition_by {
+                    visitor(partition);
+                }
+            }
+            Self::Cast(expr, _)
+            | Self::FieldAccess { expr, .. }
+            | Self::ArrayElement { expr, .. }
+            | Self::Grouped(expr) => visitor(expr),
+            Self::Row(exprs) => {
+                for expr in exprs {
+                    visitor(expr);
+                }
+            }
+            Self::CaseWhen {
+                conditions,
+                else_result,
+            } => {
+                for (condition, result) in conditions {
+                    visitor(condition);
+                    visitor(result);
+                }
+                if let Some(else_result) = else_result {
+                    visitor(else_result);
+                }
+            }
+            Self::Unary(unary) => visitor(&unary.expr),
+            Self::Binary(binary) => {
+                visitor(&binary.left);
+                visitor(&binary.right);
+            }
+            Self::Variadic(variadic) => {
+                for expr in &variadic.exprs {
+                    visitor(expr);
+                }
+            }
+            Self::StartsWith(lhs, rhs)
+            | Self::EndsWith(lhs, rhs)
+            | Self::ContainsSegment(lhs, rhs) => {
+                visitor(lhs);
+                visitor(rhs);
+            }
+        }
+    }
+
+    fn for_each_child_mut(&mut self, visitor: &mut dyn FnMut(&mut Self)) {
+        match self {
+            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+            }
+            Self::Function(function) => function.for_each_child_mut(visitor),
+            Self::Window(expr, window) => {
+                visitor(expr);
+                for partition in &mut *window.partition_by {
+                    visitor(partition);
+                }
+            }
+            Self::Cast(expr, _)
+            | Self::FieldAccess { expr, .. }
+            | Self::ArrayElement { expr, .. }
+            | Self::Grouped(expr) => visitor(expr),
+            Self::Row(exprs) => {
+                for expr in exprs {
+                    visitor(expr);
+                }
+            }
+            Self::CaseWhen {
+                conditions,
+                else_result,
+            } => {
+                for (condition, result) in conditions {
+                    visitor(condition);
+                    visitor(result);
+                }
+                if let Some(else_result) = else_result {
+                    visitor(else_result);
+                }
+            }
+            Self::Unary(unary) => visitor(&mut unary.expr),
+            Self::Binary(binary) => {
+                visitor(&mut binary.left);
+                visitor(&mut binary.right);
+            }
+            Self::Variadic(variadic) => {
+                for expr in &mut variadic.exprs {
+                    visitor(expr);
+                }
+            }
+            Self::StartsWith(lhs, rhs)
+            | Self::EndsWith(lhs, rhs)
+            | Self::ContainsSegment(lhs, rhs) => {
+                visitor(lhs);
+                visitor(rhs);
+            }
+        }
+    }
+}
+
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
