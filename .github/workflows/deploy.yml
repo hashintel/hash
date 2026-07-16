@@ -137,8 +137,6 @@ jobs:
               #   monorepo tooling gives @apps/petrinaut-opt a `build:docker`
               #   task and workspace dependencies; until then turbo cannot see
               #   it and change detection runs on `paths` like kratos/hydra.
-              # The build context is the repo root because the image bundles
-              # the petrinaut-cli server next to the Python API.
               service:    "petrinaut-opt",
               push:       ["ecr"],
               dockerfile: "apps/petrinaut-opt/docker/Dockerfile",
