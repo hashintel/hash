@@ -22,8 +22,8 @@ use super::{
     vector::CanonicalVector,
 };
 use crate::{
-    fit::{FitRequestV1, MINIMUM_FIT_ENTITIES},
     salt::{CANONICAL_DIMENSIONS, ContentHash, ContentHasher, EntityAtEdition, RelationConfidence},
+    salt_fit::{FitRequestV1, MINIMUM_FIT_ENTITIES},
 };
 
 const LINK_ROOT_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";

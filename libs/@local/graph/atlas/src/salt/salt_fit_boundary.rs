@@ -35,7 +35,8 @@ pub(crate) use super::{
     identity::{ArtifactOrdinal, GenerationRowId, IdentityDirectory},
     landmark::{LandmarkCandidate, LandmarkConfig, LandmarkFitConfig, SubgroupMinimum},
     manifest::{
-        ArtifactRole, GenerationManifest, KnowledgeDecisionTimePolicy, RelationSecurityMode,
+        ArtifactRole, GenerationAssuranceMode, GenerationManifest, KnowledgeDecisionTimePolicy,
+        RelationSecurityMode,
     },
     materialize::{CoordinateBounds, ImportanceConfig},
     policy::{PlacementPosterior, Probability},

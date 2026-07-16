@@ -125,7 +125,6 @@ mod card;
 mod classifier;
 mod embedding;
 mod evaluation;
-pub(crate) mod fit_boundary;
 mod format;
 mod generation;
 mod graph;
@@ -140,18 +139,33 @@ mod relation;
 mod release;
 mod representation;
 mod revision;
+pub(crate) mod salt_fit_boundary;
 mod simd;
 mod snapshot;
 mod storage;
 mod strength;
 
+#[cfg(test)]
+pub(crate) use self::{
+    activation::{ActivationOutcome, ActiveRelease},
+    manifest::{fixture_manifest, publish_fixture_artifacts, publish_manifest},
+    release::{
+        publish_gated_candidate,
+        test_support::{external_signer, external_verifiers, passing_evidence, signer},
+    },
+    revision::GenerationId,
+};
 pub(crate) use self::{
     activation::{FileActivationStore, LoadedGeneration},
     hash::{ContentHash, ContentHasher},
-    manifest::{ArtifactManifest, ArtifactRole},
+    manifest::{ArtifactManifest, ArtifactRole, GenerationAssuranceMode},
+    materialize::{
+        EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V2_CONTENT_TYPE, TileRequest, encode_tile,
+    },
     policy::Probability,
     relation::RelationConfidence,
     release::{ExternalGateVerifierSet, GateId, GateVerifier},
     representation::CANONICAL_DIMENSIONS,
+    revision::VariantId,
     snapshot::EntityAtEdition,
 };

@@ -1,6 +1,6 @@
 //! Standalone Atlas fitting and Axum serving process.
 
-use hash_graph_atlas::{cli::run_with, fit::ProductionAtlasTrainer};
+use hash_graph_atlas::{cli::run_with, salt_fit::ProductionAtlasTrainer};
 
 #[tokio::main]
 async fn main() -> Result<(), hash_graph_atlas::cli::AtlasCliError> {

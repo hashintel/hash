@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.config/oxlint/react-compiler.json"],
+  "plugins": ["import", "react", "jsx-a11y", "unicorn", "typescript"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "builtin": true,
+    "es2026": true
+  },
+  "rules": {
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "jsx-a11y/label-has-associated-control": "error",
+    "no-console": "error",
+    "no-shadow": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "all",
+        "argsIgnorePattern": "^_+",
+        "varsIgnorePattern": "^_+"
+      }
+    ],
+    "react/button-has-type": "error",
+    "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
+    "unicorn/filename-case": "error"
+  },
+  "ignorePatterns": ["coverage/**", "dist/**", "node_modules/**"]
+}

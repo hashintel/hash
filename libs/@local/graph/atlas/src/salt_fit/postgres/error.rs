@@ -2,7 +2,7 @@ use core::{error::Error, fmt};
 
 /// Failure while extracting one bounded current PostgreSQL snapshot.
 #[derive(Debug)]
-pub(in crate::fit) enum PostgresExtractionError {
+pub(in crate::salt_fit) enum PostgresExtractionError {
     Postgres(tokio_postgres::Error),
     Store(String),
     EmptyCorpus,

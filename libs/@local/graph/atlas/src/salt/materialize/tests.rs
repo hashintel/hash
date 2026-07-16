@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{fs::File, num::NonZeroUsize};
 
 use camino::Utf8PathBuf;
 use tempfile::tempdir;
@@ -10,8 +10,10 @@ use uuid::Uuid;
 
 use super::*;
 use crate::salt::{
+    activation::ActiveRelease,
     hash::ContentHash,
     identity::{GenerationRowId, IdentityDirectory},
+    revision::VariantId,
     storage::mmap::MappedArtifact,
 };
 
@@ -106,6 +108,10 @@ fn morton_keys_interleave_all_axis_bits() {
     assert_eq!(MortonKey::new(u16::MAX, 0).get(), 0x5555_5555);
     assert_eq!(MortonKey::new(0, u16::MAX).get(), 0xAAAA_AAAA);
     assert_eq!(MortonKey::new(u16::MAX, u16::MAX).get(), u32::MAX);
+    assert_eq!(
+        MortonKey::from_u32(MortonKey::new(123, 45_678).get()).coordinates(),
+        [123, 45_678]
+    );
 }
 
 #[test]
@@ -231,6 +237,60 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
             .as_u8()
             .expect("web IDs should be bytes")[..16],
         first_web.as_bytes()
+    );
+
+    let root = encode_tile(
+        view,
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+        TileRequest::new(0, 0, 0, NonZeroUsize::new(2).expect("two is non-zero"))
+            .expect("root tile should validate"),
+    )
+    .expect("root tile should encode");
+    assert_eq!(root.visible_subtree_count(), 3);
+    assert_eq!(root.delivered_count(), 2);
+    assert_eq!(root.bytes().len(), 160 + 2 * 8);
+    assert_eq!(&root.bytes()[160..164], &2_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[168..172], &1_u32.to_le_bytes());
+    let root_again = encode_tile(
+        view,
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+        TileRequest::new(0, 0, 0, NonZeroUsize::new(2).expect("two is non-zero"))
+            .expect("root tile should validate"),
+    )
+    .expect("root tile should encode deterministically");
+    assert_eq!(root.bytes(), root_again.bytes());
+    assert_eq!(root.content_hash(), root_again.content_hash());
+
+    let leaf = encode_tile(
+        view,
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+        TileRequest::new(16, 2, 2, NonZeroUsize::new(8).expect("eight is non-zero"))
+            .expect("leaf tile should validate"),
+    )
+    .expect("leaf tile should encode");
+    assert_eq!(leaf.visible_subtree_count(), 1);
+    assert_eq!(leaf.delivered_count(), 1);
+    assert_eq!(&leaf.bytes()[160..164], &2_u32.to_le_bytes());
+}
+
+#[test]
+fn tile_requests_reject_invalid_zoom_quadrants_and_budgets() {
+    assert!(TileRequest::new(17, 0, 0, NonZeroUsize::new(1).expect("one is non-zero")).is_err());
+    assert!(TileRequest::new(4, 16, 0, NonZeroUsize::new(1).expect("one is non-zero")).is_err());
+    assert!(
+        TileRequest::new(
+            0,
+            0,
+            0,
+            NonZeroUsize::new(MAXIMUM_TILE_POINTS + 1).expect("maximum plus one is non-zero")
+        )
+        .is_err()
     );
 }
 

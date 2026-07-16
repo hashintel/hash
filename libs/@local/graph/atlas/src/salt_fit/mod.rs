@@ -1,10 +1,11 @@
 //! Concrete current-snapshot fitting for HASH Graph Atlas.
 //!
 //! This façade keeps SALT's numerical and evidence internals private. The
-//! first operational profile is explicitly [`FitAssuranceMode::M0LocalAttestation`]:
-//! it performs direct PostgreSQL extraction and local gate signing while
-//! documenting that authorization linearization and store-issued snapshot
-//! attestation are deferred.
+//! [`FitAssuranceMode::M0LocalAttestation`] profile uses independent external
+//! gate issuers. [`FitAssuranceMode::EvidenceDeferredLocal`] substitutes
+//! explicit provisional local grants. Both perform direct PostgreSQL
+//! extraction and document that authorization linearization and store-issued
+//! snapshot attestation are deferred.
 
 #[path = "config.rs"]
 mod configuration;

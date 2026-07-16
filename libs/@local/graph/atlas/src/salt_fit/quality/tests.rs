@@ -5,7 +5,7 @@ use type_system::{
 use uuid::Uuid;
 
 use super::*;
-use crate::salt::fit_boundary::GenerationRowId;
+use crate::salt::salt_fit_boundary::GenerationRowId;
 
 const ROWS: usize = 51;
 
@@ -20,7 +20,10 @@ fn representation_audit_is_measured_and_corpus_bound() {
         .expect("quality audit should complete");
 
     assert_eq!(prepared.projector.len(), ROWS * PROJECTOR_DIMENSIONS);
-    assert_eq!(prepared.audit.sample_rows, REPRESENTATION_AUDIT_SAMPLE_ROWS);
+    assert_eq!(
+        prepared.audit.sample_rows,
+        ROWS.min(REPRESENTATION_AUDIT_SAMPLE_ROWS)
+    );
     assert!(
         prepared
             .audit

@@ -130,9 +130,14 @@
       "description": "Explicit assurance level of the first operational fitter.",
       "oneOf": [
         {
-          "description": "Locally signed evidence with documented authorization/snapshot gaps.",
+          "description": "Independent gate issuers with documented authorization/snapshot gaps.",
           "type": "string",
           "const": "m0_local_attestation"
+        },
+        {
+          "description": "Local provisional attestations with evidence suites explicitly deferred.",
+          "type": "string",
+          "const": "evidence_deferred_local"
         }
       ]
     }

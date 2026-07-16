@@ -592,6 +592,7 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
         format_version: GENERATION_MANIFEST_FORMAT_VERSION,
         generation_id: GenerationId::new(hash("generation")),
         created_at: JiffTimestamp::UNIX_EPOCH,
+        assurance_mode: GenerationAssuranceMode::IndependentAuthorities,
         input_snapshot: InputSnapshotManifest {
             ontology_transaction_time: Timestamp::<TransactionTime>::UNIX_EPOCH,
             knowledge_transaction_time: Timestamp::<TransactionTime>::UNIX_EPOCH,

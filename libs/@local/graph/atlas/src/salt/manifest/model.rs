@@ -9,7 +9,17 @@ use crate::salt::{
     revision::{AuthorizationRevision, BaseRevision, DeltaRevision, GenerationId, VariantId},
 };
 
-pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 19;
+pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 20;
+
+/// Assurance envelope under which one generation was released.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum GenerationAssuranceMode {
+    /// Independent authorities approved externally owned release gates.
+    IndependentAuthorities,
+    /// Local attestations were accepted while evidence suites remain deferred.
+    EvidenceDeferredLocal,
+}
 
 /// Complete immutable inputs and artifacts for one atlas generation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,6 +28,7 @@ pub(crate) struct GenerationManifest {
     pub format_version: u32,
     pub generation_id: GenerationId,
     pub created_at: Timestamp,
+    pub assurance_mode: GenerationAssuranceMode,
     pub input_snapshot: InputSnapshotManifest,
     pub embedding: EmbeddingManifest,
     pub semantic_graph: SemanticGraphManifest,

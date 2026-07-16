@@ -1,33 +1,47 @@
 //! Local release signing and out-of-process gate issuance.
 
-use core::fmt;
+#![expect(
+    clippy::std_instead_of_core,
+    reason = "core::io::ErrorKind remains unstable on the pinned toolchain"
+)]
+
+use core::{fmt, time::Duration};
 use std::{
-    io::{Read as _, Write as _},
+    io::{ErrorKind, Read as _, Write as _},
     process::{Command, Stdio},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 
-use super::configuration::{LoadedExternalAuthority, LoadedFitAuthorities, LoadedFitAuthority};
-use crate::salt::fit_boundary::{
-    ArtifactRole, ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport,
-    GateEvidenceError, GateId, GateSigner, GateVerifier, GenerationManifest, ReleaseHead,
+use super::{
+    FitAssuranceMode,
+    configuration::{
+        LoadedExternalAuthority, LoadedFitAuthorities, LoadedFitAuthority,
+        deferred_authority_secret,
+    },
+};
+use crate::salt::{
+    ContentHash,
+    salt_fit_boundary::{
+        ArtifactRole, ExternalGateGrant, ExternalGateGrantIssuer, ExternalGateReport,
+        GateEvidenceError, GateId, GateSigner, GateVerifier, GenerationManifest, ReleaseHead,
+    },
 };
 
 const EXTERNAL_ISSUER_PROTOCOL_VERSION: u32 = 1;
 const MAXIMUM_ISSUER_OUTPUT_BYTES: u64 = 4 * 1_024 * 1_024;
-const EXTERNAL_ISSUER_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const EXTERNAL_ISSUER_TIMEOUT: Duration = Duration::from_mins(5);
 
 /// One pinned external process and its out-of-band verifier.
-pub(in crate::fit) struct FitExternalAuthority {
-    pub issuer: CommandExternalGateGrantIssuer,
+pub(in crate::salt_fit) struct FitExternalAuthority {
+    pub issuer: FitGateGrantIssuer,
     pub verifier: GateVerifier,
 }
 
 /// Local release authority paired with eight independently executed gate authorities.
-pub(in crate::fit) struct FitRuntimeAuthorities {
+pub(in crate::salt_fit) struct FitRuntimeAuthorities {
     pub release: GateSigner,
     pub representation: FitExternalAuthority,
     pub semantic_fidelity: FitExternalAuthority,
@@ -40,27 +54,41 @@ pub(in crate::fit) struct FitRuntimeAuthorities {
 }
 
 impl FitRuntimeAuthorities {
-    pub(in crate::fit) fn new(
+    pub(in crate::salt_fit) fn new(
         authorities: &LoadedFitAuthorities,
         atlas_root: &Utf8Path,
+        assurance: FitAssuranceMode,
     ) -> Result<Self, GateEvidenceError> {
+        let authority = |loaded: &LoadedExternalAuthority,
+                         field: &'static str|
+         -> Result<FitExternalAuthority, GateEvidenceError> {
+            match assurance {
+                FitAssuranceMode::M0LocalAttestation => external(loaded, atlas_root),
+                FitAssuranceMode::EvidenceDeferredLocal => {
+                    deferred(&authorities.release, loaded, field)
+                }
+            }
+        };
         Ok(Self {
             release: signer(&authorities.release)?,
-            representation: external(&authorities.representation, atlas_root)?,
-            semantic_fidelity: external(&authorities.semantic_fidelity, atlas_root)?,
-            relation_policy: external(&authorities.relation_policy, atlas_root)?,
-            merge_tree_persistence: external(&authorities.merge_tree_persistence, atlas_root)?,
-            subgroup_behavior: external(&authorities.subgroup_behavior, atlas_root)?,
-            authorization_noninterference: external(
-                &authorities.authorization_noninterference,
-                atlas_root,
+            representation: authority(&authorities.representation, "representation")?,
+            semantic_fidelity: authority(&authorities.semantic_fidelity, "semanticFidelity")?,
+            relation_policy: authority(&authorities.relation_policy, "relationPolicy")?,
+            merge_tree_persistence: authority(
+                &authorities.merge_tree_persistence,
+                "mergeTreePersistence",
             )?,
-            security_approval: external(&authorities.security_approval, atlas_root)?,
-            companion_pin: external(&authorities.companion_pin, atlas_root)?,
+            subgroup_behavior: authority(&authorities.subgroup_behavior, "subgroupBehavior")?,
+            authorization_noninterference: authority(
+                &authorities.authorization_noninterference,
+                "authorizationNoninterference",
+            )?,
+            security_approval: authority(&authorities.security_approval, "securityApproval")?,
+            companion_pin: authority(&authorities.companion_pin, "companionPin")?,
         })
     }
 
-    pub(in crate::fit) const fn external(&self) -> [&FitExternalAuthority; 8] {
+    pub(in crate::salt_fit) const fn external(&self) -> [&FitExternalAuthority; 8] {
         [
             &self.representation,
             &self.semantic_fidelity,
@@ -74,7 +102,7 @@ impl FitRuntimeAuthorities {
     }
 }
 
-pub(in crate::fit) const EXTERNAL_GATES: [GateId; 8] = [
+pub(in crate::salt_fit) const EXTERNAL_GATES: [GateId; 8] = [
     GateId::Representation,
     GateId::SemanticFidelity,
     GateId::RelationPolicy,
@@ -86,9 +114,54 @@ pub(in crate::fit) const EXTERNAL_GATES: [GateId; 8] = [
 ];
 
 /// Separate-process implementation of the exact-head external grant protocol.
-pub(in crate::fit) struct CommandExternalGateGrantIssuer {
+pub(in crate::salt_fit) struct CommandExternalGateGrantIssuer {
     command: Utf8PathBuf,
     atlas_root: Utf8PathBuf,
+}
+
+/// Strict command issuer or explicitly provisional local issuer.
+#[derive(Debug)]
+pub(in crate::salt_fit) enum FitGateGrantIssuer {
+    Command(CommandExternalGateGrantIssuer),
+    Deferred(DeferredExternalGateGrantIssuer),
+}
+
+impl ExternalGateGrantIssuer for FitGateGrantIssuer {
+    fn issue(
+        &self,
+        head: ReleaseHead,
+        manifest: &GenerationManifest,
+        gate: GateId,
+    ) -> Result<ExternalGateGrant, GateEvidenceError> {
+        match self {
+            Self::Command(issuer) => issuer.issue(head, manifest, gate),
+            Self::Deferred(issuer) => issuer.issue(head, manifest, gate),
+        }
+    }
+}
+
+/// Locally derived provisional signer used only by evidence-deferred fits.
+#[derive(Debug)]
+pub(in crate::salt_fit) struct DeferredExternalGateGrantIssuer {
+    signer: GateSigner,
+}
+
+impl ExternalGateGrantIssuer for DeferredExternalGateGrantIssuer {
+    fn issue(
+        &self,
+        head: ReleaseHead,
+        manifest: &GenerationManifest,
+        gate: GateId,
+    ) -> Result<ExternalGateGrant, GateEvidenceError> {
+        let expected = expected_external_report(manifest, gate)?;
+        ExternalGateGrant::sign(
+            head,
+            gate,
+            expected.suite_version(),
+            expected.content_hash(),
+            &self.signer,
+        )
+    }
 }
 
 impl fmt::Debug for CommandExternalGateGrantIssuer {
@@ -140,7 +213,7 @@ impl ExternalGateGrantIssuer for CommandExternalGateGrantIssuer {
             gate,
             reason: "external issuer stderr is unavailable",
         })?;
-        let (status, stdout, _stderr) = std::thread::scope(|scope| {
+        let (status, stdout, stderr) = std::thread::scope(|scope| {
             let stdout = scope.spawn(|| read_bounded(stdout));
             let stderr = scope.spawn(|| read_bounded(stderr));
             (
@@ -154,7 +227,7 @@ impl ExternalGateGrantIssuer for CommandExternalGateGrantIssuer {
             gate,
             reason: "external issuer output reader panicked",
         })??;
-        let _stderr = _stderr.map_err(|()| GateEvidenceError::Failed {
+        let _stderr_output = stderr.map_err(|()| GateEvidenceError::Failed {
             gate,
             reason: "external issuer error reader panicked",
         })??;
@@ -165,8 +238,8 @@ impl ExternalGateGrantIssuer for CommandExternalGateGrantIssuer {
             });
         }
         let grant: ExternalGateGrant = serde_json::from_slice(&stdout)?;
-        if grant.suite_version() != expected.suite_version()
-            || grant.report() != expected.content_hash()
+        if (grant.suite_version(), grant.report())
+            != (expected.suite_version(), expected.content_hash())
         {
             return Err(GateEvidenceError::Failed {
                 gate,
@@ -276,12 +349,47 @@ fn external(
     atlas_root: &Utf8Path,
 ) -> Result<FitExternalAuthority, GateEvidenceError> {
     Ok(FitExternalAuthority {
-        issuer: CommandExternalGateGrantIssuer {
+        issuer: FitGateGrantIssuer::Command(CommandExternalGateGrantIssuer {
             command: authority.issuer_command.clone(),
             atlas_root: atlas_root.to_owned(),
-        },
+        }),
         verifier: GateVerifier::new(authority.authority.clone(), authority.public_key)?,
     })
+}
+
+fn deferred(
+    release: &LoadedFitAuthority,
+    authority: &LoadedExternalAuthority,
+    field: &'static str,
+) -> Result<FitExternalAuthority, GateEvidenceError> {
+    let signer = GateSigner::new(
+        authority.authority.clone(),
+        deferred_authority_secret(release, field),
+    )?;
+    if signer.verifier().public_key() != ContentHash::from_bytes(authority.public_key) {
+        return Err(GateEvidenceError::Failed {
+            gate: gate_for_field(field),
+            reason: "derived deferred authority differs from its loaded verifier",
+        });
+    }
+    Ok(FitExternalAuthority {
+        verifier: signer.verifier(),
+        issuer: FitGateGrantIssuer::Deferred(DeferredExternalGateGrantIssuer { signer }),
+    })
+}
+
+fn gate_for_field(field: &'static str) -> GateId {
+    match field {
+        "representation" => GateId::Representation,
+        "semanticFidelity" => GateId::SemanticFidelity,
+        "relationPolicy" => GateId::RelationPolicy,
+        "mergeTreePersistence" => GateId::MergeTreePersistence,
+        "subgroupBehavior" => GateId::SubgroupBehavior,
+        "authorizationNoninterference" => GateId::AuthorizationNoninterference,
+        "securityApproval" => GateId::SecurityApproval,
+        "companionPin" => GateId::CompanionPin,
+        _ => unreachable!("deferred authority field is statically enumerated"),
+    }
 }
 
 fn read_bounded(reader: impl std::io::Read) -> Result<Vec<u8>, std::io::Error> {
@@ -291,7 +399,7 @@ fn read_bounded(reader: impl std::io::Read) -> Result<Vec<u8>, std::io::Error> {
         .read_to_end(&mut bytes)?;
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > MAXIMUM_ISSUER_OUTPUT_BYTES {
         return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
+            ErrorKind::InvalidData,
             "external issuer output exceeds the process ceiling",
         ));
     }
@@ -310,7 +418,7 @@ fn wait_for_child(
             child.kill()?;
             let _status = child.wait()?;
             return Err(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
+                ErrorKind::TimedOut,
                 "external gate issuer exceeded its five-minute deadline",
             ));
         }
@@ -323,7 +431,7 @@ mod tests {
     use super::*;
     use crate::salt::{
         ContentHash,
-        fit_boundary::{TrustedExternalGateAuthority, fixture_manifest},
+        salt_fit_boundary::{TrustedExternalGateAuthority, fixture_manifest},
     };
 
     #[test]

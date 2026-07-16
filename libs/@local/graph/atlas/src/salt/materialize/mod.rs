@@ -47,6 +47,7 @@ mod canonical;
 mod error;
 mod importance;
 mod morton;
+mod tile;
 
 #[allow(
     unused_imports,
@@ -60,6 +61,10 @@ pub(crate) use self::{
         CoordinateBounds, ImportanceConfig, ImportanceInput, RankedPoint, rank_importance,
     },
     morton::MortonKey,
+    tile::{
+        EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V2_CONTENT_TYPE, TileError, TileRequest,
+        encode_tile,
+    },
 };
 #[cfg(test)]
 pub(crate) use crate::salt::format::BASE_ARTIFACT_FORMAT;

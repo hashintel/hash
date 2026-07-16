@@ -57,12 +57,15 @@ The current process envelope has deliberate seams:
   Candle CPU checkpoint backend.
 - The HTTP API is read-only and performs no request authorization, TLS
   termination, or rate limiting.
-- `m0_local_attestation` is intentionally lower assurance than the strict
-  store-backed runner: PostgreSQL snapshot and WAL identities are application
-  attestations, and the final activation interval has no authorization-owned
+- `evidence_deferred_local` is operational but not release-grade assurance. It
+  locally signs provisional reports and does not require external issuer
+  processes. `m0_local_attestation` retains the independent external-issuer
+  path. Both profiles still use application-attested PostgreSQL snapshot and
+  WAL identities, and the final activation interval has no authorization-owned
   lease. See
+  [`docs/quality-evidence-deferred.md`](docs/quality-evidence-deferred.md) and
   [`docs/authorization-consistency.md`](docs/authorization-consistency.md).
-- SALT's stage graph remains crate-internal; `fit::ProductionAtlasTrainer` is
+- SALT's stage graph remains crate-internal; `salt_fit::ProductionAtlasTrainer` is
   the narrow public operational façade.
 - Concrete serving accepts only `BaseRevision(0)` with `DeltaRevision(0)`.
   Base-plus-delta traits exist, but incremental mutation is not enabled.
@@ -116,12 +119,14 @@ source extraction
   -> independent active-generation reload
 ```
 
-That diagram is the strict production contract. The checked-in
-`m0_local_attestation` worker uses the same artifact, gate, candidate, CAS, and
-restart path, but substitutes a repeatable-read PostgreSQL snapshot identity,
-live WAL revision checks, and a locally bound extraction receipt. It checks the
-WAL revision immediately before activation but cannot exclude a policy mutation
-between that read and the pointer replacement.
+That diagram is the strict operational contract. `m0_local_attestation` uses
+the external issuer path. `evidence_deferred_local` replaces those external
+decisions with local provisional signatures over the same persisted reports.
+Both modes use the same artifact, candidate, CAS, and restart path, and both
+substitute a repeatable-read PostgreSQL snapshot identity, live WAL revision
+checks, and a locally bound extraction receipt. They check the WAL revision
+immediately before activation but cannot exclude a policy mutation between that
+read and the pointer replacement.
 
 The distinction between candidate and active state is important:
 
@@ -303,7 +308,7 @@ allocation failure is reported rather than relying on the allocator abort path.
 
 ## Connect the `fit` CLI
 
-The standalone binary uses `fit::ProductionAtlasTrainer`. Both documents are
+The standalone binary uses `salt_fit::ProductionAtlasTrainer`. Both documents are
 bounded to 16 MiB, reject unknown fields, and are described by:
 
 - `schemas/fit-worker-v1.schema.json`
@@ -329,12 +334,13 @@ Then make these required edits:
    one newline to `secrets/postgres.password`.
 3. Create one 32-byte Ed25519 release seed. Its key file contains exactly 64
    lowercase hexadecimal characters plus an optional final newline and has
-   mode `0600` (or `0400`). Configure eight separately operated issuer
-   executables through `issuerCommand`; each command must be a regular
-   executable file beneath the worker directory. Put only each issuer's raw
-   32-byte public key in `expectedPublicKey`. The eight issuer secrets must be
-   unavailable to the fit worker. Reusing any release/external authority name
-   or public key is rejected.
+   mode `0600` (or `0400`). For `m0_local_attestation`, configure eight
+   separately operated issuer executables through `issuerCommand`; each command
+   must be a regular executable file beneath the worker directory. Put only
+   each issuer's raw 32-byte public key in `expectedPublicKey`. The eight issuer
+   secrets must be unavailable to the fit worker. `evidence_deferred_local`
+   ignores these external command and key placeholders and derives visibly
+   provisional local authorities from the release seed.
 4. Place every input-bundle asset under `inputs/`; symlink and `..` escapes are
    rejected. Replace every `sha256` with the lowercase SHA-256 of the exact
    file bytes, then put the completed bundle's SHA-256 in
@@ -438,7 +444,7 @@ three planted-shape checks. At least 51 complete embedding rows and one induced
 relation are required. A single-web fit has only the whole web as an eligible
 subgroup, so its subgroup gate is reported as `partially_measured`.
 
-Run a fit:
+Run a fit first:
 
 ```sh
 cargo run -p hash-graph-atlas --bin hash-graph-atlas -- \
@@ -455,12 +461,14 @@ provenance class for every mandatory gate; measured phase timings; the
 explicit activation result; restart verification; and the generated
 serving-configuration path. `activation` is `activated` or `already_active`.
 
-The receipt classifies numerical, recall, relation-satisfaction, persistence,
+In `m0_local_attestation`, the receipt classifies numerical, recall,
+relation-satisfaction, persistence,
 and reproducibility gates as `runner_measured`; relation-policy, security, and
 companion reports as `externally_measured`; the reduced M0 subgroup audit as
 `partially_measured`; and authorization/snapshot claims as
 `local_attestation`. These labels describe evidence provenance and do not
-upgrade the documented authorization consistency envelope.
+upgrade the documented authorization consistency envelope. In
+`evidence_deferred_local`, every gate is explicitly classified as `deferred`.
 
 The local semantic suite uses up to 256 deterministic anchors. For each anchor
 it chooses the expected neighbor from 32 deterministic candidates using the
@@ -471,7 +479,13 @@ gate, not a claim of exhaustive full-corpus map-neighbor recall.
 The fit captures and authenticates the existing active head before numerical
 work. A replacement activates only if that exact head is still current; a
 concurrent activation fails closed. On success the worker atomically writes
-`servingConfigOutput` with public verification keys only.
+`servingConfigOutput` with public verification keys only. Pass that generated
+path to the separate `serve` command; there is no combined fit-and-serve mode:
+
+```sh
+cargo run -p hash-graph-atlas --bin hash-graph-atlas -- \
+  serve --config ./atlas-worker/var/atlas-api.json
+```
 
 ## Inspect the published files
 
@@ -574,7 +588,9 @@ Use this template and replace every placeholder:
       "authority": "client-release",
       "public_key": "<64-lowercase-hex-ed25519-public-key>"
     }
-  ]
+  ],
+  "allow_evidence_deferred": false,
+  "tile_point_budget": 4096
 }
 ```
 
@@ -597,10 +613,16 @@ cargo run -p hash-graph-atlas --bin hash-graph-atlas -- \
   serve --config ./atlas-server.json --bind 127.0.0.1:8080
 ```
 
+Set `allow_evidence_deferred` to `true` only for a server intentionally
+accepting generations fitted with `evidence_deferred_local`. The `fit` command
+sets this field in its generated serving configuration to match the fitted
+generation.
+
 Startup behavior is fail-closed:
 
-- No `active.json`: startup succeeds; current-state routes return 404.
+- No `active.json`: startup fails and instructs the operator to run `fit`.
 - Invalid trust configuration: startup fails.
+- Evidence-deferred active generation without explicit permission: startup fails.
 - Active pointer with missing or invalid candidate, evidence, manifest,
   artifact, or checkpoint: startup fails.
 - Completely verified active generation: startup loads and caches it.
@@ -627,35 +649,39 @@ Fetch the manifest:
 curl -fsS http://127.0.0.1:4010/v1/atlas/current/manifest | jq
 ```
 
-Fetch an artifact by the exact `relative_path` returned by the current endpoint
-or manifest:
+Fetch the root tile for the active generation and canonical variant:
+
+```sh
+generation="$(curl -fsS http://127.0.0.1:4010/v1/atlas/current | jq -r .generation)"
+variant="$(curl -fsS http://127.0.0.1:4010/v1/atlas/current/manifest | \
+  jq -r .variants.canonical_variant)"
+curl -fS \
+  "http://127.0.0.1:4010/v1/atlas/tile/${generation}/${variant}/0/0/0" \
+  --output root.atlas-tile-v2
+```
+
+Fetch quadrant `(x = 2, y = 1)` at zoom 3:
 
 ```sh
 curl -fS \
-  http://127.0.0.1:4010/v1/atlas/current/artifacts/base.salt \
-  --output base.salt
+  "http://127.0.0.1:4010/v1/atlas/tile/${generation}/${variant}/3/2/1" \
+  --output quadrant.atlas-tile-v2
 ```
 
-Resume or inspect a byte range:
+Tile responses include:
 
-```sh
-curl -fS \
-  -H 'Range: bytes=0-65535' \
-  http://127.0.0.1:4010/v1/atlas/current/artifacts/base.salt \
-  --output base-prefix.bin
-```
-
-Artifact responses include:
-
-- `ETag` set to the quoted artifact content hash;
-- `Accept-Ranges: bytes`;
+- `Content-Type: application/vnd.hash.atlas.tile-v2`;
+- `ETag` set to the quoted hash of the exact response bytes;
 - exact `Content-Length`;
-- `Content-Range` for partial responses; and
-- `Cache-Control: no-cache`.
+- complete visible and delivered counts in both the binary header and response
+  headers; and
+- `Cache-Control: public, max-age=31536000, immutable`.
 
-Only one byte range is accepted. Path traversal, empty path segments, backslash
-segments, and paths absent from the verified manifest return 404. Invalid,
-multiple, or unsatisfiable ranges return 416.
+The generation must be active, the variant must be published and have a
+materialized base, `z` must be at most 16, and each axis must be below `2^z`.
+The unrestricted artifact-stream route is not public. See
+[`docs/tile-wire-v2.md`](docs/tile-wire-v2.md) for exact bytes and quadrant
+math.
 
 The API checks `active.json` on every current-state request. If activation
 changes, it reopens the new generation on a blocking worker and replaces the
@@ -844,10 +870,11 @@ temporary file before memory mapping. Ensure the process temporary directory
 has room for the active artifact set. This is the safety boundary that prevents
 later path truncation or writes from invalidating live mappings.
 
-### HTTP range request returns 416
+### Tile request returns 400 or 404
 
-Send one `bytes=` range only. The start must be below artifact length, an
-explicit end must not precede the start, and a suffix length must be nonzero.
+Confirm the generation matches the active head, use the manifest's canonical
+variant, keep zoom in `0..=16`, and keep both axes below `2^z`. A 404 for the
+former raw-artifact route is expected.
 
 ## Production checklist
 

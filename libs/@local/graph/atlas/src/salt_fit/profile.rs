@@ -7,7 +7,7 @@ use camino::Utf8Path;
 use super::quality_evaluation::{LocalConditionQualityEvaluator, LocalPersistenceQualityEvaluator};
 use crate::salt::{
     ContentHash,
-    fit_boundary::{
+    salt_fit_boundary::{
         AttractionConfig, CanonicalGenerationConfig, CanonicalMaterializationConfig,
         ConditionDomain, ConditionMeasurementConfig, ConditionQualityPolicy, CoordinateBounds,
         GradientBudget, HardNegativeConfig, ImportanceConfig, LandmarkConfig, LandmarkFitConfig,
@@ -23,7 +23,7 @@ const GRID_DEPTHS: [u8; 4] = [4, 8, 12, 16];
 const PERSISTENCE_THRESHOLDS: [f64; 4] = [0.01, 0.025, 0.05, 0.1];
 
 #[derive(Debug)]
-pub(in crate::fit) struct FitProfileError(String);
+pub(in crate::salt_fit) struct FitProfileError(String);
 
 impl fmt::Display for FitProfileError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -38,7 +38,7 @@ impl Error for FitProfileError {}
     clippy::too_many_lines,
     reason = "keeping one profile recipe contiguous makes its release parameters auditable"
 )]
-pub(in crate::fit) fn m0_local_profile<'config>(
+pub(in crate::salt_fit) fn m0_local_profile<'config>(
     root: &'config Utf8Path,
     row_count: usize,
     link_count: usize,

@@ -25,11 +25,11 @@ pub(super) use self::{
     model::{PostgresExtraction, SnapshotEnvelope},
 };
 use crate::{
-    fit::{FitRequestV1, configuration::LoadedFitWorkerConfiguration},
     salt::{
         ContentHash, ContentHasher,
-        fit_boundary::{AuthorizationRevision, AuthorizationRevisionProvider, SnapshotError},
+        salt_fit_boundary::{AuthorizationRevision, AuthorizationRevisionProvider, SnapshotError},
     },
+    salt_fit::{FitRequestV1, configuration::LoadedFitWorkerConfiguration},
 };
 
 pub(super) type FitStore = <PostgresStorePool as hash_graph_store::pool::StorePool>::Store<'static>;

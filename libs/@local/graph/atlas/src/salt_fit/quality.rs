@@ -3,20 +3,18 @@
     reason = "quality reports use canonical little-endian scalar encodings"
 )]
 
-use alloc::collections::{BTreeMap, BTreeSet, BinaryHeap};
+use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, error::Error, fmt};
 
 use rayon::prelude::*;
-use serde::Serialize;
-
 #[path = "quality/semantic.rs"]
 mod semantic;
 
-pub(in crate::fit) use semantic::LocalConditionQualityEvaluator;
+pub(in crate::salt_fit) use semantic::LocalConditionQualityEvaluator;
 
 use crate::salt::{
     ContentHash, ContentHasher,
-    fit_boundary::{
+    salt_fit_boundary::{
         AUDITED_NEIGHBORS, AUDITED_PREFIX_DIMENSIONS, AnalyticPoint, CanonicalEmbedding,
         EntityRole, IdentityDirectory, LandmarkCandidate, MergeTree, MergeTreeConfig,
         PROJECTOR_DIMENSIONS, PersistenceDiagnostics, PersistenceEvaluationError,

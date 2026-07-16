@@ -4,6 +4,13 @@
 pub(crate) struct MortonKey(u32);
 
 impl MortonKey {
+    /// Restores an already validated persisted key.
+    #[must_use]
+    #[inline]
+    pub(super) const fn from_u32(value: u32) -> Self {
+        Self(value)
+    }
+
     /// Interleaves the bits of the quantized x and y axes.
     #[must_use]
     #[inline]
@@ -28,6 +35,13 @@ impl MortonKey {
             self.0 >> (2 * (16 - depth))
         }
     }
+
+    /// Deinterleaves the quantized x and y axes.
+    #[must_use]
+    #[inline]
+    pub(super) const fn coordinates(self) -> [u16; 2] {
+        [compact_bits(self.0), compact_bits(self.0 >> 1)]
+    }
 }
 
 const fn spread_bits(value: u16) -> u32 {
@@ -36,4 +50,12 @@ const fn spread_bits(value: u16) -> u32 {
     value = (value | (value << 4)) & 0x0F0F_0F0F;
     value = (value | (value << 2)) & 0x3333_3333;
     (value | (value << 1)) & 0x5555_5555
+}
+
+const fn compact_bits(value: u32) -> u16 {
+    let mut value = value & 0x5555_5555;
+    value = (value | (value >> 1)) & 0x3333_3333;
+    value = (value | (value >> 2)) & 0x0F0F_0F0F;
+    value = (value | (value >> 4)) & 0x00FF_00FF;
+    ((value | (value >> 8)) & 0x0000_FFFF) as u16
 }

@@ -50,6 +50,14 @@ impl ActiveRelease {
     pub(crate) const fn report(self) -> ContentHash {
         self.report
     }
+
+    #[cfg(test)]
+    pub(crate) fn for_test() -> Self {
+        Self {
+            head: ReleaseHead::for_test(),
+            report: ContentHash::digest(b"fixture-release-report"),
+        }
+    }
 }
 
 impl From<GatedRelease> for ActiveRelease {

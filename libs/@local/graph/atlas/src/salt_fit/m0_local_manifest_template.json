@@ -1,7 +1,8 @@
 {
-  "format_version": 19,
+  "format_version": 20,
   "generation_id": "e661f4c935e8a5a83349afb5e347695c2e972e967b50efcd618f93b0b7b4c24b",
   "created_at": "1970-01-01T00:00:00Z",
+  "assurance_mode": "independent_authorities",
   "input_snapshot": {
     "ontology_transaction_time": "1970-01-01T00:00:00.000000000Z",
     "knowledge_transaction_time": "1970-01-01T00:00:00.000000000Z",

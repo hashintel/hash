@@ -9,7 +9,7 @@ use serde::Serialize;
 use super::{FitQualityError, bounded_ratio, try_vec};
 use crate::salt::{
     ContentHash, ContentHasher,
-    fit_boundary::{
+    salt_fit_boundary::{
         ConditionQuality, ConditionQualityEvaluationError, ConditionQualityEvaluator,
         PROJECTOR_DIMENSIONS, PersistedCondition, PersistedConditionQuality, ProjectedCondition,
     },
@@ -24,7 +24,7 @@ const TEACHER_COMPONENT_BUDGET: usize = 12_000_000_000;
 
 /// Corpus-bound evaluator for exact sampled map-neighbor metrics.
 #[derive(Debug)]
-pub(in crate::fit) struct LocalConditionQualityEvaluator {
+pub(in crate::salt_fit) struct LocalConditionQualityEvaluator {
     probes: Box<[SemanticProbe]>,
     row_count: usize,
     canonical_corpus_hash: ContentHash,
@@ -42,7 +42,7 @@ struct SemanticProbe {
 }
 
 impl LocalConditionQualityEvaluator {
-    pub(in crate::fit) fn new(
+    pub(in crate::salt_fit) fn new(
         canonical: &[f32],
         subgroups: &[ContentHash],
     ) -> Result<Self, FitQualityError> {
@@ -66,7 +66,8 @@ impl LocalConditionQualityEvaluator {
                 "quality subgroup rows do not match the canonical corpus".to_owned(),
             ));
         }
-        let canonical_corpus_hash = crate::salt::fit_boundary::canonical_corpus_hash(canonical);
+        let canonical_corpus_hash =
+            crate::salt::salt_fit_boundary::canonical_corpus_hash(canonical);
         let anchors = select_anchors(canonical_corpus_hash, subgroups, row_count)?;
         let norms = teacher_norms(canonical)?;
         let probes = anchors

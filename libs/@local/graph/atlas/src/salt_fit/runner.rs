@@ -23,7 +23,8 @@ use type_system::principal::actor::ActorEntityUuid;
 
 use super::{
     configuration::{
-        LoadedFitAuthority, encode_hex, load_input_bundle, load_request, load_worker_configuration,
+        LoadedFitAuthority, encode_hex, load_input_bundle, load_request,
+        load_worker_configuration_for_assurance,
     },
     evidence::{EXTERNAL_GATES, FitRuntimeAuthorities},
     input::{PreparedFitSource, prepare_fit_source},
@@ -41,7 +42,7 @@ use crate::{
     },
     salt::{
         ContentHash, ContentHasher,
-        fit_boundary::{
+        salt_fit_boundary::{
             ActivationOutcome, CanonicalReleaseAuthority, FileActivationStore,
             StoreBackedCanonicalGenerationRequest, StoreBackedSnapshotRequest,
             TrustedExternalGateAuthority, run_local_m0_canonical_generation,
@@ -96,12 +97,13 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         b"hash.graph.atlas.fit.worker-configuration-document.v1",
         request.configuration_bytes(),
     );
-    let worker = load_worker_configuration(
+    let fit_request = load_request(request.bytes())?;
+    let worker = load_worker_configuration_for_assurance(
         request.configuration_source(),
         request.configuration_bytes(),
+        fit_request.assurance,
     )?;
     configure_rayon(worker.document.cpu_threads.get())?;
-    let fit_request = load_request(request.bytes())?;
     let bundle = load_input_bundle(&worker.input_root, &fit_request.input_bundle)?;
     let input_bundle_hash = fit_request.input_bundle.sha256.clone();
     let configuration_elapsed = configuration_started.elapsed();
@@ -132,9 +134,13 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         authorization_report_hash: _authorization_report_hash,
         condition_evaluator,
         persistence_evaluator,
-    } = prepare_fit_source(&worker, &bundle, extraction)?;
+    } = prepare_fit_source(&worker, &bundle, extraction, fit_request.assurance)?;
 
-    let authorities = FitRuntimeAuthorities::new(&worker.authorities, &worker.atlas_root)?;
+    let authorities = FitRuntimeAuthorities::new(
+        &worker.authorities,
+        &worker.atlas_root,
+        fit_request.assurance,
+    )?;
     let external = authorities.external();
     let mut trusted = Vec::with_capacity(EXTERNAL_GATES.len());
     for (gate, authority) in EXTERNAL_GATES.into_iter().zip(external) {
@@ -154,7 +160,7 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
     let expected_active = serving_store.load_active()?.map(|loaded| loaded.release());
     // The serving trust document is release-independent. Persist it before
     // numerical work so no filesystem failure remains after activation.
-    write_serving_configuration(&worker, &authorities)?;
+    write_serving_configuration(&worker, &authorities, fit_request.assurance)?;
 
     let profile = m0_local_profile(
         &worker.atlas_root,
@@ -208,8 +214,8 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         worker_configuration_hash: worker_configuration_hash.to_string(),
         input_bundle_hash,
         profile_hash: profile_hash.to_string(),
-        assurance: "m0_local_attestation".to_owned(),
-        gate_assurance: gate_assurance(),
+        assurance: assurance_name(fit_request.assurance).to_owned(),
+        gate_assurance: gate_assurance(fit_request.assurance),
         actor_id: worker.document.actor_id,
         web_scope_hash: web_scope_hash(&fit_request.web_ids).to_string(),
         store_snapshot_identity: envelope.store_snapshot_identity.to_string(),
@@ -253,11 +259,40 @@ fn duration_milliseconds(duration: Duration) -> u64 {
     u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
 
-fn gate_assurance() -> Vec<FitGateAssurance> {
+const fn assurance_name(assurance: super::FitAssuranceMode) -> &'static str {
+    match assurance {
+        super::FitAssuranceMode::M0LocalAttestation => "m0_local_attestation",
+        super::FitAssuranceMode::EvidenceDeferredLocal => "evidence_deferred_local",
+    }
+}
+
+fn gate_assurance(assurance: super::FitAssuranceMode) -> Vec<FitGateAssurance> {
     use FitGateAssuranceClass::{
         ExternallyMeasured, LocalAttestation, PartiallyMeasured, RunnerMeasured,
     };
 
+    if assurance == super::FitAssuranceMode::EvidenceDeferredLocal {
+        return [
+            FitGate::Representation,
+            FitGate::AnnRecall,
+            FitGate::SemanticFidelity,
+            FitGate::RelationPolicy,
+            FitGate::RelationSatisfaction,
+            FitGate::MergeTreePersistence,
+            FitGate::SubgroupBehavior,
+            FitGate::AuthorizationNoninterference,
+            FitGate::SnapshotConsistency,
+            FitGate::Reproducibility,
+            FitGate::SecurityApproval,
+            FitGate::CompanionPin,
+        ]
+        .into_iter()
+        .map(|gate| FitGateAssurance {
+            gate,
+            assurance: FitGateAssuranceClass::Deferred,
+        })
+        .collect();
+    }
     [
         (FitGate::Representation, RunnerMeasured),
         (FitGate::AnnRecall, RunnerMeasured),
@@ -314,52 +349,33 @@ fn web_scope_hash(web_ids: &[uuid::Uuid]) -> ContentHash {
 fn write_serving_configuration(
     worker: &super::configuration::LoadedFitWorkerConfiguration,
     authorities: &FitRuntimeAuthorities,
+    assurance: super::FitAssuranceMode,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let external = [
-        (
-            ExternalGate::Representation,
-            &worker.authorities.representation,
-        ),
-        (
-            ExternalGate::SemanticFidelity,
-            &worker.authorities.semantic_fidelity,
-        ),
-        (
-            ExternalGate::RelationPolicy,
-            &worker.authorities.relation_policy,
-        ),
-        (
-            ExternalGate::MergeTreePersistence,
-            &worker.authorities.merge_tree_persistence,
-        ),
-        (
-            ExternalGate::SubgroupBehavior,
-            &worker.authorities.subgroup_behavior,
-        ),
-        (
-            ExternalGate::AuthorizationNoninterference,
-            &worker.authorities.authorization_noninterference,
-        ),
-        (
-            ExternalGate::SecurityApproval,
-            &worker.authorities.security_approval,
-        ),
-        (
-            ExternalGate::CompanionPin,
-            &worker.authorities.companion_pin,
-        ),
+        ExternalGate::Representation,
+        ExternalGate::SemanticFidelity,
+        ExternalGate::RelationPolicy,
+        ExternalGate::MergeTreePersistence,
+        ExternalGate::SubgroupBehavior,
+        ExternalGate::AuthorizationNoninterference,
+        ExternalGate::SecurityApproval,
+        ExternalGate::CompanionPin,
     ];
+    let runtime_external = authorities.external();
     let configuration = AtlasApiConfiguration {
         root: worker.atlas_root.to_string(),
         release_verifier: verifier(&worker.authorities.release),
         external_verifiers: external
             .into_iter()
+            .zip(runtime_external)
             .map(|(gate, authority)| ExternalVerifierConfiguration {
                 gate,
-                authority: authority.authority.clone(),
-                public_key: encode_hex(&authority.public_key),
+                authority: authority.verifier.authority().to_owned(),
+                public_key: authority.verifier.public_key().to_string(),
             })
             .collect(),
+        allow_evidence_deferred: assurance == super::FitAssuranceMode::EvidenceDeferredLocal,
+        tile_point_budget: 4_096,
     };
     // Confirm that the generated public-key pins agree with the signers used
     // for this release before replacing the serving configuration.

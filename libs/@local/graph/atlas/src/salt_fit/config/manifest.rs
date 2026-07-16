@@ -1,7 +1,7 @@
 //! Validation for externally governed manifest claims.
 
 use super::{FitConfigurationError, decode_hex_32};
-use crate::fit::FitManifestContractV1;
+use crate::salt_fit::FitManifestContractV1;
 
 pub(super) fn validate_manifest_contract(
     contract: &FitManifestContractV1,

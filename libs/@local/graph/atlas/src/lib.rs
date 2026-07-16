@@ -46,7 +46,7 @@
 //! The `hash-graph-atlas` binary exposes two commands:
 //!
 //! - `fit --config <worker.json> --request <request.json>` runs the concrete
-//!   [`fit::ProductionAtlasTrainer`] over a bounded direct-PostgreSQL snapshot.
+//!   [`salt_fit::ProductionAtlasTrainer`] over a bounded direct-PostgreSQL snapshot.
 //! - `serve --config <json> --bind <address>` starts the Axum 0.8 [`api::router`] over the verified
 //!   active generation.
 //!
@@ -60,10 +60,10 @@
 //! the crate-internal SALT theory and invariants.
 //!
 //! The HTTP surface provides `/healthz`, `/v1/atlas/current`,
-//! `/v1/atlas/current/manifest`, and ranged artifact reads beneath
-//! `/v1/atlas/current/artifacts/{*relative_path}`. The current envelope has no
-//! request authorization, so deployments should bind it to a trusted network
-//! boundary.
+//! `/v1/atlas/current/manifest`, and immutable spatial tiles at
+//! `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`. The current envelope
+//! has no request authorization, so deployments should bind it to a trusted
+//! network boundary.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
@@ -87,11 +87,11 @@ extern crate alloc;
 
 pub mod api;
 pub mod cli;
-pub mod fit;
 pub mod float;
 pub(crate) mod macros;
 pub mod projection;
 pub(crate) mod salt;
+pub mod salt_fit;
 #[cfg(feature = "salt-benchmarks")]
 #[doc(hidden)]
 pub use salt::benchmark as salt_benchmark;

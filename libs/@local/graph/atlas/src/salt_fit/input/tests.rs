@@ -99,16 +99,4 @@ fn point_roles_distinguish_link_entities_from_knowledge_entities() {
         point_role(entity_id, &[], &HashSet::from([entity_id]), &link_root),
         EntityRole::Other
     );
-    let candidates = landmark_candidates(&[EntityRole::KnowledgeEntity, EntityRole::Other])
-        .expect("bounded rows should produce landmark candidates");
-    assert_eq!(
-        candidates
-            .iter()
-            .map(|candidate| candidate.entity_role)
-            .collect::<Vec<_>>(),
-        vec![
-            EntityRole::KnowledgeEntity.index(),
-            EntityRole::Other.index()
-        ]
-    );
 }

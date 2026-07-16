@@ -27,8 +27,10 @@ pub const MAXIMUM_FIT_CPU_THREADS: usize = 128;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FitAssuranceMode {
-    /// Locally signed evidence with documented authorization/snapshot gaps.
+    /// Independent gate issuers with documented authorization/snapshot gaps.
     M0LocalAttestation,
+    /// Local provisional attestations with evidence suites explicitly deferred.
+    EvidenceDeferredLocal,
 }
 
 /// Immutable numerical profile selected by a fit request.
@@ -357,7 +359,7 @@ impl Default for FitRequestV1 {
                 path: Utf8PathBuf::from("m0-local-input-bundle.json"),
                 sha256: "0".repeat(64),
             },
-            assurance: FitAssuranceMode::M0LocalAttestation,
+            assurance: FitAssuranceMode::EvidenceDeferredLocal,
         }
     }
 }

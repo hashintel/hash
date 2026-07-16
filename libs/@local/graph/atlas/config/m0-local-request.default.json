@@ -17,5 +17,5 @@
     "path": "m0-local-input-bundle.json",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
-  "assurance": "m0_local_attestation"
+  "assurance": "evidence_deferred_local"
 }

@@ -8,9 +8,10 @@
 //!
 //! `fit --config <worker.json> --request <request.json>` reads each document
 //! at most 16 MiB and gives the exact bytes plus source paths to the trainer.
-//! [`crate::fit::ProductionAtlasTrainer`] implements the checked-in v1 schemas,
-//! direct current-snapshot PostgreSQL extraction, local M0 evidence, explicit
-//! activation, and independent restart loading.
+//! [`crate::salt_fit::ProductionAtlasTrainer`] implements the checked-in v1 schemas,
+//! direct current-snapshot PostgreSQL extraction, strict or explicitly
+//! evidence-deferred gate issuance, activation, and independent restart
+//! loading.
 //!
 //! A successful trainer is expected to freeze authorized inputs, generate and
 //! verify every artifact, publish an inactive candidate, explicitly activate
@@ -22,7 +23,8 @@
 //! `serve --config <path>` loads [`AtlasApiConfiguration`], constructs the
 //! pinned Candle CPU checkpoint backend, binds the requested TCP address, and
 //! runs the modern Axum router. SIGINT and, on Unix, SIGTERM trigger graceful
-//! shutdown. The default bind address is `127.0.0.1:4010`.
+//! shutdown. Startup fails when no generation is active. The default bind
+//! address is `127.0.0.1:4010`.
 //!
 //! Request and configuration documents use bounded reads and structured
 //! errors; the receipt has one fixed output schema. Standard `--help` and
@@ -113,6 +115,8 @@ pub enum FitGateAssuranceClass {
     PartiallyMeasured,
     /// The worker attested a documented local operational claim.
     LocalAttestation,
+    /// The gate is provisional and does not provide release-grade evidence.
+    Deferred,
 }
 
 /// Stable public name of one M0 release gate.
@@ -308,7 +312,7 @@ impl Error for AtlasFitError {}
 
 /// Explicitly disabled fitting adapter for applications that only embed serving.
 ///
-/// The standalone binary uses [`crate::fit::ProductionAtlasTrainer`].
+/// The standalone binary uses [`crate::salt_fit::ProductionAtlasTrainer`].
 #[derive(Debug, Default, Copy, Clone)]
 pub struct UnconfiguredAtlasTrainer;
 
@@ -538,9 +542,13 @@ impl Error for AtlasCliError {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
+    use core::fmt::Write as _;
     use std::sync::Mutex;
 
+    use ed25519_dalek::SigningKey;
+
     use super::*;
+    use crate::api::{ExternalGate, ExternalVerifierConfiguration, VerifierConfiguration};
 
     #[test]
     fn command_schema_accepts_fit_and_serve() {
@@ -620,5 +628,73 @@ mod tests {
             Utf8PathBuf::from_path_buf(request).expect("temporary request path should be UTF-8")
         );
         assert_eq!(observed.3, request_bytes);
+    }
+
+    #[tokio::test]
+    async fn serve_fails_before_binding_when_no_generation_is_active() {
+        let temporary = tempfile::tempdir().expect("temporary directory should be created");
+        let config = temporary.path().join("server.json");
+        let gates = [
+            ExternalGate::Representation,
+            ExternalGate::SemanticFidelity,
+            ExternalGate::RelationPolicy,
+            ExternalGate::MergeTreePersistence,
+            ExternalGate::SubgroupBehavior,
+            ExternalGate::AuthorizationNoninterference,
+            ExternalGate::SecurityApproval,
+            ExternalGate::CompanionPin,
+        ];
+        let configuration = AtlasApiConfiguration {
+            root: temporary.path().to_string_lossy().into_owned(),
+            release_verifier: VerifierConfiguration {
+                authority: "release".to_owned(),
+                public_key: public_key(1),
+            },
+            external_verifiers: gates
+                .into_iter()
+                .enumerate()
+                .map(|(index, gate)| ExternalVerifierConfiguration {
+                    gate,
+                    authority: format!("external-{index}"),
+                    public_key: public_key(
+                        u8::try_from(index + 2).expect("fixture key seed should fit u8"),
+                    ),
+                })
+                .collect(),
+            allow_evidence_deferred: false,
+            tile_point_budget: 4_096,
+        };
+        std::fs::write(
+            &config,
+            serde_json::to_vec(&configuration).expect("configuration should serialize"),
+        )
+        .expect("server configuration should be written");
+
+        let error = run_server(ServeCommand {
+            config: Utf8PathBuf::from_path_buf(config)
+                .expect("temporary configuration path should be UTF-8"),
+            bind: "127.0.0.1:0"
+                .parse()
+                .expect("ephemeral loopback bind should parse"),
+        })
+        .await
+        .expect_err("empty activation root must fail");
+
+        assert!(
+            error
+                .to_string()
+                .contains("run `hash-graph-atlas fit` first")
+        );
+    }
+
+    fn public_key(seed: u8) -> String {
+        SigningKey::from_bytes(&[seed; 32])
+            .verifying_key()
+            .to_bytes()
+            .into_iter()
+            .fold(String::with_capacity(64), |mut encoded, byte| {
+                write!(encoded, "{byte:02x}").expect("writing to a String should succeed");
+                encoded
+            })
     }
 }

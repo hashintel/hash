@@ -12,9 +12,9 @@ mod manifest;
 
 use self::manifest::validate_manifest_contract;
 use super::{
-    FIT_SCHEMA_VERSION, FitAuthoritiesV1, FitConfigurationError, FitExternalAuthorityV1,
-    FitInputBundleV1, FitInputReferenceV1, FitRequestV1, FitSigningAuthorityV1,
-    FitWorkerConfigurationV1, MAXIMUM_FIT_CPU_THREADS, MAXIMUM_FIT_ENTITIES,
+    FIT_SCHEMA_VERSION, FitAssuranceMode, FitAuthoritiesV1, FitConfigurationError,
+    FitExternalAuthorityV1, FitInputBundleV1, FitInputReferenceV1, FitRequestV1,
+    FitSigningAuthorityV1, FitWorkerConfigurationV1, MAXIMUM_FIT_CPU_THREADS, MAXIMUM_FIT_ENTITIES,
     MAXIMUM_FIT_LABEL_BYTES, MAXIMUM_FIT_LINKS, MAXIMUM_FIT_RELATION_TYPES,
     MAXIMUM_FIT_REQUIRED_TYPES_PER_LINK, MAXIMUM_FIT_WEB_IDS, MINIMUM_FIT_ENTITIES,
 };
@@ -115,6 +115,14 @@ pub(crate) fn load_worker_configuration(
     source: &Utf8Path,
     bytes: &[u8],
 ) -> Result<LoadedFitWorkerConfiguration, FitConfigurationError> {
+    load_worker_configuration_for_assurance(source, bytes, FitAssuranceMode::M0LocalAttestation)
+}
+
+pub(crate) fn load_worker_configuration_for_assurance(
+    source: &Utf8Path,
+    bytes: &[u8],
+    assurance: FitAssuranceMode,
+) -> Result<LoadedFitWorkerConfiguration, FitConfigurationError> {
     let document: FitWorkerConfigurationV1 =
         serde_json::from_slice(bytes).map_err(|source| FitConfigurationError::Json {
             document: "fit worker configuration",
@@ -139,7 +147,7 @@ pub(crate) fn load_worker_configuration(
         "postgres.passwordFile",
     )?;
     let postgres_password = read_secret_text(&password_path)?;
-    let authorities = load_authorities(&directory, &document.authorities)?;
+    let authorities = load_authorities(&directory, &document.authorities, assurance)?;
 
     Ok(LoadedFitWorkerConfiguration {
         document,
@@ -405,6 +413,7 @@ fn validate_worker(document: &FitWorkerConfigurationV1) -> Result<(), FitConfigu
 fn load_authorities(
     directory: &Utf8Path,
     document: &FitAuthoritiesV1,
+    assurance: FitAssuranceMode,
 ) -> Result<LoadedFitAuthorities, FitConfigurationError> {
     let mut names = HashSet::new();
     let mut keys = HashSet::new();
@@ -413,7 +422,12 @@ fn load_authorities(
     keys.insert(release.public_key);
     let mut external = Vec::with_capacity(8);
     for (field, authority) in document.external_entries() {
-        let value = load_external_authority(directory, field, authority)?;
+        let value = match assurance {
+            FitAssuranceMode::M0LocalAttestation => {
+                load_external_authority(directory, field, authority)?
+            }
+            FitAssuranceMode::EvidenceDeferredLocal => deferred_external_authority(&release, field),
+        };
         require_distinct_authority(&mut names, &mut keys, &value.authority, value.public_key)?;
         external.push(value);
     }
@@ -429,6 +443,30 @@ fn load_authorities(
         security_approval: external.next().expect("eight authorities should be loaded"),
         companion_pin: external.next().expect("eight authorities should be loaded"),
     })
+}
+
+fn deferred_external_authority(
+    release: &LoadedFitAuthority,
+    field: &'static str,
+) -> LoadedExternalAuthority {
+    let secret = deferred_authority_secret(release, field);
+    let public_key = SigningKey::from_bytes(&secret).verifying_key().to_bytes();
+    LoadedExternalAuthority {
+        authority: format!("evidence-deferred-local-{field}-v1"),
+        issuer_command: Utf8PathBuf::new(),
+        public_key,
+    }
+}
+
+pub(crate) fn deferred_authority_secret(
+    release: &LoadedFitAuthority,
+    field: &'static str,
+) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"hash.graph.atlas.fit.evidence-deferred-authority.v1");
+    hasher.update(release.secret);
+    hasher.update(field.as_bytes());
+    hasher.finalize().into()
 }
 
 fn require_distinct_authority(

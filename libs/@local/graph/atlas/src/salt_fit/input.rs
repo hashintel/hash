@@ -26,18 +26,19 @@ use super::{
         FitQualityError, LocalConditionQualityEvaluator, LocalPersistenceQualityEvaluator,
         audit_representations,
     },
-    schema::{FitInputBundleV1, FitInputReferenceV1, FitManifestContractV1},
+    schema::{FitAssuranceMode, FitInputBundleV1, FitInputReferenceV1, FitManifestContractV1},
 };
 use crate::salt::{
     ContentHash, ContentHasher,
-    fit_boundary::{
+    salt_fit_boundary::{
         ArtifactOrdinal, CARD_FORMAT_VERSION, EntityRole, ExternalGateReportDocuments,
-        FrozenCanonicalSignals, GenerationManifest, GenerationManifestContract, IdentityDirectory,
-        KnowledgeDecisionTimePolicy, LinkCandidate, OwnedCanonicalEmbedding, PlacementPosterior,
-        RelationModelSources, RelationPolicyInput, RelationPolicyRecords, RelationSecurityMode,
-        RelationSecurityPolicy, RelationStrength, SnapshotTemporalAxes,
-        StoreBackedGenerationSource, StoreExtractionReceipt, TRANSFORM_VERSION, VariantId,
-        canonical_corpus_hash, transform_contract_hash, transform_golden_vectors_hash,
+        FrozenCanonicalSignals, GenerationAssuranceMode, GenerationManifest,
+        GenerationManifestContract, IdentityDirectory, KnowledgeDecisionTimePolicy, LinkCandidate,
+        OwnedCanonicalEmbedding, PlacementPosterior, RelationModelSources, RelationPolicyInput,
+        RelationPolicyRecords, RelationSecurityMode, RelationSecurityPolicy, RelationStrength,
+        SnapshotTemporalAxes, StoreBackedGenerationSource, StoreExtractionReceipt,
+        TRANSFORM_VERSION, VariantId, canonical_corpus_hash, transform_contract_hash,
+        transform_golden_vectors_hash,
     },
 };
 
@@ -45,7 +46,7 @@ const LINK_ROOT_VERSIONED_URL: &str =
     "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /// Fully owned SALT input and permission context prepared before numerical work.
-pub(in crate::fit) struct PreparedFitSource {
+pub(in crate::salt_fit) struct PreparedFitSource {
     pub source: StoreBackedGenerationSource,
     pub link_candidates: Box<[LinkCandidate]>,
     pub temporal_axes: SnapshotTemporalAxes,
@@ -58,7 +59,7 @@ pub(in crate::fit) struct PreparedFitSource {
 
 /// Failure to bind operational inputs into one immutable SALT source.
 #[derive(Debug)]
-pub(in crate::fit) enum FitInputError {
+pub(in crate::salt_fit) enum FitInputError {
     Configuration(super::FitConfigurationError),
     Json {
         name: &'static str,
@@ -96,10 +97,11 @@ impl Error for FitInputError {
     clippy::too_many_lines,
     reason = "the assembly keeps every cross-bound input visible in one fail-closed transaction"
 )]
-pub(in crate::fit) fn prepare_fit_source(
+pub(in crate::salt_fit) fn prepare_fit_source(
     worker: &LoadedFitWorkerConfiguration,
     bundle: &FitInputBundleV1,
     extraction: PostgresExtraction,
+    assurance: FitAssuranceMode,
 ) -> Result<PreparedFitSource, FitInputError> {
     let mut manifest: GenerationManifest = serde_json::from_slice(include_bytes!(
         "m0_local_manifest_template.json"
@@ -108,6 +110,10 @@ pub(in crate::fit) fn prepare_fit_source(
         name: "compiled M0 manifest template",
         source,
     })?;
+    manifest.assurance_mode = match assurance {
+        FitAssuranceMode::M0LocalAttestation => GenerationAssuranceMode::IndependentAuthorities,
+        FitAssuranceMode::EvidenceDeferredLocal => GenerationAssuranceMode::EvidenceDeferredLocal,
+    };
     apply_manifest_contract(&mut manifest, &bundle.manifest)?;
     let policy_bytes = input(worker, &bundle.relation_policy_inputs)?;
     let policy_document: RelationPolicyDocumentV1 =
@@ -531,7 +537,7 @@ fn bind_manifest(
     manifest: &mut GenerationManifest,
     envelope: &SnapshotEnvelope,
     extraction: &PostgresExtraction,
-    audit: &crate::salt::fit_boundary::RepresentationAuditReport,
+    audit: &crate::salt::salt_fit_boundary::RepresentationAuditReport,
     artifacts: ArtifactBindings,
 ) {
     manifest.created_at = jiff::Timestamp::now();
@@ -545,11 +551,11 @@ fn bind_manifest(
     manifest.input_snapshot.extraction_receipt_hash = extraction.provenance_hash;
     manifest.input_snapshot.frozen_input_hash = ContentHash::from_bytes([0; 32]);
     manifest.input_snapshot.authorization_revision =
-        crate::salt::fit_boundary::AuthorizationRevision::new(envelope.authorization_revision);
+        crate::salt::salt_fit_boundary::AuthorizationRevision::new(envelope.authorization_revision);
     manifest.embedding.canonical_dimensions = crate::salt::CANONICAL_DIMENSIONS;
     manifest.embedding.canonical_corpus_hash =
         canonical_corpus_hash(&extraction.canonical_embeddings);
-    manifest.embedding.projector_dimensions = crate::salt::fit_boundary::PROJECTOR_DIMENSIONS;
+    manifest.embedding.projector_dimensions = crate::salt::salt_fit_boundary::PROJECTOR_DIMENSIONS;
     manifest.embedding.projector_corpus_hash = audit.projector_corpus_hash;
     TRANSFORM_VERSION.clone_into(&mut manifest.embedding.transform_version);
     manifest.embedding.transform_hash = transform_contract_hash();

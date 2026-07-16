@@ -54,7 +54,7 @@ mod publish;
 #[cfg(test)]
 pub(crate) mod test_support;
 
-pub(super) use self::publish::publish_gated_candidate;
+pub(crate) use self::publish::publish_gated_candidate;
 #[allow(
     unused_imports,
     reason = "gate identities and evidence are supplied by the release adapter"

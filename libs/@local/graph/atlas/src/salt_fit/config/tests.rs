@@ -33,6 +33,35 @@ fn worker_loader_pins_one_release_key_and_eight_external_issuers() {
 }
 
 #[test]
+fn evidence_deferred_loader_does_not_require_external_issuer_processes() {
+    let temporary = tempfile::tempdir().expect("temporary directory should be created");
+    let root = Utf8Path::from_path(temporary.path()).expect("temporary path should be UTF-8");
+    let source = root.join("worker.json");
+    let mut document = FitWorkerConfigurationV1 {
+        actor_id: Uuid::from_u128(1),
+        ..FitWorkerConfigurationV1::default()
+    };
+    prepare_secrets(root, &mut document);
+    fs::remove_dir_all(root.join("issuers")).expect("issuer fixtures should be removed");
+
+    let loaded = load_worker_configuration_for_assurance(
+        &source,
+        &serde_json::to_vec(&document).expect("configuration should serialize"),
+        FitAssuranceMode::EvidenceDeferredLocal,
+    )
+    .expect("deferred configuration should not open issuer commands");
+
+    assert!(
+        loaded
+            .authorities
+            .representation
+            .issuer_command
+            .as_str()
+            .is_empty()
+    );
+}
+
+#[test]
 fn worker_loader_rejects_reused_gate_key() {
     let temporary = tempfile::tempdir().expect("temporary directory should be created");
     let root = Utf8Path::from_path(temporary.path()).expect("temporary path should be UTF-8");

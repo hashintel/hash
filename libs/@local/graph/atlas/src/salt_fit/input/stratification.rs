@@ -1,14 +1,19 @@
 //! Deterministic strata derived from frozen extraction metadata.
 
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "stratum identities use canonical little-endian scalar encodings"
+)]
+
 use std::collections::HashMap;
 
 use super::FitInputError;
 use crate::{
-    fit::postgres::PostgresExtraction,
     salt::{
         ContentHash, ContentHasher,
-        fit_boundary::{EntityRole, GenerationRowId, LandmarkCandidate},
+        salt_fit_boundary::{EntityRole, GenerationRowId, LandmarkCandidate},
     },
+    salt_fit::postgres::PostgresExtraction,
 };
 
 const BUCKETS: u32 = 4;
