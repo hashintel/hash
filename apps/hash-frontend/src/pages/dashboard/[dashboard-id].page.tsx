@@ -230,7 +230,7 @@ const DashboardPage: NextPageWithLayout = () => {
         continue;
       }
 
-      const itemEntity = rightEntity[0] as
+      const itemEntity = rightEntity?.[0] as
         | HashEntity<DashboardItemEntity>
         | undefined;
 
