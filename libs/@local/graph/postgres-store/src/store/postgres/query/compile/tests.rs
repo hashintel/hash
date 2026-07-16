@@ -2123,20 +2123,33 @@ mod cursor_condition {
     }
 
     #[test]
-    fn null_cursor_value_with_nulls_last_has_no_continuation() {
+    fn exhausted_cursor_never_matches() {
+        // A `NULL` cursor value with nulls sorted last has no rows after it, so the whole
+        // continuation must be `FALSE` — an absent condition would replay the first page.
         assert_eq!(
             transpiled(&[nullable_key(
                 0,
                 None,
                 Ordering::Ascending,
                 Some(NullOrdering::Last)
-            )]),
-            None
+            )])
+            .expect("an exhausted cursor should produce a never-matching condition"),
+            "FALSE"
         );
-        // The unhinted ascending key defaults to nulls-last and drops the same way.
+        // The unhinted ascending key defaults to nulls-last and exhausts the same way.
         assert_eq!(
-            transpiled(&[nullable_key(0, None, Ordering::Ascending, None)]),
-            None
+            transpiled(&[nullable_key(0, None, Ordering::Ascending, None)])
+                .expect("an exhausted cursor should produce a never-matching condition"),
+            "FALSE"
+        );
+        // Multiple keys exhaust only when every alternative drops.
+        assert_eq!(
+            transpiled(&[
+                nullable_key(0, None, Ordering::Ascending, Some(NullOrdering::Last)),
+                nullable_key(1, None, Ordering::Descending, Some(NullOrdering::Last)),
+            ])
+            .expect("an exhausted cursor should produce a never-matching condition"),
+            "FALSE"
         );
     }
 

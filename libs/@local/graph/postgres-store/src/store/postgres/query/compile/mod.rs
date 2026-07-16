@@ -527,7 +527,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Builds the keyset-pagination continuation: one alternative per sort key, each requiring
     /// all previous keys to be equal and the current key to be past the cursor value.
+    ///
+    /// Returns [`None`] only for an empty cursor. An exhausted cursor yields a never-matching
+    /// `FALSE` so the next page comes back empty instead of replaying from the start.
     fn cursor_condition(cursor: &[CursorKey]) -> Option<Expression> {
+        if cursor.is_empty() {
+            return None;
+        }
+
         let mut alternatives = Vec::new();
         for current in (0..cursor.len()).rev() {
             let mut criteria = Vec::new();
@@ -592,7 +599,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
         }
 
-        Expression::disjunction(alternatives)
+        // With every alternative dropped the cursor sits at the end of a trailing `NULL` group
+        // and no row sorts after it. The continuation has to be a never-matching condition (an
+        // empty `OR` transpiles to `FALSE`) rather than absent, which would replay the first
+        // page.
+        Some(Expression::disjunction(alternatives).unwrap_or_else(|| Expression::any(Vec::new())))
     }
 
     /// Whether any relation joined so far can fan out the base rows.
