@@ -1,7 +1,18 @@
 # Code Conventions
 
 Conventions for this crate, accumulated from review. When a review comment
-establishes a new rule, add it here.
+establishes a new rule, add it here. What gets built and where it lands is
+`PLAN.md`'s job.
+
+## Crate layout
+
+- Domain-independent utilities are top-level modules beside `math/` and
+  `random/` (upcoming: `morton/`, `grid/`, `statistics/`), never nested
+  under a consumer. A module earns the top level by having a contract
+  that makes sense without the pipeline around it.
+- The legacy `salt/` and `projection/` trees are read-only prototypes:
+  reference semantics for ports, never migration targets, deleted
+  wholesale when `salt2` replaces them.
 
 ## File layout
 

@@ -13768,6 +13768,7 @@ __metadata:
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
+    "@rust/hashql-core": "workspace:*"
   languageName: unknown
   linkType: soft
 

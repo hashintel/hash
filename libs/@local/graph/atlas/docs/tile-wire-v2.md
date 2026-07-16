@@ -27,8 +27,24 @@ The canonical base stores points in importance-bucket order and Morton order
 within each bucket. The server binary-searches that range independently in
 every bucket, scans buckets from highest to lowest delivery priority, and
 backfills until `tile_point_budget` records have been selected. It always
-computes `visible_subtree_count` across every bucket, even when the delivered
-prefix is truncated.
+computes `visible_subtree_count` across every bucket, even when the delivery
+is truncated.
+
+Two guarantees keep truncated and partially consumed responses spatially
+fair rather than biased toward the Z-curve prefix (a staircase-shaped region
+of the tile):
+
+- **Fair truncation.** When the budget lands inside a bucket, the server
+  midpoint-stride samples that bucket's full Morton range (one pick per equal
+  stratum) instead of cutting a Morton prefix, so the delivered set covers
+  the whole tile.
+- **Progressive order.** Within each bucket, delivered records are ordered by
+  the ascending bit-reversed tile-local Morton suffix (van der Corput order).
+  Coarse quadrant bits become the least significant rank bits, so every
+  client-side prefix of the response is a spatially stratified subset:
+  clients may render or subsample any prefix without introducing spatial
+  bias. Records are therefore _not_ in ascending Morton order within a
+  bucket.
 
 ## Binary layout
 

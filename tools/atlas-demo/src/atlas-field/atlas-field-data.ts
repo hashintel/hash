@@ -5,11 +5,7 @@
  * a frontier bug and is rejected instead of silently adding duplicate mass.
  */
 
-import {
-  atlasDeliverySegments,
-  atlasFairDeliveryCount,
-  atlasTileKey,
-} from "../atlas-client";
+import { atlasTileKey } from "../atlas-client";
 
 import type { WeightedAtlasTile } from "../atlas-frontier";
 
@@ -90,23 +86,12 @@ export const atlasFieldBounds = (
     : undefined;
 };
 
-/**
- * Packs active representatives into stable, tightly packed GPU attributes.
- *
- * Only each tile's fair delivery prefix is splatted: a budget-truncated
- * trailing bucket covers just the Z-curve prefix of the tile, and giving
- * those points full per-point mass would pile the tile's density into a
- * staircase-shaped region. The frontier's `massPerPoint` already spreads the
- * tile's visible mass over this same prefix, so total mass is preserved.
- */
+/** Packs active representatives into stable, tightly packed GPU attributes. */
 export const packAtlasField = (
   activeTiles: readonly WeightedAtlasTile[],
 ): PackedAtlasField => {
-  const fairCounts = activeTiles.map(({ tile }) =>
-    atlasFairDeliveryCount(tile),
-  );
-  const instanceCount = fairCounts.reduce(
-    (total, fairCount) => total + fairCount,
+  const instanceCount = activeTiles.reduce(
+    (total, weightedTile) => total + weightedTile.tile.deliveredCount,
     0,
   );
   const positions = new Float32Array(instanceCount * 2);
@@ -115,12 +100,7 @@ export const packAtlasField = (
   const seenRows = new Set<number>();
   let outputIndex = 0;
 
-  for (let tileIndex = 0; tileIndex < activeTiles.length; tileIndex += 1) {
-    const weightedTile = activeTiles[tileIndex];
-    const fairCount = fairCounts[tileIndex];
-    if (weightedTile === undefined || fairCount === undefined) {
-      continue;
-    }
+  for (const weightedTile of activeTiles) {
     const { tile } = weightedTile;
     for (
       let pointIndex = 0;
@@ -138,11 +118,8 @@ export const packAtlasField = (
       if (seenRows.has(rowId)) {
         throw new Error(`Active frontier repeats generation row ${rowId}`);
       }
-      seenRows.add(rowId);
-      if (pointIndex >= fairCount) {
-        continue;
-      }
 
+      seenRows.add(rowId);
       positions[outputIndex * 2] = pointX + 0.5;
       positions[outputIndex * 2 + 1] = pointY + 0.5;
       masses[outputIndex] = weightedTile.massPerPoint;
@@ -160,82 +137,34 @@ export const packAtlasField = (
 };
 
 /**
- * Selects `markCount` spatially fair delivered-point indices for one tile.
- *
- * Whole recovered buckets are taken in delivery order while they fit. The
- * bucket where the cap lands is stride-sampled across its full Morton range
- * instead of cut as a prefix: a mid-bucket prefix is a Z-curve staircase
- * region, which renders as sharp horizontal cuts through clusters.
- */
-const selectMarkIndices = (
-  weightedTile: WeightedAtlasTile,
-  markCount: number,
-): Set<number> => {
-  const { tile } = weightedTile;
-  const segments = atlasDeliverySegments(tile);
-  const fairCount = atlasFairDeliveryCount(tile, segments);
-  const selected = new Set<number>();
-
-  for (const segment of segments) {
-    const segmentEnd = Math.min(segment.end, fairCount);
-    const segmentLength = segmentEnd - segment.start;
-    const remaining = markCount - selected.size;
-    if (segmentLength <= 0 || remaining <= 0) {
-      break;
-    }
-    if (segmentLength <= remaining) {
-      for (let index = segment.start; index < segmentEnd; index += 1) {
-        selected.add(index);
-      }
-      continue;
-    }
-    for (let pick = 0; pick < remaining; pick += 1) {
-      selected.add(
-        segment.start + Math.floor((pick * segmentLength) / remaining),
-      );
-    }
-    break;
-  }
-  return selected;
-};
-
-/**
- * Packs a globally mass-balanced, spatially fair subset of the marks.
+ * Packs a globally mass-balanced prefix of the active representatives.
  *
  * Independently capped tiles cannot all contribute their full delivery to a
  * point layer: doing so gives every saturated tile the same apparent density.
  * The largest representative mass defines one visual mark's support, and each
- * other tile contributes a corresponding number of points chosen bucket by
- * bucket (see {@link selectMarkIndices}), so the subset stays deterministic
- * and row-stable for one tile without inheriting Morton-prefix bias.
+ * other tile contributes the corresponding prefix of its delivery. The server
+ * emits each bucket in progressive (bit-reversed Morton) order, so every
+ * prefix of a delivery is already a spatially stratified sample of its tile.
  */
 export const packAtlasMarks = (
   activeTiles: readonly WeightedAtlasTile[],
   colorForRow?: AtlasMarkColorAccessor,
 ): PackedAtlasMarks => {
-  const fairCounts = activeTiles.map(({ tile }) =>
-    atlasFairDeliveryCount(tile),
-  );
   const maximumMass = activeTiles.reduce(
-    (maximum, { massPerPoint, tile }, tileIndex) =>
-      tile.deliveredCount === 0 || fairCounts[tileIndex] === 0
-        ? maximum
-        : Math.max(maximum, massPerPoint),
+    (maximum, { massPerPoint, tile }) =>
+      tile.deliveredCount === 0 ? maximum : Math.max(maximum, massPerPoint),
     0,
   );
-  const selectedIndices = activeTiles.map((weightedTile, tileIndex) =>
-    selectMarkIndices(
-      weightedTile,
-      maximumMass > 0
-        ? Math.min(
-            fairCounts[tileIndex] ?? 0,
-            Math.ceil(weightedTile.tile.visibleSubtreeCount / maximumMass),
-          )
-        : 0,
-    ),
+  const markCounts = activeTiles.map(({ tile }) =>
+    maximumMass > 0
+      ? Math.min(
+          tile.deliveredCount,
+          Math.ceil(tile.visibleSubtreeCount / maximumMass),
+        )
+      : 0,
   );
-  const instanceCount = selectedIndices.reduce(
-    (total, selected) => total + selected.size,
+  const instanceCount = markCounts.reduce(
+    (total, markCount) => total + markCount,
     0,
   );
   const markColors = new Uint8Array(instanceCount * 4);
@@ -246,8 +175,8 @@ export const packAtlasMarks = (
 
   for (let tileIndex = 0; tileIndex < activeTiles.length; tileIndex += 1) {
     const weightedTile = activeTiles[tileIndex];
-    const selected = selectedIndices[tileIndex];
-    if (weightedTile === undefined || selected === undefined) {
+    const markCount = markCounts[tileIndex];
+    if (weightedTile === undefined || markCount === undefined) {
       continue;
     }
     const { tile } = weightedTile;
@@ -268,7 +197,7 @@ export const packAtlasMarks = (
         throw new Error(`Active frontier repeats generation row ${rowId}`);
       }
       seenRows.add(rowId);
-      if (!selected.has(pointIndex)) {
+      if (pointIndex >= markCount) {
         continue;
       }
 

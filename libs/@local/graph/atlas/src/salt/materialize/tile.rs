@@ -120,9 +120,15 @@ impl EncodedTile {
 
 /// Reads one quadrant from every delivery bucket and encodes wire-v2.
 ///
-/// Points remain in importance-bucket order and Morton order within each
-/// bucket. Deeper buckets backfill the response until `request.point_budget`
-/// is reached, while the complete subtree count is measured independently.
+/// Buckets deliver in importance order and backfill the response until
+/// `request.point_budget` is reached. Within the bucket where the budget
+/// runs out, the tile's Morton range is midpoint-stride sampled across its
+/// full extent instead of cut as a Morton prefix, so a truncated delivery
+/// stays spatially fair rather than collapsing into the Z-curve prefix
+/// staircase of the tile. Each bucket's selection is then emitted in
+/// progressive order (ascending bit-reversed tile-local Morton suffix), so
+/// every client-side prefix of the response is spatially stratified as well.
+/// The complete subtree count is measured independently of the budget.
 ///
 /// # Errors
 ///
@@ -141,6 +147,7 @@ pub(crate) fn encode_tile(
     let offsets = u64_section(artifact, BUCKET_OFFSETS, "bucket offsets")?;
     validate_sections(rows, morton, offsets)?;
     let (minimum, maximum) = morton_range(request);
+    let suffix_bits = 2 * u32::from(MAXIMUM_TILE_ZOOM - request.zoom);
     let mut selected = Vec::<(u32, u32)>::new();
     selected
         .try_reserve_exact(request.point_budget.get())
@@ -155,17 +162,38 @@ pub(crate) fn encode_tile(
         let keys = &morton[start..end];
         let local_start = keys.partition_point(|&key| u64::from(key) < minimum);
         let local_end = keys.partition_point(|&key| u64::from(key) < maximum);
+        let range_length = local_end.saturating_sub(local_start);
         visible = visible
-            .checked_add(local_end.saturating_sub(local_start))
+            .checked_add(range_length)
             .ok_or(TileError::CountOverflow)?;
         let remaining = request.point_budget.get().saturating_sub(selected.len());
-        if remaining == 0 {
+        if remaining == 0 || range_length == 0 {
             continue;
         }
-        let selected_end = local_start.saturating_add(remaining).min(local_end);
-        for index in start + local_start..start + selected_end {
-            selected.push((rows[index], morton[index]));
+        let bucket_selection_start = selected.len();
+        if range_length <= remaining {
+            for index in start + local_start..start + local_end {
+                selected.push((rows[index], morton[index]));
+            }
+        } else {
+            // The budget lands inside this bucket. A Morton-prefix cut would
+            // deliver only the Z-curve staircase at the start of the tile, so
+            // midpoint-stride sample the bucket's full range instead: pick
+            // `remaining` stratum midpoints, which stay strictly increasing
+            // because the stratum width is at least one.
+            for pick in 0..remaining {
+                let offset = midpoint_stride(pick, remaining, range_length)?;
+                let index = start + local_start + offset;
+                selected.push((rows[index], morton[index]));
+            }
         }
+        // Progressive delivery order: sorting by the bit-reversed tile-local
+        // Morton suffix interleaves quadrants recursively, so any prefix of
+        // the response is a spatially stratified subset. The sort is stable
+        // and ranks collide only for duplicate keys, which keeps the byte
+        // stream deterministic.
+        selected[bucket_selection_start..]
+            .sort_by_key(|&(_row, key)| progressive_rank(key, minimum, suffix_bits));
     }
     let visible_subtree_count =
         u32::try_from(visible).map_err(|_error| TileError::CountOverflow)?;
@@ -211,6 +239,39 @@ fn validate_sections(rows: &[u32], morton: &[u32], offsets: &[u64]) -> Result<()
         }
     }
     Ok(())
+}
+
+/// Returns the midpoint of stratum `pick` of `total` equal strata over
+/// `range_length` records.
+fn midpoint_stride(pick: usize, total: usize, range_length: usize) -> Result<usize, TileError> {
+    let pick = u64::try_from(pick).map_err(|_error| TileError::CountOverflow)?;
+    let total = u64::try_from(total).map_err(|_error| TileError::CountOverflow)?;
+    let range_length = u64::try_from(range_length).map_err(|_error| TileError::CountOverflow)?;
+    let numerator = pick
+        .checked_mul(2)
+        .and_then(|doubled| doubled.checked_add(1))
+        .and_then(|odd| odd.checked_mul(range_length))
+        .ok_or(TileError::CountOverflow)?;
+    let offset = numerator / (2 * total);
+    usize::try_from(offset).map_err(|_error| TileError::CountOverflow)
+}
+
+/// Ranks a Morton key by its bit-reversed tile-local suffix.
+///
+/// Keys inside one tile share the leading `32 - suffix_bits` prefix, so the
+/// suffix alone distinguishes them. Reversing it makes coarse quadrant bits
+/// the least significant rank bits, producing the progressive (van der
+/// Corput) traversal in which every prefix covers the tile evenly.
+const fn progressive_rank(key: u32, range_minimum: u64, suffix_bits: u32) -> u32 {
+    if suffix_bits == 0 {
+        return 0;
+    }
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the tile-local suffix occupies at most 32 bits by construction"
+    )]
+    let suffix = (key as u64 - range_minimum) as u32;
+    suffix.reverse_bits() >> (32 - suffix_bits)
 }
 
 fn morton_range(request: TileRequest) -> (u64, u64) {

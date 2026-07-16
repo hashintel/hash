@@ -252,7 +252,10 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
     assert_eq!(root.delivered_count(), 2);
     assert_eq!(root.bytes().len(), 160 + 2 * 8);
     assert_eq!(&root.bytes()[160..164], &2_u32.to_le_bytes());
-    assert_eq!(&root.bytes()[168..172], &1_u32.to_le_bytes());
+    // The budget lands inside the second bucket, so its two-point range is
+    // midpoint-stride sampled: the single stratum midpoint is its second
+    // record, row 0 at Morton key (1, 1).
+    assert_eq!(&root.bytes()[168..172], &0_u32.to_le_bytes());
     let root_again = encode_tile(
         view,
         ActiveRelease::for_test(),
@@ -277,6 +280,95 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
     assert_eq!(leaf.visible_subtree_count(), 1);
     assert_eq!(leaf.delivered_count(), 1);
     assert_eq!(&leaf.bytes()[160..164], &2_u32.to_le_bytes());
+}
+
+#[test]
+fn truncated_tiles_sample_fairly_and_deliver_in_progressive_order() {
+    let entities = (0..8).map(entity_id).collect::<Vec<_>>();
+    let identities = IdentityDirectory::new(entities).expect("identity directory should be valid");
+    let coordinates = [[0.0, 0.0]; 8];
+    // Row `i` carries the `i`-th smallest Morton key: seven points cluster in
+    // the top-left quadrant and row 7 sits alone at the bottom-right corner.
+    let mut ranked = [
+        (0, MortonKey::new(0, 0)),
+        (1, MortonKey::new(1, 0)),
+        (2, MortonKey::new(0, 1)),
+        (3, MortonKey::new(1, 1)),
+        (4, MortonKey::new(2, 0)),
+        (5, MortonKey::new(0, 2)),
+        (6, MortonKey::new(2, 2)),
+        (7, MortonKey::new(0x8000, 0x8000)),
+    ]
+    .map(|(row_id, morton)| RankedPoint {
+        row: row(row_id),
+        bucket: 0,
+        morton,
+        priority_rank: row_id,
+    });
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("base.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_base_artifact(
+        &path,
+        &identities,
+        &coordinates,
+        &mut ranked,
+        CanonicalProvenance {
+            field_hash: ContentHash::digest(b"field"),
+            condition: 1.0,
+            condition_domain_hash: ContentHash::digest(b"domain"),
+            selection_evidence_hash: ContentHash::digest(b"evidence"),
+            procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+            quantization_step: 0.25,
+        },
+    )
+    .expect("base artifact should publish");
+    let artifact = MappedArtifact::map_immutable(
+        File::open(&path).expect("base artifact should open"),
+        BASE_ARTIFACT_FORMAT,
+    )
+    .expect("base artifact should map");
+    let view = artifact.view();
+    let delivered_rows = |tile: &EncodedTile| {
+        tile.bytes()[160..]
+            .chunks_exact(8)
+            .map(|record| {
+                u32::from_le_bytes(record[..4].try_into().expect("records carry a u32 row"))
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let truncated = encode_tile(
+        view,
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+        TileRequest::new(0, 0, 0, NonZeroUsize::new(4).expect("four is non-zero"))
+            .expect("root tile should validate"),
+    )
+    .expect("truncated tile should encode");
+    assert_eq!(truncated.visible_subtree_count(), 8);
+    assert_eq!(truncated.delivered_count(), 4);
+    // Midpoint strides pick artifact offsets 1, 3, 5, 7: a Morton-prefix cut
+    // would drop the bottom-right outlier (row 7); fair sampling keeps it.
+    // Progressive (bit-reversed suffix) ordering then delivers it first.
+    assert_eq!(delivered_rows(&truncated), [7, 5, 1, 3]);
+
+    let complete = encode_tile(
+        view,
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+        TileRequest::new(0, 0, 0, NonZeroUsize::new(8).expect("eight is non-zero"))
+            .expect("root tile should validate"),
+    )
+    .expect("complete tile should encode");
+    assert_eq!(complete.visible_subtree_count(), 8);
+    assert_eq!(complete.delivered_count(), 8);
+    // Every prefix of the progressive order spreads across the tile instead
+    // of walking the Z-curve: the top-left origin and bottom-right outlier
+    // arrive before the remaining top-left cluster fills in.
+    assert_eq!(delivered_rows(&complete), [0, 7, 5, 4, 6, 2, 1, 3]);
 }
 
 #[test]

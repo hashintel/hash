@@ -75,26 +75,6 @@ describe("packAtlasField", () => {
       ]),
     ).toThrow(/repeats generation row 10/u);
   });
-
-  it("drops a budget-truncated trailing bucket instead of splatting its Z-prefix", () => {
-    // Morton keys decrease at index 4, so indices 4-5 form the truncated
-    // final bucket of this incomplete delivery.
-    const truncated = {
-      ...tile(
-        [10, 11, 12, 13, 14, 15],
-        [0, 0, 100, 100, 200, 200, 300, 300, 50, 50, 150, 150],
-      ),
-      visibleSubtreeCount: 60,
-    };
-
-    const packed = packAtlasField([{ massPerPoint: 15, tile: truncated }]);
-
-    expect(packed.instanceCount).toBe(4);
-    expect([...packed.positions]).toEqual([
-      0.5, 0.5, 100.5, 100.5, 200.5, 200.5, 300.5, 300.5,
-    ]);
-    expect([...packed.masses]).toEqual([15, 15, 15, 15]);
-  });
 });
 
 describe("packAtlasMarks", () => {
@@ -139,28 +119,6 @@ describe("packAtlasMarks", () => {
     ]);
 
     expect([...packed.rowIds]).toEqual([10, 11, 12, 13, 20]);
-  });
-
-  it("stride-samples the bucket where the mark cap lands instead of cutting a prefix", () => {
-    const denseTile = {
-      ...tile([1], [40_000, 40_000]),
-      visibleSubtreeCount: 20,
-    };
-    const sparseTile = {
-      ...tile([20, 21, 22, 23], [0, 0, 10, 10, 20, 20, 30, 30]),
-      coordinate: { z: 2, x: 1, y: 0 },
-      visibleSubtreeCount: 40,
-    };
-
-    const packed = packAtlasMarks([
-      { massPerPoint: 20, tile: denseTile },
-      { massPerPoint: 10, tile: sparseTile },
-    ]);
-
-    // The sparse tile is capped to ceil(40 / 20) = 2 marks from one
-    // four-point bucket: a prefix would return rows 20 and 21, the stride
-    // spreads the picks across the bucket's Morton range instead.
-    expect([...packed.rowIds]).toEqual([1, 20, 22]);
   });
 
   it("keeps surviving row marks stable when refinement adds rows", () => {

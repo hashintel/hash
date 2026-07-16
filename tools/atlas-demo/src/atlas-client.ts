@@ -7,12 +7,6 @@
  */
 
 import {
-  atlasDeliverySegments,
-  atlasFairDeliveryCount,
-  atlasMortonKey,
-  type AtlasDeliverySegment,
-} from "./atlas-client/atlas-delivery-order";
-import {
   ATLAS_MAX_TILE_ZOOM,
   ATLAS_WORLD_SIZE,
   atlasTileBounds,
@@ -33,20 +27,12 @@ export {
   ATLAS_MAX_TILE_ZOOM,
   ATLAS_TILE_MEDIA_TYPE,
   ATLAS_WORLD_SIZE,
-  atlasDeliverySegments,
-  atlasFairDeliveryCount,
-  atlasMortonKey,
   atlasTileBounds,
   atlasTileChildren,
   atlasTileKey,
   validateAtlasTileCoordinate,
 };
-export type {
-  AtlasDeliverySegment,
-  AtlasTileBounds,
-  AtlasTileCoordinate,
-  DecodedAtlasTile,
-};
+export type { AtlasTileBounds, AtlasTileCoordinate, DecodedAtlasTile };
 
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 

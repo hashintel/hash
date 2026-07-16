@@ -3,9 +3,7 @@
  *
  * The active set is always spatially disjoint. A cached parent remains active
  * until every visible direct child is ready, then those children replace it in
- * one publication. Each representative carries `visible / delivered` mass on
- * average; how that mass is distributed across a possibly budget-truncated
- * delivery is the renderer's concern (see `atlas-field/atlas-field-data.ts`).
+ * one publication. Each representative carries `visible / delivered` mass.
  */
 
 import {
