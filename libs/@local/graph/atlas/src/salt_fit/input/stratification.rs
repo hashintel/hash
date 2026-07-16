@@ -29,16 +29,23 @@ pub(super) fn landmark_candidates(
             "entity roles do not match the extracted population".to_owned(),
         ));
     }
-    let row_by_id = extraction
-        .entities
-        .iter()
-        .enumerate()
-        .map(|(row, entity)| (entity.entity_id(), row))
-        .collect::<HashMap<_, _>>();
-    let mut degree = vec![0_u32; rows];
-    let mut components = Components::new(rows);
+    let mut row_by_id = HashMap::new();
+    row_by_id.try_reserve(rows).map_err(|error| {
+        FitInputError::Invalid(format!(
+            "stratification identity allocation failed: {error}"
+        ))
+    })?;
+    row_by_id.extend(
+        extraction
+            .entities
+            .iter()
+            .enumerate()
+            .map(|(row, entity)| (entity.entity_id(), row)),
+    );
+    let mut degree = try_vec("stratification degrees", rows)?;
+    degree.resize(rows, 0_u32);
+    let mut components = Components::new(rows)?;
     for link in &extraction.links {
-        let link_row = row_by_id.get(&link.link.entity_id).copied();
         let left_row = row_by_id.get(&link.left.entity_id).copied();
         let right_row = row_by_id.get(&link.right.entity_id).copied();
         for row in [left_row, right_row].into_iter().flatten() {
@@ -47,91 +54,78 @@ pub(super) fn landmark_candidates(
         if let (Some(left), Some(right)) = (left_row, right_row) {
             components.union(left, right);
         }
-        if let Some(link) = link_row {
-            degree[link] = degree[link].saturating_add(2);
-            if let Some(left) = left_row {
-                components.union(link, left);
-            }
-            if let Some(right) = right_row {
-                components.union(link, right);
-            }
-        }
     }
-    let density = density_deciles(&degree);
-    let community = (0..rows)
-        .map(|row| {
-            let root = components.find(row);
+    let density = density_deciles(&degree)?;
+    let mut community = try_vec("stratification communities", rows)?;
+    for row in 0..rows {
+        let root = components.find(row);
+        community.push(hash_bucket(
+            b"hash.graph.atlas.fit.representation-community.v1",
+            &u64::try_from(root)
+                .expect("M0 extraction row should fit u64")
+                .to_le_bytes(),
+        ));
+    }
+    let mut candidates = try_vec("landmark candidates", rows)?;
+    for (row, (entity, &role)) in extraction.entities.iter().zip(roles).enumerate() {
+        let web_id: uuid::Uuid = entity.entity_id().web_id.into();
+        let edition_id = entity.edition_id().into_uuid();
+        let source = hash_bucket(
+            b"hash.graph.atlas.fit.representation-source.v1",
+            web_id.as_bytes(),
+        );
+        let temporal_cohort = hash_bucket(
+            b"hash.graph.atlas.fit.representation-edition-cohort.v1",
+            edition_id.as_bytes(),
+        );
+        let type_family = entity.entity_types.first().map_or(0, |entity_type| {
             hash_bucket(
-                b"hash.graph.atlas.fit.representation-community.v1",
-                &u64::try_from(root)
-                    .expect("M0 extraction row should fit u64")
-                    .to_le_bytes(),
+                b"hash.graph.atlas.fit.representation-type-family.v1",
+                entity_type.base_url.as_str().as_bytes(),
             )
-        })
-        .collect::<Vec<_>>();
-    extraction
-        .entities
-        .iter()
-        .zip(roles)
-        .enumerate()
-        .map(|(row, (entity, &role))| {
-            let web_id: uuid::Uuid = entity.entity_id().web_id.into();
-            let edition_id = entity.edition_id().into_uuid();
-            let source = hash_bucket(
-                b"hash.graph.atlas.fit.representation-source.v1",
-                web_id.as_bytes(),
-            );
-            let temporal_cohort = hash_bucket(
-                b"hash.graph.atlas.fit.representation-edition-cohort.v1",
-                edition_id.as_bytes(),
-            );
-            let type_family = entity.entity_types.first().map_or(0, |entity_type| {
-                hash_bucket(
-                    b"hash.graph.atlas.fit.representation-type-family.v1",
-                    entity_type.base_url.as_str().as_bytes(),
-                )
-            });
-            Ok(LandmarkCandidate {
-                row: GenerationRowId::try_from(row)
-                    .map_err(|error| FitInputError::Invalid(error.to_string()))?,
-                sampling_weight: 1.0,
-                density: density[row],
-                language: language_bucket(entity.label.as_deref()),
-                source,
-                entity_role: role.index(),
-                type_family,
-                community: community[row],
-                temporal_cohort,
-                prior_landmark: false,
-            })
-        })
-        .collect()
+        });
+        candidates.push(LandmarkCandidate {
+            row: GenerationRowId::try_from(row)
+                .map_err(|error| FitInputError::Invalid(error.to_string()))?,
+            sampling_weight: 1.0,
+            density: density[row],
+            language: language_bucket(entity.label.as_deref()),
+            source,
+            entity_role: role.index(),
+            type_family,
+            community: community[row],
+            temporal_cohort,
+            prior_landmark: false,
+        });
+    }
+    Ok(candidates)
 }
 
-pub(super) fn quality_subgroups(candidates: &[LandmarkCandidate]) -> Vec<ContentHash> {
-    candidates
-        .iter()
-        .map(|candidate| {
-            let mut hasher =
-                ContentHasher::new(b"hash.graph.atlas.fit.quality-role-cohort-subgroup.v2");
-            hasher.update(&candidate.entity_role.to_le_bytes());
-            hasher.update(&candidate.temporal_cohort.to_le_bytes());
-            hasher.finish()
-        })
-        .collect()
+pub(super) fn quality_subgroups(
+    candidates: &[LandmarkCandidate],
+) -> Result<Vec<ContentHash>, FitInputError> {
+    let mut subgroups = try_vec("quality subgroups", candidates.len())?;
+    subgroups.extend(candidates.iter().map(|candidate| {
+        let mut hasher =
+            ContentHasher::new(b"hash.graph.atlas.fit.quality-role-cohort-subgroup.v2");
+        hasher.update(&candidate.entity_role.to_le_bytes());
+        hasher.update(&candidate.temporal_cohort.to_le_bytes());
+        hasher.finish()
+    }));
+    Ok(subgroups)
 }
 
-fn density_deciles(degrees: &[u32]) -> Vec<u32> {
-    let mut sorted = degrees.to_vec();
+fn density_deciles(degrees: &[u32]) -> Result<Vec<u32>, FitInputError> {
+    let mut sorted = try_vec("sorted degree distribution", degrees.len())?;
+    sorted.extend_from_slice(degrees);
     sorted.sort_unstable();
-    degrees
-        .iter()
-        .map(|degree| {
-            let lower = sorted.partition_point(|candidate| candidate < degree);
-            u32::try_from(lower.saturating_mul(DENSITY_DECILES) / sorted.len().max(1))
-                .expect("density decile is smaller than ten")
-        })
-        .collect()
+    let mut density = try_vec("density deciles", degrees.len())?;
+    density.extend(degrees.iter().map(|degree| {
+        let lower = sorted.partition_point(|candidate| candidate < degree);
+        u32::try_from(lower.saturating_mul(DENSITY_DECILES) / sorted.len().max(1))
+            .expect("density decile is smaller than ten")
+    }));
+    Ok(density)
 }
 
 fn language_bucket(label: Option<&str>) -> u32 {
@@ -158,10 +152,10 @@ struct Components {
 }
 
 impl Components {
-    fn new(rows: usize) -> Self {
-        Self {
-            parent: (0..rows).collect(),
-        }
+    fn new(rows: usize) -> Result<Self, FitInputError> {
+        let mut parent = try_vec("component parents", rows)?;
+        parent.extend(0..rows);
+        Ok(Self { parent })
     }
 
     fn find(&mut self, row: usize) -> usize {
@@ -190,4 +184,14 @@ impl Components {
             self.parent[child] = root;
         }
     }
+}
+
+fn try_vec<T>(name: &'static str, capacity: usize) -> Result<Vec<T>, FitInputError> {
+    let mut values = Vec::new();
+    values.try_reserve_exact(capacity).map_err(|error| {
+        FitInputError::Invalid(format!(
+            "could not reserve {capacity} elements for {name}: {error}"
+        ))
+    })?;
+    Ok(values)
 }

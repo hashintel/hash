@@ -18,19 +18,24 @@ The generation runner still:
 - samples an `AuthorizationRevisionProvider` before and after those permission calls;
 - binds the observed revision and extraction receipt identity into the frozen input;
 - publishes a candidate before activation; and
-- withdraws that candidate's discoverability marker under the activation lock
-  when the final optimistic revision read has changed; and
+- withdraws that candidate's discoverability marker when a final live
+  optimistic revision read has changed in `m0_local_attestation`; and
 - verifies artifacts, signatures, and the projector checkpoint when reopening the
   active generation.
 
-These checks detect some authorization changes. They do not make permission
-evaluation and filesystem activation one atomic operation.
+In `evidence_deferred_local`, the provider deliberately returns the extraction
+marker for every sample. Permission checks still execute, but the repeated
+marker does not detect intervening mutations and is not presented as
+attestation. In `m0_local_attestation`, the live WAL sampler detects some
+database changes. Neither mode makes permission evaluation and filesystem
+activation one atomic operation.
 
-The local fitter records two distinct WAL-derived values in its receipt:
-`extractionAuthorizationRevision` is sampled inside the repeatable-read
-extraction transaction, while `authorizationRevision` is sampled around the
-later permission reads and is the revision bound into the generated manifest.
-They are intentionally not presented as one linearized revision.
+The local fitter records both `extractionAuthorizationRevision` and
+`authorizationRevision`. Local attestation samples the latter around later
+permission reads; they are intentionally not presented as one linearized
+revision. Evidence-deferred mode records the same pinned extraction marker in
+both fields so unrelated PostgreSQL writes do not prevent an explicitly
+non-attesting fit.
 
 ## Accepted gap
 

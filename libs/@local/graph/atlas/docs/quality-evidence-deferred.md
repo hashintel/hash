@@ -8,8 +8,12 @@ path, but it does not provide release-grade independent evidence.
 The mode persists `evidence_deferred_local` in the generation manifest. Its fit
 receipt marks every gate as `deferred`. External issuer commands are not
 started; provisional grants are signed by local, domain-separated authorities
-derived from the release seed. A server rejects such a generation unless its
-configuration explicitly sets:
+derived from the release seed. The five manifest provenance identities,
+relation-policy and security source reports, companion bytes, and companion
+report are deterministic placeholders marked `mock_non_attesting`. They
+satisfy the current manifest shape only and are not used for classifier
+inference, geometry, model selection, reproduction, or numerical acceptance.
+A server rejects such a generation unless its configuration explicitly sets:
 
 ```json
 {
@@ -32,11 +36,15 @@ silently serving a deferred generation.
   independently reproduced evidence.
 - Subgroup coverage can be sparse or absent for small and homogeneous scopes.
   Reported degradation is not a comprehensive fairness or cohort guarantee.
-- Authorization noninterference and snapshot consistency use application-level
-  PostgreSQL/WAL attestations. They do not establish an authorization-owned
-  activation lease or cross-process snapshot linearization.
-- Security approval and companion compatibility reports are accepted as local
-  provisional inputs rather than independently issued decisions.
+- Authorization noninterference and snapshot consistency use an
+  application-level PostgreSQL snapshot identity and a pinned extraction
+  marker. They do not detect intervening authorization mutations, establish an
+  authorization-owned activation lease, or provide cross-process snapshot
+  linearization.
+- Embedding/classifier provenance, security approval, and companion
+  compatibility are mock values with no evidentiary meaning. Deferred bundles
+  must omit external report and companion references so they cannot be
+  mistaken for reviewed inputs.
 
 These limitations are assertions about assurance, not file integrity. Deferred
 generations still use content-addressed artifacts, complete manifest

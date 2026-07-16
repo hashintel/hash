@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -342,3 +343,52 @@ def test_cli_status_runs_the_dashboard_with_operator_options(
         "refresh_seconds": 1.5,
         "once": True,
     }
+
+
+def test_cli_exports_verified_fit_inputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    classifier = tmp_path / "classifier.salt"
+    classifier.touch()
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    embeddings = tmp_path / "embeddings.parquet"
+    embeddings.touch()
+    output = tmp_path / "relation-policy-inputs.json"
+    captured: dict[str, object] = {}
+
+    def export(**arguments: object) -> SimpleNamespace:
+        captured.update(arguments)
+        return SimpleNamespace(
+            path=output,
+            content_hash="ab" * 32,
+            relation_count=17,
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.evaluation.application.api.export_fit_inputs",
+        export,
+    )
+    cli.main(
+        [
+            "export-fit-inputs",
+            str(classifier),
+            str(cards),
+            str(embeddings),
+            "--out",
+            str(output),
+        ]
+    )
+
+    assert captured == {
+        "classifier_path": classifier,
+        "cards_directory": cards,
+        "embeddings_path": embeddings,
+        "output_path": output,
+    }
+    stdout = capsys.readouterr().out
+    assert f"wrote {output}" in stdout
+    assert f"sha256 {'ab' * 32}" in stdout
+    assert "relations 17" in stdout

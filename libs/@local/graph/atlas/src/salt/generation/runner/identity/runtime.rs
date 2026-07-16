@@ -16,7 +16,6 @@ pub(super) struct ArithmeticRuntime {
     pub cpu_features: String,
     pub floating_point_control: String,
     pub math_library_images: String,
-    pub candle_cpu_threads: usize,
     pub gemm_kernel: String,
     pub gemm_cache_configuration: String,
     pub gemm_threading_threshold: usize,
@@ -25,7 +24,7 @@ pub(super) struct ArithmeticRuntime {
     pub gemm_rhs_packing_threshold: usize,
 }
 
-/// Observes the platform and native GEMM controls used by Candle CPU.
+/// Observes platform and host GEMM controls used alongside `CubeCL` GPU kernels.
 pub(super) fn observe_arithmetic_runtime() -> io::Result<ArithmeticRuntime> {
     let operating_system = operating_system_identity()?;
     Ok(ArithmeticRuntime {
@@ -34,7 +33,6 @@ pub(super) fn observe_arithmetic_runtime() -> io::Result<ArithmeticRuntime> {
         cpu_features: runtime_cpu_features(),
         floating_point_control: observed_floating_point_control(),
         math_library_images: loaded_math_library_identities()?,
-        candle_cpu_threads: candle_cpu_threads(),
         gemm_kernel: gemm_kernel().to_owned(),
         gemm_cache_configuration: gemm_cache_configuration(),
         gemm_threading_threshold: gemm::get_threading_threshold(),
@@ -69,14 +67,6 @@ pub(in crate::salt::generation::runner) fn running_binary_fingerprint() -> io::R
             "M0 cannot identify the mapped executable on this operating system",
         ))
     }
-}
-
-fn candle_cpu_threads() -> usize {
-    std::env::var("RAYON_NUM_THREADS")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|&threads| threads > 0)
-        .unwrap_or_else(num_cpus::get)
 }
 
 fn gemm_cache_configuration() -> String {
@@ -519,6 +509,5 @@ mod tests {
             running_binary_fingerprint().expect("running image should identify"),
             ContentHash::from_bytes([0; 32])
         );
-        assert!(std::num::NonZeroUsize::new(runtime.candle_cpu_threads).is_some());
     }
 }

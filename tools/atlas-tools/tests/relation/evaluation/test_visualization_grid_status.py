@@ -93,7 +93,7 @@ def _snapshot(
 
 
 def test_static_status_render_contains_operator_signals() -> None:
-    console = Console(record=True, width=160)
+    console = Console(record=True, width=160, height=25)
     console.print(build_grid_status_renderable(_snapshot(completed=2, committed=1)))
     output = console.export_text()
 

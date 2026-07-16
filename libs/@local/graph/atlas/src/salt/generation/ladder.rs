@@ -290,7 +290,7 @@ pub(crate) fn evaluate_persisted_quality(
 }
 
 /// A versioned external suite that measures exact projected fields.
-pub(crate) trait ConditionQualityEvaluator: fmt::Debug + Sync {
+pub(crate) trait ConditionQualityEvaluator: fmt::Debug + Send + Sync {
     /// Returns the canonical version of the external quality suite.
     fn suite_version(&self) -> &str;
 

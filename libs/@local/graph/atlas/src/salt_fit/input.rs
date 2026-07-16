@@ -9,11 +9,13 @@ use core::{error::Error, fmt, str::FromStr as _};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::Deserialize;
-use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
+use type_system::ontology::VersionedUrl;
 
+mod deferred;
 #[path = "input/stratification.rs"]
 mod stratification;
 
+use deferred::{apply_mock_manifest_claims, generate_mock_inputs};
 use stratification::{landmark_candidates, quality_subgroups};
 
 use super::{
@@ -23,22 +25,22 @@ use super::{
     },
     postgres::{PostgresExtraction, SnapshotEnvelope},
     quality_evaluation::{
-        FitQualityError, LocalConditionQualityEvaluator, LocalPersistenceQualityEvaluator,
-        audit_representations,
+        DeferredConditionQualityEvaluator, FitQualityError, LocalConditionQualityEvaluator,
+        LocalPersistenceQualityEvaluator, audit_representations, deferred_representations,
     },
     schema::{FitAssuranceMode, FitInputBundleV1, FitInputReferenceV1, FitManifestContractV1},
 };
 use crate::salt::{
     ContentHash, ContentHasher,
     salt_fit_boundary::{
-        ArtifactOrdinal, CARD_FORMAT_VERSION, EntityRole, ExternalGateReportDocuments,
-        FrozenCanonicalSignals, GenerationAssuranceMode, GenerationManifest,
-        GenerationManifestContract, IdentityDirectory, KnowledgeDecisionTimePolicy, LinkCandidate,
-        OwnedCanonicalEmbedding, PlacementPosterior, RelationModelSources, RelationPolicyInput,
-        RelationPolicyRecords, RelationSecurityMode, RelationSecurityPolicy, RelationStrength,
-        SnapshotTemporalAxes, StoreBackedGenerationSource, StoreExtractionReceipt,
-        TRANSFORM_VERSION, VariantId, canonical_corpus_hash, transform_contract_hash,
-        transform_golden_vectors_hash,
+        ArtifactOrdinal, CARD_FORMAT_VERSION, ConditionQualityEvaluator, EntityRole,
+        ExternalGateReportDocuments, FrozenCanonicalSignals, GenerationAssuranceMode,
+        GenerationManifest, GenerationManifestContract, IdentityDirectory,
+        KnowledgeDecisionTimePolicy, LinkCandidate, OwnedCanonicalEmbedding, PlacementPosterior,
+        RelationModelSources, RelationPolicyInput, RelationPolicyRecords, RelationSecurityMode,
+        RelationSecurityPolicy, RelationStrength, SnapshotTemporalAxes,
+        StoreBackedGenerationSource, StoreExtractionReceipt, TRANSFORM_VERSION, VariantId,
+        canonical_corpus_hash, transform_contract_hash, transform_golden_vectors_hash,
     },
 };
 
@@ -53,7 +55,7 @@ pub(in crate::salt_fit) struct PreparedFitSource {
     pub relation_security_policy: RelationSecurityPolicy,
     pub extraction_receipt: StoreExtractionReceipt,
     pub authorization_report_hash: ContentHash,
-    pub condition_evaluator: LocalConditionQualityEvaluator,
+    pub condition_evaluator: Box<dyn ConditionQualityEvaluator>,
     pub persistence_evaluator: LocalPersistenceQualityEvaluator,
 }
 
@@ -115,6 +117,9 @@ pub(in crate::salt_fit) fn prepare_fit_source(
         FitAssuranceMode::EvidenceDeferredLocal => GenerationAssuranceMode::EvidenceDeferredLocal,
     };
     apply_manifest_contract(&mut manifest, &bundle.manifest)?;
+    if assurance == FitAssuranceMode::EvidenceDeferredLocal {
+        apply_mock_manifest_claims(&mut manifest);
+    }
     let policy_bytes = input(worker, &bundle.relation_policy_inputs)?;
     let policy_document: RelationPolicyDocumentV1 =
         serde_json::from_slice(&policy_bytes).map_err(|source| FitInputError::Json {
@@ -131,108 +136,77 @@ pub(in crate::salt_fit) fn prepare_fit_source(
             "m0-local-v1 does not support a relation strength head".to_owned(),
         ));
     }
-    let relation_report = document(worker, &bundle.relation_policy_report)?;
-    let security_report = document(worker, &bundle.security_approval_report)?;
-    content_addressed_path(&worker.input_root, "companion", &bundle.companion)
-        .map_err(FitInputError::Configuration)?;
-    let companion_report = document(worker, &bundle.companion_compatibility_report)?;
-    validate_report(
-        "relation-policy report",
-        &relation_report,
-        &manifest.relations.policy_precedence_version,
-        [
-            ("classifier", bundle.classifier.sha256.as_str()),
-            (
-                "relationPolicyInputs",
-                bundle.relation_policy_inputs.sha256.as_str(),
-            ),
-        ],
-    )?;
-    validate_report(
-        "security-approval report",
-        &security_report,
-        &manifest.serving.authorization_adapter_version,
-        [
-            ("classifier", bundle.classifier.sha256.as_str()),
-            (
-                "relationPolicyInputs",
-                bundle.relation_policy_inputs.sha256.as_str(),
-            ),
-        ],
-    )?;
-    validate_report(
-        "companion-compatibility report",
-        &companion_report,
-        &manifest.serving.canvas_companion_version,
-        [("companion", bundle.companion.sha256.as_str())],
-    )?;
+    let assurance_inputs = assurance_inputs(worker, bundle, &manifest, assurance)?;
 
-    let identities = IdentityDirectory::new(
+    let mut identity_values = try_vec("identity directory", extraction.entities.len())?;
+    identity_values.extend(
         extraction
             .entities
             .iter()
-            .map(|entity| entity.selected.entity_id)
-            .collect(),
-    )
-    .map_err(invalid)?;
-    let link_entities = extraction
-        .links
-        .iter()
-        .map(|link| link.link.entity_id)
-        .collect::<HashSet<_>>();
+            .map(|entity| entity.selected.entity_id),
+    );
+    let identities = IdentityDirectory::new(identity_values).map_err(invalid)?;
     let link_root = VersionedUrl::from_str(LINK_ROOT_VERSIONED_URL)
         .expect("the pinned link root should be a valid versioned URL");
-    let roles = extraction
-        .entities
-        .iter()
-        .map(|entity| {
-            point_role(
-                entity.selected.entity_id,
-                &entity.entity_types,
-                &link_entities,
-                &link_root,
-            )
-        })
-        .collect::<Vec<_>>();
+    let mut roles = try_vec("entity roles", extraction.entities.len())?;
+    roles.extend(
+        extraction
+            .entities
+            .iter()
+            .map(|entity| point_role(&entity.entity_types, &link_root)),
+    );
     let landmark_candidates = landmark_candidates(&extraction, &roles)?;
-    let representations = audit_representations(
-        &extraction.canonical_embeddings,
-        &identities,
-        &landmark_candidates,
-        &roles,
-    )
+    let representations = match assurance {
+        FitAssuranceMode::M0LocalAttestation => audit_representations(
+            &extraction.canonical_embeddings,
+            &identities,
+            &landmark_candidates,
+            &roles,
+        ),
+        FitAssuranceMode::EvidenceDeferredLocal => deferred_representations(
+            &extraction.canonical_embeddings,
+            &identities,
+            &landmark_candidates,
+            &roles,
+        ),
+    }
     .map_err(FitInputError::Quality)?;
-    let quality_subgroups = quality_subgroups(&landmark_candidates);
-    let condition_evaluator =
-        LocalConditionQualityEvaluator::new(&extraction.canonical_embeddings, &quality_subgroups)
-            .map_err(FitInputError::Quality)?;
+    let condition_evaluator: Box<dyn ConditionQualityEvaluator> = match assurance {
+        FitAssuranceMode::M0LocalAttestation => {
+            let quality_subgroups = quality_subgroups(&landmark_candidates)?;
+            Box::new(
+                LocalConditionQualityEvaluator::new(
+                    &extraction.canonical_embeddings,
+                    &quality_subgroups,
+                )
+                .map_err(FitInputError::Quality)?,
+            )
+        }
+        FitAssuranceMode::EvidenceDeferredLocal => {
+            Box::new(DeferredConditionQualityEvaluator::new(identities.len()))
+        }
+    };
     let relation_ordinals = relation_ordinals(&extraction)?;
     let relation_policy_inputs = relation_policy_inputs(&policy_document, &relation_ordinals)?;
-    let relation_confidence = extraction
-        .links
-        .iter()
-        .map(|link| (link.link.entity_id, link.confidence))
-        .collect();
-    let link_candidates = extraction
-        .links
-        .iter()
-        .map(|link| {
-            LinkCandidate::new(
-                link.link,
-                link.left,
-                link.right,
-                link.relation_type.selected.clone(),
-                link.required_entity_types.clone(),
-            )
-        })
-        .collect::<Vec<_>>();
+    let mut relation_confidence = HashMap::new();
+    relation_confidence
+        .try_reserve(extraction.links.len())
+        .map_err(|error| {
+            FitInputError::Invalid(format!("relation-confidence allocation failed: {error}"))
+        })?;
+    relation_confidence.extend(
+        extraction
+            .links
+            .iter()
+            .map(|link| (link.link.entity_id, link.confidence)),
+    );
 
     let artifact_bindings = ArtifactBindings {
         classifier: parse_content_hash("classifier.sha256", &bundle.classifier.sha256)?,
-        relation_report: ContentHash::digest(&relation_report),
-        security_report: ContentHash::digest(&security_report),
-        companion: parse_content_hash("companion.sha256", &bundle.companion.sha256)?,
-        companion_report: ContentHash::digest(&companion_report),
+        relation_report: ContentHash::digest(&assurance_inputs.relation_report),
+        security_report: ContentHash::digest(&assurance_inputs.security_report),
+        companion: assurance_inputs.companion,
+        companion_report: ContentHash::digest(&assurance_inputs.companion_report),
     };
     bind_manifest(
         &mut manifest,
@@ -263,24 +237,34 @@ pub(in crate::salt_fit) fn prepare_fit_source(
     let extraction_receipt =
         StoreExtractionReceipt::new(extraction.provenance_hash.as_bytes().to_vec())
             .map_err(invalid)?;
-    let selected_editions = extraction
-        .entities
-        .iter()
-        .map(|entity| entity.selected)
-        .collect();
-    let labels = extraction
-        .entities
-        .iter()
-        .map(|entity| entity.label.as_deref().map(Box::<str>::from))
-        .collect();
     let row_count = identities.len();
+    let mut selected_editions = try_vec("selected editions", row_count)?;
+    let mut labels = try_vec("entity labels", row_count)?;
+    for entity in extraction.entities.into_vec() {
+        selected_editions.push(entity.selected);
+        labels.push(entity.label);
+    }
+    let mut link_candidates = try_vec("link candidates", extraction.links.len())?;
+    for link in extraction.links.into_vec() {
+        link_candidates.push(LinkCandidate::new(
+            link.link,
+            link.left,
+            link.right,
+            link.relation_type.selected,
+            link.required_entity_types,
+        ));
+    }
+    let importance = constant_signal("importance", row_count)?;
+    let semantic_priority = constant_signal("semantic priority", row_count)?;
+    let density_mass = constant_signal("density mass", row_count)?;
 
     Ok(PreparedFitSource {
         source: StoreBackedGenerationSource {
             manifest_contract,
             identities,
-            selected_editions,
+            selected_editions: selected_editions.into_boxed_slice(),
             canonical_embeddings: extraction.canonical_embeddings,
+            representation_values: representations.projector,
             roles: roles.into_boxed_slice(),
             type_context: None,
             relation_ordinals,
@@ -290,10 +274,10 @@ pub(in crate::salt_fit) fn prepare_fit_source(
             subgroup_minimums: Box::new([]),
             anchors: Box::new([]),
             signals: FrozenCanonicalSignals::new(
-                vec![1.0; row_count].into_boxed_slice(),
-                vec![1.0; row_count].into_boxed_slice(),
-                vec![1.0; row_count].into_boxed_slice(),
-                labels,
+                importance,
+                semantic_priority,
+                density_mass,
+                labels.into_boxed_slice(),
             ),
             models: RelationModelSources {
                 classifier: classifier_path,
@@ -301,9 +285,9 @@ pub(in crate::salt_fit) fn prepare_fit_source(
             },
             external_gate_reports: ExternalGateReportDocuments::new(
                 representations.report,
-                relation_report,
-                security_report,
-                companion_report,
+                assurance_inputs.relation_report,
+                assurance_inputs.security_report,
+                assurance_inputs.companion_report,
             ),
         },
         link_candidates: link_candidates.into_boxed_slice(),
@@ -333,17 +317,28 @@ fn document(
 }
 
 #[inline]
-fn point_role(
-    entity_id: EntityId,
-    entity_types: &[VersionedUrl],
-    link_entities: &HashSet<EntityId>,
-    link_root: &VersionedUrl,
-) -> EntityRole {
-    if link_entities.contains(&entity_id) || entity_types.contains(link_root) {
+fn point_role(entity_types: &[VersionedUrl], link_root: &VersionedUrl) -> EntityRole {
+    if entity_types.contains(link_root) {
         EntityRole::Other
     } else {
         EntityRole::KnowledgeEntity
     }
+}
+
+fn try_vec<T>(name: &'static str, capacity: usize) -> Result<Vec<T>, FitInputError> {
+    let mut values = Vec::new();
+    values.try_reserve_exact(capacity).map_err(|error| {
+        FitInputError::Invalid(format!(
+            "could not reserve {capacity} elements for {name}: {error}"
+        ))
+    })?;
+    Ok(values)
+}
+
+fn constant_signal(name: &'static str, row_count: usize) -> Result<Box<[f64]>, FitInputError> {
+    let mut values = try_vec(name, row_count)?;
+    values.resize(row_count, 1.0);
+    Ok(values.into_boxed_slice())
 }
 
 fn relation_ordinals(
@@ -377,13 +372,6 @@ fn relation_policy_inputs(
     document: &RelationPolicyDocumentV1,
     ordinals: &HashMap<VersionedUrl, ArtifactOrdinal>,
 ) -> Result<Vec<RelationPolicyInput>, FitInputError> {
-    if document.relations.len() != ordinals.len() {
-        return Err(FitInputError::Invalid(format!(
-            "relation policy document contains {} entries for {} extracted relation types",
-            document.relations.len(),
-            ordinals.len()
-        )));
-    }
     let mut output = Vec::new();
     output.try_reserve_exact(ordinals.len()).map_err(|error| {
         FitInputError::Invalid(format!("relation policy allocation failed: {error}"))
@@ -433,6 +421,137 @@ struct ArtifactBindings {
     security_report: ContentHash,
     companion: ContentHash,
     companion_report: ContentHash,
+}
+
+struct AssuranceInputs {
+    relation_report: Vec<u8>,
+    security_report: Vec<u8>,
+    companion: ContentHash,
+    companion_report: Vec<u8>,
+}
+
+fn assurance_inputs(
+    worker: &LoadedFitWorkerConfiguration,
+    bundle: &FitInputBundleV1,
+    manifest: &GenerationManifest,
+    assurance: FitAssuranceMode,
+) -> Result<AssuranceInputs, FitInputError> {
+    let (relation_report, security_report, companion, companion_report, mock) = match assurance {
+        FitAssuranceMode::M0LocalAttestation => {
+            let relation_reference = required_attested_input(
+                "relationPolicyReport",
+                bundle.relation_policy_report.as_ref(),
+            )?;
+            let security_reference = required_attested_input(
+                "securityApprovalReport",
+                bundle.security_approval_report.as_ref(),
+            )?;
+            let companion_reference =
+                required_attested_input("companion", bundle.companion.as_ref())?;
+            let companion_report_reference = required_attested_input(
+                "companionCompatibilityReport",
+                bundle.companion_compatibility_report.as_ref(),
+            )?;
+            let relation_report = document(worker, relation_reference)?;
+            let security_report = document(worker, security_reference)?;
+            content_addressed_path(&worker.input_root, "companion", companion_reference)
+                .map_err(FitInputError::Configuration)?;
+            let companion_report = document(worker, companion_report_reference)?;
+            (
+                relation_report,
+                security_report,
+                parse_content_hash("companion.sha256", &companion_reference.sha256)?,
+                companion_report,
+                false,
+            )
+        }
+        FitAssuranceMode::EvidenceDeferredLocal => {
+            reject_attestation_inputs(bundle)?;
+            let generated = generate_mock_inputs(
+                manifest,
+                &bundle.classifier.sha256,
+                &bundle.relation_policy_inputs.sha256,
+            )
+            .map_err(|source| FitInputError::Json {
+                name: "deferred mock report",
+                source,
+            })?;
+            (
+                generated.relation_report,
+                generated.security_report,
+                generated.companion,
+                generated.companion_report,
+                true,
+            )
+        }
+    };
+
+    validate_report(
+        "relation-policy report",
+        &relation_report,
+        &manifest.relations.policy_precedence_version,
+        [
+            ("classifier", bundle.classifier.sha256.as_str()),
+            (
+                "relationPolicyInputs",
+                bundle.relation_policy_inputs.sha256.as_str(),
+            ),
+        ],
+        mock,
+    )?;
+    validate_report(
+        "security-approval report",
+        &security_report,
+        &manifest.serving.authorization_adapter_version,
+        [
+            ("classifier", bundle.classifier.sha256.as_str()),
+            (
+                "relationPolicyInputs",
+                bundle.relation_policy_inputs.sha256.as_str(),
+            ),
+        ],
+        mock,
+    )?;
+    let companion_hash = companion.to_string();
+    validate_report(
+        "companion-compatibility report",
+        &companion_report,
+        &manifest.serving.canvas_companion_version,
+        [("companion", companion_hash.as_str())],
+        mock,
+    )?;
+    Ok(AssuranceInputs {
+        relation_report,
+        security_report,
+        companion,
+        companion_report,
+    })
+}
+
+fn required_attested_input<'a>(
+    field: &'static str,
+    reference: Option<&'a FitInputReferenceV1>,
+) -> Result<&'a FitInputReferenceV1, FitInputError> {
+    reference.ok_or_else(|| {
+        FitInputError::Invalid(format!(
+            "{field} is required for m0_local_attestation assurance"
+        ))
+    })
+}
+
+fn reject_attestation_inputs(bundle: &FitInputBundleV1) -> Result<(), FitInputError> {
+    if bundle.relation_policy_report.is_some()
+        || bundle.security_approval_report.is_some()
+        || bundle.companion.is_some()
+        || bundle.companion_compatibility_report.is_some()
+    {
+        return Err(FitInputError::Invalid(
+            "evidence_deferred_local generates deterministic mock reports and companion bytes; \
+             external attestation inputs must be omitted"
+                .to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 fn apply_manifest_contract(
@@ -593,6 +712,32 @@ fn validate_policy_document(document: &RelationPolicyDocumentV1) -> Result<(), F
             document.schema_version
         )));
     }
+    if document.relations.is_empty() {
+        return Err(FitInputError::Invalid(
+            "relation policy corpus must not be empty".to_owned(),
+        ));
+    }
+    for (relation_type, entry) in &document.relations {
+        if entry.embedding.len() != crate::salt::CANONICAL_DIMENSIONS
+            || entry.embedding.iter().any(|value| !value.is_finite())
+        {
+            return Err(FitInputError::Invalid(format!(
+                "relation policy embedding for {relation_type} is not a finite 3,072-component \
+                 card vector"
+            )));
+        }
+        RelationStrength::new(entry.strength).map_err(invalid)?;
+        for posterior in [
+            entry.human_override.as_ref(),
+            entry.human_reviewed.as_ref(),
+            entry.synthetic.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            posterior.build()?;
+        }
+    }
     Ok(())
 }
 
@@ -601,12 +746,29 @@ fn validate_report<const N: usize>(
     bytes: &[u8],
     expected_suite: &str,
     expected_subjects: [(&str, &str); N],
+    expect_mock: bool,
 ) -> Result<(), FitInputError> {
     let report: ExternalReportV1 =
         serde_json::from_slice(bytes).map_err(|source| FitInputError::Json { name, source })?;
     if report.schema_version != 1 || report.outcome != ReportOutcome::Pass {
         return Err(FitInputError::Invalid(format!(
             "{name} is not a passing version-1 report"
+        )));
+    }
+    if expect_mock
+        && (report.attestation != Some(ReportAttestation::MockNonAttesting)
+            || report
+                .warning
+                .as_deref()
+                .is_none_or(|warning| !warning.contains("no provenance")))
+    {
+        return Err(FitInputError::Invalid(format!(
+            "{name} is not plainly marked as a non-attesting mock"
+        )));
+    }
+    if !expect_mock && (report.attestation.is_some() || report.warning.is_some()) {
+        return Err(FitInputError::Invalid(format!(
+            "{name} contains deferred-mock markers under attested assurance"
         )));
     }
     if report.suite_version != expected_suite {
@@ -673,6 +835,8 @@ struct ExternalReportV1 {
     suite_version: String,
     outcome: ReportOutcome,
     subjects: BTreeMap<String, String>,
+    attestation: Option<ReportAttestation>,
+    warning: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
@@ -680,6 +844,12 @@ struct ExternalReportV1 {
 enum ReportOutcome {
     Pass,
     Fail,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum ReportAttestation {
+    MockNonAttesting,
 }
 
 #[cfg(test)]

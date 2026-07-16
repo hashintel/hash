@@ -1,7 +1,7 @@
 use core::num::NonZeroUsize;
 
 use burn::{
-    backend::{Autodiff, Candle, candle::CandleDevice},
+    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     tensor::{Int, Tensor, TensorData},
 };
 use camino::Utf8PathBuf;
@@ -25,8 +25,8 @@ use crate::salt::{
     strength::RelationStrength,
 };
 
-type TestBackend = Candle;
-type TrainBackend = Autodiff<Candle>;
+type TestBackend = NdArray;
+type TrainBackend = Autodiff<NdArray>;
 
 #[test]
 fn architecture_validation_rejects_unbounded_resource_shapes() {
@@ -49,7 +49,7 @@ fn architecture_validation_rejects_unbounded_resource_shapes() {
 
 #[test]
 fn film_is_identity_for_every_condition_at_initialization() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let projector = ConditionedProjector::<TestBackend>::new_seeded(
         ProjectorConfig {
             width: 16,
@@ -85,7 +85,7 @@ fn seeded_initialization_is_deterministic_under_concurrency() {
     let handles = (0..8)
         .map(|_| {
             std::thread::spawn(|| {
-                let device = CandleDevice::Cpu;
+                let device = NdArrayDevice::Cpu;
                 ConditionedProjector::<TestBackend>::new_seeded(
                     ProjectorConfig {
                         width: 16,
@@ -115,7 +115,7 @@ fn seeded_initialization_is_deterministic_under_concurrency() {
 
 #[test]
 fn forward_rejects_mismatched_context_contracts_before_backend_operations() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let projector = ConditionedProjector::<TestBackend>::new(
         ProjectorConfig {
             width: 8,
@@ -258,7 +258,7 @@ fn objective_rejects_non_finite_values() {
 
 #[test]
 fn surrogate_step_clips_relation_coordinates_before_updating_model() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let model = ConditionedProjector::<TrainBackend>::new_seeded(
         ProjectorConfig {
             width: 8,
@@ -442,7 +442,7 @@ fn surrogate_step_clips_relation_coordinates_before_updating_model() {
 
 #[test]
 fn checkpoint_rejects_architecture_mismatch_before_record_loading() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let recorded = ProjectorConfig {
         width: 8,
         residual_blocks: 1,
@@ -716,7 +716,7 @@ fn hard_miner_canonicalizes_tied_backend_distances() {
 
 #[test]
 fn prepared_batch_reuses_identical_evidence_across_conditions() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let representations = training_representation();
     let positive = [SampledEdge {
         left: GenerationRowId::from_u32(2).expect("row should validate"),
@@ -811,7 +811,7 @@ fn prepared_batch_reuses_identical_evidence_across_conditions() {
     );
 }
 
-fn input(device: &CandleDevice, condition: [f32; 2]) -> ProjectorInput<TestBackend> {
+fn input(device: &NdArrayDevice, condition: [f32; 2]) -> ProjectorInput<TestBackend> {
     let representation = (0..2 * PROJECTOR_DIMENSIONS)
         .map(|index| {
             f32::from(u16::try_from(index % 31).expect("remainder should fit u16")) / 31.0 - 0.5
@@ -837,7 +837,7 @@ fn input(device: &CandleDevice, condition: [f32; 2]) -> ProjectorInput<TestBacke
     }
 }
 
-fn training_input(device: &CandleDevice) -> ProjectorInput<TrainBackend> {
+fn training_input(device: &NdArrayDevice) -> ProjectorInput<TrainBackend> {
     let representation = training_representation();
     ProjectorInput {
         representation: Tensor::from_data(
@@ -883,7 +883,7 @@ fn training_representation() -> Vec<f32> {
     values
 }
 
-fn validation_input(device: &CandleDevice) -> ProjectorInput<TestBackend> {
+fn validation_input(device: &NdArrayDevice) -> ProjectorInput<TestBackend> {
     let input = training_input(device);
     ProjectorInput {
         representation: input.representation.inner(),

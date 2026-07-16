@@ -50,12 +50,16 @@ pub(in crate::salt_fit) struct SnapshotEnvelope {
 /// Complete bounded payload released after committing the extraction transaction.
 #[derive(Debug)]
 pub(in crate::salt_fit) struct PostgresExtraction {
+    pub(in crate::salt_fit) available_entity_count: usize,
+    pub(in crate::salt_fit) available_link_count: usize,
     pub(in crate::salt_fit) entities: Box<[ExtractedEntity]>,
     pub(in crate::salt_fit) canonical_embeddings: Box<[f32]>,
     pub(in crate::salt_fit) links: Box<[ExtractedLink]>,
     pub(in crate::salt_fit) envelope: SnapshotEnvelope,
     pub(in crate::salt_fit) provenance_hash: ContentHash,
     pub(in crate::salt_fit) ambiguous_link_type_count: usize,
+    pub(in crate::salt_fit) resource_preflight:
+        crate::salt_fit::resource::FitResourcePreflightObservation,
 }
 
 impl ExtractedEntity {

@@ -39,7 +39,7 @@ pub(super) fn generation_id(
     input: &FrozenGenerationInput,
     config: &CanonicalGenerationConfig<'_>,
 ) -> GenerationId {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v7");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.generation.v8");
     hasher.update(manifest_contract_hash(manifest).as_bytes());
     hasher.update(geometry.as_bytes());
     hasher.update(relation_policy.as_bytes());
@@ -51,7 +51,7 @@ pub(super) fn generation_id(
 }
 
 pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHash {
-    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v5");
+    let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.manifest-contract.v6");
     hasher.update(&manifest.format_version.to_le_bytes());
     hash_serialized(&mut hasher, &manifest.created_at);
     hash_serialized(&mut hasher, &manifest.input_snapshot);
@@ -105,6 +105,7 @@ pub(super) fn manifest_contract_hash(manifest: &GenerationManifest) -> ContentHa
 )]
 pub(super) fn observed_execution_contract<B>(
     device: &B::Device,
+    accelerator_device_ordinal: u16,
 ) -> Result<ExecutionContractManifest, CanonicalGenerationError>
 where
     B: Backend,
@@ -113,7 +114,7 @@ where
     let spatial = usearch_probe(2, MetricKind::L2sq)?;
     let runtime = observe_arithmetic_runtime()?;
     let mut contract = ExecutionContractManifest {
-        version: 3,
+        version: 4,
         generator_version: env!("CARGO_PKG_VERSION").to_owned(),
         rustc_release: env!("HASH_GRAPH_ATLAS_RUSTC_RELEASE").to_owned(),
         rustc_commit: env!("HASH_GRAPH_ATLAS_RUSTC_COMMIT").to_owned(),
@@ -128,14 +129,14 @@ where
             "../../../../../../../../Cargo.lock"
         )),
         training_backend: B::name(device),
+        accelerator_device_ordinal,
         rayon_threads: rayon::current_num_threads(),
         operating_system: runtime.operating_system,
         math_runtime: runtime.math_runtime,
         runtime_cpu_features: runtime.cpu_features,
         floating_point_control: runtime.floating_point_control,
         math_library_images: runtime.math_library_images,
-        candle_version: "burn-candle-0.21.0/candle-core-0.10.2".to_owned(),
-        candle_cpu_threads: runtime.candle_cpu_threads,
+        cubecl_version: "burn-cubecl-0.21.0/cubecl-0.10.0".to_owned(),
         gemm_version: "gemm-0.19.0".to_owned(),
         gemm_kernel: runtime.gemm_kernel,
         gemm_cache_configuration: runtime.gemm_cache_configuration,

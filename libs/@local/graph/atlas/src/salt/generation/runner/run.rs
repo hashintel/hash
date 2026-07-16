@@ -22,6 +22,7 @@ use super::{
 use super::{GenerationFreezeSource, input::freeze_generation_input};
 use crate::salt::{
     analytic::publish_persistence_reference,
+    compute::ComputeDevice,
     evaluation::measure_persisted_relation_loss,
     generation::{
         CanonicalSignals, GenerationError, LegacyLayoutTag, compare_persistence,
@@ -96,9 +97,11 @@ pub(crate) fn run_canonical_generation<B>(
 ) -> Result<CanonicalGenerationOutcome, CanonicalGenerationError>
 where
     B: AutodiffBackend,
+    B::Device: Clone,
 {
     let input = freeze_generation_input(source)?;
-    run_frozen_canonical_generation::<B>(input, config, release_authority, device)
+    let compute = ComputeDevice::new(device.clone(), 0);
+    run_frozen_canonical_generation::<B>(input, config, release_authority, &compute)
 }
 
 /// Generates from the sole opaque frozen-input capability.
@@ -114,13 +117,20 @@ pub(super) fn run_frozen_canonical_generation<B>(
     input: FrozenGenerationInput,
     config: &CanonicalGenerationConfig<'_>,
     release_authority: &CanonicalReleaseAuthority<'_>,
-    device: &B::Device,
+    compute: &ComputeDevice<B::Device>,
 ) -> Result<CanonicalGenerationOutcome, CanonicalGenerationError>
 where
     B: AutodiffBackend,
 {
-    let execution_contract = observed_execution_contract::<B>(device)?;
-    if execution_contract.training_backend != "autodiff<candle<cpu>>" {
+    let execution_contract = observed_execution_contract::<B>(compute.device(), compute.ordinal())?;
+    let production_backend = matches!(
+        execution_contract.training_backend.as_str(),
+        "autodiff<fusion<cubecl<wgpu<msl>>>>" | "autodiff<fusion<cubecl<cuda>>>"
+    );
+    #[cfg(test)]
+    let production_backend =
+        production_backend || execution_contract.training_backend == "autodiff<ndarray>";
+    if !production_backend {
         return Err(CanonicalGenerationError::UnsupportedGenerationBackend {
             actual: execution_contract.training_backend,
         });
@@ -144,7 +154,7 @@ where
         &verifier,
         binary_fingerprint,
         &execution_contract,
-        device,
+        compute.device(),
     )?;
     let primary = build_frozen_canonical_generation::<B>(
         &input,
@@ -153,9 +163,15 @@ where
         &verifier,
         binary_fingerprint,
         &execution_contract,
-        device,
+        compute.device(),
     )?;
     verify_reproduction(&primary, &reproduction)?;
+    let published_artifact_bytes = artifact_bytes(&primary)?;
+    let working_disk_high_water_bytes = published_artifact_bytes
+        .checked_add(artifact_bytes(&reproduction)?)
+        .ok_or(CanonicalGenerationError::ResourceSizeOverflow {
+            resource: "working generation artifacts",
+        })?;
 
     let manifest_hash = primary.manifest.content_hash()?;
     let head = ReleaseHead {
@@ -193,6 +209,8 @@ where
         manifest: primary.manifest,
         legacy: primary.legacy,
         training_wall_time: primary.training_wall_time,
+        working_disk_high_water_bytes,
+        published_artifact_bytes,
         directory: primary.directory,
     })
 }
@@ -304,6 +322,7 @@ where
     let index = USearchIndex::build(representations, config.semantic_index)?;
     let audit = audit_recall(representations, &index, &audit_rows)?.require_minimum()?;
     let semantic = build_semantic_graph(representations, &index, config.semantic_graph)?;
+    drop(index);
     let semantic_weights = fuzzy_edge_weights(&semantic.table);
     let semantic_artifact =
         publish_semantic_graph(&directory.join(SEMANTIC_FILE), &semantic, &semantic_weights)?;
@@ -453,6 +472,7 @@ where
             coordinate_bounds.maximum(),
         )
         .map_err(GenerationError::from)?;
+    drop(evaluated);
     let baseline_relation_loss = measure_persisted_relation_loss(
         baseline.coordinates(),
         &relations.attraction,
@@ -602,6 +622,21 @@ where
         training_wall_time: fitted.metrics.wall_time,
         directory,
     })
+}
+
+fn artifact_bytes(generation: &UnreleasedGeneration) -> Result<u64, CanonicalGenerationError> {
+    generation
+        .manifest
+        .artifacts
+        .iter()
+        .try_fold(0_u64, |bytes, artifact| {
+            let length = fs::metadata(generation.directory.join(&artifact.relative_path))?.len();
+            bytes
+                .checked_add(length)
+                .ok_or(CanonicalGenerationError::ResourceSizeOverflow {
+                    resource: "generation artifacts",
+                })
+        })
 }
 
 /// Creates every missing directory component and persists each parent entry.

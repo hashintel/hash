@@ -90,7 +90,7 @@ fn worker_loader_rejects_reused_gate_key() {
 }
 
 #[test]
-fn request_loader_rejects_nil_identity_and_unbounded_target() {
+fn request_loader_rejects_nil_identity_and_empty_scope() {
     let default = FitRequestV1::default();
     assert!(matches!(
         load_request(&serde_json::to_vec(&default).expect("request should serialize")),
@@ -112,23 +112,8 @@ fn request_loader_rejects_nil_identity_and_unbounded_target() {
     ));
 
     request.web_ids.push(Uuid::from_u128(2));
-    request.sample.target_entities = MINIMUM_FIT_ENTITIES - 1;
-    assert!(matches!(
-        load_request(&serde_json::to_vec(&request).expect("request should serialize")),
-        Err(FitConfigurationError::Invalid {
-            field: "sample.targetEntities",
-            ..
-        })
-    ));
-
-    request.sample.target_entities = request.limits.maximum_entities + 1;
-    assert!(matches!(
-        load_request(&serde_json::to_vec(&request).expect("request should serialize")),
-        Err(FitConfigurationError::Invalid {
-            field: "sample.targetEntities",
-            ..
-        })
-    ));
+    load_request(&serde_json::to_vec(&request).expect("request should serialize"))
+        .expect("complete full-corpus request should load");
 }
 
 #[test]
@@ -193,6 +178,7 @@ fn manifest_contract_rejects_placeholder_hashes_and_invalid_probabilities() {
         "../../../config/m0-local-input-bundle.default.json"
     ))
     .expect("checked-in bundle should deserialize");
+    bundle.manifest.embedding.producer_contract_hash = "0".repeat(64);
     assert!(matches!(
         validate_manifest_contract(&bundle.manifest),
         Err(FitConfigurationError::Invalid {

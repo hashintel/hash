@@ -115,11 +115,18 @@ pub(crate) enum CanonicalGenerationError {
     },
     ReloadMissing,
     ReloadMismatch,
+    MaterializedRowCount {
+        expected: usize,
+        actual: u64,
+    },
     WorkerPanic,
     ReproductionManifest,
     ReproductionEvidence,
     ReproductionArtifact {
         role: ArtifactRole,
+    },
+    ResourceSizeOverflow {
+        resource: &'static str,
     },
     ExistingModelArtifact,
     Io(io::Error),
@@ -268,7 +275,8 @@ impl fmt::Display for CanonicalGenerationError {
             ),
             Self::UnsupportedGenerationBackend { actual } => write!(
                 formatter,
-                "M0 generation requires autodiff<candle<cpu>>, got {actual}"
+                "production M0 generation requires autodiff<fusion<cubecl<wgpu<msl>>>> or \
+                 autodiff<fusion<cubecl<cuda>>>, got {actual}"
             ),
             Self::SecurityPolicy => formatter
                 .write_str("manifest relation security metadata differs from enforced admission"),
@@ -290,6 +298,10 @@ impl fmt::Display for CanonicalGenerationError {
             Self::ReloadMismatch => formatter.write_str(
                 "restart loading returned an atlas generation other than the activated release",
             ),
+            Self::MaterializedRowCount { expected, actual } => write!(
+                formatter,
+                "generation materialized {actual} rows from a frozen {expected}-row population"
+            ),
             Self::WorkerPanic => {
                 formatter.write_str("the dedicated numerical generation worker panicked")
             }
@@ -302,6 +314,9 @@ impl fmt::Display for CanonicalGenerationError {
                 formatter,
                 "independent generation runs produced different {role} bytes"
             ),
+            Self::ResourceSizeOverflow { resource } => {
+                write!(formatter, "generated {resource} size overflows u64")
+            }
             Self::ExistingModelArtifact => {
                 formatter.write_str("existing immutable model artifact has different content")
             }
@@ -377,10 +392,12 @@ impl Error for CanonicalGenerationError {
             | Self::ActivationConflict { .. }
             | Self::ReloadMissing
             | Self::ReloadMismatch
+            | Self::MaterializedRowCount { .. }
             | Self::WorkerPanic
             | Self::ReproductionManifest
             | Self::ReproductionEvidence
             | Self::ReproductionArtifact { .. }
+            | Self::ResourceSizeOverflow { .. }
             | Self::ExistingModelArtifact
             | Self::Manifest(_)
             | Self::Snapshot(_) => None,

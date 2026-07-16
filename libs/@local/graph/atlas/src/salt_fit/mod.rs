@@ -16,6 +16,7 @@ mod postgres;
 mod profile;
 #[path = "quality.rs"]
 mod quality_evaluation;
+mod resource;
 mod runner;
 mod schema;
 
@@ -26,7 +27,7 @@ pub use self::{
         FIT_SCHEMA_VERSION, FitAssuranceMode, FitAuthoritiesV1, FitEmbeddingContractV1,
         FitExternalAuthorityV1, FitInputBundleV1, FitInputReferenceV1, FitManifestContractV1,
         FitNumericalProfile, FitPostgresConfigurationV1, FitRelationContractV1, FitRequestV1,
-        FitResourceLimitsV1, FitSampleV1, FitServingContractV1, FitSigningAuthorityV1,
+        FitResourceLimitsV1, FitResourcePreflightV1, FitServingContractV1, FitSigningAuthorityV1,
         FitWorkerConfigurationV1, MAXIMUM_FIT_CPU_THREADS, MAXIMUM_FIT_ENTITIES,
         MAXIMUM_FIT_LABEL_BYTES, MAXIMUM_FIT_LINKS, MAXIMUM_FIT_RELATION_TYPES,
         MAXIMUM_FIT_REQUIRED_TYPES_PER_LINK, MAXIMUM_FIT_WEB_IDS, MINIMUM_FIT_ENTITIES,
@@ -34,5 +35,5 @@ pub use self::{
 };
 pub use crate::cli::{
     FIT_RECEIPT_SCHEMA_VERSION, FitActivation, FitGate, FitGateAssurance, FitGateAssuranceClass,
-    FitReceipt, FitTiming,
+    FitReceipt, FitResourceReceipt, FitTiming,
 };

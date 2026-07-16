@@ -3,12 +3,20 @@
   "atlasRoot": "var/atlas",
   "inputRoot": "inputs",
   "servingConfigOutput": "var/atlas-api.json",
+  "compute": {
+    "backend": "metal",
+    "deviceOrdinal": 0
+  },
   "postgres": {
     "host": "127.0.0.1",
     "port": 5432,
     "user": "graph",
     "database": "graph",
     "passwordFile": "secrets/postgres.password"
+  },
+  "resources": {
+    "maximumPeakResidentBytes": 68719476736,
+    "maximumWorkingDiskBytes": 68719476736
   },
   "actorId": "00000000-0000-0000-0000-000000000000",
   "cpuThreads": 8,

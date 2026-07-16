@@ -123,6 +123,7 @@ mod analytic;
 pub mod benchmark;
 mod card;
 mod classifier;
+pub(crate) mod compute;
 mod embedding;
 mod evaluation;
 mod format;

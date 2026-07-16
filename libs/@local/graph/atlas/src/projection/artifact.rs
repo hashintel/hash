@@ -508,7 +508,7 @@ mod tests {
     use std::fs;
 
     use burn::{
-        backend::{Candle, candle::CandleDevice},
+        backend::{NdArray, ndarray::NdArrayDevice},
         tensor::{Tensor, TensorData},
     };
     use camino::Utf8Path;
@@ -524,13 +524,13 @@ mod tests {
         projection::{layout::LayoutLevel, mlp::FittedProjector},
     };
 
-    type TestBackend = Candle;
+    type TestBackend = NdArray;
 
     const EMBEDDING_DIM: usize = 4;
     const FEATURE_DIM: usize = 2 * EMBEDDING_DIM + 2;
 
-    fn device() -> CandleDevice {
-        CandleDevice::Cpu
+    fn device() -> NdArrayDevice {
+        NdArrayDevice::Cpu
     }
 
     fn fitted_projector(seed: [f32; 2]) -> FittedProjector<TestBackend> {

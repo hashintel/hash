@@ -2,8 +2,7 @@
 
 #![expect(
     clippy::std_instead_of_alloc,
-    deprecated,
-    reason = "m0-local-v1 is a std-only worker and intentionally pins Burn's Candle CPU backend"
+    reason = "m0-local-v1 is a std-only worker"
 )]
 
 use core::{error::Error, future::Future, pin::Pin, time::Duration};
@@ -15,7 +14,6 @@ use std::{
     time::Instant,
 };
 
-use burn::backend::{Autodiff, Candle, candle::CandleDevice};
 use camino::Utf8Path;
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use tempfile::NamedTempFile;
@@ -28,7 +26,7 @@ use super::{
     },
     evidence::{EXTERNAL_GATES, FitRuntimeAuthorities},
     input::{PreparedFitSource, prepare_fit_source},
-    postgres::{ConnectedExtraction, OptimisticAuthorizationRevisionProvider, connect_and_extract},
+    postgres::{ConnectedExtraction, FitAuthorizationRevisionProvider, connect_and_extract},
     profile::m0_local_profile,
 };
 use crate::{
@@ -38,16 +36,20 @@ use crate::{
     cli::{
         AtlasFitError, AtlasTrainer, FIT_RECEIPT_SCHEMA_VERSION, FitActivation, FitGate,
         FitGateAssurance, FitGateAssuranceClass, FitReceipt, FitRequest as CliFitRequest,
-        FitTiming,
+        FitResourceReceipt, FitTiming,
     },
     salt::{
         ContentHash, ContentHasher,
+        compute::{
+            ProductionInferenceBackend, ProductionTrainingBackend, initialize_cubecl_compute,
+        },
         salt_fit_boundary::{
             ActivationOutcome, CanonicalReleaseAuthority, FileActivationStore,
             StoreBackedCanonicalGenerationRequest, StoreBackedSnapshotRequest,
             TrustedExternalGateAuthority, run_local_m0_canonical_generation,
         },
     },
+    salt_fit::resource::ResidentMemoryMonitor,
 };
 
 static RAYON_THREADS: OnceLock<usize> = OnceLock::new();
@@ -90,6 +92,7 @@ impl AtlasTrainer for ProductionAtlasTrainer {
     reason = "the worker keeps extraction, evidence, activation, and receipt binding in one flow"
 )]
 async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send + Sync>> {
+    let resource_monitor = ResidentMemoryMonitor::start()?;
     let started = Instant::now();
     let configuration_started = Instant::now();
     let request_hash = document_hash(b"hash.graph.atlas.fit.request-document.v1", request.bytes());
@@ -104,6 +107,7 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         fit_request.assurance,
     )?;
     configure_rayon(worker.document.cpu_threads.get())?;
+    let compute = initialize_cubecl_compute(worker.document.compute)?;
     let bundle = load_input_bundle(&worker.input_root, &fit_request.input_bundle)?;
     let input_bundle_hash = fit_request.input_bundle.sha256.clone();
     let configuration_elapsed = configuration_started.elapsed();
@@ -116,8 +120,14 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
     let preparation_started = Instant::now();
     let envelope = extraction.envelope;
     let provenance_hash = extraction.provenance_hash;
+    let available_entity_count = extraction.available_entity_count;
+    let available_link_count = extraction.available_link_count;
+    let resource_preflight = extraction.resource_preflight;
     let entity_count = extraction.entities.len();
     let link_count = extraction.links.len();
+    if entity_count != available_entity_count || link_count != available_link_count {
+        return Err("full-corpus extraction counts changed before source preparation".into());
+    }
     let relation_type_count = extraction
         .links
         .iter()
@@ -151,11 +161,11 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         )?);
     }
     let release_authority = CanonicalReleaseAuthority::new(&authorities.release, trusted)?;
-    let serving_store = FileActivationStore::<Candle>::new(
+    let serving_store = FileActivationStore::<ProductionInferenceBackend>::new(
         worker.atlas_root.clone(),
         authorities.release.verifier(),
         release_authority.external_verifiers().clone(),
-        CandleDevice::Cpu,
+        compute.device().clone(),
     );
     let expected_active = serving_store.load_active()?.map(|loaded| loaded.release());
     // The serving trust document is release-independent. Persist it before
@@ -167,7 +177,7 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         entity_count,
         link_count,
         relation_type_count,
-        &condition_evaluator,
+        condition_evaluator.as_ref(),
         &persistence_evaluator,
     )?;
     let actor = AuthenticatedActor::from(ActorEntityUuid::new(worker.document.actor_id));
@@ -180,23 +190,41 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
     );
     let generation_request = StoreBackedCanonicalGenerationRequest::new(snapshot, source)
         .with_expected_active(expected_active);
-    let revision_provider = OptimisticAuthorizationRevisionProvider::new(&store);
+    let revision_provider = match fit_request.assurance {
+        super::FitAssuranceMode::M0LocalAttestation => {
+            FitAuthorizationRevisionProvider::optimistic(&store)
+        }
+        super::FitAssuranceMode::EvidenceDeferredLocal => {
+            FitAuthorizationRevisionProvider::evidence_deferred(envelope.authorization_revision)
+        }
+    };
     let preparation_elapsed = preparation_started.elapsed();
 
     let generation_started = Instant::now();
-    let completed = Box::pin(run_local_m0_canonical_generation::<_, _, Autodiff<Candle>>(
+    let completed = Box::pin(run_local_m0_canonical_generation::<
+        _,
+        _,
+        ProductionTrainingBackend,
+    >(
         &store,
         &revision_provider,
         generation_request,
         &profile,
         &release_authority,
-        CandleDevice::Cpu,
+        compute,
     ))
     .await?;
     let generation_elapsed = generation_started.elapsed();
 
     let generated = completed.generated();
+    let materialized_entity_count = usize::try_from(generated.manifest.storage.row_count)
+        .map_err(|_error| "materialized row count does not fit usize")?;
+    if materialized_entity_count != entity_count {
+        return Err("activated generation does not contain every extracted point".into());
+    }
     let profile_hash = generated.manifest.reproducibility.config_hash;
+    let working_disk_high_water_bytes = generated.working_disk_high_water_bytes;
+    let published_artifact_bytes = generated.published_artifact_bytes;
     let candidate = generated.candidate;
     let manifest_publication = candidate.manifest();
     let gated_release = candidate.release();
@@ -207,6 +235,7 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
             return Err("SALT returned an unresolved activation conflict".into());
         }
     };
+    let observed_peak_resident_bytes = resource_monitor.finish()?;
     Ok(FitReceipt {
         schema_version: FIT_RECEIPT_SCHEMA_VERSION,
         request_id: fit_request.request_id,
@@ -215,6 +244,8 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         input_bundle_hash,
         profile_hash: profile_hash.to_string(),
         assurance: assurance_name(fit_request.assurance).to_owned(),
+        compute_backend: worker.document.compute.backend,
+        compute_device_ordinal: worker.document.compute.device_ordinal,
         gate_assurance: gate_assurance(fit_request.assurance),
         actor_id: worker.document.actor_id,
         web_scope_hash: web_scope_hash(&fit_request.web_ids).to_string(),
@@ -228,7 +259,9 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
         ontology_hash: envelope.ontology_hash.to_string(),
         knowledge_hash: envelope.knowledge_hash.to_string(),
         extraction_provenance_hash: provenance_hash.to_string(),
-        entity_count,
+        available_entity_count,
+        extracted_entity_count: entity_count,
+        materialized_entity_count,
         link_count,
         relation_type_count,
         ambiguous_link_type_count,
@@ -244,6 +277,15 @@ async fn fit(request: CliFitRequest) -> Result<FitReceipt, Box<dyn Error + Send 
             generation_milliseconds: duration_milliseconds(generation_elapsed),
             projector_training_milliseconds: duration_milliseconds(generated.training_wall_time),
             total_milliseconds: duration_milliseconds(started.elapsed()),
+        },
+        resources: FitResourceReceipt {
+            estimated_peak_resident_bytes: resource_preflight.estimate.peak_resident_bytes,
+            estimated_working_disk_bytes: resource_preflight.estimate.working_disk_bytes,
+            available_memory_bytes_at_preflight: resource_preflight.available_memory_bytes,
+            available_disk_bytes_at_preflight: resource_preflight.available_disk_bytes,
+            observed_peak_resident_bytes,
+            observed_working_disk_high_water_bytes: working_disk_high_water_bytes,
+            published_artifact_bytes,
         },
         serving_configuration: worker.serving_config_output.to_string(),
     })
@@ -364,6 +406,7 @@ fn write_serving_configuration(
     let runtime_external = authorities.external();
     let configuration = AtlasApiConfiguration {
         root: worker.atlas_root.to_string(),
+        compute: worker.document.compute,
         release_verifier: verifier(&worker.authorities.release),
         external_verifiers: external
             .into_iter()

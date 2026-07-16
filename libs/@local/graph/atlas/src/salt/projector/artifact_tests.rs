@@ -1,4 +1,4 @@
-use burn::backend::{Candle, candle::CandleDevice};
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::Utf8PathBuf;
 use tempfile::tempdir;
 
@@ -9,7 +9,7 @@ use super::{
 
 #[test]
 fn checkpoint_rejects_payload_tensor_shapes_hidden_by_compatible_envelope() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let recorded = ProjectorConfig {
         width: 8,
         residual_blocks: 1,
@@ -23,7 +23,7 @@ fn checkpoint_rejects_payload_tensor_shapes_hidden_by_compatible_envelope() {
     let path = checkpoint(&recorded, &device);
     rewrite_header_u64(&path, 16, expected.width);
 
-    let error = load_projector_checkpoint::<Candle>(&path, expected, &device)
+    let error = load_projector_checkpoint::<NdArray>(&path, expected, &device)
         .expect_err("payload tensor dimensions must be inspected after record loading");
 
     assert!(matches!(
@@ -34,7 +34,7 @@ fn checkpoint_rejects_payload_tensor_shapes_hidden_by_compatible_envelope() {
 
 #[test]
 fn checkpoint_turns_payload_block_count_mismatch_into_typed_error() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let recorded = ProjectorConfig {
         width: 8,
         residual_blocks: 1,
@@ -48,7 +48,7 @@ fn checkpoint_turns_payload_block_count_mismatch_into_typed_error() {
     let path = checkpoint(&recorded, &device);
     rewrite_header_u64(&path, 24, expected.residual_blocks);
 
-    let error = load_projector_checkpoint::<Candle>(&path, expected, &device)
+    let error = load_projector_checkpoint::<NdArray>(&path, expected, &device)
         .expect_err("payload block-count mismatch must not unwind across the loader");
 
     assert!(matches!(
@@ -58,13 +58,13 @@ fn checkpoint_turns_payload_block_count_mismatch_into_typed_error() {
     ));
 }
 
-fn checkpoint(config: &ProjectorConfig, device: &CandleDevice) -> Utf8PathBuf {
+fn checkpoint(config: &ProjectorConfig, device: &NdArrayDevice) -> Utf8PathBuf {
     let directory = tempdir().expect("temporary directory should exist");
     let root = directory.keep();
     let path = Utf8PathBuf::from_path_buf(root.join("projector.mpk"))
         .expect("temporary path should be UTF-8");
-    let model =
-        ConditionedProjector::<Candle>::new(*config, device).expect("architecture should validate");
+    let model = ConditionedProjector::<NdArray>::new(*config, device)
+        .expect("architecture should validate");
     publish_projector_checkpoint(&path, &model).expect("checkpoint should publish");
     path
 }

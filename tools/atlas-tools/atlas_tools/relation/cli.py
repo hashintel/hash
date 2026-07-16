@@ -354,6 +354,33 @@ class ExportClassifierCommand(BaseSettings):
         echo(f"wrote {result.path}")
 
 
+class ExportFitInputsCommand(BaseSettings):
+    """Export verified real card embeddings as SALT relation-policy inputs."""
+
+    classifier: CliPositionalArg[FilePath]
+    cards: CliPositionalArg[DirectoryPath]
+    embeddings: CliPositionalArg[FilePath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import export_fit_inputs
+
+        try:
+            result = export_fit_inputs(
+                classifier_path=self.classifier,
+                cards_directory=self.cards,
+                embeddings_path=self.embeddings,
+                output_path=self.out,
+            )
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.path}")
+        echo(f"sha256 {result.content_hash}")
+        echo(f"relations {result.relation_count}")
+
+
 class ReportCommand(BaseSettings):
     """Render the policy evaluation report (machine JSON plus markdown)."""
 
@@ -474,6 +501,7 @@ class RelationCli(BaseModel):
     resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
     fit: CliSubCommand[FitCommand]
     export_classifier: CliSubCommand[ExportClassifierCommand]
+    export_fit_inputs: CliSubCommand[ExportFitInputsCommand]
     report: CliSubCommand[ReportCommand]
     analyze: CliSubCommand[AnalyzeCommand]
     visualize: CliSubCommand[VisualizeCommand]

@@ -4,12 +4,9 @@ use axum::{
     body::{Body, to_bytes},
     http::Request,
 };
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
-use burn::backend::{Candle, candle::CandleDevice};
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use ed25519_dalek::SigningKey;
+use serde_json::json;
 use tempfile::tempdir;
 use tower::ServiceExt as _;
 
@@ -21,10 +18,6 @@ use crate::salt::{
 };
 
 #[tokio::test]
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
 async fn api_state_rejects_an_empty_activation_root() {
     let root = tempdir().expect("temporary API root should create");
     let gates = [
@@ -37,9 +30,10 @@ async fn api_state_rejects_an_empty_activation_root() {
         ExternalGate::SecurityApproval,
         ExternalGate::CompanionPin,
     ];
-    let result = AtlasApiState::<Candle>::new(
+    let result = AtlasApiState::<NdArray>::new_for_tests(
         AtlasApiConfiguration {
             root: root.path().to_string_lossy().into_owned(),
+            compute: AtlasComputeConfiguration::default(),
             release_verifier: VerifierConfiguration {
                 authority: "release".to_owned(),
                 public_key: public_key(1),
@@ -58,9 +52,41 @@ async fn api_state_rejects_an_empty_activation_root() {
             allow_evidence_deferred: false,
             tile_point_budget: DEFAULT_TILE_POINT_BUDGET,
         },
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     );
     assert!(result.is_err());
+}
+
+#[test]
+fn compute_configuration_has_no_cpu_variant() {
+    let error = serde_json::from_value::<AtlasComputeConfiguration>(json!({
+        "backend": "cpu",
+        "deviceOrdinal": 0
+    }))
+    .expect_err("CPU compute configuration should be rejected");
+
+    assert!(
+        error.to_string().contains("unknown variant `cpu`"),
+        "unexpected compute-configuration error: {error}"
+    );
+}
+
+#[test]
+fn production_api_state_rejects_backend_fallback() {
+    let directory = tempdir().expect("temporary API root should create");
+    let root =
+        camino::Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+
+    let error = AtlasApiState::<NdArray>::new(test_configuration(root, false), NdArrayDevice::Cpu)
+        .err()
+        .expect("production API state should reject CPU");
+
+    assert!(
+        error
+            .to_string()
+            .contains("does not match initialized ndarray"),
+        "unexpected backend mismatch: {error}"
+    );
 }
 
 #[tokio::test]
@@ -154,10 +180,6 @@ async fn tile_route_serves_binary_quadrants_and_reloads_the_active_generation() 
 }
 
 #[tokio::test]
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
 async fn evidence_deferred_generation_requires_explicit_server_permission() {
     let directory = tempdir().expect("temporary API root should create");
     let root =
@@ -170,10 +192,15 @@ async fn evidence_deferred_generation_requires_explicit_server_permission() {
     );
 
     assert!(
-        AtlasApiState::<Candle>::new(test_configuration(root, false), CandleDevice::Cpu).is_err()
+        AtlasApiState::<NdArray>::new_for_tests(
+            test_configuration(root, false),
+            NdArrayDevice::Cpu
+        )
+        .is_err()
     );
     assert!(
-        AtlasApiState::<Candle>::new(test_configuration(root, true), CandleDevice::Cpu).is_ok()
+        AtlasApiState::<NdArray>::new_for_tests(test_configuration(root, true), NdArrayDevice::Cpu)
+            .is_ok()
     );
 }
 
@@ -236,6 +263,7 @@ fn test_configuration(
     let release = signer().verifier();
     AtlasApiConfiguration {
         root: root.to_string(),
+        compute: AtlasComputeConfiguration::default(),
         release_verifier: VerifierConfiguration {
             authority: release.authority().to_owned(),
             public_key: release.public_key().to_string(),
@@ -256,11 +284,7 @@ fn test_configuration(
     }
 }
 
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
-fn loaded_test_state(root: &camino::Utf8Path) -> AtlasApiState<Candle> {
+fn loaded_test_state(root: &camino::Utf8Path) -> AtlasApiState<NdArray> {
     let store = test_store(root);
     let cached = store
         .load_active()
@@ -269,21 +293,19 @@ fn loaded_test_state(root: &camino::Utf8Path) -> AtlasApiState<Candle> {
     AtlasApiState {
         store,
         cached: Mutex::new(cached),
+        compute: AtlasComputeConfiguration::default(),
+        enforce_compute: false,
         allow_evidence_deferred: false,
         tile_point_budget: NonZeroUsize::new(4_096).expect("fixture budget should be non-zero"),
     }
 }
 
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
-fn test_store(root: &camino::Utf8Path) -> FileActivationStore<Candle> {
+fn test_store(root: &camino::Utf8Path) -> FileActivationStore<NdArray> {
     FileActivationStore::new(
         root,
         signer().verifier(),
         external_verifiers(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     )
 }
 

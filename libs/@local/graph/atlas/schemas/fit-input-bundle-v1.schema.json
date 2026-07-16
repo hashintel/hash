@@ -35,20 +35,48 @@
       ]
     },
     "relationPolicyReport": {
-      "description": "Independent relation-policy evaluation report.",
-      "$ref": "#/$defs/FitInputReferenceV1"
+      "description": "Independent relation-policy evaluation report, required for attested assurance only.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitInputReferenceV1"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "securityApprovalReport": {
-      "description": "Operator-owned security approval report.",
-      "$ref": "#/$defs/FitInputReferenceV1"
+      "description": "Operator-owned security approval report, required for attested assurance only.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitInputReferenceV1"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "companion": {
-      "description": "Pinned legacy-canvas companion bytes.",
-      "$ref": "#/$defs/FitInputReferenceV1"
+      "description": "Pinned legacy-canvas companion bytes, required for attested assurance only.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitInputReferenceV1"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "companionCompatibilityReport": {
-      "description": "Independent compatibility report for the companion.",
-      "$ref": "#/$defs/FitInputReferenceV1"
+      "description": "Independent compatibility report, required for attested assurance only.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitInputReferenceV1"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,
@@ -56,11 +84,7 @@
     "schemaVersion",
     "manifest",
     "relationPolicyInputs",
-    "classifier",
-    "relationPolicyReport",
-    "securityApprovalReport",
-    "companion",
-    "companionCompatibilityReport"
+    "classifier"
   ],
   "$defs": {
     "FitManifestContractV1": {

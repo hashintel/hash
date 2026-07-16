@@ -1,9 +1,4 @@
-#![expect(
-    deprecated,
-    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
-)]
-
-use burn::backend::{Candle, candle::CandleDevice};
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::Utf8PathBuf;
 use tempfile::tempdir;
 
@@ -549,11 +544,11 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
     let evidence = test_support::passing_evidence(&manifest);
     assert_eq!(evidence.head().manifest, published.content_hash);
     let release = publish_gated_candidate(&root, &evidence).expect("candidate should publish");
-    let store = FileActivationStore::<Candle>::new(
+    let store = FileActivationStore::<NdArray>::new(
         root.clone(),
         test_support::signer().verifier(),
         test_support::external_verifiers(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     );
 
     assert_eq!(store.current().expect("active pointer should read"), None);
@@ -597,11 +592,11 @@ fn gated_publication_remains_inactive_until_explicit_compare_exchange() {
     )
     .expect("independent but unpinned restart authorities should form a set");
     assert!(
-        FileActivationStore::<Candle>::new(
+        FileActivationStore::<NdArray>::new(
             root,
             test_support::signer().verifier(),
             unpinned_verifiers,
-            CandleDevice::Cpu,
+            NdArrayDevice::Cpu,
         )
         .current()
         .is_err(),

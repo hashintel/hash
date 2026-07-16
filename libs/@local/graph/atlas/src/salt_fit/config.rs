@@ -16,7 +16,7 @@ use super::{
     FitExternalAuthorityV1, FitInputBundleV1, FitInputReferenceV1, FitRequestV1,
     FitSigningAuthorityV1, FitWorkerConfigurationV1, MAXIMUM_FIT_CPU_THREADS, MAXIMUM_FIT_ENTITIES,
     MAXIMUM_FIT_LABEL_BYTES, MAXIMUM_FIT_LINKS, MAXIMUM_FIT_RELATION_TYPES,
-    MAXIMUM_FIT_REQUIRED_TYPES_PER_LINK, MAXIMUM_FIT_WEB_IDS, MINIMUM_FIT_ENTITIES,
+    MAXIMUM_FIT_REQUIRED_TYPES_PER_LINK, MAXIMUM_FIT_WEB_IDS,
 };
 
 const MAXIMUM_DOCUMENT_BYTES: u64 = 16 * 1_024 * 1_024;
@@ -203,15 +203,6 @@ pub(crate) fn load_request(bytes: &[u8]) -> Result<FitRequestV1, FitConfiguratio
                 reason: "web UUIDs must be pairwise distinct",
             });
         }
-    }
-    if request.sample.target_entities < MINIMUM_FIT_ENTITIES
-        || request.sample.target_entities > request.limits.maximum_entities
-        || request.sample.target_entities > MAXIMUM_FIT_ENTITIES
-    {
-        return Err(FitConfigurationError::Invalid {
-            field: "sample.targetEntities",
-            reason: "must be at least 51 and no greater than either entity ceiling",
-        });
     }
     for (field, value, maximum) in [
         (
@@ -407,6 +398,23 @@ fn validate_worker(document: &FitWorkerConfigurationV1) -> Result<(), FitConfigu
             reason: "the requested Rayon pool exceeds the M0 process ceiling",
         });
     }
+    for (field, value) in [
+        (
+            "resources.maximumPeakResidentBytes",
+            document.resources.maximum_peak_resident_bytes,
+        ),
+        (
+            "resources.maximumWorkingDiskBytes",
+            document.resources.maximum_working_disk_bytes,
+        ),
+    ] {
+        if value == 0 {
+            return Err(FitConfigurationError::Invalid {
+                field,
+                reason: "resource budgets must be non-zero",
+            });
+        }
+    }
     Ok(())
 }
 
@@ -577,14 +585,26 @@ fn bundle_references(bundle: &FitInputBundleV1) -> Vec<(&'static str, &FitInputR
     let mut references = vec![
         ("relationPolicyInputs", &bundle.relation_policy_inputs),
         ("classifier", &bundle.classifier),
-        ("relationPolicyReport", &bundle.relation_policy_report),
-        ("securityApprovalReport", &bundle.security_approval_report),
-        ("companion", &bundle.companion),
-        (
-            "companionCompatibilityReport",
-            &bundle.companion_compatibility_report,
-        ),
     ];
+    references.extend(
+        [
+            (
+                "relationPolicyReport",
+                bundle.relation_policy_report.as_ref(),
+            ),
+            (
+                "securityApprovalReport",
+                bundle.security_approval_report.as_ref(),
+            ),
+            ("companion", bundle.companion.as_ref()),
+            (
+                "companionCompatibilityReport",
+                bundle.companion_compatibility_report.as_ref(),
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(name, reference)| reference.map(|reference| (name, reference))),
+    );
     if let Some(strength_head) = &bundle.strength_head {
         references.push(("strengthHead", strength_head));
     }

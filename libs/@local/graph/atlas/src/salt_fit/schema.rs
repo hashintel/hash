@@ -4,20 +4,22 @@ use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::api::AtlasComputeConfiguration;
+
 /// Version of the public fit worker and request documents.
 pub const FIT_SCHEMA_VERSION: u32 = 1;
 /// Smallest corpus that can support the required exact 50-neighbor audit.
 pub const MINIMUM_FIT_ENTITIES: usize = 51;
 /// Process ceiling for complete 3,072-dimensional entity rows.
-pub const MAXIMUM_FIT_ENTITIES: usize = 100_000;
+pub const MAXIMUM_FIT_ENTITIES: usize = 1_250_000;
 /// Process ceiling for induced current-snapshot links.
-pub const MAXIMUM_FIT_LINKS: usize = 1_000_000;
+pub const MAXIMUM_FIT_LINKS: usize = 5_000_000;
 /// Process ceiling for distinct relation-policy domains.
 pub const MAXIMUM_FIT_RELATION_TYPES: usize = 4_096;
 /// Process ceiling for one link's authorization type closure.
 pub const MAXIMUM_FIT_REQUIRED_TYPES_PER_LINK: usize = 1_024;
 /// Process ceiling for all extracted primary labels.
-pub const MAXIMUM_FIT_LABEL_BYTES: usize = 0x0010_0000;
+pub const MAXIMUM_FIT_LABEL_BYTES: usize = 0x4000_0000;
 /// Process ceiling for explicit web scopes in one request.
 pub const MAXIMUM_FIT_WEB_IDS: usize = 1_024;
 /// Process ceiling for the global Rayon fitting pool.
@@ -57,6 +59,18 @@ pub struct FitPostgresConfigurationV1 {
     /// UTF-8 file containing only the PostgreSQL password.
     #[schemars(with = "String")]
     pub password_file: Utf8PathBuf,
+}
+
+/// Host budgets enforced before allocating a complete corpus.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FitResourcePreflightV1 {
+    /// Maximum permitted estimate for simultaneously resident fit buffers.
+    #[schemars(range(min = 1))]
+    pub maximum_peak_resident_bytes: u64,
+    /// Maximum permitted estimate for primary and reproduction artifacts.
+    #[schemars(range(min = 1))]
+    pub maximum_working_disk_bytes: u64,
 }
 
 /// Release authority whose private key is loaded by the fit worker.
@@ -134,7 +148,10 @@ pub struct FitWorkerConfigurationV1 {
     pub input_root: Utf8PathBuf,
     #[schemars(with = "String")]
     pub serving_config_output: Utf8PathBuf,
+    /// Required GPU backend shared with the generated serving process.
+    pub compute: AtlasComputeConfiguration,
     pub postgres: FitPostgresConfigurationV1,
+    pub resources: FitResourcePreflightV1,
     /// Actor whose visibility defines this atlas.
     pub actor_id: Uuid,
     #[schemars(range(min = 1, max = 128))]
@@ -151,25 +168,16 @@ pub struct FitWorkerConfigurationV1 {
     reason = "the public JSON schema keeps every resource bound visibly explicit"
 )]
 pub struct FitResourceLimitsV1 {
-    #[schemars(range(min = 1, max = 100_000))]
+    #[schemars(range(min = 1, max = 1_250_000))]
     pub maximum_entities: usize,
-    #[schemars(range(min = 1, max = 1_000_000))]
+    #[schemars(range(min = 1, max = 5_000_000))]
     pub maximum_links: usize,
     #[schemars(range(min = 1, max = 4_096))]
     pub maximum_relation_types: usize,
     #[schemars(range(min = 1, max = 1_024))]
     pub maximum_required_types_per_link: usize,
-    #[schemars(range(min = 1, max = 0x0010_0000))]
+    #[schemars(range(min = 1, max = 0x4000_0000))]
     pub maximum_label_bytes: usize,
-}
-
-/// Deterministic corpus selection parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct FitSampleV1 {
-    #[schemars(range(min = 51, max = 100_000))]
-    pub target_entities: usize,
-    pub seed: u64,
 }
 
 /// Content-addressed path beneath the configured input root.
@@ -283,14 +291,14 @@ pub struct FitInputBundleV1 {
     pub classifier: FitInputReferenceV1,
     /// Optional fitted strength head; unsupported by `m0-local-v1`.
     pub strength_head: Option<FitInputReferenceV1>,
-    /// Independent relation-policy evaluation report.
-    pub relation_policy_report: FitInputReferenceV1,
-    /// Operator-owned security approval report.
-    pub security_approval_report: FitInputReferenceV1,
-    /// Pinned legacy-canvas companion bytes.
-    pub companion: FitInputReferenceV1,
-    /// Independent compatibility report for the companion.
-    pub companion_compatibility_report: FitInputReferenceV1,
+    /// Independent relation-policy evaluation report, required for attested assurance only.
+    pub relation_policy_report: Option<FitInputReferenceV1>,
+    /// Operator-owned security approval report, required for attested assurance only.
+    pub security_approval_report: Option<FitInputReferenceV1>,
+    /// Pinned legacy-canvas companion bytes, required for attested assurance only.
+    pub companion: Option<FitInputReferenceV1>,
+    /// Independent compatibility report, required for attested assurance only.
+    pub companion_compatibility_report: Option<FitInputReferenceV1>,
 }
 
 /// One current-snapshot generation requested from PostgreSQL.
@@ -304,7 +312,6 @@ pub struct FitRequestV1 {
     /// authorization-aware cross-web sampling is not yet implemented.
     #[schemars(length(min = 1, max = 1_024))]
     pub web_ids: Vec<Uuid>,
-    pub sample: FitSampleV1,
     pub limits: FitResourceLimitsV1,
     pub input_bundle: FitInputReferenceV1,
     pub assurance: FitAssuranceMode,
@@ -329,7 +336,12 @@ impl Default for FitWorkerConfigurationV1 {
             atlas_root: Utf8PathBuf::from("var/atlas"),
             input_root: Utf8PathBuf::from("inputs"),
             serving_config_output: Utf8PathBuf::from("var/atlas-api.json"),
+            compute: AtlasComputeConfiguration::default(),
             postgres: FitPostgresConfigurationV1::default(),
+            resources: FitResourcePreflightV1 {
+                maximum_peak_resident_bytes: 64 * 1_024 * 1_024 * 1_024,
+                maximum_working_disk_bytes: 64 * 1_024 * 1_024 * 1_024,
+            },
             actor_id: Uuid::nil(),
             cpu_threads: NonZeroUsize::new(8).expect("eight is non-zero"),
             profile: FitNumericalProfile::M0LocalV1,
@@ -344,10 +356,6 @@ impl Default for FitRequestV1 {
             schema_version: FIT_SCHEMA_VERSION,
             request_id: Uuid::nil(),
             web_ids: vec![Uuid::from_u128(1)],
-            sample: FitSampleV1 {
-                target_entities: 100_000,
-                seed: 0,
-            },
             limits: FitResourceLimitsV1 {
                 maximum_entities: MAXIMUM_FIT_ENTITIES,
                 maximum_links: MAXIMUM_FIT_LINKS,

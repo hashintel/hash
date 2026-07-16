@@ -34,6 +34,7 @@ use crate::salt::{
     activation::{
         ActivationOutcome, FileActivationStore, LoadedGeneration, withdraw_candidate_marker,
     },
+    compute::ComputeDevice,
     generation::{GenerationError, activate_generation},
     snapshot::{
         AuthorizationActivationLeaseProvider, AuthorizationRevisionProvider,
@@ -156,7 +157,7 @@ pub(crate) async fn run_store_backed_canonical_generation<Store, Revisions, Rece
     request: StoreBackedCanonicalGenerationRequest,
     config: &CanonicalGenerationConfig<'_>,
     release_authority: &CanonicalReleaseAuthority<'_>,
-    device: Training::Device,
+    compute: ComputeDevice<Training::Device>,
 ) -> Result<CompletedCanonicalGeneration<Training::InnerBackend>, CanonicalGenerationError>
 where
     Store: EntityStore + EntityTypeStore + Sync,
@@ -180,6 +181,7 @@ where
     if !source.matches_temporal_axes(&temporal_axes) {
         return Err(CanonicalGenerationError::SnapshotProvenance);
     }
+    let expected_rows = source.identities.len();
     let snapshot = authorize_snapshot(
         store,
         revisions,
@@ -213,7 +215,17 @@ where
     }
     frozen.bind_extraction_receipt(receipt_hash);
     let generated =
-        run_frozen_canonical_generation::<Training>(frozen, config, release_authority, &device)?;
+        run_frozen_canonical_generation::<Training>(frozen, config, release_authority, &compute)?;
+    if generated.manifest.storage.row_count
+        != u64::try_from(expected_rows).expect("supported generation row count should fit u64")
+    {
+        withdraw_candidate_marker(config.root, generated.candidate.release())
+            .map_err(GenerationError::from)?;
+        return Err(CanonicalGenerationError::MaterializedRowCount {
+            expected: expected_rows,
+            actual: generated.manifest.storage.row_count,
+        });
+    }
     // The authorization authority, rather than a preceding standalone read,
     // owns the interval through the active-pointer linearization point.
     let activation_lease = revisions
@@ -224,7 +236,7 @@ where
         generated,
         config,
         release_authority,
-        device,
+        compute.into_device(),
         expected_active,
     );
     drop(activation_lease);
@@ -235,11 +247,12 @@ where
 ///
 /// This path performs exact-edition permission checks and samples the
 /// application-derived authorization revision before permissions, after
-/// permissions, and immediately before activation. It deliberately does not
-/// claim a store-issued extraction receipt or an authorization-owned activation
-/// lease. A permission mutation can therefore race the last revision read and
-/// the active-pointer update. Callers must surface that limitation as
-/// `m0_local_attestation`; this function is not a substitute for
+/// permissions, and immediately before activation. The local-attestation
+/// profile supplies a live optimistic revision; the evidence-deferred profile
+/// supplies one pinned extraction marker and therefore makes no mutation-
+/// exclusion claim. Neither profile claims a store-issued extraction receipt
+/// or an authorization-owned activation lease. Callers must surface the
+/// selected limitation explicitly; this function is not a substitute for
 /// [`run_store_backed_canonical_generation`].
 pub(crate) async fn run_local_m0_canonical_generation<Store, Revisions, Training>(
     store: &Store,
@@ -247,7 +260,7 @@ pub(crate) async fn run_local_m0_canonical_generation<Store, Revisions, Training
     request: StoreBackedCanonicalGenerationRequest,
     config: &CanonicalGenerationConfig<'_>,
     release_authority: &CanonicalReleaseAuthority<'_>,
-    device: Training::Device,
+    compute: ComputeDevice<Training::Device>,
 ) -> Result<CompletedCanonicalGeneration<Training::InnerBackend>, CanonicalGenerationError>
 where
     Store: EntityStore + EntityTypeStore + Sync,
@@ -270,6 +283,7 @@ where
     if !source.matches_temporal_axes(&temporal_axes) {
         return Err(CanonicalGenerationError::SnapshotProvenance);
     }
+    let expected_rows = source.identities.len();
     let snapshot = authorize_snapshot(
         store,
         revisions,
@@ -303,12 +317,22 @@ where
                     frozen,
                     config,
                     release_authority,
-                    &device,
+                    &compute,
                 )
             })
             .join()
     })
     .map_err(|_panic| CanonicalGenerationError::WorkerPanic)??;
+    if generated.manifest.storage.row_count
+        != u64::try_from(expected_rows).expect("supported generation row count should fit u64")
+    {
+        withdraw_candidate_marker(config.root, generated.candidate.release())
+            .map_err(GenerationError::from)?;
+        return Err(CanonicalGenerationError::MaterializedRowCount {
+            expected: expected_rows,
+            actual: generated.manifest.storage.row_count,
+        });
+    }
     let before_activation = revisions
         .authorization_revision()
         .await
@@ -326,7 +350,7 @@ where
         generated,
         config,
         release_authority,
-        device,
+        compute.into_device(),
         expected_active,
     )
 }

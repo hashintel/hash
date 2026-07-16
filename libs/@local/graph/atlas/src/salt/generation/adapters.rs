@@ -78,11 +78,13 @@ impl<Batch, Persisted> fmt::Debug for ConditionQualitySuiteAdapter<Batch, Persis
 impl<Batch, Persisted> ConditionQualityEvaluator for ConditionQualitySuiteAdapter<Batch, Persisted>
 where
     Batch: Fn(&[ProjectedCondition]) -> Result<Vec<ConditionQuality>, ConditionQualityEvaluationError>
+        + Send
         + Sync,
     Persisted: for<'field> Fn(
             PersistedCondition<'field>,
         )
             -> Result<PersistedConditionQuality, ConditionQualityEvaluationError>
+        + Send
         + Sync,
 {
     fn suite_version(&self) -> &str {

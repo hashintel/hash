@@ -70,8 +70,9 @@ DISTINCT` (v009 migration, line ~153). Whole-entity embedding rows
 - burn `Param` is lazily initialized: cloning an unmaterialized module gives
   every clone different random weights. Trained modules are materialized;
   synthetic test fixtures must round-trip a record first.
-- burn-candle is deprecated upstream; tests use Candle CPU deliberately for
-  determinism. Migration is Bilal's call.
+- burn-candle is deprecated upstream and is not used. Hardware-independent
+  tests use NdArray CPU, while production SALT uses configured CubeCL Metal or
+  CUDA with no CPU fallback.
 
 ## Current state (last verified: all green)
 

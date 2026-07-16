@@ -20,8 +20,8 @@
 //!
 //! # Serving boundary
 //!
-//! `serve --config <path>` loads [`AtlasApiConfiguration`], constructs the
-//! pinned Candle CPU checkpoint backend, binds the requested TCP address, and
+//! `serve --config <path>` loads [`AtlasApiConfiguration`], initializes the
+//! configured `CubeCL` GPU checkpoint backend, binds the requested TCP address, and
 //! runs the modern Axum router. SIGINT and, on Unix, SIGTERM trigger graceful
 //! shutdown. Startup fails when no generation is active. The default bind
 //! address is `127.0.0.1:4010`.
@@ -36,21 +36,21 @@ use std::{
     io::{self, Read as _, Write as _},
 };
 
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
-use burn::backend::{Candle, candle::CandleDevice};
+#[cfg(test)]
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Parser, Subcommand, error::ErrorKind};
 use serde::Serialize;
 
-use crate::api::{AtlasApiConfiguration, AtlasApiState, router};
+use crate::{
+    api::{AtlasApiConfiguration, AtlasApiState, AtlasComputeBackend, router},
+    salt::compute::{ProductionInferenceBackend, initialize_cubecl_compute},
+};
 
 const MAX_COMMAND_JSON_BYTES: u64 = 16 * 1024 * 1024;
 /// Version of the stable JSON document emitted by `fit`.
-pub const FIT_RECEIPT_SCHEMA_VERSION: u32 = 1;
+pub const FIT_RECEIPT_SCHEMA_VERSION: u32 = 3;
 
 /// Top-level HASH Graph Atlas command.
 #[derive(Debug, Parser)]
@@ -181,6 +181,19 @@ pub struct FitTiming {
     pub total_milliseconds: u64,
 }
 
+/// Checked estimates and observed resource high-water marks.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FitResourceReceipt {
+    pub estimated_peak_resident_bytes: u64,
+    pub estimated_working_disk_bytes: u64,
+    pub available_memory_bytes_at_preflight: u64,
+    pub available_disk_bytes_at_preflight: u64,
+    pub observed_peak_resident_bytes: u64,
+    pub observed_working_disk_high_water_bytes: u64,
+    pub published_artifact_bytes: u64,
+}
+
 /// Stable command output from one completed fit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -199,6 +212,10 @@ pub struct FitReceipt {
     pub profile_hash: String,
     /// Explicit assurance profile used by the worker.
     pub assurance: String,
+    /// GPU backend that executed training and checkpoint reload.
+    pub compute_backend: AtlasComputeBackend,
+    /// Zero-based accelerator ordinal bound into generation identity.
+    pub compute_device_ordinal: u16,
     /// Provenance class of every mandatory M0 release gate.
     pub gate_assurance: Vec<FitGateAssurance>,
     /// Actor whose visibility defined the atlas.
@@ -217,8 +234,12 @@ pub struct FitReceipt {
     pub knowledge_hash: String,
     /// Exact extraction payload and link-type-selection identity.
     pub extraction_provenance_hash: String,
-    /// Number of complete 3,072-dimensional entity rows.
-    pub entity_count: usize,
+    /// Number of eligible point rows in the frozen PostgreSQL domain.
+    pub available_entity_count: usize,
+    /// Number of complete 3,072-dimensional rows extracted into memory.
+    pub extracted_entity_count: usize,
+    /// Number of rows persisted in the activated canonical base.
+    pub materialized_entity_count: usize,
     /// Number of admitted extraction-time relation candidates.
     pub link_count: usize,
     /// Number of selected relation types.
@@ -237,6 +258,8 @@ pub struct FitReceipt {
     pub restart_verified: bool,
     /// Measured phase timings for the completed attempt.
     pub timing: FitTiming,
+    /// Resource estimates and observed process/filesystem high-water marks.
+    pub resources: FitResourceReceipt,
     /// Generated trust configuration for the read-only REST server.
     pub serving_configuration: String,
 }
@@ -426,15 +449,33 @@ where
         .map_err(|error| AtlasCliError::new("could not write Atlas fit receipt", error))
 }
 
-#[expect(
-    deprecated,
-    reason = "Candle CPU remains the pinned M0 checkpoint-serving backend"
-)]
 async fn run_server(command: ServeCommand) -> Result<(), AtlasCliError> {
     let configuration = read_bounded(&command.config, MAX_COMMAND_JSON_BYTES)?;
     let configuration = serde_json::from_slice::<AtlasApiConfiguration>(&configuration)
         .map_err(|error| AtlasCliError::new("Atlas API configuration is invalid", error))?;
-    let state = AtlasApiState::<Candle>::new(configuration, CandleDevice::Cpu)
+    let compute = initialize_cubecl_compute(configuration.compute).map_err(|error| {
+        AtlasCliError::new("Atlas API accelerator initialization failed", error)
+    })?;
+    let state =
+        AtlasApiState::<ProductionInferenceBackend>::new(configuration, compute.into_device())
+            .map_err(|error| {
+                AtlasCliError::new("Atlas API trust configuration is invalid", error)
+            })?;
+    let listener = tokio::net::TcpListener::bind(command.bind)
+        .await
+        .map_err(|error| AtlasCliError::new("could not bind Atlas API listener", error))?;
+    axum::serve(listener, router(state))
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .map_err(|error| AtlasCliError::new("Atlas API server failed", error))
+}
+
+#[cfg(test)]
+async fn run_server_for_tests(command: ServeCommand) -> Result<(), AtlasCliError> {
+    let configuration = read_bounded(&command.config, MAX_COMMAND_JSON_BYTES)?;
+    let configuration = serde_json::from_slice::<AtlasApiConfiguration>(&configuration)
+        .map_err(|error| AtlasCliError::new("Atlas API configuration is invalid", error))?;
+    let state = AtlasApiState::<NdArray>::new_for_tests(configuration, NdArrayDevice::Cpu)
         .map_err(|error| AtlasCliError::new("Atlas API trust configuration is invalid", error))?;
     let listener = tokio::net::TcpListener::bind(command.bind)
         .await
@@ -646,6 +687,7 @@ mod tests {
         ];
         let configuration = AtlasApiConfiguration {
             root: temporary.path().to_string_lossy().into_owned(),
+            compute: crate::api::AtlasComputeConfiguration::default(),
             release_verifier: VerifierConfiguration {
                 authority: "release".to_owned(),
                 public_key: public_key(1),
@@ -670,7 +712,7 @@ mod tests {
         )
         .expect("server configuration should be written");
 
-        let error = run_server(ServeCommand {
+        let error = run_server_for_tests(ServeCommand {
             config: Utf8PathBuf::from_path_buf(config)
                 .expect("temporary configuration path should be UTF-8"),
             bind: "127.0.0.1:0"

@@ -203,7 +203,7 @@ pub(super) fn infer_initial_coordinates<B: Backend>(
 mod tests {
     use core::num::NonZero;
 
-    use burn::backend::{Autodiff, Candle, candle::CandleDevice};
+    use burn::backend::{Autodiff, NdArray, ndarray::NdArrayDevice};
     use camino::Utf8Path;
 
     use super::*;
@@ -221,14 +221,14 @@ mod tests {
         },
     };
 
-    type TestBackend = Candle;
+    type TestBackend = NdArray;
     type TestAutodiffBackend = Autodiff<TestBackend>;
 
     const ROWS: usize = 40;
     const DIM: usize = 8;
 
-    fn device() -> CandleDevice {
-        CandleDevice::Cpu
+    fn device() -> NdArrayDevice {
+        NdArrayDevice::Cpu
     }
 
     /// Two drifting clusters of unit-norm embeddings.

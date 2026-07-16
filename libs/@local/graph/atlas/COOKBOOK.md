@@ -50,19 +50,22 @@ The implemented SALT generation core can:
 The current process envelope has deliberate seams:
 
 - The standalone `fit` command is concrete. It accepts checked-in version-1
-  worker/request schemas, extracts a bounded current snapshot directly from
-  HASH Graph PostgreSQL, runs SALT with Candle CPU, activates by compare-and-
-  swap, and writes the serving trust configuration.
+  worker/request schemas, extracts the complete eligible current snapshot
+  directly from HASH Graph PostgreSQL, runs SALT with the configured CubeCL
+  GPU, activates by compare-and-swap, and writes the serving configuration.
 - The standalone `serve` command is complete and uses modern Axum with the
-  Candle CPU checkpoint backend.
+  same configured CubeCL GPU backend and device ordinal.
 - The HTTP API is read-only and performs no request authorization, TLS
   termination, or rate limiting.
-- `evidence_deferred_local` is operational but not release-grade assurance. It
-  locally signs provisional reports and does not require external issuer
-  processes. `m0_local_attestation` retains the independent external-issuer
-  path. Both profiles still use application-attested PostgreSQL snapshot and
-  WAL identities, and the final activation interval has no authorization-owned
-  lease. See
+- `evidence_deferred_local` is operational but provides no provenance or
+  attestation. It generates domain-separated, plainly marked deterministic
+  mock identities, source reports, and companion bytes, then locally signs
+  provisional gate reports. `m0_local_attestation` retains the independent
+  external-issuer path. Both profiles use an application-observed PostgreSQL
+  snapshot identity. Local attestation samples the live WAL around permission
+  reads; evidence-deferred fits pin the extraction marker and explicitly make no
+  mutation-exclusion claim. The final activation interval has no
+  authorization-owned lease. See
   [`docs/quality-evidence-deferred.md`](docs/quality-evidence-deferred.md) and
   [`docs/authorization-consistency.md`](docs/authorization-consistency.md).
 - SALT's stage graph remains crate-internal; `salt_fit::ProductionAtlasTrainer` is
@@ -87,15 +90,27 @@ cargo run -p hash-graph-atlas --bin hash-graph-atlas -- fit --help
 cargo run -p hash-graph-atlas --bin hash-graph-atlas -- serve --help
 ```
 
+CubeCL Metal is compiled into macOS builds. Linux production builds must opt
+into CubeCL CUDA and provide the NVIDIA driver and NVRTC runtime:
+
+```sh
+cargo build -p hash-graph-atlas --features cuda --bin hash-graph-atlas
+```
+
+The `cuda` feature is intentionally explicit so ordinary builds do not compile
+the CUDA runtime. Runtime validation must run as a dedicated Linux GPU job;
+a successful non-GPU build does not establish CUDA support.
+
 The package script is an equivalent command envelope:
 
 ```sh
 yarn workspace @rust/hash-graph-atlas start --help
 ```
 
-The first Burn build can be substantial because the crate includes CPU and
-platform GPU backends. The standalone server nevertheless loads checkpoints
-with the pinned Candle CPU backend.
+The first Burn build can be substantial. Production `fit` and `serve` never
+fall back to CPU: Metal is accepted only on macOS, CUDA only on a Linux build
+with the explicit feature, and unavailable devices or bad ordinals fail before
+PostgreSQL extraction or listener binding.
 
 ## Understand the lifecycle
 
@@ -114,19 +129,24 @@ source extraction
   -> external report grants
   -> signed complete gate report
   -> inactive candidate marker
-  -> authorization revision recheck
+  -> authorization revision recheck (local attestation)
+     or pinned extraction marker (evidence-deferred)
   -> explicit compare-and-swap activation
   -> independent active-generation reload
 ```
 
 That diagram is the strict operational contract. `m0_local_attestation` uses
 the external issuer path. `evidence_deferred_local` replaces those external
-decisions with local provisional signatures over the same persisted reports.
-Both modes use the same artifact, candidate, CAS, and restart path, and both
-substitute a repeatable-read PostgreSQL snapshot identity, live WAL revision
-checks, and a locally bound extraction receipt. They check the WAL revision
-immediately before activation but cannot exclude a policy mutation between that
-read and the pointer replacement.
+decisions with local provisional signatures and replaces unavailable source
+provenance, approvals, and companion artifacts with deterministic values
+marked `mock_non_attesting`. The mocks satisfy the current manifest envelope
+only; they do not affect classifier inference, geometry, reproduction, or
+numerical gates. Both modes use the same artifact, candidate, CAS, and restart
+path, and both substitute a repeatable-read PostgreSQL snapshot identity and a
+locally bound extraction receipt. Local attestation samples the live WAL around
+permission reads; evidence-deferred mode deliberately reuses the extraction
+marker so unrelated database writes cannot prevent a local fit. Neither mode
+excludes a policy mutation through activation.
 
 The distinction between candidate and active state is important:
 
@@ -280,16 +300,17 @@ directory and then builds the primary generation. It compares manifests and
 artifact outputs before issuing release evidence.
 
 The manifest records both the running executable fingerprint and a structured
-execution contract. M0 generation accepts only `autodiff<candle<cpu>>`; the
-contract binds the workspace dependency lock, compiler and target settings,
-operating-system math runtime, runtime CPU features, Candle and Rayon thread
-counts, floating-point control registers, mapped system-math image identities,
-selected GEMM kernel, cache geometry and packing thresholds, SALT SIMD mode,
-USearch version, compiled and available ISA sets, and the ISA selected for both
-512-dimensional cosine and two-dimensional squared-L2 indexes. On macOS the
-executable fingerprint and math images use their mapped Mach-O UUIDs rather
-than replaceable paths. The M0 CPU path does not enable Accelerate, whose
-runtime framework arithmetic would otherwise sit outside this identity.
+execution contract. Production M0 generation accepts only
+`autodiff<fusion<cubecl<wgpu<msl>>>>` or
+`autodiff<fusion<cubecl<cuda>>>`; the contract binds that backend and its
+zero-based device ordinal alongside the workspace dependency lock, compiler
+and target settings, operating-system math runtime, runtime CPU features,
+the CubeCL version and Rayon thread count, floating-point control registers, mapped
+system-math image identities, selected host GEMM kernel, cache geometry and
+packing thresholds, SALT SIMD mode, USearch version, compiled and available
+ISA sets, and the ISA selected for both 512-dimensional cosine and
+two-dimensional squared-L2 indexes. On macOS the executable fingerprint and
+math images use their mapped Mach-O UUIDs rather than replaceable paths.
 
 Plan for approximately two projector fits and two complete artifact builds per
 release attempt. The reported `training_wall_time` is the primary projector
@@ -327,6 +348,20 @@ cp libs/@local/graph/atlas/config/m0-local-input-bundle.default.json \
   ./atlas-worker/inputs/m0-local-input-bundle.json
 ```
 
+`worker.json` must contain one explicit compute object. The same object is
+copied into the generated serving configuration:
+
+```json
+{
+  "compute": {
+    "backend": "metal",
+    "deviceOrdinal": 0
+  }
+}
+```
+
+Use `"cuda"` on the Linux CUDA build. There is no `"cpu"` value.
+
 Then make these required edits:
 
 1. Set a non-nil `actorId` and `requestId`.
@@ -341,15 +376,17 @@ Then make these required edits:
    secrets must be unavailable to the fit worker. `evidence_deferred_local`
    ignores these external command and key placeholders and derives visibly
    provisional local authorities from the release seed.
-4. Place every input-bundle asset under `inputs/`; symlink and `..` escapes are
-   rejected. Replace every `sha256` with the lowercase SHA-256 of the exact
-   file bytes, then put the completed bundle's SHA-256 in
-   `request.json` at `inputBundle.sha256`. Replace the five zero manifest
-   provenance hashes with the identities issued by the embedding and relation
-   evaluation pipelines.
-5. Choose the web scope, sample target, deterministic seed, and hard limits in
-   `request.json`. M0 requires at least one explicit `webIds` entry; it does not
-   yet perform authorization-aware sampling across every database web.
+4. Place the classifier and relation-policy inputs under `inputs/`; symlink and
+   `..` escapes are rejected. Replace each `sha256` with the lowercase SHA-256
+   of the exact file bytes, then put the completed bundle's SHA-256 in
+   `request.json` at `inputBundle.sha256`. Under
+   `evidence_deferred_local`, omit all four optional report/companion
+   references: SALT generates the documented non-attesting mocks and overrides
+   the five inline provenance identities. Under `m0_local_attestation`, provide
+   those four references and replace the inline identities with values issued
+   by the embedding and relation evaluation pipelines.
+5. Choose the web scope and fail-only resource ceilings in `request.json`. M0
+   requires at least one explicit `webIds` entry.
 
 The worker accepts loopback PostgreSQL only. Relative worker paths resolve
 against the directory containing `worker.json`; generated serving
@@ -368,20 +405,23 @@ during a fit. M0 opens final files with no-follow semantics and verifies every
 input content hash, but it does not yet traverse parent directories through a
 persistent `openat`-style capability.
 
-The input bundle must contain:
+Every input bundle must contain:
 
 - an inline non-generated manifest contract naming the embedding producer,
   relation/annotation corpora, classifier/applicability versions, and serving
   wire/companion versions;
 - a complete `classifier.salt` SALT classifier artifact;
 - one full 3,072-component relation-card embedding and unit strength for every
-  extracted relation type;
-- passing relation-policy and security reports bound to both the classifier
-  and relation-policy-input SHA-256 values;
-- a canvas companion; and
-- a passing companion report bound to the companion SHA-256.
+  extracted relation type.
 
-External reports use this strict envelope:
+For `m0_local_attestation`, it must additionally contain passing
+relation-policy and security reports bound to the classifier and policy-input
+SHA-256 values, a canvas companion, and a passing companion report. For
+`evidence_deferred_local`, those four references must be absent. SALT generates
+stable mock bytes that say they provide no provenance, review, approval, or
+attestation.
+
+Attested external reports use this strict envelope:
 
 ```json
 {
@@ -406,7 +446,9 @@ The public bundle contract cannot supply a generation ID, artifact hash,
 release head, execution contract, or gate result. SALT creates those claims
 from measured output. All five provenance hashes in the inline contract must
 be nonzero, and class priors and volume fractions are validated as
-probabilities.
+probabilities. Deferred mode replaces those five values with stable
+domain-separated mock identities before generation; they are not used for
+model selection or geometry.
 
 Relation-policy inputs use:
 
@@ -454,8 +496,9 @@ cargo run -p hash-graph-atlas --bin hash-graph-atlas -- \
 
 Success prints one versioned JSON receipt containing exact request, worker
 configuration, input-bundle, and resolved numerical-profile hashes;
-request/actor/snapshot identities; distinct extraction-time and
-permission-time authorization revisions; entity/link/relation counts;
+request/actor/snapshot identities; extraction-time and permission-time
+authorization revisions (identical pinned markers in evidence-deferred mode);
+entity/link/relation counts;
 multi-type ambiguity count; generation, manifest, and release-report hashes; a
 provenance class for every mandatory gate; measured phase timings; the
 explicit activation result; restart verification; and the generated

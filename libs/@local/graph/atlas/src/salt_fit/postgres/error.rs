@@ -5,7 +5,9 @@ use core::{error::Error, fmt};
 pub(in crate::salt_fit) enum PostgresExtractionError {
     Postgres(tokio_postgres::Error),
     Store(String),
+    Resource(crate::salt_fit::resource::FitResourceError),
     EmptyCorpus,
+    EmptyLinkCorpus,
     CorpusTooSmall {
         actual: usize,
         minimum: usize,
@@ -25,6 +27,9 @@ pub(in crate::salt_fit) enum PostgresExtractionError {
     InvalidConfidence,
     MissingEndpoint,
     MissingLinkType,
+    AmbiguousLinkTypes {
+        count: usize,
+    },
     AmbiguousLinkEndpoints,
     Allocation {
         resource: &'static str,
@@ -37,7 +42,11 @@ impl fmt::Display for PostgresExtractionError {
         match self {
             Self::Postgres(_) => formatter.write_str("PostgreSQL extraction query failed"),
             Self::Store(detail) => write!(formatter, "HASH Graph store setup failed: {detail}"),
+            Self::Resource(error) => error.fmt(formatter),
             Self::EmptyCorpus => formatter.write_str("the current snapshot has no usable entities"),
+            Self::EmptyLinkCorpus => {
+                formatter.write_str("the complete point corpus induces no current links")
+            }
             Self::CorpusTooSmall { actual, minimum } => write!(
                 formatter,
                 "the current snapshot has {actual} usable entities; M0 requires at least {minimum}"
@@ -69,6 +78,10 @@ impl fmt::Display for PostgresExtractionError {
             Self::MissingLinkType => {
                 formatter.write_str("relation query returned no link-resolving direct type")
             }
+            Self::AmbiguousLinkTypes { count } => write!(
+                formatter,
+                "relation query returned {count} Link-derived direct types for one link entity"
+            ),
             Self::AmbiguousLinkEndpoints => formatter.write_str(
                 "a link entity resolved to multiple endpoint pairs in the current snapshot",
             ),
@@ -84,8 +97,10 @@ impl Error for PostgresExtractionError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Postgres(source) => Some(source),
+            Self::Resource(source) => Some(source),
             Self::Store(_)
             | Self::EmptyCorpus
+            | Self::EmptyLinkCorpus
             | Self::CorpusTooSmall { .. }
             | Self::Capacity { .. }
             | Self::InvalidEmbedding { .. }
@@ -93,6 +108,7 @@ impl Error for PostgresExtractionError {
             | Self::InvalidConfidence
             | Self::MissingEndpoint
             | Self::MissingLinkType
+            | Self::AmbiguousLinkTypes { .. }
             | Self::AmbiguousLinkEndpoints
             | Self::Allocation { .. } => None,
         }
@@ -102,5 +118,11 @@ impl Error for PostgresExtractionError {
 impl From<tokio_postgres::Error> for PostgresExtractionError {
     fn from(error: tokio_postgres::Error) -> Self {
         Self::Postgres(error)
+    }
+}
+
+impl From<crate::salt_fit::resource::FitResourceError> for PostgresExtractionError {
+    fn from(error: crate::salt_fit::resource::FitResourceError) -> Self {
+        Self::Resource(error)
     }
 }

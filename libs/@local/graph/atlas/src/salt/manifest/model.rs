@@ -9,7 +9,7 @@ use crate::salt::{
     revision::{AuthorizationRevision, BaseRevision, DeltaRevision, GenerationId, VariantId},
 };
 
-pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 20;
+pub(crate) const GENERATION_MANIFEST_FORMAT_VERSION: u32 = 21;
 
 /// Assurance envelope under which one generation was released.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -507,14 +507,14 @@ pub(crate) struct ExecutionContractManifest {
     pub rustflags_hex: String,
     pub dependency_lock_hash: ContentHash,
     pub training_backend: String,
+    pub accelerator_device_ordinal: u16,
     pub rayon_threads: usize,
     pub operating_system: String,
     pub math_runtime: String,
     pub runtime_cpu_features: String,
     pub floating_point_control: String,
     pub math_library_images: String,
-    pub candle_version: String,
-    pub candle_cpu_threads: usize,
+    pub cubecl_version: String,
     pub gemm_version: String,
     pub gemm_kernel: String,
     pub gemm_cache_configuration: String,
@@ -539,7 +539,7 @@ impl ExecutionContractManifest {
         reason = "execution contracts use canonical cross-platform integer encodings"
     )]
     pub(crate) fn content_hash(&self) -> ContentHash {
-        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.execution-contract.v3");
+        let mut hasher = ContentHasher::new(b"hash.graph.atlas.salt.execution-contract.v4");
         hasher.update(&self.version.to_le_bytes());
         for component in [
             &self.generator_version,
@@ -558,7 +558,7 @@ impl ExecutionContractManifest {
             &self.runtime_cpu_features,
             &self.floating_point_control,
             &self.math_library_images,
-            &self.candle_version,
+            &self.cubecl_version,
             &self.gemm_version,
             &self.gemm_kernel,
             &self.gemm_cache_configuration,
@@ -572,9 +572,9 @@ impl ExecutionContractManifest {
             hasher.update(component.as_bytes());
         }
         hasher.update(self.dependency_lock_hash.as_bytes());
+        hasher.update(&self.accelerator_device_ordinal.to_le_bytes());
         for value in [
             self.rayon_threads,
-            self.candle_cpu_threads,
             self.gemm_threading_threshold,
             self.gemm_lhs_packing_threshold_single_thread,
             self.gemm_lhs_packing_threshold_multi_thread,
@@ -582,7 +582,7 @@ impl ExecutionContractManifest {
         ] {
             hasher.update(
                 &u64::try_from(value)
-                    .expect("Rayon thread count should fit u64")
+                    .expect("execution-contract count should fit u64")
                     .to_le_bytes(),
             );
         }

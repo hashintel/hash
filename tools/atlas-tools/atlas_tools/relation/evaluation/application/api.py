@@ -53,6 +53,10 @@ from atlas_tools.relation.evaluation.application.embedding import (
     embed_grid,
     embed_grid_async,
 )
+from atlas_tools.relation.evaluation.application.fit_inputs import (
+    FitInputsArtifact,
+    export_fit_inputs,
+)
 from atlas_tools.relation.evaluation.application.grid_deliverables import (
     GridDeliverablesPolicy,
     GridDeliverablesRun,
@@ -159,6 +163,7 @@ __all__ = [
     "EmbeddingRun",
     "EmbeddingTransportContractError",
     "EvaluationPaths",
+    "FitInputsArtifact",
     "GridDeliverablesPolicy",
     "GridDeliverablesRun",
     "GridGatesBlockedError",
@@ -192,6 +197,7 @@ __all__ = [
     "embed_grid_async",
     "export_atlas_classifier",
     "export_atlas_classifier_async",
+    "export_fit_inputs",
     "fit_classifier",
     "fit_classifier_async",
     "judge_pin",

@@ -1,6 +1,6 @@
 use core::num::NonZeroUsize;
 
-use burn::backend::{Autodiff, Candle, candle::CandleDevice};
+use burn::backend::{Autodiff, NdArray, ndarray::NdArrayDevice};
 use type_system::{
     knowledge::entity::id::{EntityId, EntityUuid},
     principal::actor_group::WebId,
@@ -17,11 +17,11 @@ use crate::salt::{
     strength::RelationStrength,
 };
 
-type TrainBackend = Autodiff<Candle>;
+type TrainBackend = Autodiff<NdArray>;
 
 #[test]
 fn adaptive_fit_refreshes_and_samples_every_objective_channel() {
-    let device = CandleDevice::Cpu;
+    let device = NdArrayDevice::Cpu;
     let architecture = ProjectorConfig {
         width: 8,
         residual_blocks: 1,

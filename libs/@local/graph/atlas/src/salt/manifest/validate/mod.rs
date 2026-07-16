@@ -809,8 +809,8 @@ fn validate_execution_contract(execution: &ExecutionContractManifest) -> Result<
             execution.math_library_images.as_str(),
         ),
         (
-            "reproducibility.execution_contract.candle_version",
-            execution.candle_version.as_str(),
+            "reproducibility.execution_contract.cubecl_version",
+            execution.cubecl_version.as_str(),
         ),
         (
             "reproducibility.execution_contract.gemm_version",
@@ -837,18 +837,24 @@ fn validate_execution_contract(execution: &ExecutionContractManifest) -> Result<
     }
     exact(
         "reproducibility.execution_contract.version",
-        execution.version == 3,
-        "three",
+        execution.version == 4,
+        "four",
+    )?;
+    let supported_backend = matches!(
+        execution.training_backend.as_str(),
+        "autodiff<fusion<cubecl<wgpu<msl>>>>" | "autodiff<fusion<cubecl<cuda>>>"
+    );
+    #[cfg(test)]
+    let supported_backend = supported_backend || execution.training_backend == "autodiff<ndarray>";
+    exact(
+        "reproducibility.execution_contract.training_backend",
+        supported_backend,
+        "autodiff<fusion<cubecl<wgpu<msl>>>> or autodiff<fusion<cubecl<cuda>>>",
     )?;
     exact(
         "reproducibility.execution_contract.rayon_threads",
         execution.rayon_threads > 0,
         "a positive observed thread count",
-    )?;
-    exact(
-        "reproducibility.execution_contract.candle_cpu_threads",
-        execution.candle_cpu_threads > 0,
-        "a positive observed Candle thread count",
     )?;
     exact(
         "reproducibility.execution_contract.contract_hash",

@@ -24,9 +24,6 @@
       "minItems": 1,
       "maxItems": 1024
     },
-    "sample": {
-      "$ref": "#/$defs/FitSampleV1"
-    },
     "limits": {
       "$ref": "#/$defs/FitResourceLimitsV1"
     },
@@ -42,31 +39,11 @@
     "schemaVersion",
     "requestId",
     "webIds",
-    "sample",
     "limits",
     "inputBundle",
     "assurance"
   ],
   "$defs": {
-    "FitSampleV1": {
-      "description": "Deterministic corpus selection parameters.",
-      "type": "object",
-      "properties": {
-        "targetEntities": {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 51,
-          "maximum": 100000
-        },
-        "seed": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "additionalProperties": false,
-      "required": ["targetEntities", "seed"]
-    },
     "FitResourceLimitsV1": {
       "description": "Hard resource limits checked before large extraction allocations.",
       "type": "object",
@@ -75,13 +52,13 @@
           "type": "integer",
           "format": "uint",
           "minimum": 1,
-          "maximum": 100000
+          "maximum": 1250000
         },
         "maximumLinks": {
           "type": "integer",
           "format": "uint",
           "minimum": 1,
-          "maximum": 1000000
+          "maximum": 5000000
         },
         "maximumRelationTypes": {
           "type": "integer",
@@ -99,7 +76,7 @@
           "type": "integer",
           "format": "uint",
           "minimum": 1,
-          "maximum": 1048576
+          "maximum": 1073741824
         }
       },
       "additionalProperties": false,

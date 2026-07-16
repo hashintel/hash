@@ -36,8 +36,7 @@ use crate::salt::{
     projector::{CoordinateSupportRow, EntityRole, ProjectorInferenceError, ProjectorTypeContext},
     relation::{AdmittedRelationInstance, RelationConfidence, RelationPolicy},
     representation::{
-        CANONICAL_DIMENSIONS, CanonicalEmbedding, OwnedCanonicalEmbedding, PROJECTOR_DIMENSIONS,
-        RepresentationError, canonical_corpus_hash, projector_corpus_hash,
+        CANONICAL_DIMENSIONS, OwnedCanonicalEmbedding, canonical_corpus_hash, projector_corpus_hash,
     },
     revision::{MAX_PUBLISHED_VARIANTS, VariantId},
     snapshot::{GeometrySnapshot, LinkRejectionCounts, SnapshotTemporalAxes},
@@ -270,13 +269,15 @@ impl RelationPolicyInput {
 /// revision that supplied each representation. All remaining fields are
 /// numerical or presentation inputs whose shape and identity are fixed by
 /// [`freeze_generation_input`].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub(crate) struct GenerationFreezeSource {
     pub manifest_contract: GenerationManifestContract,
     pub geometry: GeometrySnapshot,
     pub identities: IdentityDirectory,
     pub selected_editions: Box<[crate::salt::snapshot::EntityAtEdition]>,
     pub canonical_embeddings: Box<[f32]>,
+    pub representation_values: Box<[f32]>,
     pub roles: Box<[EntityRole]>,
     pub type_context: Option<FrozenProjectorTypeContext>,
     pub relation_ordinals: HashMap<VersionedUrl, ArtifactOrdinal>,
@@ -382,12 +383,13 @@ impl GenerationFreezeSource {
 }
 
 /// Extracted generation data awaiting permission and relation-security admission.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct StoreBackedGenerationSource {
     pub manifest_contract: GenerationManifestContract,
     pub identities: IdentityDirectory,
     pub selected_editions: Box<[crate::salt::snapshot::EntityAtEdition]>,
     pub canonical_embeddings: Box<[f32]>,
+    pub representation_values: Box<[f32]>,
     pub roles: Box<[EntityRole]>,
     pub type_context: Option<FrozenProjectorTypeContext>,
     pub relation_ordinals: HashMap<VersionedUrl, ArtifactOrdinal>,
@@ -414,6 +416,7 @@ impl StoreBackedGenerationSource {
             identities: self.identities,
             selected_editions: self.selected_editions,
             canonical_embeddings: self.canonical_embeddings,
+            representation_values: self.representation_values,
             roles: self.roles,
             type_context: self.type_context,
             relation_ordinals: self.relation_ordinals,
@@ -551,9 +554,9 @@ pub(crate) fn freeze_generation_input(
         }
     }
     require_rows("canonical embeddings", rows, canonical_embeddings.len())?;
-    let (canonical_embedding_hash, projector_representation_hash, representation_values) =
-        derive_representations(canonical_embeddings)?;
-    let representations = ProjectorEmbeddings::new(&representation_values)?;
+    let canonical_embedding_hash = canonical_corpus_hash(&source.canonical_embeddings);
+    let projector_representation_hash = projector_corpus_hash(&source.representation_values);
+    let representations = ProjectorEmbeddings::new(&source.representation_values)?;
     require_rows("representations", rows, representations.len())?;
     require_rows("roles", rows, source.roles.len())?;
     require_rows(
@@ -570,7 +573,7 @@ pub(crate) fn freeze_generation_input(
         .representation_audit
         .validate(
             &source.canonical_embeddings,
-            &representation_values,
+            &source.representation_values,
             source.identities.content_hash(),
             stratification_input_hash,
         )?;
@@ -648,7 +651,7 @@ pub(crate) fn freeze_generation_input(
         canonical_embedding_hash,
         projector_representation_hash,
         canonical_embedding_values: source.canonical_embeddings,
-        representation_values,
+        representation_values: source.representation_values,
         roles: source.roles,
         type_context: source.type_context,
         relation_ordinals: source.relation_ordinals,
@@ -728,25 +731,6 @@ fn validate_and_sort_anchors(
         }
     }
     Ok(())
-}
-
-fn derive_representations(
-    rows: &[[f32; CANONICAL_DIMENSIONS]],
-) -> Result<(ContentHash, ContentHash, Box<[f32]>), RepresentationError> {
-    let mut representations = Vec::with_capacity(rows.len() * PROJECTOR_DIMENSIONS);
-    for row in rows {
-        let embedding = CanonicalEmbedding::new(row)?;
-        let mut prefix = [0.0_f32; PROJECTOR_DIMENSIONS];
-        let _normalization = embedding.normalize_prefix(&mut prefix);
-        representations.extend_from_slice(&prefix);
-    }
-    let canonical_hash = canonical_corpus_hash(rows.as_flattened());
-    let projector_hash = projector_corpus_hash(&representations);
-    Ok((
-        canonical_hash,
-        projector_hash,
-        representations.into_boxed_slice(),
-    ))
 }
 
 fn derive_relation_policies(

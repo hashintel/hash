@@ -1,7 +1,7 @@
 use core::mem::size_of;
 use std::{collections::HashMap, fs};
 
-use burn::backend::{Candle, candle::CandleDevice};
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::{Utf8Path, Utf8PathBuf};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use jiff::Timestamp as JiffTimestamp;
@@ -51,7 +51,7 @@ fn canonical_identity_ignores_unordered_seed_and_wire_collections() {
 #[test]
 fn execution_contract_rejects_a_property_not_bound_by_its_hash() {
     let mut manifest = manifest();
-    manifest.reproducibility.execution_contract.training_backend = "autodiff<other>".to_owned();
+    manifest.reproducibility.execution_contract.rayon_threads += 1;
 
     assert!(matches!(
         manifest.validate(),
@@ -467,7 +467,7 @@ fn manifest() -> GenerationManifest {
 pub(crate) fn fixture_manifest() -> GenerationManifest {
     let hash = |name: &str| ContentHash::digest(name.as_bytes());
     let mut execution_contract = ExecutionContractManifest {
-        version: 3,
+        version: 4,
         generator_version: "0.0.0".to_owned(),
         rustc_release: "nightly-fixture".to_owned(),
         rustc_commit: "fixture-commit".to_owned(),
@@ -479,15 +479,15 @@ pub(crate) fn fixture_manifest() -> GenerationManifest {
         debug: "true".to_owned(),
         rustflags_hex: String::new(),
         dependency_lock_hash: hash("dependency-lock"),
-        training_backend: "autodiff<candle<cpu>>".to_owned(),
+        training_backend: "autodiff<ndarray>".to_owned(),
+        accelerator_device_ordinal: 0,
         rayon_threads: 1,
         operating_system: "fixture-os".to_owned(),
         math_runtime: "fixture-math".to_owned(),
         runtime_cpu_features: "fixture-cpu".to_owned(),
         floating_point_control: "fixture-fp-control".to_owned(),
         math_library_images: "fixture-math-library".to_owned(),
-        candle_version: "burn-candle-0.21.0/candle-core-0.10.2".to_owned(),
-        candle_cpu_threads: 1,
+        cubecl_version: "burn-cubecl-0.21.0/cubecl-0.10.0".to_owned(),
         gemm_version: "gemm-0.19.0".to_owned(),
         gemm_kernel: "fixture-kernel".to_owned(),
         gemm_cache_configuration: "fixture-cache".to_owned(),
@@ -1058,7 +1058,7 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
             *artifact =
                 ArtifactManifest::mmap(artifact.role, artifact.relative_path.clone(), published);
         } else if artifact.role == ArtifactRole::ProjectorCheckpoint {
-            let model = ConditionedProjector::<Candle>::new(projector_config, &CandleDevice::Cpu)
+            let model = ConditionedProjector::<NdArray>::new(projector_config, &NdArrayDevice::Cpu)
                 .expect("test projector architecture should validate");
             let published = publish_projector_checkpoint(&path, &model)
                 .expect("test checkpoint should publish");

@@ -12,7 +12,7 @@ use super::*;
 use crate::salt::Probability;
 
 #[test]
-fn link_type_candidates_are_selected_in_canonical_url_order() {
+fn link_type_candidates_are_sorted_and_deduplicated() {
     let candidates = parse_types(vec![
         "https://example.com/types/z/v/1".to_owned(),
         "https://example.com/types/a/v/2".to_owned(),
@@ -33,13 +33,6 @@ fn link_type_candidates_are_selected_in_canonical_url_order() {
             "https://example.com/types/z/v/1",
         ]
     );
-    assert_eq!(
-        candidates
-            .first()
-            .expect("a candidate should exist")
-            .to_string(),
-        "https://example.com/types/a/v/1"
-    );
 }
 
 #[test]
@@ -53,15 +46,57 @@ fn required_type_closure_is_sorted_and_deduplicated() {
                 "https://example.com/types/b/v/1",
             ],
         ),
-        entity(3, &["https://example.com/types/c/v/1"]),
     ];
-    let closure = required_types([2, 0, 1], &entities)
+    let link_types = parse_types(vec!["https://example.com/types/c/v/1".to_owned()])
+        .expect("link type should parse");
+    let closure = required_types(&link_types, [0, 1], &entities)
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
 
     assert_eq!(
         closure,
+        [
+            "https://example.com/types/a/v/1",
+            "https://example.com/types/b/v/1",
+            "https://example.com/types/c/v/1",
+        ]
+    );
+}
+
+#[test]
+fn ontology_identifiers_are_deduplicated_before_allocation() {
+    let entities = [
+        entity(
+            1,
+            &[
+                "https://example.com/types/a/v/1",
+                "https://example.com/types/b/v/1",
+            ],
+        ),
+        entity(2, &["https://example.com/types/a/v/1"]),
+    ];
+    let relation_type =
+        VersionedUrl::from_str("https://example.com/types/link/v/1").expect("type should parse");
+    let link = ExtractedLink {
+        link: entities[0].selected,
+        left: entities[0].selected,
+        right: entities[1].selected,
+        relation_type: LinkTypeSelection {
+            selected: relation_type.clone(),
+            candidates: Box::new([relation_type]),
+        },
+        required_entity_types: parse_types(vec![
+            "https://example.com/types/a/v/1".to_owned(),
+            "https://example.com/types/c/v/1".to_owned(),
+        ])
+        .expect("required types should parse"),
+        confidence: RelationConfidence::default(),
+    };
+
+    assert_eq!(
+        collect_ontology_identifiers(&entities, &[link])
+            .expect("unique ontology identifiers should collect"),
         [
             "https://example.com/types/a/v/1",
             "https://example.com/types/b/v/1",
@@ -158,6 +193,9 @@ async fn live_repeatable_read_extracts_one_complete_current_snapshot() {
     let mut client = connect_live().await;
     create_live_fixture_tables(&client).await;
     let identities = seed_live_snapshot(&client, 51).await;
+    prepare_point_domain_table(&client)
+        .await
+        .expect("temporary point domain should be prepared");
     let transaction = client
         .build_transaction()
         .isolation_level(IsolationLevel::RepeatableRead)
@@ -170,11 +208,15 @@ async fn live_repeatable_read_extracts_one_complete_current_snapshot() {
         ..FitRequestV1::default()
     };
     request.web_ids = vec![identities[0].0];
-    request.sample.target_entities = 51;
 
-    let extraction = extract_current_snapshot(&transaction, &request)
-        .await
-        .expect("current snapshot should extract");
+    let extraction = extract_current_snapshot(
+        &transaction,
+        &request,
+        camino::Utf8Path::new("."),
+        crate::salt_fit::FitWorkerConfigurationV1::default().resources,
+    )
+    .await
+    .expect("current snapshot should extract");
     transaction
         .commit()
         .await
@@ -335,12 +377,8 @@ async fn seed_live_snapshot(client: &Client, rows: usize) -> Vec<(Uuid, Uuid, Uu
         let discriminator = u128::try_from(index).expect("fixture index should fit u128");
         let entity_uuid = Uuid::from_u128(100 + discriminator);
         let edition_id = Uuid::from_u128(1_000 + discriminator);
-        let ontology_id = Uuid::from_u128(if index == 0 { 1 } else { 3 });
-        let versioned_url = if index == 0 {
-            format!("{RELATION_BASE}v/1")
-        } else {
-            format!("{ENTITY_BASE}v/1")
-        };
+        let ontology_id = Uuid::from_u128(3);
+        let versioned_url = format!("{ENTITY_BASE}v/1");
         client
             .execute(
                 "INSERT INTO entity_embeddings (web_id, entity_uuid, embedding)
@@ -381,17 +419,50 @@ async fn seed_live_snapshot(client: &Client, rows: usize) -> Vec<(Uuid, Uuid, Uu
             .expect("type fixture should be inserted");
         identities.push((web_id, entity_uuid, edition_id));
     }
+    let link_uuid = Uuid::from_u128(10_000);
+    let link_edition_id = Uuid::from_u128(20_000);
+    let relation_ontology_id = Uuid::from_u128(1);
+    client
+        .execute(
+            "INSERT INTO entity_temporal_metadata VALUES
+                ($1, $2, NULL, $3, '[-infinity,infinity]'::tstzrange,
+                 '[-infinity,infinity]'::tstzrange)",
+            &[&web_id, &link_uuid, &link_edition_id],
+        )
+        .await
+        .expect("link temporal fixture should be inserted");
+    client
+        .execute(
+            "INSERT INTO entity_editions VALUES ($1, false, 0.75)",
+            &[&link_edition_id],
+        )
+        .await
+        .expect("link edition fixture should be inserted");
+    client
+        .execute(
+            "INSERT INTO entity_edition_cache VALUES
+                ($1, ARRAY['link'], ARRAY[$2, $3])",
+            &[
+                &link_edition_id,
+                &format!("{RELATION_BASE}v/1"),
+                &format!("{LINK_ROOT_BASE_URL}v/1"),
+            ],
+        )
+        .await
+        .expect("link cache fixture should be inserted");
+    client
+        .execute(
+            "INSERT INTO entity_is_of_type VALUES ($1, $2, 0)",
+            &[&link_edition_id, &relation_ontology_id],
+        )
+        .await
+        .expect("link type fixture should be inserted");
     client
         .execute(
             "INSERT INTO entity_edge VALUES
                 ($1, $2, $1, $3, 'has-left-entity', 'outgoing', 0.8),
                 ($1, $2, $1, $4, 'has-right-entity', 'outgoing', 0.9)",
-            &[
-                &web_id,
-                &identities[0].1,
-                &identities[1].1,
-                &identities[2].1,
-            ],
+            &[&web_id, &link_uuid, &identities[1].1, &identities[2].1],
         )
         .await
         .expect("link endpoint fixture should be inserted");

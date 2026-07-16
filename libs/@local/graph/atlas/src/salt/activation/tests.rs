@@ -1,9 +1,4 @@
-#![expect(
-    deprecated,
-    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
-)]
-
-use burn::backend::{Candle, candle::CandleDevice};
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::Utf8Path;
 
 use super::*;
@@ -254,12 +249,12 @@ fn publish_release(root: &Utf8Path, name: &str) -> GatedRelease {
     publish_gated_candidate(root, &evidence).expect("gated candidate should publish")
 }
 
-fn activation_store(root: &Utf8Path) -> FileActivationStore<Candle> {
+fn activation_store(root: &Utf8Path) -> FileActivationStore<NdArray> {
     FileActivationStore::new(
         root,
         signer().verifier(),
         crate::salt::release::test_support::external_verifiers(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     )
 }
 

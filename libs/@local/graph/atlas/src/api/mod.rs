@@ -123,12 +123,72 @@ pub struct ExternalVerifierConfiguration {
     pub public_key: String,
 }
 
+#[expect(
+    clippy::doc_markdown,
+    reason = "Schemars preserves this description verbatim in the public JSON schema"
+)]
+/// Production accelerator implemented by CubeCL.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AtlasComputeBackend {
+    /// Apple Metal on macOS.
+    Metal,
+    /// NVIDIA CUDA on Linux.
+    Cuda,
+}
+
+impl AtlasComputeBackend {
+    pub(crate) const fn inference_name(self) -> &'static str {
+        match self {
+            Self::Metal => "fusion<cubecl<wgpu<msl>>>",
+            Self::Cuda => "fusion<cubecl<cuda>>",
+        }
+    }
+
+    pub(crate) const fn training_name(self) -> &'static str {
+        match self {
+            Self::Metal => "autodiff<fusion<cubecl<wgpu<msl>>>>",
+            Self::Cuda => "autodiff<fusion<cubecl<cuda>>>",
+        }
+    }
+}
+
+impl fmt::Display for AtlasComputeBackend {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Metal => "metal",
+            Self::Cuda => "cuda",
+        })
+    }
+}
+
+/// GPU backend and zero-based device ordinal shared by fit and serve.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AtlasComputeConfiguration {
+    /// Required production accelerator; CPU is deliberately unavailable.
+    pub backend: AtlasComputeBackend,
+    /// Zero-based accelerator ordinal on the host.
+    pub device_ordinal: u16,
+}
+
+impl Default for AtlasComputeConfiguration {
+    fn default() -> Self {
+        Self {
+            backend: AtlasComputeBackend::Metal,
+            device_ordinal: 0,
+        }
+    }
+}
+
 /// Filesystem and trust roots for a verified Atlas API instance.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AtlasApiConfiguration {
     /// UTF-8 filesystem root containing activation and generation records.
     pub root: String,
+    /// Exact accelerator configuration used to fit and reload checkpoints.
+    pub compute: AtlasComputeConfiguration,
     /// Verifier for the authority signing every release gate document.
     pub release_verifier: VerifierConfiguration,
     /// Complete, unique verifier set for independently owned external gates.
@@ -163,6 +223,8 @@ impl Error for AtlasApiConfigurationError {}
 pub struct AtlasApiState<B: Backend> {
     store: FileActivationStore<B>,
     cached: Mutex<Option<Arc<LoadedGeneration<B>>>>,
+    compute: AtlasComputeConfiguration,
+    enforce_compute: bool,
     allow_evidence_deferred: bool,
     tile_point_budget: NonZeroUsize,
 }
@@ -180,6 +242,22 @@ impl<B: Backend> AtlasApiState<B> {
         configuration: AtlasApiConfiguration,
         device: B::Device,
     ) -> Result<Self, AtlasApiConfigurationError> {
+        Self::new_inner(configuration, device, true)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_tests(
+        configuration: AtlasApiConfiguration,
+        device: B::Device,
+    ) -> Result<Self, AtlasApiConfigurationError> {
+        Self::new_inner(configuration, device, false)
+    }
+
+    fn new_inner(
+        configuration: AtlasApiConfiguration,
+        device: B::Device,
+        enforce_compute: bool,
+    ) -> Result<Self, AtlasApiConfigurationError> {
         let tile_point_budget = NonZeroUsize::new(configuration.tile_point_budget)
             .filter(|budget| budget.get() <= MAXIMUM_TILE_POINTS)
             .ok_or_else(|| {
@@ -187,6 +265,13 @@ impl<B: Backend> AtlasApiState<B> {
                     "tilePointBudget must be between 1 and {MAXIMUM_TILE_POINTS}"
                 ))
             })?;
+        if enforce_compute && B::name(&device) != configuration.compute.backend.inference_name() {
+            return Err(configuration_error(format!(
+                "configured {} backend does not match initialized {}",
+                configuration.compute.backend,
+                B::name(&device)
+            )));
+        }
         let release = verifier(&configuration.release_verifier)?;
         let external = configuration
             .external_verifiers
@@ -217,6 +302,15 @@ impl<B: Backend> AtlasApiState<B> {
                 "no Atlas generation is active; run `hash-graph-atlas fit` first",
             ));
         }
+        if enforce_compute
+            && cached.as_deref().is_some_and(|generation| {
+                !generation_matches_compute(generation, configuration.compute)
+            })
+        {
+            return Err(configuration_error(
+                "active generation was fitted with a different accelerator backend or ordinal",
+            ));
+        }
         if cached.as_deref().is_some_and(|generation| {
             generation.manifest().assurance_mode == GenerationAssuranceMode::EvidenceDeferredLocal
                 && !configuration.allow_evidence_deferred
@@ -228,6 +322,8 @@ impl<B: Backend> AtlasApiState<B> {
         Ok(Self {
             store,
             cached: Mutex::new(cached),
+            compute: configuration.compute,
+            enforce_compute,
             allow_evidence_deferred: configuration.allow_evidence_deferred,
             tile_point_budget,
         })
@@ -253,6 +349,16 @@ impl<B: Backend> AtlasApiState<B> {
             .load_active()
             .map_err(internal_error)?
             .map(Arc::new);
+        if self.enforce_compute
+            && loaded
+                .as_deref()
+                .is_some_and(|generation| !generation_matches_compute(generation, self.compute))
+        {
+            return Err(internal_error(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation was fitted with a different accelerator backend or ordinal",
+            )));
+        }
         if loaded.as_deref().is_some_and(|generation| {
             generation.manifest().assurance_mode == GenerationAssuranceMode::EvidenceDeferredLocal
                 && !self.allow_evidence_deferred
@@ -516,6 +622,15 @@ const fn gate_id(gate: ExternalGate) -> GateId {
         ExternalGate::SecurityApproval => GateId::SecurityApproval,
         ExternalGate::CompanionPin => GateId::CompanionPin,
     }
+}
+
+fn generation_matches_compute<B: Backend>(
+    generation: &LoadedGeneration<B>,
+    compute: AtlasComputeConfiguration,
+) -> bool {
+    let execution = &generation.manifest().reproducibility.execution_contract;
+    execution.training_backend == compute.backend.training_name()
+        && execution.accelerator_device_ordinal == compute.device_ordinal
 }
 
 fn configuration_error(detail: impl Into<String>) -> AtlasApiConfigurationError {

@@ -19,8 +19,15 @@
     "servingConfigOutput": {
       "type": "string"
     },
+    "compute": {
+      "description": "Required GPU backend shared with the generated serving process.",
+      "$ref": "#/$defs/AtlasComputeConfiguration"
+    },
     "postgres": {
       "$ref": "#/$defs/FitPostgresConfigurationV1"
+    },
+    "resources": {
+      "$ref": "#/$defs/FitResourcePreflightV1"
     },
     "actorId": {
       "description": "Actor whose visibility defines this atlas.",
@@ -46,13 +53,49 @@
     "atlasRoot",
     "inputRoot",
     "servingConfigOutput",
+    "compute",
     "postgres",
+    "resources",
     "actorId",
     "cpuThreads",
     "profile",
     "authorities"
   ],
   "$defs": {
+    "AtlasComputeConfiguration": {
+      "description": "GPU backend and zero-based device ordinal shared by fit and serve.",
+      "type": "object",
+      "properties": {
+        "backend": {
+          "description": "Required production accelerator; CPU is deliberately unavailable.",
+          "$ref": "#/$defs/AtlasComputeBackend"
+        },
+        "deviceOrdinal": {
+          "description": "Zero-based accelerator ordinal on the host.",
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "additionalProperties": false,
+      "required": ["backend", "deviceOrdinal"]
+    },
+    "AtlasComputeBackend": {
+      "description": "Production accelerator implemented by CubeCL.",
+      "oneOf": [
+        {
+          "description": "Apple Metal on macOS.",
+          "type": "string",
+          "const": "metal"
+        },
+        {
+          "description": "NVIDIA CUDA on Linux.",
+          "type": "string",
+          "const": "cuda"
+        }
+      ]
+    },
     "FitPostgresConfigurationV1": {
       "description": "PostgreSQL connection settings for the dedicated fit worker.",
       "type": "object",
@@ -83,6 +126,26 @@
       },
       "additionalProperties": false,
       "required": ["host", "port", "user", "database", "passwordFile"]
+    },
+    "FitResourcePreflightV1": {
+      "description": "Host budgets enforced before allocating a complete corpus.",
+      "type": "object",
+      "properties": {
+        "maximumPeakResidentBytes": {
+          "description": "Maximum permitted estimate for simultaneously resident fit buffers.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1
+        },
+        "maximumWorkingDiskBytes": {
+          "description": "Maximum permitted estimate for primary and reproduction artifacts.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["maximumPeakResidentBytes", "maximumWorkingDiskBytes"]
     },
     "FitNumericalProfile": {
       "description": "Immutable numerical profile selected by a fit request.",

@@ -1,7 +1,8 @@
 use core::num::NonZero;
+use std::sync::{Mutex, PoisonError};
 
 use burn::{
-    backend::{Autodiff, Candle, candle::CandleDevice},
+    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::Module as _,
     tensor::{Tensor, TensorData},
 };
@@ -9,13 +10,14 @@ use burn::{
 use super::{FittedProjector, OUTPUT_DIM, Projector, ProjectorError, TrainingConfig};
 use crate::float::FloatBytes;
 
-type TestBackend = Candle;
+type TestBackend = NdArray;
 type TestAutodiffBackend = Autodiff<TestBackend>;
 
 const INPUT_DIM: usize = 6;
+static TRAINING_LOCK: Mutex<()> = Mutex::new(());
 
-fn device() -> CandleDevice {
-    CandleDevice::Cpu
+fn device() -> NdArrayDevice {
+    NdArrayDevice::Cpu
 }
 
 /// A deterministic synthetic regression problem: coordinates are a fixed
@@ -57,6 +59,9 @@ fn quick_config() -> TrainingConfig {
 }
 
 fn fit_synthetic(rows: usize) -> (FittedProjector<TestBackend>, FloatBytes, FloatBytes) {
+    // Burn's checkpoint workers share process-global runtime state, so keep
+    // independent training fixtures from racing checkpoint finalization.
+    let _training_guard = TRAINING_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
     let (xs, ys) = synthetic_data(rows);
     let artifacts = tempfile::tempdir().expect("artifact directory should open");
     let fitted = Projector::<TestAutodiffBackend>::new(INPUT_DIM, &device())

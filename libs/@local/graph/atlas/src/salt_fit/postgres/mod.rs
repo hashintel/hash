@@ -39,24 +39,37 @@ pub(super) struct ConnectedExtraction {
     pub extraction: PostgresExtraction,
 }
 
-/// Live WAL-based revision sampler for the explicitly optimistic M0 profile.
-pub(super) struct OptimisticAuthorizationRevisionProvider<'store> {
-    store: &'store FitStore,
+/// Revision source selected by the fit assurance profile.
+pub(super) enum FitAuthorizationRevisionProvider<'store> {
+    /// Samples the live PostgreSQL WAL around permission reads.
+    Optimistic(&'store FitStore),
+    /// Reuses the extraction marker without claiming mutation exclusion.
+    EvidenceDeferred(AuthorizationRevision),
 }
 
-impl<'store> OptimisticAuthorizationRevisionProvider<'store> {
+impl<'store> FitAuthorizationRevisionProvider<'store> {
+    /// Creates the live WAL sampler used by local-attestation fits.
     #[must_use]
-    pub(super) const fn new(store: &'store FitStore) -> Self {
-        Self { store }
+    pub(super) const fn optimistic(store: &'store FitStore) -> Self {
+        Self::Optimistic(store)
+    }
+
+    /// Pins the extraction marker used by explicitly evidence-deferred fits.
+    #[must_use]
+    pub(super) const fn evidence_deferred(revision: ContentHash) -> Self {
+        Self::EvidenceDeferred(AuthorizationRevision::new(revision))
     }
 }
 
-impl AuthorizationRevisionProvider for OptimisticAuthorizationRevisionProvider<'_> {
+impl AuthorizationRevisionProvider for FitAuthorizationRevisionProvider<'_> {
     async fn authorization_revision(&self) -> Result<AuthorizationRevision, SnapshotError> {
-        optimistic_authorization_revision(self.store)
-            .await
-            .map(AuthorizationRevision::new)
-            .map_err(|_error| SnapshotError::AuthorizationRevision)
+        match self {
+            Self::Optimistic(store) => optimistic_authorization_revision(store)
+                .await
+                .map(AuthorizationRevision::new)
+                .map_err(|_error| SnapshotError::AuthorizationRevision),
+            Self::EvidenceDeferred(revision) => Ok(*revision),
+        }
     }
 }
 
@@ -91,11 +104,18 @@ pub(super) async fn connect_and_extract(
         .acquire_owned(None)
         .await
         .map_err(|report| PostgresExtractionError::Store(report.to_string()))?;
+    extraction::prepare_point_domain_table(store.as_client()).await?;
     let transaction = store
         .repeatable_read_transaction()
         .await
         .map_err(|report| PostgresExtractionError::Store(report.to_string()))?;
-    let extraction = extraction::extract_current_snapshot(transaction.as_client(), request).await?;
+    let extraction = extraction::extract_current_snapshot(
+        transaction.as_client(),
+        request,
+        &worker.atlas_root,
+        worker.document.resources,
+    )
+    .await?;
     transaction
         .commit()
         .await
@@ -116,4 +136,24 @@ pub(super) async fn optimistic_authorization_revision(
     hasher.update(database.as_bytes());
     hasher.update(wal.as_bytes());
     Ok(hasher.finish())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn evidence_deferred_revision_remains_pinned() {
+        let expected = ContentHash::digest(b"deferred-extraction-revision");
+        let provider = FitAuthorizationRevisionProvider::evidence_deferred(expected);
+
+        assert_eq!(
+            provider
+                .authorization_revision()
+                .await
+                .expect("deferred revision should be available")
+                .content_hash(),
+            expected
+        );
+    }
 }

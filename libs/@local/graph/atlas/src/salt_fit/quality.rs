@@ -7,9 +7,12 @@ use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, error::Error, fmt};
 
 use rayon::prelude::*;
+#[path = "quality/deferred.rs"]
+mod deferred;
 #[path = "quality/semantic.rs"]
 mod semantic;
 
+pub(in crate::salt_fit) use deferred::DeferredConditionQualityEvaluator;
 pub(in crate::salt_fit) use semantic::LocalConditionQualityEvaluator;
 
 use crate::salt::{
@@ -78,17 +81,7 @@ pub(super) fn audit_representations(
     if rows < minimum {
         return Err(FitQualityError::CorpusTooSmall { rows, minimum });
     }
-    let mut projector = try_vec(
-        "projector corpus",
-        rows.saturating_mul(PROJECTOR_DIMENSIONS),
-    )?;
-    for row in canonical.chunks_exact(crate::salt::CANONICAL_DIMENSIONS) {
-        let embedding = CanonicalEmbedding::new(row)
-            .map_err(|error| FitQualityError::Representation(error.to_string()))?;
-        let mut prefix = [0.0; PROJECTOR_DIMENSIONS];
-        let _normalization = embedding.normalize_prefix(&mut prefix);
-        projector.extend_from_slice(&prefix);
-    }
+    let projector = derive_projector(canonical, rows)?;
     let canonical_hash = canonical_corpus_hash(canonical);
     let projector_hash = projector_corpus_hash(&projector);
     let identity_hash = identities.content_hash();
@@ -164,10 +157,117 @@ pub(super) fn audit_representations(
     .map_err(|error| FitQualityError::Representation(error.to_string()))?
     .into_boxed_slice();
     Ok(PreparedRepresentations {
-        projector: projector.into_boxed_slice(),
+        projector,
         audit,
         report,
     })
+}
+
+pub(super) fn deferred_representations(
+    canonical: &[f32],
+    identities: &IdentityDirectory,
+    candidates: &[LandmarkCandidate],
+    roles: &[EntityRole],
+) -> Result<PreparedRepresentations, FitQualityError> {
+    let rows = identities.len();
+    if rows == 0 {
+        return Err(FitQualityError::CorpusTooSmall { rows, minimum: 1 });
+    }
+    let projector = derive_projector(canonical, rows)?;
+    let canonical_hash = canonical_corpus_hash(canonical);
+    let projector_hash = projector_corpus_hash(&projector);
+    let identity_hash = identities.content_hash();
+    let stratification_hash = representation_stratification_hash(candidates, roles)
+        .map_err(|error| FitQualityError::Representation(error.to_string()))?;
+    let query_sample_hash = report_hash(
+        b"hash.graph.atlas.fit.deferred-representation-query.v1",
+        identity_hash,
+        canonical_hash,
+    );
+    let summary = report_hash(
+        b"hash.graph.atlas.fit.deferred-representation-summary.v1",
+        canonical_hash,
+        projector_hash,
+    );
+    let audit = RepresentationAuditReport {
+        suite_version: "salt-deferred-non-attesting-representation-v1".to_owned(),
+        canonical_corpus_hash: canonical_hash,
+        projector_corpus_hash: projector_hash,
+        identity_directory_hash: identity_hash,
+        stratification_input_hash: stratification_hash,
+        prefix_corpus_hashes: AUDITED_PREFIX_DIMENSIONS
+            .map(|dimensions| prefix_corpus_hash(canonical, dimensions)),
+        query_sample_hash,
+        sample_rows: 1,
+        overall_recall: [[0.0; AUDITED_NEIGHBORS.len()]; AUDITED_PREFIX_DIMENSIONS.len()],
+        stratified_report_hash: report_hash(
+            b"hash.graph.atlas.fit.deferred-representation-stratified.v1",
+            summary,
+            stratification_hash,
+        ),
+        diagnostic_report_hash: report_hash(
+            b"hash.graph.atlas.fit.deferred-representation-diagnostics.v1",
+            summary,
+            query_sample_hash,
+        ),
+        clump_report_hash: report_hash(
+            b"hash.graph.atlas.fit.deferred-representation-clump.v1",
+            summary,
+            canonical_hash,
+        ),
+    };
+    audit
+        .validate(canonical, &projector, identity_hash, stratification_hash)
+        .map_err(|error| FitQualityError::Representation(error.to_string()))?;
+    let report = serde_json::to_vec(&serde_json::json!({
+        "schemaVersion": 1,
+        "suiteVersion": audit.suite_version.as_str(),
+        "outcome": "deferred",
+        "attesting": false,
+        "note": "mock representation envelope; no representation evidence was collected",
+        "subjects": {
+            "canonicalCorpus": canonical_hash,
+            "projectorCorpus": projector_hash,
+            "identityDirectory": identity_hash,
+            "stratificationInput": stratification_hash
+        }
+    }))
+    .map_err(|error| FitQualityError::Representation(error.to_string()))?
+    .into_boxed_slice();
+    Ok(PreparedRepresentations {
+        projector,
+        audit,
+        report,
+    })
+}
+
+fn derive_projector(canonical: &[f32], rows: usize) -> Result<Box<[f32]>, FitQualityError> {
+    let expected =
+        rows.checked_mul(crate::salt::CANONICAL_DIMENSIONS)
+            .ok_or(FitQualityError::Allocation {
+                buffer: "canonical corpus",
+                elements: usize::MAX,
+            })?;
+    if canonical.len() != expected {
+        return Err(FitQualityError::Representation(
+            "canonical matrix row count does not match the identity population".to_owned(),
+        ));
+    }
+    let elements = rows
+        .checked_mul(PROJECTOR_DIMENSIONS)
+        .ok_or(FitQualityError::Allocation {
+            buffer: "projector corpus",
+            elements: usize::MAX,
+        })?;
+    let mut projector = try_vec("projector corpus", elements)?;
+    for row in canonical.chunks_exact(crate::salt::CANONICAL_DIMENSIONS) {
+        let embedding = CanonicalEmbedding::new(row)
+            .map_err(|error| FitQualityError::Representation(error.to_string()))?;
+        let mut prefix = [0.0; PROJECTOR_DIMENSIONS];
+        let _normalization = embedding.normalize_prefix(&mut prefix);
+        projector.extend_from_slice(&prefix);
+    }
+    Ok(projector.into_boxed_slice())
 }
 
 fn prefix_norms(canonical: &[f32]) -> Result<Box<[[f64; 5]]>, FitQualityError> {

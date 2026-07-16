@@ -50,6 +50,9 @@ pub(super) fn knowledge_hash(
         for candidate in &link.relation_type.candidates {
             hash_text(&mut hasher, &candidate.to_string());
         }
+        for required_type in &link.required_entity_types {
+            hash_text(&mut hasher, &required_type.to_string());
+        }
         for confidence in [
             link.confidence.link,
             link.confidence.left,
@@ -121,12 +124,18 @@ pub(super) fn parse_types(
 }
 
 pub(super) fn required_types(
-    rows: [usize; 3],
+    link_types: &[VersionedUrl],
+    endpoint_rows: [usize; 2],
     entities: &[ExtractedEntity],
 ) -> Box<[VersionedUrl]> {
-    let mut required = rows
-        .into_iter()
-        .flat_map(|row| entities[row].entity_types.iter().cloned())
+    let mut required = link_types
+        .iter()
+        .cloned()
+        .chain(
+            endpoint_rows
+                .into_iter()
+                .flat_map(|row| entities[row].entity_types.iter().cloned()),
+        )
         .collect::<Vec<_>>();
     required.sort_unstable();
     required.dedup();

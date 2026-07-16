@@ -1,5 +1,5 @@
 {
-  "format_version": 20,
+  "format_version": 21,
   "generation_id": "e661f4c935e8a5a83349afb5e347695c2e972e967b50efcd618f93b0b7b4c24b",
   "created_at": "1970-01-01T00:00:00Z",
   "assurance_mode": "independent_authorities",
@@ -259,7 +259,7 @@
     "code_revision": "0123456789abcdef",
     "binary_fingerprint": "62091f7c3873e9f22e331c178087e1417307032b89675caadec932c88f068ab5",
     "execution_contract": {
-      "version": 3,
+      "version": 4,
       "generator_version": "0.0.0",
       "rustc_release": "nightly-fixture",
       "rustc_commit": "fixture-commit",
@@ -271,15 +271,15 @@
       "debug": "true",
       "rustflags_hex": "",
       "dependency_lock_hash": "5a29624d2b17e355c556598237e731611ae7ea5d580068f3b36e5d14624702e4",
-      "training_backend": "autodiff<candle<cpu>>",
+      "training_backend": "autodiff<fusion<cubecl<wgpu<msl>>>>",
+      "accelerator_device_ordinal": 0,
       "rayon_threads": 1,
       "operating_system": "fixture-os",
       "math_runtime": "fixture-math",
       "runtime_cpu_features": "fixture-cpu",
       "floating_point_control": "fixture-fp-control",
       "math_library_images": "fixture-math-library",
-      "candle_version": "burn-candle-0.21.0/candle-core-0.10.2",
-      "candle_cpu_threads": 1,
+      "cubecl_version": "burn-cubecl-0.21.0/cubecl-0.10.0",
       "gemm_version": "gemm-0.19.0",
       "gemm_kernel": "fixture-kernel",
       "gemm_cache_configuration": "fixture-cache",
@@ -293,7 +293,7 @@
       "usearch_available_isa": "fixture-isa",
       "usearch_cosine_f32_isa": "fixture-isa",
       "usearch_l2sq_f32_isa": "fixture-isa",
-      "contract_hash": "279ab39ecfd276dfbde6e3808a444a5629242e7f62d2090af607574d1092ee66"
+      "contract_hash": "21c0d15d03ae22f0d70421ea2b565861a7ca336c5ff4b84ded3bda74262cec55"
     },
     "config_hash": "b79606fb3afea5bd1609ed40b622142f1c98125abcfe89a76a661b0e8e343910",
     "seeds": [

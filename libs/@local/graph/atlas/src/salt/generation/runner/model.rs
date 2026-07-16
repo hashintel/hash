@@ -149,5 +149,7 @@ pub(crate) struct CanonicalGenerationOutcome {
     pub manifest: GenerationManifest,
     pub legacy: LegacyCanvasExport,
     pub training_wall_time: Duration,
+    pub working_disk_high_water_bytes: u64,
+    pub published_artifact_bytes: u64,
     pub directory: Utf8PathBuf,
 }

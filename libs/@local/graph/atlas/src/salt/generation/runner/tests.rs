@@ -1,12 +1,7 @@
-#![expect(
-    deprecated,
-    reason = "M0 reproducibility tests intentionally pin Burn's Candle CPU backend"
-)]
-
 use core::{num::NonZeroUsize, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
-use burn::backend::{Autodiff, Candle, candle::CandleDevice};
+use burn::backend::{Autodiff, NdArray, ndarray::NdArrayDevice};
 use camino::Utf8Path;
 use type_system::{
     knowledge::entity::id::{EntityEditionId, EntityId, EntityUuid},
@@ -59,7 +54,7 @@ use crate::salt::{
 
 const ROWS: usize = 32;
 
-type TrainBackend = Autodiff<Candle>;
+type TrainBackend = Autodiff<NdArray>;
 
 #[test]
 fn durable_directory_creates_and_reaccepts_a_missing_parent_chain() {
@@ -468,6 +463,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         identities,
         selected_editions: selected_editions.into_boxed_slice(),
         canonical_embeddings: canonical_embeddings.into_boxed_slice(),
+        representation_values: projector_values.into_boxed_slice(),
         roles: roles.into(),
         type_context: None,
         relation_ordinals,
@@ -511,7 +507,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         source,
         &generation_config(root, &conditions, &grid_depths),
         &release_authority,
-        &CandleDevice::Cpu,
+        &NdArrayDevice::Cpu,
     )
     .expect("complete canonical generation should publish");
     let relation_artifact = std::fs::read(outcome.directory.join("relations.salt"))
@@ -550,7 +546,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         reproduction_source,
         &generation_config(&reproduction_root, &conditions, &grid_depths),
         &release_authority,
-        &CandleDevice::Cpu,
+        &NdArrayDevice::Cpu,
     )
     .expect("independent reproduction should publish");
     assert_eq!(outcome.manifest, reproduced.manifest);
@@ -565,7 +561,16 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             .reproducibility
             .execution_contract
             .training_backend,
-        "autodiff<candle<cpu>>"
+        "autodiff<ndarray>"
+    );
+    assert_eq!(
+        outcome
+            .manifest
+            .reproducibility
+            .execution_contract
+            .accelerator_device_ordinal,
+        0,
+        "test-device ordinal should be bound into the execution contract"
     );
     assert_eq!(
         outcome
@@ -626,7 +631,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         root,
         gate_signer.verifier(),
         external_verifiers.clone(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     );
     assert!(
         store
@@ -639,7 +644,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         root,
         gate_signer.verifier(),
         external_verifiers.clone(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
         None,
         outcome.candidate,
     )
@@ -649,7 +654,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
         root,
         gate_signer.verifier(),
         external_verifiers.clone(),
-        CandleDevice::Cpu,
+        NdArrayDevice::Cpu,
     )
     .load_active()
     .expect("active generation should verify after restart")
@@ -691,7 +696,7 @@ fn runner_publishes_inactive_candidate_then_activation_survives_restart() {
             root,
             gate_signer.verifier(),
             external_verifiers,
-            CandleDevice::Cpu,
+            NdArrayDevice::Cpu,
         )
         .load_active()
         .is_err(),

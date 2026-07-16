@@ -2,8 +2,7 @@ use camino::Utf8PathBuf;
 
 use super::{
     CANONICAL_DIMENSIONS, CanonicalGenerationError, GenerationManifestContract,
-    RelationModelSources, RepresentationError, derive_representations, validate_and_sort_anchors,
-    validate_strength_control,
+    RelationModelSources, validate_and_sort_anchors, validate_strength_control,
 };
 use crate::salt::{
     identity::{ArtifactOrdinal, GenerationRowId},
@@ -11,8 +10,36 @@ use crate::salt::{
     policy::{CoincidentGate, PolicyEvidence, resolve},
     projector::CoordinateSupportRow,
     relation::RelationPolicy,
+    representation::{
+        CanonicalEmbedding, PROJECTOR_DIMENSIONS, RepresentationError, canonical_corpus_hash,
+        projector_corpus_hash,
+    },
     strength::RelationStrength,
 };
+
+fn derive_representations(
+    rows: &[[f32; CANONICAL_DIMENSIONS]],
+) -> Result<
+    (
+        crate::salt::ContentHash,
+        crate::salt::ContentHash,
+        Box<[f32]>,
+    ),
+    RepresentationError,
+> {
+    let mut projector = Vec::with_capacity(rows.len() * PROJECTOR_DIMENSIONS);
+    for row in rows {
+        let embedding = CanonicalEmbedding::new(row)?;
+        let mut prefix = [0.0; PROJECTOR_DIMENSIONS];
+        let _normalization = embedding.normalize_prefix(&mut prefix);
+        projector.extend_from_slice(&prefix);
+    }
+    Ok((
+        canonical_corpus_hash(rows.as_flattened()),
+        projector_corpus_hash(&projector),
+        projector.into_boxed_slice(),
+    ))
+}
 
 #[test]
 fn canonical_suffix_is_validated_and_bound_without_entering_the_projector_prefix() {

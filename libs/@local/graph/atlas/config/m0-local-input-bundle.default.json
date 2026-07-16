@@ -3,19 +3,19 @@
   "manifest": {
     "embedding": {
       "model": "openai:text-embedding-3-large:3072:f32",
-      "producerContractHash": "0000000000000000000000000000000000000000000000000000000000000000"
+      "producerContractHash": "f1e6a52d6b5d907425a87975884b55633784a7db71de5ff57277f9aac9a9681e"
     },
     "relations": {
-      "relationCardCorpusHash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "annotationCorpusHash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "annotationPromptFamilyVersion": "relation-policy-v1",
-      "annotationVoteSchedule": "3x-independent",
-      "reviewedHoldoutHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "relationCardCorpusHash": "10a8547241d360b896c90d02e3d5e768dfba1436109676d0ad59e9f2ac418400",
+      "annotationCorpusHash": "4a0d60696a64252b9d6343a02e2b3c1a72bd3980999676e34fa367498f3b6ac5",
+      "annotationPromptFamilyVersion": "mock-non-attesting-v1",
+      "annotationVoteSchedule": "mock-non-attesting-v1",
+      "reviewedHoldoutHash": "1aba66f8afbfc41e1ab083fc0eeb5edcdc6a8558a21ff369ba61c057874852da",
       "policyPrecedenceVersion": "relation-policy-v1",
       "classifierVersion": "diagonal-shrinkage-v1",
       "classPrior": null,
-      "applicabilityMethodVersion": "mahalanobis-v1",
-      "applicabilityConfigHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "applicabilityMethodVersion": "mock-non-attesting-v1",
+      "applicabilityConfigHash": "f6265538860e0c7c23ca117869ed5a040065ded48ac4e921602f785b746e7dfb",
       "classifierOodEdgeVolumeFraction": 0.0,
       "reviewedEdgeVolumeFraction": 0.0
     },
@@ -23,7 +23,7 @@
       "authorizationAdapterVersion": "m0-local-authorization-v1",
       "wireVersions": [1],
       "styleVersion": "m0-local-style-v1",
-      "canvasCompanionVersion": "m0-local-companion-v1",
+      "canvasCompanionVersion": "mock-non-attesting-v1",
       "shaderContractVersion": "m0-local-shader-v1"
     }
   },
@@ -35,21 +35,5 @@
     "path": "relation-classifier.salt",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
-  "strengthHead": null,
-  "relationPolicyReport": {
-    "path": "relation-policy-report.json",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
-  "securityApprovalReport": {
-    "path": "security-approval-report.json",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
-  "companion": {
-    "path": "atlas-canvas-companion.bin",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
-  "companionCompatibilityReport": {
-    "path": "companion-compatibility-report.json",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
-  }
+  "strengthHead": null
 }

@@ -4,14 +4,15 @@ use core::{error::Error, fmt, num::NonZeroUsize};
 
 use camino::Utf8Path;
 
-use super::quality_evaluation::{LocalConditionQualityEvaluator, LocalPersistenceQualityEvaluator};
+use super::quality_evaluation::LocalPersistenceQualityEvaluator;
 use crate::salt::{
     ContentHash,
     salt_fit_boundary::{
         AttractionConfig, CanonicalGenerationConfig, CanonicalMaterializationConfig,
-        ConditionDomain, ConditionMeasurementConfig, ConditionQualityPolicy, CoordinateBounds,
-        GradientBudget, HardNegativeConfig, ImportanceConfig, LandmarkConfig, LandmarkFitConfig,
-        LossWeights, MergeTreeConfig, PersistenceGatePolicy, Probability, ProjectorBatchPlanConfig,
+        ConditionDomain, ConditionMeasurementConfig, ConditionQualityEvaluator,
+        ConditionQualityPolicy, CoordinateBounds, GradientBudget, HardNegativeConfig,
+        ImportanceConfig, LandmarkConfig, LandmarkFitConfig, LossWeights, MergeTreeConfig,
+        PROJECTOR_DIMENSIONS, PersistenceGatePolicy, Probability, ProjectorBatchPlanConfig,
         ProjectorConfig, ProjectorLossConfig, ProjectorOptimizerConfig, ProtectionConfig,
         RasterConfig, RegionConfig, RelationEnergy, SemanticAffinity, SemanticGraphConfig,
         SupportEnergy, USearchConfig,
@@ -21,6 +22,9 @@ use crate::salt::{
 const CONDITIONS: [f32; 5] = [0.0, 0.25, 0.5, 0.75, 1.0];
 const GRID_DEPTHS: [u8; 4] = [4, 8, 12, 16];
 const PERSISTENCE_THRESHOLDS: [f64; 4] = [0.01, 0.025, 0.05, 0.1];
+const ANN_AUDIT_COMPONENT_BUDGET: usize = 16_000_000_000;
+const MINIMUM_ANN_AUDIT_ROWS: usize = 32;
+const MAXIMUM_ANN_AUDIT_ROWS: usize = 1_000;
 
 #[derive(Debug)]
 pub(in crate::salt_fit) struct FitProfileError(String);
@@ -43,12 +47,17 @@ pub(in crate::salt_fit) fn m0_local_profile<'config>(
     row_count: usize,
     link_count: usize,
     relation_type_count: usize,
-    condition_evaluator: &'config LocalConditionQualityEvaluator,
+    condition_evaluator: &'config dyn ConditionQualityEvaluator,
     persistence_evaluator: &'config LocalPersistenceQualityEvaluator,
 ) -> Result<CanonicalGenerationConfig<'config>, FitProfileError> {
     let semantic_graph = SemanticGraphConfig::default();
     let semantic_neighbors = semantic_graph.neighbors;
-    let audit_sample_size = nonzero(row_count.min(1_000), "ANN audit sample")?;
+    let audit_components_per_row = row_count.saturating_mul(PROJECTOR_DIMENSIONS);
+    let adaptive_audit_rows = ANN_AUDIT_COMPONENT_BUDGET
+        .checked_div(audit_components_per_row.max(1))
+        .unwrap_or(0)
+        .clamp(MINIMUM_ANN_AUDIT_ROWS, MAXIMUM_ANN_AUDIT_ROWS);
+    let audit_sample_size = nonzero(row_count.min(adaptive_audit_rows), "ANN audit sample")?;
     let landmark_count = nonzero(row_count.min(4_096), "landmark count")?;
     let landmark_neighbors = nonzero(
         landmark_count.get().saturating_sub(1).min(15),
