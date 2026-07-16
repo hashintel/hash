@@ -85,27 +85,39 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         user.metadata.recordId.entityId,
       );
 
-      const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
+      const orgMemberships = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-        ),
-      );
+      ).flatMap(({ linkEntity, rightEntity }) => {
+        const membershipLinkEntity = linkEntity[0];
 
-      const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
+        return membershipLinkEntity?.metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        )
+          ? [{ membershipLinkEntity, rightEntity }]
+          : [];
+      });
+
+      const [userBrowserPreferences] = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(
-        ({ linkEntity, rightEntity }) =>
-          linkEntity[0]?.metadata.entityTypeIds.includes(
+      ).flatMap(({ linkEntity, rightEntity }) => {
+        if (
+          !linkEntity[0]?.metadata.entityTypeIds.includes(
             systemLinkEntityTypes.has.linkEntityTypeId,
-          ) &&
-          rightEntity?.[0]?.metadata.entityTypeIds.includes(
-            systemEntityTypes.browserPluginSettings.entityTypeId,
-          ),
-      )[0]?.rightEntity?.[0];
+          )
+        ) {
+          return [];
+        }
+
+        const settingsEntity = rightEntity?.[0];
+
+        return settingsEntity?.metadata.entityTypeIds.includes(
+          systemEntityTypes.browserPluginSettings.entityTypeId,
+        )
+          ? [settingsEntity]
+          : [];
+      });
 
       let settingsEntityId: EntityId;
 
@@ -223,31 +235,33 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         });
       }
 
-      const orgs = orgLinksAndEntities.map(({ linkEntity, rightEntity }) => {
-        const org = rightEntity?.[0];
-        if (!org) {
-          /**
-           * Org entities are public – if the membership link is in the
-           * subgraph, its right (org) entity must be too. A missing org
-           * entity means the subgraph is internally inconsistent.
-           */
-          throw new Error(
-            `Invariant violation: membership link ${linkEntity[0]?.metadata.recordId.entityId} is missing its right (org) entity in the subgraph`,
+      const orgs = orgMemberships.map(
+        ({ membershipLinkEntity, rightEntity }) => {
+          const org = rightEntity?.[0];
+          if (!org) {
+            /**
+             * Org entities are public – if the membership link is in the
+             * subgraph, its right (org) entity must be too. A missing org
+             * entity means the subgraph is internally inconsistent.
+             */
+            throw new Error(
+              `Invariant violation: membership link ${membershipLinkEntity.metadata.recordId.entityId} is missing its right (org) entity in the subgraph`,
+            );
+          }
+          const orgAvatar = getAvatarForEntity(
+            subgraph,
+            org.metadata.recordId.entityId,
           );
-        }
-        const orgAvatar = getAvatarForEntity(
-          subgraph,
-          org.metadata.recordId.entityId,
-        );
-        return {
-          metadata: org.metadata,
-          properties: simplifyProperties(
-            org.properties as OrganizationProperties,
-          ),
-          avatar: orgAvatar,
-          webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
-        };
-      });
+          return {
+            metadata: org.metadata,
+            properties: simplifyProperties(
+              org.properties as OrganizationProperties,
+            ),
+            avatar: orgAvatar,
+            webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
+          };
+        },
+      );
 
       const enabledFeatureFlags =
         (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ??

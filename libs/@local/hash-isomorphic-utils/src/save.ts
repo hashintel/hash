@@ -457,13 +457,13 @@ const mapEntityToGqlBlock = (
   const blockChildEntity = getOutgoingLinkAndTargetEntities(
     entitySubgraph,
     entity.metadata.recordId.entityId,
-  ).find(
-    ({ linkEntity: linkEntityRevisions }) =>
-      linkEntityRevisions[0] &&
-      linkEntityRevisions[0].metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.hasData.linkEntityTypeId,
-      ),
-  )?.rightEntity?.[0];
+  ).find(({ linkEntity: linkEntityRevisions }) => {
+    const linkEntityRevision = linkEntityRevisions[0];
+
+    return linkEntityRevision?.metadata.entityTypeIds.includes(
+      systemLinkEntityTypes.hasData.linkEntityTypeId,
+    );
+  })?.rightEntity?.[0];
 
   if (!blockChildEntity) {
     throw new Error(

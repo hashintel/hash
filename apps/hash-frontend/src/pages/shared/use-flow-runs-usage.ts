@@ -125,13 +125,18 @@ export const useFlowRunsUsage = ({
             ),
         );
 
-        if (incurredInLinkAndEntities.length !== 1) {
+        const [incurredInLinkAndEntity] = incurredInLinkAndEntities;
+
+        if (
+          !incurredInLinkAndEntity ||
+          incurredInLinkAndEntities.length !== 1
+        ) {
           throw new Error(
             `Expected exactly one incurredIn link for Flow service usage record ${usageRecord.metadata.recordId.entityId}, got ${incurredInLinkAndEntities.length}.`,
           );
         }
 
-        const incurredInEntity = incurredInLinkAndEntities[0]!.rightEntity?.[0];
+        const incurredInEntity = incurredInLinkAndEntity.rightEntity?.[0];
 
         if (!incurredInEntity) {
           return false;

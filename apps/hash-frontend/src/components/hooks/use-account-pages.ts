@@ -70,10 +70,16 @@ export const useAccountPages = (
         latestPage.metadata.recordId.entityId,
       );
 
-      const parentLink = pageOutgoingLinks.find(({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.hasParent.linkEntityTypeId,
-        ),
+      const [parentLink] = pageOutgoingLinks.flatMap(
+        ({ linkEntity, rightEntity }) => {
+          const hasParentLinkEntity = linkEntity[0];
+
+          return hasParentLinkEntity?.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.hasParent.linkEntityTypeId,
+          )
+            ? [{ hasParentLinkEntity, rightEntity }]
+            : [];
+        },
       );
 
       const parentPage = parentLink ? parentLink.rightEntity?.[0] : null;
@@ -86,7 +92,7 @@ export const useAccountPages = (
          * surface loudly rather than silently treating the page as parentless.
          */
         throw new Error(
-          `Invariant violation: has-parent link ${parentLink.linkEntity[0]?.metadata.recordId.entityId} on page ${latestPage.metadata.recordId.entityId} is missing its right (parent page) entity in the subgraph`,
+          `Invariant violation: has-parent link ${parentLink.hasParentLinkEntity.metadata.recordId.entityId} on page ${latestPage.metadata.recordId.entityId} is missing its right (parent page) entity in the subgraph`,
         );
       }
 
