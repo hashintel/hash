@@ -72,30 +72,42 @@ export const BlockSelectDataModal: FunctionComponent<
     setBlockSubgraph(subgraph);
   }, [blockDataEntity, fetchBlockSubgraph, setBlockSubgraph]);
 
-  const existingQuery = useMemo(() => {
+  const { existingQueryLinkEntity, existingQuery } = useMemo(() => {
     if (!blockDataEntity || !blockSubgraph) {
-      return undefined;
+      return { existingQueryLinkEntity: undefined, existingQuery: undefined };
     }
 
     const existingQueries = getOutgoingLinkAndTargetEntities(
       blockSubgraph,
       blockDataEntity.metadata.recordId.entityId,
     ).flatMap(({ linkEntity: linkEntityRevisions, rightEntity }) => {
+      const linkEntity = linkEntityRevisions[0];
+
       if (
-        !linkEntityRevisions[0]?.metadata.entityTypeIds.includes(
+        !linkEntity?.metadata.entityTypeIds.includes(
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
         )
       ) {
         return [];
       }
 
-      // the target entity may be missing from the subgraph – skip the link
-      const targetEntity = rightEntity?.[0];
+      /**
+       * The query entity may live in a different web to the block (it is
+       * created in the web of whichever user configured the block), so the
+       * viewer may be able to see the link but not its target. Track the
+       * link separately from the target – whether a query already exists
+       * must be decided on the link's presence, otherwise saving would
+       * create a duplicate query entity and link.
+       */
+      const targetEntity = rightEntity?.[0] as HashEntity<Query> | undefined;
 
-      return targetEntity ? [targetEntity as HashEntity<Query>] : [];
+      return [{ linkEntity, targetEntity }];
     });
 
-    return existingQueries[0];
+    return {
+      existingQueryLinkEntity: existingQueries[0]?.linkEntity,
+      existingQuery: existingQueries[0]?.targetEntity,
+    };
   }, [blockSubgraph, blockDataEntity]);
 
   const [initialQueryEntityId, setInitialQueryEntityId] = useState<EntityId>();
@@ -145,6 +157,13 @@ export const BlockSelectDataModal: FunctionComponent<
           return;
         }
 
+        if (existingQueryLinkEntity) {
+          // the editor is not rendered in this state – guard against creating a duplicate query anyway
+          throw new Error(
+            `Cannot create a new query for block ${blockDataEntity.metadata.recordId.entityId}: its existing has-query link ${existingQueryLinkEntity.metadata.recordId.entityId} has a target which could not be resolved`,
+          );
+        }
+
         const { data: queryEntity } = await createEntity({
           data: {
             entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
@@ -183,6 +202,7 @@ export const BlockSelectDataModal: FunctionComponent<
       refetchBlockSubgraph,
       blockDataEntity,
       existingQuery,
+      existingQueryLinkEntity,
       createEntity,
       onClose,
     ],
@@ -257,25 +277,44 @@ export const BlockSelectDataModal: FunctionComponent<
             </IconButton>
           </Box>
         </Box>
-        <EntityQueryEditor
-          sx={{ marginBottom: 2 }}
-          entityTypes={entityTypeSchemas}
-          propertyTypes={propertyTypeSchemas}
+        {existingQueryLinkEntity && !existingQuery ? (
           /**
-           * This ensures the query editor is initialized with the query
-           * incase it isn't available in the first render.
+           * A query is linked to the block but its entity isn't visible to
+           * this user – offering the editor here would create a duplicate
+           * query on save.
            */
-          key={initialQueryEntityId ?? "new-query"}
-          defaultValue={
-            existingQuery
-              ? (simplifyProperties(existingQuery.properties)
-                  .query as MultiFilter)
-              : undefined
-          }
-          onSave={handleSave}
-          saveTitle={`${existingQuery ? "Update" : "Create"} query`}
-          discardTitle={existingQuery ? "Discard changes" : "Reset query"}
-        />
+          <Typography
+            sx={{
+              fontSize: 14,
+              marginBottom: 2,
+              color: ({ palette }) => palette.red[70],
+            }}
+          >
+            This block already has a query attached, but it could not be loaded
+            – you may not have permission to view it. The query cannot be edited
+            or replaced here.
+          </Typography>
+        ) : (
+          <EntityQueryEditor
+            sx={{ marginBottom: 2 }}
+            entityTypes={entityTypeSchemas}
+            propertyTypes={propertyTypeSchemas}
+            /**
+             * This ensures the query editor is initialized with the query
+             * incase it isn't available in the first render.
+             */
+            key={initialQueryEntityId ?? "new-query"}
+            defaultValue={
+              existingQuery
+                ? (simplifyProperties(existingQuery.properties)
+                    .query as MultiFilter)
+                : undefined
+            }
+            onSave={handleSave}
+            saveTitle={`${existingQuery ? "Update" : "Create"} query`}
+            discardTitle={existingQuery ? "Discard changes" : "Reset query"}
+          />
+        )}
       </Box>
     </Modal>
   );

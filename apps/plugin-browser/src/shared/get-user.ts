@@ -102,8 +102,10 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         subgraph,
         user.metadata.recordId.entityId,
       ).flatMap(({ linkEntity, rightEntity }) => {
+        const hasLinkEntity = linkEntity[0];
+
         if (
-          !linkEntity[0]?.metadata.entityTypeIds.includes(
+          !hasLinkEntity?.metadata.entityTypeIds.includes(
             systemLinkEntityTypes.has.linkEntityTypeId,
           )
         ) {
@@ -112,7 +114,21 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
         const settingsEntity = rightEntity?.[0];
 
-        return settingsEntity?.metadata.entityTypeIds.includes(
+        if (!settingsEntity) {
+          /**
+           * The query pairs each incoming has-left-entity hop with an
+           * outgoing has-right-entity hop, and the target is the user's own
+           * entity in their own web, read with their own credentials – so if
+           * the link is in the subgraph, its right entity must be too.
+           * Falling through to the create branch here would create a
+           * duplicate settings entity and link.
+           */
+          throw new Error(
+            `Invariant violation: has link ${hasLinkEntity.metadata.recordId.entityId} on user ${user.metadata.recordId.entityId} is missing its right entity in the subgraph`,
+          );
+        }
+
+        return settingsEntity.metadata.entityTypeIds.includes(
           systemEntityTypes.browserPluginSettings.entityTypeId,
         )
           ? [settingsEntity]
