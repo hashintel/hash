@@ -36,6 +36,11 @@ from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Initialise the single, app-wide status object on startup.
+
+    Args:
+        app (FastAPI): The application whose `state.status` is initialised.
+    """
     # Single, app-wide status — no session ids
     app.state.status = AppStatus()
     yield
@@ -76,7 +81,7 @@ async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec
         HTTPException: failed to initialise optimization
 
     Returns:
-        StreamingResponse: 
+        StreamingResponse: SSE stream of per-trial evaluation frames.
     """
     # Build the model + optimizer.
     try:
@@ -89,7 +94,7 @@ async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec
         )
         # Start the Petrinaut model
         optimizer.pn_model.start()
-        
+
         set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
     except Exception as exc:
         set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
@@ -117,7 +122,7 @@ async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spe
         HTTPException: failed to initialise optimization
 
     Returns:
-        StreamingResponse: 
+        StreamingResponse: SSE stream of best-so-far evaluation frames.
     """
     # Build the model + optimizer.
     try:
@@ -146,10 +151,20 @@ async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spe
 
 @app.get("/status")
 def get_status():
+    """Return the current app-wide optimization status.
+
+    Returns:
+        AppStatus: The current phase, detail, and last-updated timestamp.
+    """
     return app.state.status
 
 @app.get("/")
 async def root() -> dict:
+    """Return a welcome message for the API root.
+
+    Returns:
+        dict: A greeting payload.
+    """
     return {"message": "Welcome to Petrinaut optimization API"}
 
 

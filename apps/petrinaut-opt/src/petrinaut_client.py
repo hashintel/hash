@@ -70,6 +70,13 @@ class PetrinautModel:
         node: str = "node",
         **kwargs
     ) -> None:
+        """Configure the wrapper from a model spec (the CLI is not started here).
+
+        Args:
+            pn_spec (PetrinautModelSpec): Execution spec (model/CLI paths, metric, steps, dt, seed, ...).
+            node (str): Node.js executable used to launch the CLI. Defaults to "node".
+            **kwargs: Accepted and ignored; reserved for future options.
+        """
         # Specification params
         self.model = Path(pn_spec.model_path).resolve()
         self.cli = Path(pn_spec.cli_path).resolve()
@@ -105,16 +112,35 @@ class PetrinautModel:
         }
         
 
-    def __enter__(self) -> "PetrinautClient":
+    def __enter__(self) -> "PetrinautModel":
+        """Start the CLI subprocess and return this instance for `with` use.
+
+        Returns:
+            PetrinautModel: This started wrapper instance.
+        """
         self.start()
         return self
 
     def __exit__(self, *_args: object) -> None:
+        """Close the CLI subprocess on context-manager exit.
+
+        Args:
+            *_args (object): Exception type/value/traceback, ignored.
+        """
         self.close()
     
 
     def _build_payload(self, parameters:dict, initial_state:dict, method:str = 'run') -> Dict[str,Union[str,Dict]]:
-        
+        """Build a JSON-RPC request payload for the CLI and advance the request id.
+
+        Args:
+            parameters (dict): Petri-net parameters for this run.
+            initial_state (dict): Initial state per place; a default `SupplyScore` is injected.
+            method (str): Protocol method to invoke. Defaults to 'run'.
+
+        Returns:
+            Dict[str, Union[str, Dict]]: The request payload to send to the CLI.
+        """
         initial_state = initial_state if initial_state else dict()
         initial_state["SupplyScore"] = [self.supply_score]
         payload: dict[str, Any] = {
@@ -133,6 +159,12 @@ class PetrinautModel:
         return payload
 
     def start(self) -> None:
+        """Launch the Petrinaut CLI subprocess in stdio serve mode.
+
+        Raises:
+            FileNotFoundError: The CLI bundle or model file does not exist.
+            RuntimeError: The CLI's stderr is unavailable or it fails to signal readiness.
+        """
         if not self.cli.is_file():
             raise FileNotFoundError(
                 f"Petrinaut CLI not found at {self.cli}. Build it first."
@@ -220,9 +252,15 @@ class PetrinautModel:
         return objective
 
     def metadata(self) -> dict[str, Any]:
+        """Request the loaded model's metadata from the CLI.
+
+        Returns:
+            dict[str, Any]: The metadata result returned by the CLI.
+        """
         return self.request("metadata")
-    
+
     def close(self) -> None:
+        """Terminate the CLI subprocess and close its stdio streams if running."""
         if self._process is not None:
             if self._process.stdin is not None:
                 self._process.stdin.close()
