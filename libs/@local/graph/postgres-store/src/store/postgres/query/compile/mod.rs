@@ -19,7 +19,9 @@ use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::knowledge::Entity;
 
-use super::ast::{ColumnReference, JoinType, TableName, TableReference};
+use super::ast::{
+    ColumnName, ColumnReference, JoinType, Materialization, TableName, TableReference,
+};
 use crate::store::postgres::query::{
     Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
     GroupByClause, GroupingElement, Identifier, NonEmptyVec, NullsOrder, OrderByClause,
@@ -82,12 +84,88 @@ pub enum Distinctness {
     Distinct,
 }
 
-/// A join emitted into the statement, mirrored so the compiler can reuse joins and allocate
-/// fresh alias numbers without reading the statement tree back.
+/// How [`SelectCompiler::compile`] lays out the statement.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum StatementShape {
+    /// One flat `SELECT` over all joins.
+    #[default]
+    SinglePass,
+    /// Filters a narrow key set inside a `MATERIALIZED` CTE, sorts and limits it outside the
+    /// fence, then hydrates the wide projection only for the surviving rows.
+    ///
+    /// The materialization fences the planner: the key query is planned without the outer
+    /// statement's ordering demand, which prevents ordered-pipeline bets built on unreliable
+    /// row estimates. Falls back to [`SinglePass`] for every [`ShapeFallback`] reason. The
+    /// fallback is logged, since it silently loses the shape the caller opted into.
+    ///
+    /// Callers opting in vouch for two preconditions the compiler cannot check. `INNER`
+    /// hydration joins must always match their key row (foreign-key-total joins do), and the
+    /// key query must produce at most one row per `DISTINCT ON` group. Both hold for the
+    /// entity read path, whose distinct key pins all row-multiplying columns. Violating
+    /// either returns short or shifted pages compared to [`SinglePass`].
+    ///
+    /// [`SinglePass`]: Self::SinglePass
+    FetchKeysThenHydrate,
+}
+
+/// Why [`StatementShape::FetchKeysThenHydrate`] degraded to a single-pass statement.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ShapeFallback {
+    /// Without a limit the planner never bets on an ordered pipeline, so there is nothing to
+    /// fence off.
+    Unlimited,
+    /// Without sort keys there is no ordering demand to fence off.
+    Unsorted,
+    /// An asterisk select cannot be split into key and hydration columns.
+    AsteriskSelect,
+    /// A subquery expression may reference tables invisibly to the classifier.
+    OpaqueExpression,
+    /// A fanning-out join inside the key query would eat into `LIMIT n` with duplicates.
+    ToManyKeyJoin,
+    /// A right or full outer hydration join would generate rows the key query never saw,
+    /// which the missing `WHERE` clause of the hydration statement cannot filter out again.
+    GeneratingHydrationJoin,
+    /// The statement reads nothing from the key query, leaving the CTE without columns.
+    NoKeyColumns,
+}
+
+/// A join collected during compilation. The `FROM` tree is assembled from these records in
+/// [`SelectCompiler::compile`], so the compiler can reuse joins and allocate fresh alias
+/// numbers without reading a statement tree back.
 struct CompiledJoin {
     table: Table,
     alias: Alias,
+    join_type: JoinType,
+    source: JoinSource,
     conditions: Vec<Expression>,
+    /// Whether any relation using this join can fan out the driving rows.
+    ///
+    /// Unlike [`CompilerArtifacts::has_to_many_join`], which is tracked per relation, this
+    /// marks the individual joins so they can be classified separately.
+    to_many: bool,
+}
+
+impl CompiledJoin {
+    /// The `FROM` item this join scans, aliased as [`table`](Self::table) at
+    /// [`alias`](Self::alias).
+    fn source_item(&self) -> FromItem<'static> {
+        let alias = self.table.aliased_name(self.alias);
+        match &self.source {
+            JoinSource::Table => FromItem::table(self.table).alias(alias).build(),
+            JoinSource::Subquery(statement) => FromItem::subquery((**statement).clone())
+                .alias(alias)
+                .build(),
+        }
+    }
+}
+
+/// What a [`CompiledJoin`] scans.
+enum JoinSource {
+    /// The aliased [`table`](CompiledJoin::table) itself.
+    Table,
+    /// A derived table standing in for the plain table. The embeddings distance filter swaps
+    /// its join over to the aggregated distance subquery.
+    Subquery(Box<SelectStatement>),
 }
 
 /// One keyset-pagination sort key.
@@ -119,13 +197,134 @@ impl From<NullOrdering> for NullsOrder {
     }
 }
 
+/// Collects the table names referenced by `expression` into `tables`.
+///
+/// Sets `opaque` when the expression contains a subquery, whose references stay invisible to
+/// [`Expression::visit`].
+fn collect_referenced_tables(
+    expression: &Expression,
+    tables: &mut HashSet<TableName<'static>>,
+    opaque: &mut bool,
+) {
+    expression.visit(&mut |node| {
+        if let Expression::ColumnReference(column) = node
+            && let Some(correlation) = &column.correlation
+        {
+            tables.insert(correlation.name.clone());
+        }
+        if matches!(node, Expression::Select(_)) {
+            *opaque = true;
+        }
+    });
+}
+
+/// Collects the columns `expression` reads from any of the `key_tables`, deduplicated and in
+/// first-seen order.
+///
+/// Sets `opaque` when the expression contains a subquery, whose references stay invisible to
+/// [`Expression::visit`].
+fn collect_key_columns(
+    expression: &Expression,
+    key_tables: &HashSet<TableName<'static>>,
+    columns: &mut Vec<(TableName<'static>, ColumnName<'static>)>,
+    seen: &mut HashSet<(TableName<'static>, ColumnName<'static>)>,
+    opaque: &mut bool,
+) {
+    expression.visit(&mut |node| {
+        if let Expression::ColumnReference(column) = node
+            && let Some(correlation) = &column.correlation
+            && key_tables.contains(&correlation.name)
+        {
+            let key = (correlation.name.clone(), column.name.clone());
+            if seen.insert(key.clone()) {
+                columns.push(key);
+            }
+        }
+        if matches!(node, Expression::Select(_)) {
+            *opaque = true;
+        }
+    });
+}
+
+/// The join split for [`StatementShape::FetchKeysThenHydrate`].
+struct KeyQueryPartition<'j> {
+    /// The joins the key query filters and sorts through, in creation order.
+    key_joins: Vec<&'j CompiledJoin>,
+    /// The joins the hydration statement re-applies to the page, in creation order.
+    hydrated_joins: Vec<&'j CompiledJoin>,
+    /// The aliased names of the base table and every key-query join.
+    tables: HashSet<TableName<'static>>,
+}
+
+/// Rewrites references to key-query tables into references to the key query's output columns.
+struct KeyColumnRewriter<'r> {
+    tables: &'r HashSet<TableName<'static>>,
+    /// Output column name per key-query source column.
+    outputs: HashMap<(TableName<'static>, ColumnName<'static>), ColumnName<'static>>,
+}
+
+impl<'r> KeyColumnRewriter<'r> {
+    /// Assigns each key column its natural name. Every column name shared between source
+    /// tables gets prefixed with its aliased table name instead.
+    fn new(
+        tables: &'r HashSet<TableName<'static>>,
+        key_columns: &[(TableName<'static>, ColumnName<'static>)],
+    ) -> Self {
+        let mut name_users = HashMap::<&ColumnName<'static>, usize>::new();
+        for (_, column) in key_columns {
+            *name_users.entry(column).or_default() += 1;
+        }
+        Self {
+            tables,
+            outputs: key_columns
+                .iter()
+                .map(|(table, column)| {
+                    let output = if name_users.get(column).is_some_and(|users| *users > 1) {
+                        ColumnName::from(format!("{}_{}", table.as_str(), column.as_str()))
+                    } else {
+                        column.clone()
+                    };
+                    ((table.clone(), column.clone()), output)
+                })
+                .collect(),
+        }
+    }
+
+    /// The output column name assigned to a key-query source column.
+    fn output(
+        &self,
+        table: &TableName<'static>,
+        column: &ColumnName<'static>,
+    ) -> &ColumnName<'static> {
+        self.outputs
+            .get(&(table.clone(), column.clone()))
+            .expect("every key-table column is collected before it is rewritten")
+    }
+
+    /// Replaces every reference to a key-query table with a reference to the corresponding
+    /// output column, qualified with `target` (or bare when `target` is [`None`]).
+    fn rewrite(&self, expression: &Expression, target: Option<&TableName<'static>>) -> Expression {
+        let mut expression = expression.clone();
+        expression.visit_mut(&mut |node| {
+            if let Expression::ColumnReference(column) = node
+                && let Some(correlation) = &column.correlation
+                && self.tables.contains(&correlation.name)
+            {
+                column.name = self.output(&correlation.name, &column.name).clone();
+                column.correlation = target.cloned().map(TableReference::from);
+            }
+        });
+        expression
+    }
+}
+
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
+    shape: StatementShape,
     distinct_on: Vec<Expression>,
     selects: Vec<SelectExpression>,
-    from: Option<FromItem<'static>>,
     with: Option<WithClause>,
     conditions: Vec<Expression>,
     cursor: Vec<CursorKey>,
@@ -183,13 +382,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
+            shape: StatementShape::default(),
             distinct_on: Vec::new(),
             selects: Vec::new(),
-            from: Some(
-                FromItem::table(R::base_table())
-                    .alias(R::base_table().aliased_name(Alias::default()))
-                    .build(),
-            ),
             with: None,
             conditions: Vec::new(),
             cursor: Vec::new(),
@@ -231,6 +426,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     pub const fn set_limit(&mut self, limit: usize) {
         self.limit = Some(limit);
+    }
+
+    /// Requests a statement layout, see [`StatementShape`] for the semantics and the
+    /// preconditions callers vouch for.
+    pub const fn set_statement_shape(&mut self, shape: StatementShape) {
+        self.shape = shape;
     }
 
     fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
@@ -490,6 +691,39 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
     #[instrument(level = "info", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
+        let statement = match self.shape {
+            StatementShape::SinglePass => self.single_pass_statement(),
+            StatementShape::FetchKeysThenHydrate => {
+                match self.fetch_keys_then_hydrate_statement() {
+                    Ok(statement) => statement,
+                    Err(fallback) => {
+                        // An unpaged statement simply has nothing to fence. Every other reason
+                        // silently loses the shape the caller opted into and deserves a warning.
+                        match fallback {
+                            ShapeFallback::Unlimited | ShapeFallback::Unsorted => {
+                                tracing::debug!(?fallback, "compiling a single-pass statement");
+                            }
+                            ShapeFallback::AsteriskSelect
+                            | ShapeFallback::OpaqueExpression
+                            | ShapeFallback::ToManyKeyJoin
+                            | ShapeFallback::GeneratingHydrationJoin
+                            | ShapeFallback::NoKeyColumns => {
+                                tracing::warn!(
+                                    ?fallback,
+                                    "falling back to a single-pass statement"
+                                );
+                            }
+                        }
+                        self.single_pass_statement()
+                    }
+                }
+            }
+        };
+        (statement.transpile_to_string(), &self.artifacts.parameters)
+    }
+
+    /// Lays out the statement as one flat `SELECT` over all joins.
+    fn single_pass_statement(&self) -> SelectStatement {
         let simple = SimpleSelect::builder()
             .maybe_quantifier(
                 NonEmptyVec::try_from(self.distinct_on.clone())
@@ -497,24 +731,329 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .map(SelectQuantifier::DistinctOn),
             )
             .selects(self.selects.clone())
-            .maybe_from(self.from.clone())
+            .from(Self::joined_table(&self.artifacts.joins))
             .maybe_where_clause(self.where_condition())
             .build();
 
-        (
-            SelectStatement::builder()
-                .maybe_with(self.with.clone())
-                .select_clause(simple)
-                .maybe_order_by(
-                    NonEmptyVec::try_from(self.sort_by.clone())
-                        .ok()
-                        .map(|sort_by| OrderByClause::builder().sort_by(sort_by).build()),
+        SelectStatement::builder()
+            .maybe_with(self.with.clone())
+            .select_clause(simple)
+            .maybe_order_by(
+                NonEmptyVec::try_from(self.sort_by.clone())
+                    .ok()
+                    .map(|sort_by| OrderByClause::builder().sort_by(sort_by).build()),
+            )
+            .maybe_limit(self.limit)
+            .build()
+    }
+
+    /// Lays out the statement as [`StatementShape::FetchKeysThenHydrate`], or reports why the
+    /// statement does not qualify.
+    fn fetch_keys_then_hydrate_statement(&self) -> Result<SelectStatement, ShapeFallback> {
+        let Some(limit) = self.limit else {
+            return Err(ShapeFallback::Unlimited);
+        };
+        if self.sort_by.is_empty() {
+            return Err(ShapeFallback::Unsorted);
+        }
+
+        let partition = self.partition_key_query_joins()?;
+        let key_columns = self.collect_key_query_columns(&partition)?;
+        let rewriter = KeyColumnRewriter::new(&partition.tables, &key_columns);
+        let limited = TableName::from("limited");
+
+        let mut common_table_expressions: Vec<CommonTableExpression> = self
+            .with
+            .as_ref()
+            .map(|with| with.common_table_expressions.to_vec())
+            .unwrap_or_default();
+        debug_assert!(
+            common_table_expressions
+                .iter()
+                .all(|cte| cte.name.as_str() != "roots" && cte.name.as_str() != "limited"),
+            "carried CTE names must not collide with the fence CTEs"
+        );
+        common_table_expressions.push(self.key_query_cte(&partition, &key_columns, &rewriter));
+        common_table_expressions.push(self.page_cte(&rewriter, limit));
+
+        Ok(SelectStatement::builder()
+            .with(
+                WithClause::builder()
+                    .recursive(self.with.as_ref().is_some_and(|with| with.recursive))
+                    .common_table_expressions(
+                        NonEmptyVec::try_from(common_table_expressions)
+                            .expect("the key and page CTEs were pushed above"),
+                    )
+                    .build(),
+            )
+            .select_clause(self.hydration_select(&partition, &rewriter, &limited))
+            .order_by(
+                OrderByClause::builder()
+                    .sort_by(self.rewritten_sort(&rewriter, Some(&limited)))
+                    .build(),
+            )
+            .limit(limit)
+            .build())
+    }
+
+    /// Splits the collected joins into the key query's and the hydration statement's share.
+    /// The key query takes everything referenced by a filter, the cursor, or a sort key,
+    /// closed transitively over the join conditions (a join's `ON` clause only references
+    /// earlier joins, so one reverse pass suffices).
+    fn partition_key_query_joins(&self) -> Result<KeyQueryPartition<'_>, ShapeFallback> {
+        let mut required = HashSet::new();
+        let mut opaque = false;
+        for expression in self
+            .conditions
+            .iter()
+            .chain(
+                self.cursor
+                    .iter()
+                    .flat_map(|key| once(&key.expression).chain(key.value.as_ref())),
+            )
+            .chain(self.sort_by.iter().map(|sort| &sort.expression))
+        {
+            collect_referenced_tables(expression, &mut required, &mut opaque);
+        }
+
+        let mut in_key_query = vec![false; self.artifacts.joins.len()];
+        for (slot, join) in in_key_query.iter_mut().zip(&self.artifacts.joins).rev() {
+            if required.contains(&join.table.aliased_name(join.alias)) {
+                *slot = true;
+                for condition in &join.conditions {
+                    collect_referenced_tables(condition, &mut required, &mut opaque);
+                }
+            }
+        }
+        if opaque {
+            return Err(ShapeFallback::OpaqueExpression);
+        }
+
+        let mut key_joins = Vec::new();
+        let mut hydrated_joins = Vec::new();
+        for (join, in_key_query) in self.artifacts.joins.iter().zip(&in_key_query) {
+            if *in_key_query {
+                key_joins.push(join);
+            } else {
+                hydrated_joins.push(join);
+            }
+        }
+        if key_joins.iter().any(|join| join.to_many) {
+            return Err(ShapeFallback::ToManyKeyJoin);
+        }
+        if hydrated_joins
+            .iter()
+            .any(|join| matches!(join.join_type, JoinType::RightOuter | JoinType::FullOuter))
+        {
+            return Err(ShapeFallback::GeneratingHydrationJoin);
+        }
+
+        let tables = once(R::base_table().aliased_name(Alias::default()))
+            .chain(
+                key_joins
+                    .iter()
+                    .map(|join| join.table.aliased_name(join.alias)),
+            )
+            .collect();
+
+        Ok(KeyQueryPartition {
+            key_joins,
+            hydrated_joins,
+            tables,
+        })
+    }
+
+    /// Collects every column the hydration statement reads from a key-query table, in
+    /// first-seen order. Each becomes an output column of the key query.
+    fn collect_key_query_columns(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+    ) -> Result<Vec<(TableName<'static>, ColumnName<'static>)>, ShapeFallback> {
+        let mut key_columns = Vec::new();
+        let mut seen = HashSet::new();
+        let mut opaque = false;
+        for expression in self
+            .sort_by
+            .iter()
+            .map(|sort| &sort.expression)
+            .chain(self.distinct_on.iter())
+            .chain(self.selects.iter().filter_map(|select| match select {
+                SelectExpression::Expression { expression, .. } => Some(expression),
+                SelectExpression::Asterisk(_) => None,
+            }))
+            .chain(
+                partition
+                    .hydrated_joins
+                    .iter()
+                    .flat_map(|join| join.conditions.iter()),
+            )
+        {
+            collect_key_columns(
+                expression,
+                &partition.tables,
+                &mut key_columns,
+                &mut seen,
+                &mut opaque,
+            );
+        }
+        if opaque {
+            return Err(ShapeFallback::OpaqueExpression);
+        }
+        if self
+            .selects
+            .iter()
+            .any(|select| matches!(select, SelectExpression::Asterisk(_)))
+        {
+            return Err(ShapeFallback::AsteriskSelect);
+        }
+        if key_columns.is_empty() {
+            return Err(ShapeFallback::NoKeyColumns);
+        }
+        Ok(key_columns)
+    }
+
+    /// Builds the `roots` CTE: the key-query columns under the full filter and cursor
+    /// conditions, `MATERIALIZED` to fence its plan from the outer ordering demand.
+    fn key_query_cte(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+        key_columns: &[(TableName<'static>, ColumnName<'static>)],
+        rewriter: &KeyColumnRewriter<'_>,
+    ) -> CommonTableExpression {
+        CommonTableExpression::builder()
+            .name("roots")
+            .statement(
+                SimpleSelect::builder()
+                    .selects(
+                        key_columns
+                            .iter()
+                            .map(|(table, column)| {
+                                let output = rewriter.output(table, column);
+                                SelectExpression::Expression {
+                                    expression: Expression::ColumnReference(ColumnReference {
+                                        correlation: Some(TableReference::from(table.clone())),
+                                        name: column.clone(),
+                                    }),
+                                    output_name: (output != column)
+                                        .then(|| Identifier::from(output.as_str().to_owned())),
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .from(Self::joined_table(partition.key_joins.iter().copied()))
+                    .maybe_where_clause(self.where_condition()),
+            )
+            .materialization(Materialization::Materialized)
+            .build()
+    }
+
+    /// Builds the `limited` CTE: the sorted and limited page of `roots`.
+    fn page_cte(&self, rewriter: &KeyColumnRewriter<'_>, limit: usize) -> CommonTableExpression {
+        CommonTableExpression::builder()
+            .name("limited")
+            .statement(
+                SelectStatement::builder()
+                    .select_clause(
+                        SimpleSelect::builder()
+                            .selects(vec![SelectExpression::Asterisk(None)])
+                            .from(FromItem::table(TableName::from("roots")).build()),
+                    )
+                    .order_by(
+                        OrderByClause::builder()
+                            .sort_by(self.rewritten_sort(rewriter, None))
+                            .build(),
+                    )
+                    .limit(limit)
+                    .build(),
+            )
+            .build()
+    }
+
+    /// Builds the hydration `SELECT`: the original projection and `DISTINCT ON` over
+    /// `limited` plus the hydration joins, with all key-query references rewritten.
+    fn hydration_select(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+        rewriter: &KeyColumnRewriter<'_>,
+        limited: &TableName<'static>,
+    ) -> SimpleSelect {
+        let mut from = FromItem::table(limited.clone()).build();
+        for join in &partition.hydrated_joins {
+            from = from
+                .join(join.join_type, join.source_item())
+                .on(join
+                    .conditions
+                    .iter()
+                    .map(|condition| rewriter.rewrite(condition, Some(limited)))
+                    .collect::<Vec<_>>())
+                .build();
+        }
+
+        SimpleSelect::builder()
+            .maybe_quantifier(
+                NonEmptyVec::try_from(
+                    self.distinct_on
+                        .iter()
+                        .map(|expression| rewriter.rewrite(expression, Some(limited)))
+                        .collect::<Vec<_>>(),
                 )
-                .maybe_limit(self.limit)
-                .build()
-                .transpile_to_string(),
-            &self.artifacts.parameters,
+                .ok()
+                .map(SelectQuantifier::DistinctOn),
+            )
+            .selects(
+                self.selects
+                    .iter()
+                    .map(|select| match select {
+                        SelectExpression::Expression {
+                            expression,
+                            output_name,
+                        } => SelectExpression::Expression {
+                            expression: rewriter.rewrite(expression, Some(limited)),
+                            output_name: output_name.clone(),
+                        },
+                        SelectExpression::Asterisk(_) => {
+                            unreachable!(
+                                "asterisk selects were ruled out while collecting the key columns"
+                            )
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .from(from)
+            .build()
+    }
+
+    /// The statement's sort keys with their key-query references rewritten.
+    fn rewritten_sort(
+        &self,
+        rewriter: &KeyColumnRewriter<'_>,
+        target: Option<&TableName<'static>>,
+    ) -> NonEmptyVec<SortBy> {
+        NonEmptyVec::try_from(
+            self.sort_by
+                .iter()
+                .map(|sort| SortBy {
+                    expression: rewriter.rewrite(&sort.expression, target),
+                    direction: sort.direction,
+                    nulls: sort.nulls,
+                })
+                .collect::<Vec<_>>(),
         )
+        .expect("the sort keys were checked to be non-empty")
+    }
+
+    /// Assembles the `FROM` tree from the base table and the given joins.
+    fn joined_table<'j>(joins: impl IntoIterator<Item = &'j CompiledJoin>) -> FromItem<'static> {
+        let mut from = FromItem::table(R::base_table())
+            .alias(R::base_table().aliased_name(Alias::default()))
+            .build();
+        for join in joins {
+            from = from
+                .join(join.join_type, join.source_item())
+                .on(join.conditions.clone())
+                .build();
+        }
+        from
     }
 
     /// Combines the collected filter conditions and the keyset-pagination continuation into the
@@ -760,11 +1299,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .aliased(path_alias),
                     );
 
-                    if let Some(FromItem::JoinOn {
-                        right: last_from, ..
-                    }) = self.from.as_mut()
-                        && let Some(last_join) = self.artifacts.joins.last()
-                    {
+                    if let Some(last_join) = self.artifacts.joins.last_mut() {
                         // The rewrite below replaces the topmost join with the distance
                         // subquery, which is only sound when that join is the embeddings join
                         // resolved for this path. A reused embeddings join buried under later
@@ -823,7 +1358,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        **last_from = FromItem::subquery(
+                        last_join.source = JoinSource::Subquery(Box::new(SelectStatement::from(
                             SimpleSelect::builder()
                                 .selects(
                                     select_columns
@@ -863,9 +1398,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         ),
                                     ),
                                 ),
-                        )
-                        .alias(last_join.table.aliased_name(last_join.alias))
-                        .build();
+                        )));
+                        // The grouped subquery emits exactly one row per join key, so the
+                        // original relation's fan-out no longer applies.
+                        last_join.to_many = false;
                         self.artifacts.has_embeddings_filter = true;
                     }
 
@@ -1526,6 +2062,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Joining the tables attempts to deduplicate join operations. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
     ///
+    /// Every condition a join is created with references only the join itself and earlier
+    /// joins, which [`Self::partition_key_query_joins`] relies on for its single reverse pass.
+    ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
     fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
@@ -1563,10 +2102,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 };
                 let mut conditions = foreign_key_reference.conditions(current_alias, join_alias);
 
-                let mut found = false;
+                let mut found = None;
                 let mut max_number = 0;
 
-                for existing in self.artifacts.joins.iter().rev() {
+                for (existing_index, existing) in self.artifacts.joins.iter().enumerate().rev() {
                     // Check for exact match to reuse existing join
                     if existing.table.name() == join_table.name() && existing.alias == join_alias {
                         // We only need to check the join conditions, not the join type or
@@ -1576,7 +2115,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             // We already have a join statement for this column, so we can reuse
                             // it.
                             current_alias = existing.alias;
-                            found = true;
+                            found = Some(existing_index);
                             break;
                         }
                     }
@@ -1590,8 +2129,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     }
                 }
 
-                // If we didn't find an exact match but found alias conflicts, update the alias
-                if !found {
+                if let Some(existing_index) = found {
+                    // A fanning-out relation taints the reused join as well.
+                    if relation.is_to_many() {
+                        self.artifacts
+                            .joins
+                            .get_mut(existing_index)
+                            .expect("the reuse index originates from enumerating the joins")
+                            .to_many = true;
+                    }
+                } else {
                     if max_number > 0 {
                         join_alias.number = max_number;
                         // Recalculate conditions with the updated alias
@@ -1605,24 +2152,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         conditions.extend(hook(self, join_alias));
                     }
 
-                    self.from = Some(
-                        self.from
-                            .take()
-                            .expect(
-                                "Tried to join on a `SELECT` statement without a `FROM` statement",
-                            )
-                            .join(
-                                join_type,
-                                FromItem::table(join_table)
-                                    .alias(join_table.aliased_name(join_alias)),
-                            )
-                            .on(conditions.clone())
-                            .build(),
-                    );
                     self.artifacts.joins.push(CompiledJoin {
                         table: join_table,
                         alias: join_alias,
+                        join_type,
+                        source: JoinSource::Table,
                         conditions,
+                        to_many: relation.is_to_many(),
                     });
                 }
             }
