@@ -207,6 +207,12 @@ const calculateSaveActions = (
   // Block entities are wrappers which point to (a) a component and (b) a child entity
   // First, gather the ids of the blocks as they appear in the db-persisted block collection
   // along with the link's id and position, to be able to (a) remove links and (b) assign new positions relative any retained ones
+  const fetchedBlockEntityIds = new Set<EntityId>(
+    blocksAndLinks.map(
+      ({ blockEntity }) => blockEntity.metadata.recordId.entityId,
+    ),
+  );
+
   const beforeBlockDraftIds: BeforeBlockDraftIdAndLink[] = [];
   for (const { blockEntity, contentLinkEntity } of blocksAndLinks) {
     const draftEntity = getDraftEntityByEntityId(
@@ -374,6 +380,24 @@ const calculateSaveActions = (
         });
       }
     } else {
+      /**
+       * The block is in the document but not in the persisted block list.
+       * If it has a persisted entityId it is not a locally-created block
+       * awaiting creation (those only receive an entityId once saved): it
+       * came from an earlier fetch of the collection, and its absence from
+       * the latest fetch means it can no longer be resolved – e.g. it was
+       * archived or hidden from the requester after the document was
+       * loaded. Inserting it as a new block would duplicate it in the
+       * collection, so fail the save instead: a failed save is
+       * recoverable, a corrupted collection is not.
+       */
+      const persistedEntityId = draftEntity.metadata.recordId.entityId;
+      if (persistedEntityId && !fetchedBlockEntityIds.has(persistedEntityId)) {
+        throw new Error(
+          `Invariant violation: block entity ${persistedEntityId} is in the document but was not among the blocks fetched for the collection – refusing to insert it again`,
+        );
+      }
+
       // We have a new block – insert it
       const blockChildEntityId =
         newChildEntityForBlock?.metadata.recordId.entityId ??
@@ -563,18 +587,21 @@ export const save = async ({
             const blockEntity = rightEntityRevisions?.[0];
 
             /**
-             * A content link whose block cannot be resolved must fail the
-             * save: `calculateSaveActions` treats blocks that are in the
-             * ProseMirror document but absent from this list as new, so
-             * silently skipping the link would emit a duplicate
-             * `insertBlock` action for a block that already exists in the
-             * collection. A failed save is recoverable; a corrupted
-             * collection is not.
+             * The content link is present but no revision of the block it
+             * points at is visible in the queried interval, e.g. because
+             * the block has been archived or is not visible to the
+             * requester. Skip the link, mirroring the read path
+             * (`getBlockCollectionContents`): a block that was never
+             * visible never entered the document, and
+             * `calculateSaveActions` ignores blocks that are absent from
+             * both the document and this list, so the save proceeds and
+             * the link is left untouched. If the block IS in the document
+             * (it became unresolvable only after the document was loaded),
+             * `calculateSaveActions` fails the save rather than inserting
+             * a duplicate of it.
              */
             if (!blockEntity) {
-              throw new Error(
-                `Invariant violation: could not get block entity ${contentLinkEntity.linkData.rightEntityId} linked to by content link ${contentLinkEntity.metadata.recordId.entityId} in the block collection subgraph`,
-              );
+              return [];
             }
 
             return blockEntity.metadata.entityTypeIds.includes(
