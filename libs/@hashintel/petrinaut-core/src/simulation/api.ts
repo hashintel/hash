@@ -1,6 +1,6 @@
 import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { PetrinautExtensionSettings } from "../extensions";
-import type { HirArtifacts } from "../hir-runtime";
+import type { HirArtifacts, HirParameterValues } from "../hir-runtime";
 import type { EventStream } from "../instance";
 import type { ReadableStore } from "../store";
 import type { Color, Place, SDCPN, TokenRecord } from "../types/sdcpn";
@@ -129,6 +129,13 @@ export type SimulationFrameRawView = {
   placeIndexById: ReadonlyMap<string, number>;
   /** Resolves interned `string` token attributes. */
   stringPool?: { get(id: number): string };
+  /**
+   * Resolved net parameter values for the run this frame belongs to, bound to
+   * ambient `parameters.<name>` reads in expression metrics. Monte-Carlo runs
+   * can override parameters per run, so this is frame-source-specific; readers
+   * that omit it fall back to the evaluator's construction-time values.
+   */
+  parameterValues?: HirParameterValues;
 };
 
 export interface SimulationFrameReader {

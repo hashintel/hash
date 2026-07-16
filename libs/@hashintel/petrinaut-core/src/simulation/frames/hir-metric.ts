@@ -48,6 +48,23 @@ export function createHirMetricEvaluator(args: {
     },
   };
 
+  // Net parameters are read through this stable object (bound as `__params`).
+  // Monte-Carlo runs can override parameters per run, so its contents are
+  // refreshed from each frame's own resolved values before evaluation; frame
+  // sources that carry none keep the evaluator's construction-time defaults.
+  const boundParameters: HirParameterValues = { ...parameterValues };
+  let lastParameterValues: HirParameterValues | null = null;
+  const bindParameters = (frameParameters: HirParameterValues): void => {
+    if (frameParameters === lastParameterValues) {
+      return;
+    }
+    lastParameterValues = frameParameters;
+    for (const key of Object.keys(boundParameters)) {
+      delete boundParameters[key];
+    }
+    Object.assign(boundParameters, frameParameters);
+  };
+
   return (frame) => {
     const raw = frame.getRawView?.();
     if (!raw) {
@@ -71,12 +88,15 @@ export function createHirMetricEvaluator(args: {
       }
       program = instantiateHirMetric(
         artifact.source,
-        parameterValues,
+        boundParameters,
         placeIndices,
         poolAdapter,
       );
     }
 
+    // Refresh the bound net parameters for this frame's run (per-run overrides
+    // in Monte-Carlo), falling back to the construction-time defaults.
+    bindParameters(raw.parameterValues ?? parameterValues);
     currentPool = raw.stringPool ?? null;
     let result: number;
     try {
