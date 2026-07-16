@@ -519,7 +519,7 @@ describe("site rollups", () => {
     expect(topMismatch!.deviationPct).toBeCloseTo(200, 6);
   });
 
-  it("uses per-observation procurement residuals for planning mismatch", () => {
+  it("uses the procurement node plan for every observation", () => {
     const procurement = siteNode({
       id: "proc",
       type: "procurement",
@@ -529,18 +529,14 @@ describe("site rollups", () => {
         {
           date: "2026-01-01",
           value: 12,
-          plan_days: 10,
-          plan_provenance: "profile",
         },
         {
           date: "2026-02-01",
           value: 18,
-          plan_days: 20,
-          plan_provenance: "profile",
         },
       ],
     });
     const [result] = topPlanningMismatches([procurement], 5);
-    expect(result?.deviationPct).toBe(5);
+    expect(result?.deviationPct).toBe(50);
   });
 });

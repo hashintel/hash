@@ -44,9 +44,6 @@ export type DwellRow = SiteNode & {
 export type PlanningRow = SiteNode & {
   /** Null when the applicable plan is zero: the row remains visible but no percentage is meaningful. */
   deviationPct: number | null;
-  medianVarianceDays?: number | null;
-  planningCoveragePct?: number | null;
-  matchedPlanningCoveragePct?: number | null;
   trendPct: number | null;
   previousValue: number | null;
   previousTrendN: number;

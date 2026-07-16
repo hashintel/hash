@@ -3,7 +3,6 @@ import {
   applyOutlierSelectionToStep,
 } from "./outlier-selection";
 import { procurementNodeObservationsForBasis } from "./procurement-observations";
-import { summarizeProcurementPlanning } from "./procurement-planning";
 import { computeStats, percentileOf, round } from "./stats";
 import { cutoffForRange, type TimeRange } from "./time-range";
 
@@ -34,17 +33,14 @@ function pctExceeding(
   );
 }
 
-function pctExceedingForStep(
-  type: GraphNode["type"],
+function pctExceedingForObservations(
   observations: Observation[],
   plan: number | null,
 ): number | null {
-  return type === "procurement"
-    ? summarizeProcurementPlanning(observations).pctExceedingPlan
-    : pctExceeding(
-        observations.map((observation) => observation.value),
-        plan,
-      );
+  return pctExceeding(
+    observations.map((observation) => observation.value),
+    plan,
+  );
 }
 
 function buildMonthlyFromObservations(obs: Observation[]): MonthlyBucket[] {
@@ -295,8 +291,7 @@ export function applyProcurementBasisToStep(
     observations: comp.observations,
     monthly: comp.monthly,
     stats: comp.stats,
-    pct_exceeding_plan: pctExceedingForStep(
-      step.type,
+    pct_exceeding_plan: pctExceedingForObservations(
       comp.observations,
       step.plan,
     ),
@@ -360,8 +355,7 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
     monthly: filteredMonthly,
     stats,
     cost: selectedStep.cost,
-    pct_exceeding_plan: pctExceedingForStep(
-      selectedStep.type,
+    pct_exceeding_plan: pctExceedingForObservations(
       filtered,
       selectedStep.plan,
     ),
@@ -452,7 +446,7 @@ export function applyProcurementBasisToNode(
     observations,
     monthly: buildMonthlyFromObservations(observations),
     stats: computeStats(values),
-    pct_exceeding_plan: pctExceedingForStep(node.type, observations, node.plan),
+    pct_exceeding_plan: pctExceedingForObservations(observations, node.plan),
   };
 }
 
@@ -495,8 +489,7 @@ export function windowGraphNodeToRange(
     observations: filtered,
     monthly: filteredMonthly,
     cost: selectedNode.cost,
-    pct_exceeding_plan: pctExceedingForStep(
-      selectedNode.type,
+    pct_exceeding_plan: pctExceedingForObservations(
       filtered,
       selectedNode.plan,
     ),

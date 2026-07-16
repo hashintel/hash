@@ -1444,12 +1444,9 @@ export function buildPlanningOpportunityBrief(
   const trend = computeTrend(historicalStep.observations, range);
   const procurementPlanning =
     step.type === "procurement"
-      ? summarizeProcurementPlanning(step.observations)
+      ? summarizeProcurementPlanning(step.observations, step.plan)
       : null;
-  const currentPlanDays =
-    step.type === "procurement"
-      ? (procurementPlanning?.applicablePlan ?? null)
-      : step.plan;
+  const currentPlanDays = step.plan;
   // Observed P95 is shown raw (1 dp) across the brief; the rounded-up integer
   // is used only for prose recommendations ("around N days").
   const p95PlanDays = ceilOrNull(step.stats.p95);

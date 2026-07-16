@@ -3,20 +3,9 @@ import { percentileOf, round } from "./stats";
 import type { Observation } from "./types";
 
 export interface ProcurementPlanningSummary {
-  observationCount: number;
-  plannedCount: number;
-  matchedCount: number;
-  fallbackCount: number;
-  coveragePct: number | null;
-  matchedCoveragePct: number | null;
   pctExceedingPlan: number | null;
-  meanVarianceDays: number | null;
-  medianVarianceDays: number | null;
   meanVariancePct: number | null;
   medianVariancePct: number | null;
-  applicablePlan: number | null;
-  planMin: number | null;
-  planMax: number | null;
 }
 
 /** Zero is a configured parameter and remains displayable even though % variance is undefined. */
@@ -48,57 +37,30 @@ function median(values: number[]): number | null {
   );
 }
 
-/**
- * Compare each procurement observation with its own applicable parameter.
- */
+/** Compare a procurement profile's observations with its node-level parameter. */
 export function summarizeProcurementPlanning(
   observations: Observation[] | null | undefined,
+  planDays: number | null | undefined,
 ): ProcurementPlanningSummary {
   const input = observations ?? [];
-  const planned = input.flatMap((observation) => {
-    const plan = observation.plan_days;
-    return plan == null ? [] : [{ observation, plan }];
-  });
-  const residuals = planned.map(
-    ({ observation, plan }) =>
-      observation.variance_days ?? observation.value - plan,
-  );
-  const percentageResiduals = planned.flatMap(({ observation, plan }) =>
-    plan > 0 ? [((observation.value - plan) / plan) * 100] : [],
-  );
-  const plans = planned.map(({ plan }) => plan);
-  const distinctPlans = new Set(plans);
-  const matchedCount = planned.filter(
-    ({ observation }) => observation.plan_provenance === "profile",
-  ).length;
-  const fallbackCount = planned.filter(
-    ({ observation }) => observation.plan_provenance === "fallback",
-  ).length;
+  const hasPlan = planDays != null;
+  const plan = planDays ?? 0;
+  const planned = hasPlan ? input : [];
+  const percentageResiduals =
+    hasPlan && plan > 0
+      ? planned.map((observation) => ((observation.value - plan) / plan) * 100)
+      : [];
 
   return {
-    observationCount: input.length,
-    plannedCount: planned.length,
-    matchedCount,
-    fallbackCount,
-    coveragePct:
-      input.length > 0 ? round((planned.length / input.length) * 100) : null,
-    matchedCoveragePct:
-      planned.length > 0 ? round((matchedCount / planned.length) * 100) : null,
     pctExceedingPlan:
       planned.length > 0
         ? round(
-            (planned.filter(({ observation, plan }) => observation.value > plan)
-              .length /
+            (planned.filter((observation) => observation.value > plan).length /
               planned.length) *
               100,
           )
         : null,
-    meanVarianceDays: mean(residuals),
-    medianVarianceDays: median(residuals),
     meanVariancePct: mean(percentageResiduals),
     medianVariancePct: median(percentageResiduals),
-    applicablePlan: distinctPlans.size === 1 ? (plans[0] ?? null) : null,
-    planMin: plans.length > 0 ? Math.min(...plans) : null,
-    planMax: plans.length > 0 ? Math.max(...plans) : null,
   };
 }

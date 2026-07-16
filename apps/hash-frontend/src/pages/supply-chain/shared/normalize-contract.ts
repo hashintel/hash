@@ -3,7 +3,6 @@ import {
   isProcurementNodeObservation,
   procurementNodeObservationsForBasis,
 } from "./procurement-observations";
-import { summarizeProcurementPlanning } from "./procurement-planning";
 import { computeStats, percentileOf, round } from "./stats";
 
 import type {
@@ -167,10 +166,7 @@ export function ensureNodeStats(node: GraphNode): GraphNode {
     : { ...withMonthly, stats: statsFromObservations(observations) };
   return {
     ...base,
-    pct_exceeding_plan:
-      base.type === "procurement"
-        ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
-        : pctExceeding(base.observations, base.plan),
+    pct_exceeding_plan: pctExceeding(base.observations, base.plan),
   };
 }
 
@@ -308,18 +304,12 @@ export function ensureStepStats(step: StepDetailWire): StepDetail {
     ? {
         ...base,
         stats: base.stats,
-        pct_exceeding_plan:
-          base.type === "procurement"
-            ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
-            : pctExceeding(base.observations, base.plan),
+        pct_exceeding_plan: pctExceeding(base.observations, base.plan),
       }
     : {
         ...base,
         stats: statsFromObservations(base.observations),
-        pct_exceeding_plan:
-          base.type === "procurement"
-            ? summarizeProcurementPlanning(base.observations).pctExceedingPlan
-            : pctExceeding(base.observations, base.plan),
+        pct_exceeding_plan: pctExceeding(base.observations, base.plan),
       };
 
   if (next.yield_data) {

@@ -420,50 +420,13 @@ export interface Observation {
   value: number;
   actual_qty?: number | null;
   expected_qty?: number | null;
-  po_number?: string | null;
-  supplier_id?: string | null;
-  supplier_name?: string | null;
-  receipt_basis?: ProcurementReceiptBasis | null;
-  planning_profile_id?: string | null;
-  plan_days?: number | null;
-  plan_provenance?: "profile" | "fallback" | null;
-  plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_source?: ProcurementPlanningSource | null;
-  planning_alternatives?: ProcurementPlanningAlternative[];
-  planning_warnings?: PlanningWarning[];
-  observation_grain?: string | null;
-  po_item_count?: number | null;
-  po_item_ids?: string[];
-  /** Retained for future receiving-process analysis; not rendered as a timing metric. */
-  dock_to_stock_days?: number | null;
-  candidate_ids?: string[];
-  variance_days?: number | null;
 }
 
 export interface ProcurementNodeObservation {
-  po_number?: string | null;
-  supplier_id?: string | null;
-  supplier_name?: string | null;
-  receipt_basis?: ProcurementReceiptBasis | null;
-  planning_profile_id?: string | null;
-  plan_days?: number | null;
-  plan_provenance?: "profile" | "fallback" | null;
-  plan_match_status?: ProcurementPlanMatchStatus | null;
-  planning_source?: ProcurementPlanningSource | null;
-  planning_alternatives?: ProcurementPlanningAlternative[];
-  planning_warnings?: PlanningWarning[];
-  observation_grain?: string | null;
-  po_item_count?: number | null;
-  po_item_ids?: string[];
-  /** Retained for future receiving-process analysis; not rendered as a timing metric. */
-  dock_to_stock_days?: number | null;
-  candidate_ids?: string[];
   first_receipt_date: string;
   first_receipt_value: number;
   last_receipt_date: string;
   last_receipt_value: number;
-  first_variance_days?: number | null;
-  complete_variance_days?: number | null;
 }
 
 /**

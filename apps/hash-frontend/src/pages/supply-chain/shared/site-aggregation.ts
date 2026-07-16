@@ -359,14 +359,14 @@ function planningDeviation(
   measure: BaseMeasure,
 ): number | null {
   if (node.type === "procurement") {
-    const summary = summarizeProcurementPlanning(node.observations);
+    const summary = summarizeProcurementPlanning(node.observations, node.plan);
     if (measure === "mean") {
       return summary.meanVariancePct;
     }
     if (measure === "median") {
       return summary.medianVariancePct;
     }
-    const plan = summary.applicablePlan;
+    const plan = node.plan;
     return plan != null && plan > 0
       ? (((selectStat(node.stats, measure) ?? 0) - plan) / plan) * 100
       : null;

@@ -281,37 +281,7 @@ describe("deriveTimingFromRecords", () => {
     expect(out.complete_timing?.stats.n).toBe(2);
   });
 
-  it("preserves schema 1.1 planning metadata when deriving procurement timing", () => {
-    const planningSource = {
-      label: "Selected planning source",
-      system: "planning-system",
-      table: "planning-table",
-      source_id: "source-1",
-      material: "MAT-1",
-      site: "SITE-1",
-      supplier_id: "123",
-      basis: "ordinary",
-      plan_days: 14,
-      dock_to_stock_days: 3,
-      match_level: "material_site_supplier",
-      priority: 1,
-    };
-    const planningAlternatives = [
-      {
-        label: "Alternative planning source",
-        system: "alternative-system",
-        table: "alternative-table",
-        plan_days: 21,
-        dock_to_stock_days: 5,
-      },
-    ];
-    const planningWarnings = [
-      {
-        code: "basis_mismatch",
-        level: "warning" as const,
-        text: "Observed and selected bases differ.",
-      },
-    ];
+  it("derives plain procurement observations from evidence rows", () => {
     const step = recordsOnlyStep({
       type: "procurement",
       plan: 14,
@@ -323,19 +293,7 @@ describe("deriveTimingFromRecords", () => {
             po_date: "2026-01-01",
             first_gr_date: "2026-01-11",
             last_gr_date: "2026-01-13",
-            supplier_id: "123",
-            supplier_name: "Supplier",
-            receipt_basis: "consignment",
-            planning_profile_id: "material:site:123:consignment",
-            plan_days: 14,
-            plan_provenance: "fallback",
-            plan_match_status: "matched_wrong_basis",
-            planning_source_json: JSON.stringify(planningSource),
-            planning_alternatives_json: JSON.stringify(planningAlternatives),
-            planning_warnings_json: JSON.stringify(planningWarnings),
             po_item: "00010",
-            dock_to_stock_days: 7,
-            candidate_ids_json: '["candidate-a"]',
           },
           {
             po_number: "PO-1",
@@ -351,32 +309,13 @@ describe("deriveTimingFromRecords", () => {
     });
 
     const out = ensureStepStats(step);
-    expect(out.observations[0]).toMatchObject({
-      po_number: "PO-1",
-      supplier_id: "123",
-      supplier_name: "Supplier",
-      receipt_basis: "consignment",
-      planning_profile_id: "material:site:123:consignment",
-      plan_days: 14,
-      plan_provenance: "fallback",
-      plan_match_status: "matched_wrong_basis",
-      planning_source: planningSource,
-      planning_alternatives: planningAlternatives,
-      planning_warnings: planningWarnings,
-      observation_grain: "purchase_order",
-      po_item_count: 2,
-      po_item_ids: ["00010", "00020"],
-      dock_to_stock_days: 7,
-      candidate_ids: ["candidate-a"],
-      variance_days: -4,
+    expect(out.observations[0]).toEqual({
+      date: "2026-01-11",
+      value: 10,
     });
-    expect(out.complete_timing?.observations[0]).toMatchObject({
-      variance_days: -2,
-      plan_provenance: "fallback",
-      planning_source: planningSource,
-      planning_alternatives: planningAlternatives,
-      planning_warnings: planningWarnings,
-      po_item_ids: ["00010", "00020"],
+    expect(out.complete_timing?.observations[0]).toEqual({
+      date: "2026-01-13",
+      value: 12,
     });
   });
 });

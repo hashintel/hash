@@ -211,12 +211,9 @@ export function useSiteOverviewRows({
     return planningVisibleNodes.flatMap((count) => {
       const planningSummary =
         count.type === "procurement"
-          ? summarizeProcurementPlanning(count.observations)
+          ? summarizeProcurementPlanning(count.observations, count.plan)
           : null;
-      const plan =
-        count.type === "procurement"
-          ? planningSummary?.applicablePlan
-          : count.plan;
+      const plan = count.plan;
       const shouldShow =
         count.type === "procurement"
           ? shouldShowProcurementPlanningRow(plan, count.stats.n)
@@ -241,9 +238,6 @@ export function useSiteOverviewRows({
         ...count,
         plan,
         deviationPct,
-        medianVarianceDays: planningSummary?.medianVarianceDays,
-        planningCoveragePct: planningSummary?.coveragePct,
-        matchedPlanningCoveragePct: planningSummary?.matchedCoveragePct,
         trendPct: trend.pctChange,
         previousValue: trend.previousValue,
         previousTrendN: trend.previousN,
