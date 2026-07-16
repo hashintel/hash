@@ -4,7 +4,9 @@
     "codegen": {
       // Outputs of GraphQL generation
       "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^codegen"]
+      // The optimizer handler imports the runtime Zod contract from
+      // petrinaut-core, whose workspace exports resolve from dist.
+      "dependsOn": ["^codegen", "@hashintel/petrinaut-core#build"]
     }
   }
 }

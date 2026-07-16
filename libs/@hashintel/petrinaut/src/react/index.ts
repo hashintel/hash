@@ -19,6 +19,16 @@ export {
 } from "./net-management-context";
 export { PetrinautOptimizationContext } from "./optimization-context";
 export type { PetrinautOptimization } from "./optimization-context";
+export {
+  isOptimizationActive,
+  OptimizationsContext,
+} from "./optimizations/context";
+export type {
+  OptimizationBest,
+  OptimizationRecord,
+  OptimizationStatus,
+  OptimizationsContextValue,
+} from "./optimizations/context";
 export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,

@@ -3,4 +3,4 @@
 "@hashintel/petrinaut": minor
 ---
 
-Add an optional host-provided optimization stream and show an Optimization toggle when it is available.
+Add scenario-first optimization contracts, host-provided streamed execution, and a dedicated Optimization workflow with flat parameter search spaces, metric objectives, and progressive trial results.

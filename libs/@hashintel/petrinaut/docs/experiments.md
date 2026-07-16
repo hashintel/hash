@@ -22,8 +22,6 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | **Time step (dt)**      | `1`                               | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
 | **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
 
-When Petrinaut is embedded with an optimization provider, the **Experiment** section also shows an **Optimization** toggle. The toggle is hidden when the host does not provide optimization, including on the default Petrinaut demo route. The demo site's `/optimization` route supplies a fake provider for previewing this surface. Optimization configuration and execution will be added in a later release.
-
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
@@ -74,3 +72,7 @@ Experiments and the bottom-bar **Play** controls are independent systems:
 You can press Play in Edit mode while experiments are running in the background, and switching to Simulate mode does not stop them.
 
 Changing the net while an experiment is running does **not** retroactively affect that experiment -- it captured its model snapshot when you pressed Run.
+
+Experiments and [optimizations](optimization.md) are separate workflows.
+Experiments aggregate many runs of one fixed configuration; optimizations vary
+selected scenario parameters to improve one objective metric.

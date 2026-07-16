@@ -10,6 +10,12 @@ type IframeBridgeHandlers = {
   onInit: (payload: Extract<HostToIframeMessage, { kind: "init" }>) => void;
   onLoad: (payload: Extract<HostToIframeMessage, { kind: "load" }>) => void;
   onSetReadonly?: (readonly: boolean) => void;
+  onSetCapabilities?: (
+    capabilities: Extract<
+      HostToIframeMessage,
+      { kind: "setCapabilities" }
+    >["capabilities"],
+  ) => void;
   onRevisionsList?: (
     revisions: Extract<
       HostToIframeMessage,
@@ -63,6 +69,9 @@ export const useIframeBridge = (
           break;
         case "setReadonly":
           current.onSetReadonly?.(data.readonly);
+          break;
+        case "setCapabilities":
+          current.onSetCapabilities?.(data.capabilities);
           break;
         case "revisionsList":
           current.onRevisionsList?.(data.revisions);

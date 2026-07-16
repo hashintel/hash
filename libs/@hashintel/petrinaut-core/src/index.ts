@@ -78,7 +78,35 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
-export type { PetrinautOptimization } from "./optimization";
+export {
+  PETRINAUT_OPTIMIZATION_MAX_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
+  PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
+  PETRINAUT_OPTIMIZATION_MAX_TRIALS,
+  petrinautCategoricalOptimizationDomainSchema,
+  petrinautContinuousOptimizationDomainSchema,
+  petrinautIntegerOptimizationDomainSchema,
+  petrinautOptimizationCompleteEventSchema,
+  petrinautOptimizationDomainSchema,
+  petrinautOptimizationErrorEventSchema,
+  petrinautOptimizationEventSchema,
+  petrinautOptimizationInputSchema,
+  petrinautOptimizationObjectiveSchema,
+  petrinautOptimizationSearchSpaceSchema,
+  petrinautOptimizationStartedEventSchema,
+  petrinautOptimizationTrialEventSchema,
+  petrinautOptimizationVariableSchema,
+} from "./optimization";
+export type {
+  PetrinautOptimization,
+  PetrinautOptimizationDomain,
+  PetrinautOptimizationEvent,
+  PetrinautOptimizationInput,
+  PetrinautOptimizationObjective,
+  PetrinautOptimizationSearchSpace,
+  PetrinautOptimizationTrialEvent,
+  PetrinautOptimizationVariable,
+} from "./optimization";
 export { createPetrinautActions } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
