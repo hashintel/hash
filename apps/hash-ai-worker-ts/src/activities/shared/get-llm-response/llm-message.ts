@@ -25,9 +25,29 @@ export type LlmMessageToolUseContent<ToolName = string> = {
   input: object;
 };
 
+/**
+ * Thinking content produced by models with (adaptive) extended thinking.
+ * These blocks must be replayed unchanged in subsequent assistant messages
+ * when continuing a tool-use loop, so we preserve them in the message shape.
+ */
+export type LlmMessageThinkingContent =
+  | {
+      type: "thinking";
+      thinking: string;
+      signature: string;
+    }
+  | {
+      type: "redacted_thinking";
+      data: string;
+    };
+
 export type LlmAssistantMessage<ToolName = string> = {
   role: "assistant";
-  content: (LlmMessageTextContent | LlmMessageToolUseContent<ToolName>)[];
+  content: (
+    | LlmMessageTextContent
+    | LlmMessageToolUseContent<ToolName>
+    | LlmMessageThinkingContent
+  )[];
 };
 
 export type LlmMessageToolResultContent = {
@@ -63,12 +83,14 @@ export const mapLlmMessageToAnthropicMessage = (params: {
       throw new Error("File content not supported for Anthropic calls");
     }
 
-    return content.type === "tool_result"
-      ? ({
-          ...content,
-          content: [{ type: "text", text: content.content }],
-        } satisfies AnthropicToolResultBlockParam)
-      : content;
+    if (content.type === "tool_result") {
+      return {
+        ...content,
+        content: [{ type: "text", text: content.content }],
+      } satisfies AnthropicToolResultBlockParam;
+    }
+
+    return content;
   }),
 });
 
@@ -104,6 +126,17 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                   name: content.name,
                   input: content.input as object,
                 } satisfies LlmMessageToolUseContent;
+              } else if (content.type === "thinking") {
+                return {
+                  type: "thinking" as const,
+                  thinking: content.thinking,
+                  signature: content.signature,
+                } satisfies LlmMessageThinkingContent;
+              } else if (content.type === "redacted_thinking") {
+                return {
+                  type: "redacted_thinking" as const,
+                  data: content.data,
+                } satisfies LlmMessageThinkingContent;
               } else if (content.type === "text") {
                 return content;
               }

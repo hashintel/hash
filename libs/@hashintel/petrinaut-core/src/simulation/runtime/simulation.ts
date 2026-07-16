@@ -99,7 +99,11 @@ export function createSimulation(
     sanitizedSdcpn.parameters,
   );
   const rootParameterValues = extensions.parameters
-    ? mergeParameterValues(config.parameterValues, defaultParameterValues)
+    ? mergeParameterValues(
+        config.parameterValues,
+        defaultParameterValues,
+        sanitizedSdcpn.parameters,
+      )
     : {};
   const { sdcpn: flattenedSdcpn } = flattenComponentInstancesForSimulation({
     sdcpn: sanitizedSdcpn,

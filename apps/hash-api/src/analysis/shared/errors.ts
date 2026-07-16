@@ -23,6 +23,16 @@ export class AnalysisNotFoundError extends Error {
   }
 }
 
+/** The analysis computation ran but failed (maps to `error`). */
+export class AnalysisExecutionError extends Error {
+  public readonly code = "EXECUTION_FAILED";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "AnalysisExecutionError";
+  }
+}
+
 /** The dataset for a web/version is missing or not yet provisioned. */
 export class DatasetUnavailableError extends Error {
   public readonly code = "DATASET_UNAVAILABLE";

@@ -30,6 +30,10 @@
       "types": "./dist/ai.d.d.ts",
       "import": "./dist/ai.js"
     },
+    "./compiled-model": {
+      "types": "./dist/compiled-model.d.d.ts",
+      "import": "./dist/compiled-model.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.d.ts",
       "import": "./dist/examples/index.js"

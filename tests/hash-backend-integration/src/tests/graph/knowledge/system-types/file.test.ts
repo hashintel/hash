@@ -61,6 +61,7 @@ describe("File", () => {
       downloadDirect: vi.fn(() =>
         Promise.resolve(Buffer.from("mock-download-body")),
       ),
+      getObjectLastModified: vi.fn(() => Promise.resolve(null)),
       presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
       presignDownloadByKey: vi.fn(() => Promise.resolve(downloadUrl)),
       presignUpload: vi.fn(() =>

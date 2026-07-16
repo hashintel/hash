@@ -6,12 +6,14 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { simplifyEntityTypeForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import type {
+  LlmToolDefinition,
+  LlmToolInputSchema,
+} from "../../../shared/get-llm-response/types.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "../shared/coordinators.js";
-import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 type SubmitVerdictToolCallInput = {
   [delegatedTaskId: string]: {
@@ -124,7 +126,7 @@ export const checkDelegatedTasksAgent = async (params: {
             required: ["reason", "accept"],
           },
         }),
-        {} as Record<string, JSONSchemaDefinition>,
+        {} as NonNullable<LlmToolInputSchema["properties"]>,
       ),
       required: [
         ...delegatedTasks.map(({ delegatedTaskId }) => delegatedTaskId),

@@ -1,6 +1,7 @@
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
 import { telemetry } from "../telemetry/telemetry";
+import { dashboardAnalyses } from "./analyses/dashboards";
 import { supplyChainAnalyses } from "./analyses/supply-chain";
 import { resolveInvocation } from "./setup-analysis-handler/resolve-analysis";
 import { registerAnalyses } from "./shared/analysis-registry";
@@ -40,6 +41,7 @@ const ensureAnalysesRegistered = () => {
     return;
   }
   registerAnalyses(supplyChainAnalyses);
+  registerAnalyses(dashboardAnalyses);
   analysesRegistered = true;
 };
 
@@ -76,7 +78,7 @@ export const setupAnalysisHandler = (app: Express, cache: Keyv) => {
       return;
     }
 
-    const { graphApi, uploadProvider } = req.context;
+    const { graphApi, temporalClient, uploadProvider } = req.context;
 
     const results = await Promise.all(
       body.requests.map((invocation) =>
@@ -84,6 +86,7 @@ export const setupAnalysisHandler = (app: Express, cache: Keyv) => {
           invocation,
           actorId: user.accountId,
           graphApi,
+          temporalClient,
           uploadProvider,
           cache,
         }),

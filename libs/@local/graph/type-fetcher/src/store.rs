@@ -69,8 +69,6 @@ use hash_graph_types::ontology::{
     PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
 };
 use hash_temporal_client::TemporalClient;
-use tarpc::context;
-use tokio::net::ToSocketAddrs;
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
@@ -109,28 +107,23 @@ pub trait TypeFetcher {
 }
 
 #[derive(Debug, Clone)]
-struct TypeFetcherConnectionInfo<A> {
-    address: A,
-    config: tarpc::client::Config,
+struct TypeFetcherConnectionInfo {
+    address: (String, u16),
     domain_validator: DomainValidator,
 }
 
 #[derive(Debug, Clone)]
-pub struct FetchingPool<P, A> {
+pub struct FetchingPool<P> {
     pool: P,
-    connection_info: Option<TypeFetcherConnectionInfo<A>>,
+    connection_info: Option<TypeFetcherConnectionInfo>,
 }
 
-impl<P, A> FetchingPool<P, A>
-where
-    A: ToSocketAddrs,
-{
-    pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Self {
+impl<P> FetchingPool<P> {
+    pub const fn new(pool: P, address: (String, u16), domain_validator: DomainValidator) -> Self {
         Self {
             pool,
             connection_info: Some(TypeFetcherConnectionInfo {
                 address,
-                config: tarpc::client::Config::default(),
                 domain_validator,
             }),
         }
@@ -144,13 +137,12 @@ where
     }
 }
 
-impl<P, A> StorePool for FetchingPool<P, A>
+impl<P> StorePool for FetchingPool<P>
 where
     P: StorePool + Send + Sync,
-    A: ToSocketAddrs + Send + Sync + Clone,
 {
     type Error = P::Error;
-    type Store<'pool> = FetchingStore<P::Store<'pool>, A>;
+    type Store<'pool> = FetchingStore<P::Store<'pool>>;
 
     async fn acquire(
         &self,
@@ -173,15 +165,14 @@ where
     }
 }
 
-pub struct FetchingStore<S, A> {
+pub struct FetchingStore<S> {
     store: S,
-    connection_info: Option<TypeFetcherConnectionInfo<A>>,
+    connection_info: Option<TypeFetcherConnectionInfo>,
 }
 
-impl<S, A> PrincipalStore for FetchingStore<S, A>
+impl<S> PrincipalStore for FetchingStore<S>
 where
     S: PrincipalStore + Send + Sync,
-    A: Send + Sync,
 {
     async fn get_or_create_system_machine(
         &mut self,
@@ -274,10 +265,9 @@ where
     }
 }
 
-impl<S, A> PolicyStore for FetchingStore<S, A>
+impl<S> PolicyStore for FetchingStore<S>
 where
     S: PolicyStore + Sync,
-    A: Send + Sync,
 {
     async fn create_policy(
         &mut self,
@@ -387,12 +377,11 @@ pub enum FetchingStoreError {
     NoConnection,
 }
 
-impl<S, A> FetchingStore<S, A>
+impl<S> FetchingStore<S>
 where
     S: Sync,
-    A: ToSocketAddrs + Send + Sync,
 {
-    fn connection_info(&self) -> Result<&TypeFetcherConnectionInfo<A>, Report<FetchingStoreError>> {
+    fn connection_info(&self) -> Result<&TypeFetcherConnectionInfo, Report<FetchingStoreError>> {
         self.connection_info
             .as_ref()
             .ok_or_else(|| Report::new(FetchingStoreError::Offline))
@@ -403,18 +392,10 @@ where
     /// # Errors
     ///
     /// Returns an error if the type fetcher is not available.
-    pub async fn fetcher_client(&self) -> Result<FetcherClient, Report<FetchingStoreError>>
-    where
-        A: Send + ToSocketAddrs,
-    {
+    pub fn fetcher_client(&self) -> Result<FetcherClient, Report<FetchingStoreError>> {
         let connection_info = self.connection_info()?;
-        let transport = tarpc::serde_transport::tcp::connect(
-            &connection_info.address,
-            tarpc::tokio_serde::formats::Json::default,
-        )
-        .await
-        .change_context(FetchingStoreError::NoConnection)?;
-        Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
+        let (host, port) = &connection_info.address;
+        FetcherClient::new(host, *port).change_context(FetchingStoreError::NoConnection)
     }
 
     pub const fn store(&mut self) -> &mut S {
@@ -433,9 +414,8 @@ struct FetchedOntologyTypes {
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
-impl<S, A> FetchingStore<S, A>
+impl<S> FetchingStore<S>
 where
-    A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
 {
     async fn contains_ontology_type(
@@ -557,7 +537,6 @@ where
 
         let fetcher = self
             .fetcher_client()
-            .await
             .attach_with(|| {
                 queue
                     .iter()
@@ -584,12 +563,17 @@ where
                     "fetching ontology types from type fetcher",
                     urls=?ontology_urls
                 );
+                let requested_urls = ontology_urls
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 fetcher
-                    .fetch_ontology_types(context::current(), ontology_urls)
+                    .fetch_ontology_types(ontology_urls)
                     .instrument(span)
                     .await
-                    .change_context(QueryError)?
-                    .change_context(QueryError)?
+                    .change_context(QueryError)
+                    .attach_with(|| format!("Requested URLs from type fetcher: {requested_urls}"))?
             };
 
             for (ontology_type, fetched_at) in ontology_types {
@@ -884,9 +868,8 @@ where
     }
 }
 
-impl<S, A> TypeFetcher for FetchingStore<S, A>
+impl<S> TypeFetcher for FetchingStore<S>
 where
-    A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
 {
     #[tracing::instrument(level = "info", skip(self))]
@@ -917,9 +900,8 @@ where
     }
 }
 
-impl<I, A, R, S> ReadPaginated<R, S> for FetchingStore<I, A>
+impl<I, R, S> ReadPaginated<R, S> for FetchingStore<I>
 where
-    A: Send + Sync,
     I: ReadPaginated<R, S> + Send,
     R: QueryRecord,
     S: Sorting + Sync,
@@ -947,9 +929,8 @@ where
     }
 }
 
-impl<S, A, R> Read<R> for FetchingStore<S, A>
+impl<S, R> Read<R> for FetchingStore<S>
 where
-    A: Send + Sync,
     S: Read<R> + Send,
     R: QueryRecord,
 {
@@ -978,10 +959,9 @@ where
     }
 }
 
-impl<S, A> AccountStore for FetchingStore<S, A>
+impl<S> AccountStore for FetchingStore<S>
 where
     S: AccountStore + Send + Sync,
-    A: Send + Sync,
 {
     async fn create_user_actor(
         &mut self,
@@ -1127,10 +1107,9 @@ where
     }
 }
 
-impl<S, A> DataTypeStore for FetchingStore<S, A>
+impl<S> DataTypeStore for FetchingStore<S>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
-    A: ToSocketAddrs + Send + Sync,
 {
     async fn create_data_types<P>(
         &mut self,
@@ -1278,10 +1257,9 @@ where
     }
 }
 
-impl<S, A> PropertyTypeStore for FetchingStore<S, A>
+impl<S> PropertyTypeStore for FetchingStore<S>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
-    A: ToSocketAddrs + Send + Sync,
 {
     async fn create_property_types<P>(
         &mut self,
@@ -1420,10 +1398,9 @@ where
     }
 }
 
-impl<S, A> EntityTypeStore for FetchingStore<S, A>
+impl<S> EntityTypeStore for FetchingStore<S>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
-    A: ToSocketAddrs + Send + Sync,
 {
     async fn create_entity_types<P>(
         &mut self,
@@ -1595,10 +1572,9 @@ where
     }
 }
 
-impl<S, A> EntityStore for FetchingStore<S, A>
+impl<S> EntityStore for FetchingStore<S>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
-    A: ToSocketAddrs + Send + Sync,
 {
     async fn create_entities(
         &mut self,

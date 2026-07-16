@@ -122,6 +122,7 @@ import Bug from "./svgs/solid/bug.svg";
 import CaretDown from "./svgs/solid/caret-down.svg";
 import CircleSolid from "./svgs/solid/circle.svg";
 import ForwardStepSolid from "./svgs/solid/forward-step.svg";
+import GripVertical from "./svgs/solid/grip-vertical.svg";
 import Minus from "./svgs/solid/minus.svg";
 import PauseSolid from "./svgs/solid/pause.svg";
 import PlaySolid from "./svgs/solid/play.svg";
@@ -199,6 +200,7 @@ const IconMap = {
   function: FunctionSymbol,
   gear: Gear,
   grid: Grid,
+  gripVertical: GripVertical,
   hand: Hand,
   image: Image,
   infinity: InfinityLoop,

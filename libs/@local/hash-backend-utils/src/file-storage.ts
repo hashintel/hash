@@ -128,6 +128,16 @@ export interface FileStorageProvider {
    * Used by workers that have direct storage credentials.
    */
   downloadDirect(this: void, params: { key: string }): Promise<Buffer>;
+
+  /**
+   * Get the last-modified time of a stored object, or `null` if the object
+   * does not exist. Used to check the freshness of server-managed artifacts
+   * (e.g. precomputed analysis results) without downloading them.
+   */
+  getObjectLastModified(
+    this: void,
+    params: { key: string },
+  ): Promise<Date | null>;
 }
 
 /** Parameters needed to allow the storage of a file */

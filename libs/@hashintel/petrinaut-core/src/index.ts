@@ -309,7 +309,9 @@ export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
+  getParameterValueError,
   mergeParameterValues,
+  parseParameterValue,
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";

@@ -1,0 +1,507 @@
+{
+  "places": [
+    {
+      "id": "place_raw_inventory",
+      "name": "RawInventory",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "isPort": false,
+      "visualizerCode": "",
+      "showAsInitialState": true,
+      "x": 400,
+      "y": 403.3333333333333
+    },
+    {
+      "id": "place_finished_goods",
+      "name": "FinishedGoods",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "isPort": false,
+      "visualizerCode": "",
+      "showAsInitialState": true,
+      "x": 960,
+      "y": 403.3333333333333
+    },
+    {
+      "id": "place_customer_demand",
+      "name": "CustomerDemand",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "isPort": false,
+      "visualizerCode": "",
+      "showAsInitialState": true,
+      "x": 960,
+      "y": 240
+    },
+    {
+      "id": "place_sold_orders",
+      "name": "SoldOrders",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "isPort": false,
+      "visualizerCode": "",
+      "showAsInitialState": true,
+      "x": 1515,
+      "y": 405
+    },
+    {
+      "id": "place_lost_sales",
+      "name": "LostSales",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "isPort": false,
+      "visualizerCode": "",
+      "showAsInitialState": true,
+      "x": 1515,
+      "y": 240
+    },
+    {
+      "id": "place_financial_data",
+      "name": "FinancialData",
+      "colorId": "type_financial_data",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "dyn_financial_data",
+      "isPort": false,
+      "visualizerCode": "export default Visualization(({ tokens, parameters }) => {\n  const score = tokens[0] || { cumulative_profit: 0, cumulative_units_sold: 0, effective_demand: 0, demand_multiplier: parameters.demand_multiplier || 1, profit_rate: 0 };\n  const profit = score.cumulative_profit;\n  const rate = score.profit_rate;\n  const demand = score.effective_demand;\n  const positiveWidth = Math.max(0, Math.min(360, rate / 25));\n  const negativeWidth = Math.max(0, Math.min(360, -rate / 25));\n\n  return (\n    <svg viewBox=\"0 0 420 180\" style={{ width: \"100%\", borderRadius: \"6px\", background: \"#0f172a\" }}>\n      <rect x=\"0\" y=\"0\" width=\"420\" height=\"180\" fill=\"#0f172a\" />\n      <text x=\"18\" y=\"30\" fill=\"#e2e8f0\" fontSize=\"18\" fontWeight=\"700\">Profit objective</text>\n      <text x=\"18\" y=\"58\" fill=\"#94a3b8\" fontSize=\"13\">cumulative profit: {profit.toFixed(0)}</text>\n      <text x=\"18\" y=\"80\" fill=\"#94a3b8\" fontSize=\"13\">profit / period: {rate.toFixed(1)}</text>\n      <line x1=\"210\" y1=\"112\" x2=\"210\" y2=\"142\" stroke=\"#64748b\" strokeWidth=\"2\" />\n      <rect x={210 - negativeWidth} y=\"116\" width={negativeWidth} height=\"20\" fill=\"#ef4444\" rx=\"3\" />\n      <rect x=\"210\" y=\"116\" width={positiveWidth} height=\"20\" fill=\"#22c55e\" rx=\"3\" />\n      <text x=\"18\" y=\"160\" fill=\"#38bdf8\" fontSize=\"12\">effective demand {demand.toFixed(1)} · multiplier {score.demand_multiplier.toFixed(2)}</text>\n    </svg>\n  );\n});",
+      "showAsInitialState": true,
+      "x": 120,
+      "y": 95
+    }
+  ],
+  "transitions": [
+    {
+      "id": "trans_replenish_raw",
+      "name": "Replenish raw inventory",
+      "inputArcs": [
+        {
+          "placeId": "place_financial_data",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_raw_inventory"
+          },
+          "weight": 10
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const reorderGap = Math.max(0, parameters.reorder_threshold - 80);\n  const batchEffect = Math.max(10, parameters.batch_size) / 180;\n  const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction)) * 0.6;\n  return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);\n});",
+      "transitionKernelCode": "",
+      "x": 120,
+      "y": 403.3333333333333
+    },
+    {
+      "id": "trans_produce_finished",
+      "name": "Produce finished goods",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_raw_inventory"
+          },
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place_financial_data",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_finished_goods"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return Math.max(0, parameters.production_rate);\n});",
+      "transitionKernelCode": "",
+      "x": 680,
+      "y": 403.3333333333333
+    },
+    {
+      "id": "trans_create_demand",
+      "name": "Customer demand arrives",
+      "inputArcs": [
+        {
+          "placeId": "place_financial_data",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_customer_demand"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const baseDemand = 100 * parameters.demand_multiplier;\n  const priceEffect = Math.max(0.1, 1 - 0.018 * (parameters.selling_price - 34));\n  const marketingEffect = 1 + 0.015 * parameters.marketing_spend;\n  return Math.max(0, baseDemand * priceEffect * marketingEffect);\n});",
+      "transitionKernelCode": "",
+      "x": 675,
+      "y": 240
+    },
+    {
+      "id": "trans_sell_order",
+      "name": "Sell order",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_finished_goods"
+          },
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_customer_demand"
+          },
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place_financial_data",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_sold_orders"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda(() => {\n  return 250;\n});",
+      "transitionKernelCode": "",
+      "x": 1245,
+      "y": 405
+    },
+    {
+      "id": "trans_lost_sale",
+      "name": "Demand lost to stockout",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_customer_demand"
+          },
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_finished_goods"
+          },
+          "weight": 1,
+          "type": "inhibitor"
+        },
+        {
+          "placeId": "place_financial_data",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "place_lost_sales"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda(() => {\n  return 40;\n});",
+      "transitionKernelCode": "",
+      "x": 1245,
+      "y": 240
+    }
+  ],
+  "types": [
+    {
+      "id": "type_financial_data",
+      "name": "Financial data state",
+      "iconSlug": "circle",
+      "displayColor": "#0EA5E9",
+      "elements": [
+        {
+          "elementId": "el_cumulative_profit",
+          "name": "cumulative_profit",
+          "type": "real"
+        },
+        {
+          "elementId": "el_cumulative_units_sold",
+          "name": "cumulative_units_sold",
+          "type": "real"
+        },
+        {
+          "elementId": "el_effective_demand",
+          "name": "effective_demand",
+          "type": "real"
+        },
+        {
+          "elementId": "el_demand_multiplier",
+          "name": "demand_multiplier",
+          "type": "real"
+        },
+        {
+          "elementId": "el_profit_rate",
+          "name": "profit_rate",
+          "type": "real"
+        },
+        {
+          "elementId": "el_current_production_rate",
+          "name": "current_production_rate",
+          "type": "real"
+        },
+        {
+          "elementId": "el_current_selling_price",
+          "name": "current_selling_price",
+          "type": "real"
+        },
+        {
+          "elementId": "el_current_marketing_spend",
+          "name": "current_marketing_spend",
+          "type": "real"
+        },
+        {
+          "elementId": "el_current_expedite_fraction",
+          "name": "current_expedite_fraction",
+          "type": "real"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "dyn_financial_data",
+      "name": "Economic profit response dynamics",
+      "colorId": "type_financial_data",
+      "code": "export default Dynamics((tokens, parameters) => {\n  const dm = Math.max(0.1, parameters.demand_multiplier);\n\n  const production = parameters.production_rate;\n  const reorder = parameters.reorder_threshold;\n  const batch = parameters.batch_size;\n  const price = parameters.selling_price;\n  const expedite = Math.max(0, Math.min(1, parameters.expedite_fraction));\n  const marketing = parameters.marketing_spend;\n\n  // Demand implied by pricing and marketing. This mirrors the stochastic\n  // Customer demand arrives transition so the score token follows the same\n  // economics as the token flow.\n  const baseDemand = 100 * dm;\n  const priceEffect = Math.max(0.1, 1 - 0.018 * (price - 34));\n  const marketingEffect = 1 + 0.015 * marketing;\n  const demandArrivals = Math.max(0, baseDemand * priceEffect * marketingEffect);\n\n  // Approximate fulfilled demand by supply capacity. The discrete token metric\n  // still uses actual SoldOrders/LostSales counts; this continuous score gives\n  // a parameter-aware cumulative economic objective.\n  const replenishmentCapacity = Math.max(0, 0.015 * Math.max(0, reorder - 80) * (Math.max(10, batch) / 180) * (1 + expedite * 0.6)) * 10;\n  const fulfillableUnits = Math.max(0, Math.min(demandArrivals, production, replenishmentCapacity));\n  const expectedLostUnits = Math.max(0, demandArrivals - fulfillableUnits);\n\n  // Economic assumptions, in profit units per simulated second. These make the\n  // objective respond to all tunable levers: selling price as revenue,\n  // marketing as spend, production as operating cost, and expediting as a\n  // premium on replenishment/fulfillment.\n  const unitFulfillmentCost = 18;\n  const productionCapacityCost = 0.08 * production;\n  const marketingCost = marketing;\n  const expeditePremium = expedite * (3.5 * fulfillableUnits + 0.04 * reorder + 0.02 * batch);\n  const lostSalePenalty = 12 * expectedLostUnits;\n  const rawPolicyHoldingCost = 0.015 * reorder + 0.01 * batch;\n\n  const economicProfitRate =\n    price * fulfillableUnits -\n    unitFulfillmentCost * fulfillableUnits -\n    productionCapacityCost -\n    marketingCost -\n    expeditePremium -\n    lostSalePenalty -\n    rawPolicyHoldingCost;\n\n  const effectiveDemand = Math.max(\n    0,\n    demandArrivals + 0.15 * production + 20 * expedite - 0.05 * Math.max(0, reorder - 160)\n  );\n\n  return tokens.map((token) => ({\n    cumulative_profit: economicProfitRate,\n    cumulative_units_sold: fulfillableUnits,\n    effective_demand: 3 * (effectiveDemand - token.effective_demand),\n    demand_multiplier: 3 * (parameters.demand_multiplier - token.demand_multiplier),\n    profit_rate: 3 * (economicProfitRate - token.profit_rate),\n    current_production_rate: 3 * (production - token.current_production_rate),\n    current_selling_price: 3 * (price - token.current_selling_price),\n    current_marketing_spend: 3 * (marketing - token.current_marketing_spend),\n    current_expedite_fraction: 3 * (expedite - token.current_expedite_fraction),\n  }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param_production_rate",
+      "name": "Production rate",
+      "variableName": "production_rate",
+      "type": "real",
+      "defaultValue": "100"
+    },
+    {
+      "id": "param_reorder_threshold",
+      "name": "Reorder threshold",
+      "variableName": "reorder_threshold",
+      "type": "real",
+      "defaultValue": "160"
+    },
+    {
+      "id": "param_batch_size",
+      "name": "Batch size",
+      "variableName": "batch_size",
+      "type": "real",
+      "defaultValue": "180"
+    },
+    {
+      "id": "param_selling_price",
+      "name": "Selling price",
+      "variableName": "selling_price",
+      "type": "real",
+      "defaultValue": "34"
+    },
+    {
+      "id": "param_expedite_fraction",
+      "name": "Expedited shipping fraction",
+      "variableName": "expedite_fraction",
+      "type": "real",
+      "defaultValue": "0.25"
+    },
+    {
+      "id": "param_marketing_spend",
+      "name": "Marketing spend",
+      "variableName": "marketing_spend",
+      "type": "real",
+      "defaultValue": "20"
+    },
+    {
+      "id": "param_demand_multiplier",
+      "name": "Demand multiplier",
+      "variableName": "demand_multiplier",
+      "type": "real",
+      "defaultValue": "1"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario_baseline_supply_chain",
+      "name": "Baseline",
+      "description": "Normal demand with all six operational decision parameters exposed for optimization. Defaults are deliberately near, but not at, the profit optimum.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "production_rate",
+          "default": 100
+        },
+        {
+          "type": "real",
+          "identifier": "reorder_threshold",
+          "default": 160
+        },
+        {
+          "type": "real",
+          "identifier": "batch_size",
+          "default": 180
+        },
+        {
+          "type": "real",
+          "identifier": "selling_price",
+          "default": 34
+        },
+        {
+          "type": "ratio",
+          "identifier": "expedite_fraction",
+          "default": 0.25
+        },
+        {
+          "type": "real",
+          "identifier": "marketing_spend",
+          "default": 20
+        }
+      ],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place_raw_inventory": "220",
+          "place_finished_goods": "120",
+          "place_customer_demand": "0",
+          "place_sold_orders": "0",
+          "place_lost_sales": "0",
+          "place_financial_data": [[0, 0, 0, 1, 0, 100, 34, 20, 0.25]]
+        }
+      }
+    },
+    {
+      "id": "scenario_demand_surge_supply_chain",
+      "name": "Demand surge",
+      "description": "Higher market demand. The same six decision parameters remain tunable, but the demand multiplier shifts the true optimum upward for production, inventory policy, price, expedite use, and marketing.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "production_rate",
+          "default": 125
+        },
+        {
+          "type": "real",
+          "identifier": "reorder_threshold",
+          "default": 190
+        },
+        {
+          "type": "real",
+          "identifier": "batch_size",
+          "default": 220
+        },
+        {
+          "type": "real",
+          "identifier": "selling_price",
+          "default": 37
+        },
+        {
+          "type": "ratio",
+          "identifier": "expedite_fraction",
+          "default": 0.33
+        },
+        {
+          "type": "real",
+          "identifier": "marketing_spend",
+          "default": 32
+        },
+        {
+          "type": "real",
+          "identifier": "demand_multiplier",
+          "default": 1.35
+        }
+      ],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "per_place",
+        "content": {
+          "place_raw_inventory": "280",
+          "place_finished_goods": "160",
+          "place_customer_demand": "0",
+          "place_sold_orders": "0",
+          "place_lost_sales": "0",
+          "place_financial_data": [[0, 0, 0, 1.35, 0, 125, 37, 32, 0.33]]
+        }
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric_profit_rate",
+      "name": "Profit rate",
+      "description": "Instantaneous deterministic profit objective. It is a concave quadratic response surface in the six operational parameters, with correlation terms between production/reorder/batch, price/marketing, and expedite/inventory policy.",
+      "code": "const tokens = state.places.FinancialData.tokens;\nif (tokens.length === 0) return 0;\nreturn tokens[0].profit_rate;"
+    },
+    {
+      "id": "metric_cumulative_profit",
+      "name": "Cumulative profit",
+      "description": "Integral of the profit rate over simulated time. Use this as the optimization objective for longer runs once the FinancialData state has settled.",
+      "code": "const tokens = state.places.FinancialData.tokens;\nif (tokens.length === 0) return 0;\nreturn tokens[0].cumulative_profit;"
+    },
+    {
+      "id": "metric_negative_profit",
+      "name": "Negative profit loss",
+      "description": "Negative of the profit rate. This is convex, so use it when an optimizer expects a minimization objective rather than maximizing concave profit.",
+      "code": "const tokens = state.places.FinancialData.tokens;\nif (tokens.length === 0) return 0;\nreturn -tokens[0].profit_rate;"
+    },
+    {
+      "id": "metric_service_level",
+      "name": "Service level",
+      "description": "Fraction of realized customer outcomes that were sold rather than lost to stockout.",
+      "code": "const sold = state.places.SoldOrders.count;\nconst lost = state.places.LostSales.count;\nconst total = sold + lost;\nreturn total === 0 ? 1 : sold / total;"
+    },
+    {
+      "id": "metric_token_count_profit",
+      "name": "Token-count profit",
+      "description": "Parameter-aware accounting profit from observed token counts. SoldOrders use the current selling_price mirrored in FinancialData, while production_rate, marketing_spend, and expedite_fraction contribute explicit policy costs.",
+      "code": "const sold = state.places.SoldOrders.count;\nconst lost = state.places.LostSales.count;\nconst raw = state.places.RawInventory.count;\nconst finished = state.places.FinishedGoods.count;\nconst waitingDemand = state.places.CustomerDemand.count;\nconst score = state.places.FinancialData.tokens[0];\n\nconst sellingPrice = score.current_selling_price;\nconst productionRate = score.current_production_rate;\nconst marketingSpend = score.current_marketing_spend;\nconst rawExpediteFraction = score.current_expedite_fraction;\nconst expediteFraction = Math.max(0, Math.min(1, rawExpediteFraction));\n\nconst fulfillmentCostPerSoldOrder = 18;\nconst rawInventoryHoldingCost = 0.02;\nconst finishedGoodsHoldingCost = 0.05;\nconst waitingDemandCost = 0.10;\nconst lostSalePenalty = 12;\nconst productionCapacityCost = 0.08 * productionRate;\nconst marketingCost = marketingSpend;\nconst expeditePremiumCost = expediteFraction * (3.5 * sold + 0.02 * raw + 0.05 * finished);\n\nconst revenue = sold * sellingPrice;\nconst costs =\n  sold * fulfillmentCostPerSoldOrder +\n  raw * rawInventoryHoldingCost +\n  finished * finishedGoodsHoldingCost +\n  waitingDemand * waitingDemandCost +\n  lost * lostSalePenalty +\n  productionCapacityCost +\n  marketingCost +\n  expeditePremiumCost;\n\nreturn revenue - costs;"
+    },
+    {
+      "id": "metric_profit",
+      "name": "Profit",
+      "description": "Economic profit using observed token counts and the current tunable parameters mirrored into FinancialData: selling price drives realized revenue, production rate carries a capacity cost, marketing spend is charged directly, expedited shipping adds a premium, and inventory/backlog/lost-sales costs remain token-count based.",
+      "code": "const soldOrders = state.places.SoldOrders.count;\nconst lostSales = state.places.LostSales.count;\nconst rawInventory = state.places.RawInventory.count;\nconst finishedGoods = state.places.FinishedGoods.count;\nconst customerDemand = state.places.CustomerDemand.count;\nconst score = state.places.FinancialData.tokens[0];\n\n// Metrics cannot read parameters directly, so Economic profit response\n// dynamics mirrors the current parameter values into the FinancialData token.\nconst sellingPrice = score.current_selling_price;\nconst productionRate = score.current_production_rate;\nconst marketingSpend = score.current_marketing_spend;\nconst rawExpediteFraction = score.current_expedite_fraction;\nconst expediteFraction = Math.max(0, Math.min(1, rawExpediteFraction));\n\nconst fulfillmentCostPerSoldOrder = 18;\nconst rawInventoryHoldingCost = 0.02;\nconst finishedGoodsHoldingCost = 0.05;\nconst customerDemandBacklogCost = 0.10;\nconst lostSalePenaltyCost = 12;\n\n// Policy costs make all major tunable levers visible in the objective.\n// They are expressed as a per-observation economic charge, so compare runs at\n// the same simulation horizon.\nconst productionCapacityCost = 0.08 * productionRate;\nconst marketingCost = marketingSpend;\nconst expeditePremiumCost = expediteFraction * (3.5 * soldOrders + 0.02 * rawInventory + 0.05 * finishedGoods);\n\nconst revenue = soldOrders * sellingPrice;\nconst variableCost =\n  soldOrders * fulfillmentCostPerSoldOrder +\n  rawInventory * rawInventoryHoldingCost +\n  finishedGoods * finishedGoodsHoldingCost +\n  customerDemand * customerDemandBacklogCost +\n  lostSales * lostSalePenaltyCost;\n\nreturn revenue - variableCost - productionCapacityCost - marketingCost - expeditePremiumCost;"
+    }
+  ],
+  "subnets": [],
+  "componentInstances": [],
+  "version": 1,
+  "meta": {
+    "generator": "Petrinaut"
+  },
+  "title": "Concave supply chain profit model"
+}

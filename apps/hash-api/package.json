@@ -11,6 +11,7 @@
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false --import ./src/instrument.mjs ./src/index.ts",
     "dev:import-supply-chain-data": "NODE_ENV=development tsx ./src/seed-data/import-supply-chain-dataset.ts",
     "dev:seed-crm-data": "NODE_ENV=development tsx ./src/seed-data/seed-crm-data.ts",
+    "dev:seed-dashboard-demo": "NODE_ENV=development tsx ./src/seed-data/seed-dashboard-demo.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; cd ../../libs/@local/hash-isomorphic-utils && oxfmt --write --ignore-path /dev/null src/ontology-type-ids.ts",

@@ -1,0 +1,522 @@
+{
+  "title": "Deployment Pipeline",
+  "places": [
+    {
+      "id": "place__deployment-ready",
+      "name": "DeploymentReady",
+      "colorId": "type__deployment",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "dynamics__deployment_age",
+      "x": 180,
+      "y": 0,
+      "visualizerCode": "// Release queue: one card per deployment waiting to start. Card colour goes\n// green -> amber -> red with the deployment's risk, and width scales with its\n// size, so a glance shows how risky/large the backlog is.\nexport default Visualization(({ tokens }) => {\n  const width = 380;\n  const height = 170;\n  const visible = tokens.slice(0, 20);\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#eff6ff\" />\n      <text x=\"18\" y=\"28\" fill=\"#1e3a8a\" fontSize=\"18\" fontWeight=\"700\">Release queue</text>\n      <text x=\"18\" y=\"50\" fill=\"#2563eb\" fontSize=\"13\">{tokens.length} waiting; hotter cards are riskier</text>\n      {visible.map((deployment, index) => {\n        const risk = Math.max(0, Math.min(1, deployment.risk));\n        const size = Math.max(0.4, Math.min(2.2, deployment.size));\n        const x = 18 + (index % 10) * 34;\n        const y = 68 + Math.floor(index / 10) * 42;\n        const fill = risk < 0.25 ? \"#22c55e\" : risk < 0.55 ? \"#f59e0b\" : \"#ef4444\";\n        return (\n          <g key={index}>\n            <rect x={x} y={y} width={22 * size} height=\"28\" rx=\"4\" fill={fill} stroke=\"#1e3a8a\" strokeWidth=\"1\" opacity=\"0.9\" />\n            <text x={x + 5} y={y + 19} fill=\"white\" fontSize=\"12\" fontWeight=\"700\">{Math.round(risk * 100)}</text>\n          </g>\n        );\n      })}\n    </svg>\n  );\n});",
+      "showAsInitialState": true
+    },
+    {
+      "id": "place__incident-being-investigated",
+      "name": "IncidentBeingInvestigated",
+      "colorId": "type__incident",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "dynamics__incident_age",
+      "x": 675,
+      "y": 510,
+      "visualizerCode": "// Incident bridge: one bar per open incident, taller and darker with severity.\n// Because this place feeds an inhibitor arc into Start Deployment, any bar\n// shown here means the deployment gate is currently closed.\nexport default Visualization(({ tokens }) => {\n  const width = 380;\n  const height = 170;\n  const visible = tokens.slice(0, 10);\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#fff1f2\" />\n      <text x=\"18\" y=\"30\" fill=\"#991b1b\" fontSize=\"18\" fontWeight=\"700\">Incident bridge</text>\n      <text x=\"18\" y=\"52\" fill=\"#dc2626\" fontSize=\"13\">Inhibits new deployments while any card is present</text>\n      {visible.length === 0 && <text x=\"18\" y=\"98\" fill=\"#16a34a\" fontSize=\"18\">No active incident — deploy gate open</text>}\n      {visible.map((incident, index) => {\n        const sev = Math.max(0, Math.min(1, incident.severity));\n        const x = 20 + index * 34;\n        const h = 24 + sev * 52;\n        const y = 142 - h;\n        return (\n          <g key={index}>\n            <rect x={x} y={y} width=\"24\" height={h} rx=\"5\" fill={sev < 0.35 ? \"#fb923c\" : sev < 0.7 ? \"#ef4444\" : \"#7f1d1d\"} />\n            <text x={x + 6} y={y - 5} fill=\"#991b1b\" fontSize=\"11\" fontWeight=\"700\">S{Math.ceil(sev * 5)}</text>\n          </g>\n        );\n      })}\n    </svg>\n  );\n});",
+      "showAsInitialState": true
+    },
+    {
+      "id": "place__deployment-in-progress",
+      "name": "DeploymentInProgress",
+      "colorId": "type__deployment",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "dynamics__deployment_age",
+      "x": 150,
+      "y": 315,
+      "visualizerCode": "// Deployment lane: shows the single in-progress deployment as a progress bar\n// (estimated from its age relative to size), coloured by risk. Empty when the\n// lane is idle — the inhibitor arc allows only one deployment at a time.\nexport default Visualization(({ tokens }) => {\n  const width = 380;\n  const height = 170;\n  const deployment = tokens[0];\n  const risk = deployment ? Math.max(0, Math.min(1, deployment.risk)) : 0;\n  const age = deployment ? deployment.age : 0;\n  const size = deployment ? deployment.size : 0;\n  const progress = deployment ? Math.max(0.08, Math.min(1, age / Math.max(1, size * 6))) : 0;\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#ecfeff\" />\n      <text x=\"18\" y=\"30\" fill=\"#155e75\" fontSize=\"18\" fontWeight=\"700\">Deployment lane</text>\n      {!deployment && <text x=\"18\" y=\"88\" fill=\"#0891b2\" fontSize=\"18\">Idle — ready for next safe release</text>}\n      {deployment && (\n        <g>\n          <rect x=\"24\" y=\"70\" width=\"318\" height=\"30\" rx=\"15\" fill=\"#cffafe\" stroke=\"#0891b2\" />\n          <rect x=\"24\" y=\"70\" width={318 * progress} height=\"30\" rx=\"15\" fill={risk < 0.35 ? \"#06b6d4\" : risk < 0.65 ? \"#f59e0b\" : \"#ef4444\"} />\n          <circle cx={24 + 318 * progress} cy=\"85\" r=\"19\" fill=\"#ffffff\" stroke=\"#155e75\" strokeWidth=\"3\" />\n          <text x={24 + 318 * progress - 8} y=\"91\" fill=\"#155e75\" fontSize=\"18\" fontWeight=\"700\">▶</text>\n          <text x=\"24\" y=\"130\" fill=\"#155e75\" fontSize=\"14\">size {size.toFixed(2)} · risk {Math.round(risk * 100)}% · age {age.toFixed(1)}s</text>\n        </g>\n      )}\n    </svg>\n  );\n});",
+      "showAsInitialState": true
+    },
+    {
+      "id": "place__completed-deployments",
+      "name": "CompletedDeployments",
+      "colorId": "type__deployment",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 825,
+      "y": 210,
+      "visualizerCode": "// Successful releases: a tally of completed deployments (most recent last).\n// Each green check is one deployment that finished without causing an incident.\nexport default Visualization(({ tokens }) => {\n  const width = 360;\n  const height = 160;\n  const visible = tokens.slice(-24);\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#f0fdf4\" />\n      <text x=\"18\" y=\"30\" fill=\"#166534\" fontSize=\"18\" fontWeight=\"700\">Successful releases</text>\n      <text x=\"18\" y=\"54\" fill=\"#16a34a\" fontSize=\"13\">{tokens.length} completed deployments</text>\n      {visible.map((deployment, index) => {\n        const x = 18 + (index % 12) * 27;\n        const y = 74 + Math.floor(index / 12) * 31;\n        return (\n          <g key={index}>\n            <rect x={x} y={y} width=\"21\" height=\"23\" rx=\"4\" fill=\"#22c55e\" stroke=\"#166534\" />\n            <path d={`M ${x + 5} ${y + 12} L ${x + 9} ${y + 17} L ${x + 17} ${y + 7}`} fill=\"none\" stroke=\"white\" strokeWidth=\"3\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n          </g>\n        );\n      })}\n    </svg>\n  );\n});",
+      "showAsInitialState": true
+    },
+    {
+      "id": "place__resolved-incidents",
+      "name": "ResolvedIncidents",
+      "colorId": "type__incident",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "x": 1170,
+      "y": 510,
+      "visualizerCode": "// Closed incidents: a tally of resolved incident tickets (most recent last).\nexport default Visualization(({ tokens }) => {\n  const width = 340;\n  const height = 150;\n  const visible = tokens.slice(-18);\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#f8fafc\" />\n      <text x=\"18\" y=\"30\" fill=\"#334155\" fontSize=\"18\" fontWeight=\"700\">Closed incidents</text>\n      <text x=\"18\" y=\"52\" fill=\"#64748b\" fontSize=\"13\">{tokens.length} resolved tickets</text>\n      {visible.map((incident, index) => {\n        const x = 18 + (index % 9) * 34;\n        const y = 72 + Math.floor(index / 9) * 30;\n        return (\n          <g key={index}>\n            <rect x={x} y={y} width=\"25\" height=\"20\" rx=\"3\" fill=\"#e2e8f0\" stroke=\"#64748b\" />\n            <line x1={x + 5} y1={y + 10} x2={x + 20} y2={y + 10} stroke=\"#64748b\" strokeWidth=\"2\" />\n          </g>\n        );\n      })}\n    </svg>\n  );\n});",
+      "showAsInitialState": true
+    },
+    {
+      "id": "place__failed-deployments",
+      "name": "FailedDeployments",
+      "colorId": "type__deployment",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "visualizerCode": "// Failed releases: deployments that rolled back and opened an incident. The\n// red cross marks each failure and its outline thickens with the deployment's\n// risk, so the riskiest failures stand out.\nexport default Visualization(({ tokens }) => {\n  const width = 360;\n  const height = 160;\n  const visible = tokens.slice(-18);\n  return (\n    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: \"100%\", borderRadius: \"6px\" }}>\n      <rect width={width} height={height} rx=\"10\" fill=\"#1f2937\" />\n      <text x=\"18\" y=\"30\" fill=\"#fecaca\" fontSize=\"18\" fontWeight=\"700\">Failed releases</text>\n      <text x=\"18\" y=\"54\" fill=\"#fca5a5\" fontSize=\"13\">{tokens.length} rollback / incident-generating deploys</text>\n      {visible.map((deployment, index) => {\n        const x = 18 + (index % 9) * 36;\n        const y = 76 + Math.floor(index / 9) * 34;\n        const risk = Math.max(0, Math.min(1, deployment.risk));\n        return (\n          <g key={index}>\n            <rect x={x} y={y} width=\"26\" height=\"22\" rx=\"4\" fill=\"#991b1b\" stroke=\"#fecaca\" strokeWidth={1 + risk * 2} />\n            <line x1={x + 7} y1={y + 6} x2={x + 19} y2={y + 16} stroke=\"#fee2e2\" strokeWidth=\"2\" />\n            <line x1={x + 19} y1={y + 6} x2={x + 7} y2={y + 16} stroke=\"#fee2e2\" strokeWidth=\"2\" />\n          </g>\n        );\n      })}\n    </svg>\n  );\n});",
+      "showAsInitialState": true,
+      "x": 870,
+      "y": 330
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__create-deployment",
+      "name": "Create Deployment",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__deployment-ready",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "/**\n * Deployment arrivals.\n *\n * This stochastic lambda returns the expected number of new deployment\n * candidates created per simulation second. The transition has no input\n * places, so it behaves like an external arrival process feeding the\n * DeploymentReady queue.\n */\nexport default Lambda((input, parameters) => {\n  return parameters.deployment_creation_rate;\n});",
+      "transitionKernelCode": "/**\n * Create one coloured Deployment token.\n *\n * - size is sampled from a lognormal distribution so most releases are\n *   ordinary, with occasional large releases.\n * - risk is sampled from a Gaussian distribution and clamped to [0.02, 0.95]\n *   so every deployment has some risk but never exceeds a probability-like cap.\n * - age starts at zero and is advanced by the Deployment Age dynamics while the\n *   token waits or runs.\n */\nexport default TransitionKernel((input, parameters) => {\n  const size = Distribution.Lognormal(Math.log(Math.max(0.1, parameters.mean_deployment_size)), 0.35);\n  const rawRisk = Distribution.Gaussian(0.28 * parameters.deployment_risk_multiplier, 0.16);\n  return {\n    DeploymentReady: [\n      {\n        size,\n        risk: rawRisk.map(r => Math.max(0.02, Math.min(0.95, r))),\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": -90,
+      "y": 0
+    },
+    {
+      "id": "transition__incident-raised",
+      "name": "Incident Raised",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__incident-being-investigated",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "/**\n * External incident arrivals.\n *\n * This stochastic lambda models incidents raised independently of deployments,\n * such as infrastructure failures or customer-impacting issues. Each firing\n * creates one IncidentBeingInvestigated token, which then blocks the deployment\n * start gate via the inhibitor arc.\n */\nexport default Lambda((input, parameters) => {\n  return parameters.incident_rate;\n});",
+      "transitionKernelCode": "/**\n * Create one coloured Incident token.\n *\n * Severity is sampled around the configured incident severity multiplier and\n * clamped to [0.05, 1]. Higher-severity incidents resolve more slowly in the\n * Close Incident transition, so this sampled attribute affects later dynamics.\n */\nexport default TransitionKernel((input, parameters) => {\n  const rawSeverity = Distribution.Gaussian(0.45 * parameters.incident_severity_multiplier, 0.2);\n  return {\n    IncidentBeingInvestigated: [\n      {\n        severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 450,
+      "y": 585
+    },
+    {
+      "id": "transition__start-deployment",
+      "name": "Start Deployment",
+      "inputArcs": [
+        {
+          "placeId": "place__deployment-ready",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__incident-being-investigated",
+          "weight": 1,
+          "type": "inhibitor"
+        },
+        {
+          "placeId": "place__deployment-in-progress",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__deployment-in-progress",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "/**\n * Safety-gated deployment start.\n *\n * The boolean logic is intentionally simple: if the transition is enabled by\n * the Petri-net arcs, it may fire. The important behaviour is in the arcs:\n * - DeploymentReady is a standard input arc, so one queued deployment is consumed.\n * - IncidentBeingInvestigated is an inhibitor arc, so any active incident blocks firing.\n * - DeploymentInProgress is an inhibitor arc, so only one deployment may run at a time.\n */\nexport default Lambda(() => true);",
+      "transitionKernelCode": "/**\n * Move a deployment from the ready queue into the in-progress lane.\n *\n * The deployment's size and risk are preserved. Age is reset to zero so the\n * in-progress visualizer and downstream completion/failure logic can interpret\n * age as time spent running rather than time spent waiting in the queue.\n */\nexport default TransitionKernel((input) => {\n  const deployment = input.DeploymentReady[0];\n  return {\n    DeploymentInProgress: [\n      {\n        size: deployment.size,\n        risk: deployment.risk,\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 480,
+      "y": 0
+    },
+    {
+      "id": "transition__finish-deployment",
+      "name": "Finish Deployment",
+      "inputArcs": [
+        {
+          "placeId": "place__deployment-in-progress",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__completed-deployments",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "/**\n * Successful deployment completion rate.\n *\n * The returned rate is in expected firings per simulation second for the\n * specific DeploymentInProgress token being considered. Larger deployments\n * complete more slowly, and risky deployments get a modest slowdown to represent\n * extra validation, caution, or late-stage friction.\n */\nexport default Lambda((input, parameters) => {\n  const deployment = input.DeploymentInProgress[0];\n  const sizePenalty = Math.max(0.25, deployment.size);\n  const riskPenalty = Math.max(0.15, 1 - deployment.risk * 0.45);\n  return parameters.deployment_finish_base_rate * riskPenalty / sizePenalty;\n});",
+      "transitionKernelCode": "/**\n * Record a successful deployment.\n *\n * The token's attributes are copied into CompletedDeployments so visualizers and\n * metrics can still inspect the size, risk, and elapsed run age of releases that\n * made it through the pipeline.\n */\nexport default TransitionKernel((input) => {\n  const deployment = input.DeploymentInProgress[0];\n  return {\n    CompletedDeployments: [\n      {\n        size: deployment.size,\n        risk: deployment.risk,\n        age: deployment.age,\n      },\n    ],\n  };\n});",
+      "x": 480,
+      "y": 165
+    },
+    {
+      "id": "transition__close-incident",
+      "name": "Close Incident",
+      "inputArcs": [
+        {
+          "placeId": "place__incident-being-investigated",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__resolved-incidents",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "/**\n * Incident resolution rate.\n *\n * Each active incident is considered separately. High-severity incidents resolve\n * more slowly, because severity appears in the denominator. Once the final\n * incident leaves IncidentBeingInvestigated, the inhibitor arc on Start\n * Deployment no longer blocks the release gate.\n */\nexport default Lambda((input, parameters) => {\n  const incident = input.IncidentBeingInvestigated[0];\n  return parameters.incident_resolution_rate / Math.max(0.2, incident.severity);\n});",
+      "transitionKernelCode": "/**\n * Move an incident to the resolved archive.\n *\n * Severity and age are preserved so the resolved incident pile can show the\n * history of operational load, even though resolved incidents no longer block\n * deployments.\n */\nexport default TransitionKernel((input) => {\n  const incident = input.IncidentBeingInvestigated[0];\n  return {\n    ResolvedIncidents: [\n      {\n        severity: incident.severity,\n        age: incident.age,\n      },\n    ],\n  };\n});",
+      "x": 930,
+      "y": 510
+    },
+    {
+      "id": "transition__deployment-causes-incident",
+      "name": "Deployment Causes Incident",
+      "inputArcs": [
+        {
+          "placeId": "place__deployment-in-progress",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__failed-deployments",
+          "weight": 1
+        },
+        {
+          "placeId": "place__incident-being-investigated",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "/**\n * Deployment failure / incident-generation rate.\n *\n * This is the competing stochastic outcome to Finish Deployment. Riskier and\n * larger deployments are more likely to fail, and the scenario-level risk\n * multiplier can make the whole release environment safer or more dangerous.\n * When this fires, the in-progress deployment is consumed and an incident is\n * opened, which then blocks future starts through the inhibitor arc.\n */\nexport default Lambda((input, parameters) => {\n  const deployment = input.DeploymentInProgress[0];\n  const risk = Math.max(0, Math.min(1, deployment.risk));\n  const size = Math.max(0.25, deployment.size);\n  return parameters.deployment_failure_base_rate * parameters.deployment_risk_multiplier * risk * size;\n});",
+      "transitionKernelCode": "/**\n * Turn a failed deployment into both an audit record and an active incident.\n *\n * The failed deployment is copied to FailedDeployments for counting and display.\n * A new Incident token is created with severity derived from deployment risk,\n * plus Gaussian noise. The severity is clamped to [0.05, 1] so incident handling\n * remains numerically stable and visually interpretable.\n */\nexport default TransitionKernel((input, parameters) => {\n  const deployment = input.DeploymentInProgress[0];\n  const rawSeverity = Distribution.Gaussian(\n    Math.min(1, 0.25 + deployment.risk * 0.65 * parameters.incident_severity_multiplier),\n    0.12\n  );\n  return {\n    FailedDeployments: [\n      {\n        size: deployment.size,\n        risk: deployment.risk,\n        age: deployment.age,\n      },\n    ],\n    IncidentBeingInvestigated: [\n      {\n        severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 450,
+      "y": 405
+    }
+  ],
+  "types": [
+    {
+      "id": "type__deployment",
+      "name": "Deployment",
+      "iconSlug": "rocket",
+      "displayColor": "#2563eb",
+      "elements": [
+        {
+          "elementId": "deployment__size",
+          "name": "size",
+          "type": "real"
+        },
+        {
+          "elementId": "deployment__risk",
+          "name": "risk",
+          "type": "real"
+        },
+        {
+          "elementId": "deployment__age",
+          "name": "age",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__incident",
+      "name": "Incident",
+      "iconSlug": "alert-triangle",
+      "displayColor": "#dc2626",
+      "elements": [
+        {
+          "elementId": "incident__severity",
+          "name": "severity",
+          "type": "real"
+        },
+        {
+          "elementId": "incident__age",
+          "name": "age",
+          "type": "real"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "dynamics__deployment_age",
+      "name": "Deployment Age",
+      "colorId": "type__deployment",
+      "code": "// A simple clock: every deployment's age increases at rate 1 (size and risk\n// are fixed at creation, so their derivatives are 0). Age is used to estimate\n// progress in the deployment-lane visualizer.\nexport default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    size: 0,\n    risk: 0,\n    age: 1,\n  }));\n});"
+    },
+    {
+      "id": "dynamics__incident_age",
+      "name": "Incident Age",
+      "colorId": "type__incident",
+      "code": "// Clock for incidents: age rises at rate 1 while severity stays fixed. Older,\n// higher-severity incidents take longer to resolve in the Close Incident rate.\nexport default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    severity: 0,\n    age: 1,\n  }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param__deployment_creation_rate",
+      "name": "Deployment Creation Rate",
+      "variableName": "deployment_creation_rate",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__incident_rate",
+      "name": "Incident Rate",
+      "variableName": "incident_rate",
+      "type": "real",
+      "defaultValue": "0.1"
+    },
+    {
+      "id": "param__incident_resolution_rate",
+      "name": "Incident Resolution Rate",
+      "variableName": "incident_resolution_rate",
+      "type": "real",
+      "defaultValue": "0.3"
+    },
+    {
+      "id": "param__deployment_finish_base_rate",
+      "name": "Deployment Finish Base Rate",
+      "variableName": "deployment_finish_base_rate",
+      "type": "real",
+      "defaultValue": "0.35"
+    },
+    {
+      "id": "param__deployment_failure_base_rate",
+      "name": "Deployment Failure Base Rate",
+      "variableName": "deployment_failure_base_rate",
+      "type": "real",
+      "defaultValue": "0.04"
+    },
+    {
+      "id": "param__deployment_risk_multiplier",
+      "name": "Deployment Risk Multiplier",
+      "variableName": "deployment_risk_multiplier",
+      "type": "real",
+      "defaultValue": "1"
+    },
+    {
+      "id": "param__mean_deployment_size",
+      "name": "Mean Deployment Size",
+      "variableName": "mean_deployment_size",
+      "type": "real",
+      "defaultValue": "1"
+    },
+    {
+      "id": "param__incident_severity_multiplier",
+      "name": "Incident Severity Multiplier",
+      "variableName": "incident_severity_multiplier",
+      "type": "real",
+      "defaultValue": "1"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__successful_deployments",
+      "name": "Successful deployments",
+      "description": "Cumulative number of deployments that finished without causing an incident.",
+      "code": "return state.places.CompletedDeployments.count;"
+    },
+    {
+      "id": "metric__failed_deployments",
+      "name": "Failed deployments",
+      "description": "Cumulative number of deployments that rolled back and opened an incident.",
+      "code": "return state.places.FailedDeployments.count;"
+    },
+    {
+      "id": "metric__release_queue_length",
+      "name": "Release queue length",
+      "description": "How many deployments are waiting behind the safety gate.",
+      "code": "return state.places.DeploymentReady.count;"
+    },
+    {
+      "id": "metric__active_incidents",
+      "name": "Active incidents",
+      "description": "Number of incidents currently blocking the deployment gate.",
+      "code": "return state.places.IncidentBeingInvestigated.count;"
+    },
+    {
+      "id": "metric__deployment_gate_blocked",
+      "name": "Deployment gate blocked",
+      "description": "Returns 1 when an incident or active deployment is preventing another deployment from starting; otherwise 0.",
+      "code": "const incidents = state.places.IncidentBeingInvestigated.count;\nconst inProgress = state.places.DeploymentInProgress.count;\nreturn incidents > 0 || inProgress > 0 ? 1 : 0;"
+    },
+    {
+      "id": "metric__failure_share",
+      "name": "Failure share",
+      "description": "Share of completed-or-failed deployments that ended in failure.",
+      "code": "const failed = state.places.FailedDeployments.count;\nconst succeeded = state.places.CompletedDeployments.count;\nconst total = failed + succeeded;\nreturn total === 0 ? 0 : failed / total;"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__baseline",
+      "name": "Baseline operations",
+      "description": "Balanced deployment rate, moderate risk, and normal incident flow. Good starting point for explaining the inhibitor gate.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "deployment_rate",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "incident_rate",
+          "default": 0.1
+        },
+        {
+          "type": "real",
+          "identifier": "risk_multiplier",
+          "default": 1
+        },
+        {
+          "type": "real",
+          "identifier": "mean_size",
+          "default": 1
+        },
+        {
+          "type": "real",
+          "identifier": "resolution_rate",
+          "default": 0.3
+        }
+      ],
+      "parameterOverrides": {
+        "param__deployment_creation_rate": "scenario.deployment_rate",
+        "param__incident_rate": "scenario.incident_rate",
+        "param__deployment_risk_multiplier": "scenario.risk_multiplier",
+        "param__mean_deployment_size": "scenario.mean_size",
+        "param__incident_resolution_rate": "scenario.resolution_rate"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {}
+      }
+    },
+    {
+      "id": "scenario__incident_surge",
+      "name": "Incident surge",
+      "description": "External incidents arrive quickly and block the deployment gate, causing the release queue to pile up.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "deployment_rate",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "incident_rate",
+          "default": 0.35
+        },
+        {
+          "type": "real",
+          "identifier": "severity_multiplier",
+          "default": 1.25
+        },
+        {
+          "type": "real",
+          "identifier": "resolution_rate",
+          "default": 0.22
+        }
+      ],
+      "parameterOverrides": {
+        "param__deployment_creation_rate": "scenario.deployment_rate",
+        "param__incident_rate": "scenario.incident_rate",
+        "param__incident_severity_multiplier": "scenario.severity_multiplier",
+        "param__incident_resolution_rate": "scenario.resolution_rate"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {}
+      }
+    },
+    {
+      "id": "scenario__high_velocity",
+      "name": "High deployment velocity",
+      "description": "A high release creation rate tests whether the single-deployment safety gate becomes the bottleneck.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "deployment_rate",
+          "default": 1.2
+        },
+        {
+          "type": "real",
+          "identifier": "finish_rate",
+          "default": 0.45
+        },
+        {
+          "type": "real",
+          "identifier": "risk_multiplier",
+          "default": 1
+        },
+        {
+          "type": "real",
+          "identifier": "incident_rate",
+          "default": 0.08
+        }
+      ],
+      "parameterOverrides": {
+        "param__deployment_creation_rate": "scenario.deployment_rate",
+        "param__deployment_finish_base_rate": "scenario.finish_rate",
+        "param__deployment_risk_multiplier": "scenario.risk_multiplier",
+        "param__incident_rate": "scenario.incident_rate"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {}
+      }
+    },
+    {
+      "id": "scenario__risky_large_releases",
+      "name": "Risky large releases",
+      "description": "Larger, riskier releases take longer and more often create incidents, visibly closing the inhibitor gate.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "deployment_rate",
+          "default": 0.45
+        },
+        {
+          "type": "real",
+          "identifier": "mean_size",
+          "default": 1.8
+        },
+        {
+          "type": "real",
+          "identifier": "risk_multiplier",
+          "default": 1.75
+        },
+        {
+          "type": "real",
+          "identifier": "failure_base_rate",
+          "default": 0.07
+        },
+        {
+          "type": "real",
+          "identifier": "severity_multiplier",
+          "default": 1.4
+        }
+      ],
+      "parameterOverrides": {
+        "param__deployment_creation_rate": "scenario.deployment_rate",
+        "param__mean_deployment_size": "scenario.mean_size",
+        "param__deployment_risk_multiplier": "scenario.risk_multiplier",
+        "param__deployment_failure_base_rate": "scenario.failure_base_rate",
+        "param__incident_severity_multiplier": "scenario.severity_multiplier"
+      },
+      "initialState": {
+        "type": "per_place",
+        "content": {}
+      }
+    }
+  ]
+}

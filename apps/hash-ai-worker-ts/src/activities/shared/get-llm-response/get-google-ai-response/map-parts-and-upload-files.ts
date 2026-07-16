@@ -75,5 +75,11 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
         },
       } satisfies Part;
     }
+    case "thinking":
+    case "redacted_thinking": {
+      throw new Error(
+        "Anthropic thinking content is not supported for Google AI calls",
+      );
+    }
   }
 };
