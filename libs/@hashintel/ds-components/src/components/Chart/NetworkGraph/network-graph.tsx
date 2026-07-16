@@ -22,6 +22,7 @@ import {
   iconTextureUrl,
 } from "./network-graph-util";
 
+import type { IconName } from "../../Icon/icon";
 import type { BundledEdge } from "./edge-bundling";
 import type {
   DetailIconAtlas,
@@ -56,6 +57,19 @@ export interface NetworkGraphEdgeInteraction {
   y: number;
 }
 
+/**
+ * A selection given as an explicit neighbourhood rather than a node id: the
+ * selected `point`, its `edges`, and its `neighbours`, all shown with the selected
+ * style. Any of these that aren't already in the graph's `points`/`edges` are
+ * overlaid; those that are use the existing graph items rather than being
+ * re-rendered.
+ */
+export interface NetworkGraphSelection {
+  point: NetworkGraphPoint;
+  edges: NetworkGraphEdge[];
+  neighbours: NetworkGraphPoint[];
+}
+
 export interface NetworkGraphProps {
   /** The nodes to plot. */
   points: NetworkGraphPoint[];
@@ -64,10 +78,13 @@ export interface NetworkGraphProps {
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
-   * Id of a node to highlight with the same treatment as hovering (edges,
-   * neighbour rings and a prominent node). An active hover takes precedence.
+   * The node to highlight with the same treatment as hovering (edges, neighbour
+   * rings and a prominent node). Either the id of a node already in the graph, or
+   * a {@link NetworkGraphSelection} giving an explicit `point`/`edges`/`neighbours`
+   * neighbourhood to overlay (items already in the graph are reused). An active
+   * hover takes precedence.
    */
-  selected?: number | null;
+  selected?: number | NetworkGraphSelection | null;
   /**
    * Called with the `selected` node's current on-screen position (CSS pixels,
    * relative to the chart's top-left) whenever it changes — including as the
@@ -673,17 +690,102 @@ export const NetworkGraph = ({
     return map;
   }, [edges]);
 
+  /**
+   * When `selected` is a {@link NetworkGraphSelection} (an explicit neighbourhood
+   * to overlay) rather than a node id, this is that object; otherwise `null`.
+   */
+  const overlaySelection = useMemo(
+    () => (selected != null && typeof selected === "object" ? selected : null),
+    [selected],
+  );
+
+  /**
+   * The overlay selection's point + neighbours that are **not** already in the
+   * graph — the items to add to the rendering. Existing items are reused (left out
+   * here) so they aren't drawn twice.
+   */
+  const overlayPoints = useMemo<NetworkGraphPoint[]>(() => {
+    if (!overlaySelection) {
+      return [];
+    }
+    const result: NetworkGraphPoint[] = [];
+    const seen = new Set<number>();
+    const add = (point: NetworkGraphPoint) => {
+      if (pointById.has(point.id) || seen.has(point.id)) {
+        return;
+      }
+      seen.add(point.id);
+      result.push(point);
+    };
+    add(overlaySelection.point);
+    for (const neighbour of overlaySelection.neighbours) {
+      add(neighbour);
+    }
+    return result;
+  }, [overlaySelection, pointById]);
+
+  /** The overlay selection's point + neighbours + edges keyed by id, for lookups. */
+  const overlayPointById = useMemo(() => {
+    const map = new Map<number, NetworkGraphPoint>();
+    if (overlaySelection) {
+      map.set(overlaySelection.point.id, overlaySelection.point);
+      for (const neighbour of overlaySelection.neighbours) {
+        map.set(neighbour.id, neighbour);
+      }
+    }
+    return map;
+  }, [overlaySelection]);
+
+  const overlayEdgeById = useMemo(() => {
+    const map = new Map<number, NetworkGraphEdge>();
+    if (overlaySelection) {
+      for (const edge of overlaySelection.edges) {
+        map.set(edge.id, edge);
+      }
+    }
+    return map;
+  }, [overlaySelection]);
+
+  /**
+   * Resolve a node/edge by id, preferring the existing graph item and falling back
+   * to an overlaid one — so overlay geometry can reference either.
+   */
+  const resolvePoint = useCallback(
+    (id: number): NetworkGraphPoint | undefined =>
+      pointById.get(id) ?? overlayPointById.get(id),
+    [pointById, overlayPointById],
+  );
+  const resolveEdge = useCallback(
+    (id: number): NetworkGraphEdge | undefined =>
+      edgeById.get(id) ?? overlayEdgeById.get(id),
+    [edgeById, overlayEdgeById],
+  );
+
   /** The two endpoint nodes of an edge, for the hover label and node outlines. */
   const endpointsOf = useCallback(
     (edge: NetworkGraphEdge): NetworkGraphPoint[] => {
-      const from = pointById.get(edge.fromId);
-      const to = pointById.get(edge.toId);
+      const from = resolvePoint(edge.fromId);
+      const to = resolvePoint(edge.toId);
       return [from, to].filter(
         (point): point is NetworkGraphPoint => point !== undefined,
       );
     },
-    [pointById],
+    [resolvePoint],
   );
+
+  /** {@link colorByHex} extended with any overlay points' colours. */
+  const colorByHexWithOverlay = useMemo(() => {
+    if (overlayPoints.length === 0) {
+      return colorByHex;
+    }
+    const map = new Map(colorByHex);
+    for (const point of overlayPoints) {
+      if (!map.has(point.color)) {
+        map.set(point.color, hexToRgb(point.color));
+      }
+    }
+    return map;
+  }, [colorByHex, overlayPoints]);
 
   /** Adjacency list: node id → edges touching it. */
   const adjacency = useMemo(() => {
@@ -704,30 +806,49 @@ export const NetworkGraph = ({
   }, [edges]);
 
   /**
-   * The node whose neighbourhood is highlighted: the hovered node, or — when
-   * nothing is hovered — the externally `selected` node.
+   * The externally selected node: looked up by id, or the `point` of an overlay
+   * selection (preferring the graph's copy if that id already exists).
    */
-  const activeNode = useMemo(() => {
-    if (hovered) {
-      return hovered;
+  const selectedPoint = useMemo(() => {
+    if (selected == null) {
+      return null;
     }
-    if (selected != null) {
+    if (typeof selected === "number") {
       return pointById.get(selected) ?? null;
     }
-    return null;
-  }, [hovered, selected, pointById]);
+    return pointById.get(selected.point.id) ?? selected.point;
+  }, [selected, pointById]);
 
-  /** Edges + neighbour nodes for the active (hovered or selected) node. */
+  /**
+   * The node whose neighbourhood is highlighted: the hovered node, or — when
+   * nothing is hovered — the externally selected node.
+   */
+  const activeNode = useMemo(
+    () => hovered ?? selectedPoint,
+    [hovered, selectedPoint],
+  );
+
+  /**
+   * Edges + neighbour nodes for the active (hovered or selected) node. For an
+   * overlay selection the neighbourhood is taken from the provided `edges`/
+   * `neighbours` (resolved against the graph); otherwise it is derived from the
+   * graph's adjacency. Endpoints resolve to the graph item when it exists, else the
+   * overlaid one.
+   */
   const highlight = useMemo(() => {
     if (!activeNode) {
       return null;
     }
-    const incident = adjacency.get(activeNode.id) ?? [];
+    const useOverlay =
+      overlaySelection != null && activeNode.id === overlaySelection.point.id;
+    const incident = useOverlay
+      ? overlaySelection.edges
+      : (adjacency.get(activeNode.id) ?? []);
     const lines: HoverLine[] = [];
     const neighbourIds = new Set<number>();
     for (const edge of incident) {
-      const from = pointById.get(edge.fromId);
-      const to = pointById.get(edge.toId);
+      const from = resolvePoint(edge.fromId);
+      const to = resolvePoint(edge.toId);
       if (!from || !to) {
         continue;
       }
@@ -739,14 +860,24 @@ export const NetworkGraph = ({
       neighbourIds.add(edge.fromId === activeNode.id ? edge.toId : edge.fromId);
     }
     const neighbours: NetworkGraphPoint[] = [];
-    for (const id of neighbourIds) {
-      const point = pointById.get(id);
-      if (point) {
-        neighbours.push(point);
+    if (useOverlay) {
+      // Use the explicitly-provided neighbours, resolved to their graph copy.
+      for (const neighbour of overlaySelection.neighbours) {
+        const point = resolvePoint(neighbour.id);
+        if (point) {
+          neighbours.push(point);
+        }
+      }
+    } else {
+      for (const id of neighbourIds) {
+        const point = resolvePoint(id);
+        if (point) {
+          neighbours.push(point);
+        }
       }
     }
     return { lines, neighbours };
-  }, [activeNode, adjacency, pointById]);
+  }, [activeNode, overlaySelection, adjacency, resolvePoint]);
 
   /** Frame the graph to fit the container on mount and on resize. */
   useEffect(() => {
@@ -790,15 +921,36 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [bounds]);
 
+  /** Distinct icon names used by the graph points. */
+  const pointIconNames = useMemo(
+    () => [
+      ...new Set(points.flatMap((point) => (point.icon ? [point.icon] : []))),
+    ],
+    [points],
+  );
+
   /**
-   * Rasterise every icon used by the data into a single mask atlas for the
-   * detail {@link IconLayer}. Async (images load off data URLs); the icons
-   * simply appear once ready. Rebuilt only when the set of points changes.
+   * A stable key over the distinct icon names — graph points plus any overlay
+   * points — so the atlas is rebuilt only when the icon *set* actually changes
+   * (not merely when the selection reference changes).
+   */
+  const iconNamesKey = useMemo(() => {
+    const set = new Set(pointIconNames);
+    for (const point of overlayPoints) {
+      if (point.icon) {
+        set.add(point.icon);
+      }
+    }
+    return [...set].sort().join(" ");
+  }, [pointIconNames, overlayPoints]);
+
+  /**
+   * Rasterise every icon used by the data (and any overlaid points) into a single
+   * mask atlas for the detail {@link IconLayer}. Async (images load off data URLs);
+   * the icons simply appear once ready. Rebuilt only when the icon set changes.
    */
   useEffect(() => {
-    const names = [
-      ...new Set(points.flatMap((point) => (point.icon ? [point.icon] : []))),
-    ];
+    const names = iconNamesKey ? iconNamesKey.split(" ") : [];
     if (names.length === 0) {
       // Nothing to rasterise; any prior atlas simply goes unused (no icon data).
       return;
@@ -836,7 +988,9 @@ export const NetworkGraph = ({
               resolve();
             };
             image.onerror = () => resolve();
-            image.src = iconTextureUrl(name);
+            // `name` came from a point's `icon` (an `IconName`), round-tripped
+            // through the stable string key.
+            image.src = iconTextureUrl(name as IconName);
           }),
       ),
     ).then(() => {
@@ -847,7 +1001,7 @@ export const NetworkGraph = ({
     return () => {
       cancelled = true;
     };
-  }, [points]);
+  }, [iconNamesKey]);
 
   /**
    * Report the selected node's on-screen position, re-projecting on every view
@@ -858,8 +1012,7 @@ export const NetworkGraph = ({
       return;
     }
     const element = containerRef.current;
-    const node = selected == null ? undefined : pointById.get(selected);
-    if (!element || !viewState || !node) {
+    if (!element || !viewState || !selectedPoint) {
       onSelectedPositionChange(null);
       return;
     }
@@ -869,9 +1022,9 @@ export const NetworkGraph = ({
       onSelectedPositionChange(null);
       return;
     }
-    const [x = 0, y = 0] = viewport.project([node.x, node.y]);
+    const [x = 0, y = 0] = viewport.project([selectedPoint.x, selectedPoint.y]);
     onSelectedPositionChange({ x, y });
-  }, [onSelectedPositionChange, selected, pointById, viewState, view]);
+  }, [onSelectedPositionChange, selectedPoint, viewState, view]);
 
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
@@ -916,17 +1069,17 @@ export const NetworkGraph = ({
       // `source`, not node fields) fires `onEdgeClick` instead of `onNodeClick`,
       // so it leaves the node selection intact.
       if (object && "path" in object) {
-        onEdgeClick?.({ edge: edgeById.get(object.edgeId) ?? null, x, y });
+        onEdgeClick?.({ edge: resolveEdge(object.edgeId) ?? null, x, y });
         return;
       }
       if (object && "source" in object) {
-        onEdgeClick?.({ edge: edgeById.get(object.id) ?? null, x, y });
+        onEdgeClick?.({ edge: resolveEdge(object.id) ?? null, x, y });
         return;
       }
       // Narrowed to a node (or null) by the guards above.
       onNodeClick?.({ point: object, x, y });
     },
-    [onNodeClick, onEdgeClick, edgeById],
+    [onNodeClick, onEdgeClick, resolveEdge],
   );
 
   /** Current zoom level as a single number (orthographic zoom may be a pair). */
@@ -1102,8 +1255,10 @@ export const NetworkGraph = ({
         break;
       }
     }
-    return visible;
-  }, [isDetailZoom, viewState, containerSize, view, points]);
+    // Always render the overlaid selection points (not in `points`, so no dupes),
+    // even if they fall outside the culled viewport rect.
+    return overlayPoints.length > 0 ? [...visible, ...overlayPoints] : visible;
+  }, [isDetailZoom, viewState, containerSize, view, points, overlayPoints]);
 
   /**
    * The node hierarchy used to bundle the detail-view edges (root → colour/type →
@@ -1184,11 +1339,15 @@ export const NetworkGraph = ({
     if (!isDetailZoom || !activeNode) {
       return [];
     }
-    const incident = adjacency.get(activeNode.id) ?? [];
+    const useOverlay =
+      overlaySelection != null && activeNode.id === overlaySelection.point.id;
+    const incident = useOverlay
+      ? overlaySelection.edges
+      : (adjacency.get(activeNode.id) ?? []);
     const paths: BundledEdge[] = [];
     for (const edge of incident) {
-      const from = pointById.get(edge.fromId);
-      const to = pointById.get(edge.toId);
+      const from = resolvePoint(edge.fromId);
+      const to = resolvePoint(edge.toId);
       if (from && to) {
         paths.push({
           edgeId: edge.id,
@@ -1197,7 +1356,14 @@ export const NetworkGraph = ({
       }
     }
     return paths;
-  }, [isDetailZoom, activeNode, adjacency, pointById, bundleHierarchy]);
+  }, [
+    isDetailZoom,
+    activeNode,
+    overlaySelection,
+    adjacency,
+    resolvePoint,
+    bundleHierarchy,
+  ]);
 
   /**
    * The hovered edge rebuilt as a full-length bundled curve (source → target
@@ -1210,9 +1376,9 @@ export const NetworkGraph = ({
     if (!isDetailZoom || !hoveredEdge) {
       return null;
     }
-    const edge = edgeById.get(hoveredEdge.edgeId);
-    const from = edge && pointById.get(edge.fromId);
-    const to = edge && pointById.get(edge.toId);
+    const edge = resolveEdge(hoveredEdge.edgeId);
+    const from = edge && resolvePoint(edge.fromId);
+    const to = edge && resolvePoint(edge.toId);
     if (!from || !to) {
       return null;
     }
@@ -1220,7 +1386,7 @@ export const NetworkGraph = ({
       edgeId: hoveredEdge.edgeId,
       path: bundleEdgePath(from, to, bundleHierarchy),
     };
-  }, [isDetailZoom, hoveredEdge, edgeById, pointById, bundleHierarchy]);
+  }, [isDetailZoom, hoveredEdge, resolveEdge, resolvePoint, bundleHierarchy]);
 
   /**
    * A direction arrow for each highlighted edge — the active node's incident edges
@@ -1252,7 +1418,7 @@ export const NetworkGraph = ({
       const uy = dy / length;
       // The target node's on-screen radius: fixed in the detail view; the active
       // node's or a neighbour's grow-ring radius in the compact view.
-      const targetIsActive = edgeById.get(edgeId)?.toId === activeNode?.id;
+      const targetIsActive = resolveEdge(edgeId)?.toId === activeNode?.id;
       const targetRadius = isDetailZoom
         ? DETAIL_NODE_DIAMETER / 2
         : targetIsActive
@@ -1297,7 +1463,7 @@ export const NetworkGraph = ({
     highlightEdgePaths,
     hoveredFullEdge,
     highlight,
-    edgeById,
+    resolveEdge,
     activeNode,
     arrowGapPx,
   ]);
@@ -1356,7 +1522,7 @@ export const NetworkGraph = ({
     }
     const scale = 2 ** currentZoom;
     return lines.map((line) => {
-      const toId = edgeById.get(line.id)?.toId;
+      const toId = resolveEdge(line.id)?.toId;
       const targetRadius =
         toId === activeNode?.id ? HOVERED_MIN_RADIUS : NEIGHBOUR_MIN_RADIUS;
       const worldTrim = (targetRadius + arrowGapPx) / scale;
@@ -1373,7 +1539,14 @@ export const NetworkGraph = ({
         ],
       };
     });
-  }, [isDetailZoom, highlight, currentZoom, edgeById, activeNode, arrowGapPx]);
+  }, [
+    isDetailZoom,
+    highlight,
+    currentZoom,
+    resolveEdge,
+    activeNode,
+    arrowGapPx,
+  ]);
 
   /**
    * The faint background bundled edges, minus the prominent (arrowed) ones and each
@@ -1438,7 +1611,7 @@ export const NetworkGraph = ({
       edgeHoverNodes,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
-      colorByHex,
+      colorByHex: colorByHexWithOverlay,
       radiusScale,
       pointOpacity,
       dimmed: highlight !== null,
@@ -1460,7 +1633,7 @@ export const NetworkGraph = ({
             pickable: true,
             data: detailPoints,
             activeNode,
-            colorByHex,
+            colorByHex: colorByHexWithOverlay,
             iconAtlas,
             edgeHoverNodes,
           }),
@@ -1505,7 +1678,7 @@ export const NetworkGraph = ({
           pickable: true,
           data: [activeNode],
           activeNode,
-          colorByHex,
+          colorByHex: colorByHexWithOverlay,
           iconAtlas,
           edgeHoverNodes: [],
         }),
@@ -1546,7 +1719,7 @@ export const NetworkGraph = ({
     edgesHoverable,
     selected,
     activeNode,
-    colorByHex,
+    colorByHexWithOverlay,
     radiusScale,
     pointOpacity,
     isDetailZoom,
@@ -1595,7 +1768,7 @@ export const NetworkGraph = ({
             if (picked) {
               if (hoveredEdgeIdRef.current !== picked.edgeId) {
                 hoveredEdgeIdRef.current = picked.edgeId;
-                const resolved = edgeById.get(picked.edgeId) ?? null;
+                const resolved = resolveEdge(picked.edgeId) ?? null;
                 setHoveredEdge({
                   edgeId: picked.edgeId,
                   path: picked.path,

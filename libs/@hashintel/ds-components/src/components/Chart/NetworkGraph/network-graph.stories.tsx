@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -15,6 +15,7 @@ import {
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
+  type NetworkGraphSelection,
 } from "./network-graph";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -108,6 +109,42 @@ const tooltipStyles = css({
   userSelect: "none",
 });
 
+// A small toolbar overlaid on the chart for the demo selection buttons.
+const controlsStyles = css({
+  position: "absolute",
+  top: "3",
+  left: "3",
+  display: "flex",
+  gap: "2",
+  zIndex: "[1]",
+});
+
+const buttonStyles = css({
+  paddingX: "3",
+  paddingY: "2",
+  borderRadius: "sm",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "neutral.s20",
+  backgroundColor: "white",
+  color: "neutral.s60",
+  fontSize: "xs",
+  cursor: "pointer",
+});
+
+/** Pick a random element; throws on an empty array (callers guard). */
+const randomChoice = <T,>(items: readonly T[]): T => {
+  const item = items[Math.floor(Math.random() * items.length)];
+  if (item === undefined) {
+    throw new Error("randomChoice on an empty array");
+  }
+  return item;
+};
+
+/** A random offset in `[-magnitude, +magnitude]`. */
+const jitter = (magnitude: number): number =>
+  (Math.random() - 0.5) * 2 * magnitude;
+
 /**
  * Shared render for the NetworkGraph stories: fetches the fixture data (trimmed
  * to `nodeLimit` when given), wires up node/edge selection, and anchors tooltips
@@ -124,7 +161,11 @@ const NetworkGraphStory = ({
   // The frame is the popover's trigger; `positionFromPoint` then anchors the
   // tooltip at a point measured from the frame's top-left.
   const frameRef = useRef<HTMLDivElement>(null);
-  const [selected, setSelected] = useState<NetworkGraphPoint | null>(null);
+  // The selection driving the chart: a node id (existing node) or an explicit
+  // `{ point, edges, neighbours }` neighbourhood to overlay.
+  const [selected, setSelected] = useState<
+    number | NetworkGraphSelection | null
+  >(null);
   // The selected node's live on-screen position, updated by the chart as the
   // user zooms/pans so the tooltip tracks the node.
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
@@ -138,9 +179,152 @@ const NetworkGraphStory = ({
     x: number;
     y: number;
   } | null>(null);
+  // Counter for the ids of fabricated overlay nodes/edges, kept well clear of the
+  // fixture's ids so they never collide.
+  const nextIdRef = useRef(1_000_000_000);
+
+  /** Fixture nodes keyed by id, for resolving edge endpoints in the demo. */
+  const pointById = useMemo(() => {
+    const map = new Map<number, NetworkGraphPoint>();
+    for (const point of data?.points ?? []) {
+      map.set(point.id, point);
+    }
+    return map;
+  }, [data]);
+
+  /** A small offset (2% of the graph's extent) for scattering overlay nodes. */
+  const spread = useMemo(() => {
+    const points = data?.points ?? [];
+    if (points.length === 0) {
+      return 100;
+    }
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const point of points) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+    return (Math.hypot(maxX - minX, maxY - minY) || 100) * 0.02;
+  }, [data]);
+
+  /** A brand-new node at `(x, y)`, borrowing a random colour/icon from the graph. */
+  const createNewPoint = useCallback(
+    (x: number, y: number): NetworkGraphPoint => {
+      const palette = data?.points ?? [];
+      const sample = palette.length > 0 ? randomChoice(palette) : undefined;
+      return {
+        id: nextIdRef.current++,
+        x,
+        y,
+        color: sample?.color ?? "#7d8bb0",
+        icon: sample?.icon,
+      };
+    },
+    [data],
+  );
+
+  /** Selects a wholly new node with new random edges + neighbours (all overlaid). */
+  const handleSelectNew = useCallback(() => {
+    if (!data || data.points.length === 0) {
+      return;
+    }
+    // Place the new node near an existing one so it lands in a populated area.
+    const anchor = randomChoice(data.points);
+    const point = createNewPoint(
+      anchor.x + jitter(spread),
+      anchor.y + jitter(spread),
+    );
+    const neighbours: NetworkGraphPoint[] = [];
+    const edges: NetworkGraphEdge[] = [];
+    const count = 3 + Math.floor(Math.random() * 4);
+    for (let index = 0; index < count; index += 1) {
+      const neighbour = createNewPoint(
+        point.x + jitter(spread),
+        point.y + jitter(spread),
+      );
+      neighbours.push(neighbour);
+      edges.push({
+        id: nextIdRef.current++,
+        fromId: point.id,
+        toId: neighbour.id,
+      });
+    }
+    setSelected({ point, edges, neighbours });
+    setSelectedEdge(null);
+  }, [data, spread, createNewPoint]);
+
+  /**
+   * Selects an existing node with a ~50/50 mix of its real edges/neighbours and
+   * fabricated new ones — exercising the "reuse existing, overlay new" path.
+   */
+  const handleSelectMixed = useCallback(() => {
+    if (!data || data.edges.length === 0) {
+      return;
+    }
+    // Seed on an existing edge so the chosen node is guaranteed real connections.
+    const point = pointById.get(randomChoice(data.edges).fromId);
+    if (!point) {
+      return;
+    }
+    const perSide = 3;
+    const existingEdges: NetworkGraphEdge[] = [];
+    const existingNeighbours: NetworkGraphPoint[] = [];
+    const usedNeighbours = new Set<number>();
+    for (const edge of data.edges) {
+      if (existingEdges.length >= perSide) {
+        break;
+      }
+      if (edge.fromId !== point.id && edge.toId !== point.id) {
+        continue;
+      }
+      const otherId = edge.fromId === point.id ? edge.toId : edge.fromId;
+      const other = pointById.get(otherId);
+      if (!other || usedNeighbours.has(other.id)) {
+        continue;
+      }
+      usedNeighbours.add(other.id);
+      existingEdges.push(edge);
+      existingNeighbours.push(other);
+    }
+    const newNeighbours: NetworkGraphPoint[] = [];
+    const newEdges: NetworkGraphEdge[] = [];
+    for (let index = 0; index < perSide; index += 1) {
+      const neighbour = createNewPoint(
+        point.x + jitter(spread),
+        point.y + jitter(spread),
+      );
+      newNeighbours.push(neighbour);
+      newEdges.push({
+        id: nextIdRef.current++,
+        fromId: point.id,
+        toId: neighbour.id,
+      });
+    }
+    setSelected({
+      point,
+      edges: [...existingEdges, ...newEdges],
+      neighbours: [...existingNeighbours, ...newNeighbours],
+    });
+    setSelectedEdge(null);
+  }, [data, pointById, spread, createNewPoint]);
+
+  /** The selected node itself, for the tooltip (resolved from either form). */
+  const selectedPoint = useMemo(() => {
+    if (selected == null) {
+      return null;
+    }
+    if (typeof selected === "number") {
+      return pointById.get(selected) ?? null;
+    }
+    return selected.point;
+  }, [selected, pointById]);
 
   const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
-    setSelected(interaction.point);
+    setSelected(interaction.point?.id ?? null);
     // A node click closes any open edge popover.
     setSelectedEdge(null);
   }, []);
@@ -174,13 +358,29 @@ const NetworkGraphStory = ({
           <NetworkGraph
             points={data.points}
             edges={data.edges}
-            selected={selected?.id ?? null}
+            selected={selected}
             onNodeClick={handleClick}
             onNodeHover={handleNodeHover}
             onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
           />
-          {selected && tooltipPos ? (
+          <div className={controlsStyles}>
+            <button
+              type="button"
+              className={buttonStyles}
+              onClick={handleSelectNew}
+            >
+              Select new node
+            </button>
+            <button
+              type="button"
+              className={buttonStyles}
+              onClick={handleSelectMixed}
+            >
+              Select existing + mix
+            </button>
+          </div>
+          {selectedPoint && tooltipPos ? (
             <Popover
               triggerRef={frameRef}
               position="bottom-start"
@@ -190,9 +390,9 @@ const NetworkGraphStory = ({
               gapY={12}
             >
               <div className={tooltipStyles}>
-                <div>Node {selected.id}</div>
+                <div>Node {selectedPoint.id}</div>
                 <div>
-                  ({selected.x.toFixed(1)}, {selected.y.toFixed(1)})
+                  ({selectedPoint.x.toFixed(1)}, {selectedPoint.y.toFixed(1)})
                 </div>
               </div>
             </Popover>
