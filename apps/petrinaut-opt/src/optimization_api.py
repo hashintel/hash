@@ -87,6 +87,9 @@ async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec
             opt_spec = opt_spec,
             pn_model = petrinet_model,
         )
+        # Start the Petrinaut model
+        optimizer.pn_model.start()
+        
         set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
     except Exception as exc:
         set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
@@ -125,6 +128,8 @@ async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spe
             opt_spec = opt_spec,
             pn_model = petrinet_model,
         )
+        # Start the Petrinaut model
+        optimizer.pn_model.start()
         set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
     except Exception as exc:
         set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
