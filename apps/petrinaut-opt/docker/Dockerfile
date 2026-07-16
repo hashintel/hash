@@ -91,9 +91,7 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths" \
-    PETRINAUT_CLI_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths" \
-    UVICORN_HOST=0.0.0.0 \
-    UVICORN_PORT=4004
+    PETRINAUT_CLI_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths"
 
 WORKDIR /app
 
@@ -118,6 +116,6 @@ USER petrinaut
 EXPOSE 4004
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
-    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ.get(\"UVICORN_PORT\", \"4004\")}/status', timeout=4).close()"]
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4004/status', timeout=4).close()"]
 
-ENTRYPOINT ["python", "-m", "uvicorn", "src.optimization_api:app"]
+CMD ["python", "-m", "uvicorn", "src.optimization_api:app", "--host", "0.0.0.0", "--port", "4004"]
