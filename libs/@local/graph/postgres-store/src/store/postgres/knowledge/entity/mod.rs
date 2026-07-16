@@ -108,7 +108,8 @@ use crate::store::{
             summary::{Deduplication, EntitySummaryQuery},
         },
         query::{
-            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler, bulk_insert,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler,
+            StatementShape, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
                 EntityTemporalMetadataRow, PostgresRow as _,
@@ -605,6 +606,10 @@ where
             .change_context(QueryError)?;
 
         compiler.set_limit(params.limit);
+        // The entity read path vouches for the fetch-keys-then-hydrate preconditions: its
+        // hydration joins are foreign-key-total and the distinct key pins all row-multiplying
+        // columns.
+        compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params

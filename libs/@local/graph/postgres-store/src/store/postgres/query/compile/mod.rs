@@ -689,14 +689,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    #[instrument(level = "info", skip_all)]
+    ///
+    /// Records the effective [`StatementShape`] on the span as `statement.shape`, which is the
+    /// place to check whether a fence request actually engaged.
+    #[instrument(
+        level = "info",
+        skip_all,
+        fields(statement.shape = tracing::field::Empty)
+    )]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         let statement = match self.shape {
-            StatementShape::SinglePass => self.single_pass_statement(),
+            StatementShape::SinglePass => {
+                tracing::Span::current().record("statement.shape", "single_pass");
+                self.single_pass_statement()
+            }
             StatementShape::FetchKeysThenHydrate => {
                 match self.fetch_keys_then_hydrate_statement() {
-                    Ok(statement) => statement,
+                    Ok(statement) => {
+                        tracing::Span::current()
+                            .record("statement.shape", "fetch_keys_then_hydrate");
+                        statement
+                    }
                     Err(fallback) => {
+                        tracing::Span::current().record("statement.shape", "single_pass");
                         // An unpaged statement simply has nothing to fence. Every other reason
                         // silently loses the shape the caller opted into and deserves a warning.
                         match fallback {
