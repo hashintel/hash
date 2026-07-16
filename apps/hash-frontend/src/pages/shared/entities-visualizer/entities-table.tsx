@@ -6,7 +6,6 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  extractBaseUrl,
   extractEntityUuidFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
@@ -82,6 +81,14 @@ export { toolbarHeight } from "./entities-table/table-toolbar";
 
 const firstColumnLeftPadding = 16;
 
+const sortableColumns: SortableEntitiesTableColumnKey[] = [
+  "archived",
+  "created",
+  "entityLabel",
+  "entityTypes",
+  "lastEdited",
+];
+
 const emptyTableData: EntitiesTableData = {
   columns: [],
   dataTypeDefinitions: {},
@@ -119,11 +126,7 @@ export const EntitiesTable: FunctionComponent<
     setShowSearch: (showSearch: boolean) => void;
     showSearch: boolean;
     sort: GridSort<SortableEntitiesTableColumnKey>;
-    setSort: (
-      sort: GridSort<SortableEntitiesTableColumnKey> & {
-        convertTo?: BaseUrl;
-      },
-    ) => void;
+    setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
     tableData: EntitiesTableData | null;
     totalResultCount: number | null;
   }
@@ -672,17 +675,6 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const sortableColumns: SortableEntitiesTableColumnKey[] = useMemo(() => {
-    return [
-      "archived",
-      "created",
-      "entityLabel",
-      "entityTypes",
-      "lastEdited",
-      ...columns.map((column) => column.id).filter((key) => isBaseUrl(key)),
-    ];
-  }, [columns]);
-
   const onConversionTargetSelected = useCallback(
     ({
       columnKey,
@@ -729,26 +721,6 @@ export const EntitiesTable: FunctionComponent<
       createRenderEntitiesTableValueCell({ firstColumnLeftPadding }),
     ];
   }, []);
-
-  const setSortWithConversion = useCallback(
-    (newSort: GridSort<SortableEntitiesTableColumnKey>) => {
-      const targetConversions = conversionTargetsByColumnKey[newSort.columnKey];
-
-      const canonical = targetConversions?.find(
-        (conversion) => conversion.guessedAsCanonical,
-      );
-
-      if (canonical) {
-        setSort({
-          ...newSort,
-          convertTo: extractBaseUrl(canonical.dataTypeId),
-        });
-      } else {
-        setSort(newSort);
-      }
-    },
-    [conversionTargetsByColumnKey, setSort],
-  );
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const csvColumns = currentlyDisplayedColumnsRef.current;
@@ -818,11 +790,10 @@ export const EntitiesTable: FunctionComponent<
     <>
       <TableToolbar
         generateCsvFile={generateCsvFile}
-        displayedColumns={columns}
         showSearch={showSearch}
         setShowSearch={setShowSearch}
         sort={sort}
-        setSort={setSortWithConversion}
+        setSort={setSort}
       />
       <Stack sx={{ gap: 1, position: "relative" }}>
         <Grid
@@ -850,7 +821,7 @@ export const EntitiesTable: FunctionComponent<
           showSearch={showSearch}
           sortableColumns={sortableColumns}
           sort={sort}
-          setSort={setSortWithConversion}
+          setSort={setSort}
         />
 
         {hasMoreRowsAvailable && (
