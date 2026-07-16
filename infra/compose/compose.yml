@@ -632,9 +632,6 @@ services:
       timeout: 2s
       retries: 10
 
-  # Bind address, port, healthcheck, and non-root user are baked into the
-  # image; it is self-contained (in-memory Optuna, spawns the bundled
-  # petrinaut-cli itself), hence no environment or depends_on.
   petrinaut-opt:
     profiles:
       - hash
