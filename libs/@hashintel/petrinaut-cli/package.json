@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut-cli",
-  "version": "0.0.0-private",
+  "version": "0.0.0",
   "private": true,
   "description": "Internal JSON-lines CLI for Petrinaut simulations",
   "license": "(MIT OR Apache-2.0)",
