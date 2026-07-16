@@ -632,6 +632,22 @@ services:
       timeout: 2s
       retries: 10
 
+  # Bind address, port, healthcheck, and non-root user are baked into the
+  # image; it is self-contained (in-memory Optuna, spawns the bundled
+  # petrinaut-cli itself), hence no environment or depends_on.
+  petrinaut-opt:
+    profiles:
+      - hash
+    image: ghcr.io/hashintel/hash/petrinaut-opt
+    init: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${PETRINAUT_OPT_PORT:-4004}:4004"
+
   api-migrate:
     profiles:
       - hash
@@ -673,6 +689,8 @@ services:
 
       HASH_GRAPH_HTTP_HOST: "graph"
       HASH_GRAPH_HTTP_PORT: "4000"
+      HASH_PETRINAUT_OPT_HOST: "petrinaut-opt"
+      HASH_PETRINAUT_OPT_PORT: "4004"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"
