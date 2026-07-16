@@ -58,6 +58,16 @@ class Bounds(Generic[T]):
     log: bool = False
 
 def IntBounds(low: int, high: int, *, log: bool = False) -> Bounds[int]:
+    """Construct integer-valued search bounds.
+
+    Args:
+        low (int): Inclusive lower bound.
+        high (int): Inclusive upper bound.
+        log (bool): Sample on a log scale. Defaults to False.
+
+    Returns:
+        Bounds[int]: Integer bounds descriptor.
+    """
     return Bounds(low, high, "int", log)
 
 def FloatBounds(
@@ -66,16 +76,26 @@ def FloatBounds(
     *,
     log: bool = False,
 ) -> Bounds[float]:
+    """Construct float-valued search bounds.
+
+    Args:
+        low (float): Inclusive lower bound.
+        high (float): Inclusive upper bound.
+        log (bool): Sample on a log scale. Defaults to False.
+
+    Returns:
+        Bounds[float]: Float bounds descriptor.
+    """
     return Bounds(low, high, "float", log)
 
 BOUNDS: dict[str, dict[str, Bounds[int] | Bounds[float]]] = {
     "parameters": {
-        "production_rate": FloatBounds(20.0, 250.0),
-        "reorder_threshold": IntBounds(100, 1000),
-        "batch_size": IntBounds(50, 800),
-        "selling_price": FloatBounds(22.0, 60.0),
+        "production_rate": FloatBounds(20.0, 250.0, log=True),
+        "reorder_threshold": IntBounds(100, 1000, log=True),
+        "batch_size": IntBounds(50, 800, log=True),
+        "selling_price": FloatBounds(22.0, 60.0, log=True),
         "expedite_fraction": FloatBounds(0.0, 1.0),
-        "marketing_spend": FloatBounds(0.0, 100.0),
+        "marketing_spend": FloatBounds(0.01, 100.0, log=True),
         "demand_multiplier": FloatBounds(0.5, 2.0),
     },
     "initial_state": {
@@ -135,6 +155,11 @@ class OptimizationSpec(BaseModel):
     n_trials: int = Field(default=DEFAULT_N_TRIALS, description="number of evals to run")
 
     def fixed(self) -> dict[str, dict[str, float]]:
+        """Collect the inputs pinned to a value (those left `None` are optimized).
+
+        Returns:
+            dict[str, dict[str, float]]: Fixed values keyed by group ("parameters", "initial_state").
+        """
         out: dict[str, dict[str, float]] = {}
         for group_name in ("parameters", "initial_state"):
             group = getattr(self, group_name)
@@ -145,6 +170,14 @@ class OptimizationSpec(BaseModel):
 
     @model_validator(mode="after")
     def _check_bounds(self):
+        """Validate that every fixed input falls within its allowed `BOUNDS` range.
+
+        Raises:
+            ValueError: A fixed value lies outside its bound.
+
+        Returns:
+            OptimizationSpec: The validated spec.
+        """
         for group_name, fields in self.fixed().items():
             for name, value in fields.items():
                 b = BOUNDS[group_name][name]
@@ -170,6 +203,13 @@ class PetrinautOptimizer:
         pn_model: PetrinautModel,
         **kwargs
     ) -> None:
+        """Build the Optuna study and bind the Petrinaut model for this run.
+
+        Args:
+            opt_spec (OptimizationSpec): Which inputs to optimize/fix, sampler, direction, and trial count.
+            pn_model (PetrinautModel): Wrapper that executes the Petri net per trial.
+            **kwargs: Forwarded to the selected Optuna sampler constructor.
+        """
         self.fixed = opt_spec.fixed()
         self.params = opt_spec.parameters
         self.init_state = opt_spec.initial_state
@@ -190,15 +230,17 @@ class PetrinautOptimizer:
         self.lock = threading.Lock()
 
     # ── search space ─────────────────────────────────────────────────────────
-    def suggest(self, trial: optuna.Trial) -> None:
-        """Ask Optuna for a value for one input, per its spec.
+    def suggest(self, trial: optuna.Trial) -> dict[str, dict[str, float]]:
+        """Assemble one trial's inputs, asking Optuna for each non-fixed value.
 
         Args:
-            trial (optuna.Trial): Optuna optimization trial
+            trial (optuna.Trial): The Optuna trial proposing new values.
 
         Raises:
-            ValueError: Unknown input type found
+            Exception: A bound is neither an int nor a float kind.
 
+        Returns:
+            dict[str, dict[str, float]]: Suggested values keyed by group ("parameters", "initial_state").
         """
         values: dict[str, dict[str, float]] = {}
         for group_name, fields in BOUNDS.items():
@@ -274,7 +316,7 @@ class PetrinautOptimizer:
             n_trials (int): number of optimization steps
 
         Yields:
-            _type_: json line of data or event
+            str: An SSE frame — a `data:` line per finished trial, then a final `event: done` frame.
         """
         app = request.app
         if not self.lock.acquire(blocking=False):
@@ -289,6 +331,7 @@ class PetrinautOptimizer:
 
         # Callback for generating the payload from optuna optimize worker
         def callback(study, trial):
+            """Queue the finished trial's SSE payload; honour a pending stop request."""
             params_and_init_state = {}
             for k, v in trial.params.items():
                 outer, inner = k.split('.', 1)
@@ -307,6 +350,7 @@ class PetrinautOptimizer:
 
         # Running the optuna optimize worker
         def run():
+            """Run the Optuna study on a worker thread, funnelling results/errors to the queue."""
             try:
                 self.study.optimize(
                     self.objective, n_trials=n_trials, callbacks=[callback]
@@ -319,10 +363,10 @@ class PetrinautOptimizer:
             finally:
                 # Pass error to streamer
                 loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
- 
+
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
- 
+
         try:
             while True:
                 item = await q.get()
@@ -360,7 +404,7 @@ class PetrinautOptimizer:
             n_trials (int): number of optimization steps
 
         Yields:
-            _type_: json line of data or event
+            str: An SSE frame — a `data:` line per finished trial, then a final `event: done` frame.
         """
         app = request.app
         if not self.lock.acquire(blocking=False):
@@ -375,6 +419,7 @@ class PetrinautOptimizer:
 
         # Callback for generating the payload from optuna optimize worker
         def callback(study, trial):
+            """Queue the best-so-far SSE payload once a trial completes; honour a pending stop."""
             # `best_params`/`best_value` raise if no trial has completed yet (e.g.
             # the opening trials were all pruned). Skip emitting until there is a
             # best to report, but still honour a pending stop request.
@@ -405,6 +450,7 @@ class PetrinautOptimizer:
 
         # Running the optuna optimize worker
         def run():
+            """Run the Optuna study on a worker thread, funnelling results/errors to the queue."""
             try:
                 self.study.optimize(
                     self.objective, n_trials=n_trials, callbacks=[callback]
@@ -417,7 +463,7 @@ class PetrinautOptimizer:
             finally:
                 # Pass error to streamer
                 loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
- 
+
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
  
@@ -452,10 +498,21 @@ class PetrinautOptimizer:
     
     # ── run for local testing /printing ─────────────────────────────────────────────────────────────────
     def run_stream(self, study, objective, n_trials):
+        """Run a study synchronously, yielding each finished trial (for local testing).
+
+        Args:
+            study (optuna.Study): The Optuna study to optimize.
+            objective (Callable): The objective callable evaluated per trial.
+            n_trials (int): Number of trials to run.
+
+        Yields:
+            tuple: (state, trial number, parameters, initial state, metric value) per trial.
+        """
         q = queue.Queue()
         _DONE = object()
 
         def callback(study, trial):
+            """Enqueue a tuple describing each finished trial."""
             params_and_init_state = {}
             for k, v in trial.params.items():
                 outer, inner = k.split('.', 1)
@@ -469,6 +526,7 @@ class PetrinautOptimizer:
             ))
 
         def run():
+            """Optimize the study then enqueue the completion sentinel."""
             study.optimize(objective, n_trials=n_trials, callbacks=[callback])
             q.put(_DONE)
 
