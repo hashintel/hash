@@ -181,11 +181,6 @@ pub(crate) enum HardNegativeError {
         row: u32,
         distance: f32,
     },
-    InsufficientCandidates {
-        row: u32,
-        requested: usize,
-        produced: usize,
-    },
 }
 
 impl fmt::Display for HardNegativeError {
@@ -241,14 +236,6 @@ impl fmt::Display for HardNegativeError {
                 formatter,
                 "hard-negative spatial index returned invalid distance {distance} for row {row}"
             ),
-            Self::InsufficientCandidates {
-                row,
-                requested,
-                produced,
-            } => write!(
-                formatter,
-                "hard-negative row {row} produced {produced} of {requested} requested candidates"
-            ),
         }
     }
 }
@@ -266,8 +253,7 @@ impl Error for HardNegativeError {
             | Self::UnorderedProtection
             | Self::QueryRow { .. }
             | Self::IndexKeyOverflow { .. }
-            | Self::InvalidDistance { .. }
-            | Self::InsufficientCandidates { .. } => None,
+            | Self::InvalidDistance { .. } => None,
         }
     }
 }

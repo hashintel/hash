@@ -25,6 +25,10 @@ const PERSISTENCE_THRESHOLDS: [f64; 4] = [0.01, 0.025, 0.05, 0.1];
 const ANN_AUDIT_COMPONENT_BUDGET: usize = 16_000_000_000;
 const MINIMUM_ANN_AUDIT_ROWS: usize = 32;
 const MAXIMUM_ANN_AUDIT_ROWS: usize = 1_000;
+const SEMANTIC_EDGE_SAMPLE_COUNT: usize = 4_096;
+const RELATION_EDGE_SAMPLE_BUDGET: usize = 4_096;
+const HARD_NEGATIVE_QUERY_COUNT: usize = 128;
+const HARD_NEGATIVE_NEIGHBORS: usize = 8;
 
 #[derive(Debug)]
 pub(in crate::salt_fit) struct FitProfileError(String);
@@ -66,12 +70,19 @@ pub(in crate::salt_fit) fn m0_local_profile<'config>(
     let semantic_positive_count = nonzero(
         row_count
             .saturating_mul(semantic_neighbors.get())
-            .min(0x8000),
+            .min(SEMANTIC_EDGE_SAMPLE_COUNT),
         "semantic positive count",
     )?;
     let relation_type_count = nonzero(relation_type_count, "relation type count")?;
+    let relation_budget_per_type = RELATION_EDGE_SAMPLE_BUDGET
+        .checked_div(relation_type_count.get())
+        .unwrap_or(0)
+        .max(1);
     let relation_per_type_cap = nonzero(
-        link_count.div_ceil(relation_type_count.get()).clamp(1, 256),
+        link_count
+            .div_ceil(relation_type_count.get())
+            .clamp(1, 256)
+            .min(relation_budget_per_type),
         "relation per-type cap",
     )?;
     let inference_batch_size = nonzero(row_count.min(4_096), "inference batch size")?;
@@ -119,9 +130,12 @@ pub(in crate::salt_fit) fn m0_local_profile<'config>(
             relation_per_type_cap,
             anchor_count: 0,
             landmark_count: landmark_count.get(),
-            hard_query_count: row_count.min(1_024),
+            hard_query_count: row_count.min(HARD_NEGATIVE_QUERY_COUNT),
             hard_negative: HardNegativeConfig {
-                neighbors: nonzero(16.min(row_count - 1), "hard-negative neighbors")?,
+                neighbors: nonzero(
+                    HARD_NEGATIVE_NEIGHBORS.min(row_count - 1),
+                    "hard-negative neighbors",
+                )?,
                 candidate_multiplier: nonzero(32, "hard-negative candidate multiplier")?,
                 connectivity: nonzero(32.min(row_count - 1), "hard-negative connectivity")?,
                 expansion_add: nonzero(128, "hard-negative add expansion")?,

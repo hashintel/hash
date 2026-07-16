@@ -15,7 +15,6 @@
     "passwordFile": "secrets/postgres.password"
   },
   "resources": {
-    "maximumPeakResidentBytes": 68719476736,
     "maximumWorkingDiskBytes": 68719476736
   },
   "actorId": "00000000-0000-0000-0000-000000000000",

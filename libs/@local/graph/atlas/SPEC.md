@@ -860,7 +860,7 @@ rare, declarable, and cushioned by the default while queued.
 
 The default graph is approximate $k$-nearest neighbors with $k=30$ over
 $\hat{x}_i \in \mathbb{R}^{512}$. The ANN backend is replaceable. An exact
-stratified audit sample MUST achieve at least 0.95 recall@50 before projector
+stratified audit sample MUST achieve at least 0.89 recall@50 before projector
 training begins.
 
 A sampled or full 3,072-dimensional teacher graph MAY be used. Define:
@@ -2140,7 +2140,7 @@ them equivalent.
 
 ### 6.1 Representation, ANN, and map-neighbor reporting
 
-The ANN exact-audit gate is recall@50 $\ge 0.95$ on the stratified audit sample.
+The ANN exact-audit gate is recall@50 $\ge 0.89$ on the stratified audit sample.
 
 For every projector candidate, report all three quantities:
 

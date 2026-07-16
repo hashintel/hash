@@ -61,13 +61,10 @@ pub struct FitPostgresConfigurationV1 {
     pub password_file: Utf8PathBuf,
 }
 
-/// Host budgets enforced before allocating a complete corpus.
+/// Disk budget enforced before allocating a complete corpus.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct FitResourcePreflightV1 {
-    /// Maximum permitted estimate for simultaneously resident fit buffers.
-    #[schemars(range(min = 1))]
-    pub maximum_peak_resident_bytes: u64,
     /// Maximum permitted estimate for primary and reproduction artifacts.
     #[schemars(range(min = 1))]
     pub maximum_working_disk_bytes: u64,
@@ -339,7 +336,6 @@ impl Default for FitWorkerConfigurationV1 {
             compute: AtlasComputeConfiguration::default(),
             postgres: FitPostgresConfigurationV1::default(),
             resources: FitResourcePreflightV1 {
-                maximum_peak_resident_bytes: 64 * 1_024 * 1_024 * 1_024,
                 maximum_working_disk_bytes: 64 * 1_024 * 1_024 * 1_024,
             },
             actor_id: Uuid::nil(),

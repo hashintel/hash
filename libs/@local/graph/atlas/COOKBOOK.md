@@ -321,11 +321,12 @@ Direct PostgreSQL extraction additionally enforces fixed aggregate ceilings of
 schema text. These process safety ceilings supplement the request's per-corpus
 and per-link limits.
 
-Projector schedules are rejected before training when their aggregate sampled
-edge count or conservative host/device/autodiff working-set estimate exceeds
-the M0 envelope (256 MiB per assembled batch). Optimizer schedules are capped
-at 100,000 steps. Batch assembly reserves large host buffers fallibly, so an
-allocation failure is reported rather than relying on the allocator abort path.
+Projector schedules retain bounded sample and edge counts and cap optimizer
+schedules at 100,000 steps, but SALT does not impose a byte or resident-memory
+ceiling. Full-corpus preflight records the estimated and available memory
+without rejecting the fit; it enforces disk capacity only. Batch assembly
+reserves large host buffers fallibly, so an allocation failure is reported
+rather than relying on the allocator abort path.
 
 ## Connect the `fit` CLI
 

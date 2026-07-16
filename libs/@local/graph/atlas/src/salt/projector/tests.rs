@@ -634,7 +634,7 @@ fn hard_miner_rejects_unbounded_counts_before_allocation() {
 }
 
 #[test]
-fn hard_miner_canonicalizes_tied_backend_distances() {
+fn hard_miner_canonicalizes_ties_and_accepts_available_candidates() {
     #[derive(Copy, Clone)]
     struct TiedIndex {
         reverse: bool,
@@ -686,7 +686,7 @@ fn hard_miner_canonicalizes_tied_backend_distances() {
     let graph = KnnTable::new(6, 1, vec![1, 2, 3, 4, 5, 0], vec![0.1; 6])
         .expect("semantic graph should validate");
     let config = HardNegativeConfig {
-        neighbors: NonZeroUsize::new(2).expect("neighbor count should be non-zero"),
+        neighbors: NonZeroUsize::new(4).expect("neighbor count should be non-zero"),
         candidate_multiplier: NonZeroUsize::new(3).expect("multiplier should be non-zero"),
         connectivity: NonZeroUsize::new(4).expect("connectivity should be non-zero"),
         expansion_add: NonZeroUsize::new(8).expect("expansion should be non-zero"),
@@ -710,7 +710,7 @@ fn hard_miner_canonicalizes_tied_backend_distances() {
             .iter()
             .map(|edge| edge.right.as_u32())
             .collect::<Vec<_>>(),
-        [2, 3]
+        [2, 3, 4]
     );
 }
 

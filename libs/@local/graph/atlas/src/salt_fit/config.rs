@@ -398,22 +398,11 @@ fn validate_worker(document: &FitWorkerConfigurationV1) -> Result<(), FitConfigu
             reason: "the requested Rayon pool exceeds the M0 process ceiling",
         });
     }
-    for (field, value) in [
-        (
-            "resources.maximumPeakResidentBytes",
-            document.resources.maximum_peak_resident_bytes,
-        ),
-        (
-            "resources.maximumWorkingDiskBytes",
-            document.resources.maximum_working_disk_bytes,
-        ),
-    ] {
-        if value == 0 {
-            return Err(FitConfigurationError::Invalid {
-                field,
-                reason: "resource budgets must be non-zero",
-            });
-        }
+    if document.resources.maximum_working_disk_bytes == 0 {
+        return Err(FitConfigurationError::Invalid {
+            field: "resources.maximumWorkingDiskBytes",
+            reason: "the disk budget must be non-zero",
+        });
     }
     Ok(())
 }

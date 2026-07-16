@@ -22,7 +22,7 @@ const SEMANTIC_NEIGHBORS: u64 = 30;
 const CONDITION_COUNT: u64 = 5;
 const FIXED_WORKSPACE_BYTES: u64 = 2 * 1_024 * 1_024 * 1_024;
 
-/// Deterministic major-buffer estimate checked before corpus allocation.
+/// Deterministic major-buffer estimate observed before corpus allocation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(in crate::salt_fit) struct FitResourceEstimate {
     pub peak_resident_bytes: u64,
@@ -39,7 +39,7 @@ pub(in crate::salt_fit) struct FitResourcePreflightObservation {
     pub available_disk_bytes: u64,
 }
 
-/// Failure to prove that a complete fit fits configured and observed capacity.
+/// Failure to size a complete fit or prove that its artifacts fit on disk.
 #[derive(Debug)]
 pub(in crate::salt_fit) enum FitResourceError {
     Overflow {
@@ -101,7 +101,7 @@ impl Error for FitResourceError {
     }
 }
 
-/// Estimates and checks all large complete-corpus buffers before extraction.
+/// Estimates all large complete-corpus buffers and checks artifact disk space.
 ///
 /// `rows` and `links` are exact counts from the frozen PostgreSQL point and
 /// endpoint-induced link domains. The estimate includes both durable builds,
@@ -110,8 +110,8 @@ impl Error for FitResourceError {
 ///
 /// # Errors
 ///
-/// Returns an error on arithmetic overflow, a configured budget violation, or
-/// insufficient currently available memory or disk space.
+/// Returns an error on arithmetic overflow, a configured disk-budget
+/// violation, or insufficient currently available disk space.
 pub(in crate::salt_fit) fn preflight_full_corpus(
     root: &Utf8Path,
     configuration: FitResourcePreflightV1,
@@ -121,11 +121,6 @@ pub(in crate::salt_fit) fn preflight_full_corpus(
 ) -> Result<FitResourcePreflightObservation, FitResourceError> {
     let estimate = estimate_full_corpus(limits, rows, links)?;
     require_budget(
-        "peak resident memory",
-        estimate.peak_resident_bytes,
-        configuration.maximum_peak_resident_bytes,
-    )?;
-    require_budget(
         "working disk",
         estimate.working_disk_bytes,
         configuration.maximum_working_disk_bytes,
@@ -134,11 +129,6 @@ pub(in crate::salt_fit) fn preflight_full_corpus(
     let mut system = System::new();
     system.refresh_memory();
     let available_memory_bytes = system.available_memory();
-    require_available(
-        "resident memory",
-        estimate.peak_resident_bytes,
-        available_memory_bytes,
-    )?;
 
     let disk_root = existing_ancestor(root);
     let available_disk_bytes = fs2::available_space(disk_root).map_err(FitResourceError::Disk)?;

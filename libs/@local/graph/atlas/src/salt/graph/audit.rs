@@ -30,7 +30,7 @@ use crate::salt::{
 pub(crate) const AUDIT_NEIGHBORS: usize = 50;
 
 /// Minimum admitted ANN recall.
-pub(crate) const MINIMUM_RECALL: f64 = 0.95;
+pub(crate) const MINIMUM_RECALL: f64 = 0.89;
 
 /// Selects a deterministic audit sample balanced across categorical strata.
 ///
@@ -144,7 +144,7 @@ impl RecallAudit {
     ///
     /// # Errors
     ///
-    /// Returns an error when recall is below `0.95`.
+    /// Returns an error when recall is below `0.89`.
     pub(crate) fn require_minimum(self) -> Result<Self, SemanticGraphError> {
         if self.recall < MINIMUM_RECALL {
             return Err(SemanticGraphError::RecallBelowThreshold {

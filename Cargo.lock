@@ -6131,6 +6131,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hashql-core",
  "jiff",
  "levenberg-marquardt",
  "libc",

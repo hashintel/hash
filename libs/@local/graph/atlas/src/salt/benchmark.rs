@@ -223,7 +223,7 @@ impl SemanticGraphFixture {
     /// # Panics
     ///
     /// This panics when fewer than 52 rows are requested or when production
-    /// validation, ANN construction, or the `0.95` recall gate fails.
+    /// validation, ANN construction, or the `0.89` recall gate fails.
     #[must_use]
     #[expect(
         clippy::cast_possible_truncation,

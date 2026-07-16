@@ -3,7 +3,7 @@
     reason = "projector plan identities use canonical little-endian scalar encodings"
 )]
 
-use core::{mem::size_of, num::NonZeroUsize, ops::Range};
+use core::{num::NonZeroUsize, ops::Range};
 use std::{collections::HashSet, time::Instant};
 
 use burn::{module::AutodiffModule as _, tensor::backend::AutodiffBackend};
@@ -25,14 +25,12 @@ use crate::salt::{
         project_generation,
     },
     relation::{AttractionEdge, PairProtection, RelationPair},
-    representation::PROJECTOR_DIMENSIONS,
 };
 
 const MAX_CONDITIONS: usize = 32;
 const MAX_BATCH_SAMPLE_COUNT: usize = 0x0001_0000;
 const MAX_BATCH_EDGE_COUNT: usize = 0x0004_0000;
 const MAX_INFERENCE_BATCH_SIZE: usize = 0x0001_0000;
-const MAX_BATCH_WORKING_SET_BYTES: usize = 0x1000_0000;
 
 /// Sampling and detached-refresh schedule for adaptive projector fitting.
 #[derive(Debug, Clone, PartialEq)]
@@ -302,7 +300,6 @@ impl<'source> AdaptiveProjectorBatchFactory<'source> {
         config: ProjectorBatchPlanConfig,
     ) -> Result<Self, ProjectorFitError> {
         let config = config.validate()?;
-        validate_batch_working_set(&source, &config)?;
         let ordinary = OrdinaryNegativeSampler::new(source.semantic, source.protection)?;
         let relation = RelationEdgeSampler::new(source.relations)?;
         Ok(Self {
@@ -426,49 +423,6 @@ const fn aggregate_edge_count(config: &ProjectorBatchPlanConfig) -> usize {
                 .get()
                 .saturating_mul(config.relation_per_type_cap.get()),
         )
-}
-
-fn validate_batch_working_set(
-    source: &AdaptiveProjectorSource<'_>,
-    config: &ProjectorBatchPlanConfig,
-) -> Result<(), ProjectorFitError> {
-    validate_batch_working_set_dimensions(
-        source.representations.len(),
-        source
-            .type_context
-            .map_or(0, ProjectorTypeContext::dimensions),
-        config,
-    )
-}
-
-fn validate_batch_working_set_dimensions(
-    corpus_rows: usize,
-    type_context_dimensions: usize,
-    config: &ProjectorBatchPlanConfig,
-) -> Result<(), ProjectorFitError> {
-    let edges = aggregate_edge_count(config);
-    let support = config.anchor_count.saturating_add(config.landmark_count);
-    let row_occurrences = edges.saturating_mul(2).saturating_add(support);
-    let unique_rows = row_occurrences.min(corpus_rows);
-    let row_components = PROJECTOR_DIMENSIONS
-        .saturating_add(type_context_dimensions)
-        .saturating_add(2);
-    // Four copies conservatively cover host gathering, device input, gradient,
-    // and backend/autodiff retention. Edge/support estimates include sampled
-    // host records and every emitted index, weight, scale, and target tensor.
-    let row_bytes = unique_rows
-        .saturating_mul(row_components)
-        .saturating_mul(size_of::<f32>())
-        .saturating_mul(4);
-    let edge_bytes = edges.saturating_mul(128);
-    let support_bytes = support.saturating_mul(64);
-    bounded_count(
-        "batch-working-set-bytes",
-        row_bytes
-            .saturating_add(edge_bytes)
-            .saturating_add(support_bytes),
-        MAX_BATCH_WORKING_SET_BYTES,
-    )
 }
 
 impl<B> ProjectorBatchFactory<B> for AdaptiveProjectorBatchFactory<'_>
@@ -645,17 +599,6 @@ mod tests {
             config.clone().validate(),
             Err(ProjectorFitError::PlanCapacity {
                 field: "aggregate-edge-count",
-                ..
-            })
-        ));
-
-        let mut byte_heavy = config;
-        byte_heavy.hard_query_count = 127;
-        assert!(byte_heavy.clone().validate().is_ok());
-        assert!(matches!(
-            validate_batch_working_set_dimensions(1_000_000, 4_096, &byte_heavy),
-            Err(ProjectorFitError::PlanCapacity {
-                field: "batch-working-set-bytes",
                 ..
             })
         ));

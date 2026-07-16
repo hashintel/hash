@@ -42,7 +42,7 @@
 //! Audit rows are selected round-robin across complete categorical strata by
 //! content-derived priorities. For each row, the approximate 50-neighbor set
 //! is intersected with an exact SIMD cosine ranking whose ties resolve by
-//! generation row. Aggregate recall must be at least `0.95`.
+//! generation row. Aggregate recall must be at least `0.89`.
 
 use core::{
     num::NonZeroUsize,

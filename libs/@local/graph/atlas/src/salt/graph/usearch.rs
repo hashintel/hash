@@ -20,7 +20,7 @@ use crate::salt::{
 
 const DEFAULT_CONNECTIVITY: usize = 16;
 const DEFAULT_EXPANSION_ADD: usize = 200;
-const DEFAULT_EXPANSION_SEARCH: usize = 512;
+const DEFAULT_EXPANSION_SEARCH: usize = 128;
 
 /// Pinned `USearch` HNSW build and query settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

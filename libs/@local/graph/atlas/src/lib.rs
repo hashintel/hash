@@ -69,12 +69,15 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
+    const_trait_impl,
     default_field_values,
 
     // Library Features
+    const_convert,
     future_join,
     pointer_is_aligned_to,
-    portable_simd
+    portable_simd,
+    allocator_api
 )]
 #![expect(
     dead_code,
@@ -89,8 +92,10 @@ pub mod api;
 pub mod cli;
 pub mod float;
 pub(crate) mod macros;
+pub mod math;
 pub mod projection;
 pub(crate) mod salt;
+mod salt2;
 pub mod salt_fit;
 #[cfg(feature = "salt-benchmarks")]
 #[doc(hidden)]

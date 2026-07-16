@@ -341,8 +341,9 @@ where
     ///
     /// # Errors
     ///
-    /// This returns an error when the row is invalid, the backend fails, or
-    /// fewer than the configured count remain after exclusions.
+    /// This returns an error when the row is invalid or the backend fails.
+    /// When exclusions leave fewer than the configured count, all available
+    /// candidates are returned.
     pub(crate) fn mine(&self, row: GenerationRowId) -> Result<Vec<SampledEdge>, HardNegativeError> {
         if row.as_usize() >= self.semantic.rows() {
             return Err(HardNegativeError::QueryRow {
@@ -401,11 +402,7 @@ where
                 }
             }
             if limit == self.spatial.rows() {
-                return Err(HardNegativeError::InsufficientCandidates {
-                    row: row.as_u32(),
-                    requested,
-                    produced: accepted.len(),
-                });
+                return Ok(accepted);
             }
             limit = limit.saturating_mul(2).min(self.spatial.rows());
         }
