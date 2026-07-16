@@ -318,15 +318,20 @@ export const affixStyles = cva({
           "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
         backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
       },
-      // A circular badge: a brighter (`bgSolid.min`) surface with a subtle ring,
-      // matching the fillLight chip's own border. The ring is a box-shadow so it
-      // survives the interactive button reset.
+      // A brighter (`bgSolid.min`) segment that bleeds to the chip edge and
+      // inherits the chip's border-radius, so its outer corners match the chip
+      // (fully round on `round`, the small radius on `default`). A box-shadow
+      // ring gives its inner (rounded) edge a border and survives the button
+      // reset. `--chip-px` cancellation + `overflow: clip` on the root keep the
+      // outer corners aligned; the per-side bleed is set in compound variants.
       circle: {
         alignSelf: "stretch",
-        aspectRatio: "1",
-        borderRadius: "full",
+        borderRadius: "[inherit]",
+        paddingInline: "[0.75em]",
+        marginBlock:
+          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
         backgroundColor: "colorPalette.bgSolid.min",
-        boxShadow: "[inset 0 0 0 1px var(--colors-color-palette-bd-subtle)]",
+        boxShadow: "[inset 0 0 0 1px var(--chip-divider)]",
       },
     },
     side: {
@@ -370,6 +375,23 @@ export const affixStyles = cva({
       css: {
         paddingInlineStart: "var(--chip-px)",
         boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
+      },
+    },
+    // circle → bleed to the outer edge so the segment fills the chip's cap.
+    {
+      treatment: "circle",
+      side: "prefix",
+      css: {
+        marginInlineStart:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+      },
+    },
+    {
+      treatment: "circle",
+      side: "suffix",
+      css: {
+        marginInlineEnd:
+          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
       },
     },
     {

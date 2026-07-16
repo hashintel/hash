@@ -240,6 +240,34 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
         </div>
       ))}
 
+      {/* The circle segment inherits the chip's border-radius, so on `round`
+          its outer corners become fully rounded. */}
+      <div className={row}>
+        <div className={rowLabel}>circle (round)</div>
+        <Chip
+          {...base}
+          shape="round"
+          prefix={{ iconName: "sparkles", variant: "circle" }}
+        >
+          Prefix
+        </Chip>
+        <Chip
+          {...base}
+          shape="round"
+          suffix={{ iconName: "check", variant: "circle" }}
+        >
+          Suffix
+        </Chip>
+        <Chip
+          {...base}
+          shape="round"
+          prefix={{ iconName: "sparkles", variant: "circle" }}
+          suffix={{ iconName: "check", variant: "circle" }}
+        >
+          Both
+        </Chip>
+      </div>
+
       <div className={row}>
         {affixStyles.map((style) => (
           <Chip
