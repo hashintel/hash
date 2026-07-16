@@ -7,6 +7,9 @@ use super::{
     vec2::{Vec2, Vec2x4T},
 };
 
+#[cfg(test)]
+mod tests;
+
 /// A rotation about the origin, stored as the unit vector `(cos, sin)`.
 ///
 /// The decomposed representation is the contract of this type: the angle's
@@ -177,6 +180,3 @@ impl Rotation {
         )
     }
 }
-
-#[cfg(test)]
-mod tests;

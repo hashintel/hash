@@ -7,10 +7,8 @@
 //! [`AlignedVecN::lanes`] loads every 8-lane group from an aligned address,
 //! never splitting a cache line.
 
-#![expect(
-    unsafe_code,
-    reason = "aligned allocation and reference casts to transparent wrappers"
-)]
+#[cfg(test)]
+mod tests;
 
 use alloc::alloc::Global;
 use core::{
@@ -100,30 +98,20 @@ impl<const N: usize> VecN<N> {
 
 /// An `N`-dimensional vector whose storage is aligned for [`f32x8`].
 ///
-/// The alignment is a construction invariant rather than a `repr`
-/// attribute: the type has the same layout as `[f32; N]`, and every value
-/// originates from a [`BoxedVecN`] or from a constructor that checks (or,
-/// for [`from_ref_unchecked`](Self::from_ref_unchecked), demands) that the
-/// address is a multiple of `align_of::<f32x8>()`. Keeping the layout
-/// transparent means any array that happens to be aligned can be wrapped
-/// in place.
+/// The alignment is a construction invariant: the type has the same layout
+/// as `[f32; N]`, and every value originates from a [`BoxedVecN`] or from
+/// a constructor that checks (or, for
+/// [`from_ref_unchecked`](Self::from_ref_unchecked), demands) that the
+/// address is a multiple of `align_of::<f32x8>()`. The transparent layout
+/// means any array that happens to be aligned can be wrapped in place.
 ///
 /// The payoff is [`lanes`](Self::lanes): every 8-lane load comes from an
 /// aligned address, so iteration over the vector never splits a cache line.
-///
-/// The zerocopy derives are limited to the read-only half ([`IntoBytes`]
-/// but not `FromBytes`): a byte-level constructor would let
-/// `zerocopy::transmute_ref!` produce references to unaligned arrays,
-/// bypassing the alignment invariant.
-///
-/// [`IntoBytes`]: zerocopy::IntoBytes
+// No `FromBytes`/`FromZeros`: a byte-level constructor would let
+// `zerocopy::transmute_ref!` produce references to unaligned arrays,
+// bypassing the alignment invariant.
 #[derive(
-    Debug,
-    PartialEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::KnownLayout,
+    Debug, zerocopy::ByteHash, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
 pub struct AlignedVecN<const N: usize>([f32; N]);
@@ -245,6 +233,12 @@ impl<const N: usize> AlignedVecN<N> {
     }
 }
 
+const impl<const N: usize> PartialEq for AlignedVecN<N> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 /// An owned `N`-dimensional vector in a heap allocation aligned for
 /// [`f32x8`].
 ///
@@ -331,7 +325,7 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
     }
 }
 
-impl<const N: usize, A: Allocator> Deref for BoxedVecN<N, A> {
+const impl<const N: usize, A: Allocator> Deref for BoxedVecN<N, A> {
     type Target = AlignedVecN<N>;
 
     fn deref(&self) -> &Self::Target {
@@ -342,7 +336,7 @@ impl<const N: usize, A: Allocator> Deref for BoxedVecN<N, A> {
     }
 }
 
-impl<const N: usize, A: Allocator> DerefMut for BoxedVecN<N, A> {
+const impl<const N: usize, A: Allocator> DerefMut for BoxedVecN<N, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: `ptr` owns an initialized buffer of `N` components for as
         // long as `self` lives, allocated with the alignment of `f32x8` by
@@ -405,7 +399,7 @@ impl<const N: usize, A: Allocator> core::fmt::Debug for BoxedVecN<N, A> {
     }
 }
 
-impl<const N: usize, A: Allocator> PartialEq for BoxedVecN<N, A> {
+const impl<const N: usize, A: Allocator> PartialEq for BoxedVecN<N, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         **self == **other
@@ -430,6 +424,3 @@ unsafe impl<const N: usize, A: Allocator + Send> Send for BoxedVecN<N, A> {}
 // SAFETY: shared access only exposes `&[f32; N]`, which is `Sync`; the
 // allocator's own thread-safety carries the bound.
 unsafe impl<const N: usize, A: Allocator + Sync> Sync for BoxedVecN<N, A> {}
-
-#[cfg(test)]
-mod tests;

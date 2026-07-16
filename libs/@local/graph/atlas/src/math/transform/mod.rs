@@ -9,6 +9,9 @@ use super::{
     vec2::{Vec2, Vec2x4T},
 };
 
+#[cfg(test)]
+mod tests;
+
 /// An affine transformation of 2D space: scale, rotation, and translation.
 ///
 /// A transform maps a vector `p` to `x_axis * p.x + y_axis * p.y +
@@ -63,7 +66,6 @@ use super::{
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
-#[repr(C)]
 pub struct Transform {
     x_axis: Vec2,
     y_axis: Vec2,
@@ -175,8 +177,7 @@ impl Transform {
     /// Each coefficient is splat across a [`Simd<f32, 4>`](Simd) lane group
     /// and combined with the batch's axis groups, so the whole
     /// transformation is two fused multiply-adds per axis with no shuffles.
-    /// This is the reason [`Vec2x4T`] exists; transform batches in this
-    /// layout inside hot loops.
+    /// Transform batches in the [`Vec2x4T`] layout inside hot loops.
     ///
     /// On targets with native FMA the per-axis results are computed with a
     /// single rounding per multiply-add, so they can differ from
@@ -314,6 +315,3 @@ const impl From<Translation> for Transform {
         Self::from_translation(translation.vector())
     }
 }
-
-#[cfg(test)]
-mod tests;

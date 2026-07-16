@@ -27,6 +27,9 @@ use core::{
 
 use super::kernel::mul_add_f32x4;
 
+#[cfg(test)]
+mod tests;
+
 /// A vector in 2D space with `f32` components.
 ///
 /// A [`Vec2`] is guaranteed to have the same layout as `[f32; 2]`, with the
@@ -153,7 +156,7 @@ impl Vec2 {
     /// `other`; values outside `[0, 1]` extrapolate along the same line.
     #[must_use]
     #[inline]
-    pub fn lerp(self, other: Self, factor: f32) -> Self {
+    pub const fn lerp(self, other: Self, factor: f32) -> Self {
         self + (other - self) * factor
     }
 
@@ -201,7 +204,7 @@ impl Vec2 {
     }
 }
 
-impl Add for Vec2 {
+const impl Add for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -210,14 +213,14 @@ impl Add for Vec2 {
     }
 }
 
-impl AddAssign for Vec2 {
+const impl AddAssign for Vec2 {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl Sub for Vec2 {
+const impl Sub for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -226,14 +229,14 @@ impl Sub for Vec2 {
     }
 }
 
-impl SubAssign for Vec2 {
+const impl SubAssign for Vec2 {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
-impl Neg for Vec2 {
+const impl Neg for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -244,7 +247,7 @@ impl Neg for Vec2 {
 
 /// Component-wise (Hadamard) product; use [`Vec2::dot`] for the scalar
 /// product.
-impl Mul for Vec2 {
+const impl Mul for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -253,7 +256,7 @@ impl Mul for Vec2 {
     }
 }
 
-impl Mul<f32> for Vec2 {
+const impl Mul<f32> for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -262,7 +265,7 @@ impl Mul<f32> for Vec2 {
     }
 }
 
-impl Mul<Vec2> for f32 {
+const impl Mul<Vec2> for f32 {
     type Output = Vec2;
 
     #[inline]
@@ -271,14 +274,14 @@ impl Mul<Vec2> for f32 {
     }
 }
 
-impl MulAssign<f32> for Vec2 {
+const impl MulAssign<f32> for Vec2 {
     #[inline]
     fn mul_assign(&mut self, rhs: f32) {
         *self = *self * rhs;
     }
 }
 
-impl Div<f32> for Vec2 {
+const impl Div<f32> for Vec2 {
     type Output = Self;
 
     #[inline]
@@ -287,28 +290,28 @@ impl Div<f32> for Vec2 {
     }
 }
 
-impl DivAssign<f32> for Vec2 {
+const impl DivAssign<f32> for Vec2 {
     #[inline]
     fn div_assign(&mut self, rhs: f32) {
         *self = *self / rhs;
     }
 }
 
-impl From<[f32; 2]> for Vec2 {
+const impl From<[f32; 2]> for Vec2 {
     #[inline]
     fn from(components: [f32; 2]) -> Self {
         Self(components)
     }
 }
 
-impl From<Vec2> for [f32; 2] {
+const impl From<Vec2> for [f32; 2] {
     #[inline]
     fn from(vec: Vec2) -> Self {
         vec.0
     }
 }
 
-impl Index<usize> for Vec2 {
+const impl Index<usize> for Vec2 {
     type Output = f32;
 
     /// Returns the component at `index`, where `0` is `x` and `1` is `y`.
@@ -376,7 +379,7 @@ impl Vec2x4T {
     /// Lane `i` holds the `x` component of vector `i`.
     #[must_use]
     #[inline]
-    pub fn xs(self) -> Simd<f32, 4> {
+    pub const fn xs(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[..4])
     }
 
@@ -385,7 +388,7 @@ impl Vec2x4T {
     /// Lane `i` holds the `y` component of vector `i`.
     #[must_use]
     #[inline]
-    pub fn ys(self) -> Simd<f32, 4> {
+    pub const fn ys(self) -> Simd<f32, 4> {
         Simd::from_slice(&self.0[4..])
     }
 
@@ -680,6 +683,3 @@ const _: () = assert!(size_of::<Vec2x4T>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(size_of::<Vec2x4>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(align_of::<Vec2x4T>() >= align_of::<Simd<f32, 8>>());
 const _: () = assert!(align_of::<Vec2x4>() >= align_of::<Simd<f32, 8>>());
-
-#[cfg(test)]
-mod tests;

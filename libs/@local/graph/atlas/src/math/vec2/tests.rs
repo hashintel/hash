@@ -6,7 +6,7 @@
 
 use core::simd::Simd;
 
-use crate::math::{Vec2, Vec2x4, Vec2x4T, test_util::POINTS};
+use crate::math::{Vec2, Vec2x4, Vec2x4T, tests::POINTS};
 
 #[test]
 fn arithmetic_operators_are_component_wise() {

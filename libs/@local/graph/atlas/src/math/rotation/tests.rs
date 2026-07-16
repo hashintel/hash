@@ -5,7 +5,7 @@
 
 use crate::math::{
     Rotation, Vec2, Vec2x4T,
-    test_util::{POINTS, assert_vec2_close},
+    tests::{POINTS, assert_vec2_close},
 };
 
 #[test]

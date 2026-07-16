@@ -27,7 +27,6 @@ const MINIMUM_ANN_AUDIT_ROWS: usize = 32;
 const MAXIMUM_ANN_AUDIT_ROWS: usize = 1_000;
 const SEMANTIC_EDGE_SAMPLE_COUNT: usize = 4_096;
 const RELATION_EDGE_SAMPLE_BUDGET: usize = 4_096;
-const HARD_NEGATIVE_QUERY_COUNT: usize = 128;
 const HARD_NEGATIVE_NEIGHBORS: usize = 8;
 
 #[derive(Debug)]
@@ -130,7 +129,7 @@ pub(in crate::salt_fit) fn m0_local_profile<'config>(
             relation_per_type_cap,
             anchor_count: 0,
             landmark_count: landmark_count.get(),
-            hard_query_count: row_count.min(HARD_NEGATIVE_QUERY_COUNT),
+            hard_query_count: 0,
             hard_negative: HardNegativeConfig {
                 neighbors: nonzero(
                     HARD_NEGATIVE_NEIGHBORS.min(row_count - 1),

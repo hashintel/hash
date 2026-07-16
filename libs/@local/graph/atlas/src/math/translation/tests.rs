@@ -1,4 +1,4 @@
-use crate::math::{Translation, Vec2, Vec2x4T, test_util::POINTS};
+use crate::math::{Translation, Vec2, Vec2x4T, tests::POINTS};
 
 #[test]
 fn translation_composes_and_inverts_exactly() {

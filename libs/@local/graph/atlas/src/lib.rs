@@ -74,6 +74,9 @@
 
     // Library Features
     const_convert,
+    const_ops,
+    const_index,
+    const_cmp,
     future_join,
     pointer_is_aligned_to,
     portable_simd,

@@ -4,14 +4,15 @@ use core::simd::Simd;
 
 use super::vec2::{Vec2, Vec2x4T};
 
+#[cfg(test)]
+mod tests;
+
 /// A translation of 2D space by a fixed offset.
 ///
-/// Compared to a bare [`Vec2`], the type states intent: a
-/// `translation: Translation` in a signature promises that the value moves
-/// points and is composed by adding offsets, rather than being a position
-/// or a direction. Composition via [`then`](Self::then) adds the offsets,
-/// and [`inverse`](Self::inverse) negates them, which is exact: no rounding
-/// occurs at all.
+/// A `translation: Translation` in a signature promises that the value
+/// moves points and composes by adding offsets. Composition via
+/// [`then`](Self::then) adds the offsets, and [`inverse`](Self::inverse)
+/// negates them, which is exact: no rounding occurs at all.
 ///
 /// # Examples
 ///
@@ -102,19 +103,16 @@ impl Translation {
     }
 }
 
-impl From<Vec2> for Translation {
+const impl From<Vec2> for Translation {
     #[inline]
     fn from(offset: Vec2) -> Self {
         Self(offset)
     }
 }
 
-impl From<Translation> for Vec2 {
+const impl From<Translation> for Vec2 {
     #[inline]
     fn from(translation: Translation) -> Self {
         translation.vector()
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -10,6 +10,9 @@ use super::{
     vec2::{Vec2, Vec2x4},
 };
 
+#[cfg(test)]
+mod tests;
+
 /// Points per rayon work item in [`Bounds2::from_slice_par`].
 ///
 /// 4096 points are 32 KiB, comfortably inside L1 while large enough that
@@ -46,7 +49,20 @@ const PARALLEL_CHUNK: usize = 4096;
 /// assert_eq!(bounds.size(), Vec2::new(4.0, 4.0));
 /// assert_eq!(bounds.center(), Vec2::new(4.0, 1.0));
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq)]
+// No `FromBytes`: it would mint boxes with NaN or inverted corners in
+// safe code, bypassing the validating constructors. `FromZeros` is fine
+// (the zeroed box is the valid degenerate box at the origin).
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::ByteHash,
+    zerocopy::FromZeros,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
 pub struct Bounds2 {
     min: Vec2,
     max: Vec2,
@@ -72,8 +88,7 @@ impl Bounds2 {
     /// Computes the tight bounding box of a point set.
     ///
     /// Returns [`None`] when the iterator is empty or any coordinate is
-    /// not finite; a partial box over the finite prefix would silently
-    /// misplace every later consumer.
+    /// not finite; the returned box always reflects every input point.
     ///
     /// This is the flexible, scalar entry point. When the points are
     /// already in a slice, prefer [`from_slice`](Self::from_slice), which
@@ -174,14 +189,14 @@ impl Bounds2 {
     /// Both components are non-negative by the type's invariant.
     #[must_use]
     #[inline]
-    pub fn size(self) -> Vec2 {
+    pub const fn size(self) -> Vec2 {
         self.max - self.min
     }
 
     /// Returns the center of the box.
     #[must_use]
     #[inline]
-    pub fn center(self) -> Vec2 {
+    pub const fn center(self) -> Vec2 {
         (self.min + self.max) * 0.5
     }
 
@@ -275,7 +290,12 @@ impl Bounds2 {
 
 /// Folds an interleaved `x y x y ...` lane group into a single vector,
 /// combining the four values of each axis with `combine`.
-#[inline]
+#[expect(
+    clippy::inline_always,
+    reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \
+              surrounding kernel must be guaranteed, not hinted"
+)]
+#[inline(always)]
 fn fold_interleaved(lanes: Simd<f32, 8>, combine: fn(f32, f32) -> f32) -> Vec2 {
     let [x0, y0, x1, y1, x2, y2, x3, y3] = lanes.to_array();
 
@@ -284,6 +304,3 @@ fn fold_interleaved(lanes: Simd<f32, 8>, combine: fn(f32, f32) -> f32) -> Vec2 {
         combine(combine(y0, y1), combine(y2, y3)),
     )
 }
-
-#[cfg(test)]
-mod tests;

@@ -1,5 +1,7 @@
 //! Small math primitives shared across atlas layout and projection code.
+#![expect(unsafe_code)]
 
+mod affinity;
 mod bounds;
 mod kernel;
 mod rotation;
@@ -9,9 +11,10 @@ mod vec2;
 mod vecn;
 
 #[cfg(test)]
-mod test_util;
+mod tests;
 
 pub use self::{
+    affinity::AffinityCurve,
     bounds::Bounds2,
     rotation::Rotation,
     transform::Transform,
