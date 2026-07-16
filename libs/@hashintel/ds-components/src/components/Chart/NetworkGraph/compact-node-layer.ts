@@ -19,7 +19,11 @@ import {
 } from "./zoom-attributes";
 
 import type { BundledEdge } from "./edge-bundling";
-import type { HoverLine, NetworkGraphPoint } from "./network-graph-util";
+import type {
+  HoverLine,
+  NetworkGraphId,
+  NetworkGraphPoint,
+} from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 
 type RgbColor = [number, number, number];
@@ -62,7 +66,7 @@ type _CompactNodeLayerProps = {
    * width, and full opacity for the faint background edges). `null` when no edge
    * is hovered.
    */
-  hoveredEdgeId: number | null;
+  hoveredEdgeId: NetworkGraphId | null;
   /**
    * Whether the active node's straight incident `edges` are pickable (hoverable):
    * in the detail view whenever a node is active, and in the compact view while a

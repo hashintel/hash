@@ -1,4 +1,4 @@
-import type { NetworkGraphPoint } from "./network-graph-util";
+import type { NetworkGraphId, NetworkGraphPoint } from "./network-graph-util";
 
 /** A polyline (list of `[x, y]` points) approximating one bundled edge. */
 export type BundledPath = [number, number][];
@@ -8,7 +8,7 @@ export type BundledPath = [number, number][];
  * to its edge when picked (hovered).
  */
 export interface BundledEdge {
-  edgeId: number;
+  edgeId: NetworkGraphId;
   path: BundledPath;
 }
 
@@ -22,7 +22,7 @@ export interface BundleHierarchy {
   /** Centroid of all nodes — the waypoint every cross-type edge routes through. */
   rootCentroid: [number, number];
   /** Node id → its sub-cluster key (`"<colour>#<gx>,<gy>"`). */
-  nodeToSub: Map<number, string>;
+  nodeToSub: Map<NetworkGraphId, string>;
   /** Sub-cluster key → centroid of its nodes. */
   subCentroid: Map<string, [number, number]>;
   /** Colour (node type) → centroid of all nodes of that type. */
@@ -84,7 +84,7 @@ export const buildBundleHierarchy = (
   const total = points.length || 1;
   const rootCentroid: [number, number] = [rootSumX / total, rootSumY / total];
 
-  const nodeToSub = new Map<number, string>();
+  const nodeToSub = new Map<NetworkGraphId, string>();
   const subCentroid = new Map<string, [number, number]>();
   const colorCentroid = new Map<string, [number, number]>();
 

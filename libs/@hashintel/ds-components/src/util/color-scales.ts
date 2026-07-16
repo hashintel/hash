@@ -1,6 +1,5 @@
 // colorjs.io is a devDependency; these scales are used by tooling/stories, not
 // imported by the shipped components, so they don't add a runtime dependency.
-// eslint-disable-next-line import/no-extraneous-dependencies
 import Color from "colorjs.io";
 
 /**
@@ -49,7 +48,8 @@ const scaleChroma = (hex: string, chromaScale: number): string => {
   return toHex(
     new Color("oklch", [
       oklch.l,
-      Math.max(0, oklch.c * chromaScale),
+      // `.c` is null for a fully achromatic colour; the brand hexes aren't, but guard.
+      Math.max(0, (oklch.c ?? 0) * chromaScale),
       // `.h` is NaN for a fully achromatic colour; the brand hues aren't, but guard.
       Number.isNaN(oklch.h) ? 0 : oklch.h,
     ]),

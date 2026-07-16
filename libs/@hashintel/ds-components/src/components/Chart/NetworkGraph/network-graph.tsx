@@ -40,6 +40,7 @@ import type {
   DetailIconAtlas,
   HoverableEdge,
   HoverLine,
+  NetworkGraphId,
   NetworkGraphPoint,
   NetworkGraphEdge,
 } from "./network-graph-util";
@@ -47,7 +48,11 @@ import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
 // Re-export the data types (which live in `network-graph-util`) so consumers can
 // keep importing them from `network-graph`, the component's public entry point.
-export type { NetworkGraphEdge, NetworkGraphPoint } from "./network-graph-util";
+export type {
+  NetworkGraphEdge,
+  NetworkGraphId,
+  NetworkGraphPoint,
+} from "./network-graph-util";
 
 /** A pointer interaction (hover or click) with a node in the network graph. */
 export interface NetworkGraphInteraction {
@@ -146,7 +151,7 @@ export interface NetworkGraphProps {
    * neighbourhood to overlay (items already in the graph are reused). An active
    * hover takes precedence.
    */
-  selected?: number | NetworkGraphSelection | null;
+  selected?: NetworkGraphId | NetworkGraphSelection | null;
   /**
    * Called with the `selected` node's current on-screen position (CSS pixels,
    * relative to the chart's top-left) and its drawn radius (px) whenever they
@@ -721,9 +726,9 @@ export const NetworkGraph = ({
   const lastZoomRef = useRef<number | null>(null);
   // Last hovered node id reported to `onNodeHover` (`null` when none), so we
   // only fire when the hovered node actually changes.
-  const lastHoveredIdRef = useRef<number | null>(null);
+  const lastHoveredIdRef = useRef<NetworkGraphId | null>(null);
   // Id of the currently hovered edge, so we only update state when it changes.
-  const hoveredEdgeIdRef = useRef<number | null>(null);
+  const hoveredEdgeIdRef = useRef<NetworkGraphId | null>(null);
   const [viewState, setViewState] = useState<OrthographicViewState | null>(
     null,
   );
@@ -754,7 +759,7 @@ export const NetworkGraph = ({
 
   /** Look up a point by id, for resolving edge endpoints. */
   const pointById = useMemo(() => {
-    const map = new Map<number, NetworkGraphPoint>();
+    const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     for (const point of points) {
       map.set(point.id, point);
     }
@@ -763,7 +768,7 @@ export const NetworkGraph = ({
 
   /** Look up an edge by id, for resolving a picked (hovered/clicked) edge. */
   const edgeById = useMemo(() => {
-    const map = new Map<number, NetworkGraphEdge>();
+    const map = new Map<NetworkGraphId, NetworkGraphEdge>();
     for (const edge of edges) {
       map.set(edge.id, edge);
     }
@@ -789,7 +794,7 @@ export const NetworkGraph = ({
       return [];
     }
     const result: NetworkGraphPoint[] = [];
-    const seen = new Set<number>();
+    const seen = new Set<NetworkGraphId>();
     const add = (point: NetworkGraphPoint) => {
       if (pointById.has(point.id) || seen.has(point.id)) {
         return;
@@ -806,7 +811,7 @@ export const NetworkGraph = ({
 
   /** The overlay selection's point + neighbours + edges keyed by id, for lookups. */
   const overlayPointById = useMemo(() => {
-    const map = new Map<number, NetworkGraphPoint>();
+    const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     if (overlaySelection) {
       map.set(overlaySelection.point.id, overlaySelection.point);
       for (const neighbour of overlaySelection.neighbours) {
@@ -817,7 +822,7 @@ export const NetworkGraph = ({
   }, [overlaySelection]);
 
   const overlayEdgeById = useMemo(() => {
-    const map = new Map<number, NetworkGraphEdge>();
+    const map = new Map<NetworkGraphId, NetworkGraphEdge>();
     if (overlaySelection) {
       for (const edge of overlaySelection.edges) {
         map.set(edge.id, edge);
@@ -831,12 +836,12 @@ export const NetworkGraph = ({
    * to an overlaid one — so overlay geometry can reference either.
    */
   const resolvePoint = useCallback(
-    (id: number): NetworkGraphPoint | undefined =>
+    (id: NetworkGraphId): NetworkGraphPoint | undefined =>
       pointById.get(id) ?? overlayPointById.get(id),
     [pointById, overlayPointById],
   );
   const resolveEdge = useCallback(
-    (id: number): NetworkGraphEdge | undefined =>
+    (id: NetworkGraphId): NetworkGraphEdge | undefined =>
       edgeById.get(id) ?? overlayEdgeById.get(id),
     [edgeById, overlayEdgeById],
   );
@@ -869,8 +874,8 @@ export const NetworkGraph = ({
 
   /** Adjacency list: node id → edges touching it. */
   const adjacency = useMemo(() => {
-    const map = new Map<number, NetworkGraphEdge[]>();
-    const push = (id: number, edge: NetworkGraphEdge) => {
+    const map = new Map<NetworkGraphId, NetworkGraphEdge[]>();
+    const push = (id: NetworkGraphId, edge: NetworkGraphEdge) => {
       const list = map.get(id);
       if (list) {
         list.push(edge);
@@ -893,10 +898,10 @@ export const NetworkGraph = ({
     if (selected == null) {
       return null;
     }
-    if (typeof selected === "number") {
-      return pointById.get(selected) ?? null;
+    if (typeof selected === "object") {
+      return pointById.get(selected.point.id) ?? selected.point;
     }
-    return pointById.get(selected.point.id) ?? selected.point;
+    return pointById.get(selected) ?? null;
   }, [selected, pointById]);
 
   /**
@@ -940,7 +945,7 @@ export const NetworkGraph = ({
       ? overlaySelection.edges
       : (adjacency.get(activeNode.id) ?? []);
     const lines: HoverLine[] = [];
-    const neighbourIds = new Set<number>();
+    const neighbourIds = new Set<NetworkGraphId>();
     for (const edge of incident) {
       const from = resolvePoint(edge.fromId);
       const to = resolvePoint(edge.toId);
@@ -1569,7 +1574,7 @@ export const NetworkGraph = ({
     if (!isDetailZoom || detailPoints.length === 0) {
       return [];
     }
-    const seen = new Set<number>();
+    const seen = new Set<NetworkGraphId>();
     const paths: BundledEdge[] = [];
     for (let round = 0; paths.length < DETAIL_MAX_EDGES; round++) {
       // Any node still had an edge at this round's index — otherwise every node
@@ -1678,9 +1683,9 @@ export const NetworkGraph = ({
    */
   const arrows = useMemo<EdgeArrow[]>(() => {
     const list: EdgeArrow[] = [];
-    const seen = new Set<number>();
+    const seen = new Set<NetworkGraphId>();
     const addArrow = (
-      edgeId: number,
+      edgeId: NetworkGraphId,
       target: [number, number],
       previous: [number, number],
     ) => {
@@ -1766,7 +1771,7 @@ export const NetworkGraph = ({
     const clip = (path: [number, number][]) =>
       trimPathBothEnds(path, sourceTrim, targetTrim);
     const list: BundledEdge[] = [];
-    const seen = new Set<number>();
+    const seen = new Set<NetworkGraphId>();
     for (const edge of highlightEdgePaths) {
       seen.add(edge.edgeId);
       list.push({ edgeId: edge.edgeId, path: clip(edge.path) });
@@ -2098,7 +2103,10 @@ export const NetworkGraph = ({
 
             // Resolve a hovered edge from either representation: a bundled detail
             // edge carries `path`; a compact highlight line carries `source`.
-            const picked: { edgeId: number; path: [number, number][] } | null =
+            const picked: {
+              edgeId: NetworkGraphId;
+              path: [number, number][];
+            } | null =
               object && "path" in object
                 ? { edgeId: object.edgeId, path: object.path }
                 : object && "source" in object

@@ -5,8 +5,11 @@ import { Icon } from "../../Icon/icon";
 
 import type { IconName } from "../../Icon/icon";
 
+/** The type of a node or edge id: either a string or a number. */
+export type NetworkGraphId = string | number;
+
 export interface NetworkGraphPoint {
-  id: number;
+  id: NetworkGraphId;
   x: number;
   y: number;
   /** CSS hex colour (e.g. `#FF8C26`) used for the node. */
@@ -17,14 +20,14 @@ export interface NetworkGraphPoint {
 }
 
 export interface NetworkGraphEdge {
-  id: number;
-  fromId: number;
-  toId: number;
+  id: NetworkGraphId;
+  fromId: NetworkGraphId;
+  toId: NetworkGraphId;
 }
 
 export interface HoverLine {
   /** The edge's id, so a hovered highlight edge can be identified for its label. */
-  id: number;
+  id: NetworkGraphId;
   source: [number, number];
   target: [number, number];
 }
@@ -37,7 +40,7 @@ export interface HoverLine {
  * resolvable), outlined while hovered in the edge's own colour and width.
  */
 export interface HoverableEdge {
-  edgeId: number;
+  edgeId: NetworkGraphId;
   path: [number, number][];
   endpoints: NetworkGraphPoint[];
 }

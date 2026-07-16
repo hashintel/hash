@@ -3,7 +3,11 @@ import { IconLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 
 import { EDGE_COLOR, EDGE_HOVER_WIDTH } from "./network-graph-util";
 
-import type { DetailIconAtlas, NetworkGraphPoint } from "./network-graph-util";
+import type {
+  DetailIconAtlas,
+  NetworkGraphId,
+  NetworkGraphPoint,
+} from "./network-graph-util";
 import type {
   Color,
   CompositeLayerProps,
@@ -215,7 +219,7 @@ export class DetailedNodeLayer extends CompositeLayer<
     // bold label, promoted) so the selection's own appearance is unchanged while
     // another node is hovered — only its edges are dropped (by the parent).
     const selectedId = enlargedSelection?.id ?? null;
-    const isEnlarged = (pointId: number): boolean =>
+    const isEnlarged = (pointId: NetworkGraphId): boolean =>
       pointId === activeId || pointId === selectedId;
     const count = data.length;
     // Rank nodes front-to-back (later = front). Promote the hovered edge's
@@ -224,7 +228,7 @@ export class DetailedNodeLayer extends CompositeLayer<
     // same way a hovered node does. Cheap to rebuild each render (≤ a few hundred
     // nodes); the z it feeds only re-evaluates via `updateTriggers`.
     const orderById = new Map(data.map((point, index) => [point.id, index]));
-    const promotedIds: number[] = [];
+    const promotedIds: NetworkGraphId[] = [];
     for (const point of edgeHoverNodes) {
       if (point.id !== activeId && !promotedIds.includes(point.id)) {
         promotedIds.push(point.id);

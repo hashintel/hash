@@ -13,6 +13,7 @@ import {
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphId,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphProps,
@@ -30,6 +31,21 @@ export default {
 interface GraphData {
   points: NetworkGraphPoint[];
   edges: NetworkGraphEdge[];
+}
+
+interface StoryDataset {
+  /** Label shown on the dataset switcher button. */
+  label: string;
+  /** Message shown while this dataset's fixture data loads. */
+  loadingLabel: string;
+  /** Trims the fixture to the first N nodes; the full dataset when omitted. */
+  nodeLimit?: number;
+  /**
+   * Pre-computed minimum node distance. Supplied for the full dataset only —
+   * computing it at render time is O(n²) (see `minDistance`); trimmed datasets
+   * are small enough to compute it on the fly.
+   */
+  precomputedMinDistance?: number;
 }
 
 /**
@@ -70,11 +86,13 @@ function minDistance(points: Array<{ x: number; y: number }>): number {
 }
 
 /**
- * Loads the fixture data, optionally trimmed to the first `nodeLimit` points.
- * When trimmed, edges are filtered to those whose endpoints are both among the
- * loaded points, so the graph never references a node that isn't present.
+ * Loads the full fixture once. Per-dataset trimming happens downstream (see the
+ * `data` memo in {@link NetworkGraphStory}), so switching datasets neither
+ * re-fetches nor re-parses the ~23 MB of fixtures — and, crucially, never leaves
+ * a trimmed dataset's config paired with the full-size data mid-fetch (which
+ * would run the O(n²) `minDistance` over all ~200k nodes and freeze the tab).
  */
-const useGraphData = (nodeLimit?: number): GraphData | null => {
+const useFullGraphData = (): GraphData | null => {
   const [data, setData] = useState<GraphData | null>(null);
 
   useEffect(() => {
@@ -93,21 +111,12 @@ const useGraphData = (nodeLimit?: number): GraphData | null => {
       if (!status.active) {
         return;
       }
-      if (nodeLimit === undefined) {
-        setData({ points, edges });
-        return;
-      }
-      const limitedPoints = points.slice(0, nodeLimit);
-      const loadedIds = new Set(limitedPoints.map((point) => point.id));
-      const limitedEdges = edges.filter(
-        (edge) => loadedIds.has(edge.fromId) && loadedIds.has(edge.toId),
-      );
-      setData({ points: limitedPoints, edges: limitedEdges });
+      setData({ points, edges });
     })();
     return () => {
       status.active = false;
     };
-  }, [nodeLimit]);
+  }, []);
 
   return data;
 };
@@ -200,26 +209,48 @@ const jitter = (magnitude: number): number =>
  * away from the selected node.
  */
 const randomEdgeDirection = (
-  a: number,
-  b: number,
-): { fromId: number; toId: number } =>
+  a: NetworkGraphId,
+  b: NetworkGraphId,
+): { fromId: NetworkGraphId; toId: NetworkGraphId } =>
   Math.random() < 0.5 ? { fromId: a, toId: b } : { fromId: b, toId: a };
 
 /**
- * Shared render for the NetworkGraph stories: fetches the fixture data (trimmed
- * to `nodeLimit` when given), wires up node/edge selection, and anchors tooltips
- * to the hovered/clicked target.
+ * Shared render for the NetworkGraph stories: shows one of `datasets` (fetching
+ * the fixture trimmed to that dataset's `nodeLimit`), wires up node/edge
+ * selection, and anchors tooltips to the hovered/clicked target. When more than
+ * one dataset is given, a toolbar dropdown switches between them.
  */
 const NetworkGraphStory = ({
-  nodeLimit,
-  loadingLabel,
-  precomputedMinDistance,
+  datasets,
 }: {
-  nodeLimit?: number;
-  loadingLabel: string;
-  precomputedMinDistance?: number;
+  // A non-empty list; when it holds more than one entry a switcher dropdown in
+  // the toolbar selects between them.
+  datasets: readonly [StoryDataset, ...StoryDataset[]];
 }) => {
-  const data = useGraphData(nodeLimit);
+  // Which dataset is currently shown; chosen via the switcher dropdown below.
+  const [datasetIndex, setDatasetIndex] = useState(0);
+  const dataset = datasets[datasetIndex] ?? datasets[0];
+  const fullData = useFullGraphData();
+  // The current dataset's view of the fixture, derived synchronously so the
+  // dataset config and the data can never fall out of step: the full data, or
+  // trimmed to `nodeLimit` with edges filtered to loaded nodes. (Deriving this
+  // asynchronously previously left a trimmed dataset paired with the full-size
+  // data for a render, running the O(n²) `minDistance` over ~200k nodes.)
+  const data = useMemo<GraphData | null>(() => {
+    if (!fullData) {
+      return null;
+    }
+    const { nodeLimit } = dataset;
+    if (nodeLimit === undefined) {
+      return fullData;
+    }
+    const limitedPoints = fullData.points.slice(0, nodeLimit);
+    const loadedIds = new Set(limitedPoints.map((point) => point.id));
+    const limitedEdges = fullData.edges.filter(
+      (edge) => loadedIds.has(edge.fromId) && loadedIds.has(edge.toId),
+    );
+    return { points: limitedPoints, edges: limitedEdges };
+  }, [fullData, dataset]);
   // The frame is the popover's trigger; `positionFromPoint` then anchors the
   // tooltip at a point measured from the frame's top-left.
   const frameRef = useRef<HTMLDivElement>(null);
@@ -231,7 +262,7 @@ const NetworkGraphStory = ({
   // The selection driving the chart: a node id (existing node) or an explicit
   // `{ point, edges, neighbours }` neighbourhood to overlay.
   const [selected, setSelected] = useState<
-    number | NetworkGraphSelection | null
+    NetworkGraphId | NetworkGraphSelection | null
   >(null);
   // The selected node's live on-screen position and drawn radius, updated by the
   // chart as the user zooms/pans so the tooltip tracks the node and clears it.
@@ -253,9 +284,17 @@ const NetworkGraphStory = ({
   // fixture's ids so they never collide.
   const nextIdRef = useRef(1_000_000_000);
 
+  // Switch datasets, clearing any selection that referred to nodes in the
+  // previous (possibly larger) dataset.
+  const handleSelectDataset = useCallback((index: number) => {
+    setDatasetIndex(index);
+    setSelected(null);
+    setSelectedEdge(null);
+  }, []);
+
   /** Fixture nodes keyed by id, for resolving edge endpoints in the demo. */
   const pointById = useMemo(() => {
-    const map = new Map<number, NetworkGraphPoint>();
+    const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     for (const point of data?.points ?? []) {
       map.set(point.id, point);
     }
@@ -301,8 +340,8 @@ const NetworkGraphStory = ({
    * rather than recomputing it here; the smaller stories compute it on the fly.
    */
   const nodeMinDistance = useMemo(
-    () => precomputedMinDistance ?? minDistance(data?.points ?? []),
-    [precomputedMinDistance, data],
+    () => dataset.precomputedMinDistance ?? minDistance(data?.points ?? []),
+    [dataset, data],
   );
 
   /** A brand-new node at `(x, y)`, borrowing a random colour/icon from the graph. */
@@ -369,7 +408,7 @@ const NetworkGraphStory = ({
     const perSide = 3;
     const existingEdges: NetworkGraphEdge[] = [];
     const existingNeighbours: NetworkGraphPoint[] = [];
-    const usedNeighbours = new Set<number>();
+    const usedNeighbours = new Set<NetworkGraphId>();
     for (const edge of data.edges) {
       if (existingEdges.length >= perSide) {
         break;
@@ -413,10 +452,12 @@ const NetworkGraphStory = ({
     if (selected == null) {
       return null;
     }
-    if (typeof selected === "number") {
-      return pointById.get(selected) ?? null;
+    // A selection is the explicit `{ point, edges, neighbours }` object; anything
+    // else is a node id (string or number).
+    if (typeof selected === "object") {
+      return selected.point;
     }
-    return selected.point;
+    return pointById.get(selected) ?? null;
   }, [selected, pointById]);
 
   const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
@@ -432,6 +473,9 @@ const NetworkGraphStory = ({
       // an edge's isn't — which is fine for this demo.)
       setSelectedEdge(interaction.edge);
       setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
+      // Only one thing is selected at a time, so an edge click clears any
+      // selected node (mirroring how a node click clears the selected edge).
+      setSelected(null);
     },
     [],
   );
@@ -453,6 +497,22 @@ const NetworkGraphStory = ({
             onZoom={setZoom}
           />
           <div className={controlsStyles}>
+            {datasets.length > 1 ? (
+              <select
+                className={buttonStyles}
+                value={datasetIndex}
+                onChange={(event) =>
+                  handleSelectDataset(Number(event.target.value))
+                }
+                aria-label="Dataset"
+              >
+                {datasets.map((entry, index) => (
+                  <option key={entry.label} value={index}>
+                    {entry.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <button
               type="button"
               className={buttonStyles}
@@ -535,7 +595,7 @@ const NetworkGraphStory = ({
       ) : (
         <span className={centreStyles}>
           <LoadingSpinner size="md" />
-          {loadingLabel}
+          {dataset.loadingLabel}
         </span>
       )}
     </div>
@@ -550,15 +610,36 @@ const NetworkGraphStory = ({
  */
 const FULL_DATASET_MIN_DISTANCE = 0.02236067977446914;
 
+/** The full ~200k-node fixture. */
+const FULL_DATASET: StoryDataset = {
+  label: "Full (~200k nodes)",
+  loadingLabel: "Loading ~200k nodes…",
+  precomputedMinDistance: FULL_DATASET_MIN_DISTANCE,
+};
+
+/** The fixture trimmed to its first 1,000 nodes. */
+const ONE_THOUSAND_DATASET: StoryDataset = {
+  label: "1,000 nodes",
+  loadingLabel: "Loading 1,000 nodes…",
+  nodeLimit: 1000,
+};
+
+/** The fixture trimmed to its first 10 nodes. */
+const TEN_DATASET: StoryDataset = {
+  label: "10 nodes",
+  loadingLabel: "Loading 10 nodes…",
+  nodeLimit: 10,
+};
+
 /**
  * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
  * by default; hover a node to reveal its connections and neighbours, and click a
- * node to inspect it. Scroll to zoom and drag to pan.
+ * node to inspect it. Scroll to zoom and drag to pan. The toolbar's dataset
+ * dropdown switches between the full graph, 1,000 nodes, and 10 nodes.
  */
 export const Default: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory
-    loadingLabel="Loading ~200k nodes…"
-    precomputedMinDistance={FULL_DATASET_MIN_DISTANCE}
+    datasets={[FULL_DATASET, ONE_THOUSAND_DATASET, TEN_DATASET]}
   />
 );
 
@@ -567,7 +648,7 @@ export const Default: Story<NetworkGraphProps> = () => (
  * connecting two loaded nodes. A tiny subset for inspecting individual nodes.
  */
 export const TenNodes: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory nodeLimit={10} loadingLabel="Loading 10 nodes…" />
+  <NetworkGraphStory datasets={[TEN_DATASET]} />
 );
 
 /**
@@ -576,5 +657,5 @@ export const TenNodes: Story<NetworkGraphProps> = () => (
  * {@link Default}.
  */
 export const OneThousandNodes: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory nodeLimit={1000} loadingLabel="Loading 1,000 nodes…" />
+  <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />
 );
