@@ -79,6 +79,63 @@ const ANCHORS: [Vec2; 4] = [
 ];
 
 #[test]
+fn fit_reproduces_the_umap_learn_reference_parameters() {
+    // umap-learn's `find_ab_params(spread=1.0, min_dist=0.1)` yields
+    // a ~= 1.577, b ~= 0.895; the constants above are that reference.
+    let fitted = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+
+    assert!(
+        (fitted.a() - CURVE_A).abs() < 0.01,
+        "expected a close to {CURVE_A}, got {}",
+        fitted.a(),
+    );
+    assert!(
+        (fitted.b() - CURVE_B).abs() < 0.01,
+        "expected b close to {CURVE_B}, got {}",
+        fitted.b(),
+    );
+}
+
+#[test]
+fn fitted_curve_tracks_its_target_falloff() {
+    let spread = 2.0_f32;
+    let minimum_distance = 0.5_f32;
+    let fitted =
+        AffinityCurve::fit(spread, minimum_distance).expect("the inputs are well-conditioned");
+
+    // Inside the minimum distance the target membership is 1.
+    assert_eq!(fitted.affinity(0.0), 1.0);
+    assert!(fitted.affinity(0.25 * 0.25) > 0.9);
+
+    // Beyond it the curve follows the exponential falloff loosely: the
+    // fit trades pointwise accuracy for least-squares balance.
+    for distance in [0.75_f32, 1.5, 3.0, 4.5] {
+        let target = (-(distance - minimum_distance) / spread).exp();
+        let affinity = fitted.affinity(distance * distance);
+        assert!(
+            (affinity - target).abs() < 0.05,
+            "at distance {distance}: expected roughly {target}, got {affinity}",
+        );
+    }
+}
+
+#[test]
+fn fit_rejects_degenerate_inputs() {
+    // Degenerate spreads.
+    assert!(AffinityCurve::fit(0.0, 0.1).is_none());
+    assert!(AffinityCurve::fit(-1.0, 0.1).is_none());
+    assert!(AffinityCurve::fit(f32::NAN, 0.1).is_none());
+    assert!(AffinityCurve::fit(f32::INFINITY, 0.1).is_none());
+
+    // Degenerate minimum distances, including one beyond the spread.
+    assert!(AffinityCurve::fit(1.0, 0.0).is_none());
+    assert!(AffinityCurve::fit(1.0, -0.1).is_none());
+    assert!(AffinityCurve::fit(1.0, f32::NAN).is_none());
+    assert!(AffinityCurve::fit(1.0, f32::INFINITY).is_none());
+    assert!(AffinityCurve::fit(1.0, 2.0).is_none());
+}
+
+#[test]
 fn new_rejects_degenerate_parameters() {
     assert!(AffinityCurve::new(1.0, 1.0).is_some());
     assert!(AffinityCurve::new(0.0, 1.0).is_none());

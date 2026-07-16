@@ -24,12 +24,15 @@ pub(super) fn validate(
     if bytes.is_empty() || bytes.len() > MAXIMUM_GATE_REPORT_BYTES {
         return Err("gate report size is outside the supported envelope");
     }
-    let report: ReportEnvelope =
-        serde_json::from_slice(bytes).map_err(|_error| "gate report is not valid JSON")?;
+    let report: ReportEnvelope = serde_json::from_slice(bytes)
+        .map_err(|_error| "gate report does not match its JSON schema")?;
     let expected_outcome = match (manifest.assurance_mode, role) {
-        (GenerationAssuranceMode::EvidenceDeferredLocal, ArtifactRole::RepresentationReport) => {
-            report.outcome == "deferred" && report.attesting == Some(false)
-        }
+        (
+            GenerationAssuranceMode::EvidenceDeferredLocal,
+            ArtifactRole::RepresentationReport
+            | ArtifactRole::SemanticFidelityReport
+            | ArtifactRole::SubgroupBehaviorReport,
+        ) => report.outcome == "deferred" && report.attesting == Some(false),
         _ => report.outcome == "pass",
     };
     if report.schema_version != 1
@@ -81,7 +84,7 @@ mod tests {
     use crate::salt::manifest::fixture_manifest;
 
     #[test]
-    fn deferred_representation_report_requires_an_explicit_non_attesting_outcome() {
+    fn deferred_quality_reports_require_an_explicit_non_attesting_outcome() {
         let mut manifest = fixture_manifest();
         manifest.assurance_mode = GenerationAssuranceMode::EvidenceDeferredLocal;
         let suite = &manifest.embedding.representation_audit.suite_version;
@@ -96,6 +99,28 @@ mod tests {
 
         validate(ArtifactRole::RepresentationReport, &report, &manifest)
             .expect("explicitly deferred representation report should validate");
+
+        let semantic_suite = &manifest
+            .variants
+            .entries
+            .iter()
+            .find(|variant| variant.id == manifest.variants.canonical_variant)
+            .expect("canonical variant should exist")
+            .quality_suite_version;
+        let semantic_report = serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "suiteVersion": semantic_suite,
+            "outcome": "deferred",
+            "attesting": false,
+            "subjects": {"projectedField": "fixture-subject"}
+        }))
+        .expect("report should serialize");
+        validate(
+            ArtifactRole::SemanticFidelityReport,
+            &semantic_report,
+            &manifest,
+        )
+        .expect("explicitly deferred semantic report should validate");
 
         let mut falsely_attesting: serde_json::Value =
             serde_json::from_slice(&report).expect("report should decode");

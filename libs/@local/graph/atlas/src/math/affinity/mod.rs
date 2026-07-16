@@ -23,8 +23,11 @@
 //! layouts rely on distinct initial placement to separate identical
 //! points.
 //!
-//! All arithmetic is `f32` with FMA contraction where the target provides
-//! it, and the kernels are fully vectorized, including the `d^(2b)` power.
+//! All gradient arithmetic is `f32` with FMA contraction where the target
+//! provides it, and the kernels are fully vectorized, including the
+//! `d^(2b)` power. The one exception is [`AffinityCurve::fit`], the
+//! one-shot least-squares parameter fit at initialization, which runs in
+//! double precision and narrows its result to `f32`.
 #![expect(
     clippy::min_ident_chars,
     reason = "`a` and `b` are the canonical names of the UMAP curve parameters throughout the \
@@ -33,21 +36,31 @@
 
 use core::simd::{Select as _, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _};
 
+use levenberg_marquardt::{LeastSquaresProblem, LevenbergMarquardt};
+use nalgebra::{DVector, Dyn, OMatrix, U2, Vector2, storage::Owned};
+
 use super::{
     kernel::{mul_add_f32x4, pow_f32x4},
+    scalar::narrow_f32,
     vec2::{Vec2, Vec2x4T},
 };
 
 #[cfg(test)]
 mod tests;
 
+/// Number of evenly spaced distances sampled when fitting the curve.
+///
+/// Matches the 300-point grid used by umap-learn's `find_ab_params`.
+const FIT_SAMPLES: u16 = 300;
+
 /// The affinity curve `1 / (1 + a * d^(2b))` mapping layout distance to
 /// edge probability.
 ///
 /// The parameters come from fitting the curve against the desired
-/// membership falloff (spread and minimum distance), as UMAP's `a` and
-/// `b`; `a` scales the curve and `b` shapes its tail. Both are strictly
-/// positive and finite by construction.
+/// membership falloff (spread and minimum distance) with
+/// [`fit`](Self::fit), as UMAP's `a` and `b`; `a` scales the curve and
+/// `b` shapes its tail. Both are strictly positive and finite by
+/// construction.
 ///
 /// # Examples
 ///
@@ -93,6 +106,77 @@ impl AffinityCurve {
     #[must_use]
     pub fn new(a: f32, b: f32) -> Option<Self> {
         (a.is_finite() && a > 0.0 && b.is_finite() && b > 0.0).then_some(Self { a, b })
+    }
+
+    /// Fits a curve from the desired membership falloff.
+    ///
+    /// The falloff keeps membership at `1` inside `minimum_distance` and
+    /// decays as `exp(-(d - minimum_distance) / spread)` beyond it. This
+    /// reproduces umap-learn's `find_ab_params`: the falloff is sampled
+    /// at 300 evenly spaced distances over `[0, 3 * spread]` and the
+    /// curve is fitted to the samples by Levenberg-Marquardt least
+    /// squares. The fit runs once at initialization, in double
+    /// precision, and narrows the result to the working `f32`
+    /// parameters.
+    ///
+    /// Returns [`None`] when `spread` is not finite and strictly
+    /// positive, when `minimum_distance` is not finite and strictly
+    /// positive or exceeds `spread`, or when the least-squares fit fails
+    /// to converge to parameters that [`new`](Self::new) accepts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::AffinityCurve;
+    ///
+    /// // The umap-learn defaults: spread 1.0, minimum distance 0.1.
+    /// let curve = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    ///
+    /// assert!((curve.a() - 1.577).abs() < 0.01);
+    /// assert!((curve.b() - 0.895).abs() < 0.01);
+    /// ```
+    #[must_use]
+    pub fn fit(spread: f32, minimum_distance: f32) -> Option<Self> {
+        if !spread.is_finite() || spread <= 0.0 {
+            return None;
+        }
+
+        if !minimum_distance.is_finite() || minimum_distance <= 0.0 || minimum_distance > spread {
+            return None;
+        }
+
+        let spread = f64::from(spread);
+        let minimum_distance = f64::from(minimum_distance);
+
+        let step = 3.0 * spread / f64::from(FIT_SAMPLES - 1);
+        let mut distances = Vec::with_capacity(usize::from(FIT_SAMPLES));
+        let mut targets = Vec::with_capacity(usize::from(FIT_SAMPLES));
+        for index in 0..FIT_SAMPLES {
+            let distance = f64::from(index) * step;
+            let target = if distance < minimum_distance {
+                1.0
+            } else {
+                (-(distance - minimum_distance) / spread).exp()
+            };
+
+            distances.push(distance);
+            targets.push(target);
+        }
+
+        let problem = FitProblem {
+            parameters: Vector2::new(1.0, 1.0),
+            distances,
+            targets,
+        };
+        let (problem, report) = LevenbergMarquardt::new().minimize(problem);
+        if !report.termination.was_successful() {
+            return None;
+        }
+
+        Self::new(
+            narrow_f32(problem.parameters.x)?,
+            narrow_f32(problem.parameters.y)?,
+        )
     }
 
     /// Returns the `a` parameter.
@@ -243,4 +327,71 @@ const fn clip_vec2(gradient: Vec2) -> Vec2 {
         Vec2::splat(-AffinityCurve::GRADIENT_CLIP),
         Vec2::splat(AffinityCurve::GRADIENT_CLIP),
     )
+}
+
+/// Least-squares residuals of the affinity curve against the sampled
+/// target falloff.
+struct FitProblem {
+    parameters: Vector2<f64>,
+    distances: Vec<f64>,
+    targets: Vec<f64>,
+}
+
+impl LeastSquaresProblem<f64, Dyn, U2> for FitProblem {
+    type JacobianStorage = Owned<f64, Dyn, U2>;
+    type ParameterStorage = Owned<f64, U2>;
+    type ResidualStorage = Owned<f64, Dyn>;
+
+    fn set_params(&mut self, x: &Vector2<f64>) {
+        self.parameters = *x;
+    }
+
+    fn params(&self) -> Vector2<f64> {
+        self.parameters
+    }
+
+    fn residuals(&self) -> Option<DVector<f64>> {
+        let a = self.parameters.x;
+        let b = self.parameters.y;
+        if !a.is_finite() || !b.is_finite() {
+            return None;
+        }
+
+        let residuals = DVector::from_iterator(
+            self.distances.len(),
+            self.distances
+                .iter()
+                .zip(&self.targets)
+                .map(|(&distance, &target)| {
+                    a.mul_add(distance.powf(2.0 * b), 1.0).recip() - target
+                }),
+        );
+        residuals
+            .iter()
+            .all(|value| value.is_finite())
+            .then_some(residuals)
+    }
+
+    fn jacobian(&self) -> Option<OMatrix<f64, Dyn, U2>> {
+        let a = self.parameters.x;
+        let b = self.parameters.y;
+        let mut jacobian = OMatrix::<f64, Dyn, U2>::zeros_generic(Dyn(self.distances.len()), U2);
+
+        for (row, &distance) in self.distances.iter().enumerate() {
+            // The zero-distance sample has zero partials in both
+            // parameters; skipping it also keeps `ln` off distance zero.
+            if distance <= 0.0 {
+                continue;
+            }
+            let power = distance.powf(2.0 * b);
+            let denominator = a.mul_add(power, 1.0).powi(2);
+            jacobian[(row, 0)] = -power / denominator;
+            jacobian[(row, 1)] = -(2.0 * a * power * distance.ln()) / denominator;
+        }
+
+        jacobian
+            .iter()
+            .all(|value| value.is_finite())
+            .then_some(jacobian)
+    }
 }

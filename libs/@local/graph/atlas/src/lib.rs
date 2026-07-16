@@ -95,11 +95,13 @@ extern crate alloc;
 
 pub mod api;
 pub mod cli;
+pub mod file;
 pub mod float;
 pub mod integrity;
 pub(crate) mod macros;
 pub mod math;
 pub mod projection;
+pub mod random;
 pub(crate) mod salt;
 mod salt2;
 pub mod salt_fit;

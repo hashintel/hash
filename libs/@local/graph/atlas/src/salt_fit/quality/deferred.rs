@@ -118,10 +118,16 @@ struct MockReport {
     suite_version: &'static str,
     outcome: &'static str,
     attesting: bool,
-    subject: ContentHash,
+    subjects: MockSubjects,
     condition: f32,
     row_count: usize,
     note: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MockSubjects {
+    projected_field: ContentHash,
 }
 
 fn mock_report(
@@ -135,7 +141,9 @@ fn mock_report(
         suite_version: SUITE_VERSION,
         outcome: "deferred",
         attesting: false,
-        subject: field_hash,
+        subjects: MockSubjects {
+            projected_field: field_hash,
+        },
         condition,
         row_count,
         note: match subject_kind {
@@ -148,4 +156,22 @@ fn mock_report(
     .map_err(|_error| {
         ConditionQualityEvaluationError::new("could not serialize deferred quality report")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mock_report_uses_the_shared_gate_report_subject_envelope() {
+        let field = ContentHash::digest(b"deferred-field");
+        let report =
+            mock_report("semantic-fidelity", field, 1.0, 3).expect("report should serialize");
+        let report: serde_json::Value =
+            serde_json::from_slice(&report).expect("report should decode");
+
+        assert_eq!(report["outcome"], "deferred");
+        assert_eq!(report["attesting"], false);
+        assert_eq!(report["subjects"]["projectedField"], field.to_string());
+    }
 }

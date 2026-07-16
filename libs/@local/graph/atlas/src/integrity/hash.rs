@@ -41,7 +41,12 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
 impl Sha256Digest {
-    /// Creates a digest from its raw SHA-256 bytes.
+    /// Adopts `bytes` as a digest without computing anything.
+    ///
+    /// The caller asserts that `bytes` came out of a SHA-256 computation
+    /// over the content this value is meant to name; nothing here can check
+    /// that. Use this to restore digests from storage formats that persist
+    /// raw bytes rather than hexadecimal text.
     #[must_use]
     #[inline]
     pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
@@ -74,14 +79,11 @@ impl FromStr for Sha256Digest {
 
 /// A streaming SHA-256 hasher.
 ///
-/// The hasher absorbs bytes incrementally through [`Sha256::update`] (or any
-/// stream via [`Writer`](super::Writer)) and finishes into a
-/// [`Sha256Digest`] with [`Sha256::finalize`]. The digest is determined by
-/// the concatenated byte stream alone, never by how it was chunked.
-///
-/// Cloning is cheap and forks the state: a clone digests the bytes absorbed
-/// so far plus whatever it absorbs afterwards, which is useful for taking a
-/// digest of a prefix while continuing to stream.
+/// The hasher absorbs bytes incrementally through
+/// [`Update::update`](super::Update::update) (or any stream via
+/// [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
+/// [`Sha256::finalize`]. The digest is determined by the concatenated byte
+/// stream alone, never by how it was chunked.
 ///
 /// Note that byte concatenation is ambiguous across component boundaries:
 /// `["ab", "c"]` and `["a", "bc"]` produce the same digest. When a digest
@@ -91,7 +93,7 @@ impl FromStr for Sha256Digest {
 /// # Examples
 ///
 /// ```rust
-/// use hash_graph_atlas::integrity::Sha256;
+/// use hash_graph_atlas::integrity::{Sha256, Update as _};
 ///
 /// let mut hasher = Sha256::new();
 /// hasher.update(b"abc");

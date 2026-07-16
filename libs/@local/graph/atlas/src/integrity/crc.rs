@@ -24,6 +24,30 @@ use super::writer::Update;
 #[repr(transparent)]
 pub struct Checksum(u64);
 
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "checksum bytes are persisted in canonical little-endian order across platforms"
+)]
+impl Checksum {
+    /// Creates a checksum from its little-endian bytes.
+    ///
+    /// Every 8-byte value is a valid checksum; whether it is the checksum of
+    /// a given frame is decided by comparing it against a recomputed
+    /// [`Crc64::finalize`].
+    #[must_use]
+    #[inline]
+    pub const fn from_bytes(bytes: [u8; 8]) -> Self {
+        Self(u64::from_le_bytes(bytes))
+    }
+
+    /// Returns the little-endian checksum bytes.
+    #[must_use]
+    #[inline]
+    pub const fn to_bytes(self) -> [u8; 8] {
+        self.0.to_le_bytes()
+    }
+}
+
 /// A streaming CRC-64/NVME checksum.
 ///
 /// The checksum is a cheap 64-bit integrity check for framing artifacts on
@@ -56,9 +80,10 @@ pub struct Checksum(u64);
 /// let mut writing = Crc64::new();
 /// writing.update(b"frame payload");
 /// let stored = writing.finalize();
-/// hecksum = Crc64::new();
-/// checksum.update(b"123456789");
-/// assert_eq!(checksum.finalize(), 0xAE8B_1486_0A79_9888);
+///
+/// let mut reading = Crc64::new();
+/// reading.update(b"frame payload");
+/// assert_eq!(reading.finalize(), stored);
 /// ```
 #[derive(Debug)]
 pub struct Crc64(Digest);
@@ -91,7 +116,7 @@ impl Crc64 {
     /// # Examples
     ///
     /// ```rust
-    /// use hash_graph_atlas::integrity::Crc64;
+    /// use hash_graph_atlas::integrity::{Crc64, Update as _};
     ///
     /// let mut whole = Crc64::new();
     /// whole.update(b"123456789");
@@ -149,6 +174,15 @@ mod tests {
         left.combine(&right);
 
         assert_eq!(left.finalize(), CHECK_VALUE);
+    }
+
+    #[test]
+    fn byte_order_is_little_endian() {
+        assert_eq!(
+            CHECK_VALUE.to_bytes(),
+            [0x88, 0x98, 0x79, 0x0A, 0x86, 0x14, 0x8B, 0xAE]
+        );
+        assert_eq!(Checksum::from_bytes(CHECK_VALUE.to_bytes()), CHECK_VALUE);
     }
 
     #[test]

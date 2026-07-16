@@ -6,9 +6,9 @@
 //! - "Are these the bytes the manifest meant?" [`Sha256Digest`] is a collision-resistant content
 //!   identity, computed with [`Sha256`]. A digest pins content: recording it in a manifest commits
 //!   to the exact artifact bytes.
-//! - "Did these bytes survive storage and transport?" [`Crc64`] computes a CRC-64/NVME checksum, a
-//!   fast 64-bit corruption check for framing on-disk artifacts. It detects accidental damage only;
-//!   anyone who can choose the bytes can forge it.
+//! - "Did these bytes survive storage and transport?" [`Crc64`] computes a CRC-64/NVME
+//!   [`Checksum`], a fast 64-bit corruption check for framing on-disk artifacts. It detects
+//!   accidental damage only; anyone who can choose the bytes can forge it.
 //! - "Did the right party produce these bytes?" [`Signer`] and [`Verifier`] are an Ed25519 key
 //!   pair. A [`Signature`] binds a message to the holder of the secret key, and verification is
 //!   pinned to one exact public key.
@@ -18,10 +18,27 @@
 //! name their contents, and sign the digests so consumers can authenticate
 //! the producer without rehashing anything.
 //!
+//! ```rust
+//! use hash_graph_atlas::integrity::{Sha256, Signer, Update as _};
+//!
+//! // Digest an artifact and sign the digest, not the artifact.
+//! let mut hasher = Sha256::new();
+//! hasher.update(b"artifact bytes");
+//! let digest = hasher.finalize();
+//!
+//! let signer = Signer::from_bytes([7_u8; 32]);
+//! let signature = signer.sign(&digest.to_bytes());
+//!
+//! // A consumer pins the public key and authenticates the digest alone.
+//! let verifier = signer.verifier();
+//! assert!(verifier.verify(&digest.to_bytes(), &signature).is_ok());
+//! ```
+//!
 //! Both accumulators implement [`Update`], and [`Writer`] adapts any
 //! [`Update`] implementation into [`std::io::Write`],
-//! [`tokio::io::AsyncWrite`], and [`futures::Sink`], so a stream can be
-//! digested or checksummed during a copy without buffering it in memory.
+//! [`tokio::io::AsyncWrite`], and [`Sink`](futures_sink::Sink), so a stream
+//! can be digested or checksummed during a copy without buffering it in
+//! memory.
 //!
 //! # Text encodings
 //!
@@ -39,7 +56,7 @@ mod sign;
 mod writer;
 
 pub use self::{
-    crc::Crc64,
+    crc::{Checksum, Crc64},
     hash::{Sha256, Sha256Digest},
     hex::ParseHexError,
     sign::{

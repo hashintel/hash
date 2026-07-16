@@ -23,7 +23,7 @@ pub trait Update {
 ///
 /// - [`io::Write`] for synchronous streams,
 /// - [`tokio::io::AsyncWrite`] for asynchronous streams,
-/// - [`futures::Sink`] for framed byte chunks.
+/// - [`Sink`](futures_sink::Sink) for framed byte chunks.
 ///
 /// Writes always succeed in full, and flush, shutdown, and close are no-ops.
 /// The accumulator is the public field, so the finished value is one field
