@@ -62,9 +62,9 @@ type _CompactNodeLayerProps = {
    */
   backgroundEdgePaths: BundledEdge[];
   /**
-   * The id of the currently hovered edge, if any — it draws emphasised (double
-   * width, and full opacity for the faint background edges). `null` when no edge
-   * is hovered.
+   * The id of the emphasised edge, if any — the hovered edge, or the selected edge
+   * when nothing is hovered. It draws emphasised (double width, and full opacity for
+   * the faint background edges). `null` when no edge is hovered or selected.
    */
   hoveredEdgeId: NetworkGraphId | null;
   /**
@@ -79,9 +79,9 @@ type _CompactNodeLayerProps = {
    */
   backgroundEdgesPickable: boolean;
   /**
-   * The two endpoint nodes of the hovered edge, each drawn with a ring in the
-   * edge's colour and hover width so it's clear which nodes it connects. Empty
-   * when no edge is hovered.
+   * The two endpoint nodes of the emphasised (hovered or selected) edge, each drawn
+   * with a ring in the edge's colour and hover width so it's clear which nodes it
+   * connects. Empty when no edge is hovered or selected.
    */
   edgeHoverNodes: NetworkGraphPoint[];
   /** Neighbours of the active node, drawn with a "grown" ring. */

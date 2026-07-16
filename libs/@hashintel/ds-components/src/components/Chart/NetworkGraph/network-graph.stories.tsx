@@ -473,9 +473,11 @@ const NetworkGraphStory = ({
       // an edge's isn't — which is fine for this demo.)
       setSelectedEdge(interaction.edge);
       setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
-      // Only one thing is selected at a time, so an edge click clears any
-      // selected node (mirroring how a node click clears the selected edge).
-      setSelected(null);
+      // Leave the node selection intact. The chart keeps the picked edge
+      // highlighted via `selectedEdge`; in the compact view an edge is only drawn
+      // while its node is selected, so keeping that node selected is what lets the
+      // selected edge stay highlighted there. The node's own tooltip is hidden
+      // while an edge is selected (below), so only the edge popover shows.
     },
     [],
   );
@@ -491,6 +493,7 @@ const NetworkGraphStory = ({
             graphBounds={graphBounds}
             nodeMinDistance={nodeMinDistance}
             selected={selected}
+            selectedEdge={selectedEdge?.id ?? null}
             onNodeClick={handleClick}
             onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
@@ -548,7 +551,7 @@ const NetworkGraphStory = ({
               <span className={zoomReadoutStyles}>{zoom.toFixed(2)}</span>
             ) : null}
           </div>
-          {selectedPoint && tooltipPos ? (
+          {selectedPoint && tooltipPos && !selectedEdge ? (
             <Popover
               triggerRef={frameRef}
               position="bottom-start"

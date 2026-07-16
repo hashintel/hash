@@ -145,9 +145,9 @@ type _DetailedNodeLayerProps = {
   /** Mask atlas of the icons used by the data; `null` until it has rasterised. */
   iconAtlas: DetailIconAtlas | null;
   /**
-   * The two endpoint nodes of the hovered edge, each ringed in the edge's colour
-   * and hover width so it's clear which nodes it connects. Empty when no edge is
-   * hovered.
+   * The two endpoint nodes of the emphasised (hovered or selected) edge, each ringed
+   * in the edge's colour and hover width so it's clear which nodes it connects. Empty
+   * when no edge is hovered or selected.
    */
   edgeHoverNodes: NetworkGraphPoint[];
 };
