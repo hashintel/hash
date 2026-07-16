@@ -7,14 +7,17 @@ from repo_chores import prune
 
 class TestParseScopes:
     def test_splits_on_spaces_and_newlines(self) -> None:
-        assert prune.parse_scopes("@apps/a @apps/b\n@apps/c") == frozenset(
-            {"@apps/a", "@apps/b", "@apps/c"}
-        )
+        assert prune.parse_scopes("@apps/a @apps/b\n@apps/c") == frozenset({
+            "@apps/a",
+            "@apps/b",
+            "@apps/c",
+        })
 
     def test_ignores_blank_lines_and_extra_whitespace(self) -> None:
-        assert prune.parse_scopes("\n  @apps/a  \n\n\t@apps/b\n") == frozenset(
-            {"@apps/a", "@apps/b"}
-        )
+        assert prune.parse_scopes("\n  @apps/a  \n\n\t@apps/b\n") == frozenset({
+            "@apps/a",
+            "@apps/b",
+        })
 
 
 class TestExpandScopes:
@@ -38,13 +41,11 @@ class TestFixpointExpand:
             "@rust/hashql-compiletest": frozenset({"@rust/hash-graph-types"}),
         }
         scopes = prune.fixpoint_expand({"@rust/hashql-ast"}, dependencies)
-        assert scopes == frozenset(
-            {
-                "@rust/hashql-ast",
-                "@rust/hashql-compiletest",
-                "@rust/hash-graph-test-data",
-            }
-        )
+        assert scopes == frozenset({
+            "@rust/hashql-ast",
+            "@rust/hashql-compiletest",
+            "@rust/hash-graph-test-data",
+        })
 
     def test_terminates_on_cyclic_dependency_maps(self) -> None:
         dependencies = {

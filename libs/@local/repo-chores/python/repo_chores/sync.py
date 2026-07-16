@@ -395,6 +395,9 @@ def assemble_package_json(
     scripts["lint:ruff"] = RUFF_LINT_SCRIPT
     if member.has_tests:
         scripts["test:unit"] = PYTEST_SCRIPT
+    elif scripts.get("test:unit") == PYTEST_SCRIPT:
+        # Managed script only; hand-written test:unit entries survive.
+        del scripts["test:unit"]
 
     data["name"] = f"{NPM_SCOPE}/{member.name}"
     data["version"] = "0.0.0-private"

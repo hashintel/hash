@@ -4,9 +4,9 @@
 # (see libs/@local/repo-chores/python) and validated in CI.
 
 [project]
+description = "Workspace-level Python configuration for the HASH monorepo"
 name        = "hash"
 version     = "0.0.0"
-description = "Workspace-level Python configuration for the HASH monorepo"
 # The single source of truth for the workspace Python version: every member
 # must declare exactly the same bound, enforced by `repo-chores sync --check`.
 requires-python = ">=3.14,<3.15"
@@ -50,13 +50,15 @@ testpaths = [
 ]
 
 [tool.ruff]
-target-version = "py314"
-line-length = 100
+# Linter: strictest rule set, exceptions curated below. Formatter: next style epoch.
+preview = true
 extend-exclude = [
     # Standalone end-user example script: it predates the Python workspace,
     # deliberately has no third-party dependencies, and follows its own style.
     "libs/@hashintel/petrinaut-cli/examples/python_stdio.py",
 ]
+line-length = 100
+target-version = "py314"
 
 # Managed by `mise run sync:python`: one entry per workspace member, so ruff
 # classifies member-local imports as first-party.
@@ -65,10 +67,6 @@ src = [
 ]
 
 [tool.ruff.lint]
-# Preview rules are enabled deliberately: the strictest available rule set,
-# with exceptions curated below.
-preview = true
-select = ["ALL"]
 ignore = [
     # Formatter conflicts (ruff's own recommendation).
     "COM812",
@@ -110,6 +108,7 @@ ignore = [
     "TC002",
     "TC003",
 ]
+select = ["ALL"]
 
 [tool.ruff.lint.pylint]
 # Positional arguments are capped tightly (PLR0917): beyond this, callers
@@ -134,8 +133,8 @@ convention = "pep257"
 "**/fixtures/**" = ["T201", "INP001", "S101", "PLR2004", "D100"]
 # CLI modules print their results and import heavy dependencies inside
 # command bodies on purpose: --help must not pay for the underlying imports.
-"**/cli.py"   = ["PLC0415", "T201"]
 "**/*_cli.py" = ["PLC0415", "T201"]
+"**/cli.py"   = ["PLC0415", "T201"]
 # The prune module is CI plumbing: it reports progress via print and exists
 # to spawn `turbo` (resolved from PATH) with locally-built arguments.
 "libs/@local/repo-chores/python/repo_chores/prune.py" = ["T201", "S404", "S603", "S607"]
@@ -143,17 +142,35 @@ convention = "pep257"
 # formatter (oxfmt, resolved via shutil.which); all arguments are owned.
 "libs/@local/repo-chores/python/repo_chores/sync.py" = ["S404", "S603"]
 
+# Editor LSP only; CI runs ty.
 [tool.pyright]
-venvPath = "."
 venv     = ".venv"
+venvPath = "."
 
 [tool.ty.environment]
 python = "./.venv"
+
+[tool.ty.terminal]
+# Warn-level diagnostics fail CI.
+error-on-warning = true
 
 [tool.ty.rules]
 # Suppressions must pull their weight, mirroring tach's
 # `unused_ignore_directives = "error"` and ruff's RUF100.
 unused-ignore-comment = "error"
+# Rule codes required, mirroring the bare-noqa ban (PGH004).
+blanket-ignore-comment = "error"
+# Bare generics parameterize as Unknown, the same loophole the Any ban closes.
+missing-type-argument = "error"
+# Every override is marked; pairs with invalid-explicit-override.
+missing-override-decorator = "error"
+# Off by default upstream (false-positive prone); relax per rule when noise appears.
+division-by-zero              = "error"
+possibly-missing-attribute    = "error"
+possibly-missing-import       = "error"
+possibly-unresolved-reference = "error"
+unsupported-dynamic-base      = "error"
+
 
 [tool.ty.src]
 exclude = [

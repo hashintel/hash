@@ -14,21 +14,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeIs
 
-PRUNED_DIRECTORIES = frozenset(
-    {
-        ".git",
-        ".ruff_cache",
-        ".turbo",
-        ".venv",
-        "__pycache__",
-        "build",
-        "dist",
-        "node_modules",
-        "out",
-        "target",
-        "venv",
-    }
-)
+PRUNED_DIRECTORIES = frozenset({
+    ".git",
+    ".ruff_cache",
+    ".turbo",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    "out",
+    "target",
+    "venv",
+})
 """Directory names that never contain workspace members and are skipped during discovery."""
 
 
