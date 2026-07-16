@@ -54,7 +54,7 @@ class PetrinautModelSpec(BaseModel):
     store: Sequence[str] = Field(default=DEFAULT_STORE, description="Quantities to store/print inside execution")
     outpath: str = Field(default=DEFAULT_OUTPATH, description="Filepath to execution trace")
     command: str = Field(default=DEFAULT_COMMAND, description="Petrinaut CLI command to invoke")
-    eval_timeout: float = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
+    eval_timeout: float | None = Field(default=DEFAULT_EVAL_TIMEOUT, description="timeout threshold for CLI eval")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -115,15 +115,14 @@ class PetrinautModel:
 
     def _build_payload(self, parameters:dict, initial_state:dict, method:str = 'run') -> Dict[str,Union[str,Dict]]:
         
+        initial_state = initial_state if initial_state else dict()
+        initial_state["SupplyScore"] = [self.supply_score]
         payload: dict[str, Any] = {
             "id": self._next_id, 
             "method": method,
             "params": {
                 "parameters": parameters,
-                "initialState": {
-                    **initial_state,
-                    "SupplyScore":[self.supply_score]
-                },
+                "initialState": initial_state,
                 "metrics": [self.metric],
                 "maxSteps": self.steps,
                 "dt": self.dt,
@@ -239,43 +238,6 @@ class PetrinautModel:
                 self._process.stderr.close()
             self._process = None
 
-    
-    # ── CLI invokation ─────────────────────────────────────────────────────────
-    def _cli_build_command(self, inputs: dict) -> list:
-        """Turn a {name: value} dict into the full argv list."""
-        cmd = list(self.command)
-        for name, value in inputs.items():
-            # Default flag per input: "initial_tokens" -> "--initial-tokens".
-            cmd += [f"--{name.replace('_', '-')}", str(value)]
-        return cmd
-
-    def cli_run(self, inputs: dict):
-        """Invokes the Petrinaut Cli
-
-        Args:
-            inputs (dict): All inputs (optimized and fixed) to Petrinaut
-
-        Returns:
-            proc (CompletedProcess): A completed subprocess run
-        """
-        # Build the CLI command invocation as a string
-        cmd = self._cli_build_command(inputs)
-
-        # Call Petrinaut cli here
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True,
-            timeout=self.eval_timeout, check=True,
-        )
-        return proc
-
-    @staticmethod
-    def _parse_output(stdout: str) -> float:
-        """Extract the objective: the last number printed on stdout."""
-        matches = _NUMBER.findall(stdout)
-        if not matches:
-            raise ValueError(f"no number found in CLI output:\n{stdout!r}")
-        return float(matches[-1])
-
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -285,7 +247,10 @@ if __name__ == "__main__":
     )
 
     # Create the petrinaut execution specification
-    pn_spec = PetrinautModelSpec()
+    pn_spec = PetrinautModelSpec(
+        steps = 365,
+        seed = 1234
+    )
     # Build the Petri net from the client spec in a context manager
     with PetrinautModel(pn_spec) as petrinet_model:
         # Run petrinaut once to get metric value
@@ -309,44 +274,3 @@ if __name__ == "__main__":
         )
     # Read metric value from petrinaut execution
     log.info(f'metric_value = {metric_value}')
-
-
-
-# def run_sir_demo(client: PetrinautClient) -> None:
-#     metadata = client.metadata()
-#     result = client.run(
-#         parameters={"infection_rate": 1.5, "recovery_rate": 0.8},
-#         initialState={"Susceptible": 990, "Infected": 10, "Recovered": 0},
-#         metrics=["Infected Fraction"],
-#         maxSteps=100,
-#         dt=0.1,
-#         seed=4242,
-#     )
-#     print(
-#         json.dumps(
-#             {
-#                 "metricNames": [metric["name"] for metric in metadata["metrics"]],
-#                 "result": result,
-#             },
-#             indent=2,
-#         )
-#     )
-
-
-# def main() -> None:
-#     parser = argparse.ArgumentParser(description=__doc__)
-#     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
-#     parser.add_argument("--cli", type=Path, default=DEFAULT_CLI)
-#     parser.add_argument("--node", default="node")
-#     parser.add_argument(
-#         "--demo",
-#         action="store_true",
-#         help="Run a complete SIR example instead of forwarding stdin.",
-#     )
-#     args = parser.parse_args()
-
-#     with PetrinautClient(model=args.model, cli=args.cli, node=args.node) as client:
-#         if args.demo:
-#             run_sir_demo(client)
-#         else:
-#             bridge_stdio(client)
