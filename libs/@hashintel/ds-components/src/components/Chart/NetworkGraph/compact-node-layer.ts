@@ -33,6 +33,11 @@ const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
 /** Opacity of the points faded into the background while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
 /**
+ * Opacity of the selected node's grow ring while a *different* node is hovered — so
+ * the backgrounded selection stays visible but reads as secondary to the hover.
+ */
+const SELECTED_DIM_OPACITY = 0.5;
+/**
  * These sublayers all sit at z 0 and must never occlude the detail layers (which
  * use negative z), so they draw without writing depth.
  */
@@ -79,6 +84,13 @@ type _CompactNodeLayerProps = {
   neighbours: NetworkGraphPoint[];
   /** The hovered/selected node, drawn with a prominent grown ring. */
   activeNode: NetworkGraphPoint | null;
+  /**
+   * The selected node while a different node is hovered: drawn with the same grown
+   * ring as {@link activeNode} but dimmed, so the selection stays visible without
+   * competing with the hovered node's highlight. Null unless the selection has been
+   * backgrounded by a hover.
+   */
+  dimmedSelectedNode: NetworkGraphPoint | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
   colorByHex: Map<string, RgbColor>;
   /** Zoom multiplier applied to every node's base radius (deck's `radiusScale`). */
@@ -118,6 +130,7 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   dimmed: false,
   showGrowHighlights: true,
   showPoints: true,
+  dimmedSelectedNode: null,
 };
 
 /**
@@ -149,6 +162,7 @@ export class CompactNodeLayer extends CompositeLayer<
       edgeHoverNodes,
       neighbours,
       activeNode,
+      dimmedSelectedNode,
       colorByHex,
       radiusScale,
       pointOpacity,
@@ -171,12 +185,17 @@ export class CompactNodeLayer extends CompositeLayer<
         pickable: backgroundEdgesPickable,
         parameters: BASE_LAYER_PARAMETERS,
         getPath: (edge) => edge.path,
-        // Hovered edge jumps to full opacity; the rest stay faint.
+        // The hovered edge is drawn (bold, arrow-gapped, above the nodes) by the
+        // parent's separate `highlight-edges` layer; here it is kept in the data
+        // only as a continuous, rim-to-rim pick target, so it's drawn fully
+        // transparent. The rest stay faint.
         getColor: (edge) =>
           [
             ...EDGE_COLOR,
-            edge.edgeId === hoveredEdgeId ? RGBA_OPAQUE : BACKGROUND_EDGE_ALPHA,
+            edge.edgeId === hoveredEdgeId ? 0 : BACKGROUND_EDGE_ALPHA,
           ] as Color,
+        // Match the hovered edge's pick-target width to the bold width it's drawn
+        // at by the highlight layer, so the hitbox lines up with what's on screen.
         getWidth: (edge) =>
           edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
         widthUnits: "pixels",
@@ -248,6 +267,28 @@ export class CompactNodeLayer extends CompositeLayer<
         getLineWidth: GROW_RING_STROKE,
         lineWidthUnits: "pixels",
         lineWidthMinPixels: 1,
+      }),
+      // The backgrounded selection: the same grown ring as the active node but
+      // dimmed, drawn before it so the hovered node's highlight reads on top. Its
+      // edges/neighbours aren't drawn — those belong to the active (hovered) node.
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-dimmed-selected`,
+        parameters: BASE_LAYER_PARAMETERS,
+        data:
+          showGrowHighlights && dimmedSelectedNode ? [dimmedSelectedNode] : [],
+        getPosition: (point) => [point.x, point.y],
+        getFillColor: colorFor,
+        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
+        radiusScale,
+        radiusUnits: "pixels",
+        radiusMinPixels: HOVERED_MIN_RADIUS,
+        radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+        stroked: true,
+        getLineColor: [255, 255, 255, RGBA_OPAQUE],
+        getLineWidth: GROW_RING_STROKE,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: 1,
+        opacity: SELECTED_DIM_OPACITY,
       }),
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-highlight-hovered`,

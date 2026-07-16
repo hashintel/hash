@@ -128,6 +128,12 @@ const contrastInkRgb = (rgb: RgbColor): RgbColor => {
 type _DetailedNodeLayerProps = {
   /** The hovered/selected node — jumps to the front with a bolder, accented style. */
   activeNode: NetworkGraphPoint | null;
+  /**
+   * The selected node while a different node is hovered — kept enlarged (and
+   * promoted to the front) so the selection stays visible, though the active node
+   * owns the bolder label + edges. Null unless the selection has been backgrounded.
+   */
+  enlargedSelection: NetworkGraphPoint | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
   colorByHex: Map<string, RgbColor>;
   /** Mask atlas of the icons used by the data; `null` until it has rasterised. */
@@ -151,6 +157,7 @@ type DetailedNodeLayerState = {
 
 const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
   activeNode: null,
+  enlargedSelection: null,
   colorByHex: new Map<string, RgbColor>(),
   iconAtlas: null,
   edgeHoverNodes: [],
@@ -190,12 +197,23 @@ export class DetailedNodeLayer extends CompositeLayer<
   }
 
   override renderLayers() {
-    const { id, activeNode, colorByHex, iconAtlas, edgeHoverNodes } =
-      this.props;
+    const {
+      id,
+      activeNode,
+      enlargedSelection,
+      colorByHex,
+      iconAtlas,
+      edgeHoverNodes,
+    } = this.props;
     const data = (this.props.data ?? []) as NetworkGraphPoint[];
     const { labelPoints, iconPoints } = this.state as DetailedNodeLayerState;
 
     const activeId = activeNode?.id ?? null;
+    // The backgrounded selection also stays enlarged (but without the active node's
+    // bolder label): both it and the active node grow by the accent width.
+    const selectedId = enlargedSelection?.id ?? null;
+    const isEnlarged = (pointId: number): boolean =>
+      pointId === activeId || pointId === selectedId;
     const count = data.length;
     // Rank nodes front-to-back (later = front). Promote the hovered edge's
     // endpoints — and the active node, highest of all — above every regular node
@@ -208,6 +226,13 @@ export class DetailedNodeLayer extends CompositeLayer<
       if (point.id !== activeId && !promotedIds.includes(point.id)) {
         promotedIds.push(point.id);
       }
+    }
+    if (
+      selectedId != null &&
+      selectedId !== activeId &&
+      !promotedIds.includes(selectedId)
+    ) {
+      promotedIds.push(selectedId);
     }
     if (activeId != null) {
       promotedIds.push(activeId);
@@ -223,7 +248,7 @@ export class DetailedNodeLayer extends CompositeLayer<
     // `getPosition` z depends on the active node *and* the promoted endpoints, so
     // key its update trigger on both (the shared sublayers' `data` doesn't change
     // when only the hover does).
-    const stackTrigger = `${activeId ?? ""}:${edgeHoverNodes
+    const stackTrigger = `${activeId ?? ""}:${selectedId ?? ""}:${edgeHoverNodes
       .map((point) => point.id)
       .join(",")}`;
     const rgbFor = (point: NetworkGraphPoint): RgbColor =>
@@ -255,11 +280,11 @@ export class DetailedNodeLayer extends CompositeLayer<
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
           DETAIL_OUTLINE_WIDTH +
-          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
+          (isEnlarged(point.id) ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: stackTrigger,
-          getRadius: activeId,
+          getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
       new TextLayer<NetworkGraphPoint>({
@@ -336,11 +361,11 @@ export class DetailedNodeLayer extends CompositeLayer<
         getFillColor: (point) => [...rgbFor(point), DETAIL_NODE_FILL_ALPHA],
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
-          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
+          (isEnlarged(point.id) ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: stackTrigger,
-          getRadius: activeId,
+          getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
       // A ring around each node the hovered edge connects, in the edge's colour
@@ -364,11 +389,11 @@ export class DetailedNodeLayer extends CompositeLayer<
         // white outline — tracking the grown circle when active.
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
-          (point.id === activeId ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
+          (isEnlarged(point.id) ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: stackTrigger,
-          getRadius: activeId,
+          getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
       // Icons sit on top of the nodes. Absent until the atlas has rasterised.

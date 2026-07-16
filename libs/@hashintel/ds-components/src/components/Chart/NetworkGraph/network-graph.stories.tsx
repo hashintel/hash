@@ -360,17 +360,6 @@ const NetworkGraphStory = ({
     [],
   );
 
-  const handleNodeHover = useCallback(
-    (interaction: NetworkGraphInteraction) => {
-      // Clear the selection when a different node is hovered, but keep it when the
-      // pointer moves onto empty space.
-      if (interaction.point) {
-        setSelected(null);
-      }
-    },
-    [],
-  );
-
   return (
     <div ref={frameRef} className={frameStyles}>
       {data ? (
@@ -381,7 +370,6 @@ const NetworkGraphStory = ({
             edges={data.edges}
             selected={selected}
             onNodeClick={handleClick}
-            onNodeHover={handleNodeHover}
             onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
             onZoom={setZoom}
