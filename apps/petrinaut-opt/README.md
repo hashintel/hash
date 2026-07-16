@@ -81,7 +81,8 @@ uv run uvicorn src.optimization_api:app --reload
 
 Both streaming endpoints take the same JSON body carrying **two** objects:
 `opt_spec` (what to optimize) and `pn_spec` (the Petri-net execution model). The
-stream starts immediately — there is no separate init step and no session id.
+stream starts immediately. Each response includes an `X-Optimization-Run-ID`
+header which identifies the run for status queries.
 
 ### Stream every evaluation — `GET /optimize/all`
 
@@ -138,7 +139,10 @@ least one trial has completed.
 
 ### Other endpoints
 
-- `GET /status` — the current app-wide status (`phase`, `detail`, `updated_at`).
+- `GET /status` — a snapshot of all run statuses (`run_id`, `phase`, `detail`,
+  `updated_at`).
+- `GET /status/{run_id}` — the status of the run identified by the streaming
+  response's `X-Optimization-Run-ID` header.
 - `GET /` — welcome message.
 
 ## Configuring a run

@@ -5,7 +5,7 @@ Endpoints
 ---------
 GET  /optimize         Server-Sent Events stream of objective evaluations,
                        emitted as each trial completes, ending with a summary.       
-GET  /status           Current run model and state.
+GET  /status           Current state of all optimization runs.
 
 Run with:  uv run python -m src.optimization_api
        or:  uv run uvicorn optimization_api:app --reload
@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from src.utils import AppStatus, Phase, set_status
+from src.utils import AppStatus, Phase, StatusStore, set_status
 
 # Load HASH_PETRINAUT_OPT_* (and any other) variables from the module's `.env`.
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -39,13 +39,12 @@ from src.petrinaut_optimizer import OptimizationSpec, PetrinautOptimizer
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialise the single, app-wide status object on startup.
+    """Initialise the app-wide run status registry on startup.
 
     Args:
-        app (FastAPI): The application whose `state.status` is initialised.
+        app (FastAPI): The application whose `state.statuses` is initialised.
     """
-    # Single, app-wide status — no session ids
-    app.state.status = AppStatus()
+    app.state.statuses = StatusStore()
     yield
 
 app = FastAPI(title="Petrinaut optimization Python API",lifespan=lifespan)
@@ -86,6 +85,8 @@ async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec
     Returns:
         StreamingResponse: SSE stream of per-trial evaluation frames.
     """
+    run_id = app.state.statuses.create().run_id
+
     # Build the model + optimizer.
     try:
         # Build the Petri net from the client spec.
@@ -98,18 +99,36 @@ async def get_optimize_all(request: Request, opt_spec: OptimizationSpec, pn_spec
         # Start the Petrinaut model
         optimizer.pn_model.start()
 
-        set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
+        set_status(
+            app,
+            run_id,
+            phase=Phase.running,
+            detail="Petrinaut CLI and Optimization Model initialized",
+        )
     except Exception as exc:
-        set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
-        raise HTTPException(500, f"failed to initialise optimization: {exc}")
+        set_status(
+            app,
+            run_id,
+            phase=Phase.error,
+            detail="Petrinaut CLI and Optimization Model could NOT be initialized",
+        )
+        raise HTTPException(
+            500,
+            f"failed to initialise optimization: {exc}",
+            headers={"X-Optimization-Run-ID": run_id},
+        )
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
     # session wedged.
     return StreamingResponse(
-        optimizer.stream_all(request, n_trials=optimizer.n_trials),
+        optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Optimization-Run-ID": run_id,
+        },
     )
 
 @app.get("/optimize/best",response_class=StreamingResponse)
@@ -127,6 +146,8 @@ async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spe
     Returns:
         StreamingResponse: SSE stream of best-so-far evaluation frames.
     """
+    run_id = app.state.statuses.create().run_id
+
     # Build the model + optimizer.
     try:
         # Build the Petri net from the client spec.
@@ -138,28 +159,55 @@ async def get_optimize_best(request: Request, opt_spec: OptimizationSpec, pn_spe
         )
         # Start the Petrinaut model
         optimizer.pn_model.start()
-        set_status(app, phase=Phase.running, detail="Petrinaut CLI and Optimization Model initialized")
+        set_status(
+            app,
+            run_id,
+            phase=Phase.running,
+            detail="Petrinaut CLI and Optimization Model initialized",
+        )
     except Exception as exc:
-        set_status(app, phase=Phase.error, detail="Petrinaut CLI and Optimization Model could NOT be initialized")
-        raise HTTPException(500, f"failed to initialise optimization: {exc}")
+        set_status(
+            app,
+            run_id,
+            phase=Phase.error,
+            detail="Petrinaut CLI and Optimization Model could NOT be initialized",
+        )
+        raise HTTPException(
+            500,
+            f"failed to initialise optimization: {exc}",
+            headers={"X-Optimization-Run-ID": run_id},
+        )
 
     # The optimiser's SSE generator acquires/releases the session lock itself, so
     # ending the stream (completion, error, or client disconnect) never leaves the
     # session wedged.
     return StreamingResponse(
-        optimizer.stream_best(request, n_trials=optimizer.n_trials),
+        optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Optimization-Run-ID": run_id,
+        },
     )
 
 @app.get("/status")
-def get_status():
-    """Return the current app-wide optimization status.
+def get_status() -> list[AppStatus]:
+    """Return a snapshot of every optimization run's status.
 
     Returns:
-        AppStatus: The current phase, detail, and last-updated timestamp.
+        list[AppStatus]: Statuses containing their run identifiers.
     """
-    return app.state.status
+    return app.state.statuses.all()
+
+
+@app.get("/status/{run_id}")
+def get_run_status(run_id: str) -> AppStatus:
+    """Return the status of one optimization run."""
+    status = app.state.statuses.get(run_id)
+    if status is None:
+        raise HTTPException(404, f"optimization run not found: {run_id}")
+    return status
 
 @app.get("/")
 async def root() -> dict:

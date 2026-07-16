@@ -308,11 +308,12 @@ class PetrinautOptimizer:
         return value
 
     # ── runs for API ─────────────────────────────────────────────────────────────────
-    async def stream_all(self, request: Request, n_trials: int):
+    async def stream_all(self, request: Request, run_id: str, n_trials: int):
         """Async generator yielding Server-side event frames, one per finished trial.
 
         Args:
             request (Request): Optimization API generic request
+            run_id (str): Identifier of the optimization run being streamed.
             n_trials (int): number of optimization steps
 
         Yields:
@@ -323,7 +324,7 @@ class PetrinautOptimizer:
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
         
-        set_status(app, phase=Phase.running, detail="optimization running")
+        set_status(app, run_id, phase=Phase.running, detail="optimization running")
     
         loop = asyncio.get_running_loop()
         q: asyncio.Queue = asyncio.Queue()
@@ -371,17 +372,27 @@ class PetrinautOptimizer:
             while True:
                 item = await q.get()
                 if item is _SENTINEL:
-                    set_status(app, phase=Phase.done, detail="optimization completed")
+                    set_status(
+                        app,
+                        run_id,
+                        phase=Phase.done,
+                        detail="optimization completed",
+                    )
                     yield "event: done\ndata: {}\n\n"
                     break
                 if item.get("state") == "ERROR":
-                    set_status(app, phase=Phase.error, detail=item.get("message"))
+                    set_status(app, run_id, phase=Phase.error, detail=item.get("message"))
                     yield f"data: {json.dumps(item)}\n\n"
                     continue
                 yield f"data: {json.dumps(item)}\n\n"
                 if await request.is_disconnected():
                     stop_flag.set()
-                    set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
+                    set_status(
+                        app,
+                        run_id,
+                        phase=Phase.idle,
+                        detail="client disconnected, stopped",
+                    )
                     break
         finally:
             # Signal the study to stop, then wait for the worker to actually exit before
@@ -399,11 +410,12 @@ class PetrinautOptimizer:
                 self.lock.release()
                 self.pn_model.close()
 
-    async def stream_best(self, request: Request, n_trials: int):
+    async def stream_best(self, request: Request, run_id: str, n_trials: int):
         """Async generator yielding Server-side event frames, one per finished trial.
 
         Args:
             request (Request): Optimization API generic request
+            run_id (str): Identifier of the optimization run being streamed.
             n_trials (int): number of optimization steps
 
         Yields:
@@ -414,7 +426,7 @@ class PetrinautOptimizer:
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
 
-        set_status(app, phase=Phase.running, detail="optimization running")
+        set_status(app, run_id, phase=Phase.running, detail="optimization running")
 
         loop = asyncio.get_running_loop()
         q: asyncio.Queue = asyncio.Queue()
@@ -474,17 +486,27 @@ class PetrinautOptimizer:
             while True:
                 item = await q.get()
                 if item is _SENTINEL:
-                    set_status(app, phase=Phase.done, detail="optimization completed")
+                    set_status(
+                        app,
+                        run_id,
+                        phase=Phase.done,
+                        detail="optimization completed",
+                    )
                     yield "event: done\ndata: {}\n\n"
                     break
                 if item.get("state") == "ERROR":
-                    set_status(app, phase=Phase.error, detail=item.get("message"))
+                    set_status(app, run_id, phase=Phase.error, detail=item.get("message"))
                     yield f"data: {json.dumps(item)}\n\n"
                     continue
                 yield f"data: {json.dumps(item)}\n\n"
                 if await request.is_disconnected():
                     stop_flag.set()
-                    set_status(app, phase=Phase.idle, detail="client disconnected, stopped")
+                    set_status(
+                        app,
+                        run_id,
+                        phase=Phase.idle,
+                        detail="client disconnected, stopped",
+                    )
                     break
         finally:
             # Signal the study to stop, then wait for the worker to actually exit before
