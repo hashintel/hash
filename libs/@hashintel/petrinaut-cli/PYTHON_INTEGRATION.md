@@ -108,6 +108,7 @@ import optuna
 
 client = PetrinautClient(CLI_PATH, MODEL_PATH)
 
+
 def objective(trial):
     result = client.run(
         parameters={
@@ -121,6 +122,7 @@ def objective(trial):
         seed=4242,
     )
     return result["metrics"]["Infected Fraction"]
+
 
 study = optuna.create_study(direction="minimize")
 study.optimize(objective, n_trials=100, n_jobs=1)
@@ -143,7 +145,7 @@ For parallel trials, create one client/process per Optuna worker.
   different color schemas:
 
   ```python
-  initialState={
+  initialState = {
       "InboundShipments": [
           {"eta": 1, "risk_score": 0.2, "source": 1, "cost": 10},
           {"eta": 2, "risk_score": 0.4, "source": 2, "cost": 12},

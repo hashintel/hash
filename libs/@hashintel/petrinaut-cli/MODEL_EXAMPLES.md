@@ -28,9 +28,7 @@ The SIR model has two parameters, three uncolored places, and one metric.
 Uncolored initial states are supplied as token counts.
 
 ```python
-with PetrinautClient(
-    model=Path("libs/@hashintel/petrinaut-cli/examples/sir-model.json")
-) as client:
+with PetrinautClient(model=Path("libs/@hashintel/petrinaut-cli/examples/sir-model.json")) as client:
     result = client.run(
         parameters={
             "infection_rate": 1.5,
@@ -57,9 +55,7 @@ attributes defined by that color: `x`, `y`, `direction`, and `velocity`.
 
 ```python
 with PetrinautClient(
-    model=Path(
-        "libs/@hashintel/petrinaut-cli/examples/satellites-launcher.json"
-    )
+    model=Path("libs/@hashintel/petrinaut-cli/examples/satellites-launcher.json")
 ) as client:
     result = client.run(
         parameters={
@@ -92,9 +88,7 @@ This model combines token counts with several colors. `InboundShipments`,
 
 ```python
 with PetrinautClient(
-    model=Path(
-        "libs/@hashintel/petrinaut-cli/examples/supply-chain-with-disruption.json"
-    )
+    model=Path("libs/@hashintel/petrinaut-cli/examples/supply-chain-with-disruption.json")
 ) as client:
     result = client.run(
         parameters={

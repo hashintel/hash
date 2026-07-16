@@ -56,6 +56,7 @@ sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 sock.connect("/tmp/petrinaut.sock")
 stream = sock.makefile("rwb")
 
+
 def request(payload):
     stream.write((json.dumps(payload) + "\n").encode())
     stream.flush()
@@ -63,6 +64,7 @@ def request(payload):
     if "error" in response:
         raise RuntimeError(response["error"]["message"])
     return response["result"]
+
 
 metadata = request({"id": 1, "method": "metadata"})
 

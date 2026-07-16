@@ -4,7 +4,7 @@ import json
 import tomllib
 from pathlib import Path
 
-from repo_chores.sync import assemble_package_json, synchronize
+from repo_chores.sync import PYTEST_SCRIPT, assemble_package_json, synchronize
 from repo_chores.workspace import Member
 
 
@@ -214,6 +214,21 @@ class TestAssemblePackageJson:
         assert assembled["license"] == "MIT", "hand-set licenses are preserved"
         assert "test:unit" in self.scripts_of(assembled)
         assert assembled["dependencies"] == {"@python/alpha-core": "workspace:*"}
+
+    def test_removes_managed_pytest_script_when_tests_are_gone(self) -> None:
+        existing = {"scripts": {"test:unit": PYTEST_SCRIPT, "custom:thing": "echo hi"}}
+
+        assembled = assemble_package_json(self.make_member(has_tests=False), existing)
+
+        assert "test:unit" not in self.scripts_of(assembled)
+        assert self.scripts_of(assembled)["custom:thing"] == "echo hi"
+
+    def test_preserves_hand_written_test_script_without_tests_directory(self) -> None:
+        existing = {"scripts": {"test:unit": "vitest run"}}
+
+        assembled = assemble_package_json(self.make_member(has_tests=False), existing)
+
+        assert self.scripts_of(assembled)["test:unit"] == "vitest run"
 
     def test_omits_empty_dependencies(self) -> None:
         assembled = assemble_package_json(self.make_member(), {"dependencies": {"x": "1"}})
