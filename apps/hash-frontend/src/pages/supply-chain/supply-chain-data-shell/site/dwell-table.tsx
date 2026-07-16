@@ -31,6 +31,17 @@ import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode, StepType } from "../../shared/types";
 
+const formatPolicyQuantity = (
+  value: number | null | undefined,
+  uom: string | null | undefined,
+): string => {
+  if (value == null) {
+    return "–";
+  }
+  const quantity = formatNumber(value, { maximumFractionDigits: 3 });
+  return uom ? `${quantity} ${uom}` : quantity;
+};
+
 export const DwellTable = ({
   rows,
   siteId,
@@ -117,6 +128,12 @@ export const DwellTable = ({
               />
             </th>
             <th className={threshold.thRight}>
+              <ColumnHeader label="MOQ" />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader label="Safety stock" />
+            </th>
+            <th className={threshold.thRight}>
               <ColumnHeader
                 label={`Cost (${timeRange})`}
                 sort={{
@@ -193,6 +210,36 @@ export const DwellTable = ({
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
+                  <span className={threshold.valueStrong}>
+                    {formatPolicyQuantity(
+                      row.inventory_policy?.minimum_order_qty,
+                      row.inventory_policy?.order_uom,
+                    )}
+                  </span>
+                  {row.inventory_policy?.minimum_order_source?.system && (
+                    <span className={threshold.stackedTrend}>
+                      {row.inventory_policy.minimum_order_source.system}
+                    </span>
+                  )}
+                </div>
+              </td>
+              <td className={threshold.tdRight}>
+                <div className={threshold.stackedCell}>
+                  <span className={threshold.valueStrong}>
+                    {formatPolicyQuantity(
+                      row.inventory_policy?.safety_stock_qty,
+                      row.inventory_policy?.safety_stock_uom,
+                    )}
+                  </span>
+                  {row.inventory_policy?.safety_stock_source?.system && (
+                    <span className={threshold.stackedTrend}>
+                      {row.inventory_policy.safety_stock_source.system}
+                    </span>
+                  )}
+                </div>
+              </td>
+              <td className={threshold.tdRight}>
+                <div className={threshold.stackedCell}>
                   <span className={threshold.valueDanger}>
                     {row.periodCost > 0
                       ? formatCost(row.periodCost, currency, { compact: true })
@@ -236,7 +283,7 @@ export const DwellTable = ({
           ))}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={6} className={threshold.emptyCell}>
+              <td colSpan={8} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No dwell steps for this site."
                   : "No dwell steps match the current filters."}

@@ -85,6 +85,27 @@ export interface ProcurementPlanningSource {
   contract_valid_to?: string | null;
 }
 
+export interface InventoryPolicySource {
+  system: string;
+  table: string;
+  field?: string;
+  minimum_field?: string;
+  multiple_field?: string;
+}
+
+export interface InventoryPolicy {
+  material: string;
+  plant: string;
+  minimum_order_qty: number | null;
+  order_multiple_qty: number | null;
+  order_uom: string | null;
+  minimum_order_source: InventoryPolicySource | null;
+  safety_stock_qty: number | null;
+  safety_stock_uom: string | null;
+  safety_stock_source: InventoryPolicySource | null;
+  warnings: PlanningWarning[];
+}
+
 export type ProcurementPlanningAlternative = Record<string, unknown> & {
   label: string;
   plan_days: number | null;
@@ -216,6 +237,7 @@ export interface GraphNode {
   planning_source?: ProcurementPlanningSource | null;
   planning_alternatives?: ProcurementPlanningAlternative[];
   planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
   observation_grain?: string | null;
   po_item_count?: number | null;
   po_item_ids?: string[];
@@ -630,6 +652,7 @@ export interface StepDetail {
   planning_source?: ProcurementPlanningSource | null;
   planning_alternatives?: ProcurementPlanningAlternative[];
   planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
   observation_grain?: string | null;
   po_item_count?: number | null;
   po_item_ids?: string[];

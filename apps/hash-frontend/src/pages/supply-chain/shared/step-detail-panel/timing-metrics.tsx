@@ -22,7 +22,10 @@ import {
 
 import type { BaseMeasure } from "../measure-context";
 import type { TimeRange } from "../time-range";
-import type { StepDetail as StepDetailType } from "../types";
+import type {
+  InventoryPolicySource,
+  StepDetail as StepDetailType,
+} from "../types";
 
 const card = css({
   borderWidth: "1px",
@@ -110,6 +113,106 @@ const badgeNeutral = css({
   display: "inline-flex",
   alignItems: "center",
 });
+const policyCard = css({
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "lg",
+  overflow: "hidden",
+  bg: "bgSolid.min",
+});
+const policyRow = css({ display: "flex" });
+const policyCell = css({
+  flex: "1",
+  p: "3",
+  borderRightWidth: "1px",
+  borderRightStyle: "solid",
+  borderRightColor: "bd.subtle",
+  _last: { borderRightWidth: "0" },
+});
+const policySource = css({ mt: "1", textStyle: "xs", color: "fg.subtle" });
+const policyWarnings = css({
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "bd.subtle",
+  px: "3",
+  py: "2",
+  textStyle: "xs",
+  color: "status.warning.fg.body",
+});
+
+const policyQuantity = (value: number, uom: string | null): string => {
+  const quantity = formatNumber(value, { maximumFractionDigits: 3 });
+  return uom ? `${quantity} ${uom}` : quantity;
+};
+
+const sourceLabel = (
+  source: InventoryPolicySource | null,
+  field: "minimum" | "safety",
+): string => {
+  if (!source) {
+    return "";
+  }
+  const sourceField = field === "minimum" ? source.minimum_field : source.field;
+  return [source.system, source.table, sourceField].filter(Boolean).join(" · ");
+};
+
+export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
+  const policy = step.inventory_policy;
+  if (!policy) {
+    return null;
+  }
+
+  const cells = [
+    policy.minimum_order_qty != null
+      ? {
+          label: "Minimum order quantity",
+          value: policyQuantity(policy.minimum_order_qty, policy.order_uom),
+          source: sourceLabel(policy.minimum_order_source, "minimum"),
+        }
+      : null,
+    policy.order_multiple_qty != null
+      ? {
+          label: "Order multiple",
+          value: policyQuantity(policy.order_multiple_qty, policy.order_uom),
+          source: sourceLabel(policy.minimum_order_source, "minimum"),
+        }
+      : null,
+    policy.safety_stock_qty != null
+      ? {
+          label: "Safety stock",
+          value: policyQuantity(
+            policy.safety_stock_qty,
+            policy.safety_stock_uom,
+          ),
+          source: sourceLabel(policy.safety_stock_source, "safety"),
+        }
+      : null,
+  ].filter((cell): cell is NonNullable<typeof cell> => cell != null);
+
+  if (cells.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={policyCard}>
+      <div className={policyRow}>
+        {cells.map((cell) => (
+          <div key={cell.label} className={policyCell}>
+            <div className={label}>{cell.label}</div>
+            <div className={cx(valueBase, valueStrong)}>{cell.value}</div>
+            {cell.source && <div className={policySource}>{cell.source}</div>}
+          </div>
+        ))}
+      </div>
+      {policy.warnings.length > 0 && (
+        <div className={policyWarnings}>
+          {policy.warnings.map((warning) => warning.text).join(" ")}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const KeyMetricsRow = ({
   step,

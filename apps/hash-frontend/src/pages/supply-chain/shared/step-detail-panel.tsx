@@ -57,7 +57,10 @@ import {
   ObservationCount,
 } from "./step-detail-panel/step-detail-primitives";
 import { TimeSeriesChart } from "./step-detail-panel/time-series-chart";
-import { KeyMetricsRow } from "./step-detail-panel/timing-metrics";
+import {
+  InventoryPolicyRow,
+  KeyMetricsRow,
+} from "./step-detail-panel/timing-metrics";
 import { YieldMetricsRow } from "./step-detail-panel/yield-metrics";
 import { SupplierDimensionView } from "./supplier-dimension-view";
 import { recomputeSupplierBlock } from "./supplier-otif";
@@ -943,6 +946,8 @@ export const StepDetailPanel = ({
                       timeRange={timeRange}
                       measureOverride={measureOverride}
                     />
+
+                    <InventoryPolicyRow step={filteredStep} />
 
                     {planningWarningTexts(filteredStep.planning_warnings)
                       .length > 0 && (
