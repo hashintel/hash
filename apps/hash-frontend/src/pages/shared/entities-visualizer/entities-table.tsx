@@ -820,8 +820,8 @@ export const EntitiesTable: FunctionComponent<
              * the grid's horizontal scrollbar.
              */
             hasMoreRowsAvailable
-              ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
-              : `min(${maxHeight}, 600px)`
+              ? `max(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
+              : `max(${maxHeight}, 600px)`
           }
           onConversionTargetSelected={onConversionTargetSelected}
           onSearchClose={() => setShowSearch(false)}
