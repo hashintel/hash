@@ -118,6 +118,6 @@ USER petrinaut
 EXPOSE 4004
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
-    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"UVICORN_PORT\", \"4004\")}/status', timeout=4).close()"]
+    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ.get(\"UVICORN_PORT\", \"4004\")}/status', timeout=4).close()"]
 
-CMD ["python", "-m", "uvicorn", "src.optimization_api:app"]
+ENTRYPOINT ["python", "-m", "uvicorn", "src.optimization_api:app"]
