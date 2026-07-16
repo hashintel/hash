@@ -112,20 +112,30 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           return [];
         }
 
-        const settingsEntity = rightEntity?.[0];
+        if (rightEntity === undefined) {
+          /**
+           * The query pairs each incoming has-left-entity hop with an
+           * outgoing has-right-entity hop, so every link in the subgraph must
+           * have its has-right-entity edge resolved. An unresolved edge means
+           * the subgraph is internally inconsistent – falling through to the
+           * create branch here could create a duplicate settings entity and
+           * link.
+           */
+          throw new Error(
+            `Invariant violation: has link ${hasLinkEntity.metadata.recordId.entityId} on user ${user.metadata.recordId.entityId} has an unresolved right-entity edge in the subgraph`,
+          );
+        }
+
+        const settingsEntity = rightEntity[0];
 
         if (!settingsEntity) {
           /**
-           * The query pairs each incoming has-left-entity hop with an
-           * outgoing has-right-entity hop, and the target is the user's own
-           * entity in their own web, read with their own credentials – so if
-           * the link is in the subgraph, its right entity must be too.
-           * Falling through to the create branch here would create a
-           * duplicate settings entity and link.
+           * The edge resolved but no revision of the target entity is visible
+           * in the queried interval, e.g. because the settings entity has
+           * been archived. The link no longer points at usable settings, so
+           * fall through to the create branch to create a replacement.
            */
-          throw new Error(
-            `Invariant violation: has link ${hasLinkEntity.metadata.recordId.entityId} on user ${user.metadata.recordId.entityId} is missing its right entity in the subgraph`,
-          );
+          return [];
         }
 
         return settingsEntity.metadata.entityTypeIds.includes(

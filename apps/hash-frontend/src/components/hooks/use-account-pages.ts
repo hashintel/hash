@@ -71,15 +71,12 @@ export const useAccountPages = (
       );
 
       const [parentLink] = pageOutgoingLinks.flatMap(
-        ({ linkEntity, rightEntity }) => {
-          const hasParentLinkEntity = linkEntity[0];
-
-          return hasParentLinkEntity?.metadata.entityTypeIds.includes(
+        ({ linkEntity, rightEntity }) =>
+          linkEntity[0]?.metadata.entityTypeIds.includes(
             systemLinkEntityTypes.hasParent.linkEntityTypeId,
           )
-            ? [{ hasParentLinkEntity, rightEntity }]
-            : [];
-        },
+            ? [{ rightEntity }]
+            : [],
       );
 
       /**
