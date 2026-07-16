@@ -72,7 +72,7 @@ The body carries **two** objects: `opt_spec` (what to optimize) and `pn_spec`
 curl -s -X POST localhost:8000/init -H 'content-type: application/json' -d '{
   "opt_spec": {
     "parameters": {"infection_rate": 0.5},
-    "initial_states": {"Susceptible": 990},
+    "initial_state": {"Susceptible": 990},
     "n_trials": 30,
     "sampler": "tpe",
     "direction": "minimize"
@@ -158,7 +158,7 @@ Changing the target Petri net means editing these `BOUNDS` and the matching
 **`OptimizationSpec`** ([petrinaut_optimizer.py](src/petrinaut_optimizer.py))
 partitions those inputs per run:
 
-- `parameters` / `initial_states` — any input you give a value here is **held
+- `parameters` / `initial_state` — any input you give a value here is **held
   fixed** at that value; any input you omit (leave `null`) is **optimized** over
   its `BOUNDS` range. Provided values must fall within `BOUNDS` (validated on
   `/init`).
@@ -190,6 +190,6 @@ configures the execution sent to the CLI:
   stream on the same session receives `event: error` (`already running`).
 - **Sessions are independent**: there is no global single-run guard; multiple
   `/init` sessions can exist and run at once.
-- **Leave one input free per group**: each group (`parameters`, `initial_states`)
+- **Leave one input free per group**: each group (`parameters`, `initial_state`)
   should leave at least one input unfixed so there is something to optimize.
   </content>
