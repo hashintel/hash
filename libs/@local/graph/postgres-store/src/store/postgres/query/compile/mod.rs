@@ -85,30 +85,40 @@ pub enum Distinctness {
 }
 
 /// How [`SelectCompiler::compile`] lays out the statement.
+///
+/// Both keys-first shapes filter, sort, and limit a narrow key set in CTEs and hydrate the
+/// wide projection only for the surviving rows. They fall back to [`SinglePass`] for every
+/// [`ShapeFallback`] reason; the fallback is logged, since it silently loses the shape the
+/// caller opted into.
+///
+/// Callers opting into a keys-first shape vouch for two preconditions the compiler cannot
+/// check. `INNER` hydration joins must always match their key row (foreign-key-total joins
+/// do), and the key query must produce at most one row per `DISTINCT ON` group. Both hold
+/// for the entity read path, whose distinct key pins all row-multiplying columns. Violating
+/// either returns short or shifted pages compared to [`SinglePass`].
+///
+/// [`SinglePass`]: Self::SinglePass
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum StatementShape {
     /// One flat `SELECT` over all joins.
     #[default]
     SinglePass,
-    /// Filters a narrow key set inside a `MATERIALIZED` CTE, sorts and limits it outside the
-    /// fence, then hydrates the wide projection only for the surviving rows.
+    /// The keys-first split with the planner left free.
+    ///
+    /// The CTEs stay inlinable, so the planner may serve the ordering demand from an index
+    /// and abort early. A misestimated filter can still bait it into an ordered scan that
+    /// never fills the limit.
+    KeysFirst,
+    /// The keys-first split behind a `MATERIALIZED` fence.
     ///
     /// The materialization fences the planner: the key query is planned without the outer
-    /// statement's ordering demand, which prevents ordered-pipeline bets built on unreliable
-    /// row estimates. Falls back to [`SinglePass`] for every [`ShapeFallback`] reason. The
-    /// fallback is logged, since it silently loses the shape the caller opted into.
-    ///
-    /// Callers opting in vouch for two preconditions the compiler cannot check. `INNER`
-    /// hydration joins must always match their key row (foreign-key-total joins do), and the
-    /// key query must produce at most one row per `DISTINCT ON` group. Both hold for the
-    /// entity read path, whose distinct key pins all row-multiplying columns. Violating
-    /// either returns short or shifted pages compared to [`SinglePass`].
-    ///
-    /// [`SinglePass`]: Self::SinglePass
-    FetchKeysThenHydrate,
+    /// ordering demand, which prevents ordered-pipeline bets built on unreliable row
+    /// estimates. In exchange the whole filtered set is computed, no matter how early an
+    /// index could have stopped.
+    FencedKeysFirst,
 }
 
-/// Why [`StatementShape::FetchKeysThenHydrate`] degraded to a single-pass statement.
+/// Why a keys-first [`StatementShape`] degraded to a single-pass statement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum ShapeFallback {
     /// Without a limit the planner never bets on an ordered pipeline, so there is nothing to
@@ -246,7 +256,7 @@ fn collect_key_columns(
     });
 }
 
-/// The join split for [`StatementShape::FetchKeysThenHydrate`].
+/// The join split for the keys-first [`StatementShape`]s.
 struct KeyQueryPartition<'j> {
     /// The joins the key query filters and sorts through, in creation order.
     key_joins: Vec<&'j CompiledJoin>,
@@ -703,38 +713,44 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 tracing::Span::current().record("statement.shape", "single_pass");
                 self.single_pass_statement()
             }
-            StatementShape::FetchKeysThenHydrate => {
-                match self.fetch_keys_then_hydrate_statement() {
-                    Ok(statement) => {
-                        tracing::Span::current()
-                            .record("statement.shape", "fetch_keys_then_hydrate");
-                        statement
-                    }
-                    Err(fallback) => {
-                        tracing::Span::current().record("statement.shape", "single_pass");
-                        // An unpaged statement simply has nothing to fence. Every other reason
-                        // silently loses the shape the caller opted into and deserves a warning.
-                        match fallback {
-                            ShapeFallback::Unlimited | ShapeFallback::Unsorted => {
-                                tracing::debug!(?fallback, "compiling a single-pass statement");
-                            }
-                            ShapeFallback::AsteriskSelect
-                            | ShapeFallback::OpaqueExpression
-                            | ShapeFallback::ToManyKeyJoin
-                            | ShapeFallback::GeneratingHydrationJoin
-                            | ShapeFallback::NoKeyColumns => {
-                                tracing::warn!(
-                                    ?fallback,
-                                    "falling back to a single-pass statement"
-                                );
-                            }
-                        }
-                        self.single_pass_statement()
-                    }
-                }
-            }
+            StatementShape::KeysFirst => self.keys_first_or_fallback("keys_first", None),
+            StatementShape::FencedKeysFirst => self
+                .keys_first_or_fallback("fenced_keys_first", Some(Materialization::Materialized)),
         };
         (statement.transpile_to_string(), &self.artifacts.parameters)
+    }
+
+    /// Compiles the keys-first split, degrading to the single-pass layout with a logged
+    /// reason when the statement does not qualify.
+    fn keys_first_or_fallback(
+        &self,
+        shape: &'static str,
+        materialization: Option<Materialization>,
+    ) -> SelectStatement {
+        match self.fetch_keys_then_hydrate_statement(materialization) {
+            Ok(statement) => {
+                tracing::Span::current().record("statement.shape", shape);
+                statement
+            }
+            Err(fallback) => {
+                tracing::Span::current().record("statement.shape", "single_pass");
+                // An unpaged statement simply has nothing to split. Every other reason
+                // silently loses the shape the caller opted into and deserves a warning.
+                match fallback {
+                    ShapeFallback::Unlimited | ShapeFallback::Unsorted => {
+                        tracing::debug!(?fallback, "compiling a single-pass statement");
+                    }
+                    ShapeFallback::AsteriskSelect
+                    | ShapeFallback::OpaqueExpression
+                    | ShapeFallback::ToManyKeyJoin
+                    | ShapeFallback::GeneratingHydrationJoin
+                    | ShapeFallback::NoKeyColumns => {
+                        tracing::warn!(?fallback, "falling back to a single-pass statement");
+                    }
+                }
+                self.single_pass_statement()
+            }
+        }
     }
 
     /// Lays out the statement as one flat `SELECT` over all joins.
@@ -762,9 +778,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .build()
     }
 
-    /// Lays out the statement as [`StatementShape::FetchKeysThenHydrate`], or reports why the
-    /// statement does not qualify.
-    fn fetch_keys_then_hydrate_statement(&self) -> Result<SelectStatement, ShapeFallback> {
+    /// Lays out the statement as the keys-first split, fenced when `materialization` says so,
+    /// or reports why the statement does not qualify.
+    fn fetch_keys_then_hydrate_statement(
+        &self,
+        materialization: Option<Materialization>,
+    ) -> Result<SelectStatement, ShapeFallback> {
         let Some(limit) = self.limit else {
             return Err(ShapeFallback::Unlimited);
         };
@@ -788,7 +807,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .all(|cte| cte.name.as_str() != "roots" && cte.name.as_str() != "limited"),
             "carried CTE names must not collide with the fence CTEs"
         );
-        common_table_expressions.push(self.key_query_cte(&partition, &key_columns, &rewriter));
+        common_table_expressions.push(self.key_query_cte(
+            &partition,
+            &key_columns,
+            &rewriter,
+            materialization,
+        ));
         common_table_expressions.push(self.page_cte(&rewriter, limit));
 
         Ok(SelectStatement::builder()
@@ -928,12 +952,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Builds the `roots` CTE: the key-query columns under the full filter and cursor
-    /// conditions, `MATERIALIZED` to fence its plan from the outer ordering demand.
+    /// conditions, `MATERIALIZED` on demand to fence its plan from the outer ordering demand.
     fn key_query_cte(
         &self,
         partition: &KeyQueryPartition<'_>,
         key_columns: &[(TableName<'static>, ColumnName<'static>)],
         rewriter: &KeyColumnRewriter<'_>,
+        materialization: Option<Materialization>,
     ) -> CommonTableExpression {
         CommonTableExpression::builder()
             .name("roots")
@@ -958,7 +983,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .from(Self::joined_table(partition.key_joins.iter().copied()))
                     .maybe_where_clause(self.where_condition()),
             )
-            .materialization(Materialization::Materialized)
+            .maybe_materialization(materialization)
             .build()
     }
 

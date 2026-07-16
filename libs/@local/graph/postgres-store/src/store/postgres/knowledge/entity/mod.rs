@@ -606,10 +606,9 @@ where
             .change_context(QueryError)?;
 
         compiler.set_limit(params.limit);
-        // The entity read path vouches for the fetch-keys-then-hydrate preconditions: its
-        // hydration joins are foreign-key-total and the distinct key pins all row-multiplying
-        // columns.
-        compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+        // The entity read path vouches for the keys-first preconditions: its hydration joins
+        // are foreign-key-total and the distinct key pins all row-multiplying columns.
+        compiler.set_statement_shape(StatementShape::KeysFirst);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params

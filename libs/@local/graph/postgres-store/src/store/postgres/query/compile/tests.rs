@@ -2054,7 +2054,7 @@ fn fetch_keys_then_hydrate_entity_query() {
     );
     compiler.add_filter(&filter).expect("Failed to add filter");
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     test_compilation(
         &compiler,
@@ -2084,6 +2084,43 @@ fn fetch_keys_then_hydrate_entity_query() {
 }
 
 #[test]
+fn keys_first_omits_the_fence() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::KeysFirst);
+
+    // Same split as the fenced shape, but the CTE stays inlinable for the planner.
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid") "limited"."entity_uuid", "entity_editions_0_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[&pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
+#[test]
 fn fetch_keys_then_hydrate_requires_sort_and_limit() {
     let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
 
@@ -2094,9 +2131,9 @@ fn fetch_keys_then_hydrate_requires_sort_and_limit() {
         Distinctness::Distinct,
         Some((Ordering::Ascending, None)),
     );
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::Unlimited)
     );
     let (unlimited, _) = compiler.compile();
@@ -2108,9 +2145,9 @@ fn fetch_keys_then_hydrate_requires_sort_and_limit() {
     let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
     compiler.add_selection_path(&EntityQueryPath::Uuid);
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::Unsorted)
     );
     let (unsorted, _) = compiler.compile();
@@ -2129,9 +2166,9 @@ fn fetch_keys_then_hydrate_asterisk_falls_back() {
         Some((Ordering::Ascending, None)),
     );
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::AsteriskSelect)
     );
     let (asterisk, _) = compiler.compile();
@@ -2167,9 +2204,9 @@ fn fetch_keys_then_hydrate_to_many_filter_falls_back() {
     );
     compiler.add_filter(&filter).expect("Failed to add filter");
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::ToManyKeyJoin)
     );
     let (to_many, _) = compiler.compile();
@@ -2195,7 +2232,7 @@ fn fetch_keys_then_hydrate_sorts_across_joins() {
     );
     compiler.add_selection_path(&EntityQueryPath::Properties(None));
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     test_compilation(
         &compiler,
@@ -2241,7 +2278,7 @@ fn fetch_keys_then_hydrate_with_cursor() {
         .expect("the cursor selection should compile");
     compiler.add_selection_path(&EntityQueryPath::Properties(None));
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     // The keyset continuation belongs to the key query, so pages after the first stay fenced.
     test_compilation(
@@ -2275,7 +2312,7 @@ fn fetch_keys_then_hydrate_embedding_distance() {
         .add_filter(&filter)
         .expect("the embedding filter should compile");
     compiler.set_limit(3);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     // The grouped distance subquery emits one row per entity, so it may drive the key query.
     test_compilation(
@@ -2328,7 +2365,7 @@ fn fetch_keys_then_hydrate_carries_existing_ctes() {
         ))
         .expect("Failed to add filter");
     compiler.set_limit(5);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     // The latest-version CTE shadows `ontology_ids` and has to stay ahead of the fence CTEs.
     test_compilation(
@@ -2367,7 +2404,7 @@ fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
         Some((Ordering::Ascending, None)),
     );
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     // No query path compiles to a right outer join today, since the join chains convert
     // every hop after the first outer one to a left outer join. The guard is a fence against
@@ -2386,7 +2423,7 @@ fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
     });
 
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::GeneratingHydrationJoin)
     );
 }
@@ -2433,10 +2470,10 @@ fn fetch_keys_then_hydrate_reused_to_many_join_falls_back() {
     ]);
     compiler.add_filter(&filter).expect("Failed to add filter");
     compiler.set_limit(10);
-    compiler.set_statement_shape(StatementShape::FetchKeysThenHydrate);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
     assert_eq!(
-        compiler.fetch_keys_then_hydrate_statement().map(|_| ()),
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
         Err(ShapeFallback::ToManyKeyJoin)
     );
 }
