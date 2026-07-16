@@ -341,6 +341,7 @@ class PetrinautOptimizer:
         finally:
             stop_flag.set()
             self.lock.release()
+            self.pn_model.close()
 
     async def stream_best(self, request: Request, n_trials: int):
         """Async generator yielding Server-side event frames, one per finished trial.
@@ -429,6 +430,7 @@ class PetrinautOptimizer:
         finally:
             stop_flag.set()
             self.lock.release()
+            self.pn_model.close()
     
     # ── run for local testing /printing ─────────────────────────────────────────────────────────────────
     def run_stream(self, study, objective, n_trials):
