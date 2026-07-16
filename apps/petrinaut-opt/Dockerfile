@@ -59,6 +59,7 @@ COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-core/package.json /libs/
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-core/dist /libs/@hashintel/petrinaut-core/dist
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/package.json /libs/@hashintel/petrinaut-cli/package.json
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/dist /libs/@hashintel/petrinaut-cli/dist
+COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json /libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json
 
 
 FROM node:${NODE_VERSION}-bookworm-slim AS node-runtime
@@ -89,6 +90,7 @@ FROM python:${PYTHON_VERSION}-slim-bookworm AS runner
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths" \
     PETRINAUT_CLI_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths" \
     UVICORN_HOST=0.0.0.0 \
     UVICORN_PORT=4004
@@ -106,6 +108,7 @@ COPY apps/petrinaut-opt/src ./src
 COPY --from=cli-runtime / /opt/petrinaut-cli
 
 RUN chmod +x /opt/petrinaut-cli/libs/@hashintel/petrinaut-cli/dist/cli.js && \
+    ln -s /opt/petrinaut-cli/libs /libs && \
     ln -s /opt/petrinaut-cli/libs/@hashintel/petrinaut-cli/dist/cli.js /usr/local/bin/petrinaut && \
     groupadd --system petrinaut && \
     useradd --system --gid petrinaut --create-home petrinaut
