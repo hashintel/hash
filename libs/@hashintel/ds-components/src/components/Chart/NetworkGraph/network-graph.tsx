@@ -26,8 +26,12 @@ import {
 } from "./network-graph-util";
 import {
   deriveZoomAttributes,
+  HOVERED_MAX_MULTIPLIER,
   HOVERED_MIN_RADIUS,
+  HOVERED_RADIUS_MULTIPLIER,
   NEIGHBOUR_MIN_RADIUS,
+  POINT_MAX_RADIUS,
+  POINT_RADIUS,
 } from "./zoom-attributes";
 
 import type { IconName } from "../../Icon/icon";
@@ -53,6 +57,19 @@ export interface NetworkGraphInteraction {
   x: number;
   /** Pointer y position in pixels, relative to the chart's top-left corner. */
   y: number;
+  /**
+   * The on-screen radius (px) at which an emphasised node — the hovered/active
+   * node and the selection — is drawn at the current zoom: the grown ring in the
+   * compact view (clamped to its pixel range) or the detailed node's circle. Lets
+   * a consumer offset an anchored overlay (e.g. a tooltip) so it clears the node.
+   */
+  nodeRadius: number;
+  /**
+   * Which node rendering the graph is currently showing: `"detailed"` (larger
+   * nodes with icons and label pills, at/above the compact→detail zoom switch) or
+   * `"compact"` (plain points).
+   */
+  variant: "detailed" | "compact";
 }
 
 /** A pointer interaction (hover or click) with an edge in the network graph. */
@@ -131,13 +148,20 @@ export interface NetworkGraphProps {
   selected?: number | NetworkGraphSelection | null;
   /**
    * Called with the `selected` node's current on-screen position (CSS pixels,
-   * relative to the chart's top-left) whenever it changes — including as the
-   * user zooms or pans — or `null` when nothing is selected or the selected node
-   * has moved outside the viewport. Lets a consumer anchor an overlay such as a
-   * tooltip to the node, and hide it while the node is off screen.
+   * relative to the chart's top-left) and its drawn radius (px) whenever they
+   * change — including as the user zooms or pans — or `null` when nothing is
+   * selected or the selected node has moved outside the viewport. Lets a consumer
+   * anchor an overlay such as a tooltip to the node (offsetting it by `nodeRadius`
+   * so it clears the node), and hide it while the node is off screen. `variant`
+   * reports which node rendering is showing (`"detailed"` or `"compact"`).
    */
   onSelectedPositionChange?: (
-    position: { x: number; y: number } | null,
+    position: {
+      x: number;
+      y: number;
+      nodeRadius: number;
+      variant: "detailed" | "compact";
+    } | null,
   ) => void;
   /**
    * Called when the hovered node changes, with the newly hovered node (or
@@ -1101,6 +1125,52 @@ export const NetworkGraph = ({
     };
   }, [iconNamesKey]);
 
+  /** Current zoom level as a single number (orthographic zoom may be a pair). */
+  const currentZoom = useMemo(() => {
+    const zoom = viewState?.zoom;
+    if (zoom === undefined) {
+      return null;
+    }
+    return Array.isArray(zoom) ? zoom[0] : zoom;
+  }, [viewState?.zoom]);
+
+  /**
+   * Every attribute the view derives from the current zoom — point size, point
+   * opacity, the arrow gap, and the compact/detail switch — computed together by
+   * {@link deriveZoomAttributes} so they stay in one place. Destructured below so
+   * the rest of the component can use each value directly.
+   */
+  const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
+    () => deriveZoomAttributes(currentZoom),
+    [currentZoom],
+  );
+
+  /**
+   * The on-screen radius (px) of an emphasised node — the active/hovered node and
+   * the selection — as it is actually drawn: the grown ring clamped to its pixel
+   * range in the compact view (see the `highlight-hovered` layer), or the detailed
+   * node's circle. Reported to consumers via {@link NetworkGraphInteraction} and
+   * `onSelectedPositionChange` so an anchored overlay can be offset to clear it.
+   */
+  const activeNodeRadius = useMemo(
+    () =>
+      isDetailZoom
+        ? DETAIL_NODE_DIAMETER / 2
+        : Math.min(
+            POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+            Math.max(
+              HOVERED_MIN_RADIUS,
+              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * radiusScale,
+            ),
+          ),
+    [isDetailZoom, radiusScale],
+  );
+
+  /** Which node rendering is showing, reported to consumers alongside position. */
+  const nodeVariant: "detailed" | "compact" = isDetailZoom
+    ? "detailed"
+    : "compact";
+
   /**
    * Report the selected node's on-screen position, re-projecting on every view
    * change so a consumer's overlay can track the node as it zooms/pans. Reports
@@ -1130,8 +1200,20 @@ export const NetworkGraph = ({
       onSelectedPositionChange(null);
       return;
     }
-    onSelectedPositionChange({ x, y });
-  }, [onSelectedPositionChange, selectedPoint, viewState, view]);
+    onSelectedPositionChange({
+      x,
+      y,
+      nodeRadius: activeNodeRadius,
+      variant: nodeVariant,
+    });
+  }, [
+    onSelectedPositionChange,
+    selectedPoint,
+    viewState,
+    view,
+    activeNodeRadius,
+    nodeVariant,
+  ]);
 
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
@@ -1189,19 +1271,16 @@ export const NetworkGraph = ({
         return;
       }
       // Narrowed to a node (or null) by the guards above.
-      onNodeClick?.({ point: object, x, y });
+      onNodeClick?.({
+        point: object,
+        x,
+        y,
+        nodeRadius: activeNodeRadius,
+        variant: nodeVariant,
+      });
     },
-    [onNodeClick, onEdgeClick, resolveEdge],
+    [onNodeClick, onEdgeClick, resolveEdge, activeNodeRadius, nodeVariant],
   );
-
-  /** Current zoom level as a single number (orthographic zoom may be a pair). */
-  const currentZoom = useMemo(() => {
-    const zoom = viewState?.zoom;
-    if (zoom === undefined) {
-      return null;
-    }
-    return Array.isArray(zoom) ? zoom[0] : zoom;
-  }, [viewState?.zoom]);
 
   // Report zoom changes to the consumer from an effect, so it runs after commit —
   // never mid-render. (A programmatic `setViewState` in `applyZoomDelta`/
@@ -1329,17 +1408,6 @@ export const NetworkGraph = ({
       revealPoint,
     }),
     [applyZoomDelta, revealPoint],
-  );
-
-  /**
-   * Every attribute the view derives from the current zoom — point size, point
-   * opacity, the arrow gap, and the compact/detail switch — computed together by
-   * {@link deriveZoomAttributes} so they stay in one place. Destructured below so
-   * the rest of the component can use each value directly.
-   */
-  const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
-    () => deriveZoomAttributes(currentZoom),
-    [currentZoom],
   );
 
   /**
@@ -2030,7 +2098,13 @@ export const NetworkGraph = ({
               if (lastHoveredIdRef.current !== null) {
                 lastHoveredIdRef.current = null;
                 setHovered(null);
-                onNodeHover?.({ point: null, x: info.x, y: info.y });
+                onNodeHover?.({
+                  point: null,
+                  x: info.x,
+                  y: info.y,
+                  nodeRadius: activeNodeRadius,
+                  variant: nodeVariant,
+                });
               }
               return;
             }
@@ -2050,7 +2124,13 @@ export const NetworkGraph = ({
             }
             lastHoveredIdRef.current = id;
             setHovered(node);
-            onNodeHover?.({ point: node, x: info.x, y: info.y });
+            onNodeHover?.({
+              point: node,
+              x: info.x,
+              y: info.y,
+              nodeRadius: activeNodeRadius,
+              variant: nodeVariant,
+            });
           }}
           onViewStateChange={(params) => {
             const raw = params.viewState as OrthographicViewState;

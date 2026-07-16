@@ -194,11 +194,14 @@ const NetworkGraphStory = ({
   const [selected, setSelected] = useState<
     number | NetworkGraphSelection | null
   >(null);
-  // The selected node's live on-screen position, updated by the chart as the
-  // user zooms/pans so the tooltip tracks the node.
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(
-    null,
-  );
+  // The selected node's live on-screen position and drawn radius, updated by the
+  // chart as the user zooms/pans so the tooltip tracks the node and clears it.
+  const [tooltipPos, setTooltipPos] = useState<{
+    x: number;
+    y: number;
+    nodeRadius: number;
+    variant: "detailed" | "compact";
+  } | null>(null);
   // The clicked edge and where it was clicked, for its own popover.
   const [selectedEdge, setSelectedEdge] = useState<NetworkGraphEdge | null>(
     null,
@@ -443,8 +446,17 @@ const NetworkGraphStory = ({
               position="bottom-start"
               positionFromPoint={tooltipPos}
               onClose={() => setSelected(null)}
-              gapX={10}
-              gapY={12}
+              // Sit the tooltip clear of the node by offsetting both gaps by the
+              // node's drawn radius (larger in the detailed view, where nodes are
+              // bigger).
+              gapX={
+                tooltipPos.nodeRadius +
+                (tooltipPos.variant === "compact" ? 7 : 8)
+              }
+              gapY={
+                tooltipPos.nodeRadius +
+                (tooltipPos.variant === "compact" ? 4 : 12)
+              }
             >
               <div className={tooltipStyles}>
                 <div>Node {selectedPoint.id}</div>
