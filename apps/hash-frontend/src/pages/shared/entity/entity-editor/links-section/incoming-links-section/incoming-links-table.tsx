@@ -358,10 +358,6 @@ export const IncomingLinksTable = memo(
           linkEntity,
         );
 
-        for (const linkType of linkEntityClosedMultiType.allOf) {
-          linkEntityTypeIds.add(linkType.$id);
-        }
-
         const leftEntity = leftEntityRevisions?.[0];
         if (!leftEntity) {
           /**
@@ -370,6 +366,10 @@ export const IncomingLinksTable = memo(
            * rather than crashing.
            */
           continue;
+        }
+
+        for (const linkType of linkEntityClosedMultiType.allOf) {
+          linkEntityTypeIds.add(linkType.$id);
         }
 
         const leftEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
