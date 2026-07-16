@@ -1,104 +1,46 @@
-# Driving scenario optimization from Python
+# Running an optimization manifest
 
-Petrinaut CLI owns the Petrinaut-specific part of an optimization: validating
-the selected scenario and metric, materializing fixed and suggested scenario
-parameters, running a trial, and returning its scalar objective. Python only
-needs to translate the CLI's flat parameter description into Optuna calls.
+Petrinaut CLI owns the Petrinaut side of optimization: it validates the
+manifest, applies fixed and suggested scenario parameters, materializes the
+initial state, runs the model, and returns one scalar objective. An optimizer
+such as Optuna only needs to consume the flat parameter description and submit
+one suggestion per trial.
 
-## Start the CLI
+An optimization manifest is a versioned JSON document containing a complete
+model snapshot with **one scenario** and **one metric**. Its
+`scenario.parameterBindings` lists every scenario parameter once as either
+`fixed` or `optimize`. Bounds, integer steps, and float scales belong to the
+manifest and are therefore transient to that optimization run.
 
-An optimization manifest is an immutable, versioned JSON document containing a
-complete model snapshot with exactly one scenario and exactly one metric. Start
-one CLI process per study:
+## Raw CLI
+
+Start one long-lived CLI process for a study, passing the manifest file:
 
 ```sh
-petrinaut serve --optimization optimize.json --stdio
+petrinaut serve --optimization ./optimization.json --stdio
 ```
 
-For containers with a read-only filesystem, bootstrap the same manifest as the
-first JSON line on stdin:
+`--optimization` is available only with `--stdio`. For a read-only container,
+send the manifest as the first JSON line instead:
 
 ```sh
 petrinaut serve --optimization-stdin --stdio
 ```
 
-Keep the process alive for all trials. Subsequent stdin lines and all stdout
-lines use the request/response JSON-lines protocol. Diagnostics and the ready
-message are written to stderr.
+After the manifest has been loaded, stdin and stdout are JSON Lines. The CLI
+writes diagnostics (including its ready message) to stderr. Keep the process
+alive and send one request per line; it handles requests serially.
 
-## Manifest
+### Read the search space
 
-```json
-{
-  "kind": "petrinaut-optimization",
-  "version": 1,
-  "name": "Maximize profit",
-  "model": {
-    "title": "Supply chain",
-    "definition": {
-      "places": [],
-      "transitions": [],
-      "types": [],
-      "differentialEquations": [],
-      "parameters": [],
-      "subnets": [],
-      "componentInstances": [],
-      "scenarios": ["exactly one complete scenario object"],
-      "metrics": ["exactly one saved or transient metric object"]
-    }
-  },
-  "scenario": {
-    "id": "scenario_baseline",
-    "parameterBindings": {
-      "production_rate": {
-        "kind": "optimize",
-        "domain": {
-          "kind": "continuous",
-          "minimum": 80,
-          "maximum": 140,
-          "scale": "linear"
-        }
-      },
-      "batch_size": { "kind": "fixed", "value": 180 },
-      "worker_count": {
-        "kind": "optimize",
-        "domain": {
-          "kind": "integer",
-          "minimum": 1,
-          "maximum": 20,
-          "step": 1
-        }
-      },
-      "enabled": {
-        "kind": "optimize",
-        "domain": { "kind": "boolean" }
-      }
-    }
-  },
-  "objective": { "metricId": "metric_profit", "direction": "maximize" },
-  "execution": { "seed": 42, "dt": 0.1, "maxTime": 100 },
-  "study": { "trials": 100, "sampler": "tpe" }
-}
-```
-
-`parameterBindings` must contain every scenario parameter exactly once. Bounds,
-integer steps, and float scales are transient study configuration; the
-scenario parameter's type and default continue to come from the embedded model.
-Ratio domains must stay inside `[0, 1]`.
-
-The metric may be copied from the saved model or created inline by the
-Optimization form. In both cases it is simply the manifest snapshot's sole
-metric; the CLI does not persist it.
-
-## Describe the Optuna study
-
-Request:
+Send:
 
 ```json
 { "id": 1, "method": "optimization.describe" }
 ```
 
-Response:
+The response contains the optimization direction, study configuration, and
+only the non-fixed parameters:
 
 ```json
 {
@@ -129,16 +71,21 @@ Response:
 }
 ```
 
-Only optimized parameters are returned. Python can map `float` to
-`trial.suggest_float` (`scale: "log"` means `log=True`), `int` to
-`trial.suggest_int`, and `boolean` to `trial.suggest_categorical([false, true])`.
-The described seed is the manifest execution seed; use it for the Optuna
-sampler as well as the deterministic Petrinaut trials.
+The parameter types map as follows:
 
-## Evaluate one trial
+| CLI type | Domain | Optuna suggestion |
+| --- | --- | --- |
+| `float` | `minimum`, `maximum`, `scale` (`linear` or `log`) | `suggest_float` |
+| `int` | `minimum`, `maximum`, `step` | `suggest_int` |
+| `boolean` | no numeric bounds | `suggest_categorical([False, True])` |
 
-Send values for every and only the parameters returned by
-`optimization.describe`:
+`default` is the scenario's default value. It is informative; the optimizer
+chooses the trial value. Fixed parameters are deliberately omitted from this
+response.
+
+### Run one trial
+
+Send every and only parameter returned by `optimization.describe`:
 
 ```json
 {
@@ -154,53 +101,124 @@ Send values for every and only the parameters returned by
 }
 ```
 
-The CLI validates the suggestions against their domains, injects fixed values,
-compiles the scenario into the trial's initial state and net parameters, runs
-the sole metric, and returns only its scalar value:
+The CLI validates those values against the manifest, injects the fixed values,
+and returns the objective value:
 
 ```json
 { "id": 2, "result": { "objective": 1234.5 } }
 ```
 
-One process handles requests serially. Use one process with `n_jobs=1`, or an
-independently bootstrapped CLI process per parallel worker.
+Use one CLI process with a single Optuna worker, or start an independent CLI
+process for each parallel worker.
 
-## Minimal Optuna loop
+## Python wrapper with Optuna
+
+This minimal wrapper starts the CLI with a manifest file and implements the
+JSON Lines request/response protocol:
 
 ```python
-description = cli_request("optimization.describe")
-study = optuna.create_study(
-    direction=description["direction"],
-    sampler=create_sampler(
-        description["study"]["sampler"],
-        seed=description["study"]["seed"],
-    ),
-)
+import json
+import subprocess
 
-def objective(trial):
-    values = {}
-    for parameter in description["parameters"]:
-        name = parameter["identifier"]
-        if parameter["type"] == "float":
-            values[name] = trial.suggest_float(
+
+class PetrinautOptimization:
+    def __init__(self, manifest_path: str):
+        self.process = subprocess.Popen(
+            [
+                "petrinaut",
+                "serve",
+                "--optimization",
+                manifest_path,
+                "--stdio",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+        )
+        self.request_id = 0
+
+    def request(self, method: str, params: dict | None = None) -> dict:
+        self.request_id += 1
+        request = {"id": self.request_id, "method": method}
+        if params is not None:
+            request["params"] = params
+
+        assert self.process.stdin and self.process.stdout
+        self.process.stdin.write(json.dumps(request) + "\\n")
+        self.process.stdin.flush()
+        response = json.loads(self.process.stdout.readline())
+        if "error" in response:
+            raise RuntimeError(response["error"]["message"])
+        return response["result"]
+
+    def close(self) -> None:
+        self.process.terminate()
+        self.process.wait()
+```
+
+Read the CLI description once, then map each returned parameter directly to an
+Optuna suggestion. Pass the resulting flat dictionary unchanged to
+`optimization.evaluate`:
+
+```python
+import optuna
+
+
+def suggest_parameter(trial: optuna.Trial, parameter: dict):
+    name = parameter["identifier"]
+    match parameter["type"]:
+        case "float":
+            return trial.suggest_float(
                 name,
                 parameter["minimum"],
                 parameter["maximum"],
                 log=parameter["scale"] == "log",
             )
-        elif parameter["type"] == "int":
-            values[name] = trial.suggest_int(
+        case "int":
+            return trial.suggest_int(
                 name,
                 parameter["minimum"],
                 parameter["maximum"],
                 step=parameter["step"],
             )
-        else:
-            values[name] = trial.suggest_categorical(name, [False, True])
+        case "boolean":
+            return trial.suggest_categorical(name, [False, True])
+        case _:
+            raise ValueError(f"Unsupported parameter type: {parameter['type']}")
 
-    return cli_request(
-        "optimization.evaluate", {"parameterValues": values}
-    )["objective"]
 
-study.optimize(objective, n_trials=description["study"]["trials"])
+optimizer = PetrinautOptimization("./optimization.json")
+description = optimizer.request("optimization.describe")
+
+sampler = (
+    optuna.samplers.TPESampler(seed=description["study"]["seed"])
+    if description["study"]["sampler"] == "tpe"
+    else optuna.samplers.RandomSampler(seed=description["study"]["seed"])
+)
+study = optuna.create_study(
+    direction=description["direction"],
+    sampler=sampler,
+)
+
+
+def objective(trial: optuna.Trial) -> float:
+    values = {
+        parameter["identifier"]: suggest_parameter(trial, parameter)
+        for parameter in description["parameters"]
+    }
+    result = optimizer.request(
+        "optimization.evaluate",
+        {"parameterValues": values},
+    )
+    return result["objective"]
+
+
+try:
+    study.optimize(objective, n_trials=description["study"]["trials"])
+finally:
+    optimizer.close()
 ```
+
+The wrapper never reads Petrinaut types, compiles a scenario, or supplies fixed
+values. Those remain part of the manifest and CLI contract.

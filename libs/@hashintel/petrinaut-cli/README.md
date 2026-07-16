@@ -14,7 +14,7 @@ preflight have succeeded, including every metric advertised by `metadata`.
 See [Using Petrinaut CLI from Python](./PYTHON_INTEGRATION.md) for a compact
 stdio wrapper and Optuna example.
 
-See [Driving scenario optimization from Python](./OPTIMIZATION_INTEGRATION.md)
+See [Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md)
 for the contract between the Optimization form, Optuna, and the CLI.
 
 ## Transports
@@ -45,7 +45,7 @@ petrinaut serve --optimization ./optimize.json --stdio
 petrinaut serve --optimization-stdin --stdio
 ```
 
-See [Driving scenario optimization from Python](./OPTIMIZATION_INTEGRATION.md)
+See [Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md)
 for the manifest and protocol contract. Both optimization sources are stdio
 only.
 
