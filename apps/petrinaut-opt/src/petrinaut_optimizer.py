@@ -122,7 +122,7 @@ class InitialStates(BaseModel):
     CustomerDemand: int | None = None # default 0
     SoldOrders: int | None = None # default 0
     LostSales: int | None = None # default 0
-    # SupplyScore: Any | None = None # default is created upon initialisation of PetrinautModel class
+    # FinancialData: Any | None = None # default is created upon initialisation of PetrinautModel class
 
 
 # Hard-coded allowable optuna samplers 

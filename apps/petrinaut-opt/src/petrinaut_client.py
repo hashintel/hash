@@ -99,7 +99,7 @@ class PetrinautModel:
         self._next_id = 1
 
         # Default coloured place
-        self.supply_score = {
+        self.financial_data = {
             "cumulative_profit":0,
             "cumulative_units_sold":0,
             "effective_demand":0,
@@ -135,20 +135,20 @@ class PetrinautModel:
 
         Args:
             parameters (dict): Petri-net parameters for this run.
-            initial_state (dict): Initial state per place; a default `SupplyScore` is injected.
+            initial_state (dict): Initial state per place; a default `FinancialData` is injected.
             method (str): Protocol method to invoke. Defaults to 'run'.
 
         Returns:
             Dict[str, Union[str, Dict]]: The request payload to send to the CLI.
         """
-        initial_state = initial_state if initial_state else dict()
-        initial_state["SupplyScore"] = [self.supply_score]
+        _initial_state = initial_state if initial_state else dict()
+        _initial_state["FinancialData"] = [self.financial_data]
         payload: dict[str, Any] = {
             "id": self._next_id, 
             "method": method,
             "params": {
                 "parameters": parameters,
-                "initialState": initial_state,
+                "initialState": _initial_state,
                 "metrics": [self.metric],
                 "maxSteps": self.steps,
                 "dt": self.dt,
