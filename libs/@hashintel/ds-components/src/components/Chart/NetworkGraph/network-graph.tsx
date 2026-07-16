@@ -208,11 +208,17 @@ const ZOOM_STEP = 1;
  */
 const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
-const ZOOM_OUT_MARGIN = 0.2;
+const ZOOM_OUT_MARGIN = 0.05;
 /** Furthest zoom-in, as levels above the initial framing zoom (the camera's `maxZoom`). */
 const MAX_ZOOM_OFFSET = 9;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
 const PAN_PADDING_PX = 10;
+/**
+ * Screen-space margin (px) reserved when framing the graph, so nodes near the
+ * network's edge aren't clipped by their radius — the bounds cover node centres
+ * only, and a node's disc extends past its centre.
+ */
+const FIT_MARGIN_PX = 60;
 /**
  * Controller options — stable across renders so deck doesn't re-process the
  * controller each time. Double-click-to-zoom off: clicks are handled via
@@ -1016,24 +1022,36 @@ export const NetworkGraph = ({
       }
       setContainerSize({ width, height });
       const padding = 0.9;
-      const zoomX = Math.log2((width * padding) / (bounds.width || 1));
-      const zoomY = Math.log2((height * padding) / (bounds.height || 1));
-      const zoom = Math.min(zoomX, zoomY);
+      const outPadding = 1 / (1 + ZOOM_OUT_MARGIN);
+      // Largest zoom at which the network's centre bounds fit within
+      // `paddingFraction` of the viewport, reserving `FIT_MARGIN_PX` so nodes
+      // near the edge aren't clipped by their radius. The tighter axis wins so
+      // nothing is clipped.
+      const fitZoom = (paddingFraction: number) =>
+        Math.min(
+          Math.log2(
+            Math.max(1, width * paddingFraction - FIT_MARGIN_PX) /
+              (bounds.width || 1),
+          ),
+          Math.log2(
+            Math.max(1, height * paddingFraction - FIT_MARGIN_PX) /
+              (bounds.height || 1),
+          ),
+        );
+      const framingZoom = fitZoom(padding);
       // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills
       // the viewport — i.e. the view can never span more than that much world.
-      const outPadding = 1 / (1 + ZOOM_OUT_MARGIN);
-      const minZoom = Math.min(
-        Math.log2((width * outPadding) / (bounds.width || 1)),
-        Math.log2((height * outPadding) / (bounds.height || 1)),
-      );
+      const minZoom = fitZoom(outPadding);
       // Only auto-frame until the user takes control of the view.
       setViewState(
         (previous) =>
           previous ?? {
             target: [bounds.centerX, bounds.centerY, 0],
-            zoom,
+            // Start fully zoomed out, at the min zoom; the zoom-in ceiling stays
+            // tuned relative to the tighter fit framing (see MAX_ZOOM_OFFSET).
+            zoom: minZoom,
             minZoom,
-            maxZoom: zoom + MAX_ZOOM_OFFSET,
+            maxZoom: framingZoom + MAX_ZOOM_OFFSET,
           },
       );
     };
