@@ -77,7 +77,7 @@ use crate::salt::{
     MAXIMUM_TILE_POINTS, TILE_WIRE_V2_CONTENT_TYPE, TileRequest, VariantId, encode_tile,
 };
 
-const DEFAULT_TILE_POINT_BUDGET: usize = 4_096;
+const DEFAULT_TILE_POINT_BUDGET: usize = 4_096 * 4;
 
 /// One named Ed25519 verification key encoded as lowercase hexadecimal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -96,7 +96,7 @@ describe("packAtlasMarks", () => {
       new Uint8Array([240, 120, 80]),
     );
     expect(packed.markColors.slice(4, 7)).toEqual(
-      new Uint8Array([190, 194, 196]),
+      new Uint8Array([226, 234, 240]),
     );
     expect(packed.markColors[3]).toBeGreaterThan(0);
     expect(packed.markColors[3]).toBe(packed.markColors[7]);

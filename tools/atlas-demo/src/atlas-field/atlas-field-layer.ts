@@ -56,18 +56,28 @@ out vec4 fragColor;
 void main(void) {
   vec2 uv = gl_FragCoord.xy / atlasComposite.fieldSize;
   float totalDensity = max(texture(fieldTexture, uv).r, 0.0);
-  float exposedDensity = log(
-    1.0 + totalDensity * atlasComposite.densityScale
-  );
-  float glow = 1.0 - exp(-exposedDensity * 0.65);
-  float veil = pow(glow, 0.85);
-  float core = glow * glow;
+  float exposed = totalDensity * atlasComposite.densityScale;
 
-  vec3 backgroundColor = vec3(0.012, 0.022, 0.029);
-  vec3 neutralGlowColor = vec3(0.34, 0.36, 0.37);
-  vec3 color =
-    backgroundColor +
-    neutralGlowColor * (veil * 0.28 + core * 0.12);
+  // Reinhard tone mapping keeps decades of density separated: the exposure
+  // percentile lands near 0.5 and hot cores approach 1 asymptotically,
+  // instead of every dense region saturating to one flat value.
+  float luma = exposed / (1.0 + exposed);
+
+  // Density-to-color ramp: faint wisps in dark slate, the structural body in
+  // steel blue, and the densest cores in pale near-white. Luminance stays
+  // monotone in density, so the ramp encodes the measurement.
+  vec3 backgroundColor = vec3(0.008, 0.013, 0.022);
+  vec3 wispColor = vec3(0.075, 0.114, 0.184);
+  vec3 bodyColor = vec3(0.263, 0.373, 0.475);
+  vec3 coreColor = vec3(0.910, 0.945, 0.975);
+
+  vec3 ramp = mix(wispColor, bodyColor, smoothstep(0.10, 0.55, luma));
+  ramp = mix(ramp, coreColor, smoothstep(0.55, 0.92, luma));
+
+  // Gate the sensor floor so empty space stays true black instead of
+  // lifting readback noise into a gray haze.
+  float presence = smoothstep(0.005, 0.09, luma);
+  vec3 color = backgroundColor + ramp * presence;
 
   fragColor = vec4(color, atlasComposite.opacity);
 }
@@ -86,7 +96,7 @@ const defaultProps = {
   opacity: { type: "number" as const, value: 1, min: 0, max: 1 },
 };
 
-/** Draws a subtle log-exposed density glow beneath the crisp mark pass. */
+/** Draws the tone-mapped density field beneath the crisp mark pass. */
 export class AtlasFieldLayer extends Layer<AtlasFieldLayerProps> {
   static layerName = "AtlasFieldLayer";
   static defaultProps = defaultProps;

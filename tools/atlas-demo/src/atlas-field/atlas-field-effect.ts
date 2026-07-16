@@ -37,7 +37,7 @@ import type { ShaderModule } from "@luma.gl/shadertools";
 
 const normalizerSize = 128;
 const exposureIntervalMilliseconds = 1_000;
-const baseSplatRadius = 7;
+const baseSplatRadius = 6;
 const deliveryBandOffset = 7;
 const maximumFieldLevel = 13;
 
@@ -89,15 +89,18 @@ void main(void) {
   float radius = clamp(
     atlasField.baseRadius *
       exp2((atlasField.maximumFieldLevel - tileBand) * 0.5),
-    2.0,
-    48.0
+    1.5,
+    40.0
   );
   vec2 clipOffset = project_pixel_size_to_clipspace(positions * radius);
   clipPosition.xy += clipOffset * clipPosition.w;
 
   gl_Position = clipPosition;
   vCorner = positions;
-  vMass = instanceMasses;
+  // Normalize by splat area so a representative deposits the same total
+  // density regardless of its kernel radius. Without this, coarse tiles
+  // (large radii) outshine refined neighbors at zoom seams.
+  vMass = instanceMasses / (radius * radius);
 }
 `;
 
@@ -117,7 +120,12 @@ void main(void) {
     discard;
   }
   float edge = 1.0 - smoothstep(0.82, 1.0, distanceSquared);
-  float kernel = exp(-distanceSquared * 3.0) * edge;
+  // Sharp core over a broad faint halo: overlapping representatives build
+  // bright knots where clusters are dense while the halo carries the wispy
+  // outskirts, instead of one mid-width Gaussian flattening both.
+  float core = exp(-distanceSquared * 9.0);
+  float halo = exp(-distanceSquared * 2.2);
+  float kernel = (core + halo * 0.45) * edge;
   fragColor = vec4(vMass * kernel, 0.0, 0.0, 0.0);
 }
 `;

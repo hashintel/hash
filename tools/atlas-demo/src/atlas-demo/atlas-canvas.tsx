@@ -182,17 +182,17 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   );
   const effects = useMemo(() => [fieldEffect], [fieldEffect]);
   const layers = useMemo((): Layer[] => {
-    const fieldLayer = new AtlasFieldLayer({
-      id: "atlas-field-composite",
-      opacity: 1,
-      renderState,
-    });
+    // const fieldLayer = new AtlasFieldLayer({
+    //   id: "atlas-field-composite",
+    //   opacity: 1,
+    //   renderState,
+    // });
     const particleLayer = createAtlasParticleLayer(snapshot.markTiles);
     if (!debugFraming) {
-      return [fieldLayer, particleLayer];
+      return [particleLayer];
     }
     return [
-      fieldLayer,
+      // fieldLayer,
       particleLayer,
       ...createAtlasDebugLayers(snapshot.debugTiles),
     ];

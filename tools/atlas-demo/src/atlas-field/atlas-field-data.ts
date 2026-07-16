@@ -43,8 +43,8 @@ export interface AtlasFieldExposure {
   readonly densityScale: number;
 }
 
-const defaultMarkColor = [190, 194, 196] as const;
-const defaultMarkAlpha = 112;
+const defaultMarkColor = [226, 234, 240] as const;
+const defaultMarkAlpha = 168;
 
 /**
  * Returns the tight extent of delivered field representatives.
