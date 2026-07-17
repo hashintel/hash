@@ -41,7 +41,7 @@ pub(crate) const VACANT_CONTENT_ID: u128 = u128::MAX;
 pub(crate) struct ContentMapping {
     pub content_id: U128<LE>,
     pub length: U32<LE>,
-    pub _reserved: [u8; 4],
+    pub reserved: [u8; 4],
 }
 
 /// A preamble extension segment holding content mapping records.
@@ -61,7 +61,7 @@ pub(crate) struct ContentMapping {
 #[repr(C)]
 pub(crate) struct PreambleExtension {
     pub mappings: [ContentMapping; Self::MAPPING_COUNT],
-    pub _reserved: [u8; 8],
+    pub reserved: [u8; 8],
     pub checksum: Checksum,
 }
 
@@ -88,7 +88,7 @@ impl PreambleExtension {
 #[repr(C)]
 pub(crate) struct DirectorySegment {
     pub entries: [DirectoryEntry; Self::ENTRY_COUNT],
-    pub _reserved: [u8; 120],
+    pub reserved: [u8; 120],
     pub checksum: Checksum,
 }
 

@@ -79,7 +79,7 @@ pub(crate) struct DirectoryEntry {
 pub(crate) struct ScalarArrayMetadata {
     pub scalar: U16<LE>,
     pub rank: U16<LE>,
-    pub _reserved: [u8; 4],
+    pub reserved: [u8; 4],
     pub shape: [U64<LE>; 8],
 }
 

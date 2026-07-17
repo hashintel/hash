@@ -26,10 +26,6 @@ use super::writer::Update;
 #[repr(transparent)]
 pub struct Checksum(U64<LE>);
 
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "checksum bytes are persisted in canonical little-endian order across platforms"
-)]
 impl Checksum {
     pub const SIZE: u32 = u64::BITS / 8;
 

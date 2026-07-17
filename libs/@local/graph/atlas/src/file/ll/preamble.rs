@@ -36,7 +36,7 @@ pub(crate) struct Preamble<T> {
     pub directory_len: U32<LE>,
     pub total_entry_count: U64<LE>,
     pub container_len: U64<LE>,
-    pub _reserved: [u8; 4056],
+    pub reserved: [u8; 4056],
     pub checksum: Checksum,
 }
 
@@ -56,16 +56,12 @@ impl<T: Copy + fmt::Debug> fmt::Debug for Preamble<T> {
 }
 
 impl<T: Copy + PartialEq> PartialEq for Preamble<T> {
-    #[expect(
-        clippy::used_underscore_binding,
-        reason = "reserved bytes are part of the wire image, so equality must observe them"
-    )]
     fn eq(&self, other: &Self) -> bool {
         self.variant.get() == other.variant.get()
             && self.directory_len == other.directory_len
             && self.total_entry_count == other.total_entry_count
             && self.container_len == other.container_len
-            && self._reserved == other._reserved
+            && self.reserved == other.reserved
             && self.checksum == other.checksum
     }
 }

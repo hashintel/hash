@@ -95,7 +95,7 @@ fn preamble_layout() {
         directory_len: U32::new(2),
         total_entry_count: U64::new(97),
         container_len: U64::new(1 << 20),
-        _reserved: [0; 4056],
+        reserved: [0; 4056],
         checksum: Checksum::from_bytes(0xABCD_u64.to_le_bytes()),
     };
     let bytes = preamble.as_bytes();
@@ -116,7 +116,7 @@ fn content_mapping_layout() {
     let mapping = ContentMapping {
         content_id: U128::new(0x2A),
         length: U32::new(3),
-        _reserved: [0; 4],
+        reserved: [0; 4],
     };
     let bytes = mapping.as_bytes();
     assert_eq!(bytes.len(), 24);
@@ -141,7 +141,7 @@ fn directory_entry_layout() {
     let scalar_array = ScalarArrayMetadata {
         scalar: U16::new(11),
         rank: U16::new(2),
-        _reserved: [0; 4],
+        reserved: [0; 4],
         shape: [
             U64::new(262_144),
             U64::new(2),

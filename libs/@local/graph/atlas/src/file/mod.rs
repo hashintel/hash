@@ -306,10 +306,10 @@
 //! [`ll`] fixes the raw images: sizes, field order, endianness, and pinned
 //! identity (magic and version are single-variant [`zerocopy::TryFromBytes`]
 //! enums, so bytes of the wrong format fail to parse). Everything else
-//! there admits any bit pattern. Validated types whose constructors
-//! enforce the structural rules above are built on top of [`ll`]; rules
-//! that span segments or the whole container (prefix sums, sorted runs,
-//! gap zeroing) belong to the container codec built on those.
+//! there admits any bit pattern. [`salt`] wraps those images in validated
+//! types whose constructors enforce the structural rules above; rules that
+//! span segments or the whole container (prefix sums, sorted runs, gap
+//! zeroing) belong to the container codec built on those.
 //!
 //! [`SEGMENT_BYTES`]: ll::preamble::SEGMENT_BYTES
 //! [`SaltPreamble`]: ll::preamble::SaltPreamble
@@ -423,6 +423,7 @@
 //   a declared codec, never a container-wide mode.
 
 pub(crate) mod ll;
+pub(crate) mod salt;
 
 #[cfg(test)]
 mod tests;
