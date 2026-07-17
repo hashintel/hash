@@ -16,6 +16,12 @@ import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-
 const modelPath = fileURLToPath(
   new URL("../../examples/sir-model.json", import.meta.url),
 );
+const supplyChainOptimizationPath = fileURLToPath(
+  new URL(
+    "../../examples/supply-chain-profit-optimization.json",
+    import.meta.url,
+  ),
+);
 
 async function createManifest() {
   const legacyModel = JSON.parse(await readFile(modelPath, "utf8")) as {
@@ -62,6 +68,85 @@ async function createManifest() {
 }
 
 describe("createOptimizationProtocol", () => {
+  it("reproduces the supply-chain optimization previously hardcoded in Python", async () => {
+    const manifest = await loadOptimizationManifest(
+      supplyChainOptimizationPath,
+    );
+    const run = vi.fn(() => ({
+      seed: 1234,
+      status: "complete" as const,
+      completionReason: "maxTime" as const,
+      frameCount: 101,
+      finalTime: 10,
+      finalPlaceTokenCounts: {},
+      metrics: { Profit: 42 },
+    }));
+    const model: PetrinautCompiledModel = {
+      metadata: { parameters: [], places: [], metrics: [] },
+      run,
+    };
+    const protocol = createOptimizationProtocol({ manifest, model });
+
+    expect(protocol.describe()).toEqual({
+      direction: "maximize",
+      study: { trials: 1_000, sampler: "tpe", seed: 1234 },
+      parameters: [
+        {
+          identifier: "production_rate",
+          type: "float",
+          default: 100,
+          minimum: 20,
+          maximum: 250,
+          scale: "log",
+        },
+        {
+          identifier: "reorder_threshold",
+          type: "int",
+          default: 160,
+          minimum: 100,
+          maximum: 1_000,
+          step: 1,
+          scale: "log",
+        },
+        {
+          identifier: "batch_size",
+          type: "int",
+          default: 180,
+          minimum: 50,
+          maximum: 800,
+          step: 1,
+          scale: "log",
+        },
+      ],
+    });
+    expect(
+      protocol.evaluate({
+        parameterValues: {
+          production_rate: 125,
+          reorder_threshold: 300,
+          batch_size: 250,
+        },
+      }),
+    ).toEqual({ objective: 42 });
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parameterValues: {
+          production_rate: "125",
+          reorder_threshold: "300",
+          batch_size: "250",
+          selling_price: "34",
+          expedite_fraction: "0.25",
+          marketing_spend: "20",
+          demand_multiplier: "1",
+        },
+        metrics: ["metric_profit"],
+        seed: 1234,
+        dt: 0.1,
+        maxTime: 10,
+      }),
+    );
+  });
+
   it("loads a versioned manifest from a file", async () => {
     const manifest = await createManifest();
     const directory = await mkdtemp(join(tmpdir(), "petrinaut-optimization-"));
@@ -167,7 +252,13 @@ describe("createOptimizationProtocol", () => {
           infected_ratio: { kind: "fixed", value: 0.1 },
           count: {
             kind: "optimize",
-            domain: { kind: "integer", minimum: 2, maximum: 10, step: 2 },
+            domain: {
+              kind: "integer",
+              minimum: 2,
+              maximum: 10,
+              step: 2,
+              scale: "linear",
+            },
           },
           enabled: { kind: "optimize", domain: { kind: "boolean" } },
           fixed_enabled: { kind: "fixed", value: true },
@@ -197,6 +288,7 @@ describe("createOptimizationProtocol", () => {
         minimum: 2,
         maximum: 10,
         step: 2,
+        scale: "linear",
       },
       { identifier: "enabled", type: "boolean", default: false },
     ]);

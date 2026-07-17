@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MAX_REQUEST_LINE_BYTES } from "../runtime/protocol";
 import { serve } from "./serve";
-import { MAX_STDIN_MODEL_LINE_BYTES, serveStdio } from "./stdio";
+import { MAX_STDIN_SOURCE_LINE_BYTES, serveStdio } from "./stdio";
 
 const modelPath = fileURLToPath(
   new URL("../../examples/sir-model.json", import.meta.url),
@@ -246,9 +246,24 @@ describe("CLI transports", () => {
       output: new PassThrough(),
       errorOutput: new PassThrough(),
     });
-    input.end(`${"x".repeat(MAX_STDIN_MODEL_LINE_BYTES + 1)}\n`);
+    input.end(`${"x".repeat(MAX_STDIN_SOURCE_LINE_BYTES + 1)}\n`);
 
     await expect(serving).rejects.toThrow("Model JSON line is too large");
+  });
+
+  it("identifies an oversized stdin optimization manifest", async () => {
+    const input = new PassThrough();
+    const serving = serveStdio({
+      optimizationStdin: true,
+      input,
+      output: new PassThrough(),
+      errorOutput: new PassThrough(),
+    });
+    input.end(`${"x".repeat(MAX_STDIN_SOURCE_LINE_BYTES + 1)}\n`);
+
+    await expect(serving).rejects.toThrow(
+      "Optimization manifest JSON line is too large",
+    );
   });
 
   it("simulates multiple colored tokens over stdio", async () => {

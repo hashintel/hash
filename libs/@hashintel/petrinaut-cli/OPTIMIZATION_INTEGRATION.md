@@ -9,7 +9,7 @@ one suggestion per trial.
 An optimization manifest is a versioned JSON document containing a complete
 model snapshot with **one scenario** and **one metric**. Its
 `scenario.parameterBindings` lists every scenario parameter once as either
-`fixed` or `optimize`. Bounds, integer steps, and float scales belong to the
+`fixed` or `optimize`. Bounds, integer steps, and numeric scales belong to the
 manifest and are therefore transient to that optimization run.
 
 ## Raw CLI
@@ -30,6 +30,24 @@ petrinaut serve --optimization-stdin --stdio
 After the manifest has been loaded, stdin and stdout are JSON Lines. The CLI
 writes diagnostics (including its ready message) to stderr. Keep the process
 alive and send one request per line; it handles requests serially.
+
+### Supply-chain example
+
+The checked-in example reproduces the supply-chain profit study that was
+previously hardcoded in `petrinaut-opt`:
+
+```sh
+node libs/@hashintel/petrinaut-cli/dist/cli.js serve \
+  --optimization libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-optimization.json \
+  --stdio
+```
+
+It maximizes `Profit` with TPE over 1,000 trials. Optuna varies
+`production_rate`, `reorder_threshold`, and `batch_size`; the manifest fixes
+`selling_price`, `expedite_fraction`, `marketing_spend`, and
+`demand_multiplier`. The selected scenario retains the old fixed initial
+marking. Its seven scenario parameters override the corresponding seven net
+parameters before every trial.
 
 ### Read the search space
 
@@ -63,7 +81,8 @@ only the non-fixed parameters:
         "default": 5,
         "minimum": 1,
         "maximum": 20,
-        "step": 1
+        "step": 1,
+        "scale": "linear"
       },
       { "identifier": "enabled", "type": "boolean", "default": true }
     ]
@@ -73,11 +92,13 @@ only the non-fixed parameters:
 
 The parameter types map as follows:
 
-| CLI type | Domain | Optuna suggestion |
-| --- | --- | --- |
-| `float` | `minimum`, `maximum`, `scale` (`linear` or `log`) | `suggest_float` |
-| `int` | `minimum`, `maximum`, `step` | `suggest_int` |
-| `boolean` | no numeric bounds | `suggest_categorical([False, True])` |
+| CLI type  | Domain                                                    | Optuna suggestion                    |
+| --------- | --------------------------------------------------------- | ------------------------------------ |
+| `float`   | `minimum`, `maximum`, `scale` (`linear` or `log`)         | `suggest_float`                      |
+| `int`     | `minimum`, `maximum`, `step`, `scale` (`linear` or `log`) | `suggest_int`                        |
+| `boolean` | no numeric bounds                                         | `suggest_categorical([False, True])` |
+
+Optuna requires a logarithmic integer domain to use `step: 1`.
 
 `default` is the scenario's default value. It is informative; the optimizer
 chooses the trial value. Fixed parameters are deliberately omitted from this
@@ -181,6 +202,7 @@ def suggest_parameter(trial: optuna.Trial, parameter: dict):
                 parameter["minimum"],
                 parameter["maximum"],
                 step=parameter["step"],
+                log=parameter["scale"] == "log",
             )
         case "boolean":
             return trial.suggest_categorical(name, [False, True])

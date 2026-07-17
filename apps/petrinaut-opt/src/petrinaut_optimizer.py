@@ -107,6 +107,7 @@ def _parse_description(
             minimum = parameter.get("minimum")
             maximum = parameter.get("maximum")
             step = parameter.get("step")
+            scale = parameter.get("scale")
             if (
                 isinstance(minimum, bool)
                 or not isinstance(minimum, int)
@@ -118,6 +119,12 @@ def _parse_description(
                 raise ValueError(f"{identifier}.maximum must exceed minimum")
             if isinstance(step, bool) or not isinstance(step, int) or step < 1:
                 raise ValueError(f"{identifier}.step must be a positive integer")
+            if scale not in {"linear", "log"}:
+                raise ValueError(f"{identifier}.scale must be linear or log")
+            if scale == "log" and minimum <= 0:
+                raise ValueError(f"{identifier}.minimum must be positive for log scale")
+            if scale == "log" and step != 1:
+                raise ValueError(f"{identifier}.step must be 1 for log scale")
         elif parameter_type != "boolean":
             raise ValueError(
                 f"unsupported optimization parameter type: {parameter_type!r}"
@@ -188,6 +195,7 @@ class PetrinautOptimizer:
                     cast(int, parameter["minimum"]),
                     cast(int, parameter["maximum"]),
                     step=cast(int, parameter["step"]),
+                    log=parameter["scale"] == "log",
                 )
             else:
                 values[identifier] = cast(

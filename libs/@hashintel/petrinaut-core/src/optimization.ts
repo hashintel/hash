@@ -45,6 +45,7 @@ export const petrinautIntegerOptimizationDomainSchema = z
     minimum: z.number().int(),
     maximum: z.number().int(),
     step: z.number().int().positive(),
+    scale: z.enum(["linear", "log"]),
   })
   .superRefine((domain, context) => {
     if (domain.minimum >= domain.maximum) {
@@ -59,6 +60,18 @@ export const petrinautIntegerOptimizationDomainSchema = z
         path: ["step"],
         message:
           "Step must divide the range exactly so the maximum is reachable",
+      });
+    } else if (domain.scale === "log" && domain.minimum <= 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["minimum"],
+        message: "A logarithmic range must have a positive minimum",
+      });
+    } else if (domain.scale === "log" && domain.step !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["step"],
+        message: "A logarithmic integer range requires a step of 1",
       });
     }
   })
@@ -291,7 +304,12 @@ export const petrinautOptimizationManifestSchema = z
         "default",
       ]);
 
-      const binding = manifest.scenario.parameterBindings[parameter.identifier];
+      const binding = Object.hasOwn(
+        manifest.scenario.parameterBindings,
+        parameter.identifier,
+      )
+        ? manifest.scenario.parameterBindings[parameter.identifier]
+        : undefined;
       if (!binding) {
         addIssue(context, path, "Every scenario parameter requires a binding");
         continue;
@@ -445,6 +463,7 @@ export type PetrinautOptimizationDescribeParameter =
       minimum: number;
       maximum: number;
       step: number;
+      scale: "linear" | "log";
     }
   | {
       identifier: string;

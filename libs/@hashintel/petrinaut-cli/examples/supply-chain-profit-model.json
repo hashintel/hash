@@ -358,7 +358,7 @@
     {
       "id": "scenario_baseline_supply_chain",
       "name": "Baseline",
-      "description": "Normal demand with all six operational decision parameters exposed for optimization. Defaults are deliberately near, but not at, the profit optimum.",
+      "description": "Normal demand with every net parameter exposed as a scenario parameter. An optimization manifest decides which values are fixed and which Optuna may vary.",
       "scenarioParameters": [
         {
           "type": "real",
@@ -366,12 +366,12 @@
           "default": 100
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
           "default": 160
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
           "default": 180
         },
@@ -389,9 +389,22 @@
           "type": "real",
           "identifier": "marketing_spend",
           "default": 20
+        },
+        {
+          "type": "real",
+          "identifier": "demand_multiplier",
+          "default": 1
         }
       ],
-      "parameterOverrides": {},
+      "parameterOverrides": {
+        "param_production_rate": "scenario.production_rate",
+        "param_reorder_threshold": "scenario.reorder_threshold",
+        "param_batch_size": "scenario.batch_size",
+        "param_selling_price": "scenario.selling_price",
+        "param_expedite_fraction": "scenario.expedite_fraction",
+        "param_marketing_spend": "scenario.marketing_spend",
+        "param_demand_multiplier": "scenario.demand_multiplier"
+      },
       "initialState": {
         "type": "per_place",
         "content": {
@@ -407,7 +420,7 @@
     {
       "id": "scenario_demand_surge_supply_chain",
       "name": "Demand surge",
-      "description": "Higher market demand. The same six decision parameters remain tunable, but the demand multiplier shifts the true optimum upward for production, inventory policy, price, expedite use, and marketing.",
+      "description": "Higher market demand with every net parameter exposed as a scenario parameter. The demand multiplier shifts the true optimum upward for production, inventory policy, price, expedite use, and marketing.",
       "scenarioParameters": [
         {
           "type": "real",
@@ -415,12 +428,12 @@
           "default": 125
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
           "default": 190
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
           "default": 220
         },
@@ -445,7 +458,15 @@
           "default": 1.35
         }
       ],
-      "parameterOverrides": {},
+      "parameterOverrides": {
+        "param_production_rate": "scenario.production_rate",
+        "param_reorder_threshold": "scenario.reorder_threshold",
+        "param_batch_size": "scenario.batch_size",
+        "param_selling_price": "scenario.selling_price",
+        "param_expedite_fraction": "scenario.expedite_fraction",
+        "param_marketing_spend": "scenario.marketing_spend",
+        "param_demand_multiplier": "scenario.demand_multiplier"
+      },
       "initialState": {
         "type": "per_place",
         "content": {

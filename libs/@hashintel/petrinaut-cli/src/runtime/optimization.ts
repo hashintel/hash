@@ -16,6 +16,12 @@ import type {
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
 type OptimizationScalar = number | boolean;
+type ScenarioParameter = Scenario["scenarioParameters"][number];
+type OptimizedBinding = Extract<
+  PetrinautOptimizationManifest["scenario"]["parameterBindings"][string],
+  { kind: "optimize" }
+>;
+type OptimizationDomain = OptimizedBinding["domain"];
 
 function formatManifestIssues(
   prefix: string,
@@ -57,11 +63,8 @@ export async function loadOptimizationManifest(
 }
 
 function describeParameter(
-  parameter: Scenario["scenarioParameters"][number],
-  domain: Extract<
-    PetrinautOptimizationManifest["scenario"]["parameterBindings"][string],
-    { kind: "optimize" }
-  >["domain"],
+  parameter: ScenarioParameter,
+  domain: OptimizationDomain,
 ): PetrinautOptimizationDescribeParameter {
   switch (domain.kind) {
     case "continuous":
@@ -81,6 +84,7 @@ function describeParameter(
         minimum: domain.minimum,
         maximum: domain.maximum,
         step: domain.step,
+        scale: domain.scale,
       };
     case "boolean":
       return {
@@ -92,11 +96,8 @@ function describeParameter(
 }
 
 function validateSuggestedValue(
-  parameter: Scenario["scenarioParameters"][number],
-  domain: Extract<
-    PetrinautOptimizationManifest["scenario"]["parameterBindings"][string],
-    { kind: "optimize" }
-  >["domain"],
+  parameter: ScenarioParameter,
+  domain: OptimizationDomain,
   value: OptimizationScalar,
 ): void {
   if (domain.kind === "boolean") {
@@ -148,18 +149,16 @@ export function createOptimizationProtocol(args: {
       "An optimization manifest requires exactly one scenario and one metric",
     );
   }
-  const parametersByIdentifier = new Map(
-    scenario.scenarioParameters.map((parameter) => [
-      parameter.identifier,
-      parameter,
-    ]),
+  const optimizedParameters = scenario.scenarioParameters.flatMap(
+    (parameter) => {
+      const binding = manifest.scenario.parameterBindings[parameter.identifier];
+      return binding?.kind === "optimize"
+        ? [{ parameter, domain: binding.domain }]
+        : [];
+    },
   );
-  const optimizedIdentifiers = scenario.scenarioParameters.flatMap(
-    (parameter) =>
-      manifest.scenario.parameterBindings[parameter.identifier]?.kind ===
-      "optimize"
-        ? [parameter.identifier]
-        : [],
+  const optimizedIdentifiers = new Set(
+    optimizedParameters.map(({ parameter }) => parameter.identifier),
   );
 
   return {
@@ -167,16 +166,9 @@ export function createOptimizationProtocol(args: {
       return {
         direction: manifest.objective.direction,
         study: { ...manifest.study, seed: manifest.execution.seed },
-        parameters: optimizedIdentifiers.map((identifier) => {
-          const parameter = parametersByIdentifier.get(identifier)!;
-          const binding = manifest.scenario.parameterBindings[identifier]!;
-          if (binding.kind !== "optimize") {
-            throw new Error(
-              `Optimization parameter "${identifier}" is not optimized`,
-            );
-          }
-          return describeParameter(parameter, binding.domain);
-        }),
+        parameters: optimizedParameters.map(({ parameter, domain }) =>
+          describeParameter(parameter, domain),
+        ),
       };
     },
     evaluate(params) {
@@ -189,13 +181,14 @@ export function createOptimizationProtocol(args: {
         );
       }
       const values = parsed.data.parameterValues;
-      for (const identifier of optimizedIdentifiers) {
+      for (const { parameter } of optimizedParameters) {
+        const { identifier } = parameter;
         if (!Object.hasOwn(values, identifier)) {
           throw new Error(`Missing optimized parameter "${identifier}"`);
         }
       }
       for (const identifier of Object.keys(values)) {
-        if (!optimizedIdentifiers.includes(identifier)) {
+        if (!optimizedIdentifiers.has(identifier)) {
           throw new Error(`Unexpected optimization parameter "${identifier}"`);
         }
       }

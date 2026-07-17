@@ -53,6 +53,7 @@ def optimization_description() -> dict:
                 "minimum": 2,
                 "maximum": 8,
                 "step": 2,
+                "scale": "linear",
             },
             {
                 "identifier": "enabled",

@@ -107,6 +107,7 @@ def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
     assert distributions["rate"].log is True
     assert isinstance(distributions["count"], optuna.distributions.IntDistribution)
     assert distributions["count"].step == 2
+    assert distributions["count"].log is False
     assert isinstance(
         distributions["enabled"], optuna.distributions.CategoricalDistribution
     )
@@ -175,6 +176,18 @@ def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
                     "type": "float",
                     "minimum": 0,
                     "maximum": 1,
+                    "scale": "log",
+                }
+            ]
+        },
+        {
+            "parameters": [
+                {
+                    "identifier": "count",
+                    "type": "int",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "step": 2,
                     "scale": "log",
                 }
             ]

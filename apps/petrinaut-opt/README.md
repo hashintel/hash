@@ -105,7 +105,8 @@ parameters:
       "default": 4,
       "minimum": 1,
       "maximum": 16,
-      "step": 1
+      "step": 1,
+      "scale": "linear"
     },
     {
       "identifier": "enabled",
@@ -137,6 +138,11 @@ seed. For every trial it sends only the suggestions back:
 The CLI owns fixed-value injection, scenario compilation, initial-state
 materialization, simulation, and metric evaluation. It returns one finite
 number as `{ "objective": 42.5 }`.
+
+For an end-to-end local request, use the checked-in
+`libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-optimization.json`
+manifest. It reproduces the supply-chain `Profit` study that this service
+previously defined with hardcoded Python bounds and values.
 
 CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
 Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once

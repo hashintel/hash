@@ -20,7 +20,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { Readable, Writable } from "node:stream";
 
-export const MAX_STDIN_MODEL_LINE_BYTES = 8 * 1024 * 1024;
+export const MAX_STDIN_SOURCE_LINE_BYTES = 8 * 1024 * 1024;
 
 type ServeStdioOptions = (
   | {
@@ -77,9 +77,13 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
       );
     }
     if (
-      Buffer.byteLength(bootstrap.value, "utf8") > MAX_STDIN_MODEL_LINE_BYTES
+      Buffer.byteLength(bootstrap.value, "utf8") > MAX_STDIN_SOURCE_LINE_BYTES
     ) {
-      throw new Error("Model JSON line is too large");
+      throw new Error(
+        options.optimizationStdin
+          ? "Optimization manifest JSON line is too large"
+          : "Model JSON line is too large",
+      );
     }
 
     let data: unknown;

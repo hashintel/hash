@@ -146,6 +146,40 @@ describe("petrinautOptimizationManifestSchema", () => {
     expect(unknown.success).toBe(false);
   });
 
+  it("treats inherited object properties as missing bindings", () => {
+    const parsed = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      model: {
+        ...validManifest.model,
+        definition: {
+          ...definition,
+          scenarios: [
+            {
+              ...scenario,
+              scenarioParameters: [
+                { identifier: "constructor", type: "real", default: 1 },
+              ],
+            },
+          ],
+        },
+      },
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {},
+      },
+    });
+
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ["scenario", "parameterBindings", "constructor"],
+          message: "Every scenario parameter requires a binding",
+        }),
+      );
+    }
+  });
+
   it("matches fixed values and optimization domains to parameter types", () => {
     const invalid = petrinautOptimizationManifestSchema.safeParse({
       ...validManifest,
@@ -222,7 +256,13 @@ describe("petrinautOptimizationManifestSchema", () => {
           ...validManifest.scenario.parameterBindings,
           count: {
             kind: "optimize",
-            domain: { kind: "integer", minimum: 2, maximum: 10, step: 3 },
+            domain: {
+              kind: "integer",
+              minimum: 2,
+              maximum: 10,
+              step: 3,
+              scale: "linear",
+            },
           },
         },
       },
@@ -238,6 +278,50 @@ describe("petrinautOptimizationManifestSchema", () => {
         }),
       );
     }
+  });
+
+  it("requires logarithmic integer domains to be positive with unit steps", () => {
+    const nonPositive = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          count: {
+            kind: "optimize",
+            domain: {
+              kind: "integer",
+              minimum: 0,
+              maximum: 10,
+              step: 1,
+              scale: "log",
+            },
+          },
+        },
+      },
+    });
+    const stepped = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      scenario: {
+        ...validManifest.scenario,
+        parameterBindings: {
+          ...validManifest.scenario.parameterBindings,
+          count: {
+            kind: "optimize",
+            domain: {
+              kind: "integer",
+              minimum: 2,
+              maximum: 10,
+              step: 2,
+              scale: "log",
+            },
+          },
+        },
+      },
+    });
+
+    expect(nonPositive.success).toBe(false);
+    expect(stepped.success).toBe(false);
   });
 
   it("requires at least one optimized parameter", () => {
