@@ -1,0 +1,564 @@
+openapi: 3.1.0
+
+info:
+  title: HASH Atlas API
+  version: 0.0.0
+  summary: Read-only HTTP surface for verified Atlas (SALT) serving state.
+  description: |
+    The Atlas API serves the currently active, fully verified SALT generation.
+    It is implemented as an Axum 0.8 router in the `hash-graph-atlas` crate
+    (`src/api/mod.rs`) and is exposed through the `hash-graph atlas`
+    subcommand.
+
+    ## Trust model
+
+    Every response is sourced from an active generation that has passed
+    signature, manifest, artifact, and checkpoint verification against
+    Ed25519 authorities pinned in the serving configuration
+    (`AtlasApiConfiguration`). Evidence-deferred generations require an
+    explicit serving opt-in. This is not a key-discovery endpoint: the
+    configured authorities must match those embedded in the generation.
+
+    ## Reload semantics
+
+    Each request compares the on-disk `active.json` pointer with the cached
+    generation. A changed pointer is re-opened once under a single-flight
+    mutex and replaces the cache only after complete re-verification;
+    in-flight requests keep serving the previous immutable generation.
+
+    ## Caching
+
+    Tile and overlay routes bind both generation and variant in the path, so
+    their payloads are immutable and are served with
+    `Cache-Control: public, max-age=31536000, immutable` and an exact
+    content-hash `ETag`. The `current` and `manifest` routes describe mutable
+    state ("whatever is active right now") and must not be cached.
+
+    ## Security
+
+    This API performs **no request authentication, tenant authorization, rate
+    limiting, or TLS termination**. Bind it to loopback or a trusted internal
+    network and add those controls in the surrounding application before
+    exposing it to untrusted clients.
+
+    ## Errors
+
+    Handler-level errors use the JSON error envelope
+    (`{"error": "<detail>"}`). Malformed path parameters that fail Axum's
+    typed extraction (for example a non-numeric `variant`) are rejected by
+    the framework with a plain-text `400` before a handler runs.
+  license:
+    name: See repository license
+    identifier: AGPL-3.0
+
+servers:
+  - url: http://127.0.0.1:4003
+    description: |
+      Default standalone binding of the `hash-graph atlas` subcommand
+      (`HASH_ATLAS_HOST`, default `127.0.0.1`; `HASH_ATLAS_PORT`, default
+      `4003`). The router may also be nested into a larger application under
+      a different base path.
+
+tags:
+  - name: health
+    description: Process liveness.
+  - name: atlas
+    description: Verified active-generation metadata and binary map payloads.
+
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Liveness probe
+      description: |
+        Returns `204 No Content` when the process is responsive. Does **not**
+        assert that an Atlas generation is active; use
+        `GET /v1/atlas/current` for that.
+      responses:
+        "204":
+          description: The process is responsive.
+
+  /v1/atlas/current:
+    get:
+      operationId: getCurrentAtlas
+      tags: [atlas]
+      summary: Active generation identity and artifact metadata
+      description: |
+        Returns release identity, revision counters, content hashes, the
+        assurance mode, and a summary of every artifact of the verified
+        active generation.
+      responses:
+        "200":
+          description: The verified active generation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentAtlas"
+        "404":
+          $ref: "#/components/responses/NoActiveGeneration"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/atlas/current/manifest:
+    get:
+      operationId: getCurrentAtlasManifest
+      tags: [atlas]
+      summary: Active generation manifest
+      description: |
+        Returns the complete generation manifest of the verified active
+        generation: input snapshot bounds, embedding / semantic-graph /
+        landmark / projector / relation configuration, published variants,
+        storage layout, artifact hashes, serving contract, and
+        reproducibility metadata. The authoritative field-level definition is
+        `GenerationManifest` in
+        `libs/@local/graph/atlas/src/salt/manifest/model.rs`.
+      responses:
+        "200":
+          description: The generation manifest.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              description: Always `no-cache`; the active generation can change at any time.
+              schema:
+                type: string
+                const: no-cache
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationManifest"
+        "404":
+          $ref: "#/components/responses/NoActiveGeneration"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}:
+    get:
+      operationId: getAtlasTile
+      tags: [atlas]
+      summary: Binary tile-wire-v4 quadrant
+      description: |
+        Returns one bounded spatial quadrant of the active generation as a
+        binary tile-wire-v4 payload, in delivery-priority order.
+
+        Coordinates address a Morton (Z-order) quadtree over 16-bit quantized
+        world axes: `z` selects the depth (`0..=16`) and `x`/`y` the quadrant
+        at that depth (`x, y < 2^z`). The response identifies the complete
+        visible spatial subtree and the delivered prefix; when the server's
+        point budget truncates delivery, the delivered set is spatially
+        stratified (fair truncation, van der Corput progressive order) so any
+        client-side prefix is renderable without spatial bias.
+
+        Because generation and variant are bound in the path, a successful
+        response is immutable. See
+        `libs/@local/graph/atlas/docs/tile-wire-v4.md` for the byte-level
+        format.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+        - name: z
+          in: path
+          required: true
+          description: Quadtree zoom depth.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 16
+        - name: x
+          in: path
+          required: true
+          description: Quadrant column at depth `z`; must be below `2^z`.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 65535
+        - name: y
+          in: path
+          required: true
+          description: Quadrant row at depth `z`; must be below `2^z`.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 65535
+      responses:
+        "200":
+          description: Immutable binary tile payload.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              $ref: "#/components/headers/ImmutableCacheControl"
+            x-atlas-visible-subtree-count:
+              description: >-
+                Total point count of the complete visible spatial subtree for
+                this quadrant, computed even when delivery is truncated.
+              schema:
+                type: integer
+                minimum: 0
+            x-atlas-delivered-count:
+              description: >-
+                Number of point records actually delivered in this response
+                (bounded by the server's tile point budget).
+              schema:
+                type: integer
+                minimum: 0
+          content:
+            application/vnd.hash.atlas.tile-v4:
+              schema:
+                type: string
+                format: binary
+                description: >-
+                  Tile wire v4. Little-endian; starts with ASCII magic
+                  `ATLTILE4` and a fixed header embedding the generation,
+                  store-snapshot, manifest, and release-report identities.
+        "400":
+          description: >-
+            The tile request is invalid: `z` exceeds 16 or `(x, y)` lies
+            outside the `2^z` by `2^z` grid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: >-
+            No generation is active, the requested generation is not the
+            active one, the variant is not published, or the variant has no
+            materialized tile artifact (only the canonical variant is
+            materialized).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/atlas/contours/{generation}/{variant}:
+    get:
+      operationId: getAtlasContours
+      tags: [atlas]
+      summary: Binary nested density contours overlay
+      description: |
+        Returns the whole-map nested density-contour overlay for the active
+        generation as a binary contour-wire-v1 payload. Encoded at serve time
+        from the generation's canonical analytics and base artifacts; vertex
+        coordinates land directly in tile world coordinates.
+
+        Immutable per (generation, variant). See
+        `libs/@local/graph/atlas/docs/overlay-wires-v1.md` for the byte-level
+        format.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+      responses:
+        "200":
+          description: Immutable binary contour overlay.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              $ref: "#/components/headers/ImmutableCacheControl"
+          content:
+            application/vnd.hash.atlas.contours-v1:
+              schema:
+                type: string
+                format: binary
+                description: >-
+                  Contour wire v1. Little-endian; starts with ASCII magic
+                  `ATLCONT1` and the shared 160-byte overlay header whose
+                  four identity hashes sit at the same offsets as the tile
+                  wire.
+        "404":
+          $ref: "#/components/responses/OverlayNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/atlas/flows/{generation}/{variant}:
+    get:
+      operationId: getAtlasFlows
+      tags: [atlas]
+      summary: Binary region-flow overlay
+      description: |
+        Returns the whole-map region-flow overlay for the active generation
+        as a binary flow-wire-v1 payload. Encoded at serve time from the
+        generation's canonical analytics, semantic-graph, and base artifacts.
+
+        Immutable per (generation, variant). See
+        `libs/@local/graph/atlas/docs/overlay-wires-v1.md` for the byte-level
+        format.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+      responses:
+        "200":
+          description: Immutable binary region-flow overlay.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              $ref: "#/components/headers/ImmutableCacheControl"
+          content:
+            application/vnd.hash.atlas.flows-v1:
+              schema:
+                type: string
+                format: binary
+                description: >-
+                  Flow wire v1. Little-endian; starts with ASCII magic
+                  `ATLFLOW1` and the shared 160-byte overlay header whose
+                  four identity hashes sit at the same offsets as the tile
+                  wire.
+        "404":
+          $ref: "#/components/responses/OverlayNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    Generation:
+      name: generation
+      in: path
+      required: true
+      description: >-
+        Generation ID; must equal the active generation's ID (as reported by
+        `GET /v1/atlas/current`), otherwise the route responds `404`.
+      schema:
+        $ref: "#/components/schemas/ContentHash"
+    Variant:
+      name: variant
+      in: path
+      required: true
+      description: >-
+        Published variant ID. Currently only the canonical variant has
+        materialized artifacts; other published variants respond `404`.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 65535
+
+  headers:
+    ContentHashETag:
+      description: >-
+        Quoted lowercase-hex SHA-256 of the exact response bytes (for the
+        manifest route, the manifest content hash).
+      schema:
+        type: string
+        pattern: '^"[0-9a-f]{64}"$'
+    ImmutableCacheControl:
+      description: >-
+        The payload is immutable because generation and variant are bound in
+        the path.
+      schema:
+        type: string
+        const: public, max-age=31536000, immutable
+
+  responses:
+    NoActiveGeneration:
+      description: No Atlas generation is active.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: no Atlas generation is active
+    OverlayNotFound:
+      description: >-
+        No generation is active, the requested generation is not the active
+        one, the variant is not published, or the variant has no materialized
+        overlay artifacts (only the canonical variant is materialized).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: >-
+        Verification, artifact access, or encoding failed while serving the
+        request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ContentHash:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+      description: >-
+        SHA-256 content identity as 64 lowercase hexadecimal characters.
+        Uppercase and noncanonical lengths are rejected.
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: Human-readable failure detail.
+
+    CurrentAtlas:
+      type: object
+      description: Identity and artifact metadata of the verified active generation.
+      required:
+        - generation
+        - base_revision
+        - delta_revision
+        - manifest_hash
+        - release_report_hash
+        - assurance_mode
+        - created_at
+        - artifacts
+      additionalProperties: false
+      properties:
+        generation:
+          $ref: "#/components/schemas/ContentHash"
+          description: Active generation ID.
+        base_revision:
+          type: integer
+          minimum: 1
+          description: Base data revision the generation was built from.
+        delta_revision:
+          type: integer
+          minimum: 1
+          description: Delta data revision the generation was built from.
+        manifest_hash:
+          $ref: "#/components/schemas/ContentHash"
+          description: Content hash of the generation manifest.
+        release_report_hash:
+          $ref: "#/components/schemas/ContentHash"
+          description: Content hash of the signed release report.
+        assurance_mode:
+          $ref: "#/components/schemas/AssuranceMode"
+        created_at:
+          type: string
+          format: date-time
+          description: RFC 3339 creation timestamp of the generation.
+        artifacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtifactSummary"
+
+    AssuranceMode:
+      type: string
+      description: >-
+        How the generation's release gates were verified.
+        `independent_authorities`: every externally owned gate carries
+        evidence signed by its independent authority.
+        `evidence_deferred_local`: local attestations were accepted while
+        evidence suites remain deferred (requires an explicit serving
+        opt-in).
+      enum:
+        - independent_authorities
+        - evidence_deferred_local
+
+    ArtifactSummary:
+      type: object
+      required: [role, relative_path, content_hash, byte_length]
+      additionalProperties: false
+      properties:
+        role:
+          $ref: "#/components/schemas/ArtifactRole"
+        relative_path:
+          type: string
+          description: Artifact path relative to the generation directory.
+        content_hash:
+          $ref: "#/components/schemas/ContentHash"
+        byte_length:
+          type: integer
+          minimum: 0
+
+    ArtifactRole:
+      type: string
+      description: Role of an artifact within a generation.
+      enum:
+        - representations
+        - relation-classifier
+        - strength-head
+        - semantic-graph
+        - relation-indexes
+        - landmark-skeleton
+        - landmark-reference-persistence
+        - projector-checkpoint
+        - canonical-base
+        - canonical-analytics
+        - representation-report
+        - semantic-fidelity-report
+        - relation-policy-report
+        - merge-tree-persistence-report
+        - subgroup-behavior-report
+        - authorization-noninterference-report
+        - security-approval-report
+        - companion-pin-report
+        - legacy-layout
+        - legacy-identities
+        - legacy-export-manifest
+
+    GenerationManifest:
+      type: object
+      description: >-
+        Complete immutable inputs and artifacts for one Atlas generation.
+        Only the top-level shape is described here; the authoritative
+        field-level definition is `GenerationManifest` in
+        `libs/@local/graph/atlas/src/salt/manifest/model.rs`, which rejects
+        unknown fields on both ends.
+      required:
+        - format_version
+        - generation_id
+        - created_at
+        - assurance_mode
+        - input_snapshot
+        - embedding
+        - semantic_graph
+        - landmarks
+        - projector
+        - relations
+        - variants
+        - storage
+        - artifacts
+        - serving
+        - reproducibility
+      properties:
+        format_version:
+          type: integer
+          minimum: 0
+        generation_id:
+          $ref: "#/components/schemas/ContentHash"
+        created_at:
+          type: string
+          format: date-time
+        assurance_mode:
+          $ref: "#/components/schemas/AssuranceMode"
+        input_snapshot:
+          type: object
+          description: Bitemporal bounds and source identities frozen before generation.
+        embedding:
+          type: object
+          description: Embedding model and dimensionality contract.
+        semantic_graph:
+          type: object
+          description: Semantic-graph construction parameters.
+        landmarks:
+          type: object
+          description: Landmark skeleton and persistence configuration.
+        projector:
+          type: object
+          description: Projector model and checkpoint contract.
+        relations:
+          type: object
+          description: Relation classifier and index configuration.
+        variants:
+          type: object
+          description: Published variants, including the canonical variant ID.
+        storage:
+          type: object
+          description: On-disk storage layout.
+        artifacts:
+          type: array
+          description: Content hash, role, path, and byte length of every artifact.
+          items:
+            type: object
+        serving:
+          type: object
+          description: Serving contract for this generation.
+        reproducibility:
+          type: object
+          description: Execution contract (compute backend, device ordinal, seeds).
