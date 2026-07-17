@@ -82,15 +82,29 @@ export interface NetworkGraphEdgeInteraction {
 }
 
 /**
- * A selection given as an explicit neighbourhood rather than a node id: the
- * selected `point`, its `edges`, and its `neighbours`. Items not already in the
- * graph are overlaid; items that are get reused rather than re-rendered.
+ * A node given as an explicit neighbourhood rather than a node id: the selected
+ * `point`, its `edges`, and its `neighbours`. Items not already in the graph are
+ * overlaid; items that are get reused rather than re-rendered.
  */
-export interface NetworkGraphSelection {
+export interface NetworkGraphNeighbourhood {
   point: NetworkGraphPoint;
   edges: NetworkGraphEdge[];
   neighbours: NetworkGraphPoint[];
 }
+
+/**
+ * What is selected in the graph — a single node or a single edge; only one thing is
+ * selectable at a time. The selection is highlighted with the same treatment as
+ * hovering it, and an active hover takes precedence.
+ *
+ * - `{ node }` selects a node, given either the id of a node already in the graph or
+ *   a {@link NetworkGraphNeighbourhood} to overlay (items already in the graph are
+ *   reused).
+ * - `{ edge }` selects an edge, given the id of an edge in the graph.
+ */
+export type NetworkGraphSelection =
+  | { node: NetworkGraphId | NetworkGraphNeighbourhood }
+  | { edge: NetworkGraphId };
 
 /**
  * The imperative API exposed via {@link NetworkGraphProps.ref}, letting a consumer
@@ -132,18 +146,13 @@ export interface NetworkGraphProps {
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
-   * The node to highlight with the same treatment as hovering (edges, neighbour
-   * rings and a prominent node). Either a node id, or a {@link NetworkGraphSelection}
-   * giving an explicit neighbourhood to overlay. An active hover takes precedence.
+   * The node or edge to highlight with the same treatment as hovering it — only one
+   * thing is selectable at a time. See {@link NetworkGraphSelection}: `{ node }`
+   * highlights a node (its edges, neighbour rings and a prominent node), `{ edge }`
+   * an edge (bold stroke, direction arrow, endpoint outlines and a label pill). An
+   * active hover takes precedence.
    */
-  selected?: NetworkGraphId | NetworkGraphSelection | null;
-  /**
-   * The edge to highlight with the same treatment as hovering it — bold stroke,
-   * direction arrow, endpoint outlines and a label pill. An active edge hover takes
-   * precedence. In the compact view, where an edge is only drawn while its node is
-   * selected, it keeps its emphasis for as long as that node stays selected.
-   */
-  selectedEdge?: NetworkGraphId | null;
+  selected?: NetworkGraphSelection | null;
   /**
    * Called with the `selected` node's on-screen position (CSS px from the chart's
    * top-left) and drawn radius whenever they change — including on zoom/pan — or
@@ -173,8 +182,9 @@ export interface NetworkGraphProps {
    */
   onEdgeHover?: (interaction: NetworkGraphEdgeInteraction) => void;
   /**
-   * Called when an edge is clicked. Does not change the node selection; to keep the
-   * clicked edge highlighted, feed its id back in via {@link NetworkGraphProps.selectedEdge}.
+   * Called when an edge is clicked. Does not change the selection; to keep the clicked
+   * edge highlighted, feed it back in via {@link NetworkGraphProps.selected} as
+   * `{ edge: id }`.
    */
   onEdgeClick?: (interaction: NetworkGraphEdgeInteraction) => void;
   /** Called when the zoom level changes (log2 scale). Not called for pure panning. */
@@ -673,7 +683,6 @@ export const NetworkGraph = ({
   nodeMinDistance,
   className,
   selected,
-  selectedEdge,
   onSelectedPositionChange,
   onNodeHover,
   onNodeClick,
@@ -736,10 +745,26 @@ export const NetworkGraph = ({
     return map;
   }, [edges]);
 
-  // The {@link NetworkGraphSelection} when `selected` is one (not a node id), else null.
-  const overlaySelection = useMemo(
-    () => (selected != null && typeof selected === "object" ? selected : null),
+  // The selected node (a node id or an overlay neighbourhood) when a node is
+  // selected, else null (nothing selected, or an edge is).
+  const selectedNode = useMemo(
+    () => (selected != null && "node" in selected ? selected.node : null),
     [selected],
+  );
+
+  // The selected edge's id when an edge is selected, else null.
+  const selectedEdge = useMemo<NetworkGraphId | null>(
+    () => (selected != null && "edge" in selected ? selected.edge : null),
+    [selected],
+  );
+
+  // The overlay neighbourhood when the selected node is one (not a bare id), else null.
+  const overlaySelection = useMemo<NetworkGraphNeighbourhood | null>(
+    () =>
+      selectedNode != null && typeof selectedNode === "object"
+        ? selectedNode
+        : null,
+    [selectedNode],
   );
 
   /**
@@ -846,17 +871,18 @@ export const NetworkGraph = ({
 
   /**
    * The externally selected node: by id, or an overlay selection's `point`
-   * (preferring the graph's copy when that id exists).
+   * (preferring the graph's copy when that id exists). Null when nothing, or an edge,
+   * is selected.
    */
   const selectedPoint = useMemo(() => {
-    if (selected == null) {
+    if (selectedNode == null) {
       return null;
     }
-    if (typeof selected === "object") {
-      return pointById.get(selected.point.id) ?? selected.point;
+    if (typeof selectedNode === "object") {
+      return pointById.get(selectedNode.point.id) ?? selectedNode.point;
     }
-    return pointById.get(selected) ?? null;
-  }, [selected, pointById]);
+    return pointById.get(selectedNode) ?? null;
+  }, [selectedNode, pointById]);
 
   // The node whose neighbourhood is highlighted: hovered, else externally selected.
   const activeNode = useMemo(
@@ -1361,15 +1387,6 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Whether any edges are hoverable in the current view: always in detail, and in
-   * compact only while a node is selected (its incident lines).
-   */
-  const edgesHoverable = useMemo(
-    () => isDetailZoom || selected != null,
-    [isDetailZoom, selected],
-  );
-
-  /**
    * The node hierarchy used to bundle detail-view edges. Viewport-independent, so
    * built once per node set.
    */
@@ -1413,20 +1430,80 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Whether the active edge is actually drawn now, so its emphasis (label pill,
-   * compact endpoint outlines) only shows when there's an edge on screen. Always
-   * true in detail; in compact only when it's one of the active node's shown lines.
-   * Matters for a *selected* edge once a different node is hovered: compact swaps to
-   * that node's edges, so the selected edge's label/outlines must not linger.
+   * Whether the active edge is drawn now, so its emphasis (label pill, bold stroke,
+   * endpoint outlines) only shows when there's an edge on screen to annotate. Always
+   * true in the detail view (every edge is drawn); in the compact view whenever both
+   * endpoints resolve — either as one of a selected node's incident lines, or on its
+   * own for a lone selected edge (see {@link compactHighlightLines}).
    */
   const activeEdgeShown = useMemo(
     () =>
-      edgesHoverable &&
-      activeEdge != null &&
-      (isDetailZoom ||
-        (highlight?.lines ?? []).some((line) => line.id === activeEdge.edgeId)),
-    [edgesHoverable, activeEdge, isDetailZoom, highlight],
+      activeEdge != null && (isDetailZoom || activeEdge.endpoints.length === 2),
+    [activeEdge, isDetailZoom],
   );
+
+  /**
+   * Whether the active edge is one of the active node's incident lines (so it is
+   * already drawn as part of that node's highlight). When false in the compact view,
+   * a shown active edge must be drawn on its own — see {@link compactHighlightLines}.
+   */
+  const activeEdgeInHighlight = useMemo(
+    () =>
+      activeEdge != null &&
+      (highlight?.lines ?? []).some((line) => line.id === activeEdge.edgeId),
+    [activeEdge, highlight],
+  );
+
+  /**
+   * The compact view's straight highlight lines: the active node's incident lines,
+   * plus the active edge on its own when it isn't one of them — i.e. a lone selected
+   * edge with no node selected. Adding it here lets that edge show (bold, arrowed,
+   * endpoints ringed) in the compact view without a surrounding node selection. Raw
+   * node-centre lines; {@link trimmedHighlightLines} trims them for the arrow gap.
+   * Empty in the detail view, which draws edges as bundled curves instead.
+   */
+  const compactHighlightLines = useMemo<HoverLine[]>(() => {
+    if (isDetailZoom) {
+      return [];
+    }
+    const lines = [...(highlight?.lines ?? [])];
+    if (activeEdge && !activeEdgeInHighlight) {
+      const [from, to] = activeEdge.endpoints;
+      if (from && to) {
+        lines.push({
+          id: activeEdge.edgeId,
+          source: [from.x, from.y],
+          target: [to.x, to.y],
+        });
+      }
+    }
+    return lines;
+  }, [isDetailZoom, highlight, activeEdge, activeEdgeInHighlight]);
+
+  /**
+   * The compact view's neighbour grow-ring nodes: the active node's neighbours, plus
+   * a lone active edge's endpoints — so a selected edge with no node selected still
+   * draws its two nodes as rings for the edge to connect. Just the active node's
+   * neighbours in the detail view (grow rings are suppressed there anyway).
+   */
+  const compactNeighbours = useMemo<NetworkGraphPoint[]>(() => {
+    const base = highlight?.neighbours ?? [];
+    if (isDetailZoom || !activeEdge || activeEdgeInHighlight) {
+      return base;
+    }
+    const result = [...base];
+    const seen = new Set(result.map((point) => point.id));
+    if (activeNode) {
+      seen.add(activeNode.id);
+    }
+    for (const endpoint of activeEdge.endpoints) {
+      if (!seen.has(endpoint.id)) {
+        seen.add(endpoint.id);
+        result.push(endpoint);
+      }
+    }
+    return result;
+  }, [isDetailZoom, highlight, activeEdge, activeEdgeInHighlight, activeNode]);
 
   /**
    * Draw the active edge's label on the overlay canvas, re-projecting on every view
@@ -1688,7 +1765,7 @@ export const NetworkGraph = ({
         }
       }
     } else {
-      for (const line of highlight?.lines ?? []) {
+      for (const line of compactHighlightLines) {
         addArrow(line.id, line.target, line.source);
       }
     }
@@ -1697,7 +1774,7 @@ export const NetworkGraph = ({
     isDetailZoom,
     highlightEdgePaths,
     activeFullEdge,
-    highlight,
+    compactHighlightLines,
     resolveEdge,
     activeNode,
     arrowGapPx,
@@ -1742,15 +1819,16 @@ export const NetworkGraph = ({
   ]);
 
   /**
-   * The compact view's prominent (arrowed) edges — the active node's straight
-   * incident lines — each with its target pulled back by the node radius + gap, so
-   * the arrow's gap sits empty. Empty in the detail view.
+   * The compact view's prominent (arrowed) edges — {@link compactHighlightLines} (the
+   * active node's straight incident lines, plus a lone selected edge) — each with its
+   * target pulled back by the node radius + gap, so the arrow's gap sits empty. Empty
+   * in the detail view.
    */
   const trimmedHighlightLines = useMemo<HoverLine[]>(() => {
     if (isDetailZoom) {
       return [];
     }
-    const lines = highlight?.lines ?? [];
+    const lines = compactHighlightLines;
     if (currentZoom == null) {
       return lines;
     }
@@ -1775,7 +1853,7 @@ export const NetworkGraph = ({
     });
   }, [
     isDetailZoom,
-    highlight,
+    compactHighlightLines,
     currentZoom,
     resolveEdge,
     activeNode,
@@ -1825,8 +1903,8 @@ export const NetworkGraph = ({
     const backgroundEdgesPickable = isDetailZoom;
     const highlightEdgesPickable = isDetailZoom
       ? activeNode != null
-      : selected != null && dimmedSelectedNode == null;
-    const hoveredEdgeId = edgesHoverable ? (activeEdge?.edgeId ?? null) : null;
+      : selectedPoint != null && dimmedSelectedNode == null;
+    const hoveredEdgeId = activeEdgeShown ? (activeEdge?.edgeId ?? null) : null;
 
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
@@ -1844,7 +1922,7 @@ export const NetworkGraph = ({
       highlightEdgesPickable,
       backgroundEdgesPickable,
       edgeHoverNodes,
-      neighbours: highlight?.neighbours ?? [],
+      neighbours: compactNeighbours,
       activeNode,
       dimmedSelectedNode,
       colorByHex: colorByHexWithOverlay,
@@ -1981,11 +2059,11 @@ export const NetworkGraph = ({
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
     trimmedHighlightLines,
+    compactNeighbours,
     arrows,
     activeEdge,
     activeEdgeShown,
-    edgesHoverable,
-    selected,
+    selectedPoint,
     activeNode,
     dimmedSelectedNode,
     colorByHexWithOverlay,

@@ -249,11 +249,10 @@ const NetworkGraphStory = ({
   // the view state out of the chart.
   const graphRef = useRef<NetworkGraphHandle>(null);
   const [zoom, setZoom] = useState<number | null>(null);
-  // The selection driving the chart: a node id, or an explicit
-  // `{ point, edges, neighbours }` neighbourhood to overlay.
-  const [selected, setSelected] = useState<
-    NetworkGraphId | NetworkGraphSelection | null
-  >(null);
+  // What's selected in the chart: a single node or a single edge (only one thing at
+  // a time). A node is a `{ node: id }` reference or an overlaid `{ node: { point,
+  // edges, neighbours } }` neighbourhood; an edge is `{ edge: id }`.
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
   // Selected node's live on-screen position and drawn radius, updated by the
   // chart on zoom/pan so the tooltip tracks the node.
   const [tooltipPos, setTooltipPos] = useState<{
@@ -262,6 +261,9 @@ const NetworkGraphStory = ({
     nodeRadius: number;
     variant: "detailed" | "compact";
   } | null>(null);
+  // The clicked edge and where it was clicked, for the edge popover. Kept alongside
+  // `selected` (which carries only the edge id) so the popover has the edge's data
+  // and an anchor. Cleared whenever the selection isn't an edge.
   const [selectedEdge, setSelectedEdge] = useState<NetworkGraphEdge | null>(
     null,
   );
@@ -372,7 +374,7 @@ const NetworkGraphStory = ({
         ...randomEdgeDirection(point.id, neighbour.id),
       });
     }
-    setSelected({ point, edges, neighbours });
+    setSelected({ node: { point, edges, neighbours } });
     setSelectedEdge(null);
     // Reveal the new node if it landed outside the viewport.
     graphRef.current?.revealPoint([point.x, point.y]);
@@ -426,42 +428,44 @@ const NetworkGraphStory = ({
       });
     }
     setSelected({
-      point,
-      edges: [...existingEdges, ...newEdges],
-      neighbours: [...existingNeighbours, ...newNeighbours],
+      node: {
+        point,
+        edges: [...existingEdges, ...newEdges],
+        neighbours: [...existingNeighbours, ...newNeighbours],
+      },
     });
     setSelectedEdge(null);
   }, [data, pointById, spread, createNewPoint]);
 
-  /** The selected node itself, for the tooltip (resolved from either form). */
+  /** The selected node itself, for the tooltip. Null when an edge (or nothing) is selected. */
   const selectedPoint = useMemo(() => {
-    if (selected == null) {
+    if (selected == null || !("node" in selected)) {
       return null;
     }
-    // An object is the explicit `{ point, edges, neighbours }` selection; else a node id.
-    if (typeof selected === "object") {
-      return selected.point;
-    }
-    return pointById.get(selected) ?? null;
+    // The node is either an overlay `{ point, edges, neighbours }` or a node id.
+    return typeof selected.node === "object"
+      ? selected.node.point
+      : (pointById.get(selected.node) ?? null);
   }, [selected, pointById]);
 
   const handleClick = useCallback((interaction: NetworkGraphInteraction) => {
-    setSelected(interaction.point?.id ?? null);
-    // A node click closes any open edge popover.
+    // Selecting a node (or clearing on empty space) replaces any edge selection.
+    setSelected(interaction.point ? { node: interaction.point.id } : null);
     setSelectedEdge(null);
   }, []);
 
   const handleEdgeClick = useCallback(
     (interaction: NetworkGraphEdgeInteraction) => {
+      if (!interaction.edge) {
+        return;
+      }
+      // Selecting an edge replaces any node selection (only one thing at a time).
+      setSelected({ edge: interaction.edge.id });
       // Anchor the edge popover at the click point. Unlike the node tooltip it
       // doesn't track pan/zoom (the chart reports node positions, not edges'),
       // which is fine for this demo.
       setSelectedEdge(interaction.edge);
       setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
-      // Leave the node selection intact: in the compact view an edge is only
-      // drawn while its node is selected, so keeping the node selected is what
-      // keeps the picked edge highlighted. The node's own tooltip is hidden
-      // while an edge is selected (below), so only the edge popover shows.
     },
     [],
   );
@@ -477,7 +481,6 @@ const NetworkGraphStory = ({
             graphBounds={graphBounds}
             nodeMinDistance={nodeMinDistance}
             selected={selected}
-            selectedEdge={selectedEdge?.id ?? null}
             onNodeClick={handleClick}
             onEdgeClick={handleEdgeClick}
             onSelectedPositionChange={setTooltipPos}
@@ -534,7 +537,7 @@ const NetworkGraphStory = ({
               <span className={zoomReadoutStyles}>{zoom.toFixed(2)}</span>
             ) : null}
           </div>
-          {selectedPoint && tooltipPos && !selectedEdge ? (
+          {selectedPoint && tooltipPos ? (
             <Popover
               triggerRef={frameRef}
               position="bottom-start"
@@ -564,7 +567,10 @@ const NetworkGraphStory = ({
               triggerRef={frameRef}
               position="bottom-start"
               positionFromPoint={edgeTooltipPos}
-              onClose={() => setSelectedEdge(null)}
+              onClose={() => {
+                setSelected(null);
+                setSelectedEdge(null);
+              }}
               gapX={10}
               gapY={12}
             >

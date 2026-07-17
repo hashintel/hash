@@ -5,10 +5,14 @@ export { CharacterCount } from "./components/CharacterCount/character-count";
 export {
   NetworkGraph,
   type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphId,
   type NetworkGraphInteraction,
+  type NetworkGraphNeighbourhood,
   type NetworkGraphPoint,
   type NetworkGraphProps,
+  type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";

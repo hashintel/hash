@@ -330,27 +330,33 @@ export class CompactNodeLayer extends CompositeLayer<
               : []),
           ]
         : []),
-      // Rings around the nodes a hovered edge connects, seated just inside each
-      // node's white grow ring. Split into two layers because the hovered endpoint
-      // and its neighbour draw white rings of different sizes; each edge ring
-      // mirrors the matching grow ring's clamps so it hugs the inside of the right
-      // one. Compact view only, and only with a node active.
-      ...(showPoints && activeNode
+      // Rings around the nodes the emphasised edge connects, seated just inside each
+      // node's white grow ring. Split into two layers because an endpoint that is the
+      // active node draws a larger (hovered) white ring than a neighbour, so each edge
+      // ring mirrors the matching grow ring's clamps to hug the right one. Any
+      // endpoint that isn't the active node — including both endpoints of a lone
+      // selected edge (no active node) — hugs a neighbour-sized ring. Compact view only.
+      ...(showPoints && edgeHoverNodes.length > 0
         ? [
-            edgeHoverRing({
-              idSuffix: "edge-hover-outline-hovered",
-              data: edgeHoverNodes.filter(
-                (point) => point.id === activeNode.id,
-              ),
-              radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
-              radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
-              radiusMaxPixels:
-                POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER - GROW_RING_STROKE,
-            }),
+            ...(activeNode
+              ? [
+                  edgeHoverRing({
+                    idSuffix: "edge-hover-outline-hovered",
+                    data: edgeHoverNodes.filter(
+                      (point) => point.id === activeNode.id,
+                    ),
+                    radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
+                    radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
+                    radiusMaxPixels:
+                      POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER -
+                      GROW_RING_STROKE,
+                  }),
+                ]
+              : []),
             edgeHoverRing({
               idSuffix: "edge-hover-outline-neighbour",
               data: edgeHoverNodes.filter(
-                (point) => point.id !== activeNode.id,
+                (point) => point.id !== activeNode?.id,
               ),
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
