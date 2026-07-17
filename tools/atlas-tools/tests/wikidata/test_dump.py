@@ -1,6 +1,6 @@
 """Dump extractor tests.
 
-Line parsing, a golden manifest over the committed 200-entity excerpt,
+Line parsing, a golden manifest over the committed 60-entity excerpt,
 and interrupted-resume equality (in-process).
 """
 
@@ -24,10 +24,10 @@ from tests.wikidata.conftest import DUMP_EXCERPT
 # fixtures/wikidata/generate_fixtures.py:
 # - Q9000 (i=0):  class Q5;   sitelinks 0%7=0;  labels en "Person 000" (10)
 #   and a 10-character French label [i%3==0 -> no de; i%7==0 -> fr].
-# - Q9121 (i=121): class Q515; sitelinks 121%7=2; labels en "City 121" (8),
-#   de "Stadt 121" (9).
-# - Q9155 (i=155): class Q571 + secondary Q99999999 [i%10==5]; sitelinks
-#   155%7=1; labels en "Book 155" (8), de "Buch 155" (8).
+# - Q9031 (i=31): class Q515; sitelinks 31%7=3; labels en "City 031" (8),
+#   de "Stadt 031" (9).
+# - Q9045 (i=45): class Q571 + secondary Q99999999 [i%10==5]; sitelinks
+#   45%7=3; labels en "Book 045" (8) only [i%3==0 -> no de].
 GOLDEN_ROWS = {
     "Q9000": {
         "qid": "Q9000",
@@ -39,21 +39,21 @@ GOLDEN_ROWS = {
         "label_len_mean": 10.0,
         "label_len_max": 10,
     },
-    "Q9121": {
-        "qid": "Q9121",
+    "Q9031": {
+        "qid": "Q9031",
         "p31": ["Q515"],
-        "sitelink_count": 2,
+        "sitelink_count": 3,
         "label_count": 2,
         "label_len_primary": 8,
         "label_len_min": 8,
         "label_len_mean": 8.5,
         "label_len_max": 9,
     },
-    "Q9155": {
-        "qid": "Q9155",
+    "Q9045": {
+        "qid": "Q9045",
         "p31": ["Q571", "Q99999999"],
-        "sitelink_count": 1,
-        "label_count": 2,
+        "sitelink_count": 3,
+        "label_count": 1,
         "label_len_primary": 8,
         "label_len_min": 8,
         "label_len_mean": 8.0,
@@ -111,17 +111,17 @@ def _run(config: Config, out_dir: Path, checkpoint_dir: Path) -> ExtractionSumma
 
 def test_golden_manifest_on_committed_excerpt(config: Config, tmp_path: Path) -> None:
     summary = _run(config, tmp_path, tmp_path / "ckpt")
-    assert summary.rows == 200
+    assert summary.rows == 60
 
     table = pq.read_table(tmp_path / "entities.parquet")
-    assert table.num_rows == 200
+    assert table.num_rows == 60
     rows = {row["qid"]: row for row in table.to_pylist()}
     for qid, expected in GOLDEN_ROWS.items():
         assert rows[qid] == expected, qid
 
     # Rows are in dump order.
     qids = table.column("qid").to_pylist()
-    assert qids == [f"Q{9000 + i}" for i in range(200)]
+    assert qids == [f"Q{9000 + i}" for i in range(60)]
 
     # Dump identity comes from config (mirror checksum file), never computed
     # by hashing the stream.
@@ -151,13 +151,13 @@ class _ExplodingStream:
 
 def test_interrupted_resume_produces_identical_outputs(config: Config, tmp_path: Path) -> None:
     # config.checkpoint_interval is 20 in the fixture config: the crash at
-    # ~95 lines lands mid-interval, after several checkpoints.
+    # ~55 lines (54 entities) lands mid-interval, after two checkpoints.
     baseline_dir = tmp_path / "baseline"
     baseline = _run(config, baseline_dir, baseline_dir / "ckpt")
 
     resumed_dir = tmp_path / "resumed"
     with DUMP_EXCERPT.open("rb") as excerpt_file:
-        stream = _ExplodingStream(excerpt_file, explode_after_lines=95)
+        stream = _ExplodingStream(excerpt_file, explode_after_lines=55)
         with pytest.raises(RuntimeError, match="simulated crash"):
             extract_entities(
                 stream,

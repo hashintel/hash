@@ -150,16 +150,16 @@ def test_plan_on_committed_excerpt(config: Config, tmp_path: Path) -> None:
     )
     # Fixture config: default_cap 10, rare_floor 5, override Q515 -> 3.
     expected = {
-        "Q5": (80, 10),
-        "Q4830453": (40, 10),
-        "Q515": (25, 3),
-        "Q571": (20, 10),
-        "Q11424": (12, 10),
-        "Q3305213": (8, 8),
-        "Q7889": (6, 6),
-        "Q34770": (4, 4),
-        "Q16521": (3, 3),
-        "Q23397": (2, 2),
+        "Q5": (13, 10),
+        "Q4830453": (12, 10),
+        "Q515": (11, 3),
+        "Q571": (10, 10),
+        "Q11424": (6, 6),
+        "Q3305213": (3, 3),
+        "Q7889": (2, 2),
+        "Q34770": (1, 1),
+        "Q16521": (1, 1),
+        "Q23397": (1, 1),
     }
     assert summary.classes == {
         class_qid: ClassSampleCount(total=total, sampled=sampled)

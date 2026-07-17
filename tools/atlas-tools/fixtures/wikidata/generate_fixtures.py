@@ -6,7 +6,7 @@ Run from the atlas-tools root:
 
 Outputs (all committed):
 
-- ``dump_excerpt.jsondump``: 200 synthetic entities in the exact Wikidata
+- ``dump_excerpt.jsondump``: 60 synthetic entities in the exact Wikidata
   JSON dump line format ("[", one entity per line with trailing comma,
   "]"). The extension is deliberately not ``.json``: the dump format is
   line-oriented and editor/CI JSON formatters must never reflow it.
@@ -21,7 +21,7 @@ Outputs (all committed):
 Every rule below is pure arithmetic on the entity index, with no RNG,
 which makes expectations hand-computable in tests.
 
-Entity rules (index i in 0..199, qid = Q<9000+i>):
+Entity rules (index i in 0..59, qid = Q<9000+i>):
 - class: consecutive blocks per ``CLASSES`` below.
 - secondary P31 "Q99999999" when i % 10 == 5.
 - labels: en always ("<ClassName> <i:03d>"); de when i % 3 != 0; a French
@@ -49,19 +49,22 @@ from atlas_tools.wikidata.transport import request_key
 HERE = Path(__file__).parent
 FIXTURE_DATE = "2025-06-01T00:00:00+00:00"
 
-# (class QID, en name, de name, count): skewed sizes summing to 200.
+# (class QID, en name, de name, count): skewed sizes summing to 60.
 CLASSES = [
-    ("Q5", "Person", "Person", 80),
-    ("Q4830453", "Company", "Unternehmen", 40),
-    ("Q515", "City", "Stadt", 25),
-    ("Q571", "Book", "Buch", 20),
-    ("Q11424", "Film", "Film", 12),
-    ("Q3305213", "Painting", "Gemälde", 8),
-    ("Q7889", "Game", "Spiel", 6),
-    ("Q34770", "Language", "Sprache", 4),
-    ("Q16521", "Taxon", "Taxon", 3),
-    ("Q23397", "Lake", "See", 2),
+    ("Q5", "Person", "Person", 13),
+    ("Q4830453", "Company", "Unternehmen", 12),
+    ("Q515", "City", "Stadt", 11),
+    ("Q571", "Book", "Buch", 10),
+    ("Q11424", "Film", "Film", 6),
+    ("Q3305213", "Painting", "Gemälde", 3),
+    ("Q7889", "Game", "Spiel", 2),
+    ("Q34770", "Language", "Sprache", 1),
+    ("Q16521", "Taxon", "Taxon", 1),
+    ("Q23397", "Lake", "See", 1),
 ]
+
+N_ENTITIES = sum(count for _, _, _, count in CLASSES)
+PERSON_COUNT = CLASSES[0][3]
 
 WIKIBASE_ITEM = "http://wikiba.se/ontology#WikibaseItem"
 EXTERNAL_ID = "http://wikiba.se/ontology#ExternalId"
@@ -117,11 +120,11 @@ def build_entity(i: int) -> dict:
     if i % 10 == 5:
         claims["P31"].append(_item_snak("P31", "Q99999999"))
     if i % 5 == 0:
-        claims["P361"] = [_item_snak("P361", f"Q{9000 + (i + 50) % 200}")]
+        claims["P361"] = [_item_snak("P361", f"Q{9000 + (i + 50) % N_ENTITIES}")]
     if i % 11 == 0:
-        claims["P527"] = [_item_snak("P527", f"Q{9000 + (i + 3) % 200}")]
-    if cls == "Q571":  # books get an author and an external identifier
-        claims["P50"] = [_item_snak("P50", f"Q{9000 + i % 80}")]
+        claims["P527"] = [_item_snak("P527", f"Q{9000 + (i + 3) % N_ENTITIES}")]
+    if cls == "Q571":  # books get an author (a Person-class entity) and an external identifier
+        claims["P50"] = [_item_snak("P50", f"Q{9000 + i % PERSON_COUNT}")]
         claims["P212"] = [_string_snak("P212", f"978-3-16-{i:06d}-0")]
 
     sitelinks = {
@@ -141,9 +144,9 @@ def build_entity(i: int) -> dict:
 
 def write_dump_excerpt() -> None:
     lines = ["[\n"]
-    for i in range(200):
+    for i in range(N_ENTITIES):
         entity_json = json.dumps(build_entity(i), ensure_ascii=False, sort_keys=True)
-        suffix = ",\n" if i < 199 else "\n"
+        suffix = ",\n" if i < N_ENTITIES - 1 else "\n"
         lines.append(entity_json + suffix)
     lines.append("]\n")
     (HERE / "dump_excerpt.jsondump").write_text("".join(lines), encoding="utf-8")

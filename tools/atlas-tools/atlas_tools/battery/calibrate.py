@@ -22,7 +22,7 @@ Calibration manifest schema (version 1, :class:`CalibrationManifest`)::
       normalized_persistence_frac: 0.05
 
 The committed fixture ``fixtures/battery/calibration/`` is a small deterministic synthetic
-reference (a few blobs, about 2k points). The operator's real large-scale reference layout
+reference (a few blobs, a few hundred points). The operator's real large-scale reference layout
 drops in later using exactly this mechanism: the same command, a bigger layout.npz, and its
 recorded values.
 """
